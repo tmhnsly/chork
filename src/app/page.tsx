@@ -1,22 +1,30 @@
-import { Container, Heading, Text, Section } from "@radix-ui/themes";
+import { Container, Heading, Text, Section, Flex } from "@radix-ui/themes";
 
 export default function Home() {
   return (
     <main>
-      <Container>
-        <Section size={"2"}>
-          <Heading size={"9"} mb={"4"}>
-            Welcome to Chork
-          </Heading>
+      <Section
+        size={"4"}
+        px={{ initial: "4", sm: "0" }}
+        style={{ backgroundColor: "var(--slate-2)" }}
+      >
+        <Container size={"2"}>
+          <Flex align={"end"} direction={"column"}>
+            <Heading size={"9"}>Chork</Heading>
+            <Text size={"3"}>Stick to your climbing goals.</Text>
+          </Flex>
+        </Container>
+      </Section>
+      <Section size={"1"} px={{ initial: "4", sm: "0" }}>
+        <Container size={"2"}>
+          <Heading>What?</Heading>
           <Text>
-            Here is a second section, where more things go. Here is where
-            we&apos;ll add some text for a body of content. This can include
-            paragraphs about features, benefits, or anything relevant to the
-            Chork application. The content should be informative and engaging to
-            help users understand what Chork offers.
+            Chork is a simple app to help you get to grip on your climbing
+            goals. Whether you&apos;re a seasoned pro or just starting out,
+            Chork helps you track your progress and stay motivated.
           </Text>
-        </Section>
-      </Container>
+        </Container>
+      </Section>
     </main>
   );
 }

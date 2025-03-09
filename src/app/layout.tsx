@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Theme, ThemePanel } from "@radix-ui/themes";
-
-import "@radix-ui/themes/styles.css";
-
-import "./globals.css";
+import { Theme } from "@radix-ui/themes";
 import { ThemeProvider } from "next-themes";
+import "./globals.css";
+import "@radix-ui/themes/styles.css";
+import { Toaster } from "@/components/Toaster/Toaster";
+import { MainNav } from "@/components/MainNav/MainNav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -22,7 +22,7 @@ export const metadata: Metadata = {
   description: "Let's get chalky",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -31,9 +31,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeProvider attribute="class">
-          <Theme>
+          <Theme radius="full">
+            <MainNav />
             {children}
-            <ThemePanel />
+            <Toaster />
           </Theme>
         </ThemeProvider>
       </body>
