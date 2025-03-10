@@ -1,10 +1,11 @@
 import React from "react";
-import { FaUser } from "react-icons/fa6";
+import { BiAnalyse, BiUser } from "react-icons/bi";
 import { createClient } from "@/lib/supabase/server";
-import { SignInButton } from "@/components/SignInButton/SignInButton";
 import { SignOutButton } from "@/components/SignOutButton/SignOutButton";
-import { Flex, DropdownMenu, Separator, Avatar } from "@radix-ui/themes";
+import { Flex, DropdownMenu, Separator, Avatar, Text } from "@radix-ui/themes";
 import NextLink from "next/link";
+
+import styles from "./userAccountNav.module.scss";
 
 export async function UserAccountNav() {
   const supabase = createClient();
@@ -12,8 +13,13 @@ export async function UserAccountNav() {
     data: { user },
   } = await (await supabase).auth.getUser();
 
+  // Show loading spinner while user data is being fetched
   if (!user) {
-    return <SignInButton />;
+    return (
+      <div className={styles.spinnerContainer}>
+        <BiAnalyse size={"24"} />
+      </div>
+    );
   }
 
   const avatarUrl = user.user_metadata?.avatar_url || null;
@@ -24,34 +30,25 @@ export async function UserAccountNav() {
   return (
     <DropdownMenu.Root>
       <DropdownMenu.Trigger>
-        <button
-          style={{
-            background: "transparent",
-            border: "none",
-            padding: 0,
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-          aria-label="User menu"
-        >
+        <button className={styles.userMenuButton} aria-label="User menu">
           <Avatar
             src={avatarUrl}
-            fallback={firstLetter || <FaUser color="var(--gray-9)" />}
+            fallback={firstLetter || <BiUser color="var(--gray-9)" />}
             size="4"
+            radius="large"
           />
         </button>
       </DropdownMenu.Trigger>
-
       {/* DROPDOWN CONTENT */}
       <DropdownMenu.Content>
-        <Flex direction={"column"} gap={"2"}>
-          <DropdownMenu.Item>
-            <NextLink href="/profile">My Profile</NextLink>
-          </DropdownMenu.Item>
-          <DropdownMenu.Item>
-            <NextLink href="/settings">Settings</NextLink>
+        <Flex direction={"column"} gap={"2"} style={{ width: "150px" }}>
+          <DropdownMenu.Item asChild>
+            <NextLink href="/profile">
+              <Flex align="center" gap="2" justify={"between"} width={"100%"}>
+                <Text>My Profile</Text>
+                <BiUser size={"16"} />
+              </Flex>
+            </NextLink>
           </DropdownMenu.Item>
           <Separator size="4" />
           <DropdownMenu.Item asChild>

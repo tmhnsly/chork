@@ -10,18 +10,12 @@ export function SignOutButton() {
 
   async function handleLogout() {
     await supabase.auth.signOut();
-    router.push("/signin");
+    router.push("/");
     router.refresh();
   }
 
   return (
-    <Button
-      variant="soft"
-      color="red"
-      size="2"
-      style={{ width: "100%" }}
-      onClick={handleLogout}
-    >
+    <Button variant="soft" color="red" size="2" onClick={handleLogout}>
       Sign out
     </Button>
   );

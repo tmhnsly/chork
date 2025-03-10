@@ -1,4 +1,5 @@
 import { Container, Heading, Text, Section, Flex } from "@radix-ui/themes";
+import SignInDialog from "@/components/SignInDialog/SignInDialog";
 
 export default function Home() {
   return (
@@ -9,20 +10,28 @@ export default function Home() {
         style={{ backgroundColor: "var(--slate-2)" }}
       >
         <Container size={"2"}>
-          <Flex align={"end"} direction={"column"}>
-            <Heading size={"9"}>Chork</Heading>
-            <Text size={"3"}>Stick to your climbing goals.</Text>
+          <Flex direction={"column"}>
+            <Heading size={"9"}>🧗Chork</Heading>
+            <Text size={"5"} mb={"9"}>
+              Stick to your climbing goals.
+            </Text>
+            <SignInDialog />
           </Flex>
         </Container>
       </Section>
       <Section size={"1"} px={{ initial: "4", sm: "0" }}>
         <Container size={"2"}>
-          <Heading>What?</Heading>
-          <Text>
-            Chork is a simple app to help you get to grip on your climbing
-            goals. Whether you&apos;re a seasoned pro or just starting out,
-            Chork helps you track your progress and stay motivated.
-          </Text>
+          <Flex direction={"column"} gap={"3"}>
+            <Heading>What is Chork?</Heading>
+            <Text>
+              It&apos;s everybody&apos;s favourite white powder - for your
+              phone.
+            </Text>
+            <Text>
+              Track your climbs, collect achievements, and see your progress
+              over time.
+            </Text>
+          </Flex>
         </Container>
       </Section>
     </main>

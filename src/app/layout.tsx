@@ -4,8 +4,7 @@ import { Theme } from "@radix-ui/themes";
 import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import "@radix-ui/themes/styles.css";
-import { Toaster } from "@/components/Toaster/Toaster";
-import { MainNav } from "@/components/MainNav/MainNav";
+import { NavBar } from "@/components/NavBar/NavBar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,9 +31,8 @@ export default async function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <ThemeProvider attribute="class">
           <Theme radius="full">
-            <MainNav />
             {children}
-            <Toaster />
+            <NavBar />
           </Theme>
         </ThemeProvider>
       </body>
