@@ -1,0 +1,124 @@
+/* Light mode */
+@use "@radix-ui/colors/slate.css";
+@use "@radix-ui/colors/lime.css";
+@use "@radix-ui/colors/red.css";
+@use "@radix-ui/colors/teal.css";
+@use "@radix-ui/colors/amber.css";
+@use "@radix-ui/colors/orange.css";
+
+/* Dark mode */
+@use "@radix-ui/colors/slate-dark.css";
+@use "@radix-ui/colors/lime-dark.css";
+@use "@radix-ui/colors/red-dark.css";
+@use "@radix-ui/colors/teal-dark.css";
+@use "@radix-ui/colors/amber-dark.css";
+@use "@radix-ui/colors/orange-dark.css";
+
+/*
+ * Semantic token layer — maps Radix steps 1–12 to role-based names.
+ * Steps 11/12 have guaranteed APCA contrast on step-2 backgrounds.
+ * Lime/amber step 9–10 use dark foreground text (bright bg colors).
+ */
+:root {
+  /* Mono (Slate) */
+  --mono-app-bg: var(--slate-1);
+  --mono-subtle-bg: var(--slate-2);
+  --mono-bg: var(--slate-3);
+  --mono-bg-hover: var(--slate-4);
+  --mono-bg-active: var(--slate-5);
+  --mono-border-subtle: var(--slate-6);
+  --mono-border: var(--slate-7);
+  --mono-border-hover: var(--slate-8);
+  --mono-solid: var(--slate-9);
+  --mono-solid-hover: var(--slate-10);
+  --mono-text-low-contrast: var(--slate-11);
+  --mono-text: var(--slate-12);
+
+  /* Accent (Lime) */
+  --accent-app-bg: var(--lime-1);
+  --accent-subtle-bg: var(--lime-2);
+  --accent-bg: var(--lime-3);
+  --accent-bg-hover: var(--lime-4);
+  --accent-bg-active: var(--lime-5);
+  --accent-border-subtle: var(--lime-6);
+  --accent-border: var(--lime-7);
+  --accent-border-hover: var(--lime-8);
+  --accent-solid: var(--lime-9);
+  --accent-solid-hover: var(--lime-10);
+  --accent-text-low-contrast: var(--lime-11);
+  --accent-text: var(--lime-12);
+  --accent-on-solid: #1a1a1a;
+
+  /* Error (Red) */
+  --error-app-bg: var(--red-1);
+  --error-subtle-bg: var(--red-2);
+  --error-bg: var(--red-3);
+  --error-bg-hover: var(--red-4);
+  --error-bg-active: var(--red-5);
+  --error-border-subtle: var(--red-6);
+  --error-border: var(--red-7);
+  --error-border-hover: var(--red-8);
+  --error-solid: var(--red-9);
+  --error-solid-hover: var(--red-10);
+  --error-text-low-contrast: var(--red-11);
+  --error-text: var(--red-12);
+  --error-on-solid: #fff;
+
+  /* Success (Teal) */
+  --success-app-bg: var(--teal-1);
+  --success-subtle-bg: var(--teal-2);
+  --success-bg: var(--teal-3);
+  --success-bg-hover: var(--teal-4);
+  --success-bg-active: var(--teal-5);
+  --success-border-subtle: var(--teal-6);
+  --success-border: var(--teal-7);
+  --success-border-hover: var(--teal-8);
+  --success-solid: var(--teal-9);
+  --success-solid-hover: var(--teal-10);
+  --success-text-low-contrast: var(--teal-11);
+  --success-text: var(--teal-12);
+  --success-on-solid: #fff;
+
+  /* Warning (Orange) */
+  --warning-app-bg: var(--orange-1);
+  --warning-subtle-bg: var(--orange-2);
+  --warning-bg: var(--orange-3);
+  --warning-bg-hover: var(--orange-4);
+  --warning-bg-active: var(--orange-5);
+  --warning-border-subtle: var(--orange-6);
+  --warning-border: var(--orange-7);
+  --warning-border-hover: var(--orange-8);
+  --warning-solid: var(--orange-9);
+  --warning-solid-hover: var(--orange-10);
+  --warning-text-low-contrast: var(--orange-11);
+  --warning-text: var(--orange-12);
+  --warning-on-solid: #21201c;
+
+  /* Info (reuses Lime for brand consistency) */
+  --info-app-bg: var(--lime-1);
+  --info-subtle-bg: var(--lime-2);
+  --info-bg: var(--lime-3);
+  --info-bg-hover: var(--lime-4);
+  --info-bg-active: var(--lime-5);
+  --info-border-subtle: var(--lime-6);
+  --info-border: var(--lime-7);
+  --info-border-hover: var(--lime-8);
+  --info-solid: var(--lime-9);
+  --info-solid-hover: var(--lime-10);
+  --info-text-low-contrast: var(--lime-11);
+  --info-text: var(--lime-12);
+  --info-on-solid: #1a1a1a;
+
+  /* Flash badge (Amber) */
+  --flash-app-bg: var(--amber-1);
+  --flash-subtle-bg: var(--amber-2);
+  --flash-solid: var(--amber-9);
+  --flash-solid-hover: var(--amber-10);
+  --flash-text-low-contrast: var(--amber-11);
+  --flash-on-solid: #21201c;
+
+  --focus-ring: var(--lime-8);
+
+  --app-bg: var(--mono-app-bg);
+  --app-text: var(--mono-text);
+}

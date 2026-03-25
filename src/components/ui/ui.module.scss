@@ -1,0 +1,192 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+
+// ── Form field ──────────────────────────────────────
+.field {
+  @include layout.stack(var(--space-1));
+}
+
+.label {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.input {
+  @include type.typography(body);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-2);
+  border: 1px solid var(--mono-border);
+  background: var(--mono-app-bg);
+  color: var(--mono-text);
+  outline: none;
+  transition: border-color var(--duration-fast) var(--ease-out);
+
+  &:focus {
+    border-color: var(--focus-ring);
+  }
+
+  &::placeholder {
+    color: var(--mono-text-low-contrast);
+    opacity: 0.5;
+  }
+}
+
+.fieldError {
+  @include type.typography(meta);
+  color: var(--error-text-low-contrast);
+}
+
+// ── Avatar picker ───────────────────────────────────
+.avatarSection {
+  @include layout.stack(var(--space-2));
+}
+
+.avatarPicker {
+  width: 80px;
+  height: 80px;
+  border-radius: var(--radius-full);
+  border: 2px dashed var(--mono-border);
+  background: var(--mono-subtle-bg);
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    border-color: var(--mono-border-hover);
+  }
+}
+
+.avatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatarFallback {
+  @include type.typography(number);
+  color: var(--mono-text-low-contrast);
+}
+
+.avatarLabel {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+// ── Buttons (all 44px min tap target) ───────────────
+%btn-base {
+  @include type.typography(button);
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-2);
+  border: none;
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.btnPrimary {
+  @extend %btn-base;
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+
+  &:hover:not(:disabled) {
+    background: var(--accent-solid-hover);
+  }
+}
+
+.btnSecondary {
+  @extend %btn-base;
+  border: 1px solid var(--mono-border);
+  background: var(--mono-app-bg);
+  color: var(--mono-text);
+
+  &:hover:not(:disabled) {
+    background: var(--mono-bg-hover);
+  }
+}
+
+.btnGhost {
+  @extend %btn-base;
+  padding: 0 var(--space-3);
+  background: transparent;
+  color: var(--mono-text-low-contrast);
+
+  &:hover:not(:disabled) {
+    color: var(--mono-text);
+  }
+}
+
+.btnDanger {
+  @extend %btn-base;
+  border: 1px solid var(--error-border);
+  background: transparent;
+  color: var(--error-text-low-contrast);
+
+  &:hover:not(:disabled) {
+    background: var(--error-subtle-bg);
+    color: var(--error-solid);
+  }
+}
+
+// ── Banner ──────────────────────────────────────────
+.banner {
+  @include type.typography(meta);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-left: 3px solid;
+}
+
+.bannerIcon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  height: 1lh;
+}
+
+.bannerContent {
+  min-width: 0;
+}
+
+.banner--info {
+  background: var(--info-subtle-bg);
+  border-left-color: var(--info-solid);
+  color: var(--info-text-low-contrast);
+
+  .bannerIcon { color: var(--info-solid); }
+}
+
+.banner--success {
+  background: var(--success-subtle-bg);
+  border-left-color: var(--success-solid);
+  color: var(--success-text-low-contrast);
+
+  .bannerIcon { color: var(--success-solid); }
+}
+
+.banner--warning {
+  background: var(--warning-subtle-bg);
+  border-left-color: var(--warning-solid);
+  color: var(--warning-text-low-contrast);
+
+  .bannerIcon { color: var(--warning-solid); }
+}
+
+.banner--error {
+  background: var(--error-subtle-bg);
+  border-left-color: var(--error-solid);
+  color: var(--error-text-low-contrast);
+
+  .bannerIcon { color: var(--error-solid); }
+}

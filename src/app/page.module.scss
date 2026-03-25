@@ -1,0 +1,55 @@
+@use "mixins/typography" as type;
+
+.landing {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--space-8) var(--gutter-x);
+  gap: var(--space-4);
+}
+
+.app {
+  min-height: 100vh;
+  padding: var(--space-8) var(--gutter-x);
+  padding-top: calc(var(--navbar-height) + var(--space-8));
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.title {
+  @include type.typography(display);
+}
+
+.tagline {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+}
+
+.cta {
+  @include type.typography(button);
+  align-self: flex-start;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 var(--space-6);
+  border-radius: var(--radius-2);
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+  transition: background var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    background: var(--accent-solid-hover);
+  }
+}
+
+.greeting {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+  margin-top: var(--space-2);
+}
+
+.empty {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+}

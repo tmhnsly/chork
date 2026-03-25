@@ -1,0 +1,73 @@
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+
+.toast {
+  @include type.typography(meta);
+  @include surface.chrome;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-3);
+  max-width: min(90vw, 560px);
+  pointer-events: auto;
+}
+
+.icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  height: 1lh;
+}
+
+.message {
+  min-width: 0;
+}
+
+// ── Variants ────────────────────────────────────────
+.toast--info {
+  .icon { color: var(--info-solid); }
+}
+
+.toast--success {
+  .icon { color: var(--success-solid); }
+}
+
+.toast--warning {
+  .icon { color: var(--warning-solid); }
+}
+
+.toast--error {
+  .icon { color: var(--error-solid); }
+}
+
+// ── Animation ───────────────────────────────────────
+.enter {
+  animation: slideIn var(--duration-normal) var(--ease-out);
+}
+
+.exit {
+  animation: slideOut var(--duration-fast) var(--ease-out) forwards;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}

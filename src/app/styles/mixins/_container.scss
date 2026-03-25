@@ -1,0 +1,22 @@
+// Container layout mixins — gutters, content constraint, full-bleed.
+// Usage: @use 'mixins/container' as container;
+//
+// Gutters read from --gutter-x (responsive via media query in spacing.scss).
+// Content max-width reads from --content-max.
+
+@mixin fullBleed {
+  width: 100%;
+}
+
+@mixin gutters {
+  padding-left: var(--gutter-x);
+  padding-right: var(--gutter-x);
+}
+
+@mixin content($max: var(--content-max)) {
+  width: 100%;
+  max-width: #{$max};
+  margin-left: auto;
+  margin-right: auto;
+  @include gutters;
+}

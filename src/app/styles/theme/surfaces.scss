@@ -1,0 +1,8 @@
+/*
+ * Surface tokens — dividers and shadows.
+ */
+:root {
+  --surface-divider: var(--mono-border-subtle);
+  --surface-shadow: color-mix(in srgb, var(--mono-solid) 5%, transparent);
+  --surface-shadow-lg: color-mix(in srgb, var(--mono-solid) 12%, transparent);
+}

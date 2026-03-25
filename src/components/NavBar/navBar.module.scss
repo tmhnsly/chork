@@ -1,9 +1,71 @@
-.container {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+@use "mixins/layout" as layout;
+
+.bar {
+  @include surface.chrome;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-navbar);
+  height: var(--navbar-height);
+  display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 0 var(--gutter-x);
+}
+
+.logoLink {
+  @include layout.cluster(var(--space-2));
+  min-height: 44px;
+}
+
+.logoIcon {
+  width: 22px;
+  height: 22px;
+  color: var(--accent-solid);
+}
+
+.logoText {
+  @include type.typography(label);
+  font-size: var(--text-sm);
+}
+
+.right {
+  @include layout.cluster(var(--space-3));
+}
+
+.signIn {
+  @include type.typography(button);
+  min-height: 44px;
+  display: flex;
   align-items: center;
-  height: 64px;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-2);
+  border: 1px solid var(--mono-border);
+  color: var(--mono-text);
+  transition: background var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    background: var(--mono-bg-hover);
+  }
+}
+
+.avatarLink {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
 }

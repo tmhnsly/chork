@@ -1,0 +1,102 @@
+// Typography preset mixin — enforce consistent text roles across components.
+// Usage: @use 'mixins/typography' as type; then @include type.typography(card-title);
+//
+// Each preset defines size, leading, weight, tracking, family,
+// and optional transform / style (italic).
+// Family maps: heading → --font-heading (Outfit), body → --font-body (Inter).
+@use "sass:map";
+
+$_typography: (
+  // Large display heading — "PUNCH CARD", page heroes. Bold italic uppercase.
+  display: (
+    size: var(--text-5xl),
+    leading: var(--leading-tight),
+    weight: var(--weight-black),
+    tracking: var(--tracking-tight),
+    family: var(--font-heading),
+    transform: uppercase,
+    style: italic,
+  ),
+  // Page-level heading
+  page-title: (
+    size: var(--text-3xl),
+    leading: var(--leading-tight),
+    weight: var(--weight-bold),
+    tracking: var(--tracking-tight),
+    family: var(--font-heading),
+  ),
+  // Card / section heading
+  card-title: (
+    size: var(--text-lg),
+    leading: var(--leading-snug),
+    weight: var(--weight-bold),
+    tracking: var(--tracking-tight),
+    family: var(--font-heading),
+  ),
+  // Large numeric displays — "14/20", "65%". Italic to match display.
+  number: (
+    size: var(--text-2xl),
+    leading: var(--leading-tight),
+    weight: var(--weight-bold),
+    tracking: var(--tracking-tight),
+    family: var(--font-heading),
+    style: italic,
+  ),
+  // Uppercase labels — "CURRENT SESSION", "FLASH RATE", "COMPLETED"
+  label: (
+    size: var(--text-xs),
+    leading: var(--leading-snug),
+    weight: var(--weight-semibold),
+    tracking: var(--tracking-wide),
+    family: var(--font-heading),
+    transform: uppercase,
+  ),
+  // Default body text
+  body: (
+    size: var(--text-md),
+    leading: var(--leading-normal),
+    weight: var(--weight-regular),
+    tracking: var(--tracking-normal),
+    family: var(--font-body),
+  ),
+  // Timestamps, secondary info
+  meta: (
+    size: var(--text-sm),
+    leading: var(--leading-normal),
+    weight: var(--weight-medium),
+    tracking: var(--tracking-normal),
+    family: var(--font-body),
+  ),
+  // Button text
+  button: (
+    size: var(--text-sm),
+    leading: var(--leading-snug),
+    weight: var(--weight-semibold),
+    tracking: var(--tracking-normal),
+    family: var(--font-body),
+  ),
+);
+
+@mixin typography($preset) {
+  $p: map.get($_typography, $preset);
+
+  @if $p == null {
+    @error "Unknown typography preset: #{$preset}";
+  }
+
+  font-family: map.get($p, family);
+  font-size: map.get($p, size);
+  line-height: map.get($p, leading);
+  font-weight: map.get($p, weight);
+  letter-spacing: map.get($p, tracking);
+
+  $transform: map.get($p, transform);
+  @if $transform {
+    text-transform: $transform;
+  }
+
+  $style: map.get($p, style);
+  @if $style {
+    font-style: $style;
+  }
+}

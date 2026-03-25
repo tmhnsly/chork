@@ -1,0 +1,35 @@
+@use 'mixins/breakpoints' as bp;
+
+:root {
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-7: 1.75rem;
+  --space-8: 2rem;
+  --space-9: 2.25rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-14: 3.5rem;
+  --space-16: 4rem;
+  --space-18: 4.5rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  --content-max: 90rem;
+  --gutter-x: var(--space-2);
+  --section-gap: var(--space-12);
+  --navbar-height: 3.5rem;
+
+  --stack-gap: var(--space-6);
+  --cluster-gap: var(--space-3);
+}
+
+@include bp.tablet {
+  :root {
+    --gutter-x: var(--space-8);
+    --section-gap: var(--space-16);
+  }
+}

@@ -1,0 +1,16 @@
+// Surface mixins — solid card and chrome backgrounds.
+// Usage: @use 'mixins/surfaces' as surface;
+
+// ── Card ────────────────────────────────────────────
+// Solid card for content panels, forms, profile cards.
+@mixin card {
+  background-color: var(--mono-subtle-bg);
+  border: 1px solid var(--mono-border-subtle);
+}
+
+// ── Chrome ──────────────────────────────────────────
+// Solid chrome for sticky UI (navbar, popovers, dropdowns).
+@mixin chrome {
+  background-color: var(--mono-subtle-bg);
+  border-bottom: 1px solid var(--mono-border-subtle);
+}

@@ -1,0 +1,79 @@
+@use "mixins/typography" as type;
+
+.tile {
+  position: relative;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--mono-border-subtle);
+  background: var(--mono-bg);
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+  min-width: 44px;
+  min-height: 44px;
+  container-type: inline-size;
+
+  &:hover {
+    border-color: var(--mono-border-hover);
+  }
+}
+
+.number {
+  font-family: var(--font-heading);
+  font-weight: var(--weight-black);
+  font-style: italic;
+  font-size: 45cqi;
+  line-height: 1;
+  letter-spacing: var(--tracking-tight);
+  text-align: center;
+  width: 100%;
+}
+
+// ── States ──────────────────────────────────────────
+.empty {
+  color: var(--mono-text-low-contrast);
+}
+
+.attempted {
+  background: var(--mono-solid);
+  border-color: var(--mono-solid);
+  color: var(--mono-app-bg);
+}
+
+.completed {
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
+  color: var(--accent-on-solid);
+}
+
+.flash {
+  background: var(--flash-solid);
+  border-color: var(--flash-solid);
+  color: var(--flash-on-solid, var(--mono-app-bg));
+}
+
+// ── Zone badge ──────────────────────────────────────
+.zoneBadge {
+  position: absolute;
+  top: var(--space-1);
+  left: var(--space-1);
+  font-size: 10cqi;
+  color: var(--accent-on-solid);
+  opacity: 0.7;
+
+  .empty &,
+  .attempted & {
+    color: var(--mono-text-low-contrast);
+  }
+}
+
+// ── Flash badge ─────────────────────────────────────
+.flashBadge {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  font-size: 12cqi;
+  color: var(--flash-on-solid);
+}

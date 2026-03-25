@@ -1,0 +1,15 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+
+.wrapper {
+  @include layout.stack(var(--space-5));
+}
+
+.section {
+  @include layout.stack(var(--space-2));
+}
+
+.sectionLabel {
+  @include type.typography(label);
+  color: var(--accent-text-low-contrast);
+}

@@ -1,0 +1,421 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+@use "mixins/surfaces" as surface;
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, black 60%, transparent);
+  z-index: var(--z-overlay);
+  animation: fadeIn var(--duration-fast) var(--ease-out);
+}
+
+.content {
+  @include surface.card;
+  @include layout.stack(var(--space-5));
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: var(--z-overlay);
+  border-radius: var(--radius-3) var(--radius-3) 0 0;
+  padding: var(--space-4) var(--gutter-x) var(--space-8);
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: slideUp var(--duration-normal) var(--ease-out);
+}
+
+.handle {
+  width: 36px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: var(--mono-border);
+  margin: 0 auto;
+}
+
+// ── Header ──────────────────────────────────────────
+.header {
+  @include layout.stack(var(--space-1));
+  text-align: center;
+}
+
+.routeNumber {
+  @include type.typography(display);
+}
+
+.status {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+}
+
+.statusFlash {
+  color: var(--flash-solid);
+}
+
+.flashIcon {
+  font-size: 0.85em;
+}
+
+// ── Counter ─────────────────────────────────────────
+.counter {
+  @include layout.stack(var(--space-2));
+  align-items: center;
+}
+
+.counterLabel {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.counterControls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+// ── Completed actions ──────────────────────────────
+.completedActions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.counterBtn {
+  @include type.typography(button);
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-2);
+  border: 1px solid var(--mono-border);
+  background: var(--mono-subtle-bg);
+  color: var(--mono-text);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+
+  &:hover:not(:disabled) {
+    background: var(--mono-bg-hover);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.counterValue {
+  @include type.typography(number);
+  min-width: 2ch;
+  text-align: center;
+}
+
+// ── Zone toggle ────────────────────────────────────
+.zoneToggle {
+  @include type.typography(button);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  width: 100%;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--mono-border);
+  background: var(--mono-subtle-bg);
+  color: var(--mono-text-low-contrast);
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    border-color: var(--mono-border-hover);
+  }
+}
+
+.zoneToggleOn {
+  background: var(--accent-subtle-bg);
+  border-color: var(--accent-solid);
+  color: var(--accent-text-low-contrast);
+}
+
+.zoneIcon {
+  font-size: var(--text-lg);
+}
+
+.zonePts {
+  margin-left: auto;
+  @include type.typography(meta);
+  color: var(--accent-solid);
+}
+
+// ── Beta spray ──────────────────────────────────────
+.betaSection {
+  @include layout.stack(var(--space-3));
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--surface-divider);
+}
+
+.betaHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sectionLabel {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.betaToggle {
+  @include type.typography(button);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: none;
+  border-radius: var(--radius-2);
+  background: transparent;
+  color: var(--accent-text-low-contrast);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--accent-solid);
+  }
+}
+
+.betaBlurred {
+  filter: blur(6px);
+  user-select: none;
+  pointer-events: none;
+}
+
+.betaEmpty {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+.commentList {
+  @include layout.stack(var(--space-4));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.commentItem {
+  // wrapper only
+}
+
+.commentRow {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.avatarLink {
+  flex-shrink: 0;
+  display: block;
+  min-width: 32px; // tap target padding handled by surrounding gap
+}
+
+.commentAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+}
+
+.commentAvatarFallback {
+  display: block;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background: var(--mono-subtle-bg);
+}
+
+.commentContent {
+  flex: 1;
+  min-width: 0;
+  @include layout.stack(var(--space-1));
+}
+
+.commentMeta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.commentAuthor {
+  @include type.typography(meta);
+  font-weight: var(--weight-semibold);
+  color: var(--mono-text);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--accent-solid);
+  }
+}
+
+.commentTime {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-xs);
+}
+
+.editBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--mono-text-low-contrast);
+  cursor: pointer;
+  font-size: 10px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+
+  .commentRow:hover & {
+    opacity: 1;
+  }
+
+  &:hover {
+    color: var(--accent-solid);
+  }
+}
+
+.editForm {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.editConfirm,
+.editCancel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  min-height: 36px;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.editConfirm {
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.editCancel {
+  background: transparent;
+  border: 1px solid var(--mono-border);
+  color: var(--mono-text-low-contrast);
+}
+
+.loadMore {
+  @include type.typography(button);
+  min-height: 36px;
+  width: 100%;
+  border: 1px solid var(--mono-border);
+  background: transparent;
+  color: var(--mono-text-low-contrast);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    background: var(--mono-bg-hover);
+  }
+}
+
+.commentBody {
+  @include type.typography(body);
+  color: var(--mono-text);
+}
+
+.commentForm {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.commentInput {
+  @include type.typography(body);
+  flex: 1;
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--mono-border);
+  background: var(--mono-subtle-bg);
+  color: var(--mono-text);
+  outline: none;
+  transition: border-color var(--duration-fast) var(--ease-out);
+
+  &::placeholder {
+    color: var(--mono-text-low-contrast);
+  }
+
+  &:focus {
+    border-color: var(--accent-solid);
+  }
+}
+
+.commentSubmit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-height: 44px;
+  border: none;
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+  cursor: pointer;
+  transition: opacity var(--duration-fast) var(--ease-out);
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.betaPostHint {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  opacity: 0.6;
+}
+
+// ── Close button ────────────────────────────────────
+.closeBtn {
+  @include type.typography(button);
+  min-height: 44px;
+  width: 100%;
+  border-radius: var(--radius-2);
+  border: 1px solid var(--mono-border);
+  background: transparent;
+  color: var(--mono-text-low-contrast);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    background: var(--mono-bg-hover);
+  }
+}
+
+// ── Animations ──────────────────────────────────────
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}

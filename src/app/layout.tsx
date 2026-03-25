@@ -1,40 +1,38 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { Theme } from "@radix-ui/themes";
-import { ThemeProvider } from "next-themes";
-import "./globals.css";
-import "@radix-ui/themes/styles.css";
-import { NavBar } from "@/components/NavBar/NavBar";
+import { Outfit, Inter } from "next/font/google";
+import { Providers } from "./providers";
+import "./styles/globals.scss";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const outfit = Outfit({
   subsets: ["latin"],
+  variable: "--font-outfit",
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
   subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "Chork",
-  description: "Let's get chalky",
+  description: "",
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        <ThemeProvider attribute="class">
-          <Theme radius="full">
-            {children}
-            <NavBar />
-          </Theme>
-        </ThemeProvider>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${outfit.variable} ${inter.variable}`}
+    >
+      <body>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

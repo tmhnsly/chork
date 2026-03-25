@@ -1,0 +1,117 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+@use "mixins/surfaces" as surface;
+
+.page {
+  @include layout.stack(var(--space-7));
+  min-height: 100vh;
+  padding: var(--space-8) var(--gutter-x);
+  padding-top: calc(var(--navbar-height) + var(--space-8));
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+// ── Sections ───────────────────────────────────────
+.section {
+  @include layout.stack(var(--space-3));
+}
+
+.sectionTitle {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+// ── Previous set cards ─────────────────────────────
+.setList {
+  @include layout.stack(var(--space-2));
+}
+
+.setCard {
+  @include surface.card;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  gap: var(--space-4);
+}
+
+.setLabel {
+  @include type.typography(label);
+  color: var(--accent-text-low-contrast);
+  white-space: nowrap;
+}
+
+.setStats {
+  display: flex;
+  gap: var(--space-5);
+}
+
+.setStat {
+  @include layout.stack(var(--space-1));
+  text-align: right;
+}
+
+.setStatValue {
+  @include type.typography(number);
+}
+
+.flashValue {
+  color: var(--flash-solid);
+}
+
+.setStatLabel {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+// ── Activity feed ──────────────────────────────────
+.activityList {
+  @include surface.card;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.activityItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+
+  & + & {
+    border-top: 1px solid var(--surface-divider);
+  }
+}
+
+.activityText {
+  @include type.typography(body);
+  color: var(--mono-text);
+}
+
+.activityFlash {
+  @include type.typography(body);
+  color: var(--flash-solid);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.activityFlashIcon {
+  font-size: 0.85em;
+}
+
+.activityTime {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  white-space: nowrap;
+}
+
+// ── Sign out ───────────────────────────────────────
+.signOutSection {
+  display: flex;
+  justify-content: center;
+  padding-top: var(--space-2);
+}

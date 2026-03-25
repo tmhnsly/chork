@@ -1,0 +1,12 @@
+/*
+ * Z-index scale — single source of truth for all stacking contexts.
+ *
+ *  -1  page-wash     Page backdrop (behind all content)
+ *  50  navbar        Sticky navigation bar
+ * 100  overlay       Modals, drawers, dialogs
+ */
+:root {
+  --z-page-wash: -1;
+  --z-navbar: 50;
+  --z-overlay: 100;
+}

@@ -1,0 +1,40 @@
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+@use "mixins/layout" as layout;
+@use "mixins/container-queries" as cq;
+
+.page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: var(--space-4);
+  container-type: inline-size;
+  container-name: tile;
+}
+
+.card {
+  @include surface.card;
+  @include layout.stack(var(--space-5));
+  border-radius: var(--radius-3);
+  padding: var(--space-6) var(--space-4);
+  width: 100%;
+
+  @include cq.medium {
+    padding: var(--space-8) var(--space-6);
+  }
+
+  @include cq.large {
+    max-width: 440px;
+    padding: var(--space-10) var(--space-8);
+  }
+}
+
+.title {
+  @include type.typography(page-title);
+}
+
+.subtitle {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}

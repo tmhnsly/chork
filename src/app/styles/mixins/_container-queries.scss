@@ -1,0 +1,41 @@
+// Container-query breakpoints — component-scoped, width-based.
+// Usage: @use 'mixins/container-queries' as cq; then @include cq.medium { ... }
+//
+// Requires the ancestor to set:
+//   container-type: inline-size;
+//   container-name: tile;
+$_small: 290px;
+$_medium: 340px;
+$_large: 640px;
+$_xlarge: 900px;
+
+@mixin small {
+  @container tile (min-width: #{$_small}) {
+    @content;
+  }
+}
+
+@mixin medium {
+  @container tile (min-width: #{$_medium}) {
+    @content;
+  }
+}
+
+@mixin large {
+  @container tile (min-width: #{$_large}) {
+    @content;
+  }
+}
+
+@mixin xlarge {
+  @container tile (min-width: #{$_xlarge}) {
+    @content;
+  }
+}
+
+/// Escape hatch for one-off widths.
+@mixin at($min-width) {
+  @container tile (min-width: #{$min-width}) {
+    @content;
+  }
+}

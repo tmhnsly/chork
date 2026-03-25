@@ -1,0 +1,105 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+
+// ── Display mode — centered hero ───────────────────
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  text-align: center;
+}
+
+.avatar {
+  width: 96px;
+  height: 96px;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  border: 3px solid var(--accent-solid);
+}
+
+.avatarButton {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  border: 3px solid var(--accent-solid);
+  padding: 0;
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.avatarOverlay {
+  @include type.typography(label);
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, black 50%, transparent);
+  color: white;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+
+  .avatarButton:hover &,
+  .avatarButton:focus-visible & {
+    opacity: 1;
+  }
+}
+
+.identity {
+  @include layout.stack(var(--space-1));
+  align-items: center;
+}
+
+.name {
+  @include type.typography(display);
+}
+
+.username {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+}
+
+.editBtn {
+  margin-top: var(--space-2);
+}
+
+// ── Edit mode ──────────────────────────────────────
+.editFields {
+  @include layout.stack(var(--space-3));
+  width: 100%;
+  text-align: left;
+}
+
+.editLabel {
+  @include layout.stack(var(--space-1));
+}
+
+.fieldLabel {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.input {
+  @include type.typography(body);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--mono-border);
+  background: var(--mono-subtle-bg);
+  color: var(--mono-text);
+  outline: none;
+  transition: border-color var(--duration-fast) var(--ease-out);
+
+  &:focus {
+    border-color: var(--accent-solid);
+  }
+}
+
+.editActions {
+  @include layout.cluster(var(--space-2));
+  justify-content: center;
+}
