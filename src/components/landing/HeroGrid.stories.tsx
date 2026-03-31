@@ -1,20 +1,13 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import { HeroGrid } from "./HeroGrid";
 
-/** Animated 4x3 punch card grid used as the landing page hero visual. */
+/** Animated 5x3 punch card grid used as the landing page hero visual. */
 const meta = {
   title: "Landing/HeroGrid",
   component: HeroGrid,
   parameters: {
-    layout: "padded",
+    layout: "fullscreen",
   },
-  decorators: [
-    (Story) => (
-      <div style={{ maxWidth: 320 }}>
-        <Story />
-      </div>
-    ),
-  ],
 } satisfies Meta<typeof HeroGrid>;
 
 export default meta;
