@@ -2,6 +2,7 @@
 @use "mixins/layout" as layout;
 @use "mixins/surfaces" as surface;
 
+// ── Overlay ────────────────────────────────────────
 .overlay {
   position: fixed;
   inset: 0;
@@ -10,6 +11,7 @@
   animation: fadeIn var(--duration-fast) var(--ease-out);
 }
 
+// ── Sheet content (snap states) ────────────────────
 .content {
   @include surface.card;
   @include layout.stack(var(--space-5));
@@ -20,9 +22,36 @@
   z-index: var(--z-overlay);
   border-radius: var(--radius-3) var(--radius-3) 0 0;
   padding: var(--space-4) var(--gutter-x) var(--space-8);
-  max-height: 85vh;
   overflow-y: auto;
   animation: slideUp var(--duration-normal) var(--ease-out);
+  transition: height var(--duration-normal) var(--ease-out);
+  will-change: height;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transition: none;
+  }
+}
+
+.peek {
+  height: 45dvh;
+  overflow-y: hidden;
+}
+
+.full {
+  height: 90dvh;
+  overflow-y: auto;
+}
+
+// ── Drag zone ──────────────────────────────────────
+.dragZone {
+  @include layout.stack(var(--space-3));
+  cursor: grab;
+  user-select: none;
+
+  &:active {
+    cursor: grabbing;
+  }
 }
 
 .handle {
@@ -39,8 +68,20 @@
   text-align: center;
 }
 
+.headerMain {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--space-3);
+}
+
 .routeNumber {
   @include type.typography(display);
+}
+
+.communityGrade {
+  @include type.typography(card-title);
+  color: var(--mono-text-low-contrast);
 }
 
 .status {
@@ -77,13 +118,6 @@
   gap: var(--space-4);
 }
 
-// ── Completed actions ──────────────────────────────
-.completedActions {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-}
-
 .counterBtn {
   @include type.typography(button);
   width: 44px;
@@ -114,9 +148,18 @@
   text-align: center;
 }
 
+.pointsPreview {
+  @include type.typography(meta);
+  color: var(--accent-text-low-contrast);
+  min-height: 1lh; // reserve space so content doesn't jump when text appears
+}
+
+.pointsEarned {
+  color: var(--mono-text-low-contrast);
+}
+
 // ── Zone toggle ────────────────────────────────────
-.zoneToggle {
-  @include type.typography(button);
+.zoneRow {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -125,31 +168,73 @@
   padding: 0 var(--space-3);
   border: 1px solid var(--mono-border);
   background: var(--mono-subtle-bg);
-  color: var(--mono-text-low-contrast);
-  cursor: pointer;
   transition:
     background var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out);
-
-  &:hover {
-    border-color: var(--mono-border-hover);
-  }
 }
 
-.zoneToggleOn {
+.zoneRowOn {
   background: var(--accent-subtle-bg);
   border-color: var(--accent-solid);
-  color: var(--accent-text-low-contrast);
 }
 
 .zoneIcon {
   font-size: var(--text-lg);
+  color: inherit;
+
+  .zoneRowOn & {
+    color: var(--accent-solid);
+  }
 }
 
-.zonePts {
-  margin-left: auto;
-  @include type.typography(meta);
-  color: var(--accent-solid);
+.zoneLabel {
+  @include type.typography(label);
+  flex: 1;
+
+  .zoneRowOn & {
+    color: var(--accent-text-low-contrast);
+  }
+}
+
+.zoneSwitch {
+  width: 42px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background: var(--mono-border);
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+
+  &[data-state="checked"] {
+    background: var(--accent-solid);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.zoneSwitchThumb {
+  display: block;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: white;
+  transition: transform var(--duration-fast) var(--ease-out);
+  will-change: transform;
+
+  &[data-state="checked"] {
+    transform: translateX(18px);
+  }
+}
+
+// ── Completed actions ──────────────────────────────
+.completedActions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
 }
 
 // ── Beta spray ──────────────────────────────────────
@@ -167,6 +252,11 @@
 
 .sectionLabel {
   @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.commentCount {
+  @include type.typography(meta);
   color: var(--mono-text-low-contrast);
 }
 
@@ -219,7 +309,7 @@
 .avatarLink {
   flex-shrink: 0;
   display: block;
-  min-width: 32px; // tap target padding handled by surrounding gap
+  min-width: 32px;
 }
 
 .commentAvatar {
@@ -230,11 +320,16 @@
 }
 
 .commentAvatarFallback {
-  display: block;
+  @include type.typography(meta);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 32px;
   height: 32px;
   border-radius: var(--radius-full);
   background: var(--mono-subtle-bg);
+  color: var(--mono-text-low-contrast);
+  font-weight: var(--weight-semibold);
 }
 
 .commentContent {

@@ -14,11 +14,11 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 const defaultRows: ScoreRow[] = [
-  { label: "Flash (1st try)", points: "4 pts", accent: "flash" },
-  { label: "2 attempts", points: "3 pts" },
-  { label: "3 attempts", points: "2 pts" },
-  { label: "4+ attempts", points: "1 pt" },
-  { label: "Zone hold", points: "+1 pt", accent: "zone" },
+  { label: "Flash (1st try)", points: "4 pts", weight: 1, accent: "flash" },
+  { label: "2 attempts", points: "3 pts", weight: 0.75 },
+  { label: "3 attempts", points: "2 pts", weight: 0.5 },
+  { label: "4+ attempts", points: "1 pt", weight: 0.25 },
+  { label: "Zone hold", points: "+1 pt", weight: 0.25, accent: "zone" },
 ];
 
 /** Full points breakdown as shown on the landing page. */
@@ -27,8 +27,8 @@ export const Default: Story = {
 };
 
 const simpleRows: ScoreRow[] = [
-  { label: "Send", points: "1 pt" },
-  { label: "Flash", points: "3 pts", accent: "flash" },
+  { label: "Send", points: "1 pt", weight: 0.33 },
+  { label: "Flash", points: "3 pts", weight: 1, accent: "flash" },
 ];
 
 /** Minimal two-row variant. */

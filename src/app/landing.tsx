@@ -11,6 +11,7 @@ import {
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui";
 import { HeroSection } from "@/components/landing/HeroSection";
+import { HeroGrid } from "@/components/landing/HeroGrid";
 import { FeatureGrid } from "@/components/landing/FeatureGrid";
 import type { FeatureItem } from "@/components/landing/FeatureGrid";
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
@@ -82,11 +83,11 @@ const steps: Step[] = [
 ];
 
 const scoreRows: ScoreRow[] = [
-  { label: "Flash (1st try)", points: "4 pts", accent: "flash" },
-  { label: "2 attempts", points: "3 pts" },
-  { label: "3 attempts", points: "2 pts" },
-  { label: "4+ attempts", points: "1 pt" },
-  { label: "Zone hold", points: "+1 pt", accent: "zone" },
+  { label: "Flash (1st try)", points: "4 pts", weight: 1, accent: "flash" },
+  { label: "2 attempts", points: "3 pts", weight: 0.75 },
+  { label: "3 attempts", points: "2 pts", weight: 0.5 },
+  { label: "4+ attempts", points: "1 pt", weight: 0.25 },
+  { label: "Zone hold", points: "+1 pt", weight: 0.25, accent: "zone" },
 ];
 
 export function LandingPage() {
@@ -104,6 +105,7 @@ export function LandingPage() {
         headline="Track your sends. Compete with your crew."
         subheadline="The bouldering comp tracker that keeps score so you can keep climbing."
         cta={ctaButton}
+        visual={<HeroGrid />}
         scrollHint
       />
 

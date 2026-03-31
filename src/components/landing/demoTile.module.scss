@@ -1,0 +1,52 @@
+.tile {
+  position: relative;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--mono-border-subtle);
+  background: var(--mono-bg);
+  container-type: inline-size;
+}
+
+.number {
+  font-family: var(--font-heading);
+  font-weight: var(--weight-black);
+  font-style: italic;
+  font-size: 45cqi;
+  line-height: 1;
+  letter-spacing: var(--tracking-tight);
+  text-align: center;
+  width: 100%;
+}
+
+// ── States ──────────────────────────────────────────
+.empty {
+  color: var(--mono-text-low-contrast);
+}
+
+.attempted {
+  background: var(--mono-solid);
+  border-color: var(--mono-solid);
+  color: var(--mono-app-bg);
+}
+
+.completed {
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
+  color: var(--accent-on-solid);
+}
+
+.flash {
+  background: var(--flash-solid);
+  border-color: var(--flash-solid);
+  color: var(--flash-on-solid, var(--mono-app-bg));
+}
+
+// ── Flash badge ─────────────────────────────────────
+.flashBadge {
+  position: absolute;
+  top: var(--space-1);
+  right: var(--space-1);
+  font-size: 12cqi;
+  color: var(--flash-on-solid);
+}

@@ -3,17 +3,40 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
+import * as Switch from "@radix-ui/react-switch";
 import Link from "next/link";
-import { FaMinus, FaPlus, FaEyeSlash, FaEye, FaPaperPlane, FaBolt, FaPen, FaCheck, FaXmark, FaBullseye } from "react-icons/fa6";
+import {
+  FaMinus,
+  FaPlus,
+  FaEyeSlash,
+  FaEye,
+  FaPaperPlane,
+  FaBolt,
+  FaPen,
+  FaCheck,
+  FaXmark,
+  FaBullseye,
+} from "react-icons/fa6";
+import { RollingNumber } from "@/components/RollingNumber/RollingNumber";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import type { Set, Route, RouteLog, Comment } from "@/lib/data";
-import { isFlash } from "@/lib/data";
+import { isFlash, computePoints } from "@/lib/data";
 import { useAuth } from "@/lib/auth-context";
 import { getAvatarUrl } from "@/lib/avatar";
-import { updateAttempts, uncompleteRoute, toggleZone, postComment, fetchComments, editComment } from "@/app/(app)/actions";
+import {
+  updateAttempts,
+  uncompleteRoute,
+  toggleZone,
+  postComment,
+  fetchComments,
+  editComment,
+  fetchRouteGrade,
+} from "@/app/(app)/actions";
 import { Button, showToast } from "@/components/ui";
 import { CompleteModal } from "@/components/CompleteModal/CompleteModal";
 import styles from "./routeLogSheet.module.scss";
+
+type SnapState = "peek" | "full";
 
 interface Props {
   set: Set;
@@ -25,10 +48,29 @@ interface Props {
 
 function getStatus(log: RouteLog | null, optimisticAttempts: number): string {
   if (log?.completed) {
-    return isFlash(log) ? "Flash" : "Completed";
+    return isFlash(log) ? "FLASH" : "COMPLETED";
   }
-  if (optimisticAttempts > 0) return "In progress";
-  return "Not started";
+  if (optimisticAttempts > 0) return "IN PROGRESS";
+  return "NOT STARTED";
+}
+
+function getPointsPreview(
+  attempts: number,
+  zone: boolean,
+  completed: boolean,
+  log: RouteLog | null
+): string | null {
+  if (completed && log) {
+    const pts = computePoints(log);
+    return `${pts} pts earned`;
+  }
+  if (attempts === 0) return null;
+  const previewPts = computePoints({ attempts, completed: true, zone: false });
+  const flash = attempts === 1;
+  let text = `Send now \u2192 ${previewPts} pts`;
+  if (flash) text += " \u26A1";
+  if (zone) text += " +1 zone";
+  return text;
 }
 
 export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) {
@@ -45,12 +87,27 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
   const [nextPage, setNextPage] = useState(1);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editBody, setEditBody] = useState("");
+  const [communityGrade, setCommunityGrade] = useState<number | null>(null);
+  const [snap, setSnap] = useState<SnapState>("peek");
+
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingAttemptsRef = useRef<number | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const dragStartRef = useRef<{ y: number; snap: SnapState; time: number } | null>(null);
+  const dragOffsetRef = useRef(0);
+
   const isCompleted = currentLog?.completed ?? false;
   const isCurrentFlash = currentLog ? isFlash(currentLog) : false;
   const isReadOnly = isCompleted || !set.active;
+  const zoneValue = currentLog?.zone ?? false;
+  const zoneReadOnly = isCompleted && zoneValue;
 
+  // Fetch community grade
+  useEffect(() => {
+    fetchRouteGrade(route.id).then(setCommunityGrade);
+  }, [route.id]);
+
+  // Fetch comments
   useEffect(() => {
     let cancelled = false;
     setLoadingComments(true);
@@ -61,7 +118,9 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
       setNextPage(2);
       setLoadingComments(false);
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [route.id]);
 
   async function loadMore() {
@@ -92,6 +151,27 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
     setAttempts(next);
     pendingAttemptsRef.current = next;
 
+    // Optimistic update — parent tile reflects the new attempt count immediately
+    const optimisticLog: RouteLog = currentLog
+      ? { ...currentLog, attempts: next }
+      : {
+          id: "",
+          user_id: user?.id ?? "",
+          route_id: route.id,
+          attempts: next,
+          completed: false,
+          completed_at: null,
+          grade_vote: null,
+          zone: false,
+          created: new Date().toISOString(),
+          updated: new Date().toISOString(),
+        };
+    onLogUpdate(route.id, optimisticLog);
+
+    if ("vibrate" in navigator) {
+      navigator.vibrate(10);
+    }
+
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       pendingAttemptsRef.current = null;
@@ -99,7 +179,7 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
     }, 800);
   }
 
-  // Flush pending save on unmount so closing the sheet doesn't lose data
+  // Flush pending save on unmount
   useEffect(() => {
     return () => {
       if (debounceRef.current) {
@@ -112,7 +192,7 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
   }, [saveAttempts]);
 
   async function handleUncomplete() {
-    const result = await uncompleteRoute(route.id);
+    const result = await uncompleteRoute(route.id, currentLog?.id);
     if (result.error) {
       showToast(result.error, "error");
       return;
@@ -176,26 +256,156 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
     setShowComplete(false);
   }
 
+  async function handleZoneToggle(checked: boolean) {
+    // Optimistic update
+    setCurrentLog((prev) => (prev ? { ...prev, zone: checked } : prev));
+    if (currentLog) {
+      onLogUpdate(route.id, { ...currentLog, zone: checked });
+    }
+
+    const result = await toggleZone(route.id, checked, currentLog?.id);
+    if (result.error) {
+      showToast(result.error, "error");
+      // Revert
+      setCurrentLog((prev) => (prev ? { ...prev, zone: !checked } : prev));
+      return;
+    }
+    if (result.log) {
+      setCurrentLog(result.log);
+      onLogUpdate(route.id, result.log);
+    }
+  }
+
+  // ── Drag handling ──────────────────────────────────
+  const PEEK_HEIGHT_VH = 45;
+  const FULL_HEIGHT_VH = 90;
+
+  function getHeightPx(s: SnapState): number {
+    return s === "peek"
+      ? (window.innerHeight * PEEK_HEIGHT_VH) / 100
+      : (window.innerHeight * FULL_HEIGHT_VH) / 100;
+  }
+
+  function onPointerDown(e: React.PointerEvent) {
+    // Only primary pointer
+    if (e.button !== 0) return;
+    dragStartRef.current = { y: e.clientY, snap, time: Date.now() };
+    dragOffsetRef.current = 0;
+    const el = contentRef.current;
+    if (el) {
+      el.style.transition = "none";
+      el.setPointerCapture(e.pointerId);
+    }
+  }
+
+  function onPointerMove(e: React.PointerEvent) {
+    if (!dragStartRef.current || !contentRef.current) return;
+    const dy = e.clientY - dragStartRef.current.y;
+    dragOffsetRef.current = dy;
+    const currentHeight = getHeightPx(dragStartRef.current.snap);
+    const newHeight = Math.max(0, currentHeight - dy);
+    contentRef.current.style.height = `${newHeight}px`;
+  }
+
+  function onPointerUp(e: React.PointerEvent) {
+    if (!dragStartRef.current || !contentRef.current) return;
+    const dy = dragOffsetRef.current;
+    const elapsed = Date.now() - dragStartRef.current.time;
+    const velocity = elapsed > 0 ? Math.abs(dy) / elapsed : 0;
+    const startSnap = dragStartRef.current.snap;
+    const isFastSwipe = velocity > 0.5;
+
+    contentRef.current.style.transition = "";
+    contentRef.current.style.height = "";
+
+    let nextSnap: SnapState | "close" = startSnap;
+
+    if (startSnap === "peek") {
+      if (dy < 0) {
+        // Dragging up
+        const midpoint =
+          ((getHeightPx("full") - getHeightPx("peek")) / 2);
+        if (isFastSwipe || Math.abs(dy) > midpoint) {
+          nextSnap = "full";
+        }
+      } else {
+        // Dragging down from peek — dismiss
+        const threshold = getHeightPx("peek") * 0.3;
+        if (isFastSwipe || dy > threshold) {
+          nextSnap = "close";
+        }
+      }
+    } else {
+      // full
+      if (dy > 0) {
+        // Dragging down
+        const midpoint =
+          ((getHeightPx("full") - getHeightPx("peek")) / 2);
+        if (isFastSwipe || dy > midpoint) {
+          nextSnap = "peek";
+        }
+      }
+    }
+
+    dragStartRef.current = null;
+    dragOffsetRef.current = 0;
+
+    if (nextSnap === "close") {
+      onClose();
+    } else {
+      setSnap(nextSnap);
+    }
+
+    contentRef.current.releasePointerCapture(e.pointerId);
+  }
+
+  const pointsPreview = getPointsPreview(
+    attempts,
+    currentLog?.zone ?? false,
+    isCompleted,
+    currentLog
+  );
+
   return (
     <Dialog.Root open onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className={styles.overlay} />
-        <Dialog.Content className={styles.content}>
+        <Dialog.Content
+          ref={contentRef}
+          className={`${styles.content} ${styles[snap]}`}
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <VisuallyHidden.Root asChild>
             <Dialog.Title>Route {route.number}</Dialog.Title>
           </VisuallyHidden.Root>
-          <div className={styles.handle} />
 
-          <header className={styles.header}>
-            <h2 className={styles.routeNumber}>
-              {route.number}
-            </h2>
-            <span className={`${styles.status} ${isCurrentFlash ? styles.statusFlash : ""}`}>
-              {isCurrentFlash && <FaBolt className={styles.flashIcon} />}
-              {getStatus(currentLog, attempts)}
-            </span>
-          </header>
+          {/* Drag handle + header area */}
+          <div
+            className={styles.dragZone}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            style={{ touchAction: "none" }}
+          >
+            <div className={styles.handle} />
 
+            <header className={styles.header}>
+              <div className={styles.headerMain}>
+                <h2 className={styles.routeNumber}>{route.number}</h2>
+                {communityGrade !== null && (
+                  <span className={styles.communityGrade}>V{communityGrade}</span>
+                )}
+              </div>
+              <span
+                className={`${styles.status} ${isCurrentFlash ? styles.statusFlash : ""}`}
+              >
+                {isCurrentFlash && <FaBolt className={styles.flashIcon} />}
+                {getStatus(currentLog, attempts)}
+              </span>
+            </header>
+          </div>
+
+          {/* Attempt counter */}
           <div className={styles.counter}>
             <span className={styles.counterLabel}>Attempts</span>
             <div className={styles.counterControls}>
@@ -207,7 +417,9 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
               >
                 <FaMinus />
               </button>
-              <span className={styles.counterValue}>{attempts}</span>
+              <span className={styles.counterValue}>
+                <RollingNumber value={attempts} />
+              </span>
               <button
                 className={styles.counterBtn}
                 onClick={() => changeAttempts(1)}
@@ -217,8 +429,32 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
                 <FaPlus />
               </button>
             </div>
+            <span
+              className={`${styles.pointsPreview} ${isCompleted ? styles.pointsEarned : ""}`}
+            >
+              {pointsPreview ?? "\u00A0"}
+            </span>
           </div>
 
+          {/* Zone toggle */}
+          {route.has_zone && (
+            <div
+              className={`${styles.zoneRow} ${zoneValue ? styles.zoneRowOn : ""}`}
+            >
+              <FaBullseye className={styles.zoneIcon} />
+              <span className={styles.zoneLabel}>ZONE HOLD</span>
+              <Switch.Root
+                className={styles.zoneSwitch}
+                checked={zoneValue}
+                onCheckedChange={handleZoneToggle}
+                disabled={zoneReadOnly || !set.active}
+              >
+                <Switch.Thumb className={styles.zoneSwitchThumb} />
+              </Switch.Root>
+            </div>
+          )}
+
+          {/* Complete / Undo */}
           {isCompleted && set.active ? (
             <div className={styles.completedActions}>
               <Button disabled flex>
@@ -238,32 +474,20 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
             </Button>
           )}
 
-          {route.has_zone && set.active && (
-            <button
-              type="button"
-              className={`${styles.zoneToggle} ${currentLog?.zone ? styles.zoneToggleOn : ""}`}
-              onClick={async () => {
-                const next = !(currentLog?.zone ?? false);
-                const result = await toggleZone(route.id, next);
-                if (result.error) {
-                  showToast(result.error, "error");
-                  return;
-                }
-                if (result.log) {
-                  setCurrentLog(result.log);
-                  onLogUpdate(route.id, result.log);
-                }
-              }}
-            >
-              <FaBullseye className={styles.zoneIcon} />
-              <span>Zone</span>
-              {currentLog?.zone && <span className={styles.zonePts}>+1 pt</span>}
-            </button>
-          )}
+          {/* Beta spray — only rendered at full height */}
+          {snap === "full" && (
+            <div className={styles.betaSection}>
+              <div className={styles.betaHeader}>
+                <span className={styles.sectionLabel}>BETA SPRAY</span>
+                {loadingComments ? null : comments.length > 0 ? (
+                  <span className={styles.commentCount}>
+                    {comments.length} comment{comments.length !== 1 ? "s" : ""}
+                  </span>
+                ) : (
+                  <span className={styles.commentCount}>No beta yet</span>
+                )}
+              </div>
 
-          <div className={styles.betaSection}>
-            <div className={styles.betaHeader}>
-              <span className={styles.sectionLabel}>Beta spray</span>
               {!isCompleted && !loadingComments && comments.length > 0 && (
                 <button
                   type="button"
@@ -274,15 +498,17 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
                   <span>{betaRevealed ? "Hide" : "Reveal"}</span>
                 </button>
               )}
-            </div>
 
-            {loadingComments ? (
-              <p className={styles.betaEmpty}>Loading...</p>
-            ) : comments.length === 0 ? (
-              <p className={styles.betaEmpty}>No comments yet</p>
-            ) : (
-              <div className={!isCompleted && !betaRevealed ? styles.betaBlurred : undefined}>
-                <>
+              {loadingComments ? (
+                <p className={styles.betaEmpty}>Loading...</p>
+              ) : comments.length === 0 ? (
+                <p className={styles.betaEmpty}>No comments yet</p>
+              ) : (
+                <div
+                  className={
+                    !isCompleted && !betaRevealed ? styles.betaBlurred : undefined
+                  }
+                >
                   <ul className={styles.commentList}>
                     {comments.map((c) => {
                       const author = c.expand?.user_id;
@@ -290,12 +516,19 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
                         ? getAvatarUrl(author, { thumb: "64x64" })
                         : undefined;
                       const username = author?.username ?? "unknown";
-                      const timeAgo = formatDistanceToNow(parseISO(c.created), { addSuffix: true });
+                      const displayName = author?.name ?? "";
+                      const initial = displayName.charAt(0) || username.charAt(0) || "?";
+                      const timeAgo = formatDistanceToNow(parseISO(c.created), {
+                        addSuffix: true,
+                      });
 
                       return (
                         <li key={c.id} className={styles.commentItem}>
                           <div className={styles.commentRow}>
-                            <Link href={`/u/${username}`} className={styles.avatarLink}>
+                            <Link
+                              href={`/u/${username}`}
+                              className={styles.avatarLink}
+                            >
                               {avatarUrl ? (
                                 <img
                                   src={avatarUrl}
@@ -303,15 +536,22 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
                                   className={styles.commentAvatar}
                                 />
                               ) : (
-                                <span className={styles.commentAvatarFallback} />
+                                <span className={styles.commentAvatarFallback}>
+                                  {initial.toUpperCase()}
+                                </span>
                               )}
                             </Link>
                             <div className={styles.commentContent}>
                               <div className={styles.commentMeta}>
-                                <Link href={`/u/${username}`} className={styles.commentAuthor}>
+                                <Link
+                                  href={`/u/${username}`}
+                                  className={styles.commentAuthor}
+                                >
                                   @{username}
                                 </Link>
-                                <span className={styles.commentTime}>{timeAgo}</span>
+                                <span className={styles.commentTime}>
+                                  {timeAgo}
+                                </span>
                               </div>
                               {editingId === c.id ? (
                                 <div className={styles.editForm}>
@@ -342,18 +582,20 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
                                 <p className={styles.commentBody}>{c.body}</p>
                               )}
                             </div>
-                            {user && c.user_id === user.id && editingId !== c.id && (
-                              <button
-                                type="button"
-                                className={styles.editBtn}
-                                onClick={() => {
-                                  setEditingId(c.id);
-                                  setEditBody(c.body);
-                                }}
-                              >
-                                <FaPen />
-                              </button>
-                            )}
+                            {user &&
+                              c.user_id === user.id &&
+                              editingId !== c.id && (
+                                <button
+                                  type="button"
+                                  className={styles.editBtn}
+                                  onClick={() => {
+                                    setEditingId(c.id);
+                                    setEditBody(c.body);
+                                  }}
+                                >
+                                  <FaPen />
+                                </button>
+                              )}
                           </div>
                         </li>
                       );
@@ -368,42 +610,42 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
                       Load more
                     </button>
                   )}
-                </>
-              </div>
-            )}
+                </div>
+              )}
 
-            {isCompleted && set.active && (
-              <form
-                className={styles.commentForm}
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handlePostComment();
-                }}
-              >
-                <input
-                  type="text"
-                  className={styles.commentInput}
-                  placeholder="Share beta..."
-                  value={commentBody}
-                  onChange={(e) => setCommentBody(e.target.value)}
-                  disabled={posting}
-                />
-                <button
-                  type="submit"
-                  className={styles.commentSubmit}
-                  disabled={posting || !commentBody.trim()}
+              {isCompleted && set.active && (
+                <form
+                  className={styles.commentForm}
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handlePostComment();
+                  }}
                 >
-                  <FaPaperPlane />
-                </button>
-              </form>
-            )}
+                  <input
+                    type="text"
+                    className={styles.commentInput}
+                    placeholder="Share beta..."
+                    value={commentBody}
+                    onChange={(e) => setCommentBody(e.target.value)}
+                    disabled={posting}
+                  />
+                  <button
+                    type="submit"
+                    className={styles.commentSubmit}
+                    disabled={posting || !commentBody.trim()}
+                  >
+                    <FaPaperPlane />
+                  </button>
+                </form>
+              )}
 
-            {!isCompleted && (
-              <p className={styles.betaPostHint}>
-                Complete this route to post beta.
-              </p>
-            )}
-          </div>
+              {!isCompleted && (
+                <p className={styles.betaPostHint}>
+                  Complete this route to post beta.
+                </p>
+              )}
+            </div>
+          )}
 
           <Dialog.Close asChild>
             <button className={styles.closeBtn} type="button">
@@ -417,6 +659,7 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
         <CompleteModal
           route={route}
           attempts={attempts}
+          logId={currentLog?.id}
           onConfirm={handleComplete}
           onCancel={() => setShowComplete(false)}
         />

@@ -1,5 +1,5 @@
 /* Light mode */
-@use "@radix-ui/colors/slate.css";
+@use "@radix-ui/colors/olive.css";
 @use "@radix-ui/colors/lime.css";
 @use "@radix-ui/colors/red.css";
 @use "@radix-ui/colors/teal.css";
@@ -7,7 +7,7 @@
 @use "@radix-ui/colors/orange.css";
 
 /* Dark mode */
-@use "@radix-ui/colors/slate-dark.css";
+@use "@radix-ui/colors/olive-dark.css";
 @use "@radix-ui/colors/lime-dark.css";
 @use "@radix-ui/colors/red-dark.css";
 @use "@radix-ui/colors/teal-dark.css";
@@ -20,19 +20,19 @@
  * Lime/amber step 9–10 use dark foreground text (bright bg colors).
  */
 :root {
-  /* Mono (Slate) */
-  --mono-app-bg: var(--slate-1);
-  --mono-subtle-bg: var(--slate-2);
-  --mono-bg: var(--slate-3);
-  --mono-bg-hover: var(--slate-4);
-  --mono-bg-active: var(--slate-5);
-  --mono-border-subtle: var(--slate-6);
-  --mono-border: var(--slate-7);
-  --mono-border-hover: var(--slate-8);
-  --mono-solid: var(--slate-9);
-  --mono-solid-hover: var(--slate-10);
-  --mono-text-low-contrast: var(--slate-11);
-  --mono-text: var(--slate-12);
+  /* Mono (olive) */
+  --mono-app-bg: var(--olive-1);
+  --mono-subtle-bg: var(--olive-2);
+  --mono-bg: var(--olive-3);
+  --mono-bg-hover: var(--olive-4);
+  --mono-bg-active: var(--olive-5);
+  --mono-border-subtle: var(--olive-6);
+  --mono-border: var(--olive-7);
+  --mono-border-hover: var(--olive-8);
+  --mono-solid: var(--olive-9);
+  --mono-solid-hover: var(--olive-10);
+  --mono-text-low-contrast: var(--olive-11);
+  --mono-text: var(--olive-12);
 
   /* Accent (Lime) */
   --accent-app-bg: var(--lime-1);

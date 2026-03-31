@@ -1,7 +1,7 @@
 "use server";
 
 import { createServerPBFromCookies } from "@/lib/pocketbase-server";
-import { upsertRouteLog, createActivityEvent, createComment, updateComment, getCommentsByRoute } from "@/lib/data/sets";
+import { upsertRouteLog, createActivityEvent, createComment, updateComment, getCommentsByRoute, getRouteGrade } from "@/lib/data/sets";
 import type { RouteLog, Comment, PaginatedComments, ActivityEventType } from "@/lib/data";
 import { formatPBError } from "@/lib/pb-error";
 
@@ -28,7 +28,8 @@ export async function completeRoute(
   routeId: string,
   attempts: number,
   gradeVote: number | null,
-  zone: boolean
+  zone: boolean,
+  logId?: string
 ) {
   if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
   if (!Number.isInteger(attempts) || attempts < 1) return { error: "Invalid attempts" };
@@ -51,7 +52,7 @@ export async function completeRoute(
       completed_at: new Date().toISOString(),
       grade_vote: gradeVote,
       zone,
-    });
+    }, logId);
 
     const eventType: ActivityEventType = isFlash ? "flashed" : "completed";
     await createActivityEvent({
@@ -66,7 +67,7 @@ export async function completeRoute(
   }
 }
 
-export async function uncompleteRoute(routeId: string) {
+export async function uncompleteRoute(routeId: string, logId?: string) {
   const pb = await createServerPBFromCookies();
   if (!pb.authStore.isValid || !pb.authStore.record) {
     return { error: "Not authenticated" };
@@ -77,14 +78,14 @@ export async function uncompleteRoute(routeId: string) {
       completed: false,
       completed_at: null,
       grade_vote: null,
-    });
+    }, logId);
     return { success: true, log };
   } catch (err) {
     return { error: formatPBError(err) };
   }
 }
 
-export async function toggleZone(routeId: string, zone: boolean) {
+export async function toggleZone(routeId: string, zone: boolean, logId?: string) {
   const pb = await createServerPBFromCookies();
   if (!pb.authStore.isValid || !pb.authStore.record) {
     return { error: "Not authenticated" };
@@ -93,7 +94,7 @@ export async function toggleZone(routeId: string, zone: boolean) {
   try {
     const log = await upsertRouteLog(pb.authStore.record.id, routeId, {
       zone,
-    });
+    }, logId);
     return { success: true, log };
   } catch (err) {
     return { error: formatPBError(err) };
@@ -145,6 +146,14 @@ export async function fetchComments(
   }
 }
 
+export async function fetchRouteGrade(routeId: string): Promise<number | null> {
+  try {
+    return await getRouteGrade(routeId);
+  } catch {
+    return null;
+  }
+}
+
 export async function editComment(
   commentId: string,
   body: string
@@ -159,6 +168,12 @@ export async function editComment(
   }
 
   try {
+    const existing = await pb.collection("comments" as string).getOne<Comment>(commentId, {
+      fields: "id,user_id",
+    });
+    if (existing.user_id !== pb.authStore.record.id) {
+      return { error: "You can only edit your own comments" };
+    }
     const comment = await updateComment(commentId, trimmed);
     return { comment };
   } catch (err) {

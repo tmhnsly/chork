@@ -1,5 +1,6 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
+@use "mixins/breakpoints" as bp;
 
 .hero {
   display: flex;
@@ -12,11 +13,74 @@
   position: relative;
 }
 
+// ── Single-column layout (no visual) ───────────────
 .content {
   @include layout.stack(var(--space-5));
   max-width: 560px;
 }
 
+// ── Two-zone layout (text + visual) ────────────────
+// Mobile: grid on top, text below. Desktop: side by side.
+.split {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-8);
+  max-width: 960px;
+  width: 100%;
+
+  @include bp.tablet {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-12);
+  }
+}
+
+.textZone {
+  @include layout.stack(var(--space-5));
+
+  @include bp.tablet {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.visualZone {
+  width: 100%;
+  max-width: 320px;
+  flex-shrink: 0;
+
+  // ── Edge-fade mask (mobile) ──────────────────────
+  // Bottom fades out, slight side fades, top hard
+  mask-image:
+    linear-gradient(to bottom, black calc(100% - 70px), transparent),
+    linear-gradient(to right, transparent, black 24px, black calc(100% - 24px), transparent);
+  mask-composite: intersect;
+  -webkit-mask-image:
+    linear-gradient(to bottom, black calc(100% - 70px), transparent),
+    linear-gradient(to right, transparent, black 24px, black calc(100% - 24px), transparent);
+  -webkit-mask-composite: source-in;
+
+  @include bp.tablet {
+    max-width: none;
+    width: auto;
+    flex: 1;
+    order: 1; // visual on the right
+
+    // ── Edge-fade mask (desktop) ─────────────────────
+    // Left fades in, right hard, top slight fade, bottom fades out
+    mask-image:
+      linear-gradient(to right, transparent, black 100px),
+      linear-gradient(to bottom, transparent, black 40px, black calc(100% - 80px), transparent);
+    mask-composite: intersect;
+    -webkit-mask-image:
+      linear-gradient(to right, transparent, black 100px),
+      linear-gradient(to bottom, transparent, black 40px, black calc(100% - 80px), transparent);
+    -webkit-mask-composite: source-in;
+  }
+}
+
+// ── Typography ─────────────────────────────────────
 .headline {
   @include type.typography(display);
   color: var(--accent-solid);

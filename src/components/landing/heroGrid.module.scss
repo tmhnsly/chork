@@ -1,0 +1,66 @@
+@use "mixins/breakpoints" as bp;
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+  max-width: 320px;
+  margin: 0 auto;
+
+  @include bp.tablet {
+    max-width: none;
+  }
+}
+
+.cell {
+  position: relative;
+}
+
+// ── Animation layers ───────────────────────────────
+// Empty state sits behind, final state overlays and animates in.
+.emptyLayer {
+  // Always visible — the base
+}
+
+.stateLayer {
+  position: absolute;
+  inset: 0;
+  // Start invisible, animate to visible, hold, then fade out and loop
+  animation: tileReveal 5s var(--ease-out) infinite;
+}
+
+@keyframes tileReveal {
+  // 0–15%: hidden (tiles stagger in during this window)
+  0%, 8% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  // 15–20%: snap in
+  20% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  // 20–70%: hold visible
+  70% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  // 70–80%: fade out
+  80% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  // 80–100%: stay hidden (pause before next cycle)
+  100% {
+    opacity: 0;
+  }
+}
+
+// ── Reduced motion ─────────────────────────────────
+@media (prefers-reduced-motion: reduce) {
+  .stateLayer {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

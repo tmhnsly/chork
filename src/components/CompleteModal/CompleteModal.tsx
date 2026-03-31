@@ -15,11 +15,12 @@ const GRADE_MAX = GRADES.length - 1;
 interface Props {
   route: Route;
   attempts: number;
+  logId?: string;
   onConfirm: (log: RouteLog) => void;
   onCancel: () => void;
 }
 
-export function CompleteModal({ route, attempts, onConfirm, onCancel }: Props) {
+export function CompleteModal({ route, attempts, logId, onConfirm, onCancel }: Props) {
   const [gradeEnabled, setGradeEnabled] = useState(false);
   const [gradeIndex, setGradeIndex] = useState(Math.floor(GRADE_MAX / 2));
   const [zone, setZone] = useState(false);
@@ -33,7 +34,8 @@ export function CompleteModal({ route, attempts, onConfirm, onCancel }: Props) {
         route.id,
         attempts,
         gradeEnabled ? gradeIndex : null,
-        zone
+        zone,
+        logId
       );
       if (result.error) {
         showToast(result.error, "error");

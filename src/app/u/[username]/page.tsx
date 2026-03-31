@@ -7,10 +7,11 @@ import {
   getUserByUsername,
   getAllSets,
   getAllLogsForUser,
+  getUserSetStats,
   getActivityEventsForUser,
 } from "@/lib/data/sets";
 import { isFlash, computePoints } from "@/lib/data";
-import type { RouteLogWithSetId } from "@/lib/data";
+import type { RouteLogWithSetId, UserSetStatsView } from "@/lib/data";
 import { ProfileHeader } from "@/components/ProfileHeader/ProfileHeader";
 import { ClimberStats } from "@/components/ClimberStats/ClimberStats";
 import { SignOutButton } from "@/components/ui";
@@ -54,28 +55,52 @@ export default async function UserProfilePage({ params }: Props) {
   const currentUser = getAuthUser(pb);
   const isOwnProfile = currentUser?.id === profileUser.id;
 
-  // Second parallel batch: all logs (with route expanded) + activity
-  const [allLogs, activityEvents] = await Promise.all([
-    getAllLogsForUser(profileUser.id),
+  // Second parallel batch: try view-based stats first, plus activity
+  const [viewStats, activityEvents] = await Promise.all([
+    getUserSetStats(profileUser.id),
     isOwnProfile ? getActivityEventsForUser(profileUser.id, 10) : Promise.resolve([]),
   ]);
 
-  // Group logs by set_id using the expanded route_id
-  const logsBySet = new Map<string, RouteLogWithSetId[]>();
-  for (const log of allLogs) {
-    const setId = log.expand?.route_id?.set_id;
-    if (!setId) continue;
-    const arr = logsBySet.get(setId);
-    if (arr) arr.push(log);
-    else logsBySet.set(setId, [log]);
+  // If the view returned data, use it directly. Otherwise fall back to full log scan.
+  const useViewStats = viewStats.length > 0;
+  const statsBySet = new Map<string, { completions: number; flashes: number; points: number }>();
+
+  let allTimeStats: { completions: number; flashes: number; points: number };
+
+  if (useViewStats) {
+    // O(viewStats.length) — one row per set, no expands
+    for (const row of viewStats) {
+      statsBySet.set(row.set_id, {
+        completions: row.completions,
+        flashes: row.flashes,
+        points: row.points,
+      });
+    }
+    allTimeStats = {
+      completions: viewStats.reduce((s, r) => s + r.completions, 0),
+      flashes: viewStats.reduce((s, r) => s + r.flashes, 0),
+      points: viewStats.reduce((s, r) => s + r.points, 0),
+    };
+  } else {
+    // Fallback: fetch all logs (unbounded — works but doesn't scale)
+    const allLogs = await getAllLogsForUser(profileUser.id);
+    for (const log of allLogs) {
+      const setId = log.expand?.route_id?.set_id;
+      if (!setId) continue;
+      const existing = statsBySet.get(setId) ?? { completions: 0, flashes: 0, points: 0 };
+      if (log.completed) existing.completions++;
+      if (isFlash(log)) existing.flashes++;
+      existing.points += computePoints(log);
+      statsBySet.set(setId, existing);
+    }
+    allTimeStats = deriveStats(allLogs);
   }
 
   // Current set stats
   const activeSet = allSets.find((s) => s.active) ?? null;
   const currentSetStats = activeSet
     ? (() => {
-        const logs = logsBySet.get(activeSet.id) ?? [];
-        const stats = deriveStats(logs);
+        const stats = statsBySet.get(activeSet.id) ?? { completions: 0, flashes: 0, points: 0 };
         return {
           label: formatSetLabel(activeSet.starts_at, activeSet.ends_at),
           ...stats,
@@ -83,16 +108,12 @@ export default async function UserProfilePage({ params }: Props) {
       })()
     : null;
 
-  // All-time stats
-  const allTimeStats = deriveStats(allLogs);
-
   // Previous sets (inactive, with completions, most recent first)
   const previousSets = allSets
     .filter((s) => !s.active)
     .map((set) => {
-      const logs = logsBySet.get(set.id) ?? [];
-      const stats = deriveStats(logs);
-      if (stats.completions === 0) return null;
+      const stats = statsBySet.get(set.id);
+      if (!stats || stats.completions === 0) return null;
       return { id: set.id, label: formatSetLabel(set.starts_at, set.ends_at), ...stats };
     })
     .filter(Boolean);

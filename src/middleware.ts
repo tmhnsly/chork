@@ -14,7 +14,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Protected routes — redirect to login if not authenticated
-  if ((pathname === "/profile" || pathname === "/onboarding") && !isAuthenticated) {
+  if ((pathname === "/profile" || pathname === "/onboarding" || pathname === "/leaderboard") && !isAuthenticated) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -22,5 +22,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/login", "/onboarding", "/profile"],
+  matcher: ["/login", "/onboarding", "/profile", "/leaderboard"],
 };

@@ -17,7 +17,6 @@ const mockRoute: Route = {
   id: "route3",
   set_id: "set1",
   number: 3,
-
   has_zone: true,
   created: "2026-04-01T00:00:00Z",
   updated: "2026-04-01T00:00:00Z",
@@ -38,7 +37,7 @@ const baseMockLog: RouteLog = {
 
 /**
  * Bottom sheet that opens when a punch card tile is tapped.
- * Shows route info, attempt counter, and completion CTA.
+ * Snaps between peek (header + counter) and full (+ beta spray) heights.
  */
 const meta = {
   title: "Components/RouteLogSheet",
@@ -57,36 +56,40 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** No previous log — fresh route. */
-export const NotStarted: Story = {
+/** Peek height — no previous log, fresh route. */
+export const PeekNotStarted: Story = {
   args: { log: null },
 };
 
-/** Has attempts but not yet completed. */
-export const InProgress: Story = {
-  args: { log: { ...baseMockLog, attempts: 3 } },
+/** Peek height — has attempts, zone toggle visible and active. */
+export const PeekInProgress: Story = {
+  args: {
+    log: { ...baseMockLog, attempts: 3, zone: true },
+  },
 };
 
-/** Completed in multiple attempts. */
-export const Completed: Story = {
+/** Full height — completed with beta spray and avatars. */
+export const FullCompleted: Story = {
   args: {
     log: {
       ...baseMockLog,
       attempts: 2,
       completed: true,
       completed_at: "2026-04-05T14:00:00Z",
+      grade_vote: 4,
     },
   },
 };
 
-/** Completed on first attempt. */
-export const Flash: Story = {
+/** Full height — flash completed. */
+export const FullFlash: Story = {
   args: {
     log: {
       ...baseMockLog,
       attempts: 1,
       completed: true,
       completed_at: "2026-04-05T14:00:00Z",
+      grade_vote: 3,
     },
   },
 };

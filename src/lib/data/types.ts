@@ -79,3 +79,23 @@ export interface RouteLogWithSetId extends RouteLog {
 }
 
 export type TileState = "empty" | "attempted" | "completed" | "flash";
+
+// ── PocketBase View types ──────────────────────────
+
+/** Row from the `route_grades` PocketBase View collection. */
+export interface RouteGradeView {
+  id: string;
+  route_id: string;
+  community_grade: number;
+  vote_count: number;
+}
+
+/** Row from the `user_set_stats` PocketBase View collection. */
+export interface UserSetStatsView {
+  id: string;
+  user_id: string;
+  set_id: string;
+  completions: number;
+  flashes: number;
+  points: number;
+}

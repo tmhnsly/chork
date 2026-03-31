@@ -4,5 +4,5 @@ export { Button } from "./Button";
 export { Banner } from "./Banner";
 export { BentoGrid, BentoCell, BentoStat } from "./BentoGrid";
 export { SignOutButton } from "./SignOutButton";
-export { Skeleton } from "./Skeleton";
+export { Shimmer } from "./Shimmer";
 export { ToastProvider, showToast } from "./Toast";

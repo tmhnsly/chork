@@ -1,44 +1,39 @@
-import { Skeleton } from "@/components/ui";
-import { BentoGrid, BentoCell } from "@/components/ui";
+import { FaStar, FaBolt, FaCheck, FaArrowTrendUp } from "react-icons/fa6";
+import { Shimmer, BentoGrid, BentoStat } from "@/components/ui";
 import styles from "./user.module.scss";
 
 export default function ProfileLoading() {
   return (
     <main className={styles.page}>
-      {/* Profile header skeleton */}
-      <div className={styles.headerSkeleton}>
-        <Skeleton variant="circle" width={96} height={96} />
-        <div className={styles.headerSkeletonText}>
-          <Skeleton variant="text" width={180} height={28} />
-          <Skeleton variant="text" width={120} height={16} />
+      <Shimmer>
+        <div className={styles.headerSkeleton}>
+          <div className={styles.avatarPlaceholder} />
+          <div className={styles.headerSkeletonText}>
+            <span className={styles.namePlaceholder}>Display Name</span>
+            <span className={styles.usernamePlaceholder}>@username</span>
+          </div>
         </div>
-      </div>
+      </Shimmer>
 
-      {/* Current set stats skeleton */}
       <div className={styles.statsSkeleton}>
-        <Skeleton variant="text" width={140} height={12} />
-        <BentoGrid columns={3}>
-          <BentoCell><Skeleton height={56} /></BentoCell>
-          <BentoCell><Skeleton height={56} /></BentoCell>
-          <BentoCell><Skeleton height={56} /></BentoCell>
-        </BentoGrid>
+        <Shimmer><span className={styles.labelPlaceholder}>APR 7 - MAY 4</span></Shimmer>
+        <Shimmer>
+          <BentoGrid columns={3}>
+            <BentoStat label="Points" value={0} icon={<FaStar />} variant="accent" />
+            <BentoStat label="Sends" value={0} icon={<FaCheck />} />
+            <BentoStat label="Flashes" value={0} icon={<FaBolt />} variant="flash" />
+          </BentoGrid>
+        </Shimmer>
       </div>
 
-      {/* All time skeleton */}
       <div className={styles.statsSkeleton}>
-        <Skeleton variant="text" width={80} height={12} />
-        <BentoGrid columns={2}>
-          <BentoCell><Skeleton height={56} /></BentoCell>
-          <BentoCell><Skeleton height={56} /></BentoCell>
-        </BentoGrid>
-      </div>
-
-      {/* Activity skeleton */}
-      <div className={styles.activitySkeleton}>
-        <Skeleton variant="text" width={120} height={12} />
-        <Skeleton height={44} />
-        <Skeleton height={44} />
-        <Skeleton height={44} />
+        <Shimmer><span className={styles.labelPlaceholder}>All time</span></Shimmer>
+        <Shimmer>
+          <BentoGrid columns={2}>
+            <BentoStat label="Sends" value={0} icon={<FaArrowTrendUp />} />
+            <BentoStat label="Flashes" value={0} icon={<FaBolt />} variant="flash" />
+          </BentoGrid>
+        </Shimmer>
       </div>
     </main>
   );

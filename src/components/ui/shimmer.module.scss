@@ -1,0 +1,31 @@
+// Shimmer wrapper — renders children invisibly to inherit their
+// exact size, then overlays a subtle pulse loading effect.
+
+.shimmer {
+  position: relative;
+  overflow: hidden;
+
+  // Solid overlay that hides content
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: var(--mono-bg);
+    animation: pulse 1.8s ease-in-out infinite;
+  }
+}
+
+// Children rendered but invisible — they hold the layout
+.content {
+  visibility: hidden;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}

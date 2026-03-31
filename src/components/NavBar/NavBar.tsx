@@ -1,37 +1,91 @@
 "use client";
 
 import Link from "next/link";
-import { FaMountain } from "react-icons/fa6";
+import { usePathname } from "next/navigation";
+import { FaMountain, FaHouse, FaTrophy, FaUser } from "react-icons/fa6";
 import { useAuth } from "@/lib/auth-context";
 import { getAvatarUrl } from "@/lib/avatar";
 import styles from "./navBar.module.scss";
 
 export function NavBar() {
   const { user, isLoading } = useAuth();
+  const pathname = usePathname();
 
-  return (
-    <nav className={styles.bar}>
-      <Link href="/" className={styles.logoLink}>
-        <FaMountain className={styles.logoIcon} />
-        <span className={styles.logoText}>Chork</span>
-      </Link>
-
-      <div className={styles.right}>
-        {isLoading ? null : !user ? (
+  // Unauthenticated: top bar with logo + sign in
+  if (isLoading || !user) {
+    return (
+      <nav className={styles.topBar}>
+        <Link href="/" className={styles.logoLink}>
+          <FaMountain className={styles.logoIcon} />
+          <span className={styles.logoText}>Chork</span>
+        </Link>
+        {!isLoading && (
           <Link href="/login" className={styles.signIn}>
             Sign in
           </Link>
-        ) : (
-          <Link href="/profile" className={styles.avatarLink}>
+        )}
+      </nav>
+    );
+  }
+
+  // Don't show nav on login/onboarding
+  if (pathname === "/login" || pathname === "/onboarding") return null;
+
+  const homeActive = pathname === "/";
+  const leaderboardActive = pathname.startsWith("/leaderboard");
+  const profileActive = pathname.startsWith("/u/");
+
+  const avatarUrl = getAvatarUrl(user, { thumb: "64x64" });
+
+  const profileIcon = user.avatar ? (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={avatarUrl}
+      alt=""
+      className={`${styles.tabAvatar} ${profileActive ? styles.tabAvatarActive : ""}`}
+    />
+  ) : (
+    <FaUser className={styles.tabIcon} />
+  );
+
+  return (
+    <>
+      {/* Desktop: top bar with logo + nav links (hidden on mobile) */}
+      <nav className={`${styles.topBar} ${styles.desktopOnly}`}>
+        <Link href="/" className={styles.logoLink}>
+          <FaMountain className={styles.logoIcon} />
+          <span className={styles.logoText}>Chork</span>
+        </Link>
+        <div className={styles.desktopNav}>
+          <Link href="/leaderboard" className={`${styles.desktopLink} ${leaderboardActive ? styles.desktopLinkActive : ""}`}>
+            Leaderboard
+          </Link>
+          <Link href={`/u/${user.username}`} className={styles.avatarLink}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={getAvatarUrl(user, { thumb: "80x80" })}
+              src={avatarUrl}
               alt={user.name || user.username}
               className={styles.avatar}
             />
           </Link>
-        )}
-      </div>
-    </nav>
+        </div>
+      </nav>
+
+      {/* Mobile: bottom tab bar */}
+      <nav className={styles.bottomBar}>
+        <Link href="/" className={`${styles.tab} ${homeActive ? styles.tabActive : ""}`}>
+          <FaHouse className={styles.tabIcon} />
+          <span className={styles.tabLabel}>Home</span>
+        </Link>
+        <Link href="/leaderboard" className={`${styles.tab} ${leaderboardActive ? styles.tabActive : ""}`}>
+          <FaTrophy className={styles.tabIcon} />
+          <span className={styles.tabLabel}>Leaderboard</span>
+        </Link>
+        <Link href={`/u/${user.username}`} className={`${styles.tab} ${profileActive ? styles.tabActive : ""}`}>
+          {profileIcon}
+          <span className={styles.tabLabel}>Profile</span>
+        </Link>
+      </nav>
+    </>
   );
 }

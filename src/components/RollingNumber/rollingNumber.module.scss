@@ -1,0 +1,42 @@
+.container {
+  display: inline-flex;
+  overflow: hidden;
+  vertical-align: baseline;
+  padding: 0 0.1em; // breathing room for italic glyphs
+}
+
+.number {
+  display: inline-block;
+}
+
+// Increment: new number enters from below
+.up {
+  animation: slideUp 0.2s var(--ease-out);
+}
+
+// Decrement: new number enters from above
+.down {
+  animation: slideDown 0.2s var(--ease-out);
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(60%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-60%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

@@ -13,9 +13,11 @@ export enum Collections {
 	Superusers = "_superusers",
 	ActivityEvents = "activity_events",
 	Comments = "comments",
+	RouteGrades = "route_grades",
 	RouteLogs = "route_logs",
 	Routes = "routes",
 	Sets = "sets",
+	UserSetStats = "user_set_stats",
 	Users = "users",
 }
 
@@ -122,6 +124,13 @@ export type CommentsRecord = {
 	user_id: RecordIdString
 }
 
+export type RouteGradesRecord<Tcommunity_grade = unknown> = {
+	community_grade?: null | Tcommunity_grade
+	id: string
+	route_id: RecordIdString
+	vote_count?: number
+}
+
 export type RouteLogsRecord = {
 	attempts?: number
 	completed?: boolean
@@ -153,6 +162,15 @@ export type SetsRecord = {
 	updated: IsoAutoDateString
 }
 
+export type UserSetStatsRecord<Tcompletions = unknown, Tflashes = unknown, Tpoints = unknown> = {
+	completions?: null | Tcompletions
+	flashes?: null | Tflashes
+	id: string
+	points?: null | Tpoints
+	set_id: RecordIdString
+	user_id: RecordIdString
+}
+
 export type UsersRecord = {
 	avatar?: FileNameString
 	created: IsoAutoDateString
@@ -176,9 +194,11 @@ export type OtpsResponse<Texpand = unknown> = Required<OtpsRecord> & BaseSystemF
 export type SuperusersResponse<Texpand = unknown> = Required<SuperusersRecord> & AuthSystemFields<Texpand>
 export type ActivityEventsResponse<Texpand = unknown> = Required<ActivityEventsRecord> & BaseSystemFields<Texpand>
 export type CommentsResponse<Texpand = unknown> = Required<CommentsRecord> & BaseSystemFields<Texpand>
+export type RouteGradesResponse<Tcommunity_grade = unknown, Texpand = unknown> = Required<RouteGradesRecord<Tcommunity_grade>> & BaseSystemFields<Texpand>
 export type RouteLogsResponse<Texpand = unknown> = Required<RouteLogsRecord> & BaseSystemFields<Texpand>
 export type RoutesResponse<Texpand = unknown> = Required<RoutesRecord> & BaseSystemFields<Texpand>
 export type SetsResponse<Texpand = unknown> = Required<SetsRecord> & BaseSystemFields<Texpand>
+export type UserSetStatsResponse<Tcompletions = unknown, Tflashes = unknown, Tpoints = unknown, Texpand = unknown> = Required<UserSetStatsRecord<Tcompletions, Tflashes, Tpoints>> & BaseSystemFields<Texpand>
 export type UsersResponse<Texpand = unknown> = Required<UsersRecord> & AuthSystemFields<Texpand>
 
 // Types containing all Records and Responses, useful for creating typing helper functions
@@ -191,9 +211,11 @@ export type CollectionRecords = {
 	_superusers: SuperusersRecord
 	activity_events: ActivityEventsRecord
 	comments: CommentsRecord
+	route_grades: RouteGradesRecord
 	route_logs: RouteLogsRecord
 	routes: RoutesRecord
 	sets: SetsRecord
+	user_set_stats: UserSetStatsRecord
 	users: UsersRecord
 }
 
@@ -205,9 +227,11 @@ export type CollectionResponses = {
 	_superusers: SuperusersResponse
 	activity_events: ActivityEventsResponse
 	comments: CommentsResponse
+	route_grades: RouteGradesResponse
 	route_logs: RouteLogsResponse
 	routes: RoutesResponse
 	sets: SetsResponse
+	user_set_stats: UserSetStatsResponse
 	users: UsersResponse
 }
 

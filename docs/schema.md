@@ -115,6 +115,97 @@ API rules:
 
 ---
 
+## route_grades (view collection)
+
+Live aggregation over `route_logs`. Returns the community grade for each route.
+Not stored — PocketBase runs the query on every request against the underlying table.
+
+| Field             | Type   | Notes                                         |
+| ----------------- | ------ | --------------------------------------------- |
+| `id`              | text   | Same as `route_id` (used as PK by PocketBase) |
+| `route_id`        | text   | The route this grade belongs to                |
+| `community_grade` | number | `ROUND(AVG(grade_vote))` from completed logs   |
+| `vote_count`      | number | How many completed logs have a grade vote       |
+
+Source query:
+
+```sql
+SELECT
+  route_id AS id,
+  route_id,
+  ROUND(AVG(grade_vote)) AS community_grade,
+  COUNT(grade_vote) AS vote_count
+FROM route_logs
+WHERE completed = TRUE
+  AND grade_vote IS NOT NULL
+GROUP BY route_id
+```
+
+API rules: list/view = `@request.auth.id != ""`. Read-only (view).
+
+Used by: `getRouteGrade()` in `src/lib/data/sets.ts` — called when the RouteLogSheet opens.
+Replaces: fetching all completed logs for a route and averaging in JS.
+
+---
+
+## user_set_stats (view collection)
+
+Live aggregation over `route_logs` joined with `routes`. Returns per-user, per-set stats.
+Not stored — PocketBase runs the query on every request against the underlying tables.
+
+| Field         | Type   | Notes                                              |
+| ------------- | ------ | -------------------------------------------------- |
+| `id`          | number | Synthetic PK via `ROW_NUMBER() OVER()`             |
+| `user_id`     | text   | The user                                            |
+| `set_id`      | text   | The set (via routes.set_id join)                    |
+| `completions` | number | Count of completed logs                             |
+| `flashes`     | number | Count of completed logs where attempts = 1          |
+| `points`      | number | Sum of points using the standard formula + zone bonus |
+
+Source query:
+
+```sql
+SELECT
+  (ROW_NUMBER() OVER()) AS id,
+  rl.user_id AS user_id,
+  r.set_id AS set_id,
+  SUM(CASE WHEN rl.completed = TRUE THEN 1 ELSE 0 END) AS completions,
+  SUM(CASE WHEN rl.completed = TRUE AND rl.attempts = 1 THEN 1 ELSE 0 END) AS flashes,
+  SUM(
+    (CASE
+      WHEN rl.completed = TRUE AND rl.attempts = 1 THEN 4
+      WHEN rl.completed = TRUE AND rl.attempts = 2 THEN 3
+      WHEN rl.completed = TRUE AND rl.attempts = 3 THEN 2
+      WHEN rl.completed = TRUE THEN 1
+      ELSE 0
+    END) + (CASE WHEN rl.zone = TRUE THEN 1 ELSE 0 END)
+  ) AS points
+FROM route_logs rl
+LEFT JOIN routes r ON r.id = rl.route_id
+GROUP BY rl.user_id, r.set_id
+```
+
+API rules: list/view = `@request.auth.id != ""`. Read-only (view).
+
+Used by: `getUserSetStats()` in `src/lib/data/sets.ts` — called on the profile page.
+Replaces: fetching all logs for a user with expanded route data and grouping/summing in JS.
+
+---
+
+## Indexes
+
+Composite indexes added to speed up filtered + sorted queries at scale.
+
+| Collection        | Columns              | Type   | Purpose                                  |
+| ----------------- | -------------------- | ------ | ---------------------------------------- |
+| `route_logs`      | `(user_id, route_id)` | Unique | Upsert lookups, one-log-per-user-per-route |
+| `route_logs`      | `(route_id, completed)` | Regular | Grade aggregation, route stats           |
+| `routes`          | `(set_id, number)`   | Regular | Fetch routes by set, sorted by number    |
+| `comments`        | `(route_id, created)` | Regular | Paginated comments for a route           |
+| `activity_events` | `(user_id, created)` | Regular | Recent activity feed for a user          |
+
+---
+
 ## Points formula
 
 Implemented in `src/lib/data/logs.ts` as `computePoints(log)`. Never stored.

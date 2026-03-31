@@ -41,6 +41,9 @@ Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
 - No `any` — strict TypeScript throughout
 - Server components by default; client components only when interactivity requires it
 - All data access through `src/lib/data/` helpers — never call PocketBase SDK directly from components
+- Prefer PocketBase View collections (`route_grades`, `user_set_stats`) for aggregations — don't fetch N records to compute a sum/average in JS
+- Always pass `logId` to server actions when the client already has the log record — avoids a lookup round-trip in `upsertRouteLog`
+- Use `fields` parameter on PocketBase queries to limit payload to columns actually used
 - Usernames always displayed with `@` prefix
 
 ## Domain rules — IMPORTANT
@@ -50,7 +53,7 @@ Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
   Zone is independent of completion — a user can earn the zone bonus without sending the route.
 - **Flash is derived, not stored.** `attempts === 1 && completed === true`. Never stored as a field.
 - **Attempt counts are private.** Never show raw attempt counts to other users. Points are public.
-- **Community grade is an average.** Mean of all `grade_vote` values from completed logs, rounded to nearest integer.
+- **Community grade is an average.** Mean of all `grade_vote` values from completed logs, rounded to nearest integer. Served by the `route_grades` PocketBase View — query the view, don't scan individual logs.
 - **One active set at a time.** Home punch card always points to `active = true` set.
 - **Archived sets are read-only.** No new `route_logs` or `comments` when `active = false`. Enforce in UI.
 - **Beta spray is blurred, not locked.** Uncompleted users see comments blurred with a "Reveal" toggle. Posting beta requires completion. Replying is always allowed.

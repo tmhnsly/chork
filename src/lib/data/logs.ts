@@ -21,3 +21,13 @@ export function computePoints(log: Pick<RouteLog, "attempts" | "completed" | "zo
   if (log.zone) pts += 1;
   return pts;
 }
+
+/**
+ * Compute community grade from an array of grade votes.
+ * Returns the mean rounded to nearest integer, or null if empty.
+ */
+export function computeRouteGrade(gradeVotes: number[]): number | null {
+  if (gradeVotes.length === 0) return null;
+  const sum = gradeVotes.reduce((acc, v) => acc + v, 0);
+  return Math.round(sum / gradeVotes.length);
+}
