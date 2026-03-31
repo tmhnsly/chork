@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import * as Switch from "@radix-ui/react-switch";
+import Image from "next/image";
 import Link from "next/link";
 import {
   FaMinus,
@@ -30,18 +31,16 @@ import {
   postComment,
   fetchComments,
   editComment,
-  fetchRouteGrade,
 } from "@/app/(app)/actions";
 import { Button, showToast } from "@/components/ui";
 import { CompleteModal } from "@/components/CompleteModal/CompleteModal";
 import styles from "./routeLogSheet.module.scss";
 
-type SnapState = "peek" | "full";
-
 interface Props {
   set: Set;
   route: Route;
   log: RouteLog | null;
+  gradeLabel?: string | null;
   onClose: () => void;
   onLogUpdate: (routeId: string, log: RouteLog) => void;
 }
@@ -73,7 +72,7 @@ function getPointsPreview(
   return text;
 }
 
-export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) {
+export function RouteLogSheet({ set, route, log, gradeLabel, onClose, onLogUpdate }: Props) {
   const { user } = useAuth();
   const [attempts, setAttempts] = useState(log?.attempts ?? 0);
   const [currentLog, setCurrentLog] = useState(log);
@@ -87,25 +86,15 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
   const [nextPage, setNextPage] = useState(1);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editBody, setEditBody] = useState("");
-  const [communityGrade, setCommunityGrade] = useState<number | null>(null);
-  const [snap, setSnap] = useState<SnapState>("peek");
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingAttemptsRef = useRef<number | null>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const dragStartRef = useRef<{ y: number; snap: SnapState; time: number } | null>(null);
-  const dragOffsetRef = useRef(0);
 
   const isCompleted = currentLog?.completed ?? false;
   const isCurrentFlash = currentLog ? isFlash(currentLog) : false;
   const isReadOnly = isCompleted || !set.active;
   const zoneValue = currentLog?.zone ?? false;
   const zoneReadOnly = isCompleted && zoneValue;
-
-  // Fetch community grade
-  useEffect(() => {
-    fetchRouteGrade(route.id).then(setCommunityGrade);
-  }, [route.id]);
 
   // Fetch comments
   useEffect(() => {
@@ -276,89 +265,6 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
     }
   }
 
-  // ── Drag handling ──────────────────────────────────
-  const PEEK_HEIGHT_VH = 45;
-  const FULL_HEIGHT_VH = 90;
-
-  function getHeightPx(s: SnapState): number {
-    return s === "peek"
-      ? (window.innerHeight * PEEK_HEIGHT_VH) / 100
-      : (window.innerHeight * FULL_HEIGHT_VH) / 100;
-  }
-
-  function onPointerDown(e: React.PointerEvent) {
-    // Only primary pointer
-    if (e.button !== 0) return;
-    dragStartRef.current = { y: e.clientY, snap, time: Date.now() };
-    dragOffsetRef.current = 0;
-    const el = contentRef.current;
-    if (el) {
-      el.style.transition = "none";
-      el.setPointerCapture(e.pointerId);
-    }
-  }
-
-  function onPointerMove(e: React.PointerEvent) {
-    if (!dragStartRef.current || !contentRef.current) return;
-    const dy = e.clientY - dragStartRef.current.y;
-    dragOffsetRef.current = dy;
-    const currentHeight = getHeightPx(dragStartRef.current.snap);
-    const newHeight = Math.max(0, currentHeight - dy);
-    contentRef.current.style.height = `${newHeight}px`;
-  }
-
-  function onPointerUp(e: React.PointerEvent) {
-    if (!dragStartRef.current || !contentRef.current) return;
-    const dy = dragOffsetRef.current;
-    const elapsed = Date.now() - dragStartRef.current.time;
-    const velocity = elapsed > 0 ? Math.abs(dy) / elapsed : 0;
-    const startSnap = dragStartRef.current.snap;
-    const isFastSwipe = velocity > 0.5;
-
-    contentRef.current.style.transition = "";
-    contentRef.current.style.height = "";
-
-    let nextSnap: SnapState | "close" = startSnap;
-
-    if (startSnap === "peek") {
-      if (dy < 0) {
-        // Dragging up
-        const midpoint =
-          ((getHeightPx("full") - getHeightPx("peek")) / 2);
-        if (isFastSwipe || Math.abs(dy) > midpoint) {
-          nextSnap = "full";
-        }
-      } else {
-        // Dragging down from peek — dismiss
-        const threshold = getHeightPx("peek") * 0.3;
-        if (isFastSwipe || dy > threshold) {
-          nextSnap = "close";
-        }
-      }
-    } else {
-      // full
-      if (dy > 0) {
-        // Dragging down
-        const midpoint =
-          ((getHeightPx("full") - getHeightPx("peek")) / 2);
-        if (isFastSwipe || dy > midpoint) {
-          nextSnap = "peek";
-        }
-      }
-    }
-
-    dragStartRef.current = null;
-    dragOffsetRef.current = 0;
-
-    if (nextSnap === "close") {
-      onClose();
-    } else {
-      setSnap(nextSnap);
-    }
-
-    contentRef.current.releasePointerCapture(e.pointerId);
-  }
-
   const pointsPreview = getPointsPreview(
     attempts,
     currentLog?.zone ?? false,
@@ -371,39 +277,35 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
       <Dialog.Portal>
         <Dialog.Overlay className={styles.overlay} />
         <Dialog.Content
-          ref={contentRef}
-          className={`${styles.content} ${styles[snap]}`}
+          className={styles.content}
           onOpenAutoFocus={(e) => e.preventDefault()}
         >
           <VisuallyHidden.Root asChild>
             <Dialog.Title>Route {route.number}</Dialog.Title>
           </VisuallyHidden.Root>
 
-          {/* Drag handle + header area */}
-          <div
-            className={styles.dragZone}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            style={{ touchAction: "none" }}
+          {/* Handle — tap to close */}
+          <button
+            type="button"
+            className={styles.handleBtn}
+            onClick={onClose}
+            aria-label="Close"
           >
             <div className={styles.handle} />
+          </button>
 
-            <header className={styles.header}>
-              <div className={styles.headerMain}>
-                <h2 className={styles.routeNumber}>{route.number}</h2>
-                {communityGrade !== null && (
-                  <span className={styles.communityGrade}>V{communityGrade}</span>
-                )}
-              </div>
-              <span
-                className={`${styles.status} ${isCurrentFlash ? styles.statusFlash : ""}`}
-              >
-                {isCurrentFlash && <FaBolt className={styles.flashIcon} />}
-                {getStatus(currentLog, attempts)}
-              </span>
-            </header>
-          </div>
+          <header className={styles.header}>
+            <h2 className={styles.routeNumber}>{route.number}</h2>
+            <span
+              className={`${styles.status} ${isCurrentFlash ? styles.statusFlash : ""}`}
+            >
+              {isCurrentFlash && <FaBolt className={styles.flashIcon} />}
+              {getStatus(currentLog, attempts)}
+            </span>
+            {gradeLabel && (
+              <span className={styles.communityGrade}>{gradeLabel}</span>
+            )}
+          </header>
 
           {/* Attempt counter */}
           <div className={styles.counter}>
@@ -474,178 +376,179 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
             </Button>
           )}
 
-          {/* Beta spray — only rendered at full height */}
-          {snap === "full" && (
-            <div className={styles.betaSection}>
-              <div className={styles.betaHeader}>
-                <span className={styles.sectionLabel}>BETA SPRAY</span>
-                {loadingComments ? null : comments.length > 0 ? (
-                  <span className={styles.commentCount}>
-                    {comments.length} comment{comments.length !== 1 ? "s" : ""}
-                  </span>
-                ) : (
-                  <span className={styles.commentCount}>No beta yet</span>
-                )}
-              </div>
-
-              {!isCompleted && !loadingComments && comments.length > 0 && (
-                <button
-                  type="button"
-                  className={styles.betaToggle}
-                  onClick={() => setBetaRevealed((v) => !v)}
-                >
-                  {betaRevealed ? <FaEyeSlash /> : <FaEye />}
-                  <span>{betaRevealed ? "Hide" : "Reveal"}</span>
-                </button>
-              )}
-
-              {loadingComments ? (
-                <p className={styles.betaEmpty}>Loading...</p>
-              ) : comments.length === 0 ? (
-                <p className={styles.betaEmpty}>No comments yet</p>
+          {/* Beta spray */}
+          <div className={styles.betaSection}>
+            <div className={styles.betaHeader}>
+              <span className={styles.sectionLabel}>BETA SPRAY</span>
+              {loadingComments ? null : comments.length > 0 ? (
+                <span className={styles.commentCount}>
+                  {comments.length} comment{comments.length !== 1 ? "s" : ""}
+                </span>
               ) : (
-                <div
-                  className={
-                    !isCompleted && !betaRevealed ? styles.betaBlurred : undefined
-                  }
-                >
-                  <ul className={styles.commentList}>
-                    {comments.map((c) => {
-                      const author = c.expand?.user_id;
-                      const avatarUrl = author
-                        ? getAvatarUrl(author, { thumb: "64x64" })
-                        : undefined;
-                      const username = author?.username ?? "unknown";
-                      const displayName = author?.name ?? "";
-                      const initial = displayName.charAt(0) || username.charAt(0) || "?";
-                      const timeAgo = formatDistanceToNow(parseISO(c.created), {
-                        addSuffix: true,
-                      });
-
-                      return (
-                        <li key={c.id} className={styles.commentItem}>
-                          <div className={styles.commentRow}>
-                            <Link
-                              href={`/u/${username}`}
-                              className={styles.avatarLink}
-                            >
-                              {avatarUrl ? (
-                                <img
-                                  src={avatarUrl}
-                                  alt={`@${username}`}
-                                  className={styles.commentAvatar}
-                                />
-                              ) : (
-                                <span className={styles.commentAvatarFallback}>
-                                  {initial.toUpperCase()}
-                                </span>
-                              )}
-                            </Link>
-                            <div className={styles.commentContent}>
-                              <div className={styles.commentMeta}>
-                                <Link
-                                  href={`/u/${username}`}
-                                  className={styles.commentAuthor}
-                                >
-                                  @{username}
-                                </Link>
-                                <span className={styles.commentTime}>
-                                  {timeAgo}
-                                </span>
-                              </div>
-                              {editingId === c.id ? (
-                                <div className={styles.editForm}>
-                                  <input
-                                    type="text"
-                                    className={styles.commentInput}
-                                    value={editBody}
-                                    onChange={(e) => setEditBody(e.target.value)}
-                                    autoFocus
-                                  />
-                                  <button
-                                    type="button"
-                                    className={styles.editConfirm}
-                                    onClick={() => handleEditComment(c.id)}
-                                    disabled={!editBody.trim()}
-                                  >
-                                    <FaCheck />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className={styles.editCancel}
-                                    onClick={() => setEditingId(null)}
-                                  >
-                                    <FaXmark />
-                                  </button>
-                                </div>
-                              ) : (
-                                <p className={styles.commentBody}>{c.body}</p>
-                              )}
-                            </div>
-                            {user &&
-                              c.user_id === user.id &&
-                              editingId !== c.id && (
-                                <button
-                                  type="button"
-                                  className={styles.editBtn}
-                                  onClick={() => {
-                                    setEditingId(c.id);
-                                    setEditBody(c.body);
-                                  }}
-                                >
-                                  <FaPen />
-                                </button>
-                              )}
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                  {hasMore && (
-                    <button
-                      type="button"
-                      className={styles.loadMore}
-                      onClick={loadMore}
-                    >
-                      Load more
-                    </button>
-                  )}
-                </div>
-              )}
-
-              {isCompleted && set.active && (
-                <form
-                  className={styles.commentForm}
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handlePostComment();
-                  }}
-                >
-                  <input
-                    type="text"
-                    className={styles.commentInput}
-                    placeholder="Share beta..."
-                    value={commentBody}
-                    onChange={(e) => setCommentBody(e.target.value)}
-                    disabled={posting}
-                  />
-                  <button
-                    type="submit"
-                    className={styles.commentSubmit}
-                    disabled={posting || !commentBody.trim()}
-                  >
-                    <FaPaperPlane />
-                  </button>
-                </form>
-              )}
-
-              {!isCompleted && (
-                <p className={styles.betaPostHint}>
-                  Complete this route to post beta.
-                </p>
+                <span className={styles.commentCount}>No beta yet</span>
               )}
             </div>
-          )}
+
+            {!isCompleted && !loadingComments && comments.length > 0 && (
+              <button
+                type="button"
+                className={styles.betaToggle}
+                onClick={() => setBetaRevealed((v) => !v)}
+              >
+                {betaRevealed ? <FaEyeSlash /> : <FaEye />}
+                <span>{betaRevealed ? "Hide" : "Reveal"}</span>
+              </button>
+            )}
+
+            {loadingComments ? (
+              <p className={styles.betaEmpty}>Loading...</p>
+            ) : comments.length === 0 ? (
+              <p className={styles.betaEmpty}>No comments yet</p>
+            ) : (
+              <div
+                className={
+                  !isCompleted && !betaRevealed ? styles.betaBlurred : undefined
+                }
+              >
+                <ul className={styles.commentList}>
+                  {comments.map((c) => {
+                    const author = c.expand?.user_id;
+                    const avatarUrl = author
+                      ? getAvatarUrl(author, { thumb: "64x64" })
+                      : undefined;
+                    const username = author?.username ?? "unknown";
+                    const displayName = author?.name ?? "";
+                    const initial = displayName.charAt(0) || username.charAt(0) || "?";
+                    const timeAgo = formatDistanceToNow(parseISO(c.created), {
+                      addSuffix: true,
+                    });
+
+                    return (
+                      <li key={c.id} className={styles.commentItem}>
+                        <div className={styles.commentRow}>
+                          <Link
+                            href={`/u/${username}`}
+                            className={styles.avatarLink}
+                          >
+                            {avatarUrl ? (
+                              <Image
+                                src={avatarUrl}
+                                alt={`@${username}`}
+                                width={32}
+                                height={32}
+                                className={styles.commentAvatar}
+                                unoptimized
+                              />
+                            ) : (
+                              <span className={styles.commentAvatarFallback}>
+                                {initial.toUpperCase()}
+                              </span>
+                            )}
+                          </Link>
+                          <div className={styles.commentContent}>
+                            <div className={styles.commentMeta}>
+                              <Link
+                                href={`/u/${username}`}
+                                className={styles.commentAuthor}
+                              >
+                                @{username}
+                              </Link>
+                              <span className={styles.commentTime}>
+                                {timeAgo}
+                              </span>
+                            </div>
+                            {editingId === c.id ? (
+                              <div className={styles.editForm}>
+                                <input
+                                  type="text"
+                                  className={styles.commentInput}
+                                  value={editBody}
+                                  onChange={(e) => setEditBody(e.target.value)}
+                                  autoFocus
+                                />
+                                <button
+                                  type="button"
+                                  className={styles.editConfirm}
+                                  onClick={() => handleEditComment(c.id)}
+                                  disabled={!editBody.trim()}
+                                >
+                                  <FaCheck />
+                                </button>
+                                <button
+                                  type="button"
+                                  className={styles.editCancel}
+                                  onClick={() => setEditingId(null)}
+                                >
+                                  <FaXmark />
+                                </button>
+                              </div>
+                            ) : (
+                              <p className={styles.commentBody}>{c.body}</p>
+                            )}
+                          </div>
+                          {user &&
+                            c.user_id === user.id &&
+                            editingId !== c.id && (
+                              <button
+                                type="button"
+                                className={styles.editBtn}
+                                onClick={() => {
+                                  setEditingId(c.id);
+                                  setEditBody(c.body);
+                                }}
+                              >
+                                <FaPen />
+                              </button>
+                            )}
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+                {hasMore && (
+                  <button
+                    type="button"
+                    className={styles.loadMore}
+                    onClick={loadMore}
+                  >
+                    Load more
+                  </button>
+                )}
+              </div>
+            )}
+
+            {isCompleted && set.active && (
+              <form
+                className={styles.commentForm}
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handlePostComment();
+                }}
+              >
+                <input
+                  type="text"
+                  className={styles.commentInput}
+                  placeholder="Share beta..."
+                  value={commentBody}
+                  onChange={(e) => setCommentBody(e.target.value)}
+                  disabled={posting}
+                />
+                <button
+                  type="submit"
+                  className={styles.commentSubmit}
+                  disabled={posting || !commentBody.trim()}
+                >
+                  <FaPaperPlane />
+                </button>
+              </form>
+            )}
+
+            {!isCompleted && (
+              <p className={styles.betaPostHint}>
+                Complete this route to post beta.
+              </p>
+            )}
+          </div>
 
           <Dialog.Close asChild>
             <button className={styles.closeBtn} type="button">
@@ -659,6 +562,7 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
         <CompleteModal
           route={route}
           attempts={attempts}
+          zone={zoneValue}
           logId={currentLog?.id}
           onConfirm={handleComplete}
           onCancel={() => setShowComplete(false)}

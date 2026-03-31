@@ -11,7 +11,7 @@
   animation: fadeIn var(--duration-fast) var(--ease-out);
 }
 
-// ── Sheet content (snap states) ────────────────────
+// ── Sheet content ─────────────────────────────────
 .content {
   @include surface.card;
   @include layout.stack(var(--space-5));
@@ -22,36 +22,26 @@
   z-index: var(--z-overlay);
   border-radius: var(--radius-3) var(--radius-3) 0 0;
   padding: var(--space-4) var(--gutter-x) var(--space-8);
+  max-height: 90dvh;
   overflow-y: auto;
   animation: slideUp var(--duration-normal) var(--ease-out);
-  transition: height var(--duration-normal) var(--ease-out);
-  will-change: height;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
-    transition: none;
   }
 }
 
-.peek {
-  height: 45dvh;
-  overflow-y: hidden;
-}
-
-.full {
-  height: 90dvh;
-  overflow-y: auto;
-}
-
-// ── Drag zone ──────────────────────────────────────
-.dragZone {
-  @include layout.stack(var(--space-3));
-  cursor: grab;
-  user-select: none;
-
-  &:active {
-    cursor: grabbing;
-  }
+// ── Handle button (tap to close) ──────────────────
+.handleBtn {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  min-height: 24px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
 }
 
 .handle {
@@ -59,7 +49,6 @@
   height: 4px;
   border-radius: var(--radius-full);
   background: var(--mono-border);
-  margin: 0 auto;
 }
 
 // ── Header ──────────────────────────────────────────
@@ -68,19 +57,12 @@
   text-align: center;
 }
 
-.headerMain {
-  display: flex;
-  align-items: baseline;
-  justify-content: center;
-  gap: var(--space-3);
-}
-
 .routeNumber {
   @include type.typography(display);
 }
 
 .communityGrade {
-  @include type.typography(card-title);
+  @include type.typography(meta);
   color: var(--mono-text-low-contrast);
 }
 

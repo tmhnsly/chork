@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import Image from "next/image";
 import styles from "./ui.module.scss";
 
 interface Props {
@@ -31,8 +32,7 @@ export function AvatarPicker({
         onClick={() => fileRef.current?.click()}
       >
         {currentUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={currentUrl} alt="" className={styles.avatarImage} />
+          <Image src={currentUrl} alt="" width={96} height={96} className={styles.avatarImage} unoptimized />
         ) : (
           <span className={styles.avatarFallback}>
             {fallbackText.charAt(0).toUpperCase()}

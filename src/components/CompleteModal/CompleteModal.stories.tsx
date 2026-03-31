@@ -19,6 +19,7 @@ const meta = {
   parameters: { layout: "centered" },
   args: {
     route: mockRoute,
+    zone: false,
     onConfirm: fn(),
     onCancel: fn(),
   },

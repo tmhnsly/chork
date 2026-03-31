@@ -35,10 +35,7 @@ const baseMockLog: RouteLog = {
   updated: "2026-04-01T00:00:00Z",
 };
 
-/**
- * Bottom sheet that opens when a punch card tile is tapped.
- * Snaps between peek (header + counter) and full (+ beta spray) heights.
- */
+/** Bottom sheet that opens when a punch card tile is tapped. */
 const meta = {
   title: "Components/RouteLogSheet",
   component: RouteLogSheet,
@@ -56,20 +53,20 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Peek height — no previous log, fresh route. */
-export const PeekNotStarted: Story = {
+/** No previous log, fresh route. */
+export const NotStarted: Story = {
   args: { log: null },
 };
 
-/** Peek height — has attempts, zone toggle visible and active. */
-export const PeekInProgress: Story = {
+/** Has attempts, zone toggle visible and active. */
+export const InProgress: Story = {
   args: {
     log: { ...baseMockLog, attempts: 3, zone: true },
   },
 };
 
-/** Full height — completed with beta spray and avatars. */
-export const FullCompleted: Story = {
+/** Completed with community grade shown. */
+export const Completed: Story = {
   args: {
     log: {
       ...baseMockLog,
@@ -78,11 +75,12 @@ export const FullCompleted: Story = {
       completed_at: "2026-04-05T14:00:00Z",
       grade_vote: 4,
     },
+    gradeLabel: "V4 community grade",
   },
 };
 
-/** Full height — flash completed. */
-export const FullFlash: Story = {
+/** Flash completed. */
+export const Flash: Story = {
   args: {
     log: {
       ...baseMockLog,
@@ -91,5 +89,6 @@ export const FullFlash: Story = {
       completed_at: "2026-04-05T14:00:00Z",
       grade_vote: 3,
     },
+    gradeLabel: "V3 community grade",
   },
 };

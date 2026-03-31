@@ -15,15 +15,15 @@ const GRADE_MAX = GRADES.length - 1;
 interface Props {
   route: Route;
   attempts: number;
+  zone: boolean;
   logId?: string;
   onConfirm: (log: RouteLog) => void;
   onCancel: () => void;
 }
 
-export function CompleteModal({ route, attempts, logId, onConfirm, onCancel }: Props) {
+export function CompleteModal({ route, attempts, zone, logId, onConfirm, onCancel }: Props) {
   const [gradeEnabled, setGradeEnabled] = useState(false);
   const [gradeIndex, setGradeIndex] = useState(Math.floor(GRADE_MAX / 2));
-  const [zone, setZone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const isFlash = attempts === 1;
 
@@ -103,19 +103,6 @@ export function CompleteModal({ route, attempts, logId, onConfirm, onCancel }: P
               <span className={styles.gradeValue}>{GRADES[gradeIndex]}</span>
             )}
           </div>
-
-          {route.has_zone && (
-            <button
-              type="button"
-              className={`${styles.gradeToggle} ${zone ? styles.gradeToggleOn : ""}`}
-              onClick={() => setZone((v) => !v)}
-            >
-              <span className={styles.checkbox}>
-                {zone && <FaCheck />}
-              </span>
-              <span className={styles.label}>Zone (+1 pt)</span>
-            </button>
-          )}
 
           <div className={styles.actions}>
             <Button onClick={handleConfirm} disabled={submitting}>

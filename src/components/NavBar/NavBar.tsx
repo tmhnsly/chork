@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FaMountain, FaHouse, FaTrophy, FaUser } from "react-icons/fa6";
@@ -38,11 +39,13 @@ export function NavBar() {
   const avatarUrl = getAvatarUrl(user, { thumb: "64x64" });
 
   const profileIcon = user.avatar ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
+    <Image
       src={avatarUrl}
       alt=""
+      width={24}
+      height={24}
       className={`${styles.tabAvatar} ${profileActive ? styles.tabAvatarActive : ""}`}
+      unoptimized
     />
   ) : (
     <FaUser className={styles.tabIcon} />
@@ -61,11 +64,13 @@ export function NavBar() {
             Leaderboard
           </Link>
           <Link href={`/u/${user.username}`} className={styles.avatarLink}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src={avatarUrl}
               alt={user.name || user.username}
+              width={36}
+              height={36}
               className={styles.avatar}
+              unoptimized
             />
           </Link>
         </div>

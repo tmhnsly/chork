@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { UsersResponse } from "@/lib/pocketbase-types";
 import { getAvatarUrl } from "@/lib/avatar";
@@ -90,8 +91,7 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
           onClick={() => fileRef.current?.click()}
           disabled={submitting}
         >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={avatarSrc} alt="" className={styles.avatar} />
+          <Image src={avatarSrc} alt="" width={96} height={96} className={styles.avatar} unoptimized />
           <span className={styles.avatarOverlay}>Edit</span>
         </button>
         <input
@@ -128,8 +128,7 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
 
   return (
     <header className={styles.header}>
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={avatarSrc} alt="" className={styles.avatar} />
+      <Image src={avatarSrc} alt="" width={96} height={96} className={styles.avatar} unoptimized />
       <div className={styles.identity}>
         <h1 className={styles.name}>{user.name || user.username}</h1>
         <p className={styles.username}>@{user.username}</p>

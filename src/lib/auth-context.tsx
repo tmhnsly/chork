@@ -38,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setUser(getAuthUser(pb));
     setIsLoading(false);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [pb]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -68,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         showToast(`Signed in as @${record.username}`);
         router.push("/");
+        router.refresh();
       }
     } catch (err) {
       showToast(formatPBError(err), "error");
@@ -81,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     showToast("Signed out", "info");
     router.push("/");
+    router.refresh();
   }, [pb, router]);
 
   return (
