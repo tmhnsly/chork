@@ -1,0 +1,12 @@
+.fadeIn {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity var(--duration-slow) var(--ease-out),
+    transform var(--duration-slow) var(--ease-out);
+}
+
+.visible {
+  opacity: 1;
+  transform: translateY(0);
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { PunchCard } from "@/components/PunchCard/PunchCard";
+import { PunchCard } from "./PunchCard";
 import type { Set, Route, RouteLog } from "@/lib/data";
 
 interface Props {

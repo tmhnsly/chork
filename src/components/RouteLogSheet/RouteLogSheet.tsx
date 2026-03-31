@@ -221,7 +221,7 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
 
           {isCompleted && set.active ? (
             <div className={styles.completedActions}>
-              <Button disabled style={{ flex: 1 }}>
+              <Button disabled flex>
                 {isCurrentFlash ? "Flashed" : "Completed"}
               </Button>
               <Button variant="ghost" onClick={handleUncomplete}>
@@ -232,7 +232,7 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
             <Button
               onClick={() => setShowComplete(true)}
               disabled={attempts < 1 || !set.active}
-              style={{ width: "100%" }}
+              fullWidth
             >
               Mark as complete
             </Button>

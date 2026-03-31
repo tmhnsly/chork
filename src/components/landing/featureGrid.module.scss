@@ -1,0 +1,74 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+@use "mixins/surfaces" as surface;
+@use "mixins/breakpoints" as bp;
+
+.section {
+  padding: var(--section-gap) var(--gutter-x);
+  background: var(--mono-subtle-bg);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2);
+  max-width: 960px;
+  margin: 0 auto;
+
+  @include bp.tablet {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include bp.desktop {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.card {
+  @include layout.stack(var(--space-2));
+  padding: var(--space-5);
+  background: var(--mono-app-bg);
+  border: 1px solid var(--mono-border-subtle);
+  opacity: 0;
+  transform: translateY(16px);
+  animation: cardIn var(--duration-slow) var(--ease-out) forwards;
+  animation-play-state: paused;
+
+  .gridVisible & {
+    animation-play-state: running;
+  }
+
+  @for $i from 1 through 6 {
+    &:nth-child(#{$i}) {
+      animation-delay: #{($i - 1) * 80}ms;
+    }
+  }
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.icon {
+  display: flex;
+  font-size: var(--text-lg);
+  color: var(--accent-solid);
+}
+
+.title {
+  @include type.typography(card-title);
+}
+
+.description {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+@keyframes cardIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

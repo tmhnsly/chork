@@ -53,3 +53,21 @@
   @include type.typography(body);
   color: var(--mono-text-low-contrast);
 }
+
+// ── Loading skeleton ───────────────────────────────
+.loadingSkeleton {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.tileGridSkeleton {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+}
+
+.legendSkeleton {
+  display: flex;
+  gap: var(--space-4);
+}

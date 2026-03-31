@@ -13,7 +13,7 @@ import { isFlash, computePoints } from "@/lib/data";
 import type { RouteLogWithSetId } from "@/lib/data";
 import { ProfileHeader } from "@/components/ProfileHeader/ProfileHeader";
 import { ClimberStats } from "@/components/ClimberStats/ClimberStats";
-import { SignOutButton } from "./SignOutButton";
+import { SignOutButton } from "@/components/ui";
 import styles from "./user.module.scss";
 
 interface Props {

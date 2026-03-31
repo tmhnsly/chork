@@ -82,7 +82,7 @@ export function OnboardingForm() {
         <Button
           type="submit"
           disabled={submitting || !username || !!usernameValidation.error}
-          style={{ width: "100%" }}
+          fullWidth
         >
           {submitting ? "Saving..." : "Continue"}
         </Button>

@@ -1,8 +1,8 @@
-import Link from "next/link";
 import { createServerPBFromCookies } from "@/lib/pocketbase-server";
 import { getAuthUser } from "@/lib/pocketbase";
 import { getCurrentSet, getRoutesBySet, getLogsBySetForUser } from "@/lib/data/sets";
-import { PunchCardClient } from "./punch-card-client";
+import { PunchCardClient } from "@/components/PunchCard/PunchCardClient";
+import { LandingPage } from "./landing";
 import styles from "./page.module.scss";
 
 export default async function Home() {
@@ -13,15 +13,7 @@ export default async function Home() {
   const user = getAuthUser(pb);
 
   if (!user) {
-    return (
-      <main className={styles.landing}>
-        <h1 className={styles.title}>Chork</h1>
-        <p className={styles.tagline}>Your new favorite thing.</p>
-        <Link href="/login" className={styles.cta}>
-          Get started
-        </Link>
-      </main>
-    );
+    return <LandingPage />;
   }
 
   if (!set) {

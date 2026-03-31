@@ -1,0 +1,46 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+
+.page {
+  // no top padding — hero handles its own vertical centering
+}
+
+// ── CTA section — accent solid band ────────────────
+.ctaSection {
+  @include layout.stack(var(--space-4));
+  padding: var(--section-gap) var(--gutter-x);
+  text-align: center;
+  align-items: center;
+  background: var(--accent-solid);
+}
+
+.ctaHeadline {
+  @include type.typography(display);
+  color: var(--accent-on-solid);
+}
+
+.ctaSub {
+  @include type.typography(body);
+  color: var(--accent-on-solid);
+  opacity: 0.7;
+}
+
+// ── Footer ─────────────────────────────────────────
+.footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-8) var(--gutter-x);
+}
+
+.footerName {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.footerTagline {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  opacity: 0.5;
+}

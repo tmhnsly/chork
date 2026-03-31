@@ -15,7 +15,7 @@ See @docs/schema.md for the PocketBase schema.
 
 - Next.js 15 App Router, Turbopack
 - PocketBase at `https://chork.pockethost.io/`
-- SCSS modules + design token system (`src/app/styles/`)
+- SCSS modules + design token system (`src/styles/`)
 - `pocketbase-typegen` → `src/lib/pocketbase-types.ts`
 - `react-icons/fa6` for all icons
 - `react-hot-toast` via `showToast()` for notifications

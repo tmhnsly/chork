@@ -76,6 +76,15 @@
   color: var(--mono-text-low-contrast);
 }
 
+// ── Button utilities ────────────────────────────────
+.btnFull {
+  width: 100%;
+}
+
+.btnFlex1 {
+  flex: 1;
+}
+
 // ── Buttons (all 44px min tap target) ───────────────
 %btn-base {
   @include type.typography(button);

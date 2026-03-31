@@ -1,11 +1,11 @@
 // Storybook entry point — imports global styles with full paths
 // so we don't depend on sass includePaths (webpack config varies).
-@use "../src/app/styles/app/reset";
-@use "../src/app/styles/app/body";
-@use "../src/app/styles/theme/colors";
-@use "../src/app/styles/theme/surfaces";
-@use "../src/app/styles/theme/spacing";
-@use "../src/app/styles/theme/typography";
-@use "../src/app/styles/theme/radius";
-@use "../src/app/styles/theme/z-index";
-@use "../src/app/styles/theme/motion";
+@use "../src/styles/app/reset";
+@use "../src/styles/app/body";
+@use "../src/styles/theme/colors";
+@use "../src/styles/theme/surfaces";
+@use "../src/styles/theme/spacing";
+@use "../src/styles/theme/typography";
+@use "../src/styles/theme/radius";
+@use "../src/styles/theme/z-index";
+@use "../src/styles/theme/motion";

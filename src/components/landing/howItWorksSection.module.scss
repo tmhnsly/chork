@@ -1,0 +1,54 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+
+.section {
+  padding: var(--section-gap) var(--gutter-x);
+  // default bg — no background override
+}
+
+.inner {
+  @include layout.stack(var(--space-8));
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.heading {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.list {
+  @include layout.stack(var(--space-6));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.step {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+
+.number {
+  @include type.typography(number);
+  color: var(--accent-solid);
+  flex-shrink: 0;
+  width: 32px;
+  text-align: right;
+  // Match card-title line-height so number and title tops align
+  line-height: var(--leading-snug);
+}
+
+.text {
+  @include layout.stack(var(--space-1));
+}
+
+.title {
+  @include type.typography(card-title);
+}
+
+.description {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}

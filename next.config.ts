@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   sassOptions: {
     includePaths: [
       path.join(process.cwd(), "node_modules"),
-      path.join(process.cwd(), "src/app/styles"),
+      path.join(process.cwd(), "src/styles"),
     ],
   },
   images: {

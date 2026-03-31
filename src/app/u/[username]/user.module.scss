@@ -109,6 +109,29 @@
   white-space: nowrap;
 }
 
+// ── Loading skeletons ──────────────────────────────
+.headerSkeleton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.headerSkeletonText {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.statsSkeleton {
+  @include layout.stack(var(--space-2));
+}
+
+.activitySkeleton {
+  @include layout.stack(var(--space-2));
+}
+
 // ── Sign out ───────────────────────────────────────
 .signOutSection {
   display: flex;

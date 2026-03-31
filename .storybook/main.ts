@@ -6,7 +6,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const sassLoadPaths = [
   path.join(process.cwd(), "node_modules"),
-  path.join(process.cwd(), "src/app/styles"),
+  path.join(process.cwd(), "src/styles"),
 ];
 
 function patchSassConfig(obj: unknown): void {

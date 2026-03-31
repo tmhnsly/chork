@@ -3,4 +3,6 @@ export { AvatarPicker } from "./AvatarPicker";
 export { Button } from "./Button";
 export { Banner } from "./Banner";
 export { BentoGrid, BentoCell, BentoStat } from "./BentoGrid";
+export { SignOutButton } from "./SignOutButton";
+export { Skeleton } from "./Skeleton";
 export { ToastProvider, showToast } from "./Toast";
