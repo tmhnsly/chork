@@ -16,40 +16,74 @@
 
 /*
  * Semantic token layer — maps Radix steps 1–12 to role-based names.
- * Steps 11/12 have guaranteed APCA contrast on step-2 backgrounds.
- * Lime/amber step 9–10 use dark foreground text (bright bg colors).
+ *
+ * Radix color scale usage:
+ *
+ *  Step 1  → app-bg            App background, main canvas
+ *  Step 2  → subtle-bg         Subtle component bg (cards, sidebars, striped rows)
+ *  Step 3  → bg                UI element bg (default state)
+ *  Step 4  → bg-hover          UI element bg (hover state)
+ *  Step 5  → bg-active         UI element bg (pressed / selected state)
+ *  Step 6  → border-subtle     Subtle, non-interactive borders (cards, separators, dividers)
+ *  Step 7  → border            Interactive component borders, focus rings
+ *  Step 8  → border-hover      Strong borders on interactive components, focus rings
+ *  Step 9  → solid             Solid backgrounds (buttons, badges, accent fills).
+ *                               Highest chroma — the purest, most vibrant step.
+ *                               Lime/amber/yellow: use dark foreground text (on-solid).
+ *  Step 10 → solid-hover       Hover state for solid backgrounds
+ *  Step 11 → text-low-contrast Low-contrast text. Guaranteed Lc 60 APCA on step 2 bg.
+ *                               Use for: secondary text, labels, placeholders, icons-as-text.
+ *  Step 12 → text              High-contrast text. Guaranteed Lc 90 APCA on step 2 bg.
+ *                               Use for: headings, body text, primary labels.
+ *
+ * When to use which token for TEXT:
+ *   - Headings / primary text on surfaces  → *-text (step 12)
+ *   - Secondary text / labels on surfaces  → *-text-low-contrast (step 11)
+ *   - Text on solid (step 9) backgrounds   → *-on-solid (manually set for contrast)
+ *   - NEVER use *-solid (step 9) for text — it's a background color, not a text color
+ *
+ * When to use which token for BACKGROUNDS:
+ *   - Page / app background                → *-app-bg (step 1)
+ *   - Section / card / panel background    → *-subtle-bg (step 2)
+ *   - Interactive element default bg       → *-bg (step 3)
+ *   - Filled buttons / badges / tags       → *-solid (step 9)
+ *
+ * When to use which token for BORDERS:
+ *   - Card edges, dividers, separators     → *-border-subtle (step 6)
+ *   - Input borders, interactive elements  → *-border (step 7)
+ *   - Focus rings, hover borders           → *-border-hover (step 8)
  */
 :root {
-  /* Mono (olive) */
-  --mono-app-bg: var(--olive-1);
-  --mono-subtle-bg: var(--olive-2);
-  --mono-bg: var(--olive-3);
-  --mono-bg-hover: var(--olive-4);
-  --mono-bg-active: var(--olive-5);
-  --mono-border-subtle: var(--olive-6);
-  --mono-border: var(--olive-7);
-  --mono-border-hover: var(--olive-8);
-  --mono-solid: var(--olive-9);
-  --mono-solid-hover: var(--olive-10);
-  --mono-text-low-contrast: var(--olive-11);
-  --mono-text: var(--olive-12);
+  /* ── Mono (olive) ──────────────────────────────────── */
+  --mono-app-bg: var(--olive-1);             /* Step 1:  App background */
+  --mono-subtle-bg: var(--olive-2);          /* Step 2:  Subtle bg (cards, sections) */
+  --mono-bg: var(--olive-3);                 /* Step 3:  UI element bg */
+  --mono-bg-hover: var(--olive-4);           /* Step 4:  UI element bg (hover) */
+  --mono-bg-active: var(--olive-5);          /* Step 5:  UI element bg (active/selected) */
+  --mono-border-subtle: var(--olive-6);      /* Step 6:  Non-interactive borders */
+  --mono-border: var(--olive-7);             /* Step 7:  Interactive borders */
+  --mono-border-hover: var(--olive-8);       /* Step 8:  Strong/hover borders, focus rings */
+  --mono-solid: var(--olive-9);              /* Step 9:  Solid fills */
+  --mono-solid-hover: var(--olive-10);       /* Step 10: Solid fills (hover) */
+  --mono-text-low-contrast: var(--olive-11); /* Step 11: Secondary/low-contrast text */
+  --mono-text: var(--olive-12);              /* Step 12: Primary/high-contrast text */
 
-  /* Accent (Lime) */
-  --accent-app-bg: var(--lime-1);
-  --accent-subtle-bg: var(--lime-2);
-  --accent-bg: var(--lime-3);
-  --accent-bg-hover: var(--lime-4);
-  --accent-bg-active: var(--lime-5);
-  --accent-border-subtle: var(--lime-6);
-  --accent-border: var(--lime-7);
-  --accent-border-hover: var(--lime-8);
-  --accent-solid: var(--lime-9);
-  --accent-solid-hover: var(--lime-10);
-  --accent-text-low-contrast: var(--lime-11);
-  --accent-text: var(--lime-12);
-  --accent-on-solid: #1a1a1a;
+  /* ── Accent (lime) ─────────────────────────────────── */
+  --accent-app-bg: var(--lime-1);             /* Step 1:  Tinted app background */
+  --accent-subtle-bg: var(--lime-2);          /* Step 2:  Tinted section/card bg */
+  --accent-bg: var(--lime-3);                 /* Step 3:  Accent UI element bg */
+  --accent-bg-hover: var(--lime-4);           /* Step 4:  Accent UI element bg (hover) */
+  --accent-bg-active: var(--lime-5);          /* Step 5:  Accent UI element bg (active) */
+  --accent-border-subtle: var(--lime-6);      /* Step 6:  Accent non-interactive borders */
+  --accent-border: var(--lime-7);             /* Step 7:  Accent interactive borders */
+  --accent-border-hover: var(--lime-8);       /* Step 8:  Accent hover/focus borders */
+  --accent-solid: var(--lime-9);              /* Step 9:  Accent solid fills (buttons, badges) */
+  --accent-solid-hover: var(--lime-10);       /* Step 10: Accent solid fills (hover) */
+  --accent-text-low-contrast: var(--lime-11); /* Step 11: Accent secondary text, icon labels */
+  --accent-text: var(--lime-12);              /* Step 12: Accent primary text, headings */
+  --accent-on-solid: #1a1a1a;                 /* Foreground on step 9 (lime is light-bg scale) */
 
-  /* Error (Red) */
+  /* ── Error (red) ───────────────────────────────────── */
   --error-app-bg: var(--red-1);
   --error-subtle-bg: var(--red-2);
   --error-bg: var(--red-3);
@@ -64,7 +98,7 @@
   --error-text: var(--red-12);
   --error-on-solid: #fff;
 
-  /* Success (Teal) */
+  /* ── Success (teal) ────────────────────────────────── */
   --success-app-bg: var(--teal-1);
   --success-subtle-bg: var(--teal-2);
   --success-bg: var(--teal-3);
@@ -79,7 +113,7 @@
   --success-text: var(--teal-12);
   --success-on-solid: #fff;
 
-  /* Warning (Orange) */
+  /* ── Warning (orange) ──────────────────────────────── */
   --warning-app-bg: var(--orange-1);
   --warning-subtle-bg: var(--orange-2);
   --warning-bg: var(--orange-3);
@@ -94,7 +128,7 @@
   --warning-text: var(--orange-12);
   --warning-on-solid: #21201c;
 
-  /* Info (reuses Lime for brand consistency) */
+  /* ── Info (reuses lime for brand consistency) ──────── */
   --info-app-bg: var(--lime-1);
   --info-subtle-bg: var(--lime-2);
   --info-bg: var(--lime-3);
@@ -109,15 +143,18 @@
   --info-text: var(--lime-12);
   --info-on-solid: #1a1a1a;
 
-  /* Flash badge (Amber) */
+  /* ── Flash badge (amber) ───────────────────────────── */
+  /* Amber is a light-bg scale like lime — use dark foreground on step 9 */
   --flash-app-bg: var(--amber-1);
   --flash-subtle-bg: var(--amber-2);
-  --flash-solid: var(--amber-9);
-  --flash-solid-hover: var(--amber-10);
-  --flash-text-low-contrast: var(--amber-11);
-  --flash-on-solid: #21201c;
+  --flash-solid: var(--amber-9);              /* Step 9:  Flash badge solid fill */
+  --flash-solid-hover: var(--amber-10);       /* Step 10: Flash badge solid (hover) */
+  --flash-text-low-contrast: var(--amber-11); /* Step 11: Flash secondary text */
+  --flash-text: var(--amber-12);              /* Step 12: Flash primary text */
+  --flash-on-solid: #21201c;                  /* Foreground on step 9 */
 
-  --focus-ring: var(--lime-8);
+  /* ── Aliases ───────────────────────────────────────── */
+  --focus-ring: var(--lime-8);                /* Step 8: Focus ring = accent border-hover */
 
   --app-bg: var(--mono-app-bg);
   --app-text: var(--mono-text);

@@ -1,23 +1,26 @@
-@use "mixins/breakpoints" as bp;
-
 .grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-2);
-  // Wider than viewport on mobile — bleeds off the right edge
-  width: calc(100vw + 4rem);
-
-  @include bp.tablet {
-    width: 100%;
-  }
 }
 
 .cell {
   position: relative;
+  animation: cellGrow 0.35s var(--ease-out) both;
+}
+
+@keyframes cellGrow {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 // ── Animation layers ───────────────────────────────
-// Empty state sits behind, final state overlays and animates in.
 .emptyLayer {
   // Always visible — the base
 }
@@ -25,32 +28,26 @@
 .stateLayer {
   position: absolute;
   inset: 0;
-  // Start invisible, animate to visible, hold, then fade out and loop
-  animation: tileReveal 5s var(--ease-out) infinite;
+  animation: tileReveal 10s var(--ease-out) both;
 }
 
 @keyframes tileReveal {
-  // 0–15%: hidden (tiles stagger in during this window)
-  0%, 8% {
+  0% {
     opacity: 0;
-    transform: scale(0.92);
+    transform: scale(0.9);
   }
-  // 15–20%: snap in
   20% {
     opacity: 1;
     transform: scale(1);
   }
-  // 20–70%: hold visible
   70% {
     opacity: 1;
     transform: scale(1);
   }
-  // 70–80%: fade out
-  80% {
+  85% {
     opacity: 0;
-    transform: scale(0.92);
+    transform: scale(0.9);
   }
-  // 80–100%: stay hidden (pause before next cycle)
   100% {
     opacity: 0;
   }
@@ -58,6 +55,12 @@
 
 // ── Reduced motion ─────────────────────────────────
 @media (prefers-reduced-motion: reduce) {
+  .cell {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
   .stateLayer {
     animation: none;
     opacity: 1;

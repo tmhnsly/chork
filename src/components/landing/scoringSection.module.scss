@@ -7,19 +7,19 @@
 }
 
 .inner {
-  @include layout.stack(var(--space-6));
-  max-width: 520px;
+  @include layout.stack(var(--space-8));
+  max-width: 640px;
   margin: 0 auto;
 }
 
 .heading {
   @include type.typography(label);
-  color: var(--mono-text-low-contrast);
+  color: var(--accent-text-low-contrast);
 }
 
 .sub {
   @include type.typography(meta);
-  color: var(--mono-text-low-contrast);
+  color: var(--mono-text);
 }
 
 // ── Bar chart ──────────────────────────────────────
@@ -41,10 +41,10 @@
 
 .icon {
   font-size: 0.85em;
-  color: var(--flash-solid);
+  color: var(--flash-solid-hover);
 
   .zoneRow & {
-    color: var(--accent-solid);
+    color: var(--accent-solid-hover);
   }
 }
 
@@ -74,10 +74,10 @@
   flex-shrink: 0;
 
   .flashRow & {
-    color: var(--flash-solid);
+    color: var(--flash-text-low-contrast);
   }
 
   .zoneRow & {
-    color: var(--accent-solid);
+    color: var(--accent-text-low-contrast);
   }
 }

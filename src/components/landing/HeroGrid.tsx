@@ -1,57 +1,82 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import { DemoTile } from "./DemoTile";
 import type { DemoTileState } from "./DemoTile";
 import styles from "./heroGrid.module.scss";
 
+type TileSet = DemoTileState[];
+
 /**
- * A realistic in-progress session — 5 columns, 3 rows.
- * Tells the story: flashes, sends, projects, untouched.
+ * Multiple session snapshots to cycle through.
+ * Each array is 12 tiles (4 columns × 3 rows).
  */
-const TILES: { number: number; state: DemoTileState }[] = [
-  // Row 1
-  { number: 1, state: "flash" },
-  { number: 2, state: "completed" },
-  { number: 3, state: "attempted" },
-  { number: 4, state: "empty" },
-  { number: 5, state: "empty" },
-  // Row 2
-  { number: 6, state: "completed" },
-  { number: 7, state: "flash" },
-  { number: 8, state: "completed" },
-  { number: 9, state: "attempted" },
-  { number: 10, state: "empty" },
-  // Row 3
-  { number: 11, state: "attempted" },
-  { number: 12, state: "completed" },
-  { number: 13, state: "empty" },
-  { number: 14, state: "empty" },
-  { number: 15, state: "empty" },
+const SESSIONS: TileSet[] = [
+  // Session A — early session
+  [
+    "flash",     "completed", "attempted", "empty",
+    "completed", "empty",     "completed", "attempted",
+    "attempted", "completed", "empty",     "empty",
+  ],
+  // Session B — mid session
+  [
+    "completed", "completed", "flash",     "attempted",
+    "attempted", "completed", "attempted", "completed",
+    "flash",     "empty",     "completed", "empty",
+  ],
+  // Session C — strong session
+  [
+    "flash",     "completed", "completed", "completed",
+    "completed", "attempted", "flash",     "completed",
+    "completed", "flash",     "attempted", "completed",
+  ],
 ];
 
-// Stagger delays (ms) — only non-empty tiles animate in
-const DELAYS = [0, 120, 240, 0, 0, 360, 480, 600, 720, 0, 840, 960, 0, 0, 0];
+const TILE_COUNT = 12;
+const CYCLE_DURATION = 10000;
+
+// Fixed scattered order — feels random but is deterministic (no hydration mismatch).
+// Maps tile index → entrance position in stagger sequence.
+const ENTRANCE_ORDER = [3, 8, 1, 10, 6, 0, 11, 4, 9, 2, 7, 5];
+const ENTRANCE_STAGGER = 50; // ms between each tile
 
 export function HeroGrid() {
+  const [sessionIndex, setSessionIndex] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setSessionIndex((prev) => (prev + 1) % SESSIONS.length);
+    }, CYCLE_DURATION);
+    return () => clearInterval(id);
+  }, []);
+
+  const session = SESSIONS[sessionIndex];
+  const entranceDuration = TILE_COUNT * ENTRANCE_STAGGER;
+
   return (
     <div className={styles.grid} aria-hidden="true">
-      {TILES.map((tile, i) => {
-        const animate = tile.state !== "empty";
-        const cls = [styles.cell, animate ? styles.cellAnimate : ""]
-          .filter(Boolean)
-          .join(" ");
+      {Array.from({ length: TILE_COUNT }, (_, i) => {
+        const state = session[i];
+        const animate = state !== "empty";
 
         return (
-          <div key={tile.number} className={cls}>
-            {/* Empty state shown during the "hidden" phase of the animation */}
+          <div
+            key={i}
+            className={styles.cell}
+            style={{ animationDelay: `${ENTRANCE_ORDER[i] * ENTRANCE_STAGGER}ms` }}
+          >
             <div className={styles.emptyLayer}>
-              <DemoTile number={tile.number} state="empty" />
+              <DemoTile number={i + 1} state="empty" />
             </div>
-            {/* Final state fades in via animation */}
             {animate && (
               <div
+                key={`${sessionIndex}-${i}`}
                 className={styles.stateLayer}
-                style={{ animationDelay: `${DELAYS[i]}ms` }}
+                style={{
+                  animationDelay: `${entranceDuration + i * 150}ms`,
+                }}
               >
-                <DemoTile number={tile.number} state={tile.state} />
+                <DemoTile number={i + 1} state={state} />
               </div>
             )}
           </div>

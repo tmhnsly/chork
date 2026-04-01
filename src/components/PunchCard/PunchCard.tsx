@@ -56,27 +56,6 @@ export function PunchCard({ set, routes, initialLogs }: Props) {
       <div className={styles.page}>
         <h2 className={styles.title}>Punch Card</h2>
 
-        <div className={styles.tileGrid}>
-          {routes.map((route) => {
-            const log = logByRoute.get(route.id);
-            return (
-              <PunchTile
-                key={route.id}
-                number={route.number}
-                state={deriveTileState(log)}
-                zone={log?.zone}
-                onClick={() => {
-                  setSelectedRoute(route);
-                  setGradeLabel(null);
-                  fetchRouteGrade(route.id).then((g) => {
-                    if (g !== null) setGradeLabel(`V${g} community grade`);
-                  });
-                }}
-              />
-            );
-          })}
-        </div>
-
         <footer className={styles.legend}>
           <span className={styles.legendItem}>
             <span className={`${styles.legendSwatch} ${styles.swatchCompleted}`} />
@@ -91,6 +70,25 @@ export function PunchCard({ set, routes, initialLogs }: Props) {
             Attempted
           </span>
         </footer>
+
+        <div className={styles.tileGrid}>
+          {routes.map((route) => {
+            const log = logByRoute.get(route.id);
+            return (
+              <PunchTile
+                key={route.id}
+                number={route.number}
+                state={deriveTileState(log)}
+                zone={log?.zone}
+                onClick={async () => {
+                  const g = await fetchRouteGrade(route.id).catch(() => null);
+                  setGradeLabel(g !== null ? `V${g} community grade` : null);
+                  setSelectedRoute(route);
+                }}
+              />
+            );
+          })}
+        </div>
 
         <BentoGrid columns={2}>
           <BentoStat

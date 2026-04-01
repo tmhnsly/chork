@@ -88,6 +88,10 @@
 // ── Buttons (all 44px min tap target) ───────────────
 %btn-base {
   @include type.typography(button);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
   min-height: 44px;
   padding: 0 var(--space-4);
   border-radius: var(--radius-2);
@@ -143,7 +147,7 @@
 
   &:hover:not(:disabled) {
     background: var(--error-subtle-bg);
-    color: var(--error-solid);
+    color: var(--error-text);
   }
 }
 
@@ -170,32 +174,32 @@
 
 .banner--info {
   background: var(--info-subtle-bg);
-  border-left-color: var(--info-solid);
+  border-left-color: var(--info-border);
   color: var(--info-text-low-contrast);
 
-  .bannerIcon { color: var(--info-solid); }
+  .bannerIcon { color: var(--info-text-low-contrast); }
 }
 
 .banner--success {
   background: var(--success-subtle-bg);
-  border-left-color: var(--success-solid);
+  border-left-color: var(--success-border);
   color: var(--success-text-low-contrast);
 
-  .bannerIcon { color: var(--success-solid); }
+  .bannerIcon { color: var(--success-text-low-contrast); }
 }
 
 .banner--warning {
   background: var(--warning-subtle-bg);
-  border-left-color: var(--warning-solid);
+  border-left-color: var(--warning-border);
   color: var(--warning-text-low-contrast);
 
-  .bannerIcon { color: var(--warning-solid); }
+  .bannerIcon { color: var(--warning-text-low-contrast); }
 }
 
 .banner--error {
   background: var(--error-subtle-bg);
-  border-left-color: var(--error-solid);
+  border-left-color: var(--error-border);
   color: var(--error-text-low-contrast);
 
-  .bannerIcon { color: var(--error-solid); }
+  .bannerIcon { color: var(--error-text-low-contrast); }
 }

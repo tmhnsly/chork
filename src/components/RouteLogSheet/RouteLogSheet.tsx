@@ -100,13 +100,19 @@ export function RouteLogSheet({ set, route, log, gradeLabel, onClose, onLogUpdat
   useEffect(() => {
     let cancelled = false;
     setLoadingComments(true);
-    fetchComments(route.id, 1).then((result) => {
-      if (cancelled) return;
-      setComments(result.items);
-      setHasMore(result.page < result.totalPages);
-      setNextPage(2);
-      setLoadingComments(false);
-    });
+    fetchComments(route.id, 1)
+      .then((result) => {
+        if (cancelled) return;
+        setComments(result.items);
+        setHasMore(result.page < result.totalPages);
+        setNextPage(2);
+      })
+      .catch(() => {
+        // Silently fail — show empty state
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingComments(false);
+      });
     return () => {
       cancelled = true;
     };
@@ -380,25 +386,21 @@ export function RouteLogSheet({ set, route, log, gradeLabel, onClose, onLogUpdat
           <div className={styles.betaSection}>
             <div className={styles.betaHeader}>
               <span className={styles.sectionLabel}>BETA SPRAY</span>
-              {loadingComments ? null : comments.length > 0 ? (
+              {!isCompleted && !loadingComments && comments.length > 0 ? (
+                <button
+                  type="button"
+                  className={styles.betaToggle}
+                  onClick={() => setBetaRevealed((v) => !v)}
+                >
+                  {betaRevealed ? <FaEyeSlash /> : <FaEye />}
+                  <span>{betaRevealed ? "Hide beta" : "Reveal beta"}</span>
+                </button>
+              ) : !loadingComments && comments.length > 0 ? (
                 <span className={styles.commentCount}>
                   {comments.length} comment{comments.length !== 1 ? "s" : ""}
                 </span>
-              ) : (
-                <span className={styles.commentCount}>No beta yet</span>
-              )}
+              ) : null}
             </div>
-
-            {!isCompleted && !loadingComments && comments.length > 0 && (
-              <button
-                type="button"
-                className={styles.betaToggle}
-                onClick={() => setBetaRevealed((v) => !v)}
-              >
-                {betaRevealed ? <FaEyeSlash /> : <FaEye />}
-                <span>{betaRevealed ? "Hide" : "Reveal"}</span>
-              </button>
-            )}
 
             {loadingComments ? (
               <p className={styles.betaEmpty}>Loading...</p>

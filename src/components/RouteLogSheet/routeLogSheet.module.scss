@@ -21,8 +21,8 @@
   right: 0;
   z-index: var(--z-overlay);
   border-radius: var(--radius-3) var(--radius-3) 0 0;
-  padding: var(--space-4) var(--gutter-x) var(--space-8);
-  max-height: 90dvh;
+  padding: var(--space-4) var(--gutter-x) calc(var(--space-8) + env(safe-area-inset-bottom, 0px));
+  max-height: 90svh;
   overflow-y: auto;
   animation: slideUp var(--duration-normal) var(--ease-out);
 
@@ -76,7 +76,7 @@
 }
 
 .statusFlash {
-  color: var(--flash-solid);
+  color: var(--flash-text-low-contrast);
 }
 
 .flashIcon {
@@ -157,7 +157,7 @@
 
 .zoneRowOn {
   background: var(--accent-subtle-bg);
-  border-color: var(--accent-solid);
+  border-color: var(--accent-border-hover);
 }
 
 .zoneIcon {
@@ -165,7 +165,7 @@
   color: inherit;
 
   .zoneRowOn & {
-    color: var(--accent-solid);
+    color: var(--accent-solid-hover);
   }
 }
 
@@ -256,7 +256,7 @@
   cursor: pointer;
 
   &:hover {
-    color: var(--accent-solid);
+    color: var(--accent-text-low-contrast);
   }
 }
 
@@ -333,7 +333,7 @@
   text-decoration: none;
 
   &:hover {
-    color: var(--accent-solid);
+    color: var(--accent-text-low-contrast);
   }
 }
 
@@ -363,7 +363,7 @@
   }
 
   &:hover {
-    color: var(--accent-solid);
+    color: var(--accent-text-low-contrast);
   }
 }
 
@@ -441,7 +441,7 @@
   }
 
   &:focus {
-    border-color: var(--accent-solid);
+    border-color: var(--accent-border-hover);
   }
 }
 

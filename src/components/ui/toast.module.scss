@@ -26,19 +26,19 @@
 
 // ── Variants ────────────────────────────────────────
 .toast--info {
-  .icon { color: var(--info-solid); }
+  .icon { color: var(--info-text-low-contrast); }
 }
 
 .toast--success {
-  .icon { color: var(--success-solid); }
+  .icon { color: var(--success-text-low-contrast); }
 }
 
 .toast--warning {
-  .icon { color: var(--warning-solid); }
+  .icon { color: var(--warning-text-low-contrast); }
 }
 
 .toast--error {
-  .icon { color: var(--error-solid); }
+  .icon { color: var(--error-text-low-contrast); }
 }
 
 // ── Animation ───────────────────────────────────────

@@ -64,7 +64,7 @@
 }
 
 .flashValue {
-  color: var(--flash-solid);
+  color: var(--flash-text-low-contrast);
 }
 
 .setStatLabel {
@@ -99,7 +99,7 @@
 
 .activityFlash {
   @include type.typography(body);
-  color: var(--flash-solid);
+  color: var(--flash-text-low-contrast);
   display: flex;
   align-items: center;
   gap: var(--space-2);

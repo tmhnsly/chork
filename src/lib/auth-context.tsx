@@ -67,8 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         router.push("/onboarding");
       } else {
         showToast(`Signed in as @${record.username}`);
-        router.push("/");
         router.refresh();
+        router.push("/");
       }
     } catch (err) {
       showToast(formatPBError(err), "error");
@@ -81,8 +81,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     pb.authStore.clear();
     setUser(null);
     showToast("Signed out", "info");
-    router.push("/");
     router.refresh();
+    router.push("/");
   }, [pb, router]);
 
   return (

@@ -36,11 +36,11 @@
   @include layout.cluster(var(--space-2));
   padding: var(--space-3) var(--space-4);
   background: var(--flash-subtle-bg);
-  color: var(--flash-solid);
+  color: var(--flash-text);
 }
 
 .flashIcon {
-  color: var(--flash-solid);
+  color: var(--flash-text-low-contrast);
 }
 
 // ── Grade vote ──────────────────────────────────────

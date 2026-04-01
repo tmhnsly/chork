@@ -39,33 +39,3 @@
   color: var(--mono-text-low-contrast);
 }
 
-.googleButton {
-  @include type.typography(button);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-3);
-  width: 100%;
-  min-height: 44px;
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-2);
-  border: 1px solid var(--mono-border);
-  background: var(--mono-subtle-bg);
-  color: var(--mono-text);
-  cursor: pointer;
-  transition: background var(--duration-fast) var(--ease-out);
-
-  &:hover {
-    background: var(--mono-bg-hover);
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-}
-
-.googleIcon {
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-}

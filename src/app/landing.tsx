@@ -9,7 +9,7 @@ import {
   FaTrophy,
 } from "react-icons/fa6";
 import { useAuth } from "@/lib/auth-context";
-import { Button } from "@/components/ui";
+import { Button, GoogleLogo } from "@/components/ui";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { HeroGrid } from "@/components/landing/HeroGrid";
 import { FeatureGrid } from "@/components/landing/FeatureGrid";
@@ -106,7 +106,6 @@ export function LandingPage() {
         subheadline="The bouldering comp tracker that keeps score so you can keep climbing."
         cta={ctaButton}
         visual={<HeroGrid />}
-        scrollHint
       />
 
       <FeatureGrid items={features} />
@@ -125,8 +124,8 @@ export function LandingPage() {
           <p className={styles.ctaSub}>
             Join your crew on the wall. It takes ten seconds.
           </p>
-          <Button onClick={signInWithGoogle} disabled={isLoading}>
-            Sign in with Google
+          <Button variant="secondary" onClick={signInWithGoogle} disabled={isLoading}>
+            <GoogleLogo /> Sign in with Google
           </Button>
         </section>
       </FadeIn>

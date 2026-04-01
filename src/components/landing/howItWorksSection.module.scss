@@ -3,7 +3,6 @@
 
 .section {
   padding: var(--section-gap) var(--gutter-x);
-  // default bg — no background override
 }
 
 .inner {
@@ -14,7 +13,7 @@
 
 .heading {
   @include type.typography(label);
-  color: var(--mono-text-low-contrast);
+  color: var(--accent-text-low-contrast);
 }
 
 .list {
@@ -26,18 +25,14 @@
 
 .step {
   display: flex;
-  gap: var(--space-4);
-  align-items: flex-start;
+  gap: var(--space-3);
 }
 
 .number {
-  @include type.typography(number);
-  color: var(--accent-solid);
+  @include type.typography(card-title);
+  font-style: italic;
+  color: var(--accent-solid-hover);
   flex-shrink: 0;
-  width: 32px;
-  text-align: right;
-  // Match card-title line-height so number and title tops align
-  line-height: var(--leading-snug);
 }
 
 .text {

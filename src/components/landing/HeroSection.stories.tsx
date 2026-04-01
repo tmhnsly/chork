@@ -21,7 +21,6 @@ export const WithGrid: Story = {
     subheadline: "The bouldering comp tracker that keeps score so you can keep climbing.",
     cta: <Button>Get started</Button>,
     visual: <HeroGrid />,
-    scrollHint: true,
   },
 };
 
