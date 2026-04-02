@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { UsersResponse } from "@/lib/pocketbase-types";
 import { getAvatarUrl } from "@/lib/avatar";
+import { useAuth } from "@/lib/auth-context";
 import { Button, showToast } from "@/components/ui";
 import { mutateAuthUser } from "@/lib/user-actions";
 import styles from "./profileHeader.module.scss";
@@ -16,6 +17,7 @@ interface Props {
 
 export function ProfileHeader({ user, isOwnProfile }: Props) {
   const router = useRouter();
+  const { refreshUser } = useAuth();
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState(user.name ?? "");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -41,6 +43,7 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
         return;
       }
       document.cookie = result.cookie;
+      refreshUser();
       showToast("Photo updated");
       router.refresh();
     } catch {
@@ -66,6 +69,7 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
         return;
       }
       document.cookie = result.cookie;
+      refreshUser();
       setEditing(false);
       showToast("Profile updated");
       router.refresh();
@@ -82,26 +86,36 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
     setEditing(false);
   }
 
-  if (editing) {
-    return (
-      <header className={styles.header}>
-        <button
-          type="button"
-          className={styles.avatarButton}
-          onClick={() => fileRef.current?.click()}
-          disabled={submitting}
-        >
-          <Image src={avatarSrc} alt="" width={96} height={96} className={styles.avatar} unoptimized />
-          <span className={styles.avatarOverlay}>Edit</span>
-        </button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          onChange={handleAvatarChange}
-          hidden
-        />
+  return (
+    <header className={styles.header}>
+      {/* Avatar — always the same element, tappable in edit mode */}
+      {editing ? (
+        <>
+          <button
+            type="button"
+            className={styles.avatarButton}
+            onClick={() => fileRef.current?.click()}
+            disabled={submitting}
+          >
+            <Image src={avatarSrc} alt="" width={96} height={96} className={styles.avatarImg} unoptimized />
+            <span className={styles.avatarOverlay}>Edit</span>
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            onChange={handleAvatarChange}
+            hidden
+          />
+        </>
+      ) : (
+        <div className={styles.avatarWrap}>
+          <Image src={avatarSrc} alt="" width={96} height={96} className={styles.avatarImg} unoptimized />
+        </div>
+      )}
 
+      {/* Identity / edit fields */}
+      {editing ? (
         <div className={styles.editFields}>
           <label className={styles.editLabel}>
             <span className={styles.fieldLabel}>Display name</span>
@@ -122,22 +136,17 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
             </Button>
           </div>
         </div>
-      </header>
-    );
-  }
-
-  return (
-    <header className={styles.header}>
-      <Image src={avatarSrc} alt="" width={96} height={96} className={styles.avatar} unoptimized />
-      <div className={styles.identity}>
-        <h1 className={styles.name}>{user.name || user.username}</h1>
-        <p className={styles.username}>@{user.username}</p>
-        {isOwnProfile && (
-          <Button variant="ghost" onClick={() => setEditing(true)} className={styles.editBtn}>
-            Edit profile
-          </Button>
-        )}
-      </div>
+      ) : (
+        <div className={styles.identity}>
+          <h1 className={styles.name}>{user.name || user.username}</h1>
+          <p className={styles.username}>@{user.username}</p>
+          {isOwnProfile && (
+            <Button variant="ghost" onClick={() => setEditing(true)} className={styles.editBtn}>
+              Edit profile
+            </Button>
+          )}
+        </div>
+      )}
     </header>
   );
 }

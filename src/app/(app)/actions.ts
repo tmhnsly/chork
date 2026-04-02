@@ -2,7 +2,7 @@
 
 import { createServerPBFromCookies } from "@/lib/pocketbase-server";
 import { requireAuth } from "@/lib/auth";
-import { upsertRouteLog, createActivityEvent, createComment, updateComment, toggleCommentLike } from "@/lib/data/mutations";
+import { upsertRouteLog, createActivityEvent, deleteCompletionEvents, createComment, updateComment, toggleCommentLike } from "@/lib/data/mutations";
 import { getCommentsByRoute, getRouteGrade, getLikedCommentIds } from "@/lib/data/queries";
 import type { RouteLog, Comment, PaginatedComments, ActivityEventType } from "@/lib/data";
 import { formatPBError } from "@/lib/pb-error";
@@ -71,11 +71,14 @@ export async function uncompleteRoute(routeId: string, logId?: string) {
   const { pb, userId } = auth;
 
   try {
-    const log = await upsertRouteLog(pb, userId, routeId, {
-      completed: false,
-      completed_at: null,
-      grade_vote: null,
-    }, logId);
+    const [log] = await Promise.all([
+      upsertRouteLog(pb, userId, routeId, {
+        completed: false,
+        completed_at: null,
+        grade_vote: null,
+      }, logId),
+      deleteCompletionEvents(pb, userId, routeId),
+    ]);
     return { success: true, log };
   } catch (err) {
     return { error: formatPBError(err) };

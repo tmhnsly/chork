@@ -85,6 +85,22 @@
   color: var(--mono-text-low-contrast);
 }
 
+.gradeControls {
+  display: grid;
+  grid-template-rows: 0fr;
+  overflow: hidden;
+  transition: grid-template-rows var(--duration-normal) var(--ease-out);
+  @include layout.stack(var(--space-3));
+
+  > * {
+    min-height: 0;
+  }
+}
+
+.gradeControlsVisible {
+  grid-template-rows: 1fr;
+}
+
 .slider {
   @include layout.cluster(var(--space-3));
   align-items: center;

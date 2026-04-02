@@ -1,42 +1,49 @@
 import { FaStar, FaBolt, FaCheck, FaArrowTrendUp } from "react-icons/fa6";
 import { Shimmer, BentoGrid, BentoStat } from "@/components/ui";
+import { PunchTile } from "@/components/PunchTile/PunchTile";
 import styles from "./user.module.scss";
 import headerStyles from "@/components/ProfileHeader/profileHeader.module.scss";
 import statsStyles from "@/components/ClimberStats/climberStats.module.scss";
 
 export default function ProfileLoading() {
   return (
-    <Shimmer>
-      <main className={styles.page}>
-        {/* ProfileHeader shape */}
-        <header className={headerStyles.header}>
-          <div className={styles.avatarPlaceholder} />
-          <div className={headerStyles.identity}>
-            <h1 className={headerStyles.name}>Display Name</h1>
-            <p className={headerStyles.username}>@username</p>
-          </div>
-        </header>
-
-        {/* ClimberStats shape */}
-        <div className={statsStyles.wrapper}>
-          <section className={statsStyles.section}>
-            <span className={statsStyles.sectionLabel}>APR 7 – MAY 4</span>
-            <BentoGrid columns={3}>
-              <BentoStat label="Points" value={0} icon={<FaStar />} variant="accent" />
-              <BentoStat label="Sends" value={0} icon={<FaCheck />} />
-              <BentoStat label="Flashes" value={0} icon={<FaBolt />} variant="flash" />
-            </BentoGrid>
-          </section>
-
-          <section className={statsStyles.section}>
-            <span className={statsStyles.sectionLabel}>All time</span>
-            <BentoGrid columns={2}>
-              <BentoStat label="Sends" value={0} icon={<FaArrowTrendUp />} />
-              <BentoStat label="Flashes" value={0} icon={<FaBolt />} variant="flash" />
-            </BentoGrid>
-          </section>
+    <main className={styles.page}>
+      {/* ProfileHeader shape */}
+      <header className={headerStyles.header}>
+        <Shimmer><div className={styles.avatarPlaceholder} /></Shimmer>
+        <div className={headerStyles.identity}>
+          <Shimmer><h1 className={headerStyles.name}>Display Name</h1></Shimmer>
+          <Shimmer><p className={headerStyles.username}>@username</p></Shimmer>
         </div>
-      </main>
-    </Shimmer>
+      </header>
+
+      {/* ClimberStats — Stats first, then Current set with mini grid */}
+      <div className={statsStyles.wrapper}>
+        <section className={statsStyles.section}>
+          <Shimmer><span className={statsStyles.sectionLabel}>Stats</span></Shimmer>
+          <BentoGrid columns={3}>
+            <Shimmer><BentoStat label="Points" value={0} icon={<FaStar />} variant="accent" /></Shimmer>
+            <Shimmer><BentoStat label="Sends" value={0} icon={<FaArrowTrendUp />} /></Shimmer>
+            <Shimmer><BentoStat label="Flashes" value={0} icon={<FaBolt />} variant="flash" /></Shimmer>
+          </BentoGrid>
+        </section>
+
+        <section className={statsStyles.section}>
+          <Shimmer><span className={statsStyles.sectionLabel}>Current set</span></Shimmer>
+          <BentoGrid columns={3}>
+            <Shimmer><BentoStat label="Points" value={0} icon={<FaStar />} variant="accent" /></Shimmer>
+            <Shimmer><BentoStat label="Sends" value={0} icon={<FaCheck />} /></Shimmer>
+            <Shimmer><BentoStat label="Flashes" value={0} icon={<FaBolt />} variant="flash" /></Shimmer>
+          </BentoGrid>
+          <div className={styles.miniGrid}>
+            {Array.from({ length: 12 }, (_, i) => (
+              <Shimmer key={i}>
+                <PunchTile number={i + 1} state="empty" />
+              </Shimmer>
+            ))}
+          </div>
+        </section>
+      </div>
+    </main>
   );
 }

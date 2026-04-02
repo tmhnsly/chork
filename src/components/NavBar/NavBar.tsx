@@ -38,17 +38,21 @@ export function NavBar() {
 
   const avatarUrl = getAvatarUrl(user, { thumb: "64x64" });
 
-  const profileIcon = user.avatar ? (
-    <Image
-      src={avatarUrl}
-      alt=""
-      width={24}
-      height={24}
-      className={`${styles.tabAvatar} ${profileActive ? styles.tabAvatarActive : ""}`}
-      unoptimized
-    />
-  ) : (
-    <FaUser className={styles.tabIcon} />
+  const profileIcon = (
+    <span className={`${styles.tabAvatarWrap} ${profileActive ? styles.tabAvatarActive : ""}`}>
+      {user.avatar ? (
+        <Image
+          src={avatarUrl}
+          alt=""
+          width={24}
+          height={24}
+          className={styles.tabAvatar}
+          unoptimized
+        />
+      ) : (
+        <FaUser />
+      )}
+    </span>
   );
 
   return (

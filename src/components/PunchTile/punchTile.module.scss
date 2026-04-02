@@ -8,6 +8,7 @@
   border: 1px solid var(--mono-border-subtle);
   background: var(--mono-bg);
   cursor: pointer;
+  overflow: visible;
   transition:
     background var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out);
@@ -24,11 +25,11 @@
   font-family: var(--font-heading);
   font-weight: var(--weight-black);
   font-style: italic;
-  font-size: 45cqi;
+  font-size: 40cqi;
   line-height: 1;
   letter-spacing: var(--tracking-tight);
   text-align: center;
-  width: 100%;
+  padding: 0 4cqi; // breathing room for italic glyphs
 }
 
 // ── States ──────────────────────────────────────────

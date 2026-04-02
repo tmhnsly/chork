@@ -65,12 +65,13 @@ export function CompleteModal({ route, attempts, zone, logId, onConfirm, onCance
             {attempts} {attempts === 1 ? "attempt" : "attempts"}
           </p>
 
-          {isFlash && (
-            <div className={styles.flashCallout}>
-              <FaBolt className={styles.flashIcon} />
-              <span>Flash!</span>
-            </div>
-          )}
+          <div
+            className={styles.flashCallout}
+            style={{ display: isFlash ? undefined : "none" }}
+          >
+            <FaBolt className={styles.flashIcon} />
+            <span>Flash!</span>
+          </div>
 
           <div className={styles.gradeSection}>
             <button
@@ -84,7 +85,7 @@ export function CompleteModal({ route, attempts, zone, logId, onConfirm, onCance
               <span className={styles.label}>Grade vote</span>
             </button>
 
-            {gradeEnabled && (
+            <div className={`${styles.gradeControls} ${gradeEnabled ? styles.gradeControlsVisible : ""}`}>
               <div className={styles.slider}>
                 <span className={styles.sliderLabel}>{GRADES[GRADE_MIN]}</span>
                 <input
@@ -97,11 +98,8 @@ export function CompleteModal({ route, attempts, zone, logId, onConfirm, onCance
                 />
                 <span className={styles.sliderLabel}>{GRADES[GRADE_MAX]}</span>
               </div>
-            )}
-
-            {gradeEnabled && (
               <span className={styles.gradeValue}>{GRADES[gradeIndex]}</span>
-            )}
+            </div>
           </div>
 
           <div className={styles.actions}>

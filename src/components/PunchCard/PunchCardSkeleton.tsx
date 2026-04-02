@@ -5,15 +5,17 @@ import styles from "./punchCard.module.scss";
 
 /**
  * Loading skeleton for the punch card page.
- * Renders the real component markup inside a single Shimmer wrapper
- * so the layout is pixel-identical to the loaded state.
+ * Each section is wrapped individually so users see the page
+ * structure with per-section shimmer effects.
  */
 export function PunchCardSkeleton() {
   return (
-    <Shimmer>
-      <div className={styles.page}>
+    <div className={styles.page}>
+      <Shimmer>
         <h2 className={styles.title}>Punch Card</h2>
+      </Shimmer>
 
+      <Shimmer>
         <footer className={styles.legend}>
           <span className={styles.legendItem}>
             <span className={styles.legendSwatch} />
@@ -28,20 +30,22 @@ export function PunchCardSkeleton() {
             Attempted
           </span>
         </footer>
+      </Shimmer>
 
-        <div className={styles.tileGrid}>
-          {Array.from({ length: 12 }, (_, i) => (
-            <PunchTile key={i} number={i + 1} state="empty" />
-          ))}
-        </div>
-
-        <BentoGrid columns={2}>
-          <BentoStat label="Progress" value="0/0" icon={<FaChartBar />} variant="accent" />
-          <BentoStat label="Score" value={0} icon={<FaStar />} />
-          <BentoStat label="Flash rate" value="0%" icon={<FaBolt />} variant="flash" />
-          <BentoStat label="Reset" value="---" icon={<FaCalendarDay />} />
-        </BentoGrid>
+      <div className={styles.tileGrid}>
+        {Array.from({ length: 12 }, (_, i) => (
+          <Shimmer key={i}>
+            <PunchTile number={i + 1} state="empty" />
+          </Shimmer>
+        ))}
       </div>
-    </Shimmer>
+
+      <BentoGrid columns={2}>
+        <Shimmer><BentoStat label="Progress" value="0/0" icon={<FaChartBar />} variant="accent" /></Shimmer>
+        <Shimmer><BentoStat label="Score" value={0} icon={<FaStar />} /></Shimmer>
+        <Shimmer><BentoStat label="Flash rate" value="0%" icon={<FaBolt />} variant="flash" /></Shimmer>
+        <Shimmer><BentoStat label="Reset" value="---" icon={<FaCalendarDay />} /></Shimmer>
+      </BentoGrid>
+    </div>
   );
 }

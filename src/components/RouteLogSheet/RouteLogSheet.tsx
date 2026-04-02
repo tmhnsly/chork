@@ -35,7 +35,7 @@ import {
   editComment,
   likeComment,
 } from "@/app/(app)/actions";
-import { Button, showToast } from "@/components/ui";
+import { Button, Shimmer, showToast } from "@/components/ui";
 import { CompleteModal } from "@/components/CompleteModal/CompleteModal";
 import styles from "./routeLogSheet.module.scss";
 
@@ -253,6 +253,7 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
 
   async function handleLike(commentId: string) {
     const wasLiked = likedIds.has(commentId);
+    const prevCount = comments.find((c) => c.id === commentId)?.likes ?? 0;
     // Optimistic update
     setLikedIds((prev) => {
       const next = new Set(prev);
@@ -286,12 +287,15 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
       );
       showToast(result.error, "error");
     } else if (result.likes !== undefined) {
-      // Sync with authoritative server count
-      setComments((prev) =>
-        prev.map((c) =>
-          c.id === commentId ? { ...c, likes: result.likes! } : c
-        )
-      );
+      // Only sync if server count differs from our optimistic value
+      const expected = prevCount + (wasLiked ? -1 : 1);
+      if (result.likes !== expected) {
+        setComments((prev) =>
+          prev.map((c) =>
+            c.id === commentId ? { ...c, likes: result.likes! } : c
+          )
+        );
+      }
     }
   }
 
@@ -361,9 +365,15 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
               {route.number}
               {isCurrentFlash && <FaBolt className={styles.flashIcon} />}
             </h2>
-            <span className={styles.communityGrade}>
-              {gradeLabel ?? "\u00A0"}
-            </span>
+            {loadingComments ? (
+              <Shimmer className={styles.gradeSkeleton}>
+                <span className={styles.communityGrade}>V10 community grade</span>
+              </Shimmer>
+            ) : gradeLabel ? (
+              <span className={styles.communityGrade}>{gradeLabel}</span>
+            ) : (
+              <span className={styles.communityGrade}>{"\u00A0"}</span>
+            )}
           </header>
 
           {/* Attempt counter */}
@@ -459,7 +469,19 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
 
             <div className={styles.betaScroll}>
             {loadingComments ? (
-              <p className={styles.betaLoading}>Loading...</p>
+              <div className={styles.commentList}>
+                {[0, 1].map((i) => (
+                  <div key={i} className={styles.commentRow}>
+                    <Shimmer className={styles.avatarSkeleton}>
+                      <div className={styles.commentAvatar} />
+                    </Shimmer>
+                    <div className={styles.commentContent}>
+                      <Shimmer><span className={styles.commentAuthor}>@username</span></Shimmer>
+                      <Shimmer><p className={styles.commentBody}>Placeholder comment text here</p></Shimmer>
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : comments.length === 0 ? (
               <p className={styles.betaEmpty}>No comments yet</p>
             ) : (
@@ -537,11 +559,11 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
                                   @{username}
                                 </Link>
                                 <p className={styles.commentBody}>{c.body}</p>
-                                {c.likes > 0 && (
-                                  <span className={styles.commentLikes}>
-                                    {c.likes} {c.likes === 1 ? "like" : "likes"}
-                                  </span>
-                                )}
+                                <span className={styles.commentLikes}>
+                                  {c.likes > 0
+                                    ? `${c.likes} ${c.likes === 1 ? "like" : "likes"}`
+                                    : "\u00A0"}
+                                </span>
                               </>
                             )}
                           </div>

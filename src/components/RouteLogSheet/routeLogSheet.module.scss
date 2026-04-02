@@ -8,7 +8,7 @@
   inset: 0;
   background: color-mix(in srgb, black 60%, transparent);
   z-index: var(--z-overlay);
-  animation: fadeIn var(--duration-fast) var(--ease-out);
+  animation: fadeIn var(--duration-normal) var(--ease-out);
 }
 
 .overlayClosing {
@@ -28,7 +28,7 @@
   z-index: var(--z-overlay);
   border-radius: var(--radius-3) var(--radius-3) 0 0;
   padding: var(--space-4) var(--gutter-x) calc(var(--space-8) + env(safe-area-inset-bottom, 0px));
-  height: 85svh;
+  max-height: 90svh;
   overflow: hidden;
   animation: slideUp var(--duration-normal) var(--ease-out);
 }
@@ -87,6 +87,11 @@
 .communityGrade {
   @include type.typography(meta);
   color: var(--accent-text-low-contrast);
+}
+
+.gradeSkeleton {
+  display: inline-block;
+  border-radius: var(--radius-2);
 }
 
 // ── Counter ─────────────────────────────────────────
@@ -237,8 +242,8 @@
   @include layout.stack(var(--space-3));
   padding-top: var(--space-4);
   border-top: 1px solid var(--surface-divider);
-  // Make beta section scrollable so controls above stay accessible
-  min-height: 0;
+  // Scrollable — takes remaining space with a usable minimum
+  min-height: 150px;
   flex: 1;
   overflow: hidden;
   display: flex;
@@ -299,11 +304,6 @@
   color: var(--mono-text-low-contrast);
 }
 
-.betaLoading {
-  @include type.typography(meta);
-  color: var(--mono-text-low-contrast);
-}
-
 // ── Comment list (Instagram-style) ─────────────────
 .commentList {
   @include layout.stack(var(--space-4));
@@ -333,6 +333,11 @@
   height: 32px;
   border-radius: var(--radius-full);
   object-fit: cover;
+}
+
+.avatarSkeleton {
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
 }
 
 .commentAvatarFallback {
@@ -411,14 +416,14 @@
 
 .editConfirm,
 .editCancel {
+  @include type.typography(button);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  min-height: 36px;
+  width: 44px;
+  min-height: 44px;
   border: none;
   cursor: pointer;
-  font-size: 12px;
 }
 
 .editConfirm {
@@ -439,7 +444,7 @@
 
 .loadMore {
   @include type.typography(button);
-  min-height: 36px;
+  min-height: 44px;
   width: 100%;
   border: 1px solid var(--mono-border);
   background: transparent;

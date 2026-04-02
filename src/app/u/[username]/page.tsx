@@ -9,11 +9,14 @@ import {
   getAllLogsForUser,
   getUserSetStats,
   getActivityEventsForUser,
+  getRoutesBySet,
+  getLogsBySetForUser,
 } from "@/lib/data/queries";
 import { isFlash, computePoints } from "@/lib/data";
-import type { RouteLogWithSetId } from "@/lib/data";
+import type { RouteLogWithSetId, Route, RouteLog, TileState } from "@/lib/data";
 import { ProfileHeader } from "@/components/ProfileHeader/ProfileHeader";
 import { ClimberStats } from "@/components/ClimberStats/ClimberStats";
+import { PunchTile } from "@/components/PunchTile/PunchTile";
 import { SignOutButton } from "@/components/ui";
 import styles from "./user.module.scss";
 
@@ -54,16 +57,19 @@ export default async function UserProfilePage({ params }: Props) {
   const currentUser = getAuthUser(pb);
   const isOwnProfile = currentUser?.id === profileUser.id;
 
-  // Second parallel batch: try view-based stats first, plus activity
-  const [viewStats, activityEvents] = await Promise.all([
+  const activeSet = allSets.find((s) => s.active) ?? null;
+
+  // All data in one parallel batch — no waterfall
+  const [viewStats, activityEvents, miniRoutes, miniLogs] = await Promise.all([
     getUserSetStats(pb, profileUser.id),
-    isOwnProfile ? getActivityEventsForUser(pb, profileUser.id, 10) : Promise.resolve([]),
+    isOwnProfile ? getActivityEventsForUser(pb, profileUser.id, 3) : Promise.resolve([]),
+    activeSet ? getRoutesBySet(pb, activeSet.id) : Promise.resolve([]),
+    activeSet ? getLogsBySetForUser(pb, activeSet.id, profileUser.id) : Promise.resolve([]),
   ]);
 
-  // If the view returned data, use it directly. Otherwise fall back to full log scan.
+  // Build per-set stats from the view (or fall back to full log scan)
   const useViewStats = viewStats.length > 0;
   const statsBySet = new Map<string, { completions: number; flashes: number; points: number }>();
-
   let allTimeStats: { completions: number; flashes: number; points: number };
 
   if (useViewStats) {
@@ -93,16 +99,8 @@ export default async function UserProfilePage({ params }: Props) {
     allTimeStats = deriveStats(allLogs);
   }
 
-  // Current set stats
-  const activeSet = allSets.find((s) => s.active) ?? null;
   const currentSetStats = activeSet
-    ? (() => {
-        const stats = statsBySet.get(activeSet.id) ?? { completions: 0, flashes: 0, points: 0 };
-        return {
-          label: formatSetLabel(activeSet.starts_at, activeSet.ends_at),
-          ...stats,
-        };
-      })()
+    ? statsBySet.get(activeSet.id) ?? { completions: 0, flashes: 0, points: 0 }
     : null;
 
   // Previous sets (inactive, with completions, most recent first)
@@ -123,7 +121,12 @@ export default async function UserProfilePage({ params }: Props) {
         currentSet={currentSetStats}
         allTimeCompletions={allTimeStats.completions}
         allTimeFlashes={allTimeStats.flashes}
-      />
+        allTimePoints={allTimeStats.points}
+      >
+        {miniRoutes.length > 0 && (
+          <MiniPunchCard routes={miniRoutes} logs={miniLogs} />
+        )}
+      </ClimberStats>
 
       {previousSets.length > 0 && (
         <section className={styles.section}>
@@ -203,5 +206,30 @@ export default async function UserProfilePage({ params }: Props) {
         </div>
       )}
     </main>
+  );
+}
+
+// ── Mini punch card ────────────────────────────────
+function deriveTileState(log: RouteLog | undefined): TileState {
+  if (!log || log.attempts === 0) return "empty";
+  if (!log.completed) return "attempted";
+  if (isFlash(log)) return "flash";
+  return "completed";
+}
+
+function MiniPunchCard({ routes, logs }: { routes: Route[]; logs: RouteLog[] }) {
+  const logByRoute = new Map(logs.map((l) => [l.route_id, l]));
+
+  return (
+    <div className={styles.miniGrid}>
+      {routes.map((route) => (
+        <PunchTile
+          key={route.id}
+          number={route.number}
+          state={deriveTileState(logByRoute.get(route.id))}
+          zone={logByRoute.get(route.id)?.zone}
+        />
+      ))}
+    </div>
   );
 }

@@ -17,6 +17,13 @@
   }
 }
 
+// ── Mini punch card grid ──────────────────────────
+.miniGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: var(--space-1);
+}
+
 // ── Sections ───────────────────────────────────────
 .section {
   @include layout.stack(var(--space-3));

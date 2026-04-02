@@ -102,3 +102,25 @@ export async function createActivityEvent(
 ): Promise<ActivityEvent> {
   return pb.collection("activity_events").create<ActivityEvent>(data);
 }
+
+/**
+ * Delete completion/flash activity events for a user + route.
+ * Called on undo to prevent duplicate events if they re-complete.
+ */
+export async function deleteCompletionEvents(
+  pb: TypedPocketBase,
+  userId: string,
+  routeId: string
+): Promise<void> {
+  const events = await pb.collection("activity_events").getFullList<ActivityEvent>({
+    filter: pb.filter(
+      "user_id = {:userId} && route_id = {:routeId} && (type = 'completed' || type = 'flashed')",
+      { userId, routeId }
+    ),
+    fields: "id",
+  });
+
+  await Promise.all(
+    events.map((e) => pb.collection("activity_events").delete(e.id))
+  );
+}

@@ -1,7 +1,7 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
 
-// ── Display mode — centered hero ───────────────────
+// ── Layout ────────────────────────────────────────
 .header {
   display: flex;
   flex-direction: column;
@@ -10,14 +10,8 @@
   text-align: center;
 }
 
-.avatar {
-  width: 96px;
-  height: 96px;
-  border-radius: var(--radius-full);
-  object-fit: cover;
-  border: 3px solid var(--accent-solid);
-}
-
+// ── Avatar — identical sizing in both display and edit mode ──
+.avatarWrap,
 .avatarButton {
   position: relative;
   width: 96px;
@@ -25,10 +19,20 @@
   border-radius: var(--radius-full);
   overflow: hidden;
   border: 3px solid var(--accent-solid);
+  flex-shrink: 0;
   padding: 0;
   background: none;
+}
+
+.avatarButton {
   cursor: pointer;
-  flex-shrink: 0;
+}
+
+.avatarImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .avatarOverlay {
@@ -49,6 +53,7 @@
   }
 }
 
+// ── Display mode ──────────────────────────────────
 .identity {
   @include layout.stack(var(--space-1));
   align-items: center;
