@@ -9,9 +9,9 @@ import {
   getAllLogsForUser,
   getUserSetStats,
   getActivityEventsForUser,
-} from "@/lib/data/sets";
+} from "@/lib/data/queries";
 import { isFlash, computePoints } from "@/lib/data";
-import type { RouteLogWithSetId, UserSetStatsView } from "@/lib/data";
+import type { RouteLogWithSetId } from "@/lib/data";
 import { ProfileHeader } from "@/components/ProfileHeader/ProfileHeader";
 import { ClimberStats } from "@/components/ClimberStats/ClimberStats";
 import { SignOutButton } from "@/components/ui";
@@ -43,11 +43,10 @@ function deriveStats(logs: RouteLogWithSetId[]) {
 export default async function UserProfilePage({ params }: Props) {
   const { username } = await params;
 
-  // All data in two parallel batches — no waterfall
-  const [pb, profileUser, allSets] = await Promise.all([
-    createServerPBFromCookies(),
-    getUserByUsername(username),
-    getAllSets(),
+  const pb = await createServerPBFromCookies();
+  const [profileUser, allSets] = await Promise.all([
+    getUserByUsername(pb, username),
+    getAllSets(pb),
   ]);
 
   if (!profileUser) notFound();
@@ -57,8 +56,8 @@ export default async function UserProfilePage({ params }: Props) {
 
   // Second parallel batch: try view-based stats first, plus activity
   const [viewStats, activityEvents] = await Promise.all([
-    getUserSetStats(profileUser.id),
-    isOwnProfile ? getActivityEventsForUser(profileUser.id, 10) : Promise.resolve([]),
+    getUserSetStats(pb, profileUser.id),
+    isOwnProfile ? getActivityEventsForUser(pb, profileUser.id, 10) : Promise.resolve([]),
   ]);
 
   // If the view returned data, use it directly. Otherwise fall back to full log scan.
@@ -68,7 +67,6 @@ export default async function UserProfilePage({ params }: Props) {
   let allTimeStats: { completions: number; flashes: number; points: number };
 
   if (useViewStats) {
-    // O(viewStats.length) — one row per set, no expands
     for (const row of viewStats) {
       statsBySet.set(row.set_id, {
         completions: row.completions,
@@ -82,8 +80,7 @@ export default async function UserProfilePage({ params }: Props) {
       points: viewStats.reduce((s, r) => s + r.points, 0),
     };
   } else {
-    // Fallback: fetch all logs (unbounded — works but doesn't scale)
-    const allLogs = await getAllLogsForUser(profileUser.id);
+    const allLogs = await getAllLogsForUser(pb, profileUser.id);
     for (const log of allLogs) {
       const setId = log.expand?.route_id?.set_id;
       if (!setId) continue;

@@ -1,7 +1,9 @@
 "use server";
 
 import { createServerPBFromCookies } from "@/lib/pocketbase-server";
-import { upsertRouteLog, createActivityEvent, createComment, updateComment, getCommentsByRoute, getRouteGrade } from "@/lib/data/sets";
+import { requireAuth } from "@/lib/auth";
+import { upsertRouteLog, createActivityEvent, createComment, updateComment, toggleCommentLike } from "@/lib/data/mutations";
+import { getCommentsByRoute, getRouteGrade, getLikedCommentIds } from "@/lib/data/queries";
 import type { RouteLog, Comment, PaginatedComments, ActivityEventType } from "@/lib/data";
 import { formatPBError } from "@/lib/pb-error";
 
@@ -9,15 +11,12 @@ export async function updateAttempts(routeId: string, attempts: number, logId?: 
   if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
   if (!Number.isInteger(attempts) || attempts < 0) return { error: "Invalid attempts" };
 
-  const pb = await createServerPBFromCookies();
-  if (!pb.authStore.isValid || !pb.authStore.record) {
-    return { error: "Not authenticated" };
-  }
+  const auth = await requireAuth();
+  if ("error" in auth) return { error: auth.error };
+  const { pb, userId } = auth;
 
   try {
-    const log = await upsertRouteLog(pb.authStore.record.id, routeId, {
-      attempts,
-    }, logId);
+    const log = await upsertRouteLog(pb, userId, routeId, { attempts }, logId);
     return { success: true, log };
   } catch (err) {
     return { error: formatPBError(err) };
@@ -37,16 +36,14 @@ export async function completeRoute(
     return { error: "Invalid grade" };
   }
 
-  const pb = await createServerPBFromCookies();
-  if (!pb.authStore.isValid || !pb.authStore.record) {
-    return { error: "Not authenticated" };
-  }
+  const auth = await requireAuth();
+  if ("error" in auth) return { error: auth.error };
+  const { pb, userId } = auth;
 
-  const userId = pb.authStore.record.id;
   const isFlash = attempts === 1;
 
   try {
-    const log = await upsertRouteLog(userId, routeId, {
+    const log = await upsertRouteLog(pb, userId, routeId, {
       attempts,
       completed: true,
       completed_at: new Date().toISOString(),
@@ -55,7 +52,7 @@ export async function completeRoute(
     }, logId);
 
     const eventType: ActivityEventType = isFlash ? "flashed" : "completed";
-    await createActivityEvent({
+    await createActivityEvent(pb, {
       user_id: userId,
       route_id: routeId,
       type: eventType,
@@ -68,13 +65,13 @@ export async function completeRoute(
 }
 
 export async function uncompleteRoute(routeId: string, logId?: string) {
-  const pb = await createServerPBFromCookies();
-  if (!pb.authStore.isValid || !pb.authStore.record) {
-    return { error: "Not authenticated" };
-  }
+  if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
+  const auth = await requireAuth();
+  if ("error" in auth) return { error: auth.error };
+  const { pb, userId } = auth;
 
   try {
-    const log = await upsertRouteLog(pb.authStore.record.id, routeId, {
+    const log = await upsertRouteLog(pb, userId, routeId, {
       completed: false,
       completed_at: null,
       grade_vote: null,
@@ -86,15 +83,13 @@ export async function uncompleteRoute(routeId: string, logId?: string) {
 }
 
 export async function toggleZone(routeId: string, zone: boolean, logId?: string) {
-  const pb = await createServerPBFromCookies();
-  if (!pb.authStore.isValid || !pb.authStore.record) {
-    return { error: "Not authenticated" };
-  }
+  if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
+  const auth = await requireAuth();
+  if ("error" in auth) return { error: auth.error };
+  const { pb, userId } = auth;
 
   try {
-    const log = await upsertRouteLog(pb.authStore.record.id, routeId, {
-      zone,
-    }, logId);
+    const log = await upsertRouteLog(pb, userId, routeId, { zone }, logId);
     return { success: true, log };
   } catch (err) {
     return { error: formatPBError(err) };
@@ -109,21 +104,18 @@ export async function postComment(
   const trimmed = typeof body === "string" ? body.trim() : "";
   if (!trimmed) return { error: "Comment cannot be empty" };
 
-  const pb = await createServerPBFromCookies();
-  if (!pb.authStore.isValid || !pb.authStore.record) {
-    return { error: "Not authenticated" };
-  }
-
-  const userId = pb.authStore.record.id;
+  const auth = await requireAuth();
+  if ("error" in auth) return { error: auth.error };
+  const { pb, userId } = auth;
 
   try {
-    const comment = await createComment({
+    const comment = await createComment(pb, {
       user_id: userId,
       route_id: routeId,
       body: trimmed,
     });
 
-    await createActivityEvent({
+    await createActivityEvent(pb, {
       user_id: userId,
       route_id: routeId,
       type: "beta_spray",
@@ -139,18 +131,58 @@ export async function fetchComments(
   routeId: string,
   page: number = 1
 ): Promise<PaginatedComments> {
+  const pb = await createServerPBFromCookies();
   try {
-    return await getCommentsByRoute(routeId, page, 20);
+    return await getCommentsByRoute(pb, routeId, page, 20);
   } catch {
     return { items: [], totalItems: 0, totalPages: 0, page: 1 };
   }
 }
 
 export async function fetchRouteGrade(routeId: string): Promise<number | null> {
+  const pb = await createServerPBFromCookies();
   try {
-    return await getRouteGrade(routeId);
+    return await getRouteGrade(pb, routeId);
   } catch {
     return null;
+  }
+}
+
+/** Fetch grade, comments, and user's liked IDs in a single server action. */
+export async function fetchRouteData(routeId: string): Promise<{
+  grade: number | null;
+  comments: PaginatedComments;
+  likedIds: string[];
+}> {
+  const pb = await createServerPBFromCookies();
+  const userId = pb.authStore.record?.id;
+
+  const [grade, comments, likedSet] = await Promise.all([
+    getRouteGrade(pb, routeId).catch(() => null),
+    getCommentsByRoute(pb, routeId, 1, 2).catch(
+      () => ({ items: [], totalItems: 0, totalPages: 0, page: 1 }) as PaginatedComments
+    ),
+    userId
+      ? getLikedCommentIds(pb, userId, routeId).catch(() => new Set<string>())
+      : Promise.resolve(new Set<string>()),
+  ]);
+
+  return { grade, comments, likedIds: [...likedSet] };
+}
+
+export async function likeComment(
+  commentId: string
+): Promise<{ liked?: boolean; likes?: number; error?: string }> {
+  if (typeof commentId !== "string" || !commentId) return { error: "Invalid comment" };
+
+  const auth = await requireAuth();
+  if ("error" in auth) return { error: auth.error };
+  const { pb, userId } = auth;
+
+  try {
+    return await toggleCommentLike(pb, userId, commentId);
+  } catch (err) {
+    return { error: formatPBError(err) };
   }
 }
 
@@ -162,19 +194,18 @@ export async function editComment(
   const trimmed = typeof body === "string" ? body.trim() : "";
   if (!trimmed) return { error: "Comment cannot be empty" };
 
-  const pb = await createServerPBFromCookies();
-  if (!pb.authStore.isValid || !pb.authStore.record) {
-    return { error: "Not authenticated" };
-  }
+  const auth = await requireAuth();
+  if ("error" in auth) return { error: auth.error };
+  const { pb } = auth;
 
   try {
-    const existing = await pb.collection("comments" as string).getOne<Comment>(commentId, {
+    const existing = await pb.collection("comments").getOne<Comment>(commentId, {
       fields: "id,user_id",
     });
-    if (existing.user_id !== pb.authStore.record.id) {
+    if (existing.user_id !== pb.authStore.record!.id) {
       return { error: "You can only edit your own comments" };
     }
-    const comment = await updateComment(commentId, trimmed);
+    const comment = await updateComment(pb, commentId, trimmed);
     return { comment };
   } catch (err) {
     return { error: formatPBError(err) };

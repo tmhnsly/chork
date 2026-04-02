@@ -1,22 +1,23 @@
 import { Suspense } from "react";
 import { createServerPBFromCookies } from "@/lib/pocketbase-server";
 import { getAuthUser } from "@/lib/pocketbase";
-import { getCurrentSet, getRoutesBySet, getLogsBySetForUser } from "@/lib/data/sets";
+import { getCurrentSet, getRoutesBySet, getLogsBySetForUser } from "@/lib/data/queries";
 import { PunchCardClient } from "@/components/PunchCard/PunchCardClient";
 import { PunchCardSkeleton } from "@/components/PunchCard/PunchCardSkeleton";
 import { LandingPage } from "./landing";
 import styles from "./page.module.scss";
 
 async function AuthenticatedHome({ userId }: { userId: string }) {
-  const set = await getCurrentSet();
+  const pb = await createServerPBFromCookies();
+  const set = await getCurrentSet(pb);
 
   if (!set) {
     return <p className={styles.empty}>No active set right now.</p>;
   }
 
   const [routes, logs] = await Promise.all([
-    getRoutesBySet(set.id),
-    getLogsBySetForUser(set.id, userId),
+    getRoutesBySet(pb, set.id),
+    getLogsBySetForUser(pb, set.id, userId),
   ]);
 
   return <PunchCardClient set={set} routes={routes} initialLogs={logs} />;

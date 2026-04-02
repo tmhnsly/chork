@@ -67,8 +67,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         router.push("/onboarding");
       } else {
         showToast(`Signed in as @${record.username}`);
-        router.refresh();
-        router.push("/");
+        // Hard navigate to bypass the client router cache — the server
+        // component on "/" branches on cookies, so a full reload is
+        // needed to pick up the freshly-set auth cookie reliably.
+        window.location.href = "/";
       }
     } catch (err) {
       showToast(formatPBError(err), "error");
@@ -81,9 +83,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     pb.authStore.clear();
     setUser(null);
     showToast("Signed out", "info");
-    router.refresh();
-    router.push("/");
-  }, [pb, router]);
+    // Hard navigate — same reason as sign-in: the server component
+    // must re-read cookies to switch between authed/unauthed views.
+    window.location.href = "/";
+  }, [pb]);
 
   return (
     <AuthContext.Provider

@@ -17,10 +17,11 @@ import {
   FaCheck,
   FaXmark,
   FaBullseye,
+  FaHeart,
+  FaRegHeart,
 } from "react-icons/fa6";
 import { RollingNumber } from "@/components/RollingNumber/RollingNumber";
-import { formatDistanceToNow, parseISO } from "date-fns";
-import type { Set, Route, RouteLog, Comment } from "@/lib/data";
+import type { Set as RouteSet, Route, RouteLog, Comment } from "@/lib/data";
 import { isFlash, computePoints } from "@/lib/data";
 import { useAuth } from "@/lib/auth-context";
 import { getAvatarUrl } from "@/lib/avatar";
@@ -30,27 +31,20 @@ import {
   toggleZone,
   postComment,
   fetchComments,
+  fetchRouteData,
   editComment,
+  likeComment,
 } from "@/app/(app)/actions";
 import { Button, showToast } from "@/components/ui";
 import { CompleteModal } from "@/components/CompleteModal/CompleteModal";
 import styles from "./routeLogSheet.module.scss";
 
 interface Props {
-  set: Set;
+  set: RouteSet;
   route: Route;
   log: RouteLog | null;
-  gradeLabel?: string | null;
   onClose: () => void;
   onLogUpdate: (routeId: string, log: RouteLog) => void;
-}
-
-function getStatus(log: RouteLog | null, optimisticAttempts: number): string {
-  if (log?.completed) {
-    return isFlash(log) ? "FLASH" : "COMPLETED";
-  }
-  if (optimisticAttempts > 0) return "IN PROGRESS";
-  return "NOT STARTED";
 }
 
 function getPointsPreview(
@@ -61,7 +55,7 @@ function getPointsPreview(
 ): string | null {
   if (completed && log) {
     const pts = computePoints(log);
-    return `${pts} pts earned`;
+    return `${pts} pts`;
   }
   if (attempts === 0) return null;
   const previewPts = computePoints({ attempts, completed: true, zone: false });
@@ -72,18 +66,23 @@ function getPointsPreview(
   return text;
 }
 
-export function RouteLogSheet({ set, route, log, gradeLabel, onClose, onLogUpdate }: Props) {
+export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) {
   const { user } = useAuth();
   const [attempts, setAttempts] = useState(log?.attempts ?? 0);
   const [currentLog, setCurrentLog] = useState(log);
   const [showComplete, setShowComplete] = useState(false);
+  const [closing, setClosing] = useState(false);
   const [betaRevealed, setBetaRevealed] = useState(false);
+  const [gradeLabel, setGradeLabel] = useState<string | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentBody, setCommentBody] = useState("");
   const [posting, setPosting] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [loadingComments, setLoadingComments] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [nextPage, setNextPage] = useState(1);
+  const [expanded, setExpanded] = useState(false);
+  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editBody, setEditBody] = useState("");
 
@@ -96,33 +95,41 @@ export function RouteLogSheet({ set, route, log, gradeLabel, onClose, onLogUpdat
   const zoneValue = currentLog?.zone ?? false;
   const zoneReadOnly = isCompleted && zoneValue;
 
-  // Fetch comments
+  // Fetch grade + comments in one server action (avoids Next.js serialization)
   useEffect(() => {
     let cancelled = false;
     setLoadingComments(true);
-    fetchComments(route.id, 1)
-      .then((result) => {
+
+    fetchRouteData(route.id)
+      .then(({ grade, comments: result, likedIds: liked }) => {
         if (cancelled) return;
+        if (grade !== null) setGradeLabel(`V${grade} community grade`);
+        setLikedIds(new Set(liked));
         setComments(result.items);
         setHasMore(result.page < result.totalPages);
         setNextPage(2);
       })
-      .catch(() => {
-        // Silently fail — show empty state
-      })
+      .catch(() => {})
       .finally(() => {
         if (!cancelled) setLoadingComments(false);
       });
+
     return () => {
       cancelled = true;
     };
   }, [route.id]);
 
   async function loadMore() {
-    const result = await fetchComments(route.id, nextPage);
-    setComments((prev) => [...prev, ...result.items]);
-    setHasMore(result.page < result.totalPages);
-    setNextPage((p) => p + 1);
+    setLoadingMore(true);
+    try {
+      const result = await fetchComments(route.id, nextPage);
+      setComments((prev) => [...prev, ...result.items]);
+      setHasMore(result.page < result.totalPages);
+      setNextPage((p) => p + 1);
+      setExpanded(true);
+    } finally {
+      setLoadingMore(false);
+    }
   }
 
   const saveAttempts = useCallback(
@@ -244,6 +251,50 @@ export function RouteLogSheet({ set, route, log, gradeLabel, onClose, onLogUpdat
     }
   }
 
+  async function handleLike(commentId: string) {
+    const wasLiked = likedIds.has(commentId);
+    // Optimistic update
+    setLikedIds((prev) => {
+      const next = new Set(prev);
+      if (wasLiked) next.delete(commentId);
+      else next.add(commentId);
+      return next;
+    });
+    setComments((prev) =>
+      prev.map((c) =>
+        c.id === commentId
+          ? { ...c, likes: c.likes + (wasLiked ? -1 : 1) }
+          : c
+      )
+    );
+
+    const result = await likeComment(commentId);
+    if (result.error) {
+      // Revert
+      setLikedIds((prev) => {
+        const next = new Set(prev);
+        if (wasLiked) next.add(commentId);
+        else next.delete(commentId);
+        return next;
+      });
+      setComments((prev) =>
+        prev.map((c) =>
+          c.id === commentId
+            ? { ...c, likes: c.likes + (wasLiked ? 1 : -1) }
+            : c
+        )
+      );
+      showToast(result.error, "error");
+    } else if (result.likes !== undefined) {
+      // Sync with authoritative server count
+      setComments((prev) =>
+        prev.map((c) =>
+          c.id === commentId ? { ...c, likes: result.likes! } : c
+        )
+      );
+    }
+  }
+
   function handleComplete(updatedLog: RouteLog) {
     setCurrentLog(updatedLog);
     setAttempts(updatedLog.attempts);
@@ -278,13 +329,18 @@ export function RouteLogSheet({ set, route, log, gradeLabel, onClose, onLogUpdat
     currentLog
   );
 
+  function startClose() {
+    if (!closing) setClosing(true);
+  }
+
   return (
-    <Dialog.Root open onOpenChange={(open) => !open && onClose()}>
+    <Dialog.Root open onOpenChange={(open) => !open && startClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className={styles.overlay} />
+        <Dialog.Overlay className={`${styles.overlay} ${closing ? styles.overlayClosing : ""}`} />
         <Dialog.Content
-          className={styles.content}
+          className={`${styles.content} ${closing ? styles.contentClosing : ""}`}
           onOpenAutoFocus={(e) => e.preventDefault()}
+          onAnimationEnd={() => { if (closing) onClose(); }}
         >
           <VisuallyHidden.Root asChild>
             <Dialog.Title>Route {route.number}</Dialog.Title>
@@ -294,34 +350,32 @@ export function RouteLogSheet({ set, route, log, gradeLabel, onClose, onLogUpdat
           <button
             type="button"
             className={styles.handleBtn}
-            onClick={onClose}
+            onClick={startClose}
             aria-label="Close"
           >
             <div className={styles.handle} />
           </button>
 
           <header className={styles.header}>
-            <h2 className={styles.routeNumber}>{route.number}</h2>
-            <span
-              className={`${styles.status} ${isCurrentFlash ? styles.statusFlash : ""}`}
-            >
+            <h2 className={styles.routeNumber}>
+              {route.number}
               {isCurrentFlash && <FaBolt className={styles.flashIcon} />}
-              {getStatus(currentLog, attempts)}
+            </h2>
+            <span className={styles.communityGrade}>
+              {gradeLabel ?? "\u00A0"}
             </span>
-            {gradeLabel && (
-              <span className={styles.communityGrade}>{gradeLabel}</span>
-            )}
           </header>
 
           {/* Attempt counter */}
           <div className={styles.counter}>
             <span className={styles.counterLabel}>Attempts</span>
-            <div className={styles.counterControls}>
+            <div className={`${styles.counterControls} ${isCompleted ? styles.counterControlsHidden : ""}`}>
               <button
                 className={styles.counterBtn}
                 onClick={() => changeAttempts(-1)}
                 disabled={isReadOnly || attempts <= 0}
                 type="button"
+                tabIndex={isCompleted ? -1 : undefined}
               >
                 <FaMinus />
               </button>
@@ -333,6 +387,7 @@ export function RouteLogSheet({ set, route, log, gradeLabel, onClose, onLogUpdat
                 onClick={() => changeAttempts(1)}
                 disabled={isReadOnly}
                 type="button"
+                tabIndex={isCompleted ? -1 : undefined}
               >
                 <FaPlus />
               </button>
@@ -402,8 +457,9 @@ export function RouteLogSheet({ set, route, log, gradeLabel, onClose, onLogUpdat
               ) : null}
             </div>
 
+            <div className={styles.betaScroll}>
             {loadingComments ? (
-              <p className={styles.betaEmpty}>Loading...</p>
+              <p className={styles.betaLoading}>Loading...</p>
             ) : comments.length === 0 ? (
               <p className={styles.betaEmpty}>No comments yet</p>
             ) : (
@@ -413,7 +469,7 @@ export function RouteLogSheet({ set, route, log, gradeLabel, onClose, onLogUpdat
                 }
               >
                 <ul className={styles.commentList}>
-                  {comments.map((c) => {
+                  {(expanded ? comments : comments.slice(0, 2)).map((c) => {
                     const author = c.expand?.user_id;
                     const avatarUrl = author
                       ? getAvatarUrl(author, { thumb: "64x64" })
@@ -421,9 +477,7 @@ export function RouteLogSheet({ set, route, log, gradeLabel, onClose, onLogUpdat
                     const username = author?.username ?? "unknown";
                     const displayName = author?.name ?? "";
                     const initial = displayName.charAt(0) || username.charAt(0) || "?";
-                    const timeAgo = formatDistanceToNow(parseISO(c.created), {
-                      addSuffix: true,
-                    });
+                    const isOwn = user?.id === c.user_id;
 
                     return (
                       <li key={c.id} className={styles.commentItem}>
@@ -447,18 +501,8 @@ export function RouteLogSheet({ set, route, log, gradeLabel, onClose, onLogUpdat
                               </span>
                             )}
                           </Link>
+
                           <div className={styles.commentContent}>
-                            <div className={styles.commentMeta}>
-                              <Link
-                                href={`/u/${username}`}
-                                className={styles.commentAuthor}
-                              >
-                                @{username}
-                              </Link>
-                              <span className={styles.commentTime}>
-                                {timeAgo}
-                              </span>
-                            </div>
                             {editingId === c.id ? (
                               <div className={styles.editForm}>
                                 <input
@@ -485,15 +529,28 @@ export function RouteLogSheet({ set, route, log, gradeLabel, onClose, onLogUpdat
                                 </button>
                               </div>
                             ) : (
-                              <p className={styles.commentBody}>{c.body}</p>
+                              <>
+                                <Link
+                                  href={`/u/${username}`}
+                                  className={styles.commentAuthor}
+                                >
+                                  @{username}
+                                </Link>
+                                <p className={styles.commentBody}>{c.body}</p>
+                                {c.likes > 0 && (
+                                  <span className={styles.commentLikes}>
+                                    {c.likes} {c.likes === 1 ? "like" : "likes"}
+                                  </span>
+                                )}
+                              </>
                             )}
                           </div>
-                          {user &&
-                            c.user_id === user.id &&
-                            editingId !== c.id && (
+
+                          {editingId !== c.id && (
+                            isOwn ? (
                               <button
                                 type="button"
-                                className={styles.editBtn}
+                                className={styles.actionBtn}
                                 onClick={() => {
                                   setEditingId(c.id);
                                   setEditBody(c.body);
@@ -501,23 +558,42 @@ export function RouteLogSheet({ set, route, log, gradeLabel, onClose, onLogUpdat
                               >
                                 <FaPen />
                               </button>
-                            )}
+                            ) : (
+                              <button
+                                type="button"
+                                className={`${styles.actionBtn} ${likedIds.has(c.id) ? styles.likeBtnActive : ""}`}
+                                onClick={() => handleLike(c.id)}
+                              >
+                                {likedIds.has(c.id) ? <FaHeart /> : <FaRegHeart />}
+                              </button>
+                            )
+                          )}
                         </div>
                       </li>
                     );
                   })}
                 </ul>
-                {hasMore && (
+                {!expanded && comments.length > 2 ? (
+                  <button
+                    type="button"
+                    className={styles.loadMore}
+                    onClick={() => setExpanded(true)}
+                  >
+                    Show {comments.length - 2} more comment{comments.length - 2 !== 1 ? "s" : ""}
+                  </button>
+                ) : hasMore && (
                   <button
                     type="button"
                     className={styles.loadMore}
                     onClick={loadMore}
+                    disabled={loadingMore}
                   >
-                    Load more
+                    {loadingMore ? "Loading..." : "Load more"}
                   </button>
                 )}
               </div>
             )}
+            </div>
 
             {isCompleted && set.active && (
               <form
@@ -552,11 +628,9 @@ export function RouteLogSheet({ set, route, log, gradeLabel, onClose, onLogUpdat
             )}
           </div>
 
-          <Dialog.Close asChild>
-            <button className={styles.closeBtn} type="button">
-              Close
-            </button>
-          </Dialog.Close>
+          <button className={styles.closeBtn} type="button" onClick={startClose}>
+            Close
+          </button>
         </Dialog.Content>
       </Dialog.Portal>
 

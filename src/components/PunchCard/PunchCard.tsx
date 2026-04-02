@@ -5,7 +5,6 @@ import { format, parseISO } from "date-fns";
 import { FaChartBar, FaBolt, FaCalendarDay, FaStar } from "react-icons/fa6";
 import type { Set, Route, RouteLog, TileState } from "@/lib/data";
 import { isFlash, computePoints } from "@/lib/data";
-import { fetchRouteGrade } from "@/app/(app)/actions";
 import { BentoGrid, BentoStat } from "@/components/ui";
 import { PunchTile } from "@/components/PunchTile/PunchTile";
 import { RouteLogSheet } from "@/components/RouteLogSheet/RouteLogSheet";
@@ -27,7 +26,6 @@ function deriveTileState(log: RouteLog | undefined): TileState {
 export function PunchCard({ set, routes, initialLogs }: Props) {
   const [logs, setLogs] = useState<RouteLog[]>(initialLogs);
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
-  const [gradeLabel, setGradeLabel] = useState<string | null>(null);
 
   const logByRoute = new Map(logs.map((l) => [l.route_id, l]));
 
@@ -80,11 +78,7 @@ export function PunchCard({ set, routes, initialLogs }: Props) {
                 number={route.number}
                 state={deriveTileState(log)}
                 zone={log?.zone}
-                onClick={async () => {
-                  const g = await fetchRouteGrade(route.id).catch(() => null);
-                  setGradeLabel(g !== null ? `V${g} community grade` : null);
-                  setSelectedRoute(route);
-                }}
+                onClick={() => setSelectedRoute(route)}
               />
             );
           })}
@@ -121,7 +115,6 @@ export function PunchCard({ set, routes, initialLogs }: Props) {
           set={set}
           route={selectedRoute}
           log={logByRoute.get(selectedRoute.id) ?? null}
-          gradeLabel={gradeLabel}
           onClose={() => setSelectedRoute(null)}
           onLogUpdate={handleLogUpdate}
         />

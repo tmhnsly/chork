@@ -1,18 +1,9 @@
 "use server";
 
 import { createServerPBFromCookies } from "./pocketbase-server";
-import { cookieOptions } from "./pocketbase";
+import { cookieOptions, requireAuth } from "./auth";
+import { USERNAME_RE, ALLOWED_USER_FIELDS } from "./validation";
 import { formatPBError } from "./pb-error";
-
-const USERNAME_RE = /^[a-z0-9_]+$/;
-
-/** Fields that can be updated on a user record via mutateAuthUser. */
-const ALLOWED_USER_FIELDS = new Set([
-  "username",
-  "name",
-  "avatar",
-  "onboarded",
-]);
 
 /**
  * Check if a username is available. Validates format server-side
@@ -39,12 +30,10 @@ export async function checkUsernameAvailable(
  * Update the authenticated user's record with whitelisted fields only.
  * Refreshes auth and returns the updated cookie for the client.
  */
-export async function mutateAuthUser(formData: FormData) {
-  const pb = await createServerPBFromCookies();
-
-  if (!pb.authStore.isValid || !pb.authStore.record) {
-    return { error: "Not authenticated" };
-  }
+export async function mutateAuthUser(formData: FormData): Promise<{ error: string } | { success: true; cookie: string }> {
+  const auth = await requireAuth();
+  if ("error" in auth) return { error: auth.error };
+  const { pb, userId } = auth;
 
   // Strip any fields not in the allowlist
   const safeData = new FormData();
@@ -55,7 +44,7 @@ export async function mutateAuthUser(formData: FormData) {
   }
 
   try {
-    await pb.collection("users").update(pb.authStore.record.id, safeData);
+    await pb.collection("users").update(userId, safeData);
     await pb.collection("users").authRefresh();
     const cookie = pb.authStore.exportToCookie(cookieOptions);
     return { success: true, cookie };

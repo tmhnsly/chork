@@ -115,43 +115,11 @@
   white-space: nowrap;
 }
 
-// ── Loading placeholders ─────────────────────────
-// These match the real component layouts so Shimmer
-// wrapping produces pixel-accurate loading states.
-
-.headerSkeleton {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-3);
-  text-align: center;
-}
-
+// ── Loading placeholder ─────────────────────────
 .avatarPlaceholder {
   width: 96px;
   height: 96px;
   border-radius: var(--radius-full);
-}
-
-.headerSkeletonText {
-  @include layout.stack(var(--space-1));
-  align-items: center;
-}
-
-.namePlaceholder {
-  @include type.typography(display);
-}
-
-.usernamePlaceholder {
-  @include type.typography(body);
-}
-
-.labelPlaceholder {
-  @include type.typography(label);
-}
-
-.statsSkeleton {
-  @include layout.stack(var(--space-2));
 }
 
 // ── Sign out ───────────────────────────────────────

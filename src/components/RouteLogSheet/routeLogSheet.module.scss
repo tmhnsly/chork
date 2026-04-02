@@ -11,10 +11,16 @@
   animation: fadeIn var(--duration-fast) var(--ease-out);
 }
 
+.overlayClosing {
+  animation: fadeOut var(--duration-normal) var(--ease-out) forwards;
+}
+
 // ── Sheet content ─────────────────────────────────
 .content {
   @include surface.card;
-  @include layout.stack(var(--space-5));
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
   position: fixed;
   bottom: 0;
   left: 0;
@@ -22,10 +28,17 @@
   z-index: var(--z-overlay);
   border-radius: var(--radius-3) var(--radius-3) 0 0;
   padding: var(--space-4) var(--gutter-x) calc(var(--space-8) + env(safe-area-inset-bottom, 0px));
-  max-height: 90svh;
-  overflow-y: auto;
+  height: 85svh;
+  overflow: hidden;
   animation: slideUp var(--duration-normal) var(--ease-out);
+}
 
+.contentClosing {
+  animation: slideDown var(--duration-normal) var(--ease-out) forwards;
+}
+
+.content,
+.contentClosing {
   @media (prefers-reduced-motion: reduce) {
     animation: none;
   }
@@ -59,28 +72,21 @@
 
 .routeNumber {
   @include type.typography(display);
+  color: var(--accent-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.flashIcon {
+  color: var(--flash-text-low-contrast);
+  font-size: 0.7em;
 }
 
 .communityGrade {
   @include type.typography(meta);
-  color: var(--mono-text-low-contrast);
-}
-
-.status {
-  @include type.typography(label);
-  color: var(--mono-text-low-contrast);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-1);
-}
-
-.statusFlash {
-  color: var(--flash-text-low-contrast);
-}
-
-.flashIcon {
-  font-size: 0.85em;
+  color: var(--accent-text-low-contrast);
 }
 
 // ── Counter ─────────────────────────────────────────
@@ -98,6 +104,12 @@
   display: flex;
   align-items: center;
   gap: var(--space-4);
+}
+
+.counterControlsHidden {
+  .counterBtn {
+    visibility: hidden;
+  }
 }
 
 .counterBtn {
@@ -137,7 +149,8 @@
 }
 
 .pointsEarned {
-  color: var(--mono-text-low-contrast);
+  @include type.typography(label);
+  color: var(--accent-text-low-contrast);
 }
 
 // ── Zone toggle ────────────────────────────────────
@@ -224,6 +237,21 @@
   @include layout.stack(var(--space-3));
   padding-top: var(--space-4);
   border-top: 1px solid var(--surface-divider);
+  // Make beta section scrollable so controls above stay accessible
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.betaScroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  // Extra padding so the blur filter doesn't get clipped by overflow
+  padding: var(--space-2);
+  margin: calc(-1 * var(--space-2));
 }
 
 .betaHeader {
@@ -271,6 +299,12 @@
   color: var(--mono-text-low-contrast);
 }
 
+.betaLoading {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+// ── Comment list (Instagram-style) ─────────────────
 .commentList {
   @include layout.stack(var(--space-4));
   list-style: none;
@@ -291,7 +325,7 @@
 .avatarLink {
   flex-shrink: 0;
   display: block;
-  min-width: 32px;
+  padding-top: var(--space-1); // align with first line of text
 }
 
 .commentAvatar {
@@ -320,12 +354,6 @@
   @include layout.stack(var(--space-1));
 }
 
-.commentMeta {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
-}
-
 .commentAuthor {
   @include type.typography(meta);
   font-weight: var(--weight-semibold);
@@ -337,33 +365,42 @@
   }
 }
 
-.commentTime {
-  @include type.typography(meta);
-  color: var(--mono-text-low-contrast);
-  font-size: var(--text-xs);
+.commentBody {
+  @include type.typography(body);
+  color: var(--mono-text);
 }
 
-.editBtn {
+.commentLikes {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+// Heart / pen icon — right side of row
+.actionBtn {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0;
   border: none;
   background: transparent;
   color: var(--mono-text-low-contrast);
   cursor: pointer;
-  font-size: 10px;
+  font-size: var(--text-base);
   flex-shrink: 0;
-  opacity: 0;
-  transition: opacity var(--duration-fast) var(--ease-out);
-
-  .commentRow:hover & {
-    opacity: 1;
-  }
+  transition: color var(--duration-fast) var(--ease-out);
 
   &:hover {
     color: var(--accent-text-low-contrast);
+  }
+}
+
+.likeBtnActive {
+  color: var(--error-solid);
+
+  &:hover {
+    color: var(--error-text-low-contrast);
   }
 }
 
@@ -492,7 +529,17 @@
   to { opacity: 1; }
 }
 
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
 @keyframes slideUp {
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
 }

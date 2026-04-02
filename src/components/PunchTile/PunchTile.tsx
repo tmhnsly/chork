@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { FaBolt, FaBullseye } from "react-icons/fa6";
 import type { TileState } from "@/lib/data";
 import styles from "./punchTile.module.scss";
@@ -11,7 +12,7 @@ interface Props {
   onClick?: () => void;
 }
 
-export function PunchTile({ number, state, zone, onClick }: Props) {
+export const PunchTile = memo(function PunchTile({ number, state, zone, onClick }: Props) {
   return (
     <button
       className={`${styles.tile} ${styles[state]}`}
@@ -33,4 +34,4 @@ export function PunchTile({ number, state, zone, onClick }: Props) {
       )}
     </button>
   );
-}
+});

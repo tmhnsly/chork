@@ -1,18 +1,33 @@
 // Shimmer wrapper — renders children invisibly to inherit their
-// exact size, then overlays a subtle pulse loading effect.
+// exact size, then overlays a subtle animated loading effect.
 
 .shimmer {
   position: relative;
   overflow: hidden;
 
-  // Solid overlay that hides content
-  &::after {
+  // Base layer — solid background that hides content
+  &::before {
     content: "";
     position: absolute;
     inset: 0;
     z-index: 1;
     background: var(--mono-bg);
-    animation: pulse 1.8s ease-in-out infinite;
+  }
+
+  // Sweep highlight that slides across
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      var(--mono-bg-hover) 40%,
+      var(--mono-bg-hover) 60%,
+      transparent 100%
+    );
+    animation: sweep 1.8s ease-in-out infinite;
   }
 }
 
@@ -21,11 +36,11 @@
   visibility: hidden;
 }
 
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
+@keyframes sweep {
+  0% {
+    transform: translateX(-100%);
   }
-  50% {
-    opacity: 0.5;
+  100% {
+    transform: translateX(100%);
   }
 }

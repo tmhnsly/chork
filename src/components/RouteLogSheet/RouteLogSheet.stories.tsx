@@ -75,7 +75,6 @@ export const Completed: Story = {
       completed_at: "2026-04-05T14:00:00Z",
       grade_vote: 4,
     },
-    gradeLabel: "V4 community grade",
   },
 };
 
@@ -89,6 +88,5 @@ export const Flash: Story = {
       completed_at: "2026-04-05T14:00:00Z",
       grade_vote: 3,
     },
-    gradeLabel: "V3 community grade",
   },
 };

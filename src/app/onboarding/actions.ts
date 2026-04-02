@@ -1,6 +1,6 @@
 "use server";
 
-import { mutateAuthUser } from "@/lib/pb-actions";
+import { mutateAuthUser } from "@/lib/user-actions";
 
 export async function completeOnboarding(formData: FormData) {
   formData.append("onboarded", "true");

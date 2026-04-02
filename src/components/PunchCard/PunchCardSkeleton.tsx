@@ -5,27 +5,15 @@ import styles from "./punchCard.module.scss";
 
 /**
  * Loading skeleton for the punch card page.
- * Renders the real component markup inside Shimmer wrappers
+ * Renders the real component markup inside a single Shimmer wrapper
  * so the layout is pixel-identical to the loaded state.
- *
- * Three shimmer blocks: title, tile grid + legend, stat widgets.
  */
 export function PunchCardSkeleton() {
   return (
-    <div className={styles.page}>
-      <Shimmer>
+    <Shimmer>
+      <div className={styles.page}>
         <h2 className={styles.title}>Punch Card</h2>
-      </Shimmer>
 
-      <Shimmer>
-        <div className={styles.tileGrid}>
-          {Array.from({ length: 12 }, (_, i) => (
-            <PunchTile key={i} number={i + 1} state="empty" />
-          ))}
-        </div>
-      </Shimmer>
-
-      <Shimmer>
         <footer className={styles.legend}>
           <span className={styles.legendItem}>
             <span className={styles.legendSwatch} />
@@ -40,16 +28,20 @@ export function PunchCardSkeleton() {
             Attempted
           </span>
         </footer>
-      </Shimmer>
 
-      <Shimmer>
+        <div className={styles.tileGrid}>
+          {Array.from({ length: 12 }, (_, i) => (
+            <PunchTile key={i} number={i + 1} state="empty" />
+          ))}
+        </div>
+
         <BentoGrid columns={2}>
           <BentoStat label="Progress" value="0/0" icon={<FaChartBar />} variant="accent" />
           <BentoStat label="Score" value={0} icon={<FaStar />} />
           <BentoStat label="Flash rate" value="0%" icon={<FaBolt />} variant="flash" />
           <BentoStat label="Reset" value="---" icon={<FaCalendarDay />} />
         </BentoGrid>
-      </Shimmer>
-    </div>
+      </div>
+    </Shimmer>
   );
 }

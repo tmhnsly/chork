@@ -85,15 +85,36 @@ Beta spray comments. Threaded via self-referential `parent_id`. Fetch all commen
 | `user_id`   | relation → users    | Required, single                                                  |
 | `route_id`  | relation → routes   | Required, single                                                  |
 | `body`      | text                | Required                                                          |
+| `likes`     | number              | Default 0. Denormalized count, maintained via admin PB instance on like/unlike |
 | `parent_id` | relation → comments | Optional, single. Null = top-level beta spray. Populated = reply. |
 
 Replies can have replies. One query fetches all, tree is built client-side.
+Comments are sorted by `-likes, -created` (most liked first, then newest).
 
 API rules:
 
 - List/view: `@request.auth.id != ""`
 - Create: `@request.auth.id != ""`
 - Update/delete: `@request.auth.id = user_id`
+
+---
+
+## comment_likes
+
+One record per user per comment. Toggle creates or deletes the record and atomically increments/decrements `comments.likes` via an admin PB instance (because the comments update API rule restricts to the comment owner).
+
+| Field        | Type                | Notes          |
+| ------------ | ------------------- | -------------- |
+| `user_id`    | relation → users    | Required, single |
+| `comment_id` | relation → comments | Required, single |
+
+Unique index: `(user_id, comment_id)`
+
+API rules:
+
+- List/view: `@request.auth.id != ""`
+- Create: `@request.auth.id != ""`
+- Delete: `@request.auth.id = user_id`
 
 ---
 
@@ -201,7 +222,8 @@ Composite indexes added to speed up filtered + sorted queries at scale.
 | `route_logs`      | `(user_id, route_id)` | Unique | Upsert lookups, one-log-per-user-per-route |
 | `route_logs`      | `(route_id, completed)` | Regular | Grade aggregation, route stats           |
 | `routes`          | `(set_id, number)`   | Regular | Fetch routes by set, sorted by number    |
-| `comments`        | `(route_id, created)` | Regular | Paginated comments for a route           |
+| `comments`        | `(route_id, likes, created)` | Regular | Comments sorted by most liked, then newest |
+| `comment_likes`   | `(user_id, comment_id)` | Unique | One like per user per comment             |
 | `activity_events` | `(user_id, created)` | Regular | Recent activity feed for a user          |
 
 ---

@@ -1,11 +1,6 @@
 import PocketBase from "pocketbase";
 import type { TypedPocketBase, UsersResponse } from "./pocketbase-types";
-
-export const cookieOptions = {
-  httpOnly: false,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "Lax" as const,
-};
+import { cookieOptions } from "./cookie-config";
 
 /** Extract a typed UsersResponse from pb.authStore.record */
 export function getAuthUser(pb: PocketBase): UsersResponse | null {

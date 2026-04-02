@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { checkUsernameAvailable } from "@/lib/pb-actions";
-
-const USERNAME_RE = /^[a-z0-9_]+$/;
+import { checkUsernameAvailable } from "@/lib/user-actions";
+import { USERNAME_RE } from "@/lib/validation";
 
 export function useUsernameValidation(currentUsername?: string) {
   const [error, setError] = useState("");

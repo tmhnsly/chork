@@ -41,11 +41,20 @@ export interface Comment {
   user_id: string;
   route_id: string;
   body: string;
+  likes: number;
   created: string;
   updated: string;
   expand?: {
     user_id?: { id: string; collectionId: string; username: string; name: string; avatar: string };
   };
+}
+
+export interface CommentLike {
+  id: string;
+  user_id: string;
+  comment_id: string;
+  created: string;
+  updated: string;
 }
 
 export interface PaginatedComments {

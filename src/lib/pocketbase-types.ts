@@ -12,6 +12,7 @@ export enum Collections {
 	Otps = "_otps",
 	Superusers = "_superusers",
 	ActivityEvents = "activity_events",
+	CommentLikes = "comment_likes",
 	Comments = "comments",
 	RouteGrades = "route_grades",
 	RouteLogs = "route_logs",
@@ -114,10 +115,19 @@ export type ActivityEventsRecord = {
 	user_id: RecordIdString
 }
 
+export type CommentLikesRecord = {
+	comment_id: RecordIdString
+	created: IsoAutoDateString
+	id: string
+	updated: IsoAutoDateString
+	user_id: RecordIdString
+}
+
 export type CommentsRecord = {
 	body: string
 	created: IsoAutoDateString
 	id: string
+	likes?: number
 	parent_id?: RecordIdString
 	route_id: RecordIdString
 	updated: IsoAutoDateString
@@ -193,6 +203,7 @@ export type MfasResponse<Texpand = unknown> = Required<MfasRecord> & BaseSystemF
 export type OtpsResponse<Texpand = unknown> = Required<OtpsRecord> & BaseSystemFields<Texpand>
 export type SuperusersResponse<Texpand = unknown> = Required<SuperusersRecord> & AuthSystemFields<Texpand>
 export type ActivityEventsResponse<Texpand = unknown> = Required<ActivityEventsRecord> & BaseSystemFields<Texpand>
+export type CommentLikesResponse<Texpand = unknown> = Required<CommentLikesRecord> & BaseSystemFields<Texpand>
 export type CommentsResponse<Texpand = unknown> = Required<CommentsRecord> & BaseSystemFields<Texpand>
 export type RouteGradesResponse<Tcommunity_grade = unknown, Texpand = unknown> = Required<RouteGradesRecord<Tcommunity_grade>> & BaseSystemFields<Texpand>
 export type RouteLogsResponse<Texpand = unknown> = Required<RouteLogsRecord> & BaseSystemFields<Texpand>
@@ -210,6 +221,7 @@ export type CollectionRecords = {
 	_otps: OtpsRecord
 	_superusers: SuperusersRecord
 	activity_events: ActivityEventsRecord
+	comment_likes: CommentLikesRecord
 	comments: CommentsRecord
 	route_grades: RouteGradesRecord
 	route_logs: RouteLogsRecord
@@ -226,6 +238,7 @@ export type CollectionResponses = {
 	_otps: OtpsResponse
 	_superusers: SuperusersResponse
 	activity_events: ActivityEventsResponse
+	comment_likes: CommentLikesResponse
 	comments: CommentsResponse
 	route_grades: RouteGradesResponse
 	route_logs: RouteLogsResponse

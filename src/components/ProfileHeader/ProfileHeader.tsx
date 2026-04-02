@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import type { UsersResponse } from "@/lib/pocketbase-types";
 import { getAvatarUrl } from "@/lib/avatar";
 import { Button, showToast } from "@/components/ui";
-import { updateProfile } from "@/app/profile/actions";
+import { mutateAuthUser } from "@/lib/user-actions";
 import styles from "./profileHeader.module.scss";
 
 interface Props {
@@ -34,13 +34,13 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
     try {
       const formData = new FormData();
       formData.append("avatar", file);
-      const result = await updateProfile(formData);
-      if (result.error) {
+      const result = await mutateAuthUser(formData);
+      if ("error" in result) {
         showToast(result.error, "error");
         setAvatarPreview(null);
         return;
       }
-      if (result.cookie) document.cookie = result.cookie;
+      document.cookie = result.cookie;
       showToast("Photo updated");
       router.refresh();
     } catch {
@@ -60,12 +60,12 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
     try {
       const formData = new FormData();
       formData.append("name", displayName);
-      const result = await updateProfile(formData);
-      if (result.error) {
+      const result = await mutateAuthUser(formData);
+      if ("error" in result) {
         showToast(result.error, "error");
         return;
       }
-      if (result.cookie) document.cookie = result.cookie;
+      document.cookie = result.cookie;
       setEditing(false);
       showToast("Profile updated");
       router.refresh();

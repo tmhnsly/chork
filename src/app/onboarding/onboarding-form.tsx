@@ -33,14 +33,12 @@ export function OnboardingForm() {
 
       const result = await completeOnboarding(formData);
 
-      if (result.error) {
+      if ("error" in result) {
         showToast(result.error, "error");
         return;
       }
 
-      if (result.cookie) {
-        document.cookie = result.cookie;
-      }
+      document.cookie = result.cookie;
       refreshUser();
       router.push("/");
     } catch (err) {
