@@ -43,20 +43,21 @@ export async function completeRoute(
   const isFlash = attempts === 1;
 
   try {
-    const log = await upsertRouteLog(pb, userId, routeId, {
-      attempts,
-      completed: true,
-      completed_at: new Date().toISOString(),
-      grade_vote: gradeVote,
-      zone,
-    }, logId);
-
     const eventType: ActivityEventType = isFlash ? "flashed" : "completed";
-    await createActivityEvent(pb, {
-      user_id: userId,
-      route_id: routeId,
-      type: eventType,
-    });
+    const [log] = await Promise.all([
+      upsertRouteLog(pb, userId, routeId, {
+        attempts,
+        completed: true,
+        completed_at: new Date().toISOString(),
+        grade_vote: gradeVote,
+        zone,
+      }, logId),
+      createActivityEvent(pb, {
+        user_id: userId,
+        route_id: routeId,
+        type: eventType,
+      }),
+    ]);
 
     return { success: true, log };
   } catch (err) {

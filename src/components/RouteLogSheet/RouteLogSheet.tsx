@@ -47,6 +47,8 @@ interface Props {
   onLogUpdate: (routeId: string, log: RouteLog) => void;
 }
 
+const DRAG_CLOSE_THRESHOLD = 100;
+
 function getPointsPreview(
   attempts: number,
   zone: boolean,
@@ -81,6 +83,7 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
   const [loadingComments, setLoadingComments] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [nextPage, setNextPage] = useState(1);
+  const [totalComments, setTotalComments] = useState(0);
   const [expanded, setExpanded] = useState(false);
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -88,6 +91,12 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingAttemptsRef = useRef<number | null>(null);
+  const logIdRef = useRef(currentLog?.id);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{ startY: number; dragging: boolean }>({ startY: 0, dragging: false });
+
+  // Keep logIdRef in sync so the save callback always has the latest ID
+  logIdRef.current = currentLog?.id;
 
   const isCompleted = currentLog?.completed ?? false;
   const isCurrentFlash = currentLog ? isFlash(currentLog) : false;
@@ -103,9 +112,10 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
     fetchRouteData(route.id)
       .then(({ grade, comments: result, likedIds: liked }) => {
         if (cancelled) return;
-        if (grade !== null) setGradeLabel(`V${grade} community grade`);
+        setGradeLabel(grade !== null ? `V${grade} (Community Grade)` : "Ungraded");
         setLikedIds(new Set(liked));
         setComments(result.items);
+        setTotalComments(result.totalItems);
         setHasMore(result.page < result.totalPages);
         setNextPage(2);
       })
@@ -124,6 +134,7 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
     try {
       const result = await fetchComments(route.id, nextPage);
       setComments((prev) => [...prev, ...result.items]);
+      setTotalComments(result.totalItems);
       setHasMore(result.page < result.totalPages);
       setNextPage((p) => p + 1);
       setExpanded(true);
@@ -134,7 +145,7 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
 
   const saveAttempts = useCallback(
     async (value: number) => {
-      const result = await updateAttempts(route.id, value, currentLog?.id);
+      const result = await updateAttempts(route.id, value, logIdRef.current);
       if (result.error) {
         showToast(result.error, "error");
         return;
@@ -144,7 +155,7 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
         onLogUpdate(route.id, result.log);
       }
     },
-    [route.id, currentLog?.id, onLogUpdate]
+    [route.id, onLogUpdate]
   );
 
   function changeAttempts(delta: number) {
@@ -219,6 +230,7 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
       }
       if (result.comment) {
         setComments((prev) => [result.comment!, ...prev]);
+        setTotalComments((n) => n + 1);
         setCommentBody("");
         showToast("Beta posted");
       }
@@ -308,22 +320,23 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
 
   async function handleZoneToggle(checked: boolean) {
     // Optimistic update
-    setCurrentLog((prev) => (prev ? { ...prev, zone: checked } : prev));
-    if (currentLog) {
-      onLogUpdate(route.id, { ...currentLog, zone: checked });
-    }
+    const optimisticLog = currentLog
+      ? { ...currentLog, zone: checked }
+      : null;
+    setCurrentLog(optimisticLog);
+    if (optimisticLog) onLogUpdate(route.id, optimisticLog);
 
     const result = await toggleZone(route.id, checked, currentLog?.id);
     if (result.error) {
       showToast(result.error, "error");
-      // Revert
-      setCurrentLog((prev) => (prev ? { ...prev, zone: !checked } : prev));
+      // Revert to pre-toggle state
+      if (currentLog) {
+        setCurrentLog(currentLog);
+        onLogUpdate(route.id, currentLog);
+      }
       return;
     }
-    if (result.log) {
-      setCurrentLog(result.log);
-      onLogUpdate(route.id, result.log);
-    }
+    // Don't overwrite — optimistic state is already correct
   }
 
   const pointsPreview = getPointsPreview(
@@ -333,17 +346,84 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
     currentLog
   );
 
+  function handleDragStart(e: React.PointerEvent) {
+    // Only drag from the handle area
+    const target = e.target as HTMLElement;
+    if (!target.closest(`.${styles.handleBtn}`)) return;
+
+    dragRef.current = { startY: e.clientY, dragging: true };
+    contentRef.current?.setPointerCapture(e.pointerId);
+    // Disable the CSS animation while dragging
+    if (contentRef.current) {
+      contentRef.current.style.animation = "none";
+      contentRef.current.style.transition = "none";
+    }
+  }
+
+  function handleDragMove(e: React.PointerEvent) {
+    if (!dragRef.current.dragging || !contentRef.current) return;
+    const dy = Math.max(0, e.clientY - dragRef.current.startY);
+    contentRef.current.style.transform = `translateY(${dy}px)`;
+  }
+
+  function handleDragEnd(e: React.PointerEvent) {
+    if (!dragRef.current.dragging || !contentRef.current) return;
+    dragRef.current.dragging = false;
+    contentRef.current.releasePointerCapture(e.pointerId);
+
+    const dy = e.clientY - dragRef.current.startY;
+    if (dy > DRAG_CLOSE_THRESHOLD) {
+      // Fling down — close
+      contentRef.current.style.transform = "";
+      contentRef.current.style.animation = "";
+      contentRef.current.style.transition = "";
+      startClose();
+    } else {
+      // Snap back
+      contentRef.current.style.transition = `transform var(--duration-normal) var(--ease-out)`;
+      contentRef.current.style.transform = "translateY(0)";
+      contentRef.current.addEventListener(
+        "transitionend",
+        () => {
+          if (contentRef.current) {
+            contentRef.current.style.transition = "";
+            contentRef.current.style.animation = "";
+          }
+        },
+        { once: true }
+      );
+    }
+  }
+
   function startClose() {
-    if (!closing) setClosing(true);
+    if (closing) return;
+    // Flush any pending debounced save before closing
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      if (pendingAttemptsRef.current !== null) {
+        saveAttempts(pendingAttemptsRef.current);
+        pendingAttemptsRef.current = null;
+      }
+    }
+    setClosing(true);
   }
 
   return (
     <Dialog.Root open onOpenChange={(open) => !open && startClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className={`${styles.overlay} ${closing ? styles.overlayClosing : ""}`} />
+        <Dialog.Overlay
+          className={`${styles.overlay} ${closing ? styles.overlayClosing : ""}`}
+          onClick={startClose}
+        />
         <Dialog.Content
+          ref={contentRef}
           className={`${styles.content} ${closing ? styles.contentClosing : ""}`}
           onOpenAutoFocus={(e) => e.preventDefault()}
+          onInteractOutside={(e) => e.preventDefault()}
+          onPointerDownOutside={(e) => e.preventDefault()}
+          onPointerDown={handleDragStart}
+          onPointerMove={handleDragMove}
+          onPointerUp={handleDragEnd}
           onAnimationEnd={() => { if (closing) onClose(); }}
         >
           <VisuallyHidden.Root asChild>
@@ -367,12 +447,10 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
             </h2>
             {loadingComments ? (
               <Shimmer className={styles.gradeSkeleton}>
-                <span className={styles.communityGrade}>V10 community grade</span>
+                <span className={styles.communityGrade}>V0</span>
               </Shimmer>
-            ) : gradeLabel ? (
-              <span className={styles.communityGrade}>{gradeLabel}</span>
             ) : (
-              <span className={styles.communityGrade}>{"\u00A0"}</span>
+              <span className={styles.communityGrade}>{gradeLabel}</span>
             )}
           </header>
 
@@ -460,15 +538,15 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
                   {betaRevealed ? <FaEyeSlash /> : <FaEye />}
                   <span>{betaRevealed ? "Hide beta" : "Reveal beta"}</span>
                 </button>
-              ) : !loadingComments && comments.length > 0 ? (
+              ) : !loadingComments && totalComments > 0 ? (
                 <span className={styles.commentCount}>
-                  {comments.length} comment{comments.length !== 1 ? "s" : ""}
+                  {totalComments} comment{totalComments !== 1 ? "s" : ""}
                 </span>
               ) : null}
             </div>
 
             <div className={styles.betaScroll}>
-            {loadingComments ? (
+              {loadingComments ? (
               <div className={styles.commentList}>
                 {[0, 1].map((i) => (
                   <div key={i} className={styles.commentRow}>
@@ -568,8 +646,10 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
                             )}
                           </div>
 
-                          {editingId !== c.id && (
-                            isOwn ? (
+                          {isOwn ? (
+                            editingId === c.id ? (
+                              <div className={styles.actionBtnSpacer} />
+                            ) : (
                               <button
                                 type="button"
                                 className={styles.actionBtn}
@@ -580,15 +660,15 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
                               >
                                 <FaPen />
                               </button>
-                            ) : (
-                              <button
-                                type="button"
-                                className={`${styles.actionBtn} ${likedIds.has(c.id) ? styles.likeBtnActive : ""}`}
-                                onClick={() => handleLike(c.id)}
-                              >
-                                {likedIds.has(c.id) ? <FaHeart /> : <FaRegHeart />}
-                              </button>
                             )
+                          ) : (
+                            <button
+                              type="button"
+                              className={`${styles.actionBtn} ${likedIds.has(c.id) ? styles.likeBtnActive : ""}`}
+                              onClick={() => handleLike(c.id)}
+                            >
+                              {likedIds.has(c.id) ? <FaHeart /> : <FaRegHeart />}
+                            </button>
                           )}
                         </div>
                       </li>
@@ -614,7 +694,7 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
                   </button>
                 )}
               </div>
-            )}
+              )}
             </div>
 
             {isCompleted && set.active && (

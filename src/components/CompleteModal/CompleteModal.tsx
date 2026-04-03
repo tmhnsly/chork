@@ -5,6 +5,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { FaBolt, FaCheck } from "react-icons/fa6";
 import type { Route, RouteLog } from "@/lib/data";
 import { completeRoute } from "@/app/(app)/actions";
+import { useAuth } from "@/lib/auth-context";
 import { Button, showToast } from "@/components/ui";
 import styles from "./completeModal.module.scss";
 
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export function CompleteModal({ route, attempts, zone, logId, onConfirm, onCancel }: Props) {
+  const { user } = useAuth();
   const [gradeEnabled, setGradeEnabled] = useState(false);
   const [gradeIndex, setGradeIndex] = useState(Math.floor(GRADE_MAX / 2));
   const [submitting, setSubmitting] = useState(false);
@@ -29,26 +31,29 @@ export function CompleteModal({ route, attempts, zone, logId, onConfirm, onCance
 
   async function handleConfirm() {
     setSubmitting(true);
-    try {
-      const result = await completeRoute(
-        route.id,
-        attempts,
-        gradeEnabled ? gradeIndex : null,
-        zone,
-        logId
-      );
-      if (result.error) {
-        showToast(result.error, "error");
-        return;
-      }
-      if (result.log) {
-        showToast(isFlash ? "Flash!" : "Route completed");
-        onConfirm(result.log);
-      }
-    } catch {
-      showToast("Something went wrong", "error");
-    } finally {
-      setSubmitting(false);
+
+    // Build an optimistic log and close immediately
+    const gradeVote = gradeEnabled ? gradeIndex : null;
+    const optimisticLog: RouteLog = {
+      id: logId ?? "",
+      user_id: user?.id ?? "",
+      route_id: route.id,
+      attempts,
+      completed: true,
+      completed_at: new Date().toISOString(),
+      grade_vote: gradeVote,
+      zone,
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+    };
+
+    showToast(isFlash ? "Flash!" : "Route completed");
+    onConfirm(optimisticLog);
+
+    // Server action runs after modal is closed — errors revert via toast
+    const result = await completeRoute(route.id, attempts, gradeVote, zone, logId);
+    if (result.error) {
+      showToast(result.error, "error");
     }
   }
 

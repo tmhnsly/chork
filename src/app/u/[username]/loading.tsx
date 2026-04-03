@@ -8,7 +8,7 @@ import statsStyles from "@/components/ClimberStats/climberStats.module.scss";
 export default function ProfileLoading() {
   return (
     <main className={styles.page}>
-      {/* ProfileHeader shape */}
+      {/* ProfileHeader */}
       <header className={headerStyles.header}>
         <Shimmer><div className={styles.avatarPlaceholder} /></Shimmer>
         <div className={headerStyles.identity}>
@@ -17,24 +17,10 @@ export default function ProfileLoading() {
         </div>
       </header>
 
-      {/* ClimberStats — Stats first, then Current set with mini grid */}
+      {/* Current set: mini grid then stats */}
       <div className={statsStyles.wrapper}>
         <section className={statsStyles.section}>
-          <Shimmer><span className={statsStyles.sectionLabel}>Stats</span></Shimmer>
-          <BentoGrid columns={3}>
-            <Shimmer><BentoStat label="Points" value={0} icon={<FaStar />} variant="accent" /></Shimmer>
-            <Shimmer><BentoStat label="Sends" value={0} icon={<FaArrowTrendUp />} /></Shimmer>
-            <Shimmer><BentoStat label="Flashes" value={0} icon={<FaBolt />} variant="flash" /></Shimmer>
-          </BentoGrid>
-        </section>
-
-        <section className={statsStyles.section}>
           <Shimmer><span className={statsStyles.sectionLabel}>Current set</span></Shimmer>
-          <BentoGrid columns={3}>
-            <Shimmer><BentoStat label="Points" value={0} icon={<FaStar />} variant="accent" /></Shimmer>
-            <Shimmer><BentoStat label="Sends" value={0} icon={<FaCheck />} /></Shimmer>
-            <Shimmer><BentoStat label="Flashes" value={0} icon={<FaBolt />} variant="flash" /></Shimmer>
-          </BentoGrid>
           <div className={styles.miniGrid}>
             {Array.from({ length: 12 }, (_, i) => (
               <Shimmer key={i}>
@@ -42,6 +28,21 @@ export default function ProfileLoading() {
               </Shimmer>
             ))}
           </div>
+          <BentoGrid columns={3}>
+            <Shimmer><BentoStat label="Points" value={0} icon={<FaStar />} variant="accent" /></Shimmer>
+            <Shimmer><BentoStat label="Sends" value={0} icon={<FaCheck />} /></Shimmer>
+            <Shimmer><BentoStat label="Flashes" value={0} icon={<FaBolt />} variant="flash" /></Shimmer>
+          </BentoGrid>
+        </section>
+
+        {/* All time */}
+        <section className={statsStyles.section}>
+          <Shimmer><span className={statsStyles.sectionLabel}>All time</span></Shimmer>
+          <BentoGrid columns={3}>
+            <Shimmer><BentoStat label="Points" value={0} icon={<FaStar />} variant="accent" /></Shimmer>
+            <Shimmer><BentoStat label="Sends" value={0} icon={<FaArrowTrendUp />} /></Shimmer>
+            <Shimmer><BentoStat label="Flashes" value={0} icon={<FaBolt />} variant="flash" /></Shimmer>
+          </BentoGrid>
         </section>
       </div>
     </main>

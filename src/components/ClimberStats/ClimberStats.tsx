@@ -14,7 +14,7 @@ interface Props {
   allTimeCompletions: number;
   allTimeFlashes: number;
   allTimePoints: number;
-  /** Optional content rendered below the current set stats (e.g. mini punch card) */
+  /** Optional content rendered below the "Current set" label (e.g. mini punch card) */
   children?: ReactNode;
 }
 
@@ -27,8 +27,34 @@ export function ClimberStats({
 }: Props) {
   return (
     <div className={styles.wrapper}>
+      {currentSet && (
+        <section className={styles.section}>
+          <span className={styles.sectionLabel}>Current set</span>
+          {children}
+          <BentoGrid columns={3}>
+            <BentoStat
+              label="Points"
+              value={currentSet.points}
+              icon={<FaStar />}
+              variant="accent"
+            />
+            <BentoStat
+              label="Sends"
+              value={currentSet.completions}
+              icon={<FaCheck />}
+            />
+            <BentoStat
+              label="Flashes"
+              value={currentSet.flashes}
+              icon={<FaBolt />}
+              variant="flash"
+            />
+          </BentoGrid>
+        </section>
+      )}
+
       <section className={styles.section}>
-        <span className={styles.sectionLabel}>Stats</span>
+        <span className={styles.sectionLabel}>All time</span>
         <BentoGrid columns={3}>
           <BentoStat
             label="Points"
@@ -49,32 +75,6 @@ export function ClimberStats({
           />
         </BentoGrid>
       </section>
-
-      {currentSet && (
-        <section className={styles.section}>
-          <span className={styles.sectionLabel}>Current set</span>
-          <BentoGrid columns={3}>
-            <BentoStat
-              label="Points"
-              value={currentSet.points}
-              icon={<FaStar />}
-              variant="accent"
-            />
-            <BentoStat
-              label="Sends"
-              value={currentSet.completions}
-              icon={<FaCheck />}
-            />
-            <BentoStat
-              label="Flashes"
-              value={currentSet.flashes}
-              icon={<FaBolt />}
-              variant="flash"
-            />
-          </BentoGrid>
-          {children}
-        </section>
-      )}
     </div>
   );
 }

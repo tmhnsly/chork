@@ -4,9 +4,9 @@ import path from "path";
 const nextConfig: NextConfig = {
   experimental: {
     staleTimes: {
-      // Re-use cached server component output for 3 minutes on client nav.
-      // Data is still fresh on hard reload / first visit.
-      dynamic: 180,
+      // Always re-fetch dynamic pages on client navigation.
+      // This app has real-time scoring — stale data breaks UX.
+      dynamic: 0,
     },
   },
   sassOptions: {

@@ -182,9 +182,7 @@ export default async function UserProfilePage({ params }: Props) {
                   text = `Activity on route ${routeNum ?? "?"}`;
               }
 
-              const timeAgo = formatDistanceToNow(parseISO(event.created), {
-                addSuffix: true,
-              });
+              const timeAgo = formatDistanceToNow(parseISO(event.created));
 
               return (
                 <li key={event.id} className={styles.activityItem}>

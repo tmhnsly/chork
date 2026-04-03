@@ -44,17 +44,22 @@
   }
 }
 
-// ── Handle button (tap to close) ──────────────────
+// ── Handle button (drag or tap to close) ──────────
 .handleBtn {
   display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
-  min-height: 24px;
-  padding: 0;
+  min-height: 32px;
+  padding: var(--space-2) 0;
   border: none;
   background: transparent;
-  cursor: pointer;
+  cursor: grab;
+  touch-action: none;
+
+  &:active {
+    cursor: grabbing;
+  }
 }
 
 .handle {
@@ -87,11 +92,12 @@
 .communityGrade {
   @include type.typography(meta);
   color: var(--accent-text-low-contrast);
+  min-height: 1lh;
 }
 
 .gradeSkeleton {
   display: inline-block;
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-full);
 }
 
 // ── Counter ─────────────────────────────────────────
@@ -242,21 +248,20 @@
   @include layout.stack(var(--space-3));
   padding-top: var(--space-4);
   border-top: 1px solid var(--surface-divider);
-  // Scrollable — takes remaining space with a usable minimum
   min-height: 150px;
   flex: 1;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
+  // Only clip vertically — let blur bleed horizontally
+  overflow-x: visible;
+  overflow-y: hidden;
 }
 
 .betaScroll {
   flex: 1;
   overflow-y: auto;
+  overflow-x: visible;
   min-height: 0;
-  // Extra padding so the blur filter doesn't get clipped by overflow
-  padding: var(--space-2);
-  margin: calc(-1 * var(--space-2));
 }
 
 .betaHeader {
@@ -297,6 +302,9 @@
   filter: blur(6px);
   user-select: none;
   pointer-events: none;
+  // Padding compensates for blur radius so edges don't get clipped
+  padding: var(--space-3);
+  margin: calc(-1 * var(--space-3));
 }
 
 .betaEmpty {
@@ -399,6 +407,11 @@
   &:hover {
     color: var(--accent-text-low-contrast);
   }
+}
+
+.actionBtnSpacer {
+  min-width: 44px;
+  flex-shrink: 0;
 }
 
 .likeBtnActive {
