@@ -34,9 +34,9 @@ export function PunchCardSkeleton() {
       </div>
 
       <BentoGrid columns={2}>
-        <BentoStat label="Progress" icon={<FaChartBar />} variant="accent" className={shimmerStyles.skeleton} />
+        <BentoStat label="Progress" icon={<FaChartBar />} className={shimmerStyles.skeleton} />
         <BentoStat label="Score" icon={<FaStar />} className={shimmerStyles.skeleton} />
-        <BentoStat label="Flash rate" icon={<FaBolt />} variant="flash" className={shimmerStyles.skeleton} />
+        <BentoStat label="Flash rate" icon={<FaBolt />} className={shimmerStyles.skeleton} />
         <BentoStat label="Reset" icon={<FaCalendarDay />} className={shimmerStyles.skeleton} />
       </BentoGrid>
     </div>

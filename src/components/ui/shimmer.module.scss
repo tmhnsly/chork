@@ -2,32 +2,38 @@
 //
 // `.skeleton` — applied directly to an existing element to make it a
 // skeleton placeholder. Text becomes transparent; a soft diagonal
-// shimmer gradient drifts across. No wrapper divs, no dimension
-// mismatch — the element keeps its own sizing.
+// shimmer gradient drifts across. The element keeps its own sizing.
 //
-// `.skeletonLine` / `.skeletonShort` — standalone placeholder bars
-// for text lines inside content areas.
+// Skeleton BentoStats should NOT pass a variant prop — all skeleton
+// cards look the same. This avoids specificity fights with variant
+// classes entirely.
 //
-// `.fadeIn` — apply to real content when it replaces a skeleton so
-// it fades in smoothly rather than popping.
+// `.skeletonLine` / `.skeletonShort` — standalone placeholder bars.
+//
+// `.fadeIn` — apply to real content when it replaces a skeleton.
 
-// ── Shared animation ───────────────────────────────
+// ── Shared values ──────────────────────────────────
 @keyframes shimmerGlow {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
 }
 
-@mixin shimmer-gradient {
-  background: linear-gradient(
-    105deg,
-    var(--mono-bg) 0%,
-    var(--mono-bg) 35%,
-    var(--mono-bg-hover) 45%,
-    var(--mono-bg-hover) 55%,
-    var(--mono-bg) 65%,
-    var(--mono-bg) 100%
-  );
+$shimmer-bg: linear-gradient(
+  105deg,
+  var(--mono-bg) 0%,
+  var(--mono-bg) 35%,
+  var(--mono-bg-hover) 45%,
+  var(--mono-bg-hover) 55%,
+  var(--mono-bg) 65%,
+  var(--mono-bg) 100%
+);
+
+// ── Skeleton class ─────────────────────────────────
+.skeleton {
+  color: transparent;
+  background: $shimmer-bg;
   background-size: 400% 100%;
+  border-color: transparent;
   animation: shimmerGlow 2.2s ease-in-out infinite;
 
   @media (prefers-reduced-motion: reduce) {
@@ -36,19 +42,20 @@
   }
 }
 
-// ── Skeleton class ─────────────────────────────────
-.skeleton {
-  color: transparent !important;
-  @include shimmer-gradient;
-}
-
 // ── Placeholder bars ───────────────────────────────
 .skeletonLine {
   display: block;
   height: var(--text-sm);
   width: 100%;
   margin: var(--space-1) 0;
-  @include shimmer-gradient;
+  background: $shimmer-bg;
+  background-size: 400% 100%;
+  animation: shimmerGlow 2.2s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    background: var(--mono-bg);
+  }
 }
 
 .skeletonShort {

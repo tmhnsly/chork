@@ -248,16 +248,17 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  // Only clip vertically — let blur bleed horizontally
-  overflow-x: visible;
-  overflow-y: hidden;
+  overflow: hidden;
 }
 
 .betaScroll {
   flex: 1;
   overflow-y: auto;
-  overflow-x: visible;
   min-height: 0;
+  // Extra inline padding gives the blur filter room to bleed
+  // without being clipped by the scroll container's overflow.
+  padding-inline: var(--space-3);
+  margin-inline: calc(-1 * var(--space-3));
 }
 
 .betaHeader {
@@ -298,9 +299,6 @@
   filter: blur(6px);
   user-select: none;
   pointer-events: none;
-  // Padding compensates for blur radius so edges don't get clipped
-  padding: var(--space-3);
-  margin: calc(-1 * var(--space-3));
 }
 
 .betaEmpty {

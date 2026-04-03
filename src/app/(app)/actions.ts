@@ -152,15 +152,6 @@ export async function fetchComments(
   }
 }
 
-export async function fetchRouteGrade(routeId: string): Promise<number | null> {
-  const pb = await createServerPBFromCookies();
-  try {
-    return await getRouteGrade(pb, routeId);
-  } catch {
-    return null;
-  }
-}
-
 /** Fetch grade, comments, and user's liked IDs in a single server action. */
 export async function fetchRouteData(routeId: string): Promise<{
   grade: number | null;
