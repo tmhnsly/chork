@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format, parseISO } from "date-fns";
 import { FaChartBar, FaBolt, FaCalendarDay, FaStar } from "react-icons/fa6";
-import type { Set, Route, RouteLog, TileState } from "@/lib/data";
+import type { RouteSet, Route, RouteLog, TileState } from "@/lib/data";
 import { isFlash, computePoints } from "@/lib/data";
 import { BentoGrid, BentoStat } from "@/components/ui";
 import { PunchTile } from "@/components/PunchTile/PunchTile";
@@ -11,7 +11,7 @@ import { RouteLogSheet } from "@/components/RouteLogSheet/RouteLogSheet";
 import styles from "./punchCard.module.scss";
 
 interface Props {
-  set: Set;
+  set: RouteSet;
   routes: Route[];
   initialLogs: RouteLog[];
 }
@@ -26,6 +26,11 @@ function deriveTileState(log: RouteLog | undefined): TileState {
 export function PunchCard({ set, routes, initialLogs }: Props) {
   const [logs, setLogs] = useState<RouteLog[]>(initialLogs);
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
+
+  // Sync when server re-fetches (e.g. revalidation, navigation)
+  useEffect(() => {
+    setLogs(initialLogs);
+  }, [initialLogs]);
 
   const logByRoute = new Map(logs.map((l) => [l.route_id, l]));
 
@@ -85,28 +90,10 @@ export function PunchCard({ set, routes, initialLogs }: Props) {
         </div>
 
         <BentoGrid columns={2}>
-          <BentoStat
-            label="Progress"
-            value={`${completedCount}/${routes.length}`}
-            icon={<FaChartBar />}
-            variant="accent"
-          />
-          <BentoStat
-            label="Score"
-            value={totalScore}
-            icon={<FaStar />}
-          />
-          <BentoStat
-            label="Flash rate"
-            value={`${flashRate}%`}
-            icon={<FaBolt />}
-            variant="flash"
-          />
-          <BentoStat
-            label="Reset"
-            value={resetDate}
-            icon={<FaCalendarDay />}
-          />
+          <BentoStat label="Progress" value={`${completedCount}/${routes.length}`} icon={<FaChartBar />} variant="accent" />
+          <BentoStat label="Score" value={totalScore} icon={<FaStar />} />
+          <BentoStat label="Flash rate" value={`${flashRate}%`} icon={<FaBolt />} variant="flash" />
+          <BentoStat label="Reset" value={resetDate} icon={<FaCalendarDay />} />
         </BentoGrid>
       </div>
 

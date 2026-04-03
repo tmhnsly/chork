@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import { createServerPBFromCookies } from "@/lib/pocketbase-server";
-import { getAuthUser } from "@/lib/pocketbase";
+import { getAuthUser } from "@/lib/pocketbase-shared";
 import { getCurrentSet, getRoutesBySet, getLogsBySetForUser } from "@/lib/data/queries";
-import { PunchCardClient } from "@/components/PunchCard/PunchCardClient";
+import { PunchCard } from "@/components/PunchCard/PunchCard";
 import { PunchCardSkeleton } from "@/components/PunchCard/PunchCardSkeleton";
 import { LandingPage } from "./landing";
 import styles from "./page.module.scss";
@@ -20,7 +20,7 @@ async function AuthenticatedHome({ userId }: { userId: string }) {
     getLogsBySetForUser(pb, set.id, userId),
   ]);
 
-  return <PunchCardClient set={set} routes={routes} initialLogs={logs} />;
+  return <PunchCard set={set} routes={routes} initialLogs={logs} />;
 }
 
 export default async function Home() {

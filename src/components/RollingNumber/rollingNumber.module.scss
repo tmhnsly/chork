@@ -11,12 +11,18 @@
 
 // Increment: new number enters from below
 .up {
-  animation: slideUp 0.2s var(--ease-out);
+  animation: slideUp var(--duration-fast) var(--ease-out);
 }
 
 // Decrement: new number enters from above
 .down {
-  animation: slideDown 0.2s var(--ease-out);
+  animation: slideDown var(--duration-fast) var(--ease-out);
+}
+
+.up, .down {
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 }
 
 @keyframes slideUp {

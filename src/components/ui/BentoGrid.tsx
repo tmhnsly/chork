@@ -1,5 +1,3 @@
-"use client";
-
 import type { ReactNode, HTMLAttributes } from "react";
 import styles from "./bento.module.scss";
 
@@ -82,7 +80,7 @@ export function BentoCell({
 // Apple Weather-style widget: small icon + label top-left, value bottom-left.
 interface StatCellProps {
   label: string;
-  value: string | number;
+  value?: string | number;
   icon?: ReactNode;
   span?: Span;
   variant?: CellVariant;
@@ -91,7 +89,7 @@ interface StatCellProps {
 
 export function BentoStat({
   label,
-  value,
+  value = "—",
   icon,
   span = 1,
   variant = "default",

@@ -38,6 +38,12 @@
     animation-play-state: running;
   }
 
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
   @for $i from 1 through 6 {
     &:nth-child(#{$i}) {
       animation-delay: #{($i - 1) * 80}ms;

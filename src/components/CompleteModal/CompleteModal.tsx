@@ -4,6 +4,7 @@ import { useState } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { FaBolt, FaCheck } from "react-icons/fa6";
 import type { Route, RouteLog } from "@/lib/data";
+import { createOptimisticLog } from "@/lib/data";
 import { completeRoute } from "@/app/(app)/actions";
 import { useAuth } from "@/lib/auth-context";
 import { Button, showToast } from "@/components/ui";
@@ -19,10 +20,11 @@ interface Props {
   zone: boolean;
   logId?: string;
   onConfirm: (log: RouteLog) => void;
+  onRevert: (log: RouteLog | null) => void;
   onCancel: () => void;
 }
 
-export function CompleteModal({ route, attempts, zone, logId, onConfirm, onCancel }: Props) {
+export function CompleteModal({ route, attempts, zone, logId, onConfirm, onRevert, onCancel }: Props) {
   const { user } = useAuth();
   const [gradeEnabled, setGradeEnabled] = useState(false);
   const [gradeIndex, setGradeIndex] = useState(Math.floor(GRADE_MAX / 2));
@@ -34,26 +36,24 @@ export function CompleteModal({ route, attempts, zone, logId, onConfirm, onCance
 
     // Build an optimistic log and close immediately
     const gradeVote = gradeEnabled ? gradeIndex : null;
-    const optimisticLog: RouteLog = {
+    const optimisticLog = createOptimisticLog({
       id: logId ?? "",
       user_id: user?.id ?? "",
       route_id: route.id,
       attempts,
       completed: true,
-      completed_at: new Date().toISOString(),
-      grade_vote: gradeVote,
+      grade_vote: gradeVote ?? undefined,
       zone,
-      created: new Date().toISOString(),
-      updated: new Date().toISOString(),
-    };
+    });
 
     showToast(isFlash ? "Flash!" : "Route completed");
     onConfirm(optimisticLog);
 
-    // Server action runs after modal is closed — errors revert via toast
+    // Server action runs after modal is closed — revert on failure
     const result = await completeRoute(route.id, attempts, gradeVote, zone, logId);
-    if (result.error) {
+    if ("error" in result) {
       showToast(result.error, "error");
+      onRevert(null);
     }
   }
 

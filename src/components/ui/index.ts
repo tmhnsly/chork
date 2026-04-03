@@ -5,5 +5,5 @@ export { GoogleLogo } from "./GoogleLogo";
 export { Banner } from "./Banner";
 export { BentoGrid, BentoCell, BentoStat } from "./BentoGrid";
 export { SignOutButton } from "./SignOutButton";
-export { Shimmer } from "./Shimmer";
+export { shimmerStyles } from "./Shimmer";
 export { ToastProvider, showToast } from "./Toast";

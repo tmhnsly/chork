@@ -28,7 +28,7 @@
   z-index: var(--z-overlay);
   border-radius: var(--radius-3) var(--radius-3) 0 0;
   padding: var(--space-4) var(--gutter-x) calc(var(--space-8) + env(safe-area-inset-bottom, 0px));
-  max-height: 90svh;
+  height: 90svh;
   overflow: hidden;
   animation: slideUp var(--duration-normal) var(--ease-out);
 }
@@ -95,10 +95,6 @@
   min-height: 1lh;
 }
 
-.gradeSkeleton {
-  display: inline-block;
-  border-radius: var(--radius-full);
-}
 
 // ── Counter ─────────────────────────────────────────
 .counter {
@@ -341,12 +337,9 @@
   height: 32px;
   border-radius: var(--radius-full);
   object-fit: cover;
-}
-
-.avatarSkeleton {
-  border-radius: var(--radius-full);
   flex-shrink: 0;
 }
+
 
 .commentAvatarFallback {
   @include type.typography(meta);

@@ -14,7 +14,6 @@ interface Props {
   allTimeCompletions: number;
   allTimeFlashes: number;
   allTimePoints: number;
-  /** Optional content rendered below the "Current set" label (e.g. mini punch card) */
   children?: ReactNode;
 }
 
@@ -32,23 +31,9 @@ export function ClimberStats({
           <span className={styles.sectionLabel}>Current set</span>
           {children}
           <BentoGrid columns={3}>
-            <BentoStat
-              label="Points"
-              value={currentSet.points}
-              icon={<FaStar />}
-              variant="accent"
-            />
-            <BentoStat
-              label="Sends"
-              value={currentSet.completions}
-              icon={<FaCheck />}
-            />
-            <BentoStat
-              label="Flashes"
-              value={currentSet.flashes}
-              icon={<FaBolt />}
-              variant="flash"
-            />
+            <BentoStat label="Points" value={currentSet.points} icon={<FaStar />} variant="accent" />
+            <BentoStat label="Sends" value={currentSet.completions} icon={<FaCheck />} />
+            <BentoStat label="Flashes" value={currentSet.flashes} icon={<FaBolt />} variant="flash" />
           </BentoGrid>
         </section>
       )}
@@ -56,23 +41,9 @@ export function ClimberStats({
       <section className={styles.section}>
         <span className={styles.sectionLabel}>All time</span>
         <BentoGrid columns={3}>
-          <BentoStat
-            label="Points"
-            value={allTimePoints}
-            icon={<FaStar />}
-            variant="accent"
-          />
-          <BentoStat
-            label="Sends"
-            value={allTimeCompletions}
-            icon={<FaArrowTrendUp />}
-          />
-          <BentoStat
-            label="Flashes"
-            value={allTimeFlashes}
-            icon={<FaBolt />}
-            variant="flash"
-          />
+          <BentoStat label="Points" value={allTimePoints} icon={<FaStar />} variant="accent" />
+          <BentoStat label="Sends" value={allTimeCompletions} icon={<FaArrowTrendUp />} />
+          <BentoStat label="Flashes" value={allTimeFlashes} icon={<FaBolt />} variant="flash" />
         </BentoGrid>
       </section>
     </div>

@@ -1,61 +1,55 @@
 /**
- * Domain types for collections not yet in pocketbase-typegen.
- * Once PocketBase schema is created and typegen runs, these
- * should be replaced by the generated types.
+ * Domain types derived from generated PocketBase types.
+ * These add specific expand shapes and override optionality
+ * where the generated Required<> doesn't match runtime behaviour.
  */
 
-export interface Set {
-  id: string;
-  name: string;
-  starts_at: string;
-  ends_at: string;
-  active: boolean;
-  created: string;
-  updated: string;
-}
+import type {
+  SetsResponse,
+  RoutesResponse,
+  RouteLogsResponse,
+  CommentsResponse,
+  CommentLikesResponse,
+  ActivityEventsResponse,
+  RouteGradesResponse,
+  UserSetStatsResponse,
+  ActivityEventsTypeOptions,
+} from "../pocketbase-types";
 
-export interface Route {
-  id: string;
-  set_id: string;
-  number: number;
-  has_zone: boolean;
-  created: string;
-  updated: string;
-}
+// Re-export the enum values as a union for ergonomic use
+export type ActivityEventType = `${ActivityEventsTypeOptions}`;
 
-export interface RouteLog {
-  id: string;
-  user_id: string;
-  route_id: string;
-  attempts: number;
-  completed: boolean;
-  completed_at: string | null;
-  grade_vote: number | null;
-  zone: boolean;
-  created: string;
-  updated: string;
-}
+// ── Base collection types ──────────────────────────
+// Use the generated response types directly.
+// Consumers get id, created, updated, collectionId, etc. for free.
 
-export interface Comment {
-  id: string;
-  user_id: string;
-  route_id: string;
-  body: string;
-  likes: number;
-  created: string;
-  updated: string;
-  expand?: {
-    user_id?: { id: string; collectionId: string; username: string; name: string; avatar: string };
+export type RouteSet = SetsResponse;
+export type Route = RoutesResponse;
+export type CommentLike = CommentLikesResponse;
+
+// ── Types with custom expand shapes ────────────────
+
+export type RouteLog = RouteLogsResponse;
+
+export type RouteLogWithSetId = RouteLogsResponse<{
+  route_id?: { set_id: string };
+}>;
+
+export type Comment = CommentsResponse<{
+  user_id?: {
+    id: string;
+    collectionId: string;
+    username: string;
+    name: string;
+    avatar: string;
   };
-}
+}>;
 
-export interface CommentLike {
-  id: string;
-  user_id: string;
-  comment_id: string;
-  created: string;
-  updated: string;
-}
+export type ActivityEvent = ActivityEventsResponse<{
+  route_id?: RoutesResponse<{ set_id?: SetsResponse }>;
+}>;
+
+// ── Pagination ─────────────────────────────────────
 
 export interface PaginatedComments {
   items: Comment[];
@@ -64,47 +58,40 @@ export interface PaginatedComments {
   page: number;
 }
 
-export type ActivityEventType = "completed" | "flashed" | "beta_spray" | "reply";
+// ── View collection types ──────────────────────────
 
-export interface ActivityEvent {
-  id: string;
-  user_id: string;
-  route_id: string;
-  type: ActivityEventType;
-  created: string;
-  updated: string;
-  expand?: {
-    route_id?: Route & {
-      expand?: { set_id?: Set };
-    };
-  };
-}
+export type RouteGradeView = RouteGradesResponse<number>;
 
-/** RouteLog with route_id expanded to access set_id. */
-export interface RouteLogWithSetId extends RouteLog {
-  expand?: {
-    route_id?: { set_id: string };
-  };
-}
+export type UserSetStatsView = UserSetStatsResponse<number, number, number>;
+
+// ── UI types ───────────────────────────────────────
 
 export type TileState = "empty" | "attempted" | "completed" | "flash";
 
-// ── PocketBase View types ──────────────────────────
+// ── Helpers ────────────────────────────────────────
 
-/** Row from the `route_grades` PocketBase View collection. */
-export interface RouteGradeView {
-  id: string;
-  route_id: string;
-  community_grade: number;
-  vote_count: number;
-}
-
-/** Row from the `user_set_stats` PocketBase View collection. */
-export interface UserSetStatsView {
+/**
+ * Create an optimistic RouteLog for immediate UI updates.
+ * Uses type assertion for branded date strings since these
+ * logs are client-side only and never sent to PocketBase.
+ */
+export function createOptimisticLog(fields: {
   id: string;
   user_id: string;
-  set_id: string;
-  completions: number;
-  flashes: number;
-  points: number;
+  route_id: string;
+  attempts: number;
+  completed: boolean;
+  grade_vote?: number;
+  zone: boolean;
+}): RouteLog {
+  const now = new Date().toISOString();
+  return {
+    collectionId: "",
+    collectionName: "route_logs",
+    completed_at: fields.completed ? now : "",
+    grade_vote: fields.grade_vote ?? 0,
+    created: now,
+    updated: now,
+    ...fields,
+  } as RouteLog;
 }

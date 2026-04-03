@@ -6,17 +6,16 @@ import {
   useEffect,
   useState,
   useCallback,
+  useMemo,
   type ReactNode,
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { getClientPB, getAuthUser } from "./pocketbase";
+import { getClientPB } from "./pocketbase";
+import { getAuthUser, isOnboarded } from "./pocketbase-shared";
 import { formatPBError } from "./pb-error";
 import { showToast } from "@/components/ui";
 import type { UsersResponse } from "./pocketbase-types";
 
-export function isOnboarded(user: UsersResponse): boolean {
-  return (user as Record<string, unknown>).onboarded === true;
-}
 
 interface AuthContextValue {
   user: UsersResponse | null;
@@ -60,7 +59,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .collection("users")
         .authWithOAuth2({ provider: "google" });
 
-      const record = result.record as UsersResponse;
+      const record = getAuthUser(pb);
+      if (!record) {
+        showToast("Sign-in failed — invalid auth record", "error");
+        return;
+      }
       setUser(record);
 
       if (result.meta?.isNew || !isOnboarded(record)) {
@@ -88,10 +91,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.location.href = "/";
   }, [pb]);
 
+  const value = useMemo(
+    () => ({ user, isLoading, signInWithGoogle, signOut, refreshUser }),
+    [user, isLoading, signInWithGoogle, signOut, refreshUser]
+  );
+
   return (
-    <AuthContext.Provider
-      value={{ user, isLoading, signInWithGoogle, signOut, refreshUser }}
-    >
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

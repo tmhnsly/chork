@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createServerPBFromCookies } from "@/lib/pocketbase-server";
-import { getAuthUser } from "@/lib/pocketbase";
+import { getAuthUser } from "@/lib/pocketbase-shared";
 import styles from "./leaderboard.module.scss";
 
 export const metadata = {

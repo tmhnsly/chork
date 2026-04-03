@@ -1,14 +1,6 @@
 import PocketBase from "pocketbase";
-import type { TypedPocketBase, UsersResponse } from "./pocketbase-types";
+import type { TypedPocketBase } from "./pocketbase-types";
 import { cookieOptions } from "./cookie-config";
-
-/** Extract a typed UsersResponse from pb.authStore.record */
-export function getAuthUser(pb: PocketBase): UsersResponse | null {
-  if (pb.authStore.isValid && pb.authStore.record) {
-    return pb.authStore.record as unknown as UsersResponse;
-  }
-  return null;
-}
 
 let pb: TypedPocketBase | null = null;
 

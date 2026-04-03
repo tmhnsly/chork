@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createServerPBFromCookies } from "@/lib/pocketbase-server";
 import { requireAuth } from "@/lib/auth";
 import { upsertRouteLog, createActivityEvent, deleteCompletionEvents, createComment, updateComment, toggleCommentLike } from "@/lib/data/mutations";
@@ -7,7 +8,11 @@ import { getCommentsByRoute, getRouteGrade, getLikedCommentIds } from "@/lib/dat
 import type { RouteLog, Comment, PaginatedComments, ActivityEventType } from "@/lib/data";
 import { formatPBError } from "@/lib/pb-error";
 
-export async function updateAttempts(routeId: string, attempts: number, logId?: string) {
+type ActionResult<T = unknown> = { error: string } | ({ success: true } & T);
+type LogResult = ActionResult<{ log: RouteLog }>;
+type CommentResult = { error?: string; comment?: Comment };
+
+export async function updateAttempts(routeId: string, attempts: number, logId?: string): Promise<LogResult> {
   if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
   if (!Number.isInteger(attempts) || attempts < 0) return { error: "Invalid attempts" };
 
@@ -17,6 +22,7 @@ export async function updateAttempts(routeId: string, attempts: number, logId?: 
 
   try {
     const log = await upsertRouteLog(pb, userId, routeId, { attempts }, logId);
+    revalidatePath("/");
     return { success: true, log };
   } catch (err) {
     return { error: formatPBError(err) };
@@ -29,7 +35,7 @@ export async function completeRoute(
   gradeVote: number | null,
   zone: boolean,
   logId?: string
-) {
+): Promise<LogResult> {
   if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
   if (!Number.isInteger(attempts) || attempts < 1) return { error: "Invalid attempts" };
   if (gradeVote !== null && (!Number.isInteger(gradeVote) || gradeVote < 0 || gradeVote > 10)) {
@@ -49,7 +55,7 @@ export async function completeRoute(
         attempts,
         completed: true,
         completed_at: new Date().toISOString(),
-        grade_vote: gradeVote,
+        grade_vote: gradeVote ?? undefined,
         zone,
       }, logId),
       createActivityEvent(pb, {
@@ -59,13 +65,14 @@ export async function completeRoute(
       }),
     ]);
 
+    revalidatePath("/");
     return { success: true, log };
   } catch (err) {
     return { error: formatPBError(err) };
   }
 }
 
-export async function uncompleteRoute(routeId: string, logId?: string) {
+export async function uncompleteRoute(routeId: string, logId?: string): Promise<LogResult> {
   if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
@@ -75,18 +82,19 @@ export async function uncompleteRoute(routeId: string, logId?: string) {
     const [log] = await Promise.all([
       upsertRouteLog(pb, userId, routeId, {
         completed: false,
-        completed_at: null,
-        grade_vote: null,
+        completed_at: undefined,
+        grade_vote: undefined,
       }, logId),
       deleteCompletionEvents(pb, userId, routeId),
     ]);
+    revalidatePath("/");
     return { success: true, log };
   } catch (err) {
     return { error: formatPBError(err) };
   }
 }
 
-export async function toggleZone(routeId: string, zone: boolean, logId?: string) {
+export async function toggleZone(routeId: string, zone: boolean, logId?: string): Promise<LogResult> {
   if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
@@ -94,6 +102,7 @@ export async function toggleZone(routeId: string, zone: boolean, logId?: string)
 
   try {
     const log = await upsertRouteLog(pb, userId, routeId, { zone }, logId);
+    revalidatePath("/");
     return { success: true, log };
   } catch (err) {
     return { error: formatPBError(err) };
@@ -103,7 +112,7 @@ export async function toggleZone(routeId: string, zone: boolean, logId?: string)
 export async function postComment(
   routeId: string,
   body: string
-): Promise<{ comment?: Comment; error?: string }> {
+): Promise<CommentResult> {
   if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
   const trimmed = typeof body === "string" ? body.trim() : "";
   if (!trimmed) return { error: "Comment cannot be empty" };
@@ -193,20 +202,20 @@ export async function likeComment(
 export async function editComment(
   commentId: string,
   body: string
-): Promise<{ comment?: Comment; error?: string }> {
+): Promise<CommentResult> {
   if (typeof commentId !== "string" || !commentId) return { error: "Invalid comment" };
   const trimmed = typeof body === "string" ? body.trim() : "";
   if (!trimmed) return { error: "Comment cannot be empty" };
 
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
-  const { pb } = auth;
+  const { pb, userId } = auth;
 
   try {
     const existing = await pb.collection("comments").getOne<Comment>(commentId, {
       fields: "id,user_id",
     });
-    if (existing.user_id !== pb.authStore.record!.id) {
+    if (existing.user_id !== userId) {
       return { error: "You can only edit your own comments" };
     }
     const comment = await updateComment(pb, commentId, trimmed);

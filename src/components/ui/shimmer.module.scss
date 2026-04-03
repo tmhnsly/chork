@@ -1,46 +1,70 @@
-// Shimmer wrapper — renders children invisibly to inherit their
-// exact size, then overlays a subtle animated loading effect.
+// ── Skeleton system ─────────────────────────────────
+//
+// `.skeleton` — applied directly to an existing element to make it a
+// skeleton placeholder. Text becomes transparent; a soft diagonal
+// shimmer gradient drifts across. No wrapper divs, no dimension
+// mismatch — the element keeps its own sizing.
+//
+// `.skeletonLine` / `.skeletonShort` — standalone placeholder bars
+// for text lines inside content areas.
+//
+// `.fadeIn` — apply to real content when it replaces a skeleton so
+// it fades in smoothly rather than popping.
 
-.shimmer {
-  position: relative;
-  overflow: hidden;
+// ── Shared animation ───────────────────────────────
+@keyframes shimmerGlow {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
 
-  // Base layer — solid background that hides content
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 1;
+@mixin shimmer-gradient {
+  background: linear-gradient(
+    105deg,
+    var(--mono-bg) 0%,
+    var(--mono-bg) 35%,
+    var(--mono-bg-hover) 45%,
+    var(--mono-bg-hover) 55%,
+    var(--mono-bg) 65%,
+    var(--mono-bg) 100%
+  );
+  background-size: 400% 100%;
+  animation: shimmerGlow 2.2s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
     background: var(--mono-bg);
   }
+}
 
-  // Sweep highlight that slides across
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 2;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      var(--mono-bg-hover) 40%,
-      var(--mono-bg-hover) 60%,
-      transparent 100%
-    );
-    animation: sweep 1.8s ease-in-out infinite;
+// ── Skeleton class ─────────────────────────────────
+.skeleton {
+  color: transparent !important;
+  @include shimmer-gradient;
+}
+
+// ── Placeholder bars ───────────────────────────────
+.skeletonLine {
+  display: block;
+  height: var(--text-sm);
+  width: 100%;
+  margin: var(--space-1) 0;
+  @include shimmer-gradient;
+}
+
+.skeletonShort {
+  width: 40%;
+}
+
+// ── Content fade-in ────────────────────────────────
+.fadeIn {
+  animation: contentReveal var(--duration-normal) var(--ease-out);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
   }
 }
 
-// Children rendered but invisible — they hold the layout
-.content {
-  visibility: hidden;
-}
-
-@keyframes sweep {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
+@keyframes contentReveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }

@@ -1,6 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import PocketBase from "pocketbase";
 
+// Routes that require authentication — any path starting with these prefixes.
+const PROTECTED_PREFIXES = ["/profile", "/onboarding", "/leaderboard"];
+
+// Routes that redirect to home when already authenticated.
+const AUTH_ROUTES = ["/login"];
+
 export function middleware(request: NextRequest) {
   const pb = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL);
   pb.authStore.loadFromCookie(request.headers.get("cookie") ?? "");
@@ -8,13 +14,13 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAuthenticated = pb.authStore.isValid;
 
-  // /login — redirect to home if already authenticated
-  if (pathname === "/login" && isAuthenticated) {
+  // Redirect authenticated users away from auth routes
+  if (AUTH_ROUTES.some((r) => pathname.startsWith(r)) && isAuthenticated) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // Protected routes — redirect to login if not authenticated
-  if ((pathname === "/profile" || pathname === "/onboarding" || pathname === "/leaderboard") && !isAuthenticated) {
+  // Redirect unauthenticated users away from protected routes
+  if (PROTECTED_PREFIXES.some((p) => pathname.startsWith(p)) && !isAuthenticated) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
@@ -22,5 +28,5 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/login", "/onboarding", "/profile", "/leaderboard"],
+  matcher: ["/login/:path*", "/onboarding/:path*", "/profile/:path*", "/leaderboard/:path*"],
 };

@@ -31,17 +31,17 @@
 .headline {
   @include type.typography(display);
   color: var(--accent-text);
-  animation: heroIn 0.8s var(--ease-out) both;
+  animation: heroIn var(--duration-hero) var(--ease-out) both;
 }
 
 .subheadline {
   @include type.typography(body);
   color: var(--mono-text-low-contrast);
-  animation: heroIn 0.8s var(--ease-out) 200ms both;
+  animation: heroIn var(--duration-hero) var(--ease-out) 200ms both;
 }
 
 .ctaRow {
-  animation: heroIn 0.8s var(--ease-out) 400ms both;
+  animation: heroIn var(--duration-hero) var(--ease-out) 400ms both;
 
   > * {
     width: 100%;
@@ -52,6 +52,12 @@
       width: auto;
       min-width: 200px;
     }
+  }
+}
+
+.headline, .subheadline, .ctaRow {
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
   }
 }
 

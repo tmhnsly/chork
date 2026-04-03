@@ -1,6 +1,6 @@
 import type { TypedPocketBase, UsersResponse } from "../pocketbase-types";
 import type {
-  Set as RouteSet,
+  RouteSet,
   Route,
   RouteLog,
   RouteLogWithSetId,

@@ -57,7 +57,7 @@
 .barFill {
   height: 32px;
   background: var(--mono-border);
-  transition: width 0.6s var(--ease-out);
+  transition: width var(--duration-slow) var(--ease-out);
 
   .flashRow & {
     background: var(--flash-solid);

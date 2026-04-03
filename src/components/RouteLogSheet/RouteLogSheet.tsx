@@ -21,7 +21,8 @@ import {
   FaRegHeart,
 } from "react-icons/fa6";
 import { RollingNumber } from "@/components/RollingNumber/RollingNumber";
-import type { Set as RouteSet, Route, RouteLog, Comment } from "@/lib/data";
+import type { RouteSet, Route, RouteLog, Comment } from "@/lib/data";
+import { createOptimisticLog } from "@/lib/data";
 import { isFlash, computePoints } from "@/lib/data";
 import { useAuth } from "@/lib/auth-context";
 import { getAvatarUrl } from "@/lib/avatar";
@@ -35,7 +36,7 @@ import {
   editComment,
   likeComment,
 } from "@/app/(app)/actions";
-import { Button, Shimmer, showToast } from "@/components/ui";
+import { Button, shimmerStyles, showToast } from "@/components/ui";
 import { CompleteModal } from "@/components/CompleteModal/CompleteModal";
 import styles from "./routeLogSheet.module.scss";
 
@@ -94,6 +95,8 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
   const logIdRef = useRef(currentLog?.id);
   const contentRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ startY: number; dragging: boolean }>({ startY: 0, dragging: false });
+  const preCompleteRef = useRef<{ log: RouteLog | null; attempts: number } | null>(null);
+  const likingRef = useRef<Set<string>>(new Set());
 
   // Keep logIdRef in sync so the save callback always has the latest ID
   logIdRef.current = currentLog?.id;
@@ -146,14 +149,12 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
   const saveAttempts = useCallback(
     async (value: number) => {
       const result = await updateAttempts(route.id, value, logIdRef.current);
-      if (result.error) {
+      if ("error" in result) {
         showToast(result.error, "error");
         return;
       }
-      if (result.log) {
-        setCurrentLog(result.log);
-        onLogUpdate(route.id, result.log);
-      }
+      setCurrentLog(result.log);
+      onLogUpdate(route.id, result.log);
     },
     [route.id, onLogUpdate]
   );
@@ -167,18 +168,14 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
     // Optimistic update — parent tile reflects the new attempt count immediately
     const optimisticLog: RouteLog = currentLog
       ? { ...currentLog, attempts: next }
-      : {
+      : createOptimisticLog({
           id: "",
           user_id: user?.id ?? "",
           route_id: route.id,
           attempts: next,
           completed: false,
-          completed_at: null,
-          grade_vote: null,
           zone: false,
-          created: new Date().toISOString(),
-          updated: new Date().toISOString(),
-        };
+        });
     onLogUpdate(route.id, optimisticLog);
 
     if ("vibrate" in navigator) {
@@ -206,16 +203,14 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
 
   async function handleUncomplete() {
     const result = await uncompleteRoute(route.id, currentLog?.id);
-    if (result.error) {
+    if ("error" in result) {
       showToast(result.error, "error");
       return;
     }
-    if (result.log) {
-      setCurrentLog(result.log);
-      setAttempts(result.log.attempts);
-      onLogUpdate(route.id, result.log);
-      showToast("Completion removed");
-    }
+    setCurrentLog(result.log);
+    setAttempts(result.log.attempts);
+    onLogUpdate(route.id, result.log);
+    showToast("Completion removed");
   }
 
   async function handlePostComment() {
@@ -264,6 +259,10 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
   }
 
   async function handleLike(commentId: string) {
+    // Prevent concurrent requests for the same comment
+    if (likingRef.current.has(commentId)) return;
+    likingRef.current.add(commentId);
+
     const wasLiked = likedIds.has(commentId);
     const prevCount = comments.find((c) => c.id === commentId)?.likes ?? 0;
     // Optimistic update
@@ -309,34 +308,43 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
         );
       }
     }
+    likingRef.current.delete(commentId);
   }
 
   function handleComplete(updatedLog: RouteLog) {
+    // Capture pre-completion state for potential revert
+    const prevLog = currentLog;
+    const prevAttempts = attempts;
     setCurrentLog(updatedLog);
     setAttempts(updatedLog.attempts);
     onLogUpdate(route.id, updatedLog);
     setShowComplete(false);
+    // Store revert data in a ref so the modal's onRevert callback can access it
+    preCompleteRef.current = { log: prevLog, attempts: prevAttempts };
+  }
+
+  function handleCompleteRevert() {
+    const prev = preCompleteRef.current;
+    if (!prev) return;
+    setCurrentLog(prev.log);
+    setAttempts(prev.attempts);
+    if (prev.log) {
+      onLogUpdate(route.id, prev.log);
+    }
+    preCompleteRef.current = null;
   }
 
   async function handleZoneToggle(checked: boolean) {
-    // Optimistic update
-    const optimisticLog = currentLog
-      ? { ...currentLog, zone: checked }
-      : null;
-    setCurrentLog(optimisticLog);
-    if (optimisticLog) onLogUpdate(route.id, optimisticLog);
+    // Optimistic update using functional setState to avoid stale closures
+    setCurrentLog((prev) => (prev ? { ...prev, zone: checked } : prev));
+    if (currentLog) onLogUpdate(route.id, { ...currentLog, zone: checked });
 
-    const result = await toggleZone(route.id, checked, currentLog?.id);
-    if (result.error) {
+    const result = await toggleZone(route.id, checked, logIdRef.current);
+    if ("error" in result) {
       showToast(result.error, "error");
-      // Revert to pre-toggle state
-      if (currentLog) {
-        setCurrentLog(currentLog);
-        onLogUpdate(route.id, currentLog);
-      }
-      return;
+      // Revert — functional update reads latest state, not stale closure
+      setCurrentLog((prev) => (prev ? { ...prev, zone: !checked } : prev));
     }
-    // Don't overwrite — optimistic state is already correct
   }
 
   const pointsPreview = getPointsPreview(
@@ -445,13 +453,9 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
               {route.number}
               {isCurrentFlash && <FaBolt className={styles.flashIcon} />}
             </h2>
-            {loadingComments ? (
-              <Shimmer className={styles.gradeSkeleton}>
-                <span className={styles.communityGrade}>V0</span>
-              </Shimmer>
-            ) : (
-              <span className={styles.communityGrade}>{gradeLabel}</span>
-            )}
+            <span className={`${styles.communityGrade} ${loadingComments ? shimmerStyles.skeleton : ""}`}>
+              {gradeLabel ?? "\u00A0"}
+            </span>
           </header>
 
           {/* Attempt counter */}
@@ -547,26 +551,25 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
 
             <div className={styles.betaScroll}>
               {loadingComments ? (
-              <div className={styles.commentList}>
-                {[0, 1].map((i) => (
-                  <div key={i} className={styles.commentRow}>
-                    <Shimmer className={styles.avatarSkeleton}>
-                      <div className={styles.commentAvatar} />
-                    </Shimmer>
-                    <div className={styles.commentContent}>
-                      <Shimmer><span className={styles.commentAuthor}>@username</span></Shimmer>
-                      <Shimmer><p className={styles.commentBody}>Placeholder comment text here</p></Shimmer>
+                <div className={styles.commentList}>
+                  {[0, 1].map((i) => (
+                    <div key={i} className={styles.commentRow}>
+                      <div className={`${styles.commentAvatar} ${shimmerStyles.skeleton}`} />
+                      <div className={styles.commentContent}>
+                        <span className={`${shimmerStyles.skeletonLine} ${shimmerStyles.skeletonShort}`} />
+                        <span className={shimmerStyles.skeletonLine} />
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : comments.length === 0 ? (
-              <p className={styles.betaEmpty}>No comments yet</p>
+                  ))}
+                </div>
+              ) : comments.length === 0 ? (
+              <p className={`${styles.betaEmpty} ${shimmerStyles.fadeIn}`}>No comments yet</p>
             ) : (
               <div
-                className={
-                  !isCompleted && !betaRevealed ? styles.betaBlurred : undefined
-                }
+                className={[
+                  shimmerStyles.fadeIn,
+                  !isCompleted && !betaRevealed ? styles.betaBlurred : "",
+                ].filter(Boolean).join(" ")}
               >
                 <ul className={styles.commentList}>
                   {(expanded ? comments : comments.slice(0, 2)).map((c) => {
@@ -709,6 +712,7 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
                   type="text"
                   className={styles.commentInput}
                   placeholder="Share beta..."
+                  aria-label="Share beta"
                   value={commentBody}
                   onChange={(e) => setCommentBody(e.target.value)}
                   disabled={posting}
@@ -743,6 +747,7 @@ export function RouteLogSheet({ set, route, log, onClose, onLogUpdate }: Props) 
           zone={zoneValue}
           logId={currentLog?.id}
           onConfirm={handleComplete}
+          onRevert={handleCompleteRevert}
           onCancel={() => setShowComplete(false)}
         />
       )}

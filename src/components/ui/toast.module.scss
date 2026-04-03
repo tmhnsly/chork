@@ -50,6 +50,12 @@
   animation: slideOut var(--duration-fast) var(--ease-out) forwards;
 }
 
+.enter, .exit {
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;

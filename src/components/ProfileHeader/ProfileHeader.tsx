@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { UsersResponse } from "@/lib/pocketbase-types";
@@ -21,6 +21,13 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState(user.name ?? "");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+
+  // Sync displayName when user prop changes (e.g. navigating between profiles)
+  useEffect(() => {
+    setDisplayName(user.name ?? "");
+    setEditing(false);
+    setAvatarPreview(null);
+  }, [user.id]);
   const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -97,7 +104,7 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
             onClick={() => fileRef.current?.click()}
             disabled={submitting}
           >
-            <Image src={avatarSrc} alt="" width={96} height={96} className={styles.avatarImg} unoptimized />
+            <Image src={avatarSrc} alt={user.name || user.username} width={96} height={96} className={styles.avatarImg} unoptimized />
             <span className={styles.avatarOverlay}>Edit</span>
           </button>
           <input
@@ -110,7 +117,7 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
         </>
       ) : (
         <div className={styles.avatarWrap}>
-          <Image src={avatarSrc} alt="" width={96} height={96} className={styles.avatarImg} unoptimized />
+          <Image src={avatarSrc} alt={user.name || user.username} width={96} height={96} className={styles.avatarImg} unoptimized />
         </div>
       )}
 

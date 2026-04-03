@@ -92,6 +92,10 @@
   transition: grid-template-rows var(--duration-normal) var(--ease-out);
   @include layout.stack(var(--space-3));
 
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+
   > * {
     min-height: 0;
   }

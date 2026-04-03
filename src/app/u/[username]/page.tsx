@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { format, parseISO, formatDistanceToNow } from "date-fns";
 import { FaBolt } from "react-icons/fa6";
 import { createServerPBFromCookies } from "@/lib/pocketbase-server";
-import { getAuthUser } from "@/lib/pocketbase";
+import { getAuthUser } from "@/lib/pocketbase-shared";
 import {
   getUserByUsername,
   getAllSets,
@@ -75,15 +75,15 @@ export default async function UserProfilePage({ params }: Props) {
   if (useViewStats) {
     for (const row of viewStats) {
       statsBySet.set(row.set_id, {
-        completions: row.completions,
-        flashes: row.flashes,
-        points: row.points,
+        completions: row.completions ?? 0,
+        flashes: row.flashes ?? 0,
+        points: row.points ?? 0,
       });
     }
     allTimeStats = {
-      completions: viewStats.reduce((s, r) => s + r.completions, 0),
-      flashes: viewStats.reduce((s, r) => s + r.flashes, 0),
-      points: viewStats.reduce((s, r) => s + r.points, 0),
+      completions: viewStats.reduce((s, r) => s + (r.completions ?? 0), 0),
+      flashes: viewStats.reduce((s, r) => s + (r.flashes ?? 0), 0),
+      points: viewStats.reduce((s, r) => s + (r.points ?? 0), 0),
     };
   } else {
     const allLogs = await getAllLogsForUser(pb, profileUser.id);

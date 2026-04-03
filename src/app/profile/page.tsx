@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createServerPBFromCookies } from "@/lib/pocketbase-server";
-import { getAuthUser } from "@/lib/pocketbase";
+import { getAuthUser } from "@/lib/pocketbase-shared";
 
 export const metadata = {
   title: "Profile — Chork",

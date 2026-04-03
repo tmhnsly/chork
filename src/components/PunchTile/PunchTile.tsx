@@ -10,14 +10,16 @@ interface Props {
   state: TileState;
   zone?: boolean;
   onClick?: () => void;
+  className?: string;
 }
 
-export const PunchTile = memo(function PunchTile({ number, state, zone, onClick }: Props) {
+export const PunchTile = memo(function PunchTile({ number, state, zone, onClick, className }: Props) {
   return (
     <button
-      className={`${styles.tile} ${styles[state]}`}
+      className={[styles.tile, styles[state], className].filter(Boolean).join(" ")}
       onClick={onClick}
       type="button"
+      aria-label={`Route ${number}, ${state}`}
     >
       {zone && (
         <span className={styles.zoneBadge}>

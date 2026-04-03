@@ -13,7 +13,9 @@ export function RollingNumber({ value, className }: Props) {
   const [key, setKey] = useState(0);
   const [dir, setDir] = useState<"up" | "down" | null>(null);
 
-  // Detect value change during render — no effect needed
+  // React-recommended pattern for derived state from props.
+  // Setting state during render triggers an immediate re-render
+  // before commit — no double paint.
   if (value !== prev) {
     setDir(value > prev ? "up" : "down");
     setPrev(value);
