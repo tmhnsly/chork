@@ -22,7 +22,8 @@ export async function updateAttempts(routeId: string, attempts: number, logId?: 
 
   try {
     const log = await upsertRouteLog(pb, userId, routeId, { attempts }, logId);
-    revalidatePath("/");
+    // No revalidatePath here — attempts are frequent, optimistic client-side updates
+    // handle the UI. Revalidation happens on completion/uncompletion instead.
     return { success: true, log };
   } catch (err) {
     return { error: formatPBError(err) };
@@ -102,7 +103,6 @@ export async function toggleZone(routeId: string, zone: boolean, logId?: string)
 
   try {
     const log = await upsertRouteLog(pb, userId, routeId, { zone }, logId);
-    revalidatePath("/");
     return { success: true, log };
   } catch (err) {
     return { error: formatPBError(err) };
