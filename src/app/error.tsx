@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import styles from "./error.module.scss";
 
 interface Props {
   error: Error & { digest?: string };
@@ -13,25 +14,12 @@ export default function GlobalError({ error, reset }: Props) {
   }, [error]);
 
   return (
-    <div style={{ padding: "2rem", textAlign: "center" }}>
-      <h2>Something went wrong</h2>
-      <p style={{ color: "var(--mono-text-low-contrast)", marginTop: "0.5rem" }}>
-        {error.message.includes("429")
-          ? "Too many requests — please wait a moment and try again."
-          : "An unexpected error occurred."}
+    <div className={styles.page}>
+      <h2 className={styles.title}>Something went wrong</h2>
+      <p className={styles.message}>
+        An unexpected error occurred. Please try again.
       </p>
-      <button
-        onClick={reset}
-        style={{
-          marginTop: "1rem",
-          padding: "0.75rem 1.5rem",
-          background: "var(--accent-solid)",
-          color: "var(--accent-on-solid)",
-          border: "none",
-          cursor: "pointer",
-          minHeight: "44px",
-        }}
-      >
+      <button onClick={reset} className={styles.retry}>
         Try again
       </button>
     </div>

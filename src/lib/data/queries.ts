@@ -39,7 +39,8 @@ export async function getUserByUsername(pb: TypedPocketBase, username: string): 
     return await pb.collection("users").getFirstListItem(
       pb.filter("username = {:username}", { username })
     );
-  } catch {
+  } catch (err) {
+    console.warn("[chork] getUserByUsername failed:", err);
     return null;
   }
 }
@@ -96,7 +97,8 @@ export async function getUserSetStats(pb: TypedPocketBase, userId: string): Prom
       filter: pb.filter("user_id = {:userId}", { userId }),
       fields: "id,user_id,set_id,completions,flashes,points",
     });
-  } catch {
+  } catch (err) {
+    console.warn("[chork] getUserSetStats failed:", err);
     return [];
   }
 }
@@ -130,7 +132,8 @@ export async function getRouteGrade(pb: TypedPocketBase, routeId: string): Promi
       return results.items[0].community_grade;
     }
     return null;
-  } catch {
+  } catch (err) {
+    console.warn("[chork] getRouteGrade view failed, computing from logs:", err);
     const results = await pb.collection("route_logs").getFullList<RouteLog>({
       filter: pb.filter("route_id = {:routeId} && completed = true && grade_vote != null", { routeId }),
       fields: "grade_vote",

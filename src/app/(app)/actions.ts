@@ -10,7 +10,7 @@ import { formatPBError } from "@/lib/pb-error";
 
 type ActionResult<T = unknown> = { error: string } | ({ success: true } & T);
 type LogResult = ActionResult<{ log: RouteLog }>;
-type CommentResult = { error?: string; comment?: Comment };
+type CommentResult = { error: string } | { comment: Comment };
 
 export async function updateAttempts(routeId: string, attempts: number, logId?: string): Promise<LogResult> {
   if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
@@ -22,8 +22,10 @@ export async function updateAttempts(routeId: string, attempts: number, logId?: 
 
   try {
     const log = await upsertRouteLog(pb, userId, routeId, { attempts }, logId);
-    // No revalidatePath here — attempts are frequent, optimistic client-side updates
-    // handle the UI. Revalidation happens on completion/uncompletion instead.
+    // Revalidate so navigating away and back shows the saved attempts.
+    // This only fires after the 800ms debounce settles (once per burst),
+    // and the 300s stale time prevents cascading re-fetches.
+    revalidatePath("/", "layout");
     return { success: true, log };
   } catch (err) {
     return { error: formatPBError(err) };
@@ -66,7 +68,9 @@ export async function completeRoute(
       }),
     ]);
 
-    revalidatePath("/");
+    // Revalidate the entire app — completion affects home (punch card),
+    // profile (stats, mini grid), and leaderboard.
+    revalidatePath("/", "layout");
     return { success: true, log };
   } catch (err) {
     return { error: formatPBError(err) };
@@ -88,7 +92,7 @@ export async function uncompleteRoute(routeId: string, logId?: string): Promise<
       }, logId),
       deleteCompletionEvents(pb, userId, routeId),
     ]);
-    revalidatePath("/");
+    revalidatePath("/", "layout");
     return { success: true, log };
   } catch (err) {
     return { error: formatPBError(err) };
@@ -103,6 +107,7 @@ export async function toggleZone(routeId: string, zone: boolean, logId?: string)
 
   try {
     const log = await upsertRouteLog(pb, userId, routeId, { zone }, logId);
+    revalidatePath("/", "layout");
     return { success: true, log };
   } catch (err) {
     return { error: formatPBError(err) };
@@ -115,7 +120,8 @@ export async function postComment(
 ): Promise<CommentResult> {
   if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
   const trimmed = typeof body === "string" ? body.trim() : "";
-  if (!trimmed) return { error: "Comment cannot be empty" };
+  if (!trimmed) return { error: "Comment can't be empty — write something first" };
+  if (trimmed.length > 500) return { error: "Comments must be 500 characters or less" };
 
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
@@ -147,7 +153,8 @@ export async function fetchComments(
   const pb = await createServerPBFromCookies();
   try {
     return await getCommentsByRoute(pb, routeId, page, 20);
-  } catch {
+  } catch (err) {
+    console.warn("[chork] fetchComments failed:", err);
     return { items: [], totalItems: 0, totalPages: 0, page: 1 };
   }
 }
@@ -162,12 +169,19 @@ export async function fetchRouteData(routeId: string): Promise<{
   const userId = pb.authStore.record?.id;
 
   const [grade, comments, likedSet] = await Promise.all([
-    getRouteGrade(pb, routeId).catch(() => null),
-    getCommentsByRoute(pb, routeId, 1, 2).catch(
-      () => ({ items: [], totalItems: 0, totalPages: 0, page: 1 }) as PaginatedComments
-    ),
+    getRouteGrade(pb, routeId).catch((err) => {
+      console.warn("[chork] fetchRouteData grade failed:", err);
+      return null;
+    }),
+    getCommentsByRoute(pb, routeId, 1, 2).catch((err) => {
+      console.warn("[chork] fetchRouteData comments failed:", err);
+      return { items: [], totalItems: 0, totalPages: 0, page: 1 } as PaginatedComments;
+    }),
     userId
-      ? getLikedCommentIds(pb, userId, routeId).catch(() => new Set<string>())
+      ? getLikedCommentIds(pb, userId, routeId).catch((err) => {
+          console.warn("[chork] fetchRouteData likedIds failed:", err);
+          return new Set<string>();
+        })
       : Promise.resolve(new Set<string>()),
   ]);
 
@@ -196,7 +210,8 @@ export async function editComment(
 ): Promise<CommentResult> {
   if (typeof commentId !== "string" || !commentId) return { error: "Invalid comment" };
   const trimmed = typeof body === "string" ? body.trim() : "";
-  if (!trimmed) return { error: "Comment cannot be empty" };
+  if (!trimmed) return { error: "Comment can't be empty — write something first" };
+  if (trimmed.length > 500) return { error: "Comments must be 500 characters or less" };
 
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };

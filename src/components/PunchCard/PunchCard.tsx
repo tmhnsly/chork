@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { format, parseISO } from "date-fns";
 import { FaChartBar, FaBolt, FaCalendarDay, FaStar } from "react-icons/fa6";
 import type { RouteSet, Route, RouteLog, TileState } from "@/lib/data";
@@ -8,6 +8,7 @@ import { isFlash, computePoints } from "@/lib/data";
 import { BentoGrid, BentoStat } from "@/components/ui";
 import { PunchTile } from "@/components/PunchTile/PunchTile";
 import { RouteLogSheet } from "@/components/RouteLogSheet/RouteLogSheet";
+import type { CachedRouteData } from "@/components/RouteLogSheet/RouteLogSheet";
 import styles from "./punchCard.module.scss";
 
 interface Props {
@@ -26,11 +27,16 @@ function deriveTileState(log: RouteLog | undefined): TileState {
 export function PunchCard({ set, routes, initialLogs }: Props) {
   const [logs, setLogs] = useState<RouteLog[]>(initialLogs);
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
+  const [routeDataCache, setRouteDataCache] = useState<Map<string, CachedRouteData>>(new Map());
 
   // Sync when server re-fetches (e.g. revalidation, navigation)
   useEffect(() => {
     setLogs(initialLogs);
   }, [initialLogs]);
+
+  const handleCacheRouteData = useCallback((routeId: string, data: CachedRouteData) => {
+    setRouteDataCache((prev) => new Map(prev).set(routeId, data));
+  }, []);
 
   const logByRoute = new Map(logs.map((l) => [l.route_id, l]));
 
@@ -102,7 +108,9 @@ export function PunchCard({ set, routes, initialLogs }: Props) {
           set={set}
           route={selectedRoute}
           log={logByRoute.get(selectedRoute.id) ?? null}
+          cachedData={routeDataCache.get(selectedRoute.id)}
           onClose={() => setSelectedRoute(null)}
+          onCacheRouteData={handleCacheRouteData}
           onLogUpdate={handleLogUpdate}
         />
       )}

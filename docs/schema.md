@@ -120,7 +120,7 @@ API rules:
 
 ## activity_events
 
-Append-only. Never update or delete rows.
+Append-only. Never update or delete rows — except on completion undo, where `completed`/`flashed` events are deleted via admin PB to prevent duplicates on re-complete.
 
 | Field      | Type              | Notes                                                  |
 | ---------- | ----------------- | ------------------------------------------------------ |

@@ -6,7 +6,7 @@
 .overlay {
   position: fixed;
   inset: 0;
-  background: color-mix(in srgb, black 60%, transparent);
+  background: color-mix(in srgb, var(--mono-app-bg) 60%, transparent);
   z-index: var(--z-overlay);
   animation: fadeIn var(--duration-normal) var(--ease-out);
 }
@@ -92,6 +92,7 @@
 .communityGrade {
   @include type.typography(meta);
   color: var(--accent-text-low-contrast);
+  display: inline-block;
   min-height: 1lh;
 }
 
@@ -223,7 +224,7 @@
   width: 20px;
   height: 20px;
   border-radius: var(--radius-full);
-  background: white;
+  background: var(--mono-text);
   transition: transform var(--duration-fast) var(--ease-out);
   will-change: transform;
 
@@ -244,7 +245,8 @@
   @include layout.stack(var(--space-3));
   padding-top: var(--space-4);
   border-top: 1px solid var(--surface-divider);
-  min-height: 150px;
+  // flex: 1 fills remaining space; min-height ensures usable area on mobile
+  min-height: 200px;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -255,10 +257,6 @@
   flex: 1;
   overflow-y: auto;
   min-height: 0;
-  // Extra inline padding gives the blur filter room to bleed
-  // without being clipped by the scroll container's overflow.
-  padding-inline: var(--space-3);
-  margin-inline: calc(-1 * var(--space-3));
 }
 
 .betaHeader {
@@ -296,7 +294,10 @@
 }
 
 .betaBlurred {
-  filter: blur(6px);
+  // Opacity instead of filter:blur() — blur bleeds past element bounds
+  // and gets clipped by any ancestor with overflow:hidden/auto.
+  // 0.15 makes shapes visible but text unreadable — same intent as blur.
+  opacity: 0.15;
   user-select: none;
   pointer-events: none;
 }

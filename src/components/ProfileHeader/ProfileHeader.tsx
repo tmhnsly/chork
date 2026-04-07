@@ -27,7 +27,7 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
     setDisplayName(user.name ?? "");
     setEditing(false);
     setAvatarPreview(null);
-  }, [user.id]);
+  }, [user.id, user.name]);
   const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -36,6 +36,15 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      showToast("Please upload an image file (JPG, PNG, etc.)", "error");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast("Image must be under 5MB", "error");
+      return;
+    }
 
     setAvatarPreview(URL.createObjectURL(file));
     setSubmitting(true);
@@ -53,7 +62,8 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
       refreshUser();
       showToast("Photo updated");
       router.refresh();
-    } catch {
+    } catch (err) {
+      console.warn("[chork] profile update failed:", err);
       showToast("Something went wrong", "error");
       setAvatarPreview(null);
     } finally {
@@ -80,7 +90,8 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
       setEditing(false);
       showToast("Profile updated");
       router.refresh();
-    } catch {
+    } catch (err) {
+      console.warn("[chork] profile update failed:", err);
       showToast("Something went wrong", "error");
     } finally {
       setSubmitting(false);

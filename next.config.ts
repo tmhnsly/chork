@@ -4,9 +4,12 @@ import path from "path";
 const nextConfig: NextConfig = {
   experimental: {
     staleTimes: {
-      // Always re-fetch dynamic pages on client navigation.
-      // This app has real-time scoring — stale data breaks UX.
-      dynamic: 0,
+      // Cache server component output for 5 minutes on client navigation.
+      // The user's own mutations (complete, uncomplete) call revalidatePath
+      // which busts this cache immediately — so their data is always fresh.
+      // This only affects how quickly *other users'* changes appear, which
+      // isn't time-critical. Reduces PocketHost load significantly.
+      dynamic: 300,
     },
   },
   sassOptions: {

@@ -1,11 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
 import PocketBase from "pocketbase";
 
-// Routes that require authentication — any path starting with these prefixes.
-const PROTECTED_PREFIXES = ["/profile", "/onboarding", "/leaderboard"];
-
-// Routes that redirect to home when already authenticated.
+// Single source of truth for route protection.
+// Middleware matcher is derived from these arrays below.
+const PROTECTED_PREFIXES = ["/profile", "/onboarding", "/leaderboard", "/u"];
 const AUTH_ROUTES = ["/login"];
+
+const ALL_PREFIXES = [...PROTECTED_PREFIXES, ...AUTH_ROUTES];
 
 export function middleware(request: NextRequest) {
   const pb = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL);
@@ -14,12 +15,10 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAuthenticated = pb.authStore.isValid;
 
-  // Redirect authenticated users away from auth routes
   if (AUTH_ROUTES.some((r) => pathname.startsWith(r)) && isAuthenticated) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // Redirect unauthenticated users away from protected routes
   if (PROTECTED_PREFIXES.some((p) => pathname.startsWith(p)) && !isAuthenticated) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
@@ -27,6 +26,8 @@ export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
+// Must be a static literal — Next.js evaluates this at build time.
+// Keep in sync with PROTECTED_PREFIXES and AUTH_ROUTES above.
 export const config = {
-  matcher: ["/login/:path*", "/onboarding/:path*", "/profile/:path*", "/leaderboard/:path*"],
+  matcher: ["/login/:path*", "/onboarding/:path*", "/profile/:path*", "/leaderboard/:path*", "/u/:path*"],
 };

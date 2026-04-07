@@ -27,8 +27,9 @@ export function useUsernameValidation(currentUsername?: string) {
           setError("Username is taken");
           return false;
         }
-      } catch {
+      } catch (err) {
         // Server error — allow submit, server will validate
+        console.warn("[chork] username validation failed:", err);
       }
       return true;
     },

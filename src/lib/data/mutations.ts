@@ -1,5 +1,5 @@
 import type { TypedPocketBase } from "../pocketbase-types";
-import { createAdminPB } from "../pocketbase-server";
+import { createAdminPB, clearAdminPB } from "../pocketbase-server";
 import type { RouteLog, Comment, CommentLike, ActivityEvent, ActivityEventType } from "./types";
 
 /**
@@ -78,20 +78,38 @@ export async function toggleCommentLike(
     fields: "id",
   });
 
-  const adminPB = await createAdminPB();
+  // Helper: run an admin operation with retry on auth failure
+  async function withAdmin<T>(fn: (admin: TypedPocketBase) => Promise<T>): Promise<T> {
+    try {
+      return await fn(await createAdminPB());
+    } catch (err) {
+      const status = (err as { status?: number }).status;
+      if (status === 401 || status === 403) {
+        clearAdminPB();
+        return fn(await createAdminPB());
+      }
+      throw err;
+    }
+  }
+
   if (existing.totalItems > 0) {
     await pb.collection("comment_likes").delete(existing.items[0].id);
-    const updated = await adminPB.collection("comments").update<Comment>(commentId, { "likes-": 1 });
-    // Clamp to 0 — legacy comments may have likes=0 from before counter was maintained
+    const updated = await withAdmin((admin) =>
+      admin.collection("comments").update<Comment>(commentId, { "likes-": 1 })
+    );
     const likes = Math.max(0, updated.likes);
     if (likes !== updated.likes) {
-      await adminPB.collection("comments").update<Comment>(commentId, { likes: 0 });
+      await withAdmin((admin) =>
+        admin.collection("comments").update<Comment>(commentId, { likes: 0 })
+      );
     }
     return { liked: false, likes };
   }
 
   await pb.collection("comment_likes").create({ user_id: userId, comment_id: commentId });
-  const updated = await adminPB.collection("comments").update<Comment>(commentId, { "likes+": 1 });
+  const updated = await withAdmin((admin) =>
+    admin.collection("comments").update<Comment>(commentId, { "likes+": 1 })
+  );
   return { liked: true, likes: updated.likes };
 }
 
@@ -106,12 +124,14 @@ export async function createActivityEvent(
 /**
  * Delete completion/flash activity events for a user + route.
  * Called on undo to prevent duplicate events if they re-complete.
+ * Uses admin PB because the activity_events delete API rule is admin-only.
  */
 export async function deleteCompletionEvents(
   pb: TypedPocketBase,
   userId: string,
   routeId: string
 ): Promise<void> {
+  // Read with user PB (list/view allowed for auth users)
   const events = await pb.collection("activity_events").getFullList<ActivityEvent>({
     filter: pb.filter(
       "user_id = {:userId} && route_id = {:routeId} && (type = 'completed' || type = 'flashed')",
@@ -120,7 +140,11 @@ export async function deleteCompletionEvents(
     fields: "id",
   });
 
+  if (events.length === 0) return;
+
+  // Delete with admin PB (delete rule is admin-only)
+  const adminPB = await createAdminPB();
   await Promise.all(
-    events.map((e) => pb.collection("activity_events").delete(e.id))
+    events.map((e) => adminPB.collection("activity_events").delete(e.id))
   );
 }

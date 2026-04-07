@@ -1,5 +1,6 @@
 import "server-only";
 import { createServerPBFromCookies } from "./pocketbase-server";
+import { getAuthUser } from "./pocketbase-shared";
 import type { TypedPocketBase } from "./pocketbase-types";
 export { cookieOptions } from "./cookie-config";
 
@@ -8,12 +9,13 @@ type AuthFailure = { error: string };
 
 /**
  * Require authentication for a server action.
- * Returns the PB instance and user ID, or an error object.
+ * Validates the auth record shape via the runtime type guard.
  */
 export async function requireAuth(): Promise<AuthSuccess | AuthFailure> {
   const pb = await createServerPBFromCookies();
-  if (!pb.authStore.isValid || !pb.authStore.record) {
-    return { error: "Not authenticated" };
+  const user = getAuthUser(pb);
+  if (!user) {
+    return { error: "You need to be signed in to do that" };
   }
-  return { pb, userId: pb.authStore.record.id };
+  return { pb, userId: user.id };
 }

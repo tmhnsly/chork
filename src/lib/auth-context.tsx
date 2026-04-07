@@ -39,6 +39,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, [pb]);
 
+  // Periodically refresh the auth token to prevent session expiry.
+  // PocketBase tokens expire after ~7 days by default. Refreshing every
+  // hour keeps the session alive for long-running mobile/PWA sessions.
+  useEffect(() => {
+    if (!pb.authStore.isValid) return;
+
+    const REFRESH_INTERVAL = 60 * 60 * 1000; // 1 hour
+    const id = setInterval(async () => {
+      try {
+        await pb.collection("users").authRefresh();
+        setUser(getAuthUser(pb));
+      } catch {
+        // Token expired or revoked — clear auth state
+        pb.authStore.clear();
+        setUser(null);
+      }
+    }, REFRESH_INTERVAL);
+
+    return () => clearInterval(id);
+  }, [pb, user]); // user dep re-arms the interval after sign-in
+
   useEffect(() => {
     if (isLoading) return;
     if (user && !isOnboarded(user) && pathname !== "/onboarding") {
