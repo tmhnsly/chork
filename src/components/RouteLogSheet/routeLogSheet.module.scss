@@ -16,18 +16,19 @@
 }
 
 // ── Sheet content ─────────────────────────────────
+// Two-zone layout: controls pinned at top, beta section scrolls below.
 .content {
   @include surface.card;
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-3);
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   z-index: var(--z-overlay);
   border-radius: var(--radius-3) var(--radius-3) 0 0;
-  padding: var(--space-4) var(--gutter-x) calc(var(--space-8) + env(safe-area-inset-bottom, 0px));
+  padding: var(--space-3) var(--gutter-x) calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
   height: 90svh;
   overflow: hidden;
   animation: slideUp var(--duration-normal) var(--ease-out);
@@ -241,13 +242,14 @@
 }
 
 // ── Beta spray ──────────────────────────────────────
+// Takes all remaining space in the sheet, scrolls independently
+// so the controls above stay pinned and accessible.
 .betaSection {
   @include layout.stack(var(--space-3));
-  padding-top: var(--space-4);
+  padding-top: var(--space-3);
   border-top: 1px solid var(--surface-divider);
-  // flex: 1 fills remaining space; min-height ensures usable area on mobile
-  min-height: 200px;
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -294,10 +296,11 @@
 }
 
 .betaBlurred {
-  // Opacity instead of filter:blur() — blur bleeds past element bounds
-  // and gets clipped by any ancestor with overflow:hidden/auto.
-  // 0.15 makes shapes visible but text unreadable — same intent as blur.
-  opacity: 0.15;
+  // Reduced opacity + small blur makes shapes visible but text unreadable.
+  // The blur radius is kept small (3px) to minimise clipping from the
+  // scroll container's overflow. Opacity does the heavy lifting.
+  opacity: 0.4;
+  filter: blur(3px);
   user-select: none;
   pointer-events: none;
 }

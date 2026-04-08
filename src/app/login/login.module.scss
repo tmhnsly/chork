@@ -1,41 +1,58 @@
 @use "mixins/typography" as type;
-@use "mixins/surfaces" as surface;
 @use "mixins/layout" as layout;
-@use "mixins/container-queries" as cq;
+@use "mixins/breakpoints" as bp;
 
 .page {
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: 100vh;
-  padding: var(--space-4);
-  container-type: inline-size;
-  container-name: tile;
+  padding: var(--space-6) var(--gutter-x);
+  background: var(--mono-app-bg);
 }
 
-.card {
-  @include surface.card;
-  @include layout.stack(var(--space-5));
-  border-radius: var(--radius-3);
-  padding: var(--space-6) var(--space-4);
+.content {
+  @include layout.stack(var(--space-6));
+  align-items: center;
+  text-align: center;
+  max-width: 360px;
   width: 100%;
+}
 
-  @include cq.medium {
-    padding: var(--space-8) var(--space-6);
-  }
+// ── Brand ──────────────────────────────────────────
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
 
-  @include cq.large {
-    max-width: 400px;
-    padding: var(--space-10) var(--space-8);
-  }
+.logo {
+  font-size: 48px;
+  color: var(--accent-solid);
 }
 
 .title {
-  @include type.typography(page-title);
+  @include type.typography(display);
+  color: var(--accent-text);
 }
 
-.subtitle {
+// ── Copy ───────────────────────────────────────────
+.tagline {
   @include type.typography(body);
   color: var(--mono-text-low-contrast);
 }
 
+// ── Actions ────────────────────────────────────────
+.actions {
+  width: 100%;
+  padding-top: var(--space-2);
+}
+
+// ── Hint ───────────────────────────────────────────
+.hint {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  opacity: 0.6;
+  max-width: 280px;
+}
