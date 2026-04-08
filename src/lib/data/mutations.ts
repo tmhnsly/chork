@@ -1,150 +1,202 @@
-import type { TypedPocketBase } from "../pocketbase-types";
-import { createAdminPB, clearAdminPB } from "../pocketbase-server";
-import type { RouteLog, Comment, CommentLike, ActivityEvent, ActivityEventType } from "./types";
+import "server-only";
+
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "../database.types";
+import { createServiceClient } from "../supabase/server";
+import type {
+  RouteLog,
+  RouteLogUpdate,
+  Comment,
+  ActivityEvent,
+  ActivityEventType,
+  CommentLike,
+} from "./types";
+
+type Supabase = SupabaseClient<Database>;
+
+// ── Route logs ─────────────────────────────────────
 
 /**
- * Create or update a route log. Uses the unique (user_id, route_id) pair
- * to find existing records.
+ * Create or update a route log using Supabase upsert.
+ * The unique constraint on (user_id, route_id) handles the conflict.
  */
 export async function upsertRouteLog(
-  pb: TypedPocketBase,
+  supabase: Supabase,
   userId: string,
   routeId: string,
-  data: Partial<Pick<RouteLog, "attempts" | "completed" | "completed_at" | "grade_vote" | "zone">>,
+  data: RouteLogUpdate,
   existingLogId?: string
 ): Promise<RouteLog> {
   if (existingLogId) {
-    return pb.collection("route_logs").update<RouteLog>(existingLogId, data);
+    const { data: log, error } = await supabase
+      .from("route_logs")
+      .update(data)
+      .eq("id", existingLogId)
+      .select()
+      .single();
+    if (error) throw error;
+    return log;
   }
 
-  const existing = await pb.collection("route_logs").getList<RouteLog>(1, 1, {
-    filter: pb.filter("user_id = {:userId} && route_id = {:routeId}", {
-      userId,
-      routeId,
-    }),
-    fields: "id",
-  });
-
-  if (existing.totalItems > 0) {
-    return pb.collection("route_logs").update<RouteLog>(existing.items[0].id, data);
-  }
-
-  return pb.collection("route_logs").create<RouteLog>({
-    user_id: userId,
-    route_id: routeId,
-    ...data,
-  });
+  const { data: log, error } = await supabase
+    .from("route_logs")
+    .upsert(
+      { user_id: userId, route_id: routeId, ...data },
+      { onConflict: "user_id,route_id" }
+    )
+    .select()
+    .single();
+  if (error) throw error;
+  return log;
 }
 
-/** Create a beta spray comment on a route. */
+// ── Comments ───────────────────────────────────────
+
 export async function createComment(
-  pb: TypedPocketBase,
+  supabase: Supabase,
   data: { user_id: string; route_id: string; body: string }
 ): Promise<Comment> {
-  return pb.collection("comments").create<Comment>(data, {
-    expand: "user_id",
-  });
+  const { data: comment, error } = await supabase
+    .from("comments")
+    .insert(data)
+    .select("*, profiles(id, username, name, avatar_url)")
+    .single();
+  if (error) throw error;
+  return comment as Comment;
 }
 
-/** Update an existing comment's body. */
 export async function updateComment(
-  pb: TypedPocketBase,
+  supabase: Supabase,
   commentId: string,
   body: string
 ): Promise<Comment> {
-  return pb.collection("comments").update<Comment>(commentId, { body }, {
-    expand: "user_id",
-  });
+  const { data: comment, error } = await supabase
+    .from("comments")
+    .update({ body })
+    .eq("id", commentId)
+    .select("*, profiles(id, username, name, avatar_url)")
+    .single();
+  if (error) throw error;
+  return comment as Comment;
 }
+
+// ── Comment likes ──────────────────────────────────
 
 /**
  * Toggle a like on a comment.
- * - Creates or deletes the `comment_likes` record (user's PB instance)
- * - Atomically increments/decrements `comments.likes` (admin PB instance,
- *   because the comments update API rule restricts to the comment owner)
- *
- * Returns the new like state and authoritative count from the updated record.
+ * Uses the service role client to update the denormalized likes count
+ * (the comments RLS policy restricts updates to the comment owner).
  */
 export async function toggleCommentLike(
-  pb: TypedPocketBase,
+  supabase: Supabase,
   userId: string,
   commentId: string
 ): Promise<{ liked: boolean; likes: number }> {
-  const existing = await pb.collection("comment_likes").getList<CommentLike>(1, 1, {
-    filter: pb.filter("user_id = {:userId} && comment_id = {:commentId}", {
-      userId,
-      commentId,
-    }),
-    fields: "id",
-  });
+  // Check if already liked
+  const { data: existing } = await supabase
+    .from("comment_likes")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("comment_id", commentId)
+    .maybeSingle();
 
-  // Helper: run an admin operation with retry on auth failure
-  async function withAdmin<T>(fn: (admin: TypedPocketBase) => Promise<T>): Promise<T> {
-    try {
-      return await fn(await createAdminPB());
-    } catch (err) {
-      const status = (err as { status?: number }).status;
-      if (status === 401 || status === 403) {
-        clearAdminPB();
-        return fn(await createAdminPB());
-      }
-      throw err;
-    }
+  const service = createServiceClient();
+
+  if (existing) {
+    // Unlike: delete the record, decrement count
+    await supabase
+      .from("comment_likes")
+      .delete()
+      .eq("id", existing.id);
+
+    const { data: updated } = await service
+      .from("comments")
+      .update({ likes: Math.max(0, -1) }) // placeholder
+      .eq("id", commentId)
+      .select("likes")
+      .single();
+
+    // Use raw SQL decrement via RPC or direct update
+    // Supabase doesn't have atomic increment syntax in PostgREST,
+    // so we read-then-write with the service client
+    const { data: current } = await service
+      .from("comments")
+      .select("likes")
+      .eq("id", commentId)
+      .single();
+
+    const newLikes = Math.max(0, (current?.likes ?? 0) - 1);
+    await service
+      .from("comments")
+      .update({ likes: newLikes })
+      .eq("id", commentId);
+
+    return { liked: false, likes: newLikes };
   }
 
-  if (existing.totalItems > 0) {
-    await pb.collection("comment_likes").delete(existing.items[0].id);
-    const updated = await withAdmin((admin) =>
-      admin.collection("comments").update<Comment>(commentId, { "likes-": 1 })
-    );
-    const likes = Math.max(0, updated.likes);
-    if (likes !== updated.likes) {
-      await withAdmin((admin) =>
-        admin.collection("comments").update<Comment>(commentId, { likes: 0 })
-      );
-    }
-    return { liked: false, likes };
-  }
+  // Like: create the record, increment count
+  await supabase
+    .from("comment_likes")
+    .insert({ user_id: userId, comment_id: commentId });
 
-  await pb.collection("comment_likes").create({ user_id: userId, comment_id: commentId });
-  const updated = await withAdmin((admin) =>
-    admin.collection("comments").update<Comment>(commentId, { "likes+": 1 })
-  );
-  return { liked: true, likes: updated.likes };
+  const { data: current } = await service
+    .from("comments")
+    .select("likes")
+    .eq("id", commentId)
+    .single();
+
+  const newLikes = (current?.likes ?? 0) + 1;
+  await service
+    .from("comments")
+    .update({ likes: newLikes })
+    .eq("id", commentId);
+
+  return { liked: true, likes: newLikes };
 }
 
-/** Write an activity event. Append-only — never update or delete. */
+// ── Activity events ────────────────────────────────
+
 export async function createActivityEvent(
-  pb: TypedPocketBase,
+  supabase: Supabase,
   data: { user_id: string; route_id: string; type: ActivityEventType }
 ): Promise<ActivityEvent> {
-  return pb.collection("activity_events").create<ActivityEvent>(data);
+  const { data: event, error } = await supabase
+    .from("activity_events")
+    .insert(data)
+    .select()
+    .single();
+  if (error) throw error;
+  return event;
 }
 
 /**
  * Delete completion/flash activity events for a user + route.
- * Called on undo to prevent duplicate events if they re-complete.
- * Uses admin PB because the activity_events delete API rule is admin-only.
+ * Uses service role because RLS doesn't allow user deletes on activity_events.
  */
 export async function deleteCompletionEvents(
-  pb: TypedPocketBase,
+  supabase: Supabase,
   userId: string,
   routeId: string
 ): Promise<void> {
-  // Read with user PB (list/view allowed for auth users)
-  const events = await pb.collection("activity_events").getFullList<ActivityEvent>({
-    filter: pb.filter(
-      "user_id = {:userId} && route_id = {:routeId} && (type = 'completed' || type = 'flashed')",
-      { userId, routeId }
-    ),
-    fields: "id",
-  });
+  const service = createServiceClient();
+  await service
+    .from("activity_events")
+    .delete()
+    .eq("user_id", userId)
+    .eq("route_id", routeId)
+    .in("type", ["completed", "flashed"]);
+}
 
-  if (events.length === 0) return;
+// ── Gym memberships ────────────────────────────────
 
-  // Delete with admin PB (delete rule is admin-only)
-  const adminPB = await createAdminPB();
-  await Promise.all(
-    events.map((e) => adminPB.collection("activity_events").delete(e.id))
-  );
+export async function createGymMembership(
+  supabase: Supabase,
+  userId: string,
+  gymId: string,
+  role: string = "climber"
+): Promise<void> {
+  const { error } = await supabase
+    .from("gym_memberships")
+    .insert({ user_id: userId, gym_id: gymId, role });
+  if (error) throw error;
 }

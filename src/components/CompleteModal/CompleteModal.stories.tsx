@@ -1,12 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import { fn } from "storybook/test";
 import { CompleteModal } from "./CompleteModal";
-import { Collections } from "@/lib/pocketbase-types";
 import { mockRoute } from "@/test/mocks";
 
 const route = mockRoute({
   id: "route3",
-  collectionName: Collections.Routes,
   set_id: "set1",
   number: 3,
   has_zone: true,

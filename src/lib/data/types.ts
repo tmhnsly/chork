@@ -1,53 +1,43 @@
 /**
- * Domain types derived from generated PocketBase types.
- * These add specific expand shapes and override optionality
- * where the generated Required<> doesn't match runtime behaviour.
+ * Domain types derived from Supabase generated types.
  */
 
-import type {
-  SetsResponse,
-  RoutesResponse,
-  RouteLogsResponse,
-  CommentsResponse,
-  CommentLikesResponse,
-  ActivityEventsResponse,
-  RouteGradesResponse,
-  UserSetStatsResponse,
-  ActivityEventsTypeOptions,
-} from "../pocketbase-types";
+import type { Database } from "../database.types";
 
-// Re-export the enum values as a union for ergonomic use
-export type ActivityEventType = `${ActivityEventsTypeOptions}`;
+type Tables = Database["public"]["Tables"];
 
-// ── Base collection types ──────────────────────────
-// Use the generated response types directly.
-// Consumers get id, created, updated, collectionId, etc. for free.
+// ── Base table row types ───────────────────────────
 
-export type RouteSet = SetsResponse;
-export type Route = RoutesResponse;
-export type CommentLike = CommentLikesResponse;
+export type Profile = Tables["profiles"]["Row"];
+export type Gym = Tables["gyms"]["Row"];
+export type GymMembership = Tables["gym_memberships"]["Row"];
+export type RouteSet = Tables["sets"]["Row"];
+export type Route = Tables["routes"]["Row"];
+export type RouteLog = Tables["route_logs"]["Row"];
+export type CommentLike = Tables["comment_likes"]["Row"];
+export type ActivityEvent = Tables["activity_events"]["Row"];
 
-// ── Types with custom expand shapes ────────────────
+// ── Types with joined data ─────────────────────────
 
-export type RouteLog = RouteLogsResponse;
+export type Comment = Tables["comments"]["Row"] & {
+  profiles?: Pick<Profile, "id" | "username" | "name" | "avatar_url"> | null;
+};
 
-export type RouteLogWithSetId = RouteLogsResponse<{
-  route_id?: { set_id: string };
-}>;
+export type ActivityEventWithRoute = ActivityEvent & {
+  routes?: Pick<Route, "number"> | null;
+};
 
-export type Comment = CommentsResponse<{
-  user_id?: {
-    id: string;
-    collectionId: string;
-    username: string;
-    name: string;
-    avatar: string;
-  };
-}>;
+export type RouteLogWithSetId = RouteLog & {
+  routes?: Pick<RouteSet, "id"> | null;
+};
 
-export type ActivityEvent = ActivityEventsResponse<{
-  route_id?: RoutesResponse<{ set_id?: SetsResponse }>;
-}>;
+// ── Insert types ───────────────────────────────────
+
+export type RouteLogInsert = Tables["route_logs"]["Insert"];
+export type RouteLogUpdate = Tables["route_logs"]["Update"];
+export type CommentInsert = Tables["comments"]["Insert"];
+export type ActivityEventInsert = Tables["activity_events"]["Insert"];
+export type GymMembershipInsert = Tables["gym_memberships"]["Insert"];
 
 // ── Pagination ─────────────────────────────────────
 
@@ -58,11 +48,10 @@ export interface PaginatedComments {
   page: number;
 }
 
-// ── View collection types ──────────────────────────
+// ── Domain enums ───────────────────────────────────
 
-export type RouteGradeView = RouteGradesResponse<number>;
-
-export type UserSetStatsView = UserSetStatsResponse<number, number, number>;
+export type ActivityEventType = "completed" | "flashed" | "beta_spray" | "reply";
+export type GymRole = "climber" | "setter" | "admin" | "owner";
 
 // ── UI types ───────────────────────────────────────
 
@@ -72,8 +61,7 @@ export type TileState = "empty" | "attempted" | "completed" | "flash";
 
 /**
  * Create an optimistic RouteLog for immediate UI updates.
- * Uses type assertion for branded date strings since these
- * logs are client-side only and never sent to PocketBase.
+ * Client-side only — never sent to Supabase.
  */
 export function createOptimisticLog(fields: {
   id: string;
@@ -81,17 +69,15 @@ export function createOptimisticLog(fields: {
   route_id: string;
   attempts: number;
   completed: boolean;
-  grade_vote?: number;
+  grade_vote?: number | null;
   zone: boolean;
 }): RouteLog {
   const now = new Date().toISOString();
   return {
-    collectionId: "",
-    collectionName: "route_logs",
-    completed_at: fields.completed ? now : "",
-    grade_vote: fields.grade_vote ?? 0,
-    created: now,
-    updated: now,
+    completed_at: fields.completed ? now : null,
+    grade_vote: fields.grade_vote ?? null,
+    created_at: now,
+    updated_at: now,
     ...fields,
-  } as RouteLog;
+  };
 }

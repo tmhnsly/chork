@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
       // The user's own mutations (complete, uncomplete) call revalidatePath
       // which busts this cache immediately — so their data is always fresh.
       // This only affects how quickly *other users'* changes appear, which
-      // isn't time-critical. Reduces PocketHost load significantly.
+      // isn't time-critical. Reduces Supabase load significantly.
       dynamic: 300,
     },
   },
@@ -22,8 +22,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "chork.pockethost.io",
-        pathname: "/api/files/**",
+        hostname: "api.dicebear.com",
       },
     ],
   },

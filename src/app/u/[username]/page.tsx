@@ -1,10 +1,9 @@
 import { notFound } from "next/navigation";
 import { format, parseISO, formatDistanceToNow } from "date-fns";
 import { FaBolt } from "react-icons/fa6";
-import { createServerPBFromCookies } from "@/lib/pocketbase-server";
-import { getAuthUser } from "@/lib/pocketbase-shared";
+import { createServerSupabase } from "@/lib/supabase/server";
 import {
-  getUserByUsername,
+  getProfileByUsername,
   getAllSets,
   getAllLogsForUser,
   getUserSetStats,
@@ -46,28 +45,37 @@ function deriveStats(logs: RouteLogWithSetId[]) {
 export default async function UserProfilePage({ params }: Props) {
   const { username } = await params;
 
-  const pb = await createServerPBFromCookies();
-  const [profileUser, allSets] = await Promise.all([
-    getUserByUsername(pb, username),
-    getAllSets(pb),
-  ]);
+  const supabase = await createServerSupabase();
+  const { data: { user: authUser } } = await supabase.auth.getUser();
 
+  const profileUser = await getProfileByUsername(supabase, username);
   if (!profileUser) notFound();
 
-  const currentUser = getAuthUser(pb);
-  const isOwnProfile = currentUser?.id === profileUser.id;
+  const isOwnProfile = authUser?.id === profileUser.id;
 
+  // Get the user's active gym for gym-scoped queries
+  const gymId = profileUser.active_gym_id;
+  if (!gymId) {
+    return (
+      <main className={styles.page}>
+        <ProfileHeader user={profileUser} isOwnProfile={isOwnProfile} />
+        <p>No gym selected</p>
+      </main>
+    );
+  }
+
+  const allSets = await getAllSets(supabase, gymId);
   const activeSet = allSets.find((s) => s.active) ?? null;
 
-  // All data in one parallel batch — no waterfall
+  // All data in one parallel batch
   const [viewStats, activityEvents, miniRoutes, miniLogs] = await Promise.all([
-    getUserSetStats(pb, profileUser.id),
-    isOwnProfile ? getActivityEventsForUser(pb, profileUser.id, 3) : Promise.resolve([]),
-    activeSet ? getRoutesBySet(pb, activeSet.id) : Promise.resolve([]),
-    activeSet ? getLogsBySetForUser(pb, activeSet.id, profileUser.id) : Promise.resolve([]),
+    getUserSetStats(supabase, profileUser.id, gymId),
+    isOwnProfile ? getActivityEventsForUser(supabase, profileUser.id, 3) : Promise.resolve([]),
+    activeSet ? getRoutesBySet(supabase, activeSet.id) : Promise.resolve([]),
+    activeSet ? getLogsBySetForUser(supabase, activeSet.id, profileUser.id) : Promise.resolve([]),
   ]);
 
-  // Build per-set stats from the view (or fall back to full log scan)
+  // Build stats
   const useViewStats = viewStats.length > 0;
   const statsBySet = new Map<string, { completions: number; flashes: number; points: number }>();
   let allTimeStats: { completions: number; flashes: number; points: number };
@@ -86,9 +94,9 @@ export default async function UserProfilePage({ params }: Props) {
       points: viewStats.reduce((s, r) => s + (r.points ?? 0), 0),
     };
   } else {
-    const allLogs = await getAllLogsForUser(pb, profileUser.id);
+    const allLogs = await getAllLogsForUser(supabase, profileUser.id);
     for (const log of allLogs) {
-      const setId = log.expand?.route_id?.set_id;
+      const setId = log.routes?.id;
       if (!setId) continue;
       const existing = statsBySet.get(setId) ?? { completions: 0, flashes: 0, points: 0 };
       if (log.completed) existing.completions++;
@@ -103,7 +111,6 @@ export default async function UserProfilePage({ params }: Props) {
     ? statsBySet.get(activeSet.id) ?? { completions: 0, flashes: 0, points: 0 }
     : null;
 
-  // Previous sets (inactive, with completions, most recent first)
   const previousSets = allSets
     .filter((s) => !s.active)
     .map((set) => {
@@ -162,8 +169,7 @@ export default async function UserProfilePage({ params }: Props) {
           <h2 className={styles.sectionTitle}>Recent activity</h2>
           <ul className={styles.activityList}>
             {activityEvents.map((event) => {
-              const route = event.expand?.route_id;
-              const routeNum = route?.number;
+              const routeNum = event.routes?.number;
               let text: string;
               let isFlashEvent = false;
 
@@ -182,7 +188,7 @@ export default async function UserProfilePage({ params }: Props) {
                   text = `Activity on route ${routeNum ?? "?"}`;
               }
 
-              const timeAgo = formatDistanceToNow(parseISO(event.created));
+              const timeAgo = formatDistanceToNow(parseISO(event.created_at));
 
               return (
                 <li key={event.id} className={styles.activityItem}>

@@ -38,3 +38,97 @@
   @include type.typography(meta);
   color: var(--mono-text-low-contrast);
 }
+
+// ── Gym picker ─────────────────────────────────────
+.gymSection {
+  @include layout.stack(var(--space-2));
+}
+
+.gymLabel {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.gymInput {
+  @include type.typography(body);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--mono-border);
+  background: var(--mono-subtle-bg);
+  color: var(--mono-text);
+  outline: none;
+
+  &:focus {
+    border-color: var(--accent-solid);
+  }
+}
+
+.gymList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  border: 1px solid var(--mono-border);
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.gymOption {
+  @include type.typography(body);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  background: var(--mono-subtle-bg);
+  color: var(--mono-text);
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    background: var(--mono-bg-hover);
+  }
+}
+
+.gymSelected {
+  @include type.typography(body);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--accent-border);
+  background: var(--accent-subtle-bg);
+  color: var(--mono-text);
+}
+
+.gymName {
+  font-weight: var(--weight-semibold);
+}
+
+.gymCity {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+.gymChange {
+  @include type.typography(meta);
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--accent-text-low-contrast);
+  cursor: pointer;
+  padding: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+.gymSearching,
+.gymEmpty {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  padding: var(--space-2) 0;
+}

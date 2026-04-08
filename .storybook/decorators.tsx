@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from "react";
-import type { UsersResponse } from "../src/lib/pocketbase-types";
+import type { Profile } from "../src/lib/data/types";
 import { ToastProvider } from "../src/components/ui/Toast";
 
 /**
@@ -11,24 +11,22 @@ import { ToastProvider } from "../src/components/ui/Toast";
  */
 
 interface AuthContextValue {
-  user: UsersResponse | null;
+  profile: Profile | null;
   isLoading: boolean;
-  signInWithGoogle: () => Promise<void>;
-  signOut: () => void;
-  refreshUser: () => void;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue>({
-  user: null,
+  profile: null,
   isLoading: false,
-  signInWithGoogle: async () => {},
-  signOut: () => {},
-  refreshUser: () => {},
+  signIn: async () => {},
+  signUp: async () => {},
+  signOut: async () => {},
+  refreshProfile: async () => {},
 });
-
-export function isOnboarded(user: UsersResponse): boolean {
-  return (user as Record<string, unknown>).onboarded === true;
-}
 
 export function AuthProvider({
   children,
@@ -38,11 +36,12 @@ export function AuthProvider({
   return (
     <AuthContext.Provider
       value={{
-        user: null,
+        profile: null,
         isLoading: false,
-        signInWithGoogle: async () => {},
-        signOut: () => {},
-        refreshUser: () => {},
+        signIn: async () => {},
+        signUp: async () => {},
+        signOut: async () => {},
+        refreshProfile: async () => {},
       }}
     >
       {children}

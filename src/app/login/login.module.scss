@@ -1,6 +1,5 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
-@use "mixins/breakpoints" as bp;
 
 .page {
   display: flex;
@@ -43,16 +42,69 @@
   color: var(--mono-text-low-contrast);
 }
 
-// ── Actions ────────────────────────────────────────
-.actions {
+// ── Form ───────────────────────────────────────────
+.form {
+  @include layout.stack(var(--space-4));
   width: 100%;
-  padding-top: var(--space-2);
+  text-align: left;
 }
 
-// ── Hint ───────────────────────────────────────────
+.field {
+  @include layout.stack(var(--space-1));
+}
+
+.fieldLabel {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.input {
+  @include type.typography(body);
+  width: 100%;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--mono-border);
+  background: var(--mono-subtle-bg);
+  color: var(--mono-text);
+  outline: none;
+  transition: border-color var(--duration-fast) var(--ease-out);
+
+  &:focus {
+    border-color: var(--accent-solid);
+  }
+}
+
+.inputError {
+  border-color: var(--error-solid);
+
+  &:focus {
+    border-color: var(--error-solid);
+  }
+}
+
+.error {
+  @include type.typography(meta);
+  color: var(--error-text-low-contrast);
+}
+
 .hint {
   @include type.typography(meta);
   color: var(--mono-text-low-contrast);
-  opacity: 0.6;
-  max-width: 280px;
+}
+
+// ── Toggle ─────────────────────────────────────────
+.toggle {
+  @include type.typography(meta);
+  background: none;
+  border: none;
+  color: var(--accent-text-low-contrast);
+  cursor: pointer;
+  padding: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+
+  &:hover {
+    color: var(--accent-text);
+  }
 }

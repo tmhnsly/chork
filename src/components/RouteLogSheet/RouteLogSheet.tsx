@@ -79,7 +79,7 @@ function getPointsPreview(
 }
 
 export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRouteData, onLogUpdate }: Props) {
-  const { user } = useAuth();
+  const { profile: user } = useAuth();
   const [attempts, setAttempts] = useState(log?.attempts ?? 0);
   const [currentLog, setCurrentLog] = useState(log);
   const [showComplete, setShowComplete] = useState(false);
@@ -608,9 +608,9 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
               >
                 <ul className={styles.commentList}>
                   {(expanded ? comments : comments.slice(0, 2)).map((c) => {
-                    const author = c.expand?.user_id;
+                    const author = c.profiles;
                     const avatarUrl = author
-                      ? getAvatarUrl(author, { thumb: "64x64" })
+                      ? getAvatarUrl(author, { size: 64 })
                       : undefined;
                     const username = author?.username ?? "unknown";
                     const displayName = author?.name ?? "";

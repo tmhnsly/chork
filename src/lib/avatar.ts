@@ -1,18 +1,18 @@
+import type { Profile } from "./data/types";
+
 /**
- * Get the avatar URL for a user. Falls back to a DiceBear identicon
- * seeded by the user's ID for a consistent default avatar.
+ * Get the avatar URL for a user profile.
+ * Uses avatar_url if set, falls back to DiceBear initials.
  */
 export function getAvatarUrl(
-  user: { id: string; collectionId: string; avatar?: string; name?: string; username?: string },
-  options?: { thumb?: string }
+  user: Pick<Profile, "id" | "avatar_url" | "name" | "username">,
+  options?: { size?: number }
 ): string {
-  if (user.avatar) {
-    const thumb = options?.thumb ? `?thumb=${options.thumb}` : "";
-    return `${process.env.NEXT_PUBLIC_POCKETBASE_URL}/api/files/${user.collectionId}/${user.id}/${user.avatar}${thumb}`;
+  if (user.avatar_url) {
+    return user.avatar_url;
   }
 
-  // DiceBear identicon as default — deterministic, no signup needed
-  const seed = encodeURIComponent(user.id);
-  const size = options?.thumb ? parseInt(options.thumb) : 128;
-  return `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(user.name || user.username || user.id)}&size=${size}&backgroundColor=6366f1`;
+  const seed = encodeURIComponent(user.name || user.username || user.id);
+  const size = options?.size ?? 128;
+  return `https://api.dicebear.com/9.x/initials/svg?seed=${seed}&size=${size}&backgroundColor=6366f1`;
 }

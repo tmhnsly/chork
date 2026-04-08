@@ -10,111 +10,110 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { getClientPB } from "./pocketbase";
-import { getAuthUser, isOnboarded } from "./pocketbase-shared";
-import { formatPBError } from "./pb-error";
+import { createBrowserSupabase } from "./supabase/client";
 import { showToast } from "@/components/ui";
-import type { UsersResponse } from "./pocketbase-types";
-
+import type { Profile } from "./data/types";
 
 interface AuthContextValue {
-  user: UsersResponse | null;
+  profile: Profile | null;
   isLoading: boolean;
-  signInWithGoogle: () => Promise<void>;
-  signOut: () => void;
-  refreshUser: () => void;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<UsersResponse | null>(null);
+  const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
-  const pb = getClientPB();
+  const supabase = useMemo(() => createBrowserSupabase(), []);
 
+  // Fetch the profile for the current auth user
+  const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .single();
+    return data;
+  }, [supabase]);
+
+  // Load profile on mount and listen for auth changes
   useEffect(() => {
-    setUser(getAuthUser(pb));
-    setIsLoading(false);
-  }, [pb]);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          const p = await fetchProfile(session.user.id);
+          setProfile(p);
+        } else {
+          setProfile(null);
+        }
+        setIsLoading(false);
 
-  // Periodically refresh the auth token to prevent session expiry.
-  // PocketBase tokens expire after ~7 days by default. Refreshing every
-  // hour keeps the session alive for long-running mobile/PWA sessions.
-  useEffect(() => {
-    if (!pb.authStore.isValid) return;
-
-    const REFRESH_INTERVAL = 60 * 60 * 1000; // 1 hour
-    const id = setInterval(async () => {
-      try {
-        await pb.collection("users").authRefresh();
-        setUser(getAuthUser(pb));
-      } catch {
-        // Token expired or revoked — clear auth state
-        pb.authStore.clear();
-        setUser(null);
+        // Refresh server components on auth change
+        if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+          router.refresh();
+        }
       }
-    }, REFRESH_INTERVAL);
+    );
 
-    return () => clearInterval(id);
-  }, [pb, user]); // user dep re-arms the interval after sign-in
+    return () => subscription.unsubscribe();
+  }, [supabase, fetchProfile, router]);
 
+  // Redirect non-onboarded users
   useEffect(() => {
     if (isLoading) return;
-    if (user && !isOnboarded(user) && pathname !== "/onboarding") {
+    if (profile && !profile.onboarded && pathname !== "/onboarding") {
       router.replace("/onboarding");
     }
-  }, [user, isLoading, pathname, router]);
+  }, [profile, isLoading, pathname, router]);
 
-  const refreshUser = useCallback(() => {
-    pb.authStore.loadFromCookie(document.cookie);
-    setUser(getAuthUser(pb));
-  }, [pb]);
-
-  const signInWithGoogle = useCallback(async () => {
-    setIsLoading(true);
-
-    try {
-      const result = await pb
-        .collection("users")
-        .authWithOAuth2({ provider: "google" });
-
-      const record = getAuthUser(pb);
-      if (!record) {
-        showToast("Sign-in failed — invalid auth record", "error");
-        return;
-      }
-      setUser(record);
-
-      if (result.meta?.isNew || !isOnboarded(record)) {
-        router.push("/onboarding");
-      } else {
-        showToast(`Signed in as @${record.username}`);
-        // Hard navigate to bypass the client router cache — the server
-        // component on "/" branches on cookies, so a full reload is
-        // needed to pick up the freshly-set auth cookie reliably.
-        window.location.href = "/";
-      }
-    } catch (err) {
-      showToast(formatPBError(err), "error");
-    } finally {
-      setIsLoading(false);
+  const signIn = useCallback(async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      showToast(error.message, "error");
+      return;
     }
-  }, [pb, router]);
+    router.push("/");
+  }, [supabase, router]);
 
-  const signOut = useCallback(() => {
-    pb.authStore.clear();
-    setUser(null);
+  const signUp = useCallback(async (email: string, password: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
+      },
+    });
+    if (error) {
+      showToast(error.message, "error");
+      return;
+    }
+    showToast("Account created — check your email to confirm");
+  }, [supabase]);
+
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+    setProfile(null);
     showToast("Signed out", "info");
-    // Hard navigate — same reason as sign-in: the server component
-    // must re-read cookies to switch between authed/unauthed views.
-    window.location.href = "/";
-  }, [pb]);
+    router.push("/");
+  }, [supabase, router]);
+
+  const refreshProfile = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const p = await fetchProfile(user.id);
+      setProfile(p);
+    }
+  }, [supabase, fetchProfile]);
 
   const value = useMemo(
-    () => ({ user, isLoading, signInWithGoogle, signOut, refreshUser }),
-    [user, isLoading, signInWithGoogle, signOut, refreshUser]
+    () => ({ profile, isLoading, signIn, signUp, signOut, refreshProfile }),
+    [profile, isLoading, signIn, signUp, signOut, refreshProfile]
   );
 
   return (
@@ -124,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useAuth(): AuthContextValue {
+export function useAuth() {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;

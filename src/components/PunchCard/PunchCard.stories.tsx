@@ -1,14 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
-import { Collections } from "@/lib/pocketbase-types";
 import { mockRouteSet, mockRoute, mockRouteLog } from "@/test/mocks";
 import { PunchCard } from "./PunchCard";
 
-const set = mockRouteSet({ id: "set_001", collectionName: Collections.Sets });
+const set = mockRouteSet({ id: "set_001", gym_id: "gym_001" });
 
 const routes = Array.from({ length: 12 }, (_, i) =>
   mockRoute({
     id: `route_${String(i + 1).padStart(3, "0")}`,
-    collectionName: Collections.Routes,
     set_id: set.id,
     number: i + 1,
     has_zone: i % 3 === 0,
@@ -18,12 +16,11 @@ const routes = Array.from({ length: 12 }, (_, i) =>
 function makeLog(routeIndex: number, attempts: number, completed: boolean, zone = false) {
   return mockRouteLog({
     id: `log_${String(routeIndex + 1).padStart(3, "0")}`,
-    collectionName: Collections.RouteLogs,
     user_id: "user_001",
     route_id: routes[routeIndex].id,
     attempts,
     completed,
-    completed_at: completed ? "2026-04-10T14:30:00Z" : "",
+    completed_at: completed ? "2026-04-10T14:30:00Z" : null,
     zone,
   });
 }

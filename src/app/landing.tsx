@@ -8,8 +8,8 @@ import {
   FaComments,
   FaTrophy,
 } from "react-icons/fa6";
-import { useAuth } from "@/lib/auth-context";
-import { Button, GoogleLogo } from "@/components/ui";
+import Link from "next/link";
+import { Button } from "@/components/ui";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { HeroGrid } from "@/components/landing/HeroGrid";
 import { FeatureGrid } from "@/components/landing/FeatureGrid";
@@ -91,12 +91,10 @@ const scoreRows: ScoreRow[] = [
 ];
 
 export function LandingPage() {
-  const { signInWithGoogle, isLoading } = useAuth();
-
   const ctaButton = (
-    <Button onClick={signInWithGoogle} disabled={isLoading}>
-      Get started
-    </Button>
+    <Link href="/login">
+      <Button>Get started</Button>
+    </Link>
   );
 
   return (
@@ -124,9 +122,9 @@ export function LandingPage() {
           <p className={styles.ctaSub}>
             Join your crew on the wall. It takes ten seconds.
           </p>
-          <Button variant="secondary" onClick={signInWithGoogle} disabled={isLoading}>
-            <GoogleLogo /> Sign in with Google
-          </Button>
+          <Link href="/login">
+            <Button variant="secondary">Sign up free</Button>
+          </Link>
         </section>
       </FadeIn>
 

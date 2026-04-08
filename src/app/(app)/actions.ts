@@ -1,34 +1,51 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createServerPBFromCookies } from "@/lib/pocketbase-server";
+import { createServerSupabase } from "@/lib/supabase/server";
 import { requireAuth } from "@/lib/auth";
-import { upsertRouteLog, createActivityEvent, deleteCompletionEvents, createComment, updateComment, toggleCommentLike } from "@/lib/data/mutations";
-import { getCommentsByRoute, getRouteGrade, getLikedCommentIds } from "@/lib/data/queries";
-import type { RouteLog, Comment, PaginatedComments, ActivityEventType } from "@/lib/data";
-import { formatPBError } from "@/lib/pb-error";
+import {
+  upsertRouteLog,
+  createActivityEvent,
+  deleteCompletionEvents,
+  createComment,
+  updateComment,
+  toggleCommentLike,
+} from "@/lib/data/mutations";
+import {
+  getCommentsByRoute,
+  getRouteGrade,
+  getLikedCommentIds,
+} from "@/lib/data/queries";
+import type {
+  RouteLog,
+  Comment,
+  PaginatedComments,
+  ActivityEventType,
+} from "@/lib/data";
+import { formatError } from "@/lib/errors";
 
 type ActionResult<T = unknown> = { error: string } | ({ success: true } & T);
 type LogResult = ActionResult<{ log: RouteLog }>;
 type CommentResult = { error: string } | { comment: Comment };
 
-export async function updateAttempts(routeId: string, attempts: number, logId?: string): Promise<LogResult> {
+export async function updateAttempts(
+  routeId: string,
+  attempts: number,
+  logId?: string
+): Promise<LogResult> {
   if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
   if (!Number.isInteger(attempts) || attempts < 0) return { error: "Invalid attempts" };
 
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
-  const { pb, userId } = auth;
+  const { supabase, userId } = auth;
 
   try {
-    const log = await upsertRouteLog(pb, userId, routeId, { attempts }, logId);
-    // Revalidate so navigating away and back shows the saved attempts.
-    // This only fires after the 800ms debounce settles (once per burst),
-    // and the 300s stale time prevents cascading re-fetches.
+    const log = await upsertRouteLog(supabase, userId, routeId, { attempts }, logId);
     revalidatePath("/", "layout");
     return { success: true, log };
   } catch (err) {
-    return { error: formatPBError(err) };
+    return { error: formatError(err) };
   }
 }
 
@@ -47,70 +64,75 @@ export async function completeRoute(
 
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
-  const { pb, userId } = auth;
+  const { supabase, userId } = auth;
 
   const isFlash = attempts === 1;
 
   try {
     const eventType: ActivityEventType = isFlash ? "flashed" : "completed";
     const [log] = await Promise.all([
-      upsertRouteLog(pb, userId, routeId, {
+      upsertRouteLog(supabase, userId, routeId, {
         attempts,
         completed: true,
         completed_at: new Date().toISOString(),
-        grade_vote: gradeVote ?? undefined,
+        grade_vote: gradeVote,
         zone,
       }, logId),
-      createActivityEvent(pb, {
+      createActivityEvent(supabase, {
         user_id: userId,
         route_id: routeId,
         type: eventType,
       }),
     ]);
 
-    // Revalidate the entire app — completion affects home (punch card),
-    // profile (stats, mini grid), and leaderboard.
     revalidatePath("/", "layout");
     return { success: true, log };
   } catch (err) {
-    return { error: formatPBError(err) };
+    return { error: formatError(err) };
   }
 }
 
-export async function uncompleteRoute(routeId: string, logId?: string): Promise<LogResult> {
+export async function uncompleteRoute(
+  routeId: string,
+  logId?: string
+): Promise<LogResult> {
   if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
-  const { pb, userId } = auth;
+  const { supabase, userId } = auth;
 
   try {
     const [log] = await Promise.all([
-      upsertRouteLog(pb, userId, routeId, {
+      upsertRouteLog(supabase, userId, routeId, {
         completed: false,
-        completed_at: undefined,
-        grade_vote: undefined,
+        completed_at: null,
+        grade_vote: null,
       }, logId),
-      deleteCompletionEvents(pb, userId, routeId),
+      deleteCompletionEvents(supabase, userId, routeId),
     ]);
     revalidatePath("/", "layout");
     return { success: true, log };
   } catch (err) {
-    return { error: formatPBError(err) };
+    return { error: formatError(err) };
   }
 }
 
-export async function toggleZone(routeId: string, zone: boolean, logId?: string): Promise<LogResult> {
+export async function toggleZone(
+  routeId: string,
+  zone: boolean,
+  logId?: string
+): Promise<LogResult> {
   if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
-  const { pb, userId } = auth;
+  const { supabase, userId } = auth;
 
   try {
-    const log = await upsertRouteLog(pb, userId, routeId, { zone }, logId);
+    const log = await upsertRouteLog(supabase, userId, routeId, { zone }, logId);
     revalidatePath("/", "layout");
     return { success: true, log };
   } catch (err) {
-    return { error: formatPBError(err) };
+    return { error: formatError(err) };
   }
 }
 
@@ -125,16 +147,16 @@ export async function postComment(
 
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
-  const { pb, userId } = auth;
+  const { supabase, userId } = auth;
 
   try {
-    const comment = await createComment(pb, {
+    const comment = await createComment(supabase, {
       user_id: userId,
       route_id: routeId,
       body: trimmed,
     });
 
-    await createActivityEvent(pb, {
+    await createActivityEvent(supabase, {
       user_id: userId,
       route_id: routeId,
       type: "beta_spray",
@@ -142,7 +164,7 @@ export async function postComment(
 
     return { comment };
   } catch (err) {
-    return { error: formatPBError(err) };
+    return { error: formatError(err) };
   }
 }
 
@@ -150,35 +172,35 @@ export async function fetchComments(
   routeId: string,
   page: number = 1
 ): Promise<PaginatedComments> {
-  const pb = await createServerPBFromCookies();
+  const supabase = await createServerSupabase();
   try {
-    return await getCommentsByRoute(pb, routeId, page, 20);
+    return await getCommentsByRoute(supabase, routeId, page, 20);
   } catch (err) {
     console.warn("[chork] fetchComments failed:", err);
     return { items: [], totalItems: 0, totalPages: 0, page: 1 };
   }
 }
 
-/** Fetch grade, comments, and user's liked IDs in a single server action. */
 export async function fetchRouteData(routeId: string): Promise<{
   grade: number | null;
   comments: PaginatedComments;
   likedIds: string[];
 }> {
-  const pb = await createServerPBFromCookies();
-  const userId = pb.authStore.record?.id;
+  const supabase = await createServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
 
   const [grade, comments, likedSet] = await Promise.all([
-    getRouteGrade(pb, routeId).catch((err) => {
+    getRouteGrade(supabase, routeId).catch((err) => {
       console.warn("[chork] fetchRouteData grade failed:", err);
       return null;
     }),
-    getCommentsByRoute(pb, routeId, 1, 2).catch((err) => {
+    getCommentsByRoute(supabase, routeId, 1, 2).catch((err) => {
       console.warn("[chork] fetchRouteData comments failed:", err);
       return { items: [], totalItems: 0, totalPages: 0, page: 1 } as PaginatedComments;
     }),
     userId
-      ? getLikedCommentIds(pb, userId, routeId).catch((err) => {
+      ? getLikedCommentIds(supabase, userId, routeId).catch((err) => {
           console.warn("[chork] fetchRouteData likedIds failed:", err);
           return new Set<string>();
         })
@@ -195,12 +217,12 @@ export async function likeComment(
 
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
-  const { pb, userId } = auth;
+  const { supabase, userId } = auth;
 
   try {
-    return await toggleCommentLike(pb, userId, commentId);
+    return await toggleCommentLike(supabase, userId, commentId);
   } catch (err) {
-    return { error: formatPBError(err) };
+    return { error: formatError(err) };
   }
 }
 
@@ -215,18 +237,23 @@ export async function editComment(
 
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
-  const { pb, userId } = auth;
+  const { supabase, userId } = auth;
 
   try {
-    const existing = await pb.collection("comments").getOne<Comment>(commentId, {
-      fields: "id,user_id",
-    });
-    if (existing.user_id !== userId) {
+    // Ownership check
+    const { data: existing } = await supabase
+      .from("comments")
+      .select("user_id")
+      .eq("id", commentId)
+      .single();
+
+    if (!existing || existing.user_id !== userId) {
       return { error: "You can only edit your own comments" };
     }
-    const comment = await updateComment(pb, commentId, trimmed);
+
+    const comment = await updateComment(supabase, commentId, trimmed);
     return { comment };
   } catch (err) {
-    return { error: formatPBError(err) };
+    return { error: formatError(err) };
   }
 }

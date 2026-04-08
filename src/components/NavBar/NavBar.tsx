@@ -9,11 +9,11 @@ import { getAvatarUrl } from "@/lib/avatar";
 import styles from "./navBar.module.scss";
 
 export function NavBar() {
-  const { user, isLoading } = useAuth();
+  const { profile, isLoading } = useAuth();
   const pathname = usePathname();
 
   // Unauthenticated: top bar with logo + sign in
-  if (isLoading || !user) {
+  if (isLoading || !profile) {
     return (
       <nav className={styles.topBar}>
         <Link href="/" className={styles.logoLink}>
@@ -36,11 +36,11 @@ export function NavBar() {
   const leaderboardActive = pathname.startsWith("/leaderboard");
   const profileActive = pathname.startsWith("/u/");
 
-  const avatarUrl = getAvatarUrl(user, { thumb: "64x64" });
+  const avatarUrl = getAvatarUrl(profile, { size: 64 });
 
   const profileIcon = (
     <span className={`${styles.tabAvatarWrap} ${profileActive ? styles.tabAvatarActive : ""}`}>
-      {user.avatar ? (
+      {profile.avatar_url ? (
         <Image
           src={avatarUrl}
           alt=""
@@ -57,7 +57,7 @@ export function NavBar() {
 
   return (
     <>
-      {/* Desktop: top bar with logo + nav links (hidden on mobile) */}
+      {/* Desktop: top bar */}
       <nav className={`${styles.topBar} ${styles.desktopOnly}`}>
         <Link href="/" className={styles.logoLink}>
           <FaMountain className={styles.logoIcon} />
@@ -67,10 +67,10 @@ export function NavBar() {
           <Link href="/leaderboard" className={`${styles.desktopLink} ${leaderboardActive ? styles.desktopLinkActive : ""}`}>
             Leaderboard
           </Link>
-          <Link href={`/u/${user.username}`} className={styles.avatarLink}>
+          <Link href={`/u/${profile.username}`} className={styles.avatarLink}>
             <Image
               src={avatarUrl}
-              alt={user.name || user.username}
+              alt={profile.name || profile.username}
               width={36}
               height={36}
               className={styles.avatar}
@@ -90,7 +90,7 @@ export function NavBar() {
           <FaTrophy className={styles.tabIcon} />
           <span className={styles.tabLabel}>Leaderboard</span>
         </Link>
-        <Link href={`/u/${user.username}`} className={`${styles.tab} ${profileActive ? styles.tabActive : ""}`}>
+        <Link href={`/u/${profile.username}`} className={`${styles.tab} ${profileActive ? styles.tabActive : ""}`}>
           {profileIcon}
           <span className={styles.tabLabel}>Profile</span>
         </Link>

@@ -25,7 +25,7 @@ interface Props {
 }
 
 export function CompleteModal({ route, attempts, zone, logId, onConfirm, onRevert, onCancel }: Props) {
-  const { user } = useAuth();
+  const { profile: user } = useAuth();
   const [gradeEnabled, setGradeEnabled] = useState(false);
   const [gradeIndex, setGradeIndex] = useState(Math.floor(GRADE_MAX / 2));
   const [submitting, setSubmitting] = useState(false);

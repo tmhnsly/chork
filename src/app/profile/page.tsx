@@ -1,18 +1,27 @@
 import { redirect } from "next/navigation";
-import { createServerPBFromCookies } from "@/lib/pocketbase-server";
-import { getAuthUser } from "@/lib/pocketbase-shared";
+import { createServerSupabase } from "@/lib/supabase/server";
 
 export const metadata = {
   title: "Profile — Chork",
 };
 
 export default async function ProfilePage() {
-  const pb = await createServerPBFromCookies();
-  const user = getAuthUser(pb);
+  const supabase = await createServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     redirect("/login");
   }
 
-  redirect(`/u/${user.username}`);
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("username")
+    .eq("id", user.id)
+    .single();
+
+  if (!profile) {
+    redirect("/login");
+  }
+
+  redirect(`/u/${profile.username}`);
 }

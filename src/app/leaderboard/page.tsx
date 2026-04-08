@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { createServerPBFromCookies } from "@/lib/pocketbase-server";
-import { getAuthUser } from "@/lib/pocketbase-shared";
+import { createServerSupabase } from "@/lib/supabase/server";
 import styles from "./leaderboard.module.scss";
 
 export const metadata = {
@@ -8,8 +7,8 @@ export const metadata = {
 };
 
 export default async function LeaderboardPage() {
-  const pb = await createServerPBFromCookies();
-  const user = getAuthUser(pb);
+  const supabase = await createServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     redirect("/login");

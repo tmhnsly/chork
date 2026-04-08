@@ -1,24 +1,51 @@
 # Chork
 
-Social platform for logging bouldering competition routes at a single gym.
+Multi-gym bouldering competition tracker. Climbers log attempts on competition routes, track progress via a punch card, and compete on leaderboards.
 
-See @docs/schema.md for the PocketBase schema.
+See `docs/schema.md` for the Supabase schema. See `docs/roadmap.md` for the full feature roadmap.
 
 ## Commands
 
-- `pnpm dev` — typegen + dev server
-- `pnpm typegen` — regenerate PocketBase types (needs `PB_TYPEGEN_EMAIL` / `PB_TYPEGEN_PASSWORD` in `.env.local`)
+- `pnpm dev` — dev server
 - `pnpm build` — production build
 - `pnpm storybook` — port 6006
+- `npx supabase gen types typescript --project-id <id> > src/lib/database.types.ts` — regenerate Supabase types
 
 ## Stack
 
 - Next.js 15 App Router, Turbopack
-- PocketBase at `https://chork.pockethost.io/`
+- Supabase (Auth, Database, RLS)
 - SCSS modules + design token system (`src/styles/`)
-- `pocketbase-typegen` → `src/lib/pocketbase-types.ts`
 - `react-icons/fa6` for all icons
 - `react-hot-toast` via `showToast()` for notifications
+
+## Architecture
+
+### Multi-tenancy
+
+Every piece of gym data is scoped to a `gym_id` at the database level. Users belong to multiple gyms via `gym_memberships` with a role (climber, setter, admin, owner). Row Level Security enforces gym isolation — application code never needs to filter by gym manually.
+
+### Auth
+
+Supabase Auth with email+password. Sessions managed by `@supabase/ssr` middleware. Profiles auto-created on signup via a Postgres trigger. Two Supabase clients:
+
+- **Browser client** (`src/lib/supabase/client.ts`): uses anon key, safe for client components
+- **Server client** (`src/lib/supabase/server.ts`): wrapped in React `cache()` for deduplication, plus a service role client for admin operations (bypasses RLS)
+
+### Data access
+
+- Server components: `const supabase = await createServerSupabase()`
+- Server actions: `const { supabase, userId, profile } = await requireAuth()` (from `src/lib/auth.ts`)
+- Queries: `src/lib/data/queries.ts` — all read functions take `supabase` as first param
+- Mutations: `src/lib/data/mutations.ts` — all write functions, some use service role for cross-user operations
+- Types: `src/lib/data/types.ts` — derived from `src/lib/database.types.ts` (generated)
+- Pure functions: `src/lib/data/logs.ts` — `computePoints`, `isFlash`, `computeRouteGrade`
+
+### Caching
+
+- `staleTimes.dynamic: 300` — 5-minute client-side RSC cache
+- Mutations call `revalidatePath("/", "layout")` to bust the cache immediately
+- Route data cached per-route in PunchCard state for instant re-open
 
 ## Visual style
 
@@ -29,39 +56,40 @@ Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
 - Surfaces: `@include surface.card` for panels, `@include surface.chrome` for sticky chrome
 - Flash badge: amber (`--flash-*` tokens) — never lime
 - No glassmorphism. No rounded corners — all radius tokens are 0, except `--radius-full` for avatars
-- Radix palette: slate (mono), lime (accent), red (error), teal (success), amber (flash)
+- Radix palette: olive (mono), lime (accent), red (error), teal (success), amber (flash)
 
 ## Code rules
 
 - SCSS modules only — no inline styles, no CSS-in-JS
-- Container queries for components (`@use 'mixins/container-queries' as cq`), media queries for page layout only
+- Container queries for components, media queries for page layout only
 - Typography via `@include type.typography(preset)` — never set font properties manually
-- Spacing and color via design tokens (`--space-*`, `--mono-*`, `--accent-*`) — no raw values
-- 44×44px minimum tap targets, 8px spacing between them (Apple HIG)
+- Spacing and color via design tokens — no raw values
+- 44×44px minimum tap targets, 8px spacing between them
 - No `any` — strict TypeScript throughout
 - Server components by default; client components only when interactivity requires it
-- All data access through `src/lib/data/` helpers — never call PocketBase SDK directly from components
-- Prefer PocketBase View collections (`route_grades`, `user_set_stats`) for aggregations — don't fetch N records to compute a sum/average in JS
-- Always pass `logId` to server actions when the client already has the log record — avoids a lookup round-trip in `upsertRouteLog`
-- Use `fields` parameter on PocketBase queries to limit payload to columns actually used
+- All data access through `src/lib/data/` helpers — never call Supabase directly from components
+- Use Postgres views/RPC functions for aggregations — don't fetch N records to compute in JS
 - Usernames always displayed with `@` prefix
 
 ## Domain rules — IMPORTANT
 
 - **Points are never stored.** Derive using `computePoints(log)` in `src/lib/data/logs.ts`.
-  Formula: flash=4, 2 attempts=3, 3 attempts=2, 4+ attempts=1, incomplete=0. Then +1 if `log.zone === true`.
-  Zone is independent of completion — a user can earn the zone bonus without sending the route.
-- **Flash is derived, not stored.** `attempts === 1 && completed === true`. Never stored as a field.
+  Formula: flash=4, 2 attempts=3, 3 attempts=2, 4+ attempts=1, incomplete=0. Then +1 if zone.
+- **Flash is derived, not stored.** `attempts === 1 && completed === true`.
 - **Attempt counts are private.** Never show raw attempt counts to other users. Points are public.
-- **Community grade is an average.** Mean of all `grade_vote` values from completed logs, rounded to nearest integer. Served by the `route_grades` PocketBase View — query the view, don't scan individual logs.
-- **One active set at a time.** Home punch card always points to `active = true` set.
-- **Archived sets are read-only.** No new `route_logs` or `comments` when `active = false`. Enforce in UI.
-- **Beta spray is blurred, not locked.** Uncompleted users see comments blurred with a "Reveal" toggle. Posting beta requires completion. Replying is always allowed.
-- **Comments are threaded.** Fetch all comments for a route in one query, build the tree client-side by nesting on `parent_id`. Cap visual depth at 3 levels in the UI. `buildCommentTree()` lives in `src/lib/data/comments.ts`.
+- **Community grade is an average.** Via `get_route_grade()` RPC function.
+- **One active set per gym at a time.**
+- **Archived sets are read-only.** No new logs or comments when `active = false`. Enforce in UI.
+- **Beta spray uses opacity, not blur.** `opacity: 0.4` + `filter: blur(3px)` with reveal toggle.
+
+## Environment variables
+
+- `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon/public key
+- `SUPABASE_SERVICE_ROLE_KEY` — server-only, bypasses RLS
 
 ## Storybook
 
 - Stories live next to components: `ComponentName.stories.tsx`
-- All `src/components/ui/` and key app components need stories
+- Mock factories in `src/test/mocks.ts`
 - Autodocs enabled globally; dark/light toggle in toolbar
-- Global styles via `.storybook/storybook.scss` (full relative paths)

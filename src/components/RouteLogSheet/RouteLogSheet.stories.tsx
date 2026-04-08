@@ -1,14 +1,12 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import { RouteLogSheet } from "./RouteLogSheet";
-import { Collections } from "@/lib/pocketbase-types";
 import { mockRouteSet, mockRoute, mockRouteLog } from "@/test/mocks";
 import { fn } from "storybook/test";
 
-const set = mockRouteSet({ id: "set1", collectionName: Collections.Sets });
+const set = mockRouteSet({ id: "set1", gym_id: "gym1" });
 
 const route = mockRoute({
   id: "route3",
-  collectionName: Collections.Routes,
   set_id: "set1",
   number: 3,
   has_zone: true,
@@ -16,7 +14,6 @@ const route = mockRoute({
 
 const baseLog = mockRouteLog({
   id: "log1",
-  collectionName: Collections.RouteLogs,
   user_id: "user1",
   route_id: "route3",
 });

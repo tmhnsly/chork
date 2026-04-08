@@ -1,13 +1,12 @@
 "use server";
 
-import { createServerPBFromCookies } from "./pocketbase-server";
-import { cookieOptions, requireAuth } from "./auth";
-import { USERNAME_RE, ALLOWED_USER_FIELDS } from "./validation";
-import { formatPBError } from "./pb-error";
+import { createServerSupabase } from "./supabase/server";
+import { requireAuth } from "./auth";
+import { USERNAME_RE } from "./validation";
+import { formatError } from "./errors";
 
 /**
- * Check if a username is available. Validates format server-side
- * before querying PocketBase to prevent filter injection.
+ * Check if a username is available.
  */
 export async function checkUsernameAvailable(
   username: string,
@@ -16,39 +15,35 @@ export async function checkUsernameAvailable(
   if (!username || username.length < 3 || !USERNAME_RE.test(username)) {
     return false;
   }
-  const pb = await createServerPBFromCookies();
-  const results = await pb.collection("users").getList(1, 1, {
-    filter: pb.filter("username = {:username} && id != {:userId}", {
-      username,
-      userId,
-    }),
-  });
-  return results.totalItems === 0;
+  const supabase = await createServerSupabase();
+  const { data } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("username", username)
+    .neq("id", userId)
+    .limit(1);
+  return !data || data.length === 0;
 }
 
 /**
- * Update the authenticated user's record with whitelisted fields only.
- * Refreshes auth and returns the updated cookie for the client.
+ * Update the authenticated user's profile.
  */
-export async function mutateAuthUser(formData: FormData): Promise<{ error: string } | { success: true; cookie: string }> {
+export async function updateProfile(
+  updates: { username?: string; name?: string; onboarded?: boolean; active_gym_id?: string }
+): Promise<{ error: string } | { success: true }> {
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
-  const { pb, userId } = auth;
-
-  // Strip any fields not in the allowlist
-  const safeData = new FormData();
-  for (const [key, value] of formData.entries()) {
-    if (ALLOWED_USER_FIELDS.has(key)) {
-      safeData.append(key, value);
-    }
-  }
+  const { supabase, userId } = auth;
 
   try {
-    await pb.collection("users").update(userId, safeData);
-    await pb.collection("users").authRefresh();
-    const cookie = pb.authStore.exportToCookie(cookieOptions);
-    return { success: true, cookie };
+    const { error } = await supabase
+      .from("profiles")
+      .update(updates)
+      .eq("id", userId);
+
+    if (error) return { error: formatError(error) };
+    return { success: true };
   } catch (err) {
-    return { error: formatPBError(err) };
+    return { error: formatError(err) };
   }
 }

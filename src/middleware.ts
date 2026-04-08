@@ -1,33 +1,39 @@
-import { NextResponse, type NextRequest } from "next/server";
-import PocketBase from "pocketbase";
+import { type NextRequest, NextResponse } from "next/server";
+import { createMiddlewareSupabase } from "@/lib/supabase/middleware";
 
-// Single source of truth for route protection.
-// Middleware matcher is derived from these arrays below.
 const PROTECTED_PREFIXES = ["/profile", "/onboarding", "/leaderboard", "/u"];
 const AUTH_ROUTES = ["/login"];
 
-const ALL_PREFIXES = [...PROTECTED_PREFIXES, ...AUTH_ROUTES];
+export async function middleware(request: NextRequest) {
+  const { supabase, response } = createMiddlewareSupabase(request);
 
-export function middleware(request: NextRequest) {
-  const pb = new PocketBase(process.env.NEXT_PUBLIC_POCKETBASE_URL);
-  pb.authStore.loadFromCookie(request.headers.get("cookie") ?? "");
+  // getUser() validates the session with the Supabase server
+  const { data: { user } } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isAuthenticated = pb.authStore.isValid;
+  const isAuthenticated = !!user;
 
+  // Redirect authenticated users away from auth routes
   if (AUTH_ROUTES.some((r) => pathname.startsWith(r)) && isAuthenticated) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
+  // Redirect unauthenticated users away from protected routes
   if (PROTECTED_PREFIXES.some((p) => pathname.startsWith(p)) && !isAuthenticated) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  return NextResponse.next();
+  // Return the response with refreshed cookies
+  return response;
 }
 
 // Must be a static literal — Next.js evaluates this at build time.
-// Keep in sync with PROTECTED_PREFIXES and AUTH_ROUTES above.
 export const config = {
-  matcher: ["/login/:path*", "/onboarding/:path*", "/profile/:path*", "/leaderboard/:path*", "/u/:path*"],
+  matcher: [
+    "/login/:path*",
+    "/onboarding/:path*",
+    "/profile/:path*",
+    "/leaderboard/:path*",
+    "/u/:path*",
+  ],
 };

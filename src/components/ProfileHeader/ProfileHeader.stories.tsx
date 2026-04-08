@@ -1,19 +1,17 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import { ProfileHeader } from "./ProfileHeader";
-import type { UsersResponse } from "@/lib/pocketbase-types";
+import type { Profile } from "@/lib/data";
 
-const mockUser = {
+const mockUser: Profile = {
   id: "user1",
-  collectionId: "users_col",
-  collectionName: "users",
   username: "boulderking",
   name: "Alex Honnold",
-  email: "alex@example.com",
-  avatar: "",
+  avatar_url: "",
   onboarded: true,
-  created: "2026-01-01T00:00:00Z",
-  updated: "2026-01-01T00:00:00Z",
-} as UsersResponse;
+  active_gym_id: "gym1",
+  created_at: "2026-01-01T00:00:00Z",
+  updated_at: "2026-01-01T00:00:00Z",
+};
 
 const meta = {
   title: "Components/ProfileHeader",
@@ -27,26 +25,14 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Own profile view — shows edit button. */
 export const OwnProfile: Story = {
-  args: {
-    user: mockUser,
-    isOwnProfile: true,
-  },
+  args: { user: mockUser, isOwnProfile: true },
 };
 
-/** Another user's profile — no edit controls. */
 export const OtherProfile: Story = {
-  args: {
-    user: mockUser,
-    isOwnProfile: false,
-  },
+  args: { user: mockUser, isOwnProfile: false },
 };
 
-/** Own profile with no display name — falls back to username as heading. */
 export const NoDisplayName: Story = {
-  args: {
-    user: { ...mockUser, name: "" } as UsersResponse,
-    isOwnProfile: true,
-  },
+  args: { user: { ...mockUser, name: "" }, isOwnProfile: true },
 };
