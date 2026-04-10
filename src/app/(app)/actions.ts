@@ -38,11 +38,12 @@ export async function updateAttempts(
 
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
+  const { supabase, userId, gymId } = auth;
 
   try {
-    const log = await upsertRouteLog(supabase, userId, routeId, { attempts }, logId);
-    revalidatePath("/", "layout");
+    const log = await upsertRouteLog(supabase, userId, routeId, { attempts }, logId, gymId);
+    // No revalidatePath — attempts are frequent, optimistic UI handles it.
+    // Completion/uncompletion revalidate instead.
     return { success: true, log };
   } catch (err) {
     return { error: formatError(err) };
@@ -64,7 +65,7 @@ export async function completeRoute(
 
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
+  const { supabase, userId, gymId } = auth;
 
   const isFlash = attempts === 1;
 
@@ -77,11 +78,12 @@ export async function completeRoute(
         completed_at: new Date().toISOString(),
         grade_vote: gradeVote,
         zone,
-      }, logId),
+      }, logId, gymId),
       createActivityEvent(supabase, {
         user_id: userId,
         route_id: routeId,
         type: eventType,
+        gym_id: gymId,
       }),
     ]);
 
@@ -99,7 +101,7 @@ export async function uncompleteRoute(
   if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
+  const { supabase, userId, gymId } = auth;
 
   try {
     const [log] = await Promise.all([
@@ -125,11 +127,11 @@ export async function toggleZone(
   if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
+  const { supabase, userId, gymId } = auth;
 
   try {
-    const log = await upsertRouteLog(supabase, userId, routeId, { zone }, logId);
-    revalidatePath("/", "layout");
+    const log = await upsertRouteLog(supabase, userId, routeId, { zone }, logId, gymId);
+    // No revalidatePath — zone toggle is frequent, optimistic UI handles it.
     return { success: true, log };
   } catch (err) {
     return { error: formatError(err) };
@@ -147,19 +149,21 @@ export async function postComment(
 
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
+  const { supabase, userId, gymId } = auth;
 
   try {
     const comment = await createComment(supabase, {
       user_id: userId,
       route_id: routeId,
       body: trimmed,
+      gym_id: gymId,
     });
 
     await createActivityEvent(supabase, {
       user_id: userId,
       route_id: routeId,
       type: "beta_spray",
+      gym_id: gymId,
     });
 
     return { comment };
@@ -187,7 +191,8 @@ export async function fetchRouteData(routeId: string): Promise<{
   likedIds: string[];
 }> {
   const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError) console.warn("[chork] fetchRouteData auth failed:", authError);
   const userId = user?.id;
 
   const [grade, comments, likedSet] = await Promise.all([
@@ -217,10 +222,10 @@ export async function likeComment(
 
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
+  const { supabase, userId, gymId } = auth;
 
   try {
-    return await toggleCommentLike(supabase, userId, commentId);
+    return await toggleCommentLike(supabase, userId, commentId, gymId);
   } catch (err) {
     return { error: formatError(err) };
   }
@@ -237,17 +242,17 @@ export async function editComment(
 
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
+  const { supabase, userId, gymId } = auth;
 
   try {
     // Ownership check
-    const { data: existing } = await supabase
+    const { data: existing, error: fetchError } = await supabase
       .from("comments")
       .select("user_id")
       .eq("id", commentId)
       .single();
 
-    if (!existing || existing.user_id !== userId) {
+    if (fetchError || !existing || existing.user_id !== userId) {
       return { error: "You can only edit your own comments" };
     }
 

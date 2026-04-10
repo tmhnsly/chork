@@ -2,18 +2,18 @@ import "server-only";
 import { createServerSupabase } from "./supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
-import type { Profile } from "./data/types";
 
 type AuthSuccess = {
   supabase: SupabaseClient<Database>;
   userId: string;
-  profile: Profile;
+  gymId: string;
 };
 type AuthFailure = { error: string };
 
 /**
- * Require authentication for a server action.
- * Returns the Supabase client, user ID, and profile.
+ * Lightweight auth check for server actions.
+ * Only fetches active_gym_id from profile — no full profile load.
+ * Use this for frequent operations (attempts, zone toggle, likes).
  */
 export async function requireAuth(): Promise<AuthSuccess | AuthFailure> {
   const supabase = await createServerSupabase();
@@ -25,13 +25,13 @@ export async function requireAuth(): Promise<AuthSuccess | AuthFailure> {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("*")
+    .select("active_gym_id")
     .eq("id", user.id)
     .single();
 
-  if (!profile) {
-    return { error: "Profile not found" };
+  if (!profile?.active_gym_id) {
+    return { error: "No gym selected" };
   }
 
-  return { supabase, userId: user.id, profile };
+  return { supabase, userId: user.id, gymId: profile.active_gym_id };
 }

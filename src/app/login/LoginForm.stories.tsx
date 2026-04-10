@@ -1,10 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import { LoginForm } from "./login-form";
 
-/**
- * The login page with Google OAuth sign-in button.
- * Shown to unauthenticated users.
- */
+/** Login page with email/password sign-in and sign-up. */
 const meta = {
   title: "Pages/Login",
   component: LoginForm,

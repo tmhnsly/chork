@@ -10,21 +10,51 @@ import type {
   RouteLog,
   RouteLogWithSetId,
   Comment,
-  CommentLike,
   PaginatedComments,
   ActivityEventWithRoute,
+  GymRole,
 } from "./types";
 
 type Supabase = SupabaseClient<Database>;
 
+// ── Gym membership ─────────────────────────────────
+
+export async function getUserGymRole(
+  supabase: Supabase,
+  userId: string,
+  gymId: string
+): Promise<GymRole | null> {
+  const { data, error } = await supabase
+    .from("gym_memberships")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("gym_id", gymId)
+    .maybeSingle();
+  if (error) {
+    console.warn("[chork] getUserGymRole failed:", error);
+    return null;
+  }
+  return (data?.role as GymRole) ?? null;
+}
+
+const ADMIN_ROLES: GymRole[] = ["admin", "owner", "setter"];
+
+export function isGymAdmin(role: GymRole | null): boolean {
+  return role !== null && ADMIN_ROLES.includes(role);
+}
+
 // ── Profiles ───────────────────────────────────────
 
 export async function getProfile(supabase: Supabase, userId: string): Promise<Profile | null> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", userId)
     .single();
+  if (error) {
+    console.warn("[chork] getProfile failed:", error);
+    return null;
+  }
   return data;
 }
 
@@ -44,22 +74,30 @@ export async function getProfileByUsername(supabase: Supabase, username: string)
 // ── Gyms ───────────────────────────────────────────
 
 export async function searchGyms(supabase: Supabase, query: string): Promise<Gym[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("gyms")
     .select("*")
     .eq("is_listed", true)
     .ilike("name", `%${query}%`)
     .order("name")
     .limit(20);
+  if (error) {
+    console.warn("[chork] searchGyms failed:", error);
+    return [];
+  }
   return data ?? [];
 }
 
 export async function getGym(supabase: Supabase, gymId: string): Promise<Gym | null> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("gyms")
     .select("*")
     .eq("id", gymId)
     .single();
+  if (error) {
+    console.warn("[chork] getGym failed:", error);
+    return null;
+  }
   return data;
 }
 
@@ -73,7 +111,6 @@ export async function getCurrentSet(supabase: Supabase, gymId: string): Promise<
     .eq("active", true)
     .limit(1)
     .maybeSingle();
-
   if (error) {
     console.warn("[chork] getCurrentSet failed:", error);
     return null;
@@ -82,22 +119,30 @@ export async function getCurrentSet(supabase: Supabase, gymId: string): Promise<
 }
 
 export async function getAllSets(supabase: Supabase, gymId: string): Promise<RouteSet[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("sets")
     .select("*")
     .eq("gym_id", gymId)
     .order("starts_at", { ascending: false });
+  if (error) {
+    console.warn("[chork] getAllSets failed:", error);
+    return [];
+  }
   return data ?? [];
 }
 
 // ── Routes ─────────────────────────────────────────
 
 export async function getRoutesBySet(supabase: Supabase, setId: string): Promise<Route[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("routes")
     .select("*")
     .eq("set_id", setId)
     .order("number");
+  if (error) {
+    console.warn("[chork] getRoutesBySet failed:", error);
+    return [];
+  }
   return data ?? [];
 }
 
@@ -108,11 +153,15 @@ export async function getLogsBySetForUser(
   setId: string,
   userId: string
 ): Promise<RouteLog[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("route_logs")
     .select("*, routes!inner(set_id)")
     .eq("routes.set_id", setId)
     .eq("user_id", userId);
+  if (error) {
+    console.warn("[chork] getLogsBySetForUser failed:", error);
+    return [];
+  }
   return (data ?? []) as RouteLog[];
 }
 
@@ -120,10 +169,14 @@ export async function getAllLogsForUser(
   supabase: Supabase,
   userId: string
 ): Promise<RouteLogWithSetId[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("route_logs")
     .select("*, routes(id)")
     .eq("user_id", userId);
+  if (error) {
+    console.warn("[chork] getAllLogsForUser failed:", error);
+    return [];
+  }
   return (data ?? []) as RouteLogWithSetId[];
 }
 
@@ -169,12 +222,16 @@ export async function getActivityEventsForUser(
   userId: string,
   limit: number = 10
 ): Promise<ActivityEventWithRoute[]> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("activity_events")
     .select("*, routes(number)")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(limit);
+  if (error) {
+    console.warn("[chork] getActivityEventsForUser failed:", error);
+    return [];
+  }
   return (data ?? []) as ActivityEventWithRoute[];
 }
 
@@ -189,23 +246,29 @@ export async function getCommentsByRoute(
   const from = (page - 1) * perPage;
   const to = from + perPage - 1;
 
-  // Get total count
-  const { count } = await supabase
+  const { count, error: countError } = await supabase
     .from("comments")
     .select("*", { count: "exact", head: true })
     .eq("route_id", routeId);
 
+  if (countError) {
+    console.warn("[chork] getCommentsByRoute count failed:", countError);
+  }
+
   const totalItems = count ?? 0;
   const totalPages = Math.ceil(totalItems / perPage);
 
-  // Get page of comments with author profiles
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("comments")
     .select("*, profiles(id, username, name, avatar_url)")
     .eq("route_id", routeId)
     .order("likes", { ascending: false })
     .order("created_at", { ascending: false })
     .range(from, to);
+
+  if (error) {
+    console.warn("[chork] getCommentsByRoute failed:", error);
+  }
 
   return {
     items: (data ?? []) as Comment[],
@@ -222,11 +285,16 @@ export async function getLikedCommentIds(
   userId: string,
   routeId: string
 ): Promise<Set<string>> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("comment_likes")
     .select("comment_id, comments!inner(route_id)")
     .eq("user_id", userId)
     .eq("comments.route_id", routeId);
+
+  if (error) {
+    console.warn("[chork] getLikedCommentIds failed:", error);
+    return new Set();
+  }
 
   return new Set((data ?? []).map((r) => r.comment_id));
 }

@@ -16,6 +16,7 @@ const meta = {
   parameters: { layout: "centered" },
   args: {
     route,
+    gymId: "gym_001",
     zone: false,
     onConfirm: fn(),
     onRevert: fn(),

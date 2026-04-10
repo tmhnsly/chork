@@ -199,6 +199,7 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
           id: "",
           user_id: user?.id ?? "",
           route_id: route.id,
+          gym_id: set.gym_id,
           attempts: next,
           completed: false,
           zone: false,
@@ -781,6 +782,7 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
       {showComplete && (
         <CompleteModal
           route={route}
+          gymId={set.gym_id}
           attempts={attempts}
           zone={zoneValue}
           logId={currentLog?.id}

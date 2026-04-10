@@ -33,6 +33,7 @@ export function mockRouteLog(overrides: Partial<RouteLog> & { id: string; user_i
     completed_at: null,
     grade_vote: null,
     zone: false,
+    gym_id: "gym_001",
     created_at: DEFAULT_DATE,
     updated_at: DEFAULT_DATE,
     ...overrides,

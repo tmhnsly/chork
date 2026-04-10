@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect, useMemo, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { useUsernameValidation } from "@/hooks/use-username-validation";
 import { createBrowserSupabase } from "@/lib/supabase/client";
@@ -14,40 +15,39 @@ export function OnboardingForm() {
   const { profile, refreshProfile } = useAuth();
   const router = useRouter();
   const usernameValidation = useUsernameValidation();
+  const supabase = useMemo(() => createBrowserSupabase(), []);
 
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState(profile?.name ?? "");
   const [submitting, setSubmitting] = useState(false);
 
-  // Gym search
+  // Gym picker
+  const [allGyms, setAllGyms] = useState<Gym[]>([]);
   const [gymQuery, setGymQuery] = useState("");
-  const [gyms, setGyms] = useState<Gym[]>([]);
   const [selectedGym, setSelectedGym] = useState<Gym | null>(null);
-  const [searchingGyms, setSearchingGyms] = useState(false);
+  const [loadingGyms, setLoadingGyms] = useState(true);
 
-  const supabase = createBrowserSupabase();
-
+  // Load all listed gyms on mount
   useEffect(() => {
-    if (!gymQuery.trim()) {
-      setGyms([]);
-      return;
-    }
+    supabase
+      .from("gyms")
+      .select("*")
+      .eq("is_listed", true)
+      .order("name")
+      .then(({ data, error }) => {
+        if (error) console.warn("[chork] gym fetch failed:", error);
+        setAllGyms(data ?? []);
+        setLoadingGyms(false);
+      });
+  }, [supabase]);
 
-    const timeout = setTimeout(async () => {
-      setSearchingGyms(true);
-      const { data } = await supabase
-        .from("gyms")
-        .select("*")
-        .eq("is_listed", true)
-        .ilike("name", `%${gymQuery}%`)
-        .order("name")
-        .limit(10);
-      setGyms(data ?? []);
-      setSearchingGyms(false);
-    }, 300);
-
-    return () => clearTimeout(timeout);
-  }, [gymQuery, supabase]);
+  // Filter gyms by search query
+  const filteredGyms = gymQuery.trim()
+    ? allGyms.filter((g) =>
+        g.name.toLowerCase().includes(gymQuery.toLowerCase()) ||
+        (g.city?.toLowerCase().includes(gymQuery.toLowerCase()) ?? false)
+      )
+    : allGyms;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -80,17 +80,28 @@ export function OnboardingForm() {
           Choose a username and pick your gym
         </p>
 
-        <FormField
-          id="username"
-          label="Username *"
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.currentTarget.value)}
-          onBlur={() => profile && usernameValidation.validate(username, profile.id)}
-          placeholder="your_username"
-          required
-          error={usernameValidation.error}
-        />
+        <div className={styles.usernameField}>
+          <label className={styles.usernameLabel} htmlFor="username">
+            Username *
+          </label>
+          <div className={styles.usernameInputWrap}>
+            <span className={styles.usernamePrefix}>@</span>
+            <input
+              id="username"
+              type="text"
+              className={styles.usernameInput}
+              value={username}
+              onChange={(e) => setUsername(e.currentTarget.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+              onBlur={() => profile && usernameValidation.validate(username, profile.id)}
+              placeholder="your_username"
+              required
+              autoComplete="off"
+            />
+          </div>
+          {usernameValidation.error && (
+            <p className={styles.fieldError}>{usernameValidation.error}</p>
+          )}
+        </div>
 
         <FormField
           id="displayName"
@@ -108,17 +119,16 @@ export function OnboardingForm() {
           </label>
           {selectedGym ? (
             <div className={styles.gymSelected}>
-              <span className={styles.gymName}>{selectedGym.name}</span>
-              {selectedGym.city && (
-                <span className={styles.gymCity}>{selectedGym.city}</span>
-              )}
+              <div className={styles.gymInfo}>
+                <span className={styles.gymName}>{selectedGym.name}</span>
+                <span className={styles.gymMeta}>
+                  {[selectedGym.city, selectedGym.country].filter(Boolean).join(", ")}
+                </span>
+              </div>
               <button
                 type="button"
                 className={styles.gymChange}
-                onClick={() => {
-                  setSelectedGym(null);
-                  setGymQuery("");
-                }}
+                onClick={() => setSelectedGym(null)}
               >
                 Change
               </button>
@@ -133,9 +143,15 @@ export function OnboardingForm() {
                 onChange={(e) => setGymQuery(e.target.value)}
                 placeholder="Search for your gym..."
               />
-              {gyms.length > 0 && (
-                <ul className={styles.gymList}>
-                  {gyms.map((gym) => (
+              <ul className={styles.gymList}>
+                {loadingGyms ? (
+                  <li className={styles.gymStatus}>Loading gyms...</li>
+                ) : filteredGyms.length === 0 ? (
+                  <li className={styles.gymStatus}>
+                    {gymQuery ? "No gyms found" : "No gyms available"}
+                  </li>
+                ) : (
+                  filteredGyms.map((gym) => (
                     <li key={gym.id}>
                       <button
                         type="button"
@@ -143,24 +159,29 @@ export function OnboardingForm() {
                         onClick={() => {
                           setSelectedGym(gym);
                           setGymQuery("");
-                          setGyms([]);
                         }}
                       >
-                        <span className={styles.gymName}>{gym.name}</span>
-                        {gym.city && (
-                          <span className={styles.gymCity}>{gym.city}</span>
+                        {gym.logo_url && (
+                          <Image
+                            src={gym.logo_url}
+                            alt=""
+                            width={36}
+                            height={36}
+                            className={styles.gymLogo}
+                            unoptimized
+                          />
                         )}
+                        <div className={styles.gymInfo}>
+                          <span className={styles.gymName}>{gym.name}</span>
+                          <span className={styles.gymMeta}>
+                            {[gym.city, gym.country].filter(Boolean).join(", ")}
+                          </span>
+                        </div>
                       </button>
                     </li>
-                  ))}
-                </ul>
-              )}
-              {searchingGyms && (
-                <p className={styles.gymSearching}>Searching...</p>
-              )}
-              {gymQuery && !searchingGyms && gyms.length === 0 && (
-                <p className={styles.gymEmpty}>No gyms found</p>
-              )}
+                  ))
+                )}
+              </ul>
             </>
           )}
         </div>

@@ -96,8 +96,8 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
         </div>
       ) : (
         <div className={styles.identity}>
-          <h1 className={styles.name}>{user.name || user.username}</h1>
-          <p className={styles.username}>@{user.username}</p>
+          <h1 className={styles.username}>@{user.username}</h1>
+          {user.name && <p className={styles.displayName}>{user.name}</p>}
           {isOwnProfile && (
             <Button variant="ghost" onClick={() => setEditing(true)} className={styles.editBtn}>
               Edit profile

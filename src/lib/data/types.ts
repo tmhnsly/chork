@@ -67,6 +67,7 @@ export function createOptimisticLog(fields: {
   id: string;
   user_id: string;
   route_id: string;
+  gym_id: string;
   attempts: number;
   completed: boolean;
   grade_vote?: number | null;

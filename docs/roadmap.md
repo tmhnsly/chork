@@ -12,10 +12,22 @@
 - PWA: manifest, standalone mode, viewport config
 - Auth: email+password via Supabase
 
+## Pre-launch (before going public)
+
+- [ ] Buy domain (chork.app or similar)
+- [ ] Verify domain in Resend → add DNS records in Cloudflare
+- [ ] Configure Supabase SMTP with Resend (host: smtp.resend.com, port: 465, sender: noreply@chork.app)
+- [ ] Set up Cloudflare email forwarding (hi@chork.app → personal email)
+- [ ] Enable "Confirm email" in Supabase Auth
+- [ ] Update Supabase redirect URLs for production domain
+- [ ] Branded email templates already built (just need sender domain)
+- [ ] Auth callback route already built at /auth/callback
+- [ ] Google OAuth (add back)
+- [ ] Apple Sign In
+
 ## Next up
 
 - [ ] Leaderboard: ranked by points per set, per gym
-- [ ] Google OAuth (add back)
 - [ ] Avatar uploads via Supabase Storage
 - [ ] Gym admin dashboard: manage sets, routes, members
 - [ ] Route QR codes: scan to open the route log sheet

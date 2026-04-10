@@ -14,7 +14,10 @@ export async function completeOnboarding(
   const { supabase, userId } = auth;
 
   try {
-    // Update profile
+    // Create gym membership first — if this fails, we haven't changed the profile
+    await createGymMembership(supabase, userId, gymId);
+
+    // Then update the profile
     const { error: profileError } = await supabase
       .from("profiles")
       .update({
@@ -25,10 +28,15 @@ export async function completeOnboarding(
       })
       .eq("id", userId);
 
-    if (profileError) return { error: formatError(profileError) };
-
-    // Create gym membership
-    await createGymMembership(supabase, userId, gymId);
+    if (profileError) {
+      // Rollback: delete the membership we just created
+      await supabase
+        .from("gym_memberships")
+        .delete()
+        .eq("user_id", userId)
+        .eq("gym_id", gymId);
+      return { error: formatError(profileError) };
+    }
 
     return { success: true };
   } catch (err) {

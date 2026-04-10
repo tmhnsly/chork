@@ -59,11 +59,11 @@
   align-items: center;
 }
 
-.name {
+.username {
   @include type.typography(display);
 }
 
-.username {
+.displayName {
   @include type.typography(body);
   color: var(--mono-text-low-contrast);
 }

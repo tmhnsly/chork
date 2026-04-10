@@ -32,30 +32,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const supabase = useMemo(() => createBrowserSupabase(), []);
 
-  // Fetch the profile for the current auth user
   const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", userId)
       .single();
+    if (error) {
+      console.warn("[chork] fetchProfile failed:", error);
+    }
     return data;
   }, [supabase]);
 
-  // Load profile on mount and listen for auth changes
+  // Bootstrap: check session on mount + listen for changes
   useEffect(() => {
+    // Initial auth check — getUser() validates with the server
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
+      if (user) {
+        const p = await fetchProfile(user.id);
+        setProfile(p);
+      }
+      setIsLoading(false);
+    });
+
+    // Listen for auth changes (sign in, sign out, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (session?.user) {
+        if (event === "SIGNED_IN" && session?.user) {
           const p = await fetchProfile(session.user.id);
           setProfile(p);
-        } else {
+          setIsLoading(false);
+          router.refresh();
+        } else if (event === "SIGNED_OUT") {
           setProfile(null);
-        }
-        setIsLoading(false);
-
-        // Refresh server components on auth change
-        if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+          setIsLoading(false);
           router.refresh();
         }
       }

@@ -58,7 +58,7 @@ const steps: Step[] = [
   {
     number: 1,
     title: "Sign in",
-    description: "One tap with your Google account. No forms, no passwords.",
+    description: "Create an account in seconds. Pick your gym and you're in.",
   },
   {
     number: 2,

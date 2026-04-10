@@ -1,10 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import { OnboardingForm } from "./onboarding-form";
 
-/**
- * The onboarding form shown to new users after their first OAuth sign-in.
- * Collects username and display name before allowing access to the app.
- */
+/** Onboarding form — collects username, display name, and gym selection. */
 const meta = {
   title: "Pages/Onboarding",
   component: OnboardingForm,

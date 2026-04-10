@@ -9,23 +9,19 @@ import type {
   Comment,
   ActivityEvent,
   ActivityEventType,
-  CommentLike,
 } from "./types";
 
 type Supabase = SupabaseClient<Database>;
 
 // ── Route logs ─────────────────────────────────────
 
-/**
- * Create or update a route log using Supabase upsert.
- * The unique constraint on (user_id, route_id) handles the conflict.
- */
 export async function upsertRouteLog(
   supabase: Supabase,
   userId: string,
   routeId: string,
   data: RouteLogUpdate,
-  existingLogId?: string
+  existingLogId?: string,
+  gymId?: string | null
 ): Promise<RouteLog> {
   if (existingLogId) {
     const { data: log, error } = await supabase
@@ -38,10 +34,12 @@ export async function upsertRouteLog(
     return log;
   }
 
+  if (!gymId) throw new Error("gym_id is required when creating a route log");
+
   const { data: log, error } = await supabase
     .from("route_logs")
     .upsert(
-      { user_id: userId, route_id: routeId, ...data },
+      { user_id: userId, route_id: routeId, gym_id: gymId, ...data },
       { onConflict: "user_id,route_id" }
     )
     .select()
@@ -54,7 +52,7 @@ export async function upsertRouteLog(
 
 export async function createComment(
   supabase: Supabase,
-  data: { user_id: string; route_id: string; body: string }
+  data: { user_id: string; route_id: string; body: string; gym_id: string }
 ): Promise<Comment> {
   const { data: comment, error } = await supabase
     .from("comments")
@@ -62,6 +60,7 @@ export async function createComment(
     .select("*, profiles(id, username, name, avatar_url)")
     .single();
   if (error) throw error;
+  if (!comment) throw new Error("Comment creation returned no data");
   return comment as Comment;
 }
 
@@ -77,22 +76,18 @@ export async function updateComment(
     .select("*, profiles(id, username, name, avatar_url)")
     .single();
   if (error) throw error;
+  if (!comment) throw new Error("Comment update returned no data");
   return comment as Comment;
 }
 
 // ── Comment likes ──────────────────────────────────
 
-/**
- * Toggle a like on a comment.
- * Uses the service role client to update the denormalized likes count
- * (the comments RLS policy restricts updates to the comment owner).
- */
 export async function toggleCommentLike(
   supabase: Supabase,
   userId: string,
-  commentId: string
+  commentId: string,
+  gymId: string
 ): Promise<{ liked: boolean; likes: number }> {
-  // Check if already liked
   const { data: existing } = await supabase
     .from("comment_likes")
     .select("id")
@@ -103,53 +98,47 @@ export async function toggleCommentLike(
   const service = createServiceClient();
 
   if (existing) {
-    // Unlike: delete the record, decrement count
-    await supabase
+    const { error: deleteError } = await supabase
       .from("comment_likes")
       .delete()
       .eq("id", existing.id);
+    if (deleteError) throw deleteError;
 
-    const { data: updated } = await service
-      .from("comments")
-      .update({ likes: Math.max(0, -1) }) // placeholder
-      .eq("id", commentId)
-      .select("likes")
-      .single();
-
-    // Use raw SQL decrement via RPC or direct update
-    // Supabase doesn't have atomic increment syntax in PostgREST,
-    // so we read-then-write with the service client
-    const { data: current } = await service
+    const { data: current, error: readError } = await service
       .from("comments")
       .select("likes")
       .eq("id", commentId)
       .single();
+    if (readError) throw readError;
 
     const newLikes = Math.max(0, (current?.likes ?? 0) - 1);
-    await service
+    const { error: updateError } = await service
       .from("comments")
       .update({ likes: newLikes })
       .eq("id", commentId);
+    if (updateError) throw updateError;
 
     return { liked: false, likes: newLikes };
   }
 
-  // Like: create the record, increment count
-  await supabase
+  const { error: insertError } = await supabase
     .from("comment_likes")
-    .insert({ user_id: userId, comment_id: commentId });
+    .insert({ user_id: userId, comment_id: commentId, gym_id: gymId });
+  if (insertError) throw insertError;
 
-  const { data: current } = await service
+  const { data: current, error: readError } = await service
     .from("comments")
     .select("likes")
     .eq("id", commentId)
     .single();
+  if (readError) throw readError;
 
   const newLikes = (current?.likes ?? 0) + 1;
-  await service
+  const { error: updateError } = await service
     .from("comments")
     .update({ likes: newLikes })
     .eq("id", commentId);
+  if (updateError) throw updateError;
 
   return { liked: true, likes: newLikes };
 }
@@ -158,7 +147,7 @@ export async function toggleCommentLike(
 
 export async function createActivityEvent(
   supabase: Supabase,
-  data: { user_id: string; route_id: string; type: ActivityEventType }
+  data: { user_id: string; route_id: string; type: ActivityEventType; gym_id: string }
 ): Promise<ActivityEvent> {
   const { data: event, error } = await supabase
     .from("activity_events")
@@ -169,22 +158,19 @@ export async function createActivityEvent(
   return event;
 }
 
-/**
- * Delete completion/flash activity events for a user + route.
- * Uses service role because RLS doesn't allow user deletes on activity_events.
- */
 export async function deleteCompletionEvents(
   supabase: Supabase,
   userId: string,
   routeId: string
 ): Promise<void> {
   const service = createServiceClient();
-  await service
+  const { error } = await service
     .from("activity_events")
     .delete()
     .eq("user_id", userId)
     .eq("route_id", routeId)
     .in("type", ["completed", "flashed"]);
+  if (error) throw error;
 }
 
 // ── Gym memberships ────────────────────────────────

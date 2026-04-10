@@ -17,6 +17,7 @@ export type Database = {
       activity_events: {
         Row: {
           created_at: string
+          gym_id: string | null
           id: string
           route_id: string | null
           type: string
@@ -24,6 +25,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          gym_id?: string | null
           id?: string
           route_id?: string | null
           type: string
@@ -31,12 +33,20 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          gym_id?: string | null
           id?: string
           route_id?: string | null
           type?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "activity_events_gym_id_fkey"
+            columns: ["gym_id"]
+            isOneToOne: false
+            referencedRelation: "gyms"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "activity_events_route_id_fkey"
             columns: ["route_id"]
@@ -57,18 +67,21 @@ export type Database = {
         Row: {
           comment_id: string
           created_at: string
+          gym_id: string
           id: string
           user_id: string
         }
         Insert: {
           comment_id: string
           created_at?: string
+          gym_id: string
           id?: string
           user_id: string
         }
         Update: {
           comment_id?: string
           created_at?: string
+          gym_id?: string
           id?: string
           user_id?: string
         }
@@ -78,6 +91,13 @@ export type Database = {
             columns: ["comment_id"]
             isOneToOne: false
             referencedRelation: "comments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "comment_likes_gym_id_fkey"
+            columns: ["gym_id"]
+            isOneToOne: false
+            referencedRelation: "gyms"
             referencedColumns: ["id"]
           },
           {
@@ -93,6 +113,7 @@ export type Database = {
         Row: {
           body: string
           created_at: string
+          gym_id: string
           id: string
           likes: number
           parent_id: string | null
@@ -103,6 +124,7 @@ export type Database = {
         Insert: {
           body: string
           created_at?: string
+          gym_id: string
           id?: string
           likes?: number
           parent_id?: string | null
@@ -113,6 +135,7 @@ export type Database = {
         Update: {
           body?: string
           created_at?: string
+          gym_id?: string
           id?: string
           likes?: number
           parent_id?: string | null
@@ -121,6 +144,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "comments_gym_id_fkey"
+            columns: ["gym_id"]
+            isOneToOne: false
+            referencedRelation: "gyms"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "comments_parent_id_fkey"
             columns: ["parent_id"]
@@ -270,6 +300,7 @@ export type Database = {
           completed_at: string | null
           created_at: string
           grade_vote: number | null
+          gym_id: string
           id: string
           route_id: string
           updated_at: string
@@ -282,6 +313,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           grade_vote?: number | null
+          gym_id: string
           id?: string
           route_id: string
           updated_at?: string
@@ -294,6 +326,7 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           grade_vote?: number | null
+          gym_id?: string
           id?: string
           route_id?: string
           updated_at?: string
@@ -301,6 +334,13 @@ export type Database = {
           zone?: boolean
         }
         Relationships: [
+          {
+            foreignKeyName: "route_logs_gym_id_fkey"
+            columns: ["gym_id"]
+            isOneToOne: false
+            referencedRelation: "gyms"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "route_logs_route_id_fkey"
             columns: ["route_id"]

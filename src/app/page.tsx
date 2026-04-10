@@ -1,16 +1,27 @@
 import { Suspense } from "react";
 import { createServerSupabase } from "@/lib/supabase/server";
-import { getCurrentSet, getRoutesBySet, getLogsBySetForUser } from "@/lib/data/queries";
+import { getCurrentSet, getRoutesBySet, getLogsBySetForUser, getUserGymRole, isGymAdmin } from "@/lib/data/queries";
 import { PunchCard } from "@/components/PunchCard/PunchCard";
 import { PunchCardSkeleton } from "@/components/PunchCard/PunchCardSkeleton";
+import { CreateSetForm } from "@/components/AdminControls/CreateSetForm";
+import { ManageSetBar } from "@/components/AdminControls/ManageSetBar";
 import { LandingPage } from "./landing";
 import styles from "./page.module.scss";
 
 async function AuthenticatedHome({ userId, gymId }: { userId: string; gymId: string }) {
   const supabase = await createServerSupabase();
-  const set = await getCurrentSet(supabase, gymId);
+
+  const [set, role] = await Promise.all([
+    getCurrentSet(supabase, gymId),
+    getUserGymRole(supabase, userId, gymId),
+  ]);
+
+  const admin = isGymAdmin(role);
 
   if (!set) {
+    if (admin) {
+      return <CreateSetForm gymId={gymId} />;
+    }
     return <p className={styles.empty}>No active set right now.</p>;
   }
 
@@ -19,7 +30,12 @@ async function AuthenticatedHome({ userId, gymId }: { userId: string; gymId: str
     getLogsBySetForUser(supabase, set.id, userId),
   ]);
 
-  return <PunchCard set={set} routes={routes} initialLogs={logs} />;
+  return (
+    <>
+      {admin && <ManageSetBar set={set} gymId={gymId} routeCount={routes.length} />}
+      <PunchCard set={set} routes={routes} initialLogs={logs} />
+    </>
+  );
 }
 
 export default async function Home() {
@@ -30,7 +46,6 @@ export default async function Home() {
     return <LandingPage />;
   }
 
-  // Get the user's profile to find their active gym
   const { data: profile } = await supabase
     .from("profiles")
     .select("active_gym_id, onboarded")

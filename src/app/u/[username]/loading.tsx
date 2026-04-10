@@ -11,11 +11,11 @@ export default function ProfileLoading() {
       <header className={headerStyles.header}>
         <div className={`${styles.avatarPlaceholder} ${shimmerStyles.skeleton}`} />
         <div className={headerStyles.identity}>
-          <h1 className={`${headerStyles.name} ${styles.namePlaceholder} ${shimmerStyles.skeleton}`}>
-            Display Name
-          </h1>
-          <p className={`${headerStyles.username} ${styles.namePlaceholder} ${shimmerStyles.skeleton}`}>
+          <h1 className={`${headerStyles.username} ${styles.namePlaceholder} ${shimmerStyles.skeleton}`}>
             @username
+          </h1>
+          <p className={`${headerStyles.displayName} ${styles.namePlaceholder} ${shimmerStyles.skeleton}`}>
+            Display Name
           </p>
           <div className={styles.editPlaceholder} />
         </div>
