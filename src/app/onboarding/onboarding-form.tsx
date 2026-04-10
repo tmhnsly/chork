@@ -11,12 +11,15 @@ import { completeOnboarding } from "./actions";
 import type { Gym } from "@/lib/data";
 import styles from "./onboarding.module.scss";
 
+type Step = "form" | "confirm";
+
 export function OnboardingForm() {
   const { profile, refreshProfile } = useAuth();
   const router = useRouter();
   const usernameValidation = useUsernameValidation();
   const supabase = useMemo(() => createBrowserSupabase(), []);
 
+  const [step, setStep] = useState<Step>("form");
   const [username, setUsername] = useState("");
   const [displayName, setDisplayName] = useState(profile?.name ?? "");
   const [submitting, setSubmitting] = useState(false);
@@ -27,7 +30,6 @@ export function OnboardingForm() {
   const [selectedGym, setSelectedGym] = useState<Gym | null>(null);
   const [loadingGyms, setLoadingGyms] = useState(true);
 
-  // Load all listed gyms on mount
   useEffect(() => {
     supabase
       .from("gyms")
@@ -41,7 +43,6 @@ export function OnboardingForm() {
       });
   }, [supabase]);
 
-  // Filter gyms by search query
   const filteredGyms = gymQuery.trim()
     ? allGyms.filter((g) =>
         g.name.toLowerCase().includes(gymQuery.toLowerCase()) ||
@@ -49,36 +50,86 @@ export function OnboardingForm() {
       )
     : allGyms;
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleReview(e: FormEvent) {
     e.preventDefault();
     if (!profile || !selectedGym) return;
 
     const valid = await usernameValidation.validate(username, profile.id);
     if (!valid) return;
 
+    setStep("confirm");
+  }
+
+  async function handleConfirm() {
+    if (!profile || !selectedGym) return;
+
     setSubmitting(true);
     try {
       const result = await completeOnboarding(username, displayName, selectedGym.id);
       if ("error" in result) {
         showToast(result.error, "error");
+        setStep("form");
         return;
       }
       await refreshProfile();
       router.push("/");
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Something went wrong", "error");
+      setStep("form");
     } finally {
       setSubmitting(false);
     }
   }
 
+  // ── Confirmation step ────────────────────────────
+  if (step === "confirm" && selectedGym) {
+    return (
+      <main className={styles.page}>
+        <div className={styles.card}>
+          <h1 className={styles.title}>Looking good?</h1>
+          <p className={styles.subtitle}>Check your details before we get started</p>
+
+          <div className={styles.confirmDetails}>
+            <div className={styles.confirmRow}>
+              <span className={styles.confirmLabel}>Username</span>
+              <span className={styles.confirmValue}>@{username}</span>
+            </div>
+            {displayName && (
+              <div className={styles.confirmRow}>
+                <span className={styles.confirmLabel}>Display name</span>
+                <span className={styles.confirmValue}>{displayName}</span>
+              </div>
+            )}
+            <div className={styles.confirmRow}>
+              <span className={styles.confirmLabel}>Gym</span>
+              <span className={styles.confirmValue}>
+                {selectedGym.name}
+                {selectedGym.city && (
+                  <span className={styles.confirmMeta}> · {selectedGym.city}</span>
+                )}
+              </span>
+            </div>
+          </div>
+
+          <div className={styles.confirmActions}>
+            <Button onClick={handleConfirm} disabled={submitting} fullWidth>
+              {submitting ? "Setting up..." : "Confirm & start climbing"}
+            </Button>
+            <Button variant="ghost" onClick={() => setStep("form")} fullWidth>
+              Go back and edit
+            </Button>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  // ── Form step ────────────────────────────────────
   return (
     <main className={styles.page}>
-      <form className={styles.card} onSubmit={handleSubmit}>
+      <form className={styles.card} onSubmit={handleReview}>
         <h1 className={styles.title}>Set up your profile</h1>
-        <p className={styles.subtitle}>
-          Choose a username and pick your gym
-        </p>
+        <p className={styles.subtitle}>Choose a username and pick your gym</p>
 
         <div className={styles.usernameField}>
           <label className={styles.usernameLabel} htmlFor="username">
@@ -188,10 +239,10 @@ export function OnboardingForm() {
 
         <Button
           type="submit"
-          disabled={submitting || !username || !selectedGym || !!usernameValidation.error}
+          disabled={!username || !selectedGym || !!usernameValidation.error}
           fullWidth
         >
-          {submitting ? "Saving..." : "Continue"}
+          Continue
         </Button>
       </form>
     </main>

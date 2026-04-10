@@ -198,3 +198,40 @@
   color: var(--mono-text-low-contrast);
   padding: var(--space-3);
 }
+
+// ── Confirmation step ──────────────────────────────
+.confirmDetails {
+  @include layout.stack(0);
+  border: 1px solid var(--mono-border-subtle);
+}
+
+.confirmRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+
+  & + & {
+    border-top: 1px solid var(--mono-border-subtle);
+  }
+}
+
+.confirmLabel {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.confirmValue {
+  @include type.typography(body);
+  font-weight: var(--weight-semibold);
+  text-align: right;
+}
+
+.confirmMeta {
+  color: var(--mono-text-low-contrast);
+  font-weight: var(--weight-regular);
+}
+
+.confirmActions {
+  @include layout.stack(var(--space-2));
+}

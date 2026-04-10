@@ -1,7 +1,7 @@
-import { FaChartBar, FaBolt, FaCalendarDay, FaStar } from "react-icons/fa6";
-import { shimmerStyles, BentoGrid, BentoStat } from "@/components/ui";
+import { shimmerStyles } from "@/components/ui";
 import { PunchTile } from "@/components/PunchTile/PunchTile";
 import styles from "./punchCard.module.scss";
+import widgetStyles from "@/components/StatsWidget/statsWidget.module.scss";
 
 /**
  * Loading skeleton for the punch card page.
@@ -11,6 +11,29 @@ export function PunchCardSkeleton() {
   return (
     <div className={styles.page}>
       <h2 className={styles.title}>Punch Card</h2>
+
+      {/* Stats widget skeleton */}
+      <div className={`${widgetStyles.widget} ${shimmerStyles.skeleton}`}>
+        <div style={{ width: 88, height: 88 }} />
+        <div className={widgetStyles.stats}>
+          <div className={widgetStyles.stat}>
+            <span className={widgetStyles.value}>&nbsp;</span>
+            <span className={widgetStyles.label}>SENDS</span>
+          </div>
+          <div className={widgetStyles.stat}>
+            <span className={widgetStyles.value}>&nbsp;</span>
+            <span className={widgetStyles.label}>FLASHES</span>
+          </div>
+          <div className={widgetStyles.stat}>
+            <span className={widgetStyles.value}>&nbsp;</span>
+            <span className={widgetStyles.label}>POINTS</span>
+          </div>
+          <div className={widgetStyles.stat}>
+            <span className={widgetStyles.value}>&nbsp;</span>
+            <span className={widgetStyles.label}>RESET</span>
+          </div>
+        </div>
+      </div>
 
       <footer className={styles.legend}>
         <span className={styles.legendItem}>
@@ -32,13 +55,6 @@ export function PunchCardSkeleton() {
           <PunchTile key={i} number={i + 1} state="empty" className={shimmerStyles.skeleton} />
         ))}
       </div>
-
-      <BentoGrid columns={2}>
-        <BentoStat label="Progress" icon={<FaChartBar />} className={shimmerStyles.skeleton} />
-        <BentoStat label="Score" icon={<FaStar />} className={shimmerStyles.skeleton} />
-        <BentoStat label="Flash rate" icon={<FaBolt />} className={shimmerStyles.skeleton} />
-        <BentoStat label="Reset" icon={<FaCalendarDay />} className={shimmerStyles.skeleton} />
-      </BentoGrid>
     </div>
   );
 }

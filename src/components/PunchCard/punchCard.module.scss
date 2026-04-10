@@ -7,14 +7,26 @@
   gap: var(--space-4);
 }
 
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
 .title {
   @include type.typography(display);
+}
+
+.resetDate {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  opacity: 0.6;
 }
 
 // ── Punch tile grid ────────────────────────────────
 .tileGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: var(--space-2);
 }
 

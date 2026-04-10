@@ -1,0 +1,79 @@
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+
+.widget {
+  @include surface.card;
+  display: flex;
+  gap: var(--space-5);
+  padding: var(--space-4);
+  align-items: stretch;
+}
+
+// ── Left: rings + stat lines ───────────────────────
+.left {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  flex-shrink: 0;
+}
+
+.statLines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.statLine {
+  display: flex;
+  flex-direction: column;
+}
+
+.statLabel {
+  @include type.typography(body);
+  font-size: var(--text-sm);
+  color: var(--mono-text);
+}
+
+.statValue {
+  @include type.typography(number);
+  font-size: var(--text-xl);
+  line-height: 1.1;
+
+  small {
+    @include type.typography(label);
+    font-size: var(--text-sm);
+    margin-left: 2px;
+    font-style: normal;
+  }
+}
+
+.accent {
+  color: var(--accent-text);
+}
+
+.flash {
+  color: var(--flash-text-low-contrast);
+}
+
+// ── Right: charts ──────────────────────────────────
+.right {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: var(--space-3);
+}
+
+.chartBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+}
+
+.chartLabel {
+  @include type.typography(label);
+  font-size: var(--text-xs);
+  color: var(--mono-text-low-contrast);
+}

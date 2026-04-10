@@ -1,6 +1,6 @@
 "use server";
 
-import { requireAuth } from "@/lib/auth";
+import { requireSignedIn } from "@/lib/auth";
 import { createGymMembership } from "@/lib/data/mutations";
 import { formatError } from "@/lib/errors";
 
@@ -9,7 +9,7 @@ export async function completeOnboarding(
   name: string,
   gymId: string
 ): Promise<{ error: string } | { success: true }> {
-  const auth = await requireAuth();
+  const auth = await requireSignedIn();
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId } = auth;
 

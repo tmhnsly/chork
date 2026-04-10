@@ -15,6 +15,19 @@ type AuthFailure = { error: string };
  * Only fetches active_gym_id from profile — no full profile load.
  * Use this for frequent operations (attempts, zone toggle, likes).
  */
+/**
+ * Auth check that only requires sign-in, no gym.
+ * Use for onboarding and account setup.
+ */
+export async function requireSignedIn(): Promise<
+  { supabase: SupabaseClient<Database>; userId: string } | AuthFailure
+> {
+  const supabase = await createServerSupabase();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) return { error: "You need to be signed in to do that" };
+  return { supabase, userId: user.id };
+}
+
 export async function requireAuth(): Promise<AuthSuccess | AuthFailure> {
   const supabase = await createServerSupabase();
   const { data: { user }, error } = await supabase.auth.getUser();

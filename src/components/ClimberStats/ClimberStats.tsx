@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
-import { FaStar, FaBolt, FaCheck, FaArrowTrendUp } from "react-icons/fa6";
-import { BentoGrid, BentoStat } from "@/components/ui";
+import { ActivityRings } from "@/components/ActivityRings/ActivityRings";
 import styles from "./climberStats.module.scss";
 
 interface SetStats {
   points: number;
   completions: number;
   flashes: number;
+  totalRoutes?: number;
+  maxPoints?: number;
 }
 
 interface Props {
@@ -15,6 +16,42 @@ interface Props {
   allTimeFlashes: number;
   allTimePoints: number;
   children?: ReactNode;
+}
+
+function RingStats({ stats }: { stats: SetStats }) {
+  const completionRate = stats.totalRoutes
+    ? stats.completions / stats.totalRoutes : 0;
+  const scoreRate = stats.maxPoints
+    ? stats.points / stats.maxPoints : 0;
+  const flashRate = stats.completions > 0
+    ? stats.flashes / stats.completions : 0;
+
+  return (
+    <div className={styles.statsCard}>
+      <ActivityRings
+        rings={[
+          { value: completionRate, color: "var(--accent-solid)" },
+          { value: scoreRate, color: "var(--mono-text-low-contrast)" },
+          { value: flashRate, color: "var(--flash-solid)" },
+        ]}
+        size={56}
+      />
+      <div className={styles.statValues}>
+        <div className={styles.stat}>
+          <span className={`${styles.value} ${styles.accent}`}>{stats.points}</span>
+          <span className={styles.label}>PTS</span>
+        </div>
+        <div className={styles.stat}>
+          <span className={styles.value}>{stats.completions}</span>
+          <span className={styles.label}>SENDS</span>
+        </div>
+        <div className={styles.stat}>
+          <span className={`${styles.value} ${styles.flash}`}>{stats.flashes}</span>
+          <span className={styles.label}>FLASH</span>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function ClimberStats({
@@ -30,21 +67,19 @@ export function ClimberStats({
         <section className={styles.section}>
           <span className={styles.sectionLabel}>Current set</span>
           {children}
-          <BentoGrid columns={3}>
-            <BentoStat label="Points" value={currentSet.points} icon={<FaStar />} variant="accent" />
-            <BentoStat label="Sends" value={currentSet.completions} icon={<FaCheck />} />
-            <BentoStat label="Flashes" value={currentSet.flashes} icon={<FaBolt />} variant="flash" />
-          </BentoGrid>
+          <RingStats stats={currentSet} />
         </section>
       )}
 
       <section className={styles.section}>
         <span className={styles.sectionLabel}>All time</span>
-        <BentoGrid columns={3}>
-          <BentoStat label="Points" value={allTimePoints} icon={<FaStar />} variant="accent" />
-          <BentoStat label="Sends" value={allTimeCompletions} icon={<FaArrowTrendUp />} />
-          <BentoStat label="Flashes" value={allTimeFlashes} icon={<FaBolt />} variant="flash" />
-        </BentoGrid>
+        <RingStats
+          stats={{
+            points: allTimePoints,
+            completions: allTimeCompletions,
+            flashes: allTimeFlashes,
+          }}
+        />
       </section>
     </div>
   );
