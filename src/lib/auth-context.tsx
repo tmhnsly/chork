@@ -97,10 +97,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       showToast(error.message, "error");
       return;
     }
-    // Push + refresh ensures the RSC cache is busted and home shows authenticated view
-    router.push("/");
-    router.refresh();
-  }, [supabase, router]);
+    // Hard navigation ensures middleware runs with fresh session cookies.
+    // router.push + refresh doesn't reliably bust the RSC cache.
+    window.location.href = "/";
+  }, [supabase]);
 
   const signUp = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signUp({

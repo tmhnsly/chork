@@ -21,8 +21,21 @@ export function RouteChart({ logs, routeIds, routeHasZone }: Props) {
         {routeIds.map((routeId, i) => {
           const log = logs.get(routeId);
           const completed = log?.completed ?? false;
-          const points = completed ? computePoints(log!) : 0;
+          const attempted = log && log.attempts > 0 && !completed;
           const flash = log ? isFlash(log) : false;
+
+          if (attempted) {
+            // Attempted but not completed - show a small indicator bar
+            return (
+              <div key={routeId} className={styles.column}>
+                <div className={styles.barTrack}>
+                  <div className={`${styles.bar} ${styles.barAttempted}`} />
+                </div>
+              </div>
+            );
+          }
+
+          const points = completed ? computePoints(log!) : 0;
           const maxForRoute = routeHasZone[i] ? 5 : 4;
           const height = points > 0 ? (points / maxForRoute) * 100 : 0;
 

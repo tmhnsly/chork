@@ -43,6 +43,11 @@
   background: var(--flash-solid);        // step 9
 }
 
+.barAttempted {
+  background: var(--mono-solid);         // step 9 - attempted grey
+  height: var(--bar-h, 15%);             // small indicator
+}
+
 // ── Zone dots ──────────────────────────────────────
 .dots {
   display: flex;
