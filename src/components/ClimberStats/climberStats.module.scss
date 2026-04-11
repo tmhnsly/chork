@@ -6,17 +6,66 @@
   @include layout.stack(var(--space-4));
 }
 
-.tabCard {
+// ── All Time card ─────────────────────────────────
+.allTimeCard {
+  @include surface.card;
+  border-radius: var(--radius-3);
+  padding: var(--space-4);
+  @include layout.stack(var(--space-3));
+}
+
+.allTimeHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.allTimeStats {
+  display: flex;
+  gap: var(--space-4);
+  flex: 1;
+}
+
+.allTimeStat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.allTimeValue {
+  @include type.typography(number);
+  font-size: var(--text-lg);
+  line-height: 1.1;
+}
+
+.allTimeLabel {
+  @include type.typography(label);
+  font-size: var(--text-xs);
+  color: var(--mono-text-low-contrast);
+}
+
+.allTimeTag {
+  @include type.typography(label);
+  font-size: var(--text-xs);
+  color: var(--mono-text-low-contrast);
+}
+
+.accent { color: var(--accent-text); }
+.flash { color: var(--flash-text); }
+.points { color: var(--success-text); }
+
+// ── Current Set card ──────────────────────────────
+.sectionLabel {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.currentSetCard {
   @include surface.card;
   @include layout.stack(var(--space-4));
   border-radius: var(--radius-3);
   padding: var(--space-4);
   container-type: inline-size;
-}
-
-.tabLabel {
-  @include type.typography(label);
-  color: var(--accent-text);
 }
 
 .chartFooter {

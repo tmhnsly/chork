@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
+import { ActivityRings } from "@/components/ActivityRings/ActivityRings";
 import { RingStatsRow } from "@/components/RingStatsRow/RingStatsRow";
 import { RouteChart } from "@/components/RouteChart/RouteChart";
 import type { RouteLog } from "@/lib/data";
-import { StatsTabs } from "./StatsTabs";
 import styles from "./climberStats.module.scss";
 
 interface Props {
@@ -16,7 +16,6 @@ interface Props {
   allTimeCompletions: number;
   allTimeFlashes: number;
   allTimePoints: number;
-  /** Route data for the current set chart */
   routeIds?: string[];
   routeHasZone?: boolean[];
   logs?: Map<string, RouteLog>;
@@ -34,62 +33,64 @@ export function ClimberStats({
   children,
 }: Props) {
   const hasChart = routeIds && routeHasZone && logs;
-  const tabs = [];
-
-  if (currentSet) {
-    tabs.push({
-      label: "Current Set",
-      content: (
-        <div className={styles.tabCard}>
-          <RingStatsRow
-            completions={currentSet.completions}
-            flashes={currentSet.flashes}
-            points={currentSet.points}
-            totalRoutes={currentSet.totalRoutes}
-            maxPoints={currentSet.maxPoints}
-            size={72}
-          />
-          {hasChart && (
-            <>
-              <RouteChart
-                logs={logs}
-                routeIds={routeIds}
-                routeHasZone={routeHasZone}
-              />
-              <div className={styles.chartFooter}>
-                <span className={styles.footerLabel}>ZONE</span>
-              </div>
-            </>
-          )}
-        </div>
-      ),
-    });
-  }
-
-  tabs.push({
-    label: "All Time",
-    content: (
-      <div className={styles.tabCard}>
-        <RingStatsRow
-          completions={allTimeCompletions}
-          flashes={allTimeFlashes}
-          points={allTimePoints}
-          size={72}
-        />
-      </div>
-    ),
-  });
+  const flashRate = allTimeCompletions > 0 ? allTimeFlashes / allTimeCompletions : 0;
 
   return (
     <div className={styles.wrapper}>
-      {tabs.length === 1 ? (
+      {/* All Time — always visible at top */}
+      <div className={styles.allTimeCard}>
+        <div className={styles.allTimeHeader}>
+          <ActivityRings
+            rings={[{ value: flashRate, color: "var(--flash-solid)" }]}
+            size={56}
+          />
+          <div className={styles.allTimeStats}>
+            <div className={styles.allTimeStat}>
+              <span className={`${styles.allTimeValue} ${styles.accent}`}>{allTimeCompletions}</span>
+              <span className={styles.allTimeLabel}>SENDS</span>
+            </div>
+            <div className={styles.allTimeStat}>
+              <span className={`${styles.allTimeValue} ${styles.flash}`}>{allTimeFlashes}</span>
+              <span className={styles.allTimeLabel}>FLASHES</span>
+            </div>
+            <div className={styles.allTimeStat}>
+              <span className={`${styles.allTimeValue} ${styles.points}`}>{allTimePoints}</span>
+              <span className={styles.allTimeLabel}>POINTS</span>
+            </div>
+          </div>
+        </div>
+        <span className={styles.allTimeTag}>All Time</span>
+      </div>
+
+      {/* Current Set — only if active set exists */}
+      {currentSet && (
         <>
-          <span className={styles.tabLabel}>{tabs[0].label}</span>
-          {tabs[0].content}
+          <span className={styles.sectionLabel}>Current Set</span>
+          <div className={styles.currentSetCard}>
+            <RingStatsRow
+              completions={currentSet.completions}
+              flashes={currentSet.flashes}
+              points={currentSet.points}
+              totalRoutes={currentSet.totalRoutes}
+              maxPoints={currentSet.maxPoints}
+              size={72}
+            />
+            {hasChart && (
+              <>
+                <RouteChart
+                  logs={logs}
+                  routeIds={routeIds}
+                  routeHasZone={routeHasZone}
+                />
+                <div className={styles.chartFooter}>
+                  <span className={styles.footerLabel}>ZONE</span>
+                </div>
+              </>
+            )}
+          </div>
         </>
-      ) : (
-        <StatsTabs tabs={tabs} />
       )}
+
       {children}
     </div>
   );

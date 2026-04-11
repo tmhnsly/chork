@@ -9,7 +9,7 @@
   z-index: var(--z-overlay);
   animation: menuIn var(--duration-fast) var(--ease-out);
   box-shadow: var(--shadow-lg);
-  @include surface.glass(50%, var(--mono-bg));
+  @include surface.glass(65%, var(--mono-bg));
 }
 
 // ── Arrow indicator ───────────────────────────────
