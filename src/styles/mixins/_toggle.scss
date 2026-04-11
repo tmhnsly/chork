@@ -1,0 +1,39 @@
+// Shared switch toggle styles matching Radix Switch primitive.
+// Usage: @use 'mixins/toggle' as toggle;
+//   .mySwitch { @include toggle.root; }
+//   .myThumb  { @include toggle.thumb; }
+
+@mixin root {
+  width: 2.625rem;    // 42px
+  height: 1.5rem;     // 24px
+  border-radius: var(--radius-full);
+  background: var(--mono-border);
+  border: none;
+  padding: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--duration-fast) var(--ease-out);
+
+  &[data-state="checked"] {
+    background: var(--accent-solid);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+@mixin thumb {
+  display: block;
+  width: 1.25rem;     // 20px
+  height: 1.25rem;    // 20px
+  border-radius: var(--radius-full);
+  background: var(--toggle-thumb);
+  transition: transform var(--duration-fast) var(--ease-out);
+  will-change: transform;
+
+  &[data-state="checked"] {
+    transform: translateX(1.125rem); // 18px
+  }
+}

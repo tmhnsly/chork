@@ -138,6 +138,29 @@ export async function toggleZone(
   }
 }
 
+export async function updateGradeVote(
+  routeId: string,
+  gradeVote: number | null,
+  logId: string
+): Promise<LogResult> {
+  if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
+  if (typeof logId !== "string" || !logId) return { error: "Invalid log" };
+  if (gradeVote !== null && (!Number.isInteger(gradeVote) || gradeVote < 0 || gradeVote > 10)) {
+    return { error: "Invalid grade" };
+  }
+
+  const auth = await requireAuth();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase, userId } = auth;
+
+  try {
+    const log = await upsertRouteLog(supabase, userId, routeId, { grade_vote: gradeVote }, logId);
+    return { success: true, log };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
+
 export async function postComment(
   routeId: string,
   body: string

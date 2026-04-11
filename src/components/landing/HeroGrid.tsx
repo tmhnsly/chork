@@ -3,42 +3,38 @@
 import { useState, useEffect } from "react";
 import { DemoTile } from "./DemoTile";
 import type { DemoTileState } from "./DemoTile";
+import { scatteredOrder } from "@/lib/stagger";
 import styles from "./heroGrid.module.scss";
 
 type TileSet = DemoTileState[];
 
 /**
- * Multiple session snapshots to cycle through.
- * Each array is 12 tiles (4 columns × 3 rows).
+ * Session snapshots — 15 tiles (5 columns × 3 rows) to match the send grid.
  */
 const SESSIONS: TileSet[] = [
   // Session A — early session
   [
-    "flash",     "completed", "attempted", "empty",
-    "completed", "empty",     "completed", "attempted",
-    "attempted", "completed", "empty",     "empty",
+    "flash",     "completed", "attempted", "empty",     "completed",
+    "empty",     "completed", "attempted", "completed", "empty",
+    "attempted", "completed", "empty",     "empty",     "attempted",
   ],
   // Session B — mid session
   [
-    "completed", "completed", "flash",     "attempted",
-    "attempted", "completed", "attempted", "completed",
-    "flash",     "empty",     "completed", "empty",
+    "completed", "completed", "flash",     "attempted", "completed",
+    "attempted", "completed", "attempted", "completed", "flash",
+    "flash",     "empty",     "completed", "empty",     "completed",
   ],
   // Session C — strong session
   [
-    "flash",     "completed", "completed", "completed",
-    "completed", "attempted", "flash",     "completed",
-    "completed", "flash",     "attempted", "completed",
+    "flash",     "completed", "completed", "completed", "flash",
+    "completed", "attempted", "flash",     "completed", "completed",
+    "completed", "flash",     "attempted", "completed", "completed",
   ],
 ];
 
-const TILE_COUNT = 12;
+const TILE_COUNT = 15;
 const CYCLE_DURATION = 10000;
-
-// Fixed scattered order — feels random but is deterministic (no hydration mismatch).
-// Maps tile index → entrance position in stagger sequence.
-const ENTRANCE_ORDER = [3, 8, 1, 10, 6, 0, 11, 4, 9, 2, 7, 5];
-const ENTRANCE_STAGGER = 50; // ms between each tile
+const ENTRANCE_ORDER = scatteredOrder(TILE_COUNT);
 
 export function HeroGrid() {
   const [sessionIndex, setSessionIndex] = useState(0);

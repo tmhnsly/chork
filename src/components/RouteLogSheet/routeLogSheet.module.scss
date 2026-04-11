@@ -1,6 +1,7 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
 @use "mixins/surfaces" as surface;
+@use "mixins/input" as input;
 
 // ── Overlay ────────────────────────────────────────
 .overlay {
@@ -16,22 +17,20 @@
 }
 
 // ── Sheet content ─────────────────────────────────
-// Two-zone layout: controls pinned at top, beta section scrolls below.
 .content {
-  @include surface.card;
+  @include surface.glass(75%);
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   z-index: var(--z-overlay);
-  border-radius: var(--radius-3) var(--radius-3) 0 0;
-  padding: var(--space-3) var(--gutter-x) calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
-  height: 90svh;
-  overflow: hidden;
-  outline: none; // prevent browser focus ring on dialog content
+  border-radius: var(--radius-4) var(--radius-4) 0 0;
+  padding: 0 var(--gutter-x) calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
+  max-height: 90svh;
+  overflow-y: auto;
+  outline: none;
   animation: slideUp var(--duration-normal) var(--ease-out);
 }
 
@@ -46,18 +45,19 @@
   }
 }
 
-// ── Handle button (drag or tap to close) ──────────
+// ── Handle ─────────────────────────────────────────
 .handleBtn {
   display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
-  min-height: 32px;
+  min-height: var(--space-8);
   padding: var(--space-2) 0;
   border: none;
   background: transparent;
   cursor: grab;
   touch-action: none;
+  flex-shrink: 0;
 
   &:active {
     cursor: grabbing;
@@ -78,21 +78,22 @@
   }
 }
 
-// ── Drag state ────────────────────────────────────
 .dragging {
   animation: none !important;
   transition: none !important;
   transform: translateY(var(--drag-y, 0));
 }
 
-// ── Header ──────────────────────────────────────────
+// ── Header (hero) ──────────────────────────────────
 .header {
-  @include layout.stack(var(--space-1));
   text-align: center;
+  padding: var(--space-2) 0 var(--space-4);
+  flex-shrink: 0;
 }
 
 .routeNumber {
   @include type.typography(display);
+  font-size: var(--text-5xl);
   color: var(--accent-text);
   display: inline-flex;
   align-items: center;
@@ -101,37 +102,30 @@
 }
 
 .flashIcon {
-  color: var(--flash-text-low-contrast);
-  font-size: 0.7em;
-}
-
-.gradeRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: 1lh;
+  color: var(--flash-solid);
+  font-size: 0.6em;
 }
 
 .communityGrade {
   @include type.typography(meta);
+  display: block;
   color: var(--accent-text-low-contrast);
 }
 
 .userGrade {
   @include type.typography(meta);
+  display: block;
   color: var(--mono-text-low-contrast);
-
-  &::before {
-    content: "·";
-    margin-right: var(--space-2);
-  }
 }
 
-
-// ── Counter ─────────────────────────────────────────
+// ── Attempt counter (hero centrepiece) ─────────────
 .counter {
-  @include layout.stack(var(--space-2));
+  display: flex;
+  flex-direction: column;
   align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+  flex-shrink: 0;
 }
 
 .counterLabel {
@@ -142,13 +136,7 @@
 .counterControls {
   display: flex;
   align-items: center;
-  gap: var(--space-4);
-}
-
-.counterControlsHidden {
-  .counterBtn {
-    visibility: hidden;
-  }
+  gap: var(--space-5);
 }
 
 .counterBtn {
@@ -170,21 +158,50 @@
   }
 
   &:disabled {
-    opacity: 0.4;
+    opacity: 0.35;
     cursor: not-allowed;
   }
 }
 
 .counterValue {
   @include type.typography(number);
+  font-size: var(--text-4xl);
   min-width: 2ch;
   text-align: center;
 }
 
 .pointsPreview {
   @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  min-height: 1lh;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.ptsArrow {
+  font-size: 0.7em;
   color: var(--accent-text-low-contrast);
-  min-height: 1lh; // reserve space so content doesn't jump when text appears
+}
+
+.ptsValue {
+  @include type.typography(label);
+  color: var(--accent-text);
+}
+
+.ptsValueFlash {
+  color: var(--flash-text-low-contrast);
+}
+
+.ptsFlash {
+  color: var(--flash-solid);
+  font-size: 0.85em;
+}
+
+.ptsZone {
+  @include type.typography(label);
+  font-size: var(--text-xs);
+  color: var(--accent-text-low-contrast);
 }
 
 .pointsEarned {
@@ -192,109 +209,77 @@
   color: var(--accent-text-low-contrast);
 }
 
-// ── Zone toggle ────────────────────────────────────
-.zoneRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  min-height: var(--size-touch-target);
-  width: 100%;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--mono-border);
-  background: var(--mono-subtle-bg);
-  transition:
-    background var(--duration-fast) var(--ease-out),
-    border-color var(--duration-fast) var(--ease-out);
-}
-
-.zoneRowOn {
-  background: var(--accent-subtle-bg);
-  border-color: var(--accent-border-hover);
-}
-
-.zoneIcon {
-  font-size: var(--text-lg);
-  color: inherit;
-
-  .zoneRowOn & {
-    color: var(--accent-solid-hover);
-  }
-}
-
-.zoneLabel {
-  @include type.typography(label);
-  flex: 1;
-
-  .zoneRowOn & {
-    color: var(--accent-text-low-contrast);
-  }
-}
-
-.zoneSwitch {
-  width: 42px;
-  height: 24px;
-  border-radius: var(--radius-full);
-  background: var(--mono-border);
-  border: none;
-  padding: 2px;
-  cursor: pointer;
-  transition: background var(--duration-fast) var(--ease-out);
-
-  &[data-state="checked"] {
-    background: var(--accent-solid);
-  }
-
-  &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
-
-.zoneSwitchThumb {
-  display: block;
-  width: 20px;
-  height: 20px;
-  border-radius: var(--radius-full);
-  background: var(--mono-text);
-  transition: transform var(--duration-fast) var(--ease-out);
-  will-change: transform;
-
-  &[data-state="checked"] {
-    transform: translateX(18px);
-  }
-}
-
-// ── Completed actions ──────────────────────────────
-.completedActions {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-}
-
-// ── Beta spray ──────────────────────────────────────
-// Takes all remaining space in the sheet, scrolls independently
-// so the controls above stay pinned and accessible.
-.betaSection {
-  @include layout.stack(var(--space-3));
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--surface-divider);
-  flex: 1;
-  min-height: 0;
+// ── Secondary controls ─────────────────────────────
+.controls {
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  flex-shrink: 0;
 }
 
-.betaScroll {
-  flex: 1;
-  overflow-y: auto;
-  min-height: 0;
-}
-
-.betaHeader {
+// ── Completed state ────────────────────────────────
+.completedRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  padding: 0 var(--space-2);
+}
+
+.completedBadge {
+  @include type.typography(label);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--accent-text-low-contrast);
+}
+
+.completedFlash {
+  color: var(--flash-text-low-contrast);
+
+  .completedIcon {
+    color: var(--flash-solid);
+  }
+}
+
+.completedIcon {
+  font-size: var(--text-sm);
+}
+
+// ── Beta spray (collapsible) ───────────────────────
+.betaSection {
+  border-top: 1px solid var(--mono-border-subtle);
+  flex-shrink: 0;
+}
+
+.betaToggleBtn {
+  @include type.typography(label);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: var(--size-touch-target);
+  padding: var(--space-2) 0;
+  border: none;
+  background: transparent;
+  color: var(--mono-text-low-contrast);
+  cursor: pointer;
+}
+
+.betaChevron {
+  font-size: var(--text-xs);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.betaChevronOpen {
+  transform: rotate(180deg);
+}
+
+.betaContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-bottom: var(--space-4);
 }
 
 .sectionLabel {
@@ -302,16 +287,11 @@
   color: var(--mono-text-low-contrast);
 }
 
-.commentCount {
-  @include type.typography(meta);
-  color: var(--mono-text-low-contrast);
-}
-
-.betaToggle {
+.revealBtn {
   @include type.typography(button);
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
   min-height: var(--size-touch-target);
   padding: 0 var(--space-3);
   border: none;
@@ -319,16 +299,9 @@
   background: transparent;
   color: var(--accent-text-low-contrast);
   cursor: pointer;
-
-  &:hover {
-    color: var(--accent-text-low-contrast);
-  }
 }
 
 .betaBlurred {
-  // Reduced opacity + small blur makes shapes visible but text unreadable.
-  // The blur radius is kept small (3px) to minimise clipping from the
-  // scroll container's overflow. Opacity does the heavy lifting.
   opacity: 0.4;
   filter: blur(3px);
   user-select: none;
@@ -340,7 +313,13 @@
   color: var(--mono-text-low-contrast);
 }
 
-// ── Comment list (Instagram-style) ─────────────────
+.betaPostHint {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  opacity: 0.6;
+}
+
+// ── Comment list ───────────────────────────────────
 .commentList {
   @include layout.stack(var(--space-4));
   list-style: none;
@@ -349,7 +328,7 @@
 }
 
 .commentItem {
-  // wrapper only
+  // wrapper
 }
 
 .commentRow {
@@ -361,25 +340,23 @@
 .avatarLink {
   flex-shrink: 0;
   display: block;
-  padding-top: var(--space-1); // align with first line of text
+  padding-top: var(--space-1);
 }
 
 .commentAvatar {
-  width: 32px;
-  height: 32px;
+  width: var(--space-8);
+  height: var(--space-8);
   border-radius: var(--radius-full);
   object-fit: cover;
-  flex-shrink: 0;
 }
-
 
 .commentAvatarFallback {
   @include type.typography(meta);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: var(--space-8);
+  height: var(--space-8);
   border-radius: var(--radius-full);
   background: var(--mono-subtle-bg);
   color: var(--mono-text-low-contrast);
@@ -405,6 +382,7 @@
 
 .commentBody {
   @include type.typography(body);
+  font-size: var(--text-sm);
   color: var(--mono-text);
 }
 
@@ -413,7 +391,6 @@
   color: var(--mono-text-low-contrast);
 }
 
-// Heart / pen icon — right side of row
 .actionBtn {
   display: flex;
   align-items: center;
@@ -425,18 +402,12 @@
   background: transparent;
   color: var(--mono-text-low-contrast);
   cursor: pointer;
-  font-size: var(--text-base);
   flex-shrink: 0;
   transition: color var(--duration-fast) var(--ease-out);
 
   &:hover {
     color: var(--accent-text-low-contrast);
   }
-}
-
-.actionBtnSpacer {
-  min-width: var(--size-touch-target);
-  flex-shrink: 0;
 }
 
 .likeBtnActive {
@@ -461,6 +432,7 @@
   width: var(--size-touch-target);
   min-height: var(--size-touch-target);
   border: none;
+  border-radius: var(--radius-1);
   cursor: pointer;
 }
 
@@ -485,6 +457,7 @@
   min-height: var(--size-touch-target);
   width: 100%;
   border: 1px solid var(--mono-border);
+  border-radius: var(--radius-2);
   background: transparent;
   color: var(--mono-text-low-contrast);
   cursor: pointer;
@@ -495,34 +468,15 @@
   }
 }
 
-.commentBody {
-  @include type.typography(body);
-  color: var(--mono-text);
-}
-
 .commentForm {
   display: flex;
   gap: var(--space-2);
 }
 
 .commentInput {
-  @include type.typography(body);
+  @include input.field;
+  font-size: var(--text-sm);
   flex: 1;
-  min-height: var(--size-touch-target);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--mono-border);
-  background: var(--mono-subtle-bg);
-  color: var(--mono-text);
-  outline: none;
-  transition: border-color var(--duration-fast) var(--ease-out);
-
-  &::placeholder {
-    color: var(--mono-text-low-contrast);
-  }
-
-  &:focus {
-    border-color: var(--accent-border-hover);
-  }
 }
 
 .commentSubmit {
@@ -532,6 +486,7 @@
   width: var(--size-touch-target);
   min-height: var(--size-touch-target);
   border: none;
+  border-radius: var(--radius-2);
   background: var(--accent-solid);
   color: var(--accent-on-solid);
   cursor: pointer;
@@ -540,29 +495,6 @@
   &:disabled {
     opacity: 0.4;
     cursor: not-allowed;
-  }
-}
-
-.betaPostHint {
-  @include type.typography(meta);
-  color: var(--mono-text-low-contrast);
-  opacity: 0.6;
-}
-
-// ── Close button ────────────────────────────────────
-.closeBtn {
-  @include type.typography(button);
-  min-height: var(--size-touch-target);
-  width: 100%;
-  border-radius: var(--radius-2);
-  border: 1px solid var(--mono-border);
-  background: transparent;
-  color: var(--mono-text-low-contrast);
-  cursor: pointer;
-  transition: background var(--duration-fast) var(--ease-out);
-
-  &:hover {
-    background: var(--mono-bg-hover);
   }
 }
 

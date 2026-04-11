@@ -7,19 +7,8 @@
   gap: var(--space-4);
 }
 
-.header {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
 .title {
   @include type.typography(display);
-}
-
-.resetDate {
-  @include type.typography(meta);
-  color: var(--mono-text-low-contrast);
 }
 
 // ── Route tile grid ────────────────────────────────

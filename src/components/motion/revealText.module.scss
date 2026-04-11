@@ -1,8 +1,9 @@
 .wordClip {
   display: inline-block;
-  overflow: hidden;
   vertical-align: bottom;
-  padding: 0 0.05em; // breathing room for italic glyph overhang
+  // Clip only the bottom edge where the slide-up animation enters from.
+  // Top/left/right are fully unclipped so italic glyph overhang is never cut.
+  clip-path: inset(-100% -100% 0 -100%);
 }
 
 .word {

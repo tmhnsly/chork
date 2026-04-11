@@ -1,4 +1,4 @@
-// Surface mixins — solid card and chrome backgrounds.
+// Surface mixins — solid card, chrome, and glass backgrounds.
 // Usage: @use 'mixins/surfaces' as surface;
 
 // ── Card ────────────────────────────────────────────
@@ -9,8 +9,21 @@
 }
 
 // ── Chrome ──────────────────────────────────────────
-// Solid chrome for sticky UI (navbar, popovers, dropdowns).
+// Solid chrome for sticky UI when glass is not needed.
 @mixin chrome {
   background-color: var(--mono-subtle-bg);
   border-bottom: 1px solid var(--mono-border-subtle);
+}
+
+// ── Glass ───────────────────────────────────────────
+// Translucent panel using our Radix mono palette.
+// backdrop-filter is progressive enhancement — the translucent
+// background looks good on its own without blur.
+//
+// $opacity: 0–100, how much of --mono-subtle-bg shows through.
+@mixin glass($opacity: 70%) {
+  background: color-mix(in srgb, var(--mono-subtle-bg) $opacity, transparent);
+  border: 1px solid var(--mono-border-subtle);
+  -webkit-backdrop-filter: blur(1.5rem) saturate(1.8);
+  backdrop-filter: blur(1.5rem) saturate(1.8);
 }

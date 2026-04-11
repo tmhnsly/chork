@@ -1,0 +1,106 @@
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+@use "mixins/toggle" as toggle;
+
+.panel {
+  @include surface.card;
+  border-radius: var(--radius-2);
+  overflow: hidden; // contain chip scroll within rounded corners
+}
+
+// ── Toggle row (has padding) ──────────────────────
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3);
+}
+
+.toggleLabel {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.toggle {
+  @include toggle.root;
+}
+
+.toggleThumb {
+  @include toggle.thumb;
+}
+
+// ── Grade picker (expandable) ─────────────────────
+.gradeSection {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--duration-normal) var(--ease-out);
+  overflow: hidden;
+
+  > * {
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
+.gradeSectionVisible {
+  grid-template-rows: 1fr;
+}
+
+// ── Grade chips row (scrolls edge-to-edge) ────────
+.gradeRow {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3) var(--space-3);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.gradeChip {
+  @include type.typography(label);
+  flex-shrink: 0;
+  min-width: var(--size-touch-target);
+  min-height: var(--size-touch-target);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--mono-border);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--mono-text-low-contrast);
+  cursor: pointer;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+
+  &:hover:not(:disabled) {
+    background: var(--mono-bg-hover);
+    border-color: var(--mono-border-hover);
+    color: var(--mono-text);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.gradeChipSelected {
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
+  color: var(--accent-on-solid);
+
+  &:hover:not(:disabled) {
+    background: var(--accent-solid-hover);
+    border-color: var(--accent-solid-hover);
+    color: var(--accent-on-solid);
+  }
+}

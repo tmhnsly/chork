@@ -17,8 +17,8 @@ export default async function LeaderboardPage() {
 
   return (
     <main className={styles.page}>
-      <PageTitle text="Leaderboard" className={styles.title} />
-      <p className={styles.placeholder}>Leaderboard coming soon</p>
+      <PageTitle text="The Board" className={styles.title} />
+      <p className={styles.placeholder}>Coming soon</p>
     </main>
   );
 }

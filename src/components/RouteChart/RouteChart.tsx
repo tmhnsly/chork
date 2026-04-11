@@ -54,7 +54,6 @@ export function RouteChart({ logs, routeIds, routeHasZone }: Props) {
           );
         })}
       </div>
-      <span className={styles.dotLabel}>ZONES</span>
     </div>
   );
 }

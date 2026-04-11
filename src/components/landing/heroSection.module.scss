@@ -5,26 +5,41 @@
 .hero {
   position: relative;
   background: var(--mono-app-bg);
+
+  // Parallax: hero scrolls out slower than the content below.
+  // The wrapper is taller than its content, and the inner sticks
+  // to the top — as the user scrolls past, the hero stays visible
+  // longer, creating a subtle depth effect.
+  min-height: 120vh;
+  display: flex;
+  align-items: flex-start;
+
+  @media (prefers-reduced-motion: reduce) {
+    min-height: auto;
+  }
 }
 
 .inner {
   @include layout.stack(var(--space-8));
+  position: sticky;
+  top: 0;
+  width: 100%;
   max-width: var(--content-md);
   margin: 0 auto;
-  padding: calc(var(--navbar-height) + var(--space-8)) var(--gutter-x) 0;
+  padding: calc(var(--navbar-height) + var(--space-8)) var(--gutter-x) var(--space-8);
+
+  @media (prefers-reduced-motion: reduce) {
+    position: relative;
+  }
 }
 
 // ── Visual (grid) ─────────────────────────────────
-// Show exactly 2.5 rows of a 4-column square-tile grid.
-// A 4-col grid of square tiles: each row height ≈ 25% of grid width.
-// 2.5 rows + 2 full gaps + half gap = aspect-ratio approach.
-// We clip here so it works at every breakpoint without viewport tricks.
+// Show 2.5 rows of a 5-column square-tile grid, clipped.
+// 5 cols of 1:1 tiles → row height ≈ 20% of width.
+// 2.5 rows ≈ 50% + gaps → aspect-ratio 2:1 clips nicely.
 .visual {
   overflow: hidden;
-  // 4 cols of 1:1 tiles → row height = (width - 3 gaps) / 4
-  // 2.5 rows ≈ 62.5% of width (plus gaps).
-  // aspect-ratio 8:5 = 1.6:1 gives ~2.5 rows reliably.
-  aspect-ratio: 8 / 5;
+  aspect-ratio: 2 / 1;
 }
 
 // ── Typography ─────────────────────────────────────

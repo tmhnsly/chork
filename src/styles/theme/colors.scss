@@ -155,6 +155,8 @@
 
   /* ── Aliases ───────────────────────────────────────── */
   --focus-ring: var(--lime-8);                /* Step 8: Focus ring = accent border-hover */
+  --toggle-thumb: #fff;                       /* Toggle thumb — always white for contrast */
+  --surface-divider: var(--mono-border-subtle);
 
   --app-bg: var(--mono-app-bg);
   --app-text: var(--mono-text);

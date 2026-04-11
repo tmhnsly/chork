@@ -7,6 +7,7 @@ import {
   useState,
   useCallback,
   useMemo,
+  useRef,
   type ReactNode,
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
@@ -31,6 +32,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const supabase = useMemo(() => createBrowserSupabase(), []);
+  const profileRef = useRef(profile);
+  useEffect(() => { profileRef.current = profile; }, [profile]);
 
   const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     const { data, error } = await supabase
@@ -67,6 +70,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const p = await fetchProfile(session.user.id);
           setProfile(p);
           router.refresh();
+        } else if (event === "TOKEN_REFRESHED" && session?.user) {
+          // Token was silently refreshed — ensure profile is still set
+          if (!profileRef.current) {
+            const p = await fetchProfile(session.user.id);
+            setProfile(p);
+          }
         } else if (event === "SIGNED_OUT") {
           setProfile(null);
           setIsLoading(false);

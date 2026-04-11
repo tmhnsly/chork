@@ -1,37 +1,22 @@
 @use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
 
-.trigger {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--size-touch-target);
-  height: var(--size-touch-target);
-  border: none;
-  background: transparent;
-  color: var(--mono-text-low-contrast);
-  cursor: pointer;
-  border-radius: var(--radius-2);
-  transition: color var(--duration-fast) var(--ease-out);
-
-  &:hover {
-    color: var(--mono-text);
-  }
-}
-
+// ── Panel ─────────────────────────────────────────
 .content {
   min-width: 12rem;
-  padding: var(--space-1) 0;
   border-radius: var(--radius-3);
-  border: 1px solid var(--mono-border-subtle);
+  overflow: hidden;
   z-index: var(--z-overlay);
   animation: menuIn var(--duration-fast) var(--ease-out);
-
-  // Glassmorphism panel
-  background: color-mix(in srgb, var(--mono-subtle-bg) 80%, transparent);
-  backdrop-filter: blur(1.5rem) saturate(1.5);
-  -webkit-backdrop-filter: blur(1.5rem) saturate(1.5);
+  @include surface.glass(65%);
 }
 
+// ── Arrow indicator ───────────────────────────────
+.arrow {
+  fill: var(--mono-subtle-bg);
+}
+
+// ── Item ──────────────────────────────────────────
 .item {
   @include type.typography(body);
   font-size: var(--text-sm);
@@ -40,12 +25,14 @@
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
   min-height: var(--size-touch-target);
+  width: 100%;
   border: none;
   background: transparent;
   color: var(--mono-text);
   cursor: pointer;
   text-decoration: none;
   outline: none;
+  transition: background var(--duration-fast) var(--ease-out);
 
   &:hover,
   &[data-highlighted] {
@@ -53,34 +40,48 @@
   }
 }
 
+// ── Item icon ─────────────────────────────────────
 .itemIcon {
+  display: flex;
   font-size: var(--text-sm);
   color: var(--mono-text-low-contrast);
   flex-shrink: 0;
+
+  // Inherit colour from variant parents
+  .item--warning &,
+  .item--danger & {
+    color: inherit;
+  }
 }
 
-.itemWarning {
+// ── Variants ──────────────────────────────────────
+.item--warning {
   color: var(--flash-text-low-contrast);
 
-  .itemIcon {
-    color: inherit;
+  &:hover,
+  &[data-highlighted] {
+    background: color-mix(in srgb, var(--flash-subtle-bg) 50%, transparent);
+    color: var(--flash-text);
   }
 }
 
-.itemDanger {
+.item--danger {
   color: var(--error-text-low-contrast);
 
-  .itemIcon {
-    color: inherit;
+  &:hover,
+  &[data-highlighted] {
+    background: color-mix(in srgb, var(--error-subtle-bg) 50%, transparent);
+    color: var(--error-text);
   }
 }
 
+// ── Separator ─────────────────────────────────────
 .separator {
   height: 1px;
   background: var(--mono-border-subtle);
-  margin: var(--space-1) 0;
 }
 
+// ── Animation ─────────────────────────────────────
 @keyframes menuIn {
   from {
     opacity: 0;

@@ -48,7 +48,7 @@ export function SendGrid({ set, routes, initialLogs }: Props) {
 
   const endsAt = format(parseISO(set.ends_at), "MMM d");
 
-  function handleLogUpdate(routeId: string, updatedLog: RouteLog) {
+  const handleLogUpdate = useCallback((routeId: string, updatedLog: RouteLog) => {
     setLogs((prev) => {
       const idx = prev.findIndex((l) => l.route_id === routeId);
       if (idx >= 0) {
@@ -58,15 +58,12 @@ export function SendGrid({ set, routes, initialLogs }: Props) {
       }
       return [...prev, updatedLog];
     });
-  }
+  }, []);
 
   return (
     <>
       <div className={styles.page}>
-        <div className={styles.header}>
-          <RevealText text="Send Grid" as="h2" className={styles.title} />
-          <span className={styles.resetDate}>Resets {endsAt}</span>
-        </div>
+        <RevealText text="Send Grid" as="h2" className={styles.title} />
 
         <StatsWidget
           completions={completedCount}
@@ -76,6 +73,7 @@ export function SendGrid({ set, routes, initialLogs }: Props) {
           logs={logByRoute}
           routeIds={routes.map((r) => r.id)}
           routeHasZone={routes.map((r) => r.has_zone)}
+          resetDate={endsAt}
         />
 
         <footer className={styles.legend}>

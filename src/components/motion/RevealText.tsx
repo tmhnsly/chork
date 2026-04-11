@@ -20,14 +20,16 @@ export function RevealText({ text, className, as: Tag = "h1", delay = 0 }: Props
   return (
     <Tag className={className}>
       {words.map((word, i) => (
-        <span key={i} className={styles.wordClip}>
-          <span
-            className={styles.word}
-            style={{ "--i": i, "--delay": `${delay}s` } as React.CSSProperties}
-          >
-            {word}
+        <span key={i}>
+          <span className={styles.wordClip}>
+            <span
+              className={styles.word}
+              style={{ "--i": i, "--delay": `${delay}s` } as React.CSSProperties}
+            >
+              {word}
+            </span>
           </span>
-          {i < words.length - 1 && "\u00A0"}
+          {i < words.length - 1 && " "}
         </span>
       ))}
     </Tag>

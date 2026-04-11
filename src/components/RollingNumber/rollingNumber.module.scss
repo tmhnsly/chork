@@ -1,8 +1,9 @@
 .container {
   display: inline-flex;
-  overflow: hidden;
   vertical-align: baseline;
-  padding: 0 0.15em; // breathing room for italic glyphs
+  // Clip top/bottom for the slide animation, leave sides unclipped
+  // so italic glyph overhang is never cut off
+  clip-path: inset(-10% -100% -10% -100%);
 }
 
 .number {

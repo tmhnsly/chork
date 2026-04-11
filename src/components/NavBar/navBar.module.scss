@@ -1,5 +1,6 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
+@use "mixins/surfaces" as surface;
 @use "mixins/breakpoints" as bp;
 
 // ── Unauthenticated top bar ───────────────────────
@@ -72,13 +73,8 @@
   height: var(--navbar-height);
   padding: 0 var(--space-2);
   border-radius: var(--radius-full);
-  border: 1px solid var(--mono-border-subtle);
   pointer-events: auto;
-
-  // Glassmorphism
-  background: color-mix(in srgb, var(--mono-subtle-bg) 70%, transparent);
-  backdrop-filter: blur(1.5rem) saturate(1.5);
-  -webkit-backdrop-filter: blur(1.5rem) saturate(1.5);
+  @include surface.glass(70%);
 }
 
 // ── Brand ─────────────────────────────────────────

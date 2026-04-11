@@ -1,0 +1,27 @@
+// Shared text input styles.
+// Usage: @use 'mixins/input' as input;
+//   .myInput { @include input.field; }
+
+@use "typography" as type;
+
+@mixin field {
+  @include type.typography(body);
+  width: 100%;
+  min-height: var(--size-touch-target);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--mono-border);
+  border-radius: var(--radius-2);
+  background: var(--mono-subtle-bg);
+  color: var(--mono-text);
+  outline: none;
+  transition: border-color var(--duration-fast) var(--ease-out);
+
+  &:focus {
+    border-color: var(--accent-solid);
+  }
+
+  &::placeholder {
+    color: var(--mono-text-low-contrast);
+    opacity: 0.5;
+  }
+}

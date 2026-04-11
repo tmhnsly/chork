@@ -2,6 +2,7 @@
 @use "mixins/surfaces" as surface;
 @use "mixins/layout" as layout;
 @use "mixins/container-queries" as cq;
+@use "mixins/input" as input;
 
 .page {
   display: flex;
@@ -95,18 +96,7 @@
 }
 
 .gymInput {
-  @include type.typography(body);
-  width: 100%;
-  min-height: var(--size-touch-target);
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--mono-border);
-  background: var(--mono-subtle-bg);
-  color: var(--mono-text);
-  outline: none;
-
-  &:focus {
-    border-color: var(--accent-solid);
-  }
+  @include input.field;
 }
 
 .gymList {

@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { FaGear, FaPen, FaRightFromBracket, FaTrash, FaShieldHalved } from "react-icons/fa6";
 import type { Profile } from "@/lib/data";
 import { getAvatarUrl } from "@/lib/avatar";
 import { useAuth } from "@/lib/auth-context";
 import { useUsernameValidation } from "@/hooks/use-username-validation";
 import { Button, InputError, showToast } from "@/components/ui";
 import { RevealText } from "@/components/motion";
-import { SettingsMenu } from "@/components/SettingsMenu/SettingsMenu";
+import { DropdownMenu } from "@/components/SettingsMenu/SettingsMenu";
 import { DeleteAccountDialog } from "@/components/SettingsMenu/DeleteAccountDialog";
 import { updateProfile } from "@/lib/user-actions";
 import styles from "./profileHeader.module.scss";
@@ -21,7 +22,7 @@ interface Props {
 
 export function ProfileHeader({ user, isOwnProfile }: Props) {
   const router = useRouter();
-  const { refreshProfile } = useAuth();
+  const { refreshProfile, signOut } = useAuth();
   const usernameValidation = useUsernameValidation(user.username);
 
   const [editing, setEditing] = useState(false);
@@ -91,9 +92,26 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
       <header className={styles.header}>
         {isOwnProfile && (
           <div className={styles.settingsRow}>
-            <SettingsMenu
-              onEditProfile={() => setEditing(true)}
-              onDeleteAccount={() => setShowDeleteDialog(true)}
+            <DropdownMenu
+              trigger={
+                <button className={styles.settingsTrigger} aria-label="Settings">
+                  <FaGear />
+                </button>
+              }
+              groups={[
+                {
+                  items: [
+                    { label: "Edit profile", icon: <FaPen />, onSelect: () => setEditing(true) },
+                    { label: "Privacy policy", icon: <FaShieldHalved />, href: "/privacy" },
+                  ],
+                },
+                {
+                  items: [
+                    { label: "Sign out", icon: <FaRightFromBracket />, variant: "warning", onSelect: signOut },
+                    { label: "Delete account", icon: <FaTrash />, variant: "danger", onSelect: () => setShowDeleteDialog(true) },
+                  ],
+                },
+              ]}
             />
           </div>
         )}

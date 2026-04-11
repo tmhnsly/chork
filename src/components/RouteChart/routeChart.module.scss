@@ -62,8 +62,3 @@
   background: var(--flash-solid);
 }
 
-.dotLabel {
-  @include type.typography(label);
-  font-size: var(--text-xs);
-  color: var(--mono-text-low-contrast);
-}

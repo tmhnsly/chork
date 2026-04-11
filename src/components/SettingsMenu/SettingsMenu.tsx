@@ -1,54 +1,90 @@
 "use client";
 
-import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
-import Link from "next/link";
-import { FaGear, FaPen, FaRightFromBracket, FaTrash, FaShieldHalved } from "react-icons/fa6";
-import { useAuth } from "@/lib/auth-context";
+import { type ReactNode } from "react";
+import * as Primitive from "@radix-ui/react-dropdown-menu";
 import styles from "./settingsMenu.module.scss";
 
-interface Props {
-  onEditProfile: () => void;
-  onDeleteAccount: () => void;
+// ── Types ─────────────────────────────────────────
+
+type MenuVariant = "default" | "warning" | "danger";
+
+interface MenuItem {
+  label: string;
+  icon?: ReactNode;
+  variant?: MenuVariant;
+  onSelect?: () => void;
+  /** Render as a link instead of a button */
+  href?: string;
 }
 
-export function SettingsMenu({ onEditProfile, onDeleteAccount }: Props) {
-  const { signOut } = useAuth();
+interface MenuGroup {
+  items: MenuItem[];
+}
 
+interface Props {
+  /** The trigger element — rendered via asChild */
+  trigger: ReactNode;
+  /** Menu item groups, separated by dividers */
+  groups: MenuGroup[];
+  /** Alignment relative to trigger */
+  align?: "start" | "center" | "end";
+  /** Offset from trigger in px */
+  sideOffset?: number;
+}
+
+// ── Component ─────────────────────────────────────
+
+export function DropdownMenu({ trigger, groups, align = "end", sideOffset = 8 }: Props) {
   return (
-    <DropdownMenu.Root>
-      <DropdownMenu.Trigger asChild>
-        <button className={styles.trigger} aria-label="Settings">
-          <FaGear />
-        </button>
-      </DropdownMenu.Trigger>
+    <Primitive.Root>
+      <Primitive.Trigger asChild>
+        {trigger}
+      </Primitive.Trigger>
 
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content className={styles.content} sideOffset={8} align="end">
-          <DropdownMenu.Item className={styles.item} onSelect={onEditProfile}>
-            <FaPen className={styles.itemIcon} />
-            Edit profile
-          </DropdownMenu.Item>
+      <Primitive.Portal>
+        <Primitive.Content
+          className={styles.content}
+          sideOffset={sideOffset}
+          align={align}
+        >
+          <Primitive.Arrow className={styles.arrow} width={12} height={6} />
 
-          <DropdownMenu.Item className={styles.item} asChild>
-            <Link href="/privacy">
-              <FaShieldHalved className={styles.itemIcon} />
-              Privacy policy
-            </Link>
-          </DropdownMenu.Item>
+          {groups.map((group, gi) => (
+            <div key={gi}>
+              {gi > 0 && <Primitive.Separator className={styles.separator} />}
+              {group.items.map((item) => {
+                const variant = item.variant ?? "default";
+                const cls = [
+                  styles.item,
+                  variant !== "default" ? styles[`item--${variant}`] : "",
+                ].filter(Boolean).join(" ");
 
-          <DropdownMenu.Separator className={styles.separator} />
+                if (item.href) {
+                  return (
+                    <Primitive.Item key={item.label} className={cls} asChild>
+                      <a href={item.href}>
+                        {item.icon && <span className={styles.itemIcon}>{item.icon}</span>}
+                        {item.label}
+                      </a>
+                    </Primitive.Item>
+                  );
+                }
 
-          <DropdownMenu.Item className={`${styles.item} ${styles.itemWarning}`} onSelect={signOut}>
-            <FaRightFromBracket className={styles.itemIcon} />
-            Sign out
-          </DropdownMenu.Item>
-
-          <DropdownMenu.Item className={`${styles.item} ${styles.itemDanger}`} onSelect={onDeleteAccount}>
-            <FaTrash className={styles.itemIcon} />
-            Delete account
-          </DropdownMenu.Item>
-        </DropdownMenu.Content>
-      </DropdownMenu.Portal>
-    </DropdownMenu.Root>
+                return (
+                  <Primitive.Item
+                    key={item.label}
+                    className={cls}
+                    onSelect={item.onSelect}
+                  >
+                    {item.icon && <span className={styles.itemIcon}>{item.icon}</span>}
+                    {item.label}
+                  </Primitive.Item>
+                );
+              })}
+            </div>
+          ))}
+        </Primitive.Content>
+      </Primitive.Portal>
+    </Primitive.Root>
   );
 }

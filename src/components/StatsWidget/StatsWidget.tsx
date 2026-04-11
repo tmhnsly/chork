@@ -11,6 +11,7 @@ interface Props {
   logs: Map<string, RouteLog>;
   routeIds: string[];
   routeHasZone: boolean[];
+  resetDate?: string;
 }
 
 export function StatsWidget({
@@ -21,6 +22,7 @@ export function StatsWidget({
   logs,
   routeIds,
   routeHasZone,
+  resetDate,
 }: Props) {
   const zoneRouteCount = routeHasZone.filter(Boolean).length;
   const completionRate = total > 0 ? completions / total : 0;
@@ -30,15 +32,6 @@ export function StatsWidget({
 
   return (
     <div className={styles.widget}>
-      {/* Chart area */}
-      <div className={styles.chartBlock}>
-        <RouteChart
-          logs={logs}
-          routeIds={routeIds}
-          routeHasZone={routeHasZone}
-        />
-      </div>
-
       {/* Rings + stats */}
       <div className={styles.ringSection}>
         <ActivityRings
@@ -70,6 +63,23 @@ export function StatsWidget({
             </span>
           </div>
         </div>
+      </div>
+
+      {/* Chart area */}
+      <div className={styles.chartBlock}>
+        <RouteChart
+          logs={logs}
+          routeIds={routeIds}
+          routeHasZone={routeHasZone}
+        />
+      </div>
+
+      {/* Footer row — ZONES left, resets right */}
+      <div className={styles.footerRow}>
+        <span className={styles.footerLabel}>ZONES</span>
+        {resetDate && (
+          <span className={styles.footerLabel}>RESETS {resetDate.toUpperCase()}</span>
+        )}
       </div>
     </div>
   );

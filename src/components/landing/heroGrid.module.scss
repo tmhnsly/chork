@@ -1,12 +1,12 @@
 .grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--space-2);
 }
 
 .cell {
   position: relative;
-  animation: cellGrow 0.35s var(--ease-out) both;
+  animation: cellGrow 0.35s var(--ease-out) backwards;
   animation-delay: calc(var(--entrance-i, 0) * 50ms);
 }
 
@@ -14,10 +14,6 @@
   from {
     opacity: 0;
     transform: scale(0);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
   }
 }
 
@@ -30,8 +26,8 @@
   position: absolute;
   inset: 0;
   animation: tileReveal 10s var(--ease-out) both;
-  // Wait for cell entrance (12 tiles × 50ms = 600ms) + per-tile stagger
-  animation-delay: calc(600ms + var(--reveal-i, 0) * 150ms);
+  // Wait for cell entrance (15 tiles × 50ms = 750ms) + per-tile stagger
+  animation-delay: calc(750ms + var(--reveal-i, 0) * 150ms);
 }
 
 @keyframes tileReveal {

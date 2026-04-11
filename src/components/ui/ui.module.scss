@@ -1,5 +1,6 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
+@use "mixins/input" as input;
 
 // ── Form field ──────────────────────────────────────
 .field {
@@ -12,24 +13,7 @@
 }
 
 .input {
-  @include type.typography(body);
-  min-height: var(--size-touch-target);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-2);
-  border: 1px solid var(--mono-border);
-  background: var(--mono-app-bg);
-  color: var(--mono-text);
-  outline: none;
-  transition: border-color var(--duration-fast) var(--ease-out);
-
-  &:focus {
-    border-color: var(--focus-ring);
-  }
-
-  &::placeholder {
-    color: var(--mono-text-low-contrast);
-    opacity: 0.5;
-  }
+  @include input.field;
 }
 
 .fieldError {
