@@ -1,12 +1,16 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
+@use "mixins/surfaces" as surface;
 
 .wrapper {
-  // Outer wrapper
+  @include layout.stack(var(--space-4));
 }
 
-.tabContent {
-  @include layout.stack(var(--space-3));
+// Each tab panel gets a card background
+.tabCard {
+  @include surface.card;
+  border-radius: var(--radius-3);
+  padding: var(--space-4);
 }
 
 .tabLabel {

@@ -30,15 +30,15 @@ export function ClimberStats({
     tabs.push({
       label: "Current Wall",
       content: (
-        <div className={styles.tabContent}>
+        <div className={styles.tabCard}>
           <RingStatsRow
             completions={currentSet.completions}
             flashes={currentSet.flashes}
             points={currentSet.points}
             totalRoutes={currentSet.totalRoutes}
             maxPoints={currentSet.maxPoints}
+            size={72}
           />
-          {children}
         </div>
       ),
     });
@@ -47,28 +47,29 @@ export function ClimberStats({
   tabs.push({
     label: "All Time",
     content: (
-      <div className={styles.tabContent}>
+      <div className={styles.tabCard}>
         <RingStatsRow
           completions={allTimeCompletions}
           flashes={allTimeFlashes}
           points={allTimePoints}
+          size={72}
         />
       </div>
     ),
   });
 
-  if (tabs.length === 1) {
-    return (
-      <div className={styles.wrapper}>
-        <span className={styles.tabLabel}>{tabs[0].label}</span>
-        {tabs[0].content}
-      </div>
-    );
-  }
-
+  // Grid is rendered separately via children, not inside tabs
   return (
     <div className={styles.wrapper}>
-      <StatsTabs tabs={tabs} />
+      {tabs.length === 1 ? (
+        <>
+          <span className={styles.tabLabel}>{tabs[0].label}</span>
+          {tabs[0].content}
+        </>
+      ) : (
+        <StatsTabs tabs={tabs} />
+      )}
+      {children}
     </div>
   );
 }

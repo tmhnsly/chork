@@ -4,40 +4,49 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  overflow: hidden;
 }
 
-// ── Tab bar ───────────────────────────────────────
+// ── Pill tab switcher ─────────────────────────────
 .tabBar {
   display: flex;
-  gap: var(--space-4);
+  gap: var(--space-1);
+  padding: var(--space-1);
+  background: var(--mono-bg);
+  border-radius: var(--radius-full);
+  align-self: flex-start;
 }
 
 .tabBtn {
   @include type.typography(label);
-  padding: 0;
+  font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-4);
+  min-height: var(--space-8);
   border: none;
   background: transparent;
-  color: var(--mono-solid);             // step 9 - inactive
+  color: var(--mono-text-low-contrast);
   cursor: pointer;
+  border-radius: var(--radius-full);
   -webkit-tap-highlight-color: transparent;
-  transition: color 0.1s var(--ease-out);
+  transition: all 0.1s var(--ease-out);
 
   &:hover {
-    color: var(--mono-text-low-contrast); // step 11
+    color: var(--mono-text);
   }
 }
 
 .tabBtnActive {
-  color: var(--accent-text);              // step 12 - clearly selected
+  background: var(--mono-subtle-bg);
+  color: var(--accent-text);
+  box-shadow: var(--shadow-sm);
 }
 
-// ── Swipeable track ───────────────────────────────
+// ── Swipeable panels ──────────────────────────────
 .track {
   display: flex;
   transition: transform var(--duration-normal) var(--ease-out);
   transform: translateX(calc(var(--active, 0) * -100%));
   touch-action: pan-y;
+  overflow: hidden;
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
@@ -47,4 +56,25 @@
 .panel {
   flex: 0 0 100%;
   min-width: 0;
+}
+
+// ── Dot indicators ────────────────────────────────
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-1);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--mono-border);
+  border: none;
+  padding: 0;
+  transition: background 0.1s var(--ease-out);
+}
+
+.dotActive {
+  background: var(--accent-solid);
 }

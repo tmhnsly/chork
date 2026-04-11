@@ -41,7 +41,7 @@ export function StatsTabs({ tabs }: Props) {
 
   return (
     <div className={styles.container}>
-      {/* Tab labels */}
+      {/* Pill tab switcher */}
       <div className={styles.tabBar}>
         {tabs.map((tab, i) => (
           <button
@@ -68,6 +68,15 @@ export function StatsTabs({ tabs }: Props) {
           </div>
         ))}
       </div>
+
+      {/* Dot indicators */}
+      {tabs.length > 1 && (
+        <div className={styles.dots}>
+          {tabs.map((_, i) => (
+            <div key={i} className={`${styles.dot} ${i === activeIndex ? styles.dotActive : ""}`} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

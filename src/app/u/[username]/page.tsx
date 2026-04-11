@@ -152,12 +152,14 @@ export default async function UserProfilePage({ params }: Props) {
     })
     .filter(Boolean);
 
+  const logByRoute = new Map(miniLogs.map((l) => [l.route_id, l]));
+
   return (
     <main className={styles.page}>
       {/* Header: handle + name left, avatar + settings right */}
       <ProfileHeader user={profileUser} isOwnProfile={isOwnProfile} />
 
-      {/* Stats: swipeable Current Set / All Time */}
+      {/* Stats: swipeable Current Wall / All Time */}
       <ClimberStats
         currentSet={currentSetStats}
         allTimeCompletions={allTimeStats.completions}
@@ -165,7 +167,37 @@ export default async function UserProfilePage({ params }: Props) {
         allTimePoints={allTimeStats.points}
       >
         {miniRoutes.length > 0 && (
-          <MiniSendGrid routes={miniRoutes} logs={miniLogs} />
+          <>
+            <div className={styles.miniGrid}>
+              {miniRoutes.map((route) => {
+                const routeLog = logByRoute.get(route.id);
+                return (
+                  <PunchTile
+                    key={route.id}
+                    number={route.number}
+                    state={deriveTileState(routeLog)}
+                    zone={routeLog?.zone}
+                    gradeLabel={routeLog?.grade_vote != null ? `V${routeLog.grade_vote}` : undefined}
+                    compact
+                  />
+                );
+              })}
+            </div>
+            <footer className={styles.legend}>
+              <span className={styles.legendItem}>
+                <span className={`${styles.legendSwatch} ${styles.swatchFlash}`} />
+                Flashed
+              </span>
+              <span className={styles.legendItem}>
+                <span className={`${styles.legendSwatch} ${styles.swatchCompleted}`} />
+                Sent
+              </span>
+              <span className={styles.legendItem}>
+                <span className={`${styles.legendSwatch} ${styles.swatchAttempted}`} />
+                Attempted
+              </span>
+            </footer>
+          </>
         )}
       </ClimberStats>
 
@@ -252,24 +284,3 @@ function deriveTileState(log: RouteLog | undefined): TileState {
   return "completed";
 }
 
-function MiniSendGrid({ routes, logs }: { routes: Route[]; logs: RouteLog[] }) {
-  const logByRoute = new Map(logs.map((l) => [l.route_id, l]));
-
-  return (
-    <div className={styles.miniGrid}>
-      {routes.map((route) => {
-        const routeLog = logByRoute.get(route.id);
-        return (
-          <PunchTile
-            key={route.id}
-            number={route.number}
-            state={deriveTileState(routeLog)}
-            zone={routeLog?.zone}
-            gradeLabel={routeLog?.grade_vote != null ? `V${routeLog.grade_vote}` : undefined}
-            compact
-          />
-        );
-      })}
-    </div>
-  );
-}

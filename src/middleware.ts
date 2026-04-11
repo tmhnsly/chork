@@ -30,10 +30,12 @@ export async function middleware(request: NextRequest) {
 // Must be a static literal — Next.js evaluates this at build time.
 export const config = {
   matcher: [
+    "/",
     "/login/:path*",
     "/onboarding/:path*",
     "/profile/:path*",
     "/leaderboard/:path*",
     "/u/:path*",
+    "/privacy/:path*",
   ],
 };

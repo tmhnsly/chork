@@ -16,6 +16,34 @@
   pointer-events: none;
 }
 
+// ── Legend ─────────────────────────────────────────
+.legend {
+  @include layout.cluster(var(--space-4));
+}
+
+.legendItem {
+  @include type.typography(label);
+  @include layout.cluster(var(--space-2));
+  color: var(--mono-text-low-contrast);
+}
+
+.legendSwatch {
+  width: var(--space-3);
+  height: var(--space-3);
+}
+
+.swatchFlash {
+  background: var(--flash-solid);
+}
+
+.swatchCompleted {
+  background: var(--accent-solid);
+}
+
+.swatchAttempted {
+  background: var(--mono-solid);
+}
+
 // ── Sections ───────────────────────────────────────
 .section {
   @include layout.stack(var(--space-3));
