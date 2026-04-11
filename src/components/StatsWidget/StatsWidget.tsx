@@ -48,7 +48,7 @@ export function StatsWidget({
       </div>
 
       <div className={styles.footerRow}>
-        <span className={styles.footerLabel}>ZONES</span>
+        <span className={styles.footerLabel}>ZONE</span>
         {resetDate && (
           <span className={styles.footerLabel}>RESETS {resetDate.toUpperCase()}</span>
         )}

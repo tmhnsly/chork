@@ -6,14 +6,26 @@
   @include layout.stack(var(--space-4));
 }
 
-// Each tab panel gets a card background
 .tabCard {
   @include surface.card;
+  @include layout.stack(var(--space-4));
   border-radius: var(--radius-3);
   padding: var(--space-4);
+  container-type: inline-size;
 }
 
 .tabLabel {
   @include type.typography(label);
   color: var(--accent-text);
+}
+
+.chartFooter {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.footerLabel {
+  @include type.typography(label);
+  font-size: var(--text-xs);
+  color: var(--mono-text-low-contrast);
 }

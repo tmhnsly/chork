@@ -15,7 +15,6 @@ import { evaluateBadges, type BadgeContext } from "@/lib/badges";
 import { ProfileHeader } from "@/components/ProfileHeader/ProfileHeader";
 import { ClimberStats } from "@/components/ClimberStats/ClimberStats";
 import { BadgeShelf } from "@/components/BadgeShelf/BadgeShelf";
-import { CurrentSetSection } from "@/components/sections/CurrentSetSection";
 import { PreviousSetsSection } from "@/components/sections/PreviousSetsSection";
 import styles from "./user.module.scss";
 
@@ -144,6 +143,8 @@ export default async function UserProfilePage({ params }: Props) {
     })
     .filter((s): s is NonNullable<typeof s> => s !== null);
 
+  const logByRoute = new Map(miniLogs.map((l) => [l.route_id, l]));
+
   return (
     <main className={styles.page}>
       <ProfileHeader user={profileUser} isOwnProfile={isOwnProfile} />
@@ -153,11 +154,10 @@ export default async function UserProfilePage({ params }: Props) {
         allTimeCompletions={allTimeStats.completions}
         allTimeFlashes={allTimeStats.flashes}
         allTimePoints={allTimeStats.points}
-      >
-        {miniRoutes.length > 0 && (
-          <CurrentSetSection routes={miniRoutes} logs={miniLogs} />
-        )}
-      </ClimberStats>
+        routeIds={miniRoutes.length > 0 ? miniRoutes.map((r) => r.id) : undefined}
+        routeHasZone={miniRoutes.length > 0 ? miniRoutes.map((r) => r.has_zone) : undefined}
+        logs={miniRoutes.length > 0 ? logByRoute : undefined}
+      />
 
       <BadgeShelf badges={badges} />
 

@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import { RingStatsRow } from "@/components/RingStatsRow/RingStatsRow";
+import { RouteChart } from "@/components/RouteChart/RouteChart";
+import type { RouteLog } from "@/lib/data";
 import { StatsTabs } from "./StatsTabs";
 import styles from "./climberStats.module.scss";
 
@@ -14,6 +16,10 @@ interface Props {
   allTimeCompletions: number;
   allTimeFlashes: number;
   allTimePoints: number;
+  /** Route data for the current set chart */
+  routeIds?: string[];
+  routeHasZone?: boolean[];
+  logs?: Map<string, RouteLog>;
   children?: ReactNode;
 }
 
@@ -22,8 +28,12 @@ export function ClimberStats({
   allTimeCompletions,
   allTimeFlashes,
   allTimePoints,
+  routeIds,
+  routeHasZone,
+  logs,
   children,
 }: Props) {
+  const hasChart = routeIds && routeHasZone && logs;
   const tabs = [];
 
   if (currentSet) {
@@ -39,6 +49,18 @@ export function ClimberStats({
             maxPoints={currentSet.maxPoints}
             size={72}
           />
+          {hasChart && (
+            <>
+              <RouteChart
+                logs={logs}
+                routeIds={routeIds}
+                routeHasZone={routeHasZone}
+              />
+              <div className={styles.chartFooter}>
+                <span className={styles.footerLabel}>ZONE</span>
+              </div>
+            </>
+          )}
         </div>
       ),
     });
@@ -58,7 +80,6 @@ export function ClimberStats({
     ),
   });
 
-  // Grid is rendered separately via children, not inside tabs
   return (
     <div className={styles.wrapper}>
       {tabs.length === 1 ? (
