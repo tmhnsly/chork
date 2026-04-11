@@ -54,7 +54,7 @@
 
 // Stat colours
 .sendsValue { color: var(--accent-text); }
-.sendsLabel { color: var(--brand-text); }
+.sendsLabel { color: var(--accent-text-low-contrast); }
 .flashValue { color: var(--flash-text); }
 .flashLabel { color: var(--flash-text-low-contrast); }
 .pointsValue { color: var(--success-text); }

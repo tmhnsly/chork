@@ -154,10 +154,9 @@
   --flash-on-solid: #21201c;                  /* Foreground on step 9 */
 
   /* ── Brand ─────────────────────────────────────────── */
-  /* Primary brand colour — solid fills, active states, accent UI. */
+  /* Primary brand colour — lime step 9, the vibrant Chork lime. */
   --brand: var(--accent-solid);               /* lime step 9 */
-  /* Secondary brand colour — brand-coloured text on light backgrounds */
-  /* where --brand has insufficient contrast for readability. */
+  /* Brand text — step 11, readable on app backgrounds where step 9 is too bright. */
   --brand-text: var(--accent-text-low-contrast); /* lime step 11 */
 
   /* ── Aliases ───────────────────────────────────────── */

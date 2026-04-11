@@ -6,6 +6,53 @@
   @include type.typography(card-title);
 }
 
+// ── Avatar picker ─────────────────────────────────
+.avatarSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.avatarBtn {
+  position: relative;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: var(--radius-full);
+  -webkit-tap-highlight-color: transparent;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: wait;
+  }
+}
+
+.avatarOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.4);
+  color: white;
+  font-size: var(--text-lg);
+  opacity: 0;
+  transition: opacity 0.1s var(--ease-out);
+
+  .avatarBtn:hover &,
+  .avatarBtn:focus-visible & {
+    opacity: 1;
+  }
+}
+
+.avatarHint {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
 .fields {
   @include layout.stack(var(--space-3));
 }

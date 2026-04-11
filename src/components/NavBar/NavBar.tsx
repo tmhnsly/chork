@@ -1,12 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { FaBorderAll, FaTrophy, FaUser, FaRightToBracket } from "react-icons/fa6";
 import { ChorkMark } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
-import { getAvatarUrl } from "@/lib/avatar";
 import styles from "./navBar.module.scss";
 
 export function NavBar() {
@@ -39,24 +37,10 @@ export function NavBar() {
 
           {profile ? (
             <Link href={`/u/${profile.username}`} className={`${styles.tab} ${profileActive ? styles.tabActive : ""}`}>
-              <span className={`${styles.tabAvatarWrap} ${profileActive ? styles.tabAvatarActive : ""}`}>
-                {profile.avatar_url ? (
-                  <Image
-                    src={getAvatarUrl(profile, { size: 64 })}
-                    alt=""
-                    width={24}
-                    height={24}
-                    className={styles.tabAvatar}
-                    unoptimized
-                  />
-                ) : (
-                  <FaUser />
-                )}
-              </span>
+              <FaUser className={styles.tabIcon} />
               <span className={styles.tabLabel}>Profile</span>
             </Link>
           ) : isLoading ? (
-            // Placeholder while auth is resolving - prevents "Sign in" flash
             <span className={styles.tab}>
               <FaUser className={styles.tabIcon} />
               <span className={styles.tabLabel}>Profile</span>

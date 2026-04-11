@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { FaCamera } from "react-icons/fa6";
 import type { Profile } from "@/lib/data";
 import { useAuth } from "@/lib/auth-context";
 import { useUsernameValidation } from "@/hooks/use-username-validation";
-import { updateProfile } from "@/lib/user-actions";
-import { AppDialog, Button, InputError, showToast } from "@/components/ui";
+import { updateProfile, uploadAvatar } from "@/lib/user-actions";
+import { AppDialog, Button, InputError, UserAvatar, showToast } from "@/components/ui";
 import styles from "./editProfileDialog.module.scss";
 
 interface Props {
@@ -19,10 +20,12 @@ export function EditProfileDialog({ user, open, onOpenChange }: Props) {
   const router = useRouter();
   const { refreshProfile } = useAuth();
   const usernameValidation = useUsernameValidation(user.username);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const [username, setUsername] = useState(user.username);
   const [displayName, setDisplayName] = useState(user.name ?? "");
   const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -31,6 +34,30 @@ export function EditProfileDialog({ user, open, onOpenChange }: Props) {
       usernameValidation.setError("");
     }
   }, [open, user.username, user.name]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.set("avatar", file);
+      const result = await uploadAvatar(formData);
+      if ("error" in result) {
+        showToast(result.error, "error");
+        return;
+      }
+      await refreshProfile();
+      showToast("Photo updated");
+      router.refresh();
+    } catch {
+      showToast("Something went wrong", "error");
+    } finally {
+      setUploading(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  }
 
   async function handleSave() {
     if (username !== user.username) {
@@ -73,6 +100,31 @@ export function EditProfileDialog({ user, open, onOpenChange }: Props) {
     <AppDialog open={open} onOpenChange={onOpenChange} title="Edit profile">
       <h2 className={styles.heading}>Edit profile</h2>
 
+      {/* Avatar picker */}
+      <div className={styles.avatarSection}>
+        <button
+          type="button"
+          className={styles.avatarBtn}
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+        >
+          <UserAvatar user={user} size={72} />
+          <span className={styles.avatarOverlay}>
+            <FaCamera />
+          </span>
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          onChange={handleAvatarChange}
+          hidden
+        />
+        <span className={styles.avatarHint}>
+          {uploading ? "Uploading..." : "Tap to change photo"}
+        </span>
+      </div>
+
       <div className={styles.fields}>
         <label className={styles.field}>
           <span className={styles.fieldLabel}>Username</span>
@@ -102,7 +154,7 @@ export function EditProfileDialog({ user, open, onOpenChange }: Props) {
       </div>
 
       <div className={styles.actions}>
-        <Button onClick={handleSave} disabled={submitting} fullWidth>
+        <Button onClick={handleSave} disabled={submitting || uploading} fullWidth>
           {submitting ? "Saving..." : "Save changes"}
         </Button>
         <Button variant="ghost" onClick={() => onOpenChange(false)} fullWidth>

@@ -72,6 +72,52 @@ export async function updateProfile(
 }
 
 /**
+ * Upload an avatar image and update the user's profile.
+ * Uses Supabase Storage (avatars bucket). Replaces any existing avatar.
+ */
+export async function uploadAvatar(
+  formData: FormData
+): Promise<{ error: string } | { success: true; url: string }> {
+  const auth = await requireAuth();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase, userId } = auth;
+
+  const file = formData.get("avatar") as File | null;
+  if (!file || file.size === 0) return { error: "No file provided" };
+  if (file.size > 2 * 1024 * 1024) return { error: "Image must be under 2MB" };
+  if (!file.type.startsWith("image/")) return { error: "File must be an image" };
+
+  const ext = file.name.split(".").pop() ?? "jpg";
+  const path = `${userId}/avatar.${ext}`;
+
+  try {
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, { upsert: true });
+    if (uploadError) return { error: formatError(uploadError) };
+
+    const { data: urlData } = supabase.storage
+      .from("avatars")
+      .getPublicUrl(path);
+
+    // Append timestamp to bust browser cache
+    const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update({ avatar_url: publicUrl })
+      .eq("id", userId);
+
+    if (profileError) return { error: formatError(profileError) };
+
+    revalidatePath("/", "layout");
+    return { success: true, url: publicUrl };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
+
+/**
  * Delete the authenticated user's account.
  * Uses the service role to call auth.admin.deleteUser, which cascades
  * through profiles and all related tables.

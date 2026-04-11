@@ -18,7 +18,7 @@
 }
 
 // ── Item ──────────────────────────────────────────
-// Radix solid pattern: on hover, step 9 background + on-solid text.
+// Default items: subtle mono hover matching navbar pill style.
 .item {
   @include type.typography(body);
   font-size: var(--text-sm);
@@ -34,12 +34,12 @@
   cursor: pointer;
   text-decoration: none;
   outline: none;
-  transition: background 0.1s var(--ease-out), color 0.1s var(--ease-out);
+  transition: background 0.1s var(--ease-out);
 
   &:hover,
   &[data-highlighted] {
-    background: var(--accent-solid);       // lime step 9
-    color: var(--accent-on-solid);         // dark text on lime
+    background: var(--mono-bg);             // step 3 - subtle, like nav pill
+    color: var(--mono-text);
   }
 }
 
@@ -49,17 +49,12 @@
   font-size: var(--text-sm);
   color: var(--mono-text-low-contrast);
   flex-shrink: 0;
-
-  .item:hover &,
-  .item[data-highlighted] & {
-    color: var(--accent-on-solid);
-  }
 }
 
 // ── Variants ──────────────────────────────────────
-// Each variant uses its own colour scale's step 9 + on-solid.
+// Warning/danger keep bold backgrounds for clear intent.
 .item--warning {
-  color: var(--flash-text-low-contrast);  // amber step 11
+  color: var(--flash-text-low-contrast);
 
   .itemIcon {
     color: inherit;
@@ -67,7 +62,7 @@
 
   &:hover,
   &[data-highlighted] {
-    background: var(--flash-solid);       // amber step 9
+    background: var(--flash-solid);
     color: var(--flash-on-solid);
 
     .itemIcon {
@@ -77,7 +72,7 @@
 }
 
 .item--danger {
-  color: var(--error-text-low-contrast);  // red step 11
+  color: var(--error-text-low-contrast);
 
   .itemIcon {
     color: inherit;
@@ -85,7 +80,7 @@
 
   &:hover,
   &[data-highlighted] {
-    background: var(--error-solid);       // red step 9
+    background: var(--error-solid);
     color: var(--error-on-solid);
 
     .itemIcon {

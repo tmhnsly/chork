@@ -88,11 +88,7 @@
 }
 
 .tabActive {
-  color: var(--accent-text-low-contrast);
-
-  :root.dark & {
-    color: var(--brand);
-  }
+  color: var(--brand);
 
   // Frosted pill — uses Radix step 3 (UI element bg) which is designed
   // to be visually distinct from step 2 (subtle bg) in both light and dark.
@@ -111,11 +107,7 @@
 
   @media (hover: hover) {
     &:hover {
-      color: var(--accent-text-low-contrast);
-
-      :root.dark & {
-        color: var(--brand);
-      }
+      color: var(--brand);
     }
   }
 }
@@ -129,26 +121,3 @@
   font-size: var(--text-2xs);
 }
 
-.tabAvatarWrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--size-avatar-sm);
-  height: var(--size-avatar-sm);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-  font-size: var(--text-sm);
-  color: inherit;
-}
-
-.tabAvatar {
-  width: 100%;
-  height: 100%;
-  border-radius: var(--radius-full);
-  object-fit: cover;
-}
-
-.tabAvatarActive {
-  // Active state handled by parent .tabActive colour change
-  outline-offset: 1px;
-}
