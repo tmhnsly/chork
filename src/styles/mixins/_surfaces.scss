@@ -11,31 +11,28 @@
 //   thin    → 30% opacity — maximum background bleed
 //   regular → 50% opacity — tab bars, sidebars, floating chrome
 //   thick   → 70% opacity — sheets, modals, alerts (default)
+//
+// Glass base colour:
+//   --mono-subtle-bg (step 2, default) — lighter panels
+//   --mono-bg (step 3) — darker panels for more contrast
 
 // ── Card ────────────────────────────────────────────
-// Solid card for inline content — panels, forms, profile cards.
-// No shadow — these are part of the page flow, not floating.
 @mixin card {
   background-color: var(--mono-subtle-bg);
   border: 1px solid var(--mono-border-subtle);
 }
 
 // ── Chrome ──────────────────────────────────────────
-// Solid chrome for sticky UI when glass is not needed.
 @mixin chrome {
   background-color: var(--mono-subtle-bg);
   border-bottom: 1px solid var(--mono-border-subtle);
 }
 
 // ── Glass ───────────────────────────────────────────
-// Translucent panel using our Radix mono palette.
-// Blur and saturation values match Apple's web implementation:
-//   backdrop-filter: saturate(180%) blur(20px)
-//
-// $opacity: 0–100, how much of --mono-subtle-bg shows through.
-// Use 30% for thin, 50% for regular, 70% for thick (default).
-@mixin glass($opacity: 70%) {
-  background: color-mix(in srgb, var(--mono-subtle-bg) $opacity, transparent);
+// $opacity: 0–100, how much of the base colour shows through.
+// $base: the tint colour — use step 3 for darker panels.
+@mixin glass($opacity: 70%, $base: var(--mono-subtle-bg)) {
+  background: color-mix(in srgb, $base $opacity, transparent);
   border: 1px solid var(--mono-border-subtle);
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   backdrop-filter: saturate(180%) blur(20px);
