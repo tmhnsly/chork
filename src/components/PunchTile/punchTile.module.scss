@@ -1,4 +1,5 @@
 @use "mixins/typography" as type;
+@use "mixins/focus";
 
 .tile {
   position: relative;
@@ -8,6 +9,7 @@
   border: none;
   background: var(--mono-bg);
   cursor: pointer;
+  @include focus.ring-inset;
   overflow: hidden;
   transition:
     background var(--duration-fast) var(--ease-out);

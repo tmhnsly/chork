@@ -59,15 +59,15 @@ export function NavBar() {
         </Link>
 
         <div className={styles.tabs}>
-          <Link href="/" className={`${styles.tab} ${homeActive ? styles.tabActive : ""}`}>
+          <Link href="/" className={`${styles.tab} ${homeActive ? styles.tabActive : ""}`} aria-current={homeActive ? "page" : undefined}>
             <FaBorderAll className={styles.tabIcon} />
             <span className={styles.tabLabel}>Wall</span>
           </Link>
-          <Link href="/leaderboard" className={`${styles.tab} ${leaderboardActive ? styles.tabActive : ""}`}>
+          <Link href="/leaderboard" className={`${styles.tab} ${leaderboardActive ? styles.tabActive : ""}`} aria-current={leaderboardActive ? "page" : undefined}>
             <FaTrophy className={styles.tabIcon} />
             <span className={styles.tabLabel}>Board</span>
           </Link>
-          <Link href={`/u/${profile!.username}`} className={`${styles.tab} ${profileActive ? styles.tabActive : ""}`}>
+          <Link href={`/u/${profile!.username}`} className={`${styles.tab} ${profileActive ? styles.tabActive : ""}`} aria-current={profileActive ? "page" : undefined}>
             <FaUser className={styles.tabIcon} />
             <span className={styles.tabLabel}>Profile</span>
           </Link>

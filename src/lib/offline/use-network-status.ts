@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, useSyncExternalStore, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { mutationQueue } from "./mutation-queue";
 import { registerActionRunner } from "./action-map";
 
-// Register the action runner once when this module loads in the browser
 let registered = false;
 function ensureRegistered() {
   if (!registered && typeof window !== "undefined") {
@@ -18,27 +17,24 @@ function ensureRegistered() {
  * Triggers queue flush on `online` and `visibilitychange` events —
  * the visibilitychange handler is the iOS fallback for Background Sync.
  */
-export function useNetworkStatus(): { isOnline: boolean; pendingCount: number } {
+export function useNetworkStatus(): { isOnline: boolean; pendingCount: number; ready: boolean } {
   ensureRegistered();
 
-  const [isOnline, setIsOnline] = useState(
-    typeof navigator !== "undefined" ? navigator.onLine : true,
-  );
-
-  // Subscribe to mutation queue count via useSyncExternalStore-like pattern
+  // Initialise from navigator on mount — avoids SSR mismatch by
+  // defaulting to true (online) and correcting in the effect.
+  const [isOnline, setIsOnline] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
-
-  const handleFlush = useCallback(() => {
-    if (navigator.onLine) {
-      mutationQueue.flush();
-    }
-  }, []);
+  const [ready, setReady] = useState(false);
+  const mountedRef = useRef(false);
 
   useEffect(() => {
-    // Initial count
-    mutationQueue.count().then(setPendingCount);
+    // Defer state updates to avoid synchronous setState in effect
+    const timer = requestAnimationFrame(() => {
+      setIsOnline(navigator.onLine);
+      setReady(true);
+    });
 
-    // Subscribe to queue changes
+    mutationQueue.count().then(setPendingCount);
     const unsubscribe = mutationQueue.subscribe(setPendingCount);
 
     function handleOnline() {
@@ -52,6 +48,7 @@ export function useNetworkStatus(): { isOnline: boolean; pendingCount: number } 
 
     function handleVisibility() {
       if (document.visibilityState === "visible" && navigator.onLine) {
+        setIsOnline(true);
         mutationQueue.flush();
       }
     }
@@ -61,15 +58,18 @@ export function useNetworkStatus(): { isOnline: boolean; pendingCount: number } 
     document.addEventListener("visibilitychange", handleVisibility);
 
     // Flush on mount if online and there are pending mutations
-    handleFlush();
+    if (navigator.onLine) {
+      mutationQueue.flush();
+    }
 
     return () => {
+      cancelAnimationFrame(timer);
       unsubscribe();
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [handleFlush]);
+  }, []);
 
-  return { isOnline, pendingCount };
+  return { isOnline, pendingCount, ready };
 }

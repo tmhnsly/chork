@@ -1,5 +1,6 @@
 @use "mixins/typography" as type;
 @use "mixins/surfaces" as surface;
+@use "mixins/focus";
 
 // ── Panel ─────────────────────────────────────────
 .content {
@@ -32,7 +33,7 @@
   color: var(--mono-text);
   cursor: pointer;
   text-decoration: none;
-  outline: none;
+  @include focus.ring-inset;
   transition: background 0.1s var(--ease-out);
 
   &:hover,

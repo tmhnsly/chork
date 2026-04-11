@@ -10,6 +10,8 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   /** Accessible title (always rendered, visually hidden by default) */
   title: string;
+  /** Accessible description — provides context beyond the title for screen readers */
+  description?: string;
   children: ReactNode;
 }
 
@@ -18,7 +20,7 @@ interface Props {
  * Renders children inside a styled content panel.
  * Use for: edit profile, delete account, confirmations, etc.
  */
-export function AppDialog({ open, onOpenChange, title, children }: Props) {
+export function AppDialog({ open, onOpenChange, title, description, children }: Props) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -28,7 +30,7 @@ export function AppDialog({ open, onOpenChange, title, children }: Props) {
             <Dialog.Title>{title}</Dialog.Title>
           </VisuallyHidden.Root>
           <VisuallyHidden.Root asChild>
-            <Dialog.Description>{title}</Dialog.Description>
+            <Dialog.Description>{description ?? title}</Dialog.Description>
           </VisuallyHidden.Root>
           {children}
         </Dialog.Content>

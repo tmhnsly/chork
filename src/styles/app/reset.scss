@@ -8,3 +8,21 @@
   margin: 0;
   padding: 0;
 }
+
+// Skip navigation link — visually hidden until focused
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: var(--gutter-x);
+  z-index: 9999;
+  padding: var(--space-2) var(--space-4);
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+  border-radius: var(--radius-2);
+  font-weight: 600;
+  text-decoration: none;
+
+  &:focus {
+    top: var(--space-2);
+  }
+}

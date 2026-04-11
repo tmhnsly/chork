@@ -2,6 +2,7 @@
 @use "mixins/layout" as layout;
 @use "mixins/surfaces" as surface;
 @use "mixins/input" as input;
+@use "mixins/focus";
 
 // ── Overlay ────────────────────────────────────────
 .overlay {
@@ -34,7 +35,7 @@
   padding: 0 var(--gutter-x) calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
   max-height: 90svh;
   overflow-y: auto;
-  outline: none;
+  @include focus.ring-inset;
   animation: slideUp var(--duration-normal) var(--ease-out);
 }
 

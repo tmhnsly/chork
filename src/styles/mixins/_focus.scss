@@ -1,0 +1,26 @@
+// Focus-visible mixin — consistent keyboard focus indicator.
+// Usage: @use 'mixins/focus' as focus;
+//   .myButton { @include focus.ring; }
+//
+// Suppresses the default outline and replaces it with a visible
+// ring only when navigating via keyboard (:focus-visible).
+
+@mixin ring($color: var(--focus-ring), $offset: 2px, $width: 2px) {
+  outline: none;
+
+  &:focus-visible {
+    outline: $width solid $color;
+    outline-offset: $offset;
+  }
+}
+
+// Inset variant — for elements where the ring should sit inside
+// (e.g., inputs, cards with overflow: hidden).
+@mixin ring-inset($color: var(--focus-ring), $width: 2px) {
+  outline: none;
+
+  &:focus-visible {
+    outline: $width solid $color;
+    outline-offset: -$width;
+  }
+}

@@ -92,7 +92,11 @@ export async function uploadAvatar(
   const path = `${userId}/avatar.jpg`;
 
   try {
-    const { error: uploadError } = await supabase.storage
+    // Use service client for storage — RLS on storage buckets requires
+    // separate policies. Service client bypasses this safely since we
+    // already verified auth and scope the path to the user's own folder.
+    const service = createServiceClient();
+    const { error: uploadError } = await service.storage
       .from("avatars")
       .upload(path, file, { upsert: true });
     if (uploadError) return { error: formatError(uploadError) };

@@ -24,7 +24,12 @@ export const PunchTile = memo(function PunchTile({ number, state, zone, gradeLab
       className={[styles.tile, styles[state], compact && styles.compact, className].filter(Boolean).join(" ")}
       onClick={onClick}
       type="button"
-      aria-label={`Route ${number}, ${state}`}
+      aria-label={[
+        `Route ${number}`,
+        state,
+        gradeLabel ? `grade ${gradeLabel}` : null,
+        zone ? "zone hold reached" : null,
+      ].filter(Boolean).join(", ")}
       style={style}
     >
       {zone && (

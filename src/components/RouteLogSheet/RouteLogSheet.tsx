@@ -125,6 +125,7 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
   const pendingAttemptsRef = useRef<number | null>(null);
   const logIdRef = useRef(currentLog?.id);
   const contentRef = useRef<HTMLDivElement>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
   const dragRef = useRef<{ startY: number; startTime: number; dragging: boolean }>({ startY: 0, startTime: 0, dragging: false });
   const onCacheRef = useRef(onCacheRouteData);
   const onLogUpdateRef = useRef(onLogUpdate);
@@ -481,7 +482,7 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
         <Dialog.Content
           ref={contentRef}
           className={`${styles.content} ${closing ? styles.contentClosing : ""}`}
-          onOpenAutoFocus={(e) => e.preventDefault()}
+          onOpenAutoFocus={(e) => { e.preventDefault(); closeBtnRef.current?.focus(); }}
           onInteractOutside={(e) => e.preventDefault()}
           onPointerDownOutside={(e) => e.preventDefault()}
           onPointerDown={handleDragStart}
@@ -497,7 +498,7 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
           </VisuallyHidden.Root>
 
           {/* Handle */}
-          <button type="button" className={styles.handleBtn} onClick={startClose} aria-label="Close">
+          <button ref={closeBtnRef} type="button" className={styles.handleBtn} onClick={startClose} aria-label="Close">
             <div className={styles.handle} />
           </button>
 
@@ -607,6 +608,7 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
               type="button"
               className={styles.betaToggleBtn}
               onClick={handleExpandBeta}
+              aria-expanded={betaExpanded}
             >
               <span className={styles.sectionLabel}>
                 BETA SPRAY

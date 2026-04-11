@@ -1,6 +1,7 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
 @use "mixins/input" as input;
+@use "mixins/focus";
 
 // ── Form field ──────────────────────────────────────
 .field {
@@ -72,6 +73,7 @@
 // ── Buttons (all 44px min tap target) ───────────────
 %btn-base {
   @include type.typography(button);
+  @include focus.ring;
   display: inline-flex;
   align-items: center;
   justify-content: center;

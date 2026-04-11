@@ -3,9 +3,11 @@
 //   .myInput { @include input.field; }
 
 @use "typography" as type;
+@use "focus";
 
 @mixin field {
   @include type.typography(body);
+  @include focus.ring-inset;
   width: 100%;
   min-height: var(--size-touch-target);
   padding: var(--space-2) var(--space-3);
@@ -13,15 +15,13 @@
   border-radius: var(--radius-2);
   background: var(--mono-subtle-bg);
   color: var(--mono-text);
-  outline: none;
   transition: border-color var(--duration-fast) var(--ease-out);
 
-  &:focus {
+  &:focus-visible {
     border-color: var(--accent-solid);
   }
 
   &::placeholder {
     color: var(--mono-text-low-contrast);
-    opacity: 0.5;
   }
 }

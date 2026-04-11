@@ -1,6 +1,7 @@
 @use "mixins/typography" as type;
 @use "mixins/surfaces" as surface;
 @use "mixins/toggle" as toggle;
+@use "mixins/focus";
 
 .panel {
   @include surface.card;
@@ -74,7 +75,7 @@
   background: transparent;
   color: var(--mono-text-low-contrast);
   cursor: pointer;
-  outline: none;
+  @include focus.ring;
   -webkit-tap-highlight-color: transparent;
   transition:
     background var(--duration-fast) var(--ease-out),

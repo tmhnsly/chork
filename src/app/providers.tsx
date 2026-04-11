@@ -13,7 +13,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <AuthProvider>
         <OfflineBanner />
         <NavBar />
-        {children}
+        <div id="main-content">{children}</div>
         <ToastProvider />
         <ServiceWorker />
       </AuthProvider>

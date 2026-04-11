@@ -44,6 +44,7 @@ export function FollowButton({ targetUserId, initialFollowing, onFollowChange }:
       onClick={handleClick}
       disabled={isPending}
       className={styles.followBtn}
+      aria-pressed={following}
       aria-label={following ? "Unfollow" : "Follow"}
     >
       {following ? <FaUserCheck /> : <FaUserPlus />}

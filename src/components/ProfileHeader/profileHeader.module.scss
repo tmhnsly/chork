@@ -1,5 +1,6 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
+@use "mixins/focus";
 
 // ── Layout — horizontal split ─────────────────────
 .header {
@@ -74,7 +75,7 @@
   color: var(--mono-text-low-contrast);
   cursor: pointer;
   border-radius: var(--radius-2);
-  outline: none;
+  @include focus.ring;
   -webkit-tap-highlight-color: transparent;
   transition: color 0.1s var(--ease-out);
 

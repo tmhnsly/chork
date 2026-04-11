@@ -114,6 +114,7 @@ export function EditProfileDialog({ user, open, onOpenChange }: Props) {
           className={`${styles.avatarBtn} ${uploading ? styles.avatarUploading : ""}`}
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
+          aria-label={uploading ? "Uploading photo" : "Change profile photo"}
         >
           <UserAvatar user={user} size={72} />
           <span className={styles.avatarOverlay}>

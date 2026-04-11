@@ -30,6 +30,7 @@ export function ZoneHoldRow({ checked, onCheckedChange, disabled, hasAttempts }:
           onCheckedChange={onCheckedChange}
           disabled={isDisabled}
           onPointerDown={(e) => e.stopPropagation()}
+          aria-label="Zone hold"
         >
           <Switch.Thumb className={styles.toggleThumb} />
         </Switch.Root>

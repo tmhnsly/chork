@@ -2,6 +2,7 @@
 @use "mixins/layout" as layout;
 @use "mixins/surfaces" as surface;
 @use "mixins/breakpoints" as bp;
+@use "mixins/focus";
 
 // ── Bottom bar ────────────────────────────────────
 .bar {
@@ -86,25 +87,24 @@
 // ── Tab items ─────────────────────────────────────
 .tabs {
   display: flex;
-  flex: 1;
-  justify-content: space-evenly;
   align-items: center;
 }
 
 .tab {
   position: relative;
   display: flex;
+  flex: 1;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: var(--space-1);
-  min-width: var(--space-14);
   min-height: var(--size-touch-target);
   padding: var(--space-1) var(--space-5);
   color: var(--mono-solid);
   text-decoration: none;
   border-radius: var(--radius-full);
   transition: none;
+  @include focus.ring;
   -webkit-tap-highlight-color: transparent;
 
   @media (hover: hover) {

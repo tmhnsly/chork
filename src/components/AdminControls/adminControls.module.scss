@@ -1,6 +1,7 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
 @use "mixins/surfaces" as surface;
+@use "mixins/focus";
 
 // ── Create set form ────────────────────────────────
 .createSet {
@@ -50,7 +51,7 @@
   border: 1px solid var(--mono-border);
   background: var(--mono-subtle-bg);
   color: var(--mono-text);
-  outline: none;
+  @include focus.ring;
   color-scheme: dark;
 
   &:focus {

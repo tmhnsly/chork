@@ -1,6 +1,7 @@
 @use "mixins/typography" as type;
 @use "mixins/surfaces" as surface;
 @use "mixins/layout" as layout;
+@use "mixins/focus";
 @use "mixins/container-queries" as cq;
 @use "mixins/input" as input;
 
@@ -77,7 +78,7 @@
   border: none;
   background: transparent;
   color: var(--mono-text);
-  outline: none;
+  @include focus.ring;
 }
 
 .fieldError {

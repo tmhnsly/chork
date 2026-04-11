@@ -39,7 +39,7 @@ export function DeleteAccountDialog({ open, onOpenChange }: Props) {
   }
 
   return (
-    <AppDialog open={open} onOpenChange={onOpenChange} title="Delete account">
+    <AppDialog open={open} onOpenChange={onOpenChange} title="Delete account" description="Permanently delete your account and all associated data">
       <h2 className={styles.heading}>We get it, no hard feelings</h2>
       <p className={styles.body}>
         Just so you know, this will wipe everything - your sends, comments, grades,
@@ -55,6 +55,7 @@ export function DeleteAccountDialog({ open, onOpenChange }: Props) {
         value={input}
         onChange={(e) => setInput(e.target.value)}
         placeholder={`Type "${CONFIRMATION_WORD}" to confirm`}
+        aria-label={`Type "${CONFIRMATION_WORD}" to confirm account deletion`}
         autoComplete="off"
       />
 

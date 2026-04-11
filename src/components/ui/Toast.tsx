@@ -30,6 +30,9 @@ export function showToast(message: string, variant: Variant = "success") {
   toast.custom(
     (t) => (
       <div
+        role={variant === "error" || variant === "warning" ? "alert" : "status"}
+        aria-live={variant === "error" || variant === "warning" ? "assertive" : "polite"}
+        aria-atomic="true"
         className={`${styles.toast} ${styles[`toast--${variant}`]} ${
           t.visible ? styles.enter : styles.exit
         }`}

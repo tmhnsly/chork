@@ -35,12 +35,13 @@ export function GradeSlider({ value, onChange }: Props) {
   return (
     <div className={styles.panel}>
       <div className={styles.toggleRow}>
-        <span className={styles.toggleLabel}>Rate this climb</span>
+        <span id="grade-toggle-label" className={styles.toggleLabel}>Rate this climb</span>
         <Switch.Root
           className={styles.toggle}
           checked={enabled}
           onCheckedChange={handleToggle}
           onPointerDown={(e) => e.stopPropagation()}
+          aria-labelledby="grade-toggle-label"
         >
           <Switch.Thumb className={styles.toggleThumb} />
         </Switch.Root>

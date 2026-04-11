@@ -21,6 +21,8 @@
   border: 1px solid var(--mono-border-subtle);
   background: var(--mono-subtle-bg);
   box-shadow: var(--shadow-xl);
+  // Radix moves focus to this element — suppress the ring since
+  // the dialog panel itself is not an interactive control.
   outline: none;
   @include layout.stack(var(--space-5));
   animation: dialogFadeIn var(--duration-normal) var(--ease-out);
