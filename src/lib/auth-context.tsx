@@ -10,7 +10,7 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "./supabase/client";
 import { showToast } from "@/components/ui";
 import type { Profile } from "./data/types";
@@ -30,7 +30,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-  const pathname = usePathname();
   const supabase = useMemo(() => createBrowserSupabase(), []);
   const profileRef = useRef(profile);
   useEffect(() => { profileRef.current = profile; }, [profile]);
@@ -89,13 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, [supabase, fetchProfile]);
 
-  // Redirect non-onboarded users
-  useEffect(() => {
-    if (isLoading) return;
-    if (profile && !profile.onboarded && pathname !== "/onboarding") {
-      router.replace("/onboarding");
-    }
-  }, [profile, isLoading, pathname, router]);
+  // Onboarding redirect is handled by middleware server-side.
+  // No client-side redirect needed — avoids double-redirect issues.
 
   const signIn = useCallback(async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
