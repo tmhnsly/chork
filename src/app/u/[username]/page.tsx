@@ -13,8 +13,10 @@ import {
 } from "@/lib/data/queries";
 import { isFlash, computePoints } from "@/lib/data";
 import type { RouteLogWithSetId, Route, RouteLog, TileState } from "@/lib/data";
+import { evaluateBadges, type BadgeContext } from "@/lib/badges";
 import { ProfileHeader } from "@/components/ProfileHeader/ProfileHeader";
 import { ClimberStats } from "@/components/ClimberStats/ClimberStats";
+import { BadgeShelf } from "@/components/BadgeShelf/BadgeShelf";
 import { PunchTile } from "@/components/PunchTile/PunchTile";
 import styles from "./user.module.scss";
 
@@ -51,9 +53,8 @@ export default async function UserProfilePage({ params }: Props) {
   if (!profileUser) notFound();
 
   const isOwnProfile = authUser?.id === profileUser.id;
-
-  // Get the user's active gym for gym-scoped queries
   const gymId = profileUser.active_gym_id;
+
   if (!gymId) {
     return (
       <main className={styles.page}>
@@ -66,10 +67,9 @@ export default async function UserProfilePage({ params }: Props) {
   const allSets = await getAllSets(supabase, gymId);
   const activeSet = allSets.find((s) => s.active) ?? null;
 
-  // All data in one parallel batch
   const [viewStats, activityEvents, miniRoutes, miniLogs] = await Promise.all([
     getUserSetStats(supabase, profileUser.id, gymId),
-    isOwnProfile ? getActivityEventsForUser(supabase, profileUser.id, 3) : Promise.resolve([]),
+    isOwnProfile ? getActivityEventsForUser(supabase, profileUser.id, 5) : Promise.resolve([]),
     activeSet ? getRoutesBySet(supabase, activeSet.id) : Promise.resolve([]),
     activeSet ? getLogsBySetForUser(supabase, activeSet.id, profileUser.id) : Promise.resolve([]),
   ]);
@@ -78,6 +78,10 @@ export default async function UserProfilePage({ params }: Props) {
   const useViewStats = viewStats.length > 0;
   const statsBySet = new Map<string, { completions: number; flashes: number; points: number }>();
   let allTimeStats: { completions: number; flashes: number; points: number };
+
+  // Badge context
+  const completedRoutesBySet = new Map<string, Set<number>>();
+  const totalRoutesBySet = new Map<string, number>();
 
   if (useViewStats) {
     for (const row of viewStats) {
@@ -106,6 +110,28 @@ export default async function UserProfilePage({ params }: Props) {
     allTimeStats = deriveStats(allLogs);
   }
 
+  // Build badge context from mini logs and route data
+  if (miniRoutes.length > 0 && activeSet) {
+    totalRoutesBySet.set(activeSet.id, miniRoutes.length);
+    const completed = new Set<number>();
+    for (const log of miniLogs) {
+      if (log.completed) {
+        const route = miniRoutes.find((r) => r.id === log.route_id);
+        if (route) completed.add(route.number);
+      }
+    }
+    completedRoutesBySet.set(activeSet.id, completed);
+  }
+
+  const badgeCtx: BadgeContext = {
+    totalFlashes: allTimeStats.flashes,
+    totalSends: allTimeStats.completions,
+    totalPoints: allTimeStats.points,
+    completedRoutesBySet,
+    totalRoutesBySet,
+  };
+  const badges = evaluateBadges(badgeCtx);
+
   const currentSetStats = activeSet
     ? statsBySet.get(activeSet.id) ?? { completions: 0, flashes: 0, points: 0 }
     : null;
@@ -121,8 +147,10 @@ export default async function UserProfilePage({ params }: Props) {
 
   return (
     <main className={styles.page}>
+      {/* Header: handle + name left, avatar + settings right */}
       <ProfileHeader user={profileUser} isOwnProfile={isOwnProfile} />
 
+      {/* Stats: swipeable Current Set / All Time */}
       <ClimberStats
         currentSet={currentSetStats}
         allTimeCompletions={allTimeStats.completions}
@@ -134,6 +162,10 @@ export default async function UserProfilePage({ params }: Props) {
         )}
       </ClimberStats>
 
+      {/* Badge shelf */}
+      <BadgeShelf badges={badges} />
+
+      {/* Past sets */}
       {previousSets.length > 0 && (
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Previous sets</h2>
@@ -163,6 +195,7 @@ export default async function UserProfilePage({ params }: Props) {
         </section>
       )}
 
+      {/* Recent activity */}
       {isOwnProfile && activityEvents.length > 0 && (
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Recent activity</h2>
@@ -202,7 +235,6 @@ export default async function UserProfilePage({ params }: Props) {
           </ul>
         </section>
       )}
-
     </main>
   );
 }

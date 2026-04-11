@@ -3,21 +3,17 @@
 @use "mixins/surfaces" as surface;
 
 .wrapper {
-  @include layout.stack(var(--space-5));
+  // Outer wrapper — no extra spacing, StatsTabs handles it
 }
 
-.section {
-  @include layout.stack(var(--space-2));
-}
-
-.sectionLabel {
-  @include type.typography(label);
-  color: var(--accent-text-low-contrast);
+.statsContent {
+  @include layout.stack(var(--space-3));
 }
 
 // ── Ring stats card ────────────────────────────────
 .statsCard {
   @include surface.card;
+  border-radius: var(--radius-2);
   display: flex;
   align-items: center;
   gap: var(--space-4);

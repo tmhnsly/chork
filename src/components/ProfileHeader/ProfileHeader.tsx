@@ -9,7 +9,6 @@ import { getAvatarUrl } from "@/lib/avatar";
 import { useAuth } from "@/lib/auth-context";
 import { useUsernameValidation } from "@/hooks/use-username-validation";
 import { Button, InputError, showToast } from "@/components/ui";
-import { RevealText } from "@/components/motion";
 import { DropdownMenu } from "@/components/SettingsMenu/SettingsMenu";
 import { DeleteAccountDialog } from "@/components/SettingsMenu/DeleteAccountDialog";
 import { updateProfile } from "@/lib/user-actions";
@@ -31,7 +30,6 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
-  // Sync when user prop changes (navigating between profiles)
   useEffect(() => {
     setDisplayName(user.name ?? "");
     setUsername(user.username);
@@ -41,7 +39,6 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
   const avatarSrc = getAvatarUrl(user, { size: 200 });
 
   async function handleSave() {
-    // Validate username if changed
     if (username !== user.username) {
       const valid = await usernameValidation.validate(username, user.id);
       if (!valid) return;
@@ -66,14 +63,12 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
       await refreshProfile();
       setEditing(false);
       showToast("Profile updated");
-      // If username changed, navigate to new URL
       if (updates.username) {
         router.replace(`/u/${updates.username}`);
       } else {
         router.refresh();
       }
-    } catch (err) {
-      console.warn("[chork] profile update failed:", err);
+    } catch {
       showToast("Something went wrong", "error");
     } finally {
       setSubmitting(false);
@@ -87,47 +82,10 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
     setEditing(false);
   }
 
-  return (
-    <>
-      <header className={styles.header}>
-        {isOwnProfile && (
-          <div className={styles.settingsRow}>
-            <DropdownMenu
-              trigger={
-                <button className={styles.settingsTrigger} aria-label="Settings">
-                  <FaGear />
-                </button>
-              }
-              groups={[
-                {
-                  items: [
-                    { label: "Edit profile", icon: <FaPen />, onSelect: () => setEditing(true) },
-                    { label: "Privacy policy", icon: <FaShieldHalved />, href: "/privacy" },
-                  ],
-                },
-                {
-                  items: [
-                    { label: "Sign out", icon: <FaRightFromBracket />, variant: "warning", onSelect: signOut },
-                    { label: "Delete account", icon: <FaTrash />, variant: "danger", onSelect: () => setShowDeleteDialog(true) },
-                  ],
-                },
-              ]}
-            />
-          </div>
-        )}
-
-        <div className={styles.avatarWrap}>
-          <Image
-            src={avatarSrc}
-            alt={user.name || user.username}
-            width={96}
-            height={96}
-            className={styles.avatarImg}
-            unoptimized
-          />
-        </div>
-
-        {editing ? (
+  if (editing) {
+    return (
+      <>
+        <header className={styles.header}>
           <div className={styles.editFields}>
             <label className={styles.editLabel}>
               <span className={styles.fieldLabel}>Username</span>
@@ -161,19 +119,63 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
               </Button>
             </div>
           </div>
-        ) : (
-          <div className={styles.identity}>
-            <RevealText text={`@${user.username}`} as="h1" className={styles.username} />
-            {user.name && <p className={styles.displayName}>{user.name}</p>}
-          </div>
+        </header>
+        {isOwnProfile && (
+          <DeleteAccountDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog} />
         )}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <header className={styles.header}>
+        {/* Left: handle + display name */}
+        <div className={styles.identity}>
+          <h1 className={styles.username}>@{user.username}</h1>
+          {user.name && <p className={styles.displayName}>{user.name}</p>}
+        </div>
+
+        {/* Right: avatar + settings */}
+        <div className={styles.rightGroup}>
+          <div className={styles.avatarWrap}>
+            <Image
+              src={avatarSrc}
+              alt={user.name || user.username}
+              width={64}
+              height={64}
+              className={styles.avatarImg}
+              unoptimized
+            />
+          </div>
+          {isOwnProfile && (
+            <DropdownMenu
+              trigger={
+                <button className={styles.settingsTrigger} aria-label="Settings">
+                  <FaGear />
+                </button>
+              }
+              groups={[
+                {
+                  items: [
+                    { label: "Edit profile", icon: <FaPen />, onSelect: () => setEditing(true) },
+                    { label: "Privacy policy", icon: <FaShieldHalved />, href: "/privacy" },
+                  ],
+                },
+                {
+                  items: [
+                    { label: "Sign out", icon: <FaRightFromBracket />, variant: "warning", onSelect: signOut },
+                    { label: "Delete account", icon: <FaTrash />, variant: "danger", onSelect: () => setShowDeleteDialog(true) },
+                  ],
+                },
+              ]}
+            />
+          )}
+        </div>
       </header>
 
       {isOwnProfile && (
-        <DeleteAccountDialog
-          open={showDeleteDialog}
-          onOpenChange={setShowDeleteDialog}
-        />
+        <DeleteAccountDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog} />
       )}
     </>
   );

@@ -40,6 +40,7 @@
 
 .setCard {
   @include surface.card;
+  border-radius: var(--radius-2);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -79,9 +80,11 @@
 // ── Activity feed ──────────────────────────────────
 .activityList {
   @include surface.card;
+  border-radius: var(--radius-2);
   list-style: none;
   padding: 0;
   margin: 0;
+  overflow: hidden;
 }
 
 .activityItem {
@@ -119,26 +122,3 @@
   white-space: nowrap;
 }
 
-// ── Loading placeholders ────────────────────────
-.avatarPlaceholder {
-  width: var(--size-avatar-lg);
-  height: var(--size-avatar-lg);
-  border-radius: var(--radius-full);
-  border: 3px solid var(--accent-solid);
-}
-
-.namePlaceholder {
-  display: inline-block;
-}
-
-.editPlaceholder {
-  // Matches the ghost button height so layout is stable
-  min-height: var(--size-touch-target);
-}
-
-// ── Sign out ───────────────────────────────────────
-.signOutSection {
-  display: flex;
-  justify-content: center;
-  padding-top: var(--space-2);
-}

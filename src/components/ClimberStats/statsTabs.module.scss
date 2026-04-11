@@ -1,0 +1,48 @@
+@use "mixins/typography" as type;
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  overflow: hidden;
+}
+
+// ── Swipeable track ───────────────────────────────
+.track {
+  display: flex;
+  transition: transform var(--duration-normal) var(--ease-out);
+  transform: translateX(calc(var(--active, 0) * -100%));
+  touch-action: pan-y;
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+.panel {
+  flex: 0 0 100%;
+  min-width: 0;
+}
+
+// ── Dot indicators ────────────────────────────────
+.dots {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.dot {
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  border: none;
+  padding: 0;
+  background: var(--mono-border);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dotActive {
+  background: var(--accent-solid);
+}
