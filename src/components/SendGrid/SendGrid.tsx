@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { format, parseISO } from "date-fns";
-import type { RouteSet, Route, RouteLog, TileState } from "@/lib/data";
-import { isFlash, computePoints } from "@/lib/data";
+import type { RouteSet, Route, RouteLog } from "@/lib/data";
+import { isFlash, computePoints, deriveTileState } from "@/lib/data";
 import { scatteredOrder } from "@/lib/stagger";
 import { StatsWidget } from "@/components/StatsWidget/StatsWidget";
 import { RevealText } from "@/components/motion";
@@ -17,13 +17,6 @@ interface Props {
   set: RouteSet;
   routes: Route[];
   initialLogs: RouteLog[];
-}
-
-function deriveTileState(log: RouteLog | undefined): TileState {
-  if (!log || log.attempts === 0) return "empty";
-  if (!log.completed) return "attempted";
-  if (isFlash(log)) return "flash";
-  return "completed";
 }
 
 export function SendGrid({ set, routes, initialLogs }: Props) {

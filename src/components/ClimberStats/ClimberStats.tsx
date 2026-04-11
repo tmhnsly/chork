@@ -28,7 +28,7 @@ export function ClimberStats({
 
   if (currentSet) {
     tabs.push({
-      label: "Current Wall",
+      label: "Current Set",
       content: (
         <div className={styles.tabCard}>
           <RingStatsRow

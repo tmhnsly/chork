@@ -16,8 +16,7 @@
 }
 
 .username {
-  @include type.typography(page-title);
-  color: var(--mono-text);
+  @include type.typography(display);
 }
 
 .displayName {

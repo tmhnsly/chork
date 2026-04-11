@@ -1,4 +1,4 @@
-import type { RouteLog } from "./types";
+import type { RouteLog, TileState } from "./types";
 
 /** A route is a flash when completed on the first attempt. */
 export function isFlash(log: Pick<RouteLog, "attempts" | "completed">): boolean {
@@ -32,4 +32,12 @@ const POINTS_PER_ZONE = 1;
  */
 export function computeMaxPoints(totalRoutes: number, zoneRouteCount: number): number {
   return totalRoutes * POINTS_PER_FLASH + zoneRouteCount * POINTS_PER_ZONE;
+}
+
+/** Derive tile visual state from a route log. */
+export function deriveTileState(log: RouteLog | undefined): TileState {
+  if (!log || log.attempts === 0) return "empty";
+  if (!log.completed) return "attempted";
+  if (isFlash(log)) return "flash";
+  return "completed";
 }

@@ -18,10 +18,7 @@
 }
 
 // ── Item ──────────────────────────────────────────
-// Radix interactive pattern:
-//   text: step 11 (low-contrast) → step 12 on hover
-//   icon: step 9 (solid) → step 11 on hover
-//   bg: transparent → step 4 (bg-hover) on hover
+// Radix solid pattern: on hover, step 9 background + on-solid text.
 .item {
   @include type.typography(body);
   font-size: var(--text-sm);
@@ -33,7 +30,7 @@
   width: 100%;
   border: none;
   background: transparent;
-  color: var(--mono-text-low-contrast);  // step 11
+  color: var(--mono-text);
   cursor: pointer;
   text-decoration: none;
   outline: none;
@@ -41,8 +38,8 @@
 
   &:hover,
   &[data-highlighted] {
-    background: var(--mono-bg-hover);    // step 4
-    color: var(--mono-text);             // step 12
+    background: var(--accent-solid);       // lime step 9
+    color: var(--accent-on-solid);         // dark text on lime
   }
 }
 
@@ -50,51 +47,49 @@
 .itemIcon {
   display: flex;
   font-size: var(--text-sm);
-  color: var(--mono-solid);              // step 9 - muted
+  color: var(--mono-text-low-contrast);
   flex-shrink: 0;
-  transition: color 0.1s var(--ease-out);
 
   .item:hover &,
   .item[data-highlighted] & {
-    color: var(--mono-text-low-contrast); // step 11 on hover
+    color: var(--accent-on-solid);
   }
 }
 
 // ── Variants ──────────────────────────────────────
-// Warning and danger override both text and icon colours.
-// Hover shifts from low-contrast (step 11) to full (step 12).
+// Each variant uses its own colour scale's step 9 + on-solid.
 .item--warning {
-  color: var(--flash-text-low-contrast);
+  color: var(--flash-text-low-contrast);  // amber step 11
 
   .itemIcon {
-    color: var(--flash-solid);
+    color: inherit;
   }
 
   &:hover,
   &[data-highlighted] {
-    background: color-mix(in srgb, var(--flash-subtle-bg) 50%, transparent);
-    color: var(--flash-text);
+    background: var(--flash-solid);       // amber step 9
+    color: var(--flash-on-solid);
 
     .itemIcon {
-      color: var(--flash-text-low-contrast);
+      color: var(--flash-on-solid);
     }
   }
 }
 
 .item--danger {
-  color: var(--error-text-low-contrast);
+  color: var(--error-text-low-contrast);  // red step 11
 
   .itemIcon {
-    color: var(--error-solid);
+    color: inherit;
   }
 
   &:hover,
   &[data-highlighted] {
-    background: color-mix(in srgb, var(--error-subtle-bg) 50%, transparent);
-    color: var(--error-text);
+    background: var(--error-solid);       // red step 9
+    color: var(--error-on-solid);
 
     .itemIcon {
-      color: var(--error-text-low-contrast);
+      color: var(--error-on-solid);
     }
   }
 }
@@ -102,7 +97,7 @@
 // ── Separator ─────────────────────────────────────
 .separator {
   height: 1px;
-  background: var(--mono-border-subtle); // step 6
+  background: var(--mono-border-subtle);
 }
 
 // ── Animation ─────────────────────────────────────

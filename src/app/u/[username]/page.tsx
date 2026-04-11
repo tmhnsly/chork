@@ -1,24 +1,22 @@
 import { notFound } from "next/navigation";
-import { format, parseISO, formatDistanceToNow } from "date-fns";
-import { FaBolt } from "react-icons/fa6";
+import { format, parseISO } from "date-fns";
 import { createServerSupabase } from "@/lib/supabase/server";
 import {
   getProfileByUsername,
   getAllSets,
   getAllLogsForUser,
   getUserSetStats,
-  getActivityEventsForUser,
   getRoutesBySet,
   getLogsBySetForUser,
 } from "@/lib/data/queries";
 import { isFlash, computePoints, computeMaxPoints } from "@/lib/data";
-import type { RouteLogWithSetId, Route, RouteLog, TileState } from "@/lib/data";
+import type { RouteLogWithSetId } from "@/lib/data";
 import { evaluateBadges, type BadgeContext } from "@/lib/badges";
 import { ProfileHeader } from "@/components/ProfileHeader/ProfileHeader";
 import { ClimberStats } from "@/components/ClimberStats/ClimberStats";
 import { BadgeShelf } from "@/components/BadgeShelf/BadgeShelf";
-import { PunchTile } from "@/components/PunchTile/PunchTile";
-import { Legend } from "@/components/ui";
+import { CurrentSetSection } from "@/components/sections/CurrentSetSection";
+import { PreviousSetsSection } from "@/components/sections/PreviousSetsSection";
 import styles from "./user.module.scss";
 
 interface Props {
@@ -35,13 +33,6 @@ function formatSetLabel(starts: string, ends: string) {
     format(parseISO(starts), "MMM d").toUpperCase(),
     format(parseISO(ends), "MMM d").toUpperCase(),
   ].join(" – ");
-}
-
-function deriveStats(logs: RouteLogWithSetId[]) {
-  const completions = logs.filter((l) => l.completed).length;
-  const flashes = logs.filter((l) => isFlash(l)).length;
-  const points = logs.reduce((s, l) => s + computePoints(l), 0);
-  return { completions, flashes, points };
 }
 
 export default async function UserProfilePage({ params }: Props) {
@@ -68,23 +59,20 @@ export default async function UserProfilePage({ params }: Props) {
   const allSets = await getAllSets(supabase, gymId);
   const activeSet = allSets.find((s) => s.active) ?? null;
 
-  const [viewStats, activityEvents, miniRoutes, miniLogs] = await Promise.all([
+  const [viewStats, miniRoutes, miniLogs] = await Promise.all([
     getUserSetStats(supabase, profileUser.id, gymId),
-    isOwnProfile ? getActivityEventsForUser(supabase, profileUser.id, 5) : Promise.resolve([]),
     activeSet ? getRoutesBySet(supabase, activeSet.id) : Promise.resolve([]),
     activeSet ? getLogsBySetForUser(supabase, activeSet.id, profileUser.id) : Promise.resolve([]),
   ]);
 
   // Build stats
-  const useViewStats = viewStats.length > 0;
   const statsBySet = new Map<string, { completions: number; flashes: number; points: number }>();
   let allTimeStats: { completions: number; flashes: number; points: number };
 
-  // Badge context
   const completedRoutesBySet = new Map<string, Set<number>>();
   const totalRoutesBySet = new Map<string, number>();
 
-  if (useViewStats) {
+  if (viewStats.length > 0) {
     for (const row of viewStats) {
       statsBySet.set(row.set_id, {
         completions: row.completions ?? 0,
@@ -100,7 +88,7 @@ export default async function UserProfilePage({ params }: Props) {
   } else {
     const allLogs = await getAllLogsForUser(supabase, profileUser.id);
     for (const log of allLogs) {
-      const setId = log.routes?.id;
+      const setId = (log as RouteLogWithSetId).routes?.id;
       if (!setId) continue;
       const existing = statsBySet.get(setId) ?? { completions: 0, flashes: 0, points: 0 };
       if (log.completed) existing.completions++;
@@ -108,10 +96,14 @@ export default async function UserProfilePage({ params }: Props) {
       existing.points += computePoints(log);
       statsBySet.set(setId, existing);
     }
-    allTimeStats = deriveStats(allLogs);
+    allTimeStats = {
+      completions: allLogs.filter((l) => l.completed).length,
+      flashes: allLogs.filter((l) => isFlash(l)).length,
+      points: allLogs.reduce((s, l) => s + computePoints(l), 0),
+    };
   }
 
-  // Build badge context from mini logs and route data
+  // Badge context
   if (miniRoutes.length > 0 && activeSet) {
     totalRoutesBySet.set(activeSet.id, miniRoutes.length);
     const completed = new Set<number>();
@@ -124,14 +116,13 @@ export default async function UserProfilePage({ params }: Props) {
     completedRoutesBySet.set(activeSet.id, completed);
   }
 
-  const badgeCtx: BadgeContext = {
+  const badges = evaluateBadges({
     totalFlashes: allTimeStats.flashes,
     totalSends: allTimeStats.completions,
     totalPoints: allTimeStats.points,
     completedRoutesBySet,
     totalRoutesBySet,
-  };
-  const badges = evaluateBadges(badgeCtx);
+  });
 
   const currentSetStats = activeSet
     ? {
@@ -151,16 +142,12 @@ export default async function UserProfilePage({ params }: Props) {
       if (!stats || stats.completions === 0) return null;
       return { id: set.id, label: formatSetLabel(set.starts_at, set.ends_at), ...stats };
     })
-    .filter(Boolean);
-
-  const logByRoute = new Map(miniLogs.map((l) => [l.route_id, l]));
+    .filter((s): s is NonNullable<typeof s> => s !== null);
 
   return (
     <main className={styles.page}>
-      {/* Header: handle + name left, avatar + settings right */}
       <ProfileHeader user={profileUser} isOwnProfile={isOwnProfile} />
 
-      {/* Stats: swipeable Current Wall / All Time */}
       <ClimberStats
         currentSet={currentSetStats}
         allTimeCompletions={allTimeStats.completions}
@@ -168,107 +155,13 @@ export default async function UserProfilePage({ params }: Props) {
         allTimePoints={allTimeStats.points}
       >
         {miniRoutes.length > 0 && (
-          <>
-            <div className={styles.miniGrid}>
-              {miniRoutes.map((route) => {
-                const routeLog = logByRoute.get(route.id);
-                return (
-                  <PunchTile
-                    key={route.id}
-                    number={route.number}
-                    state={deriveTileState(routeLog)}
-                    zone={routeLog?.zone}
-                    gradeLabel={routeLog?.grade_vote != null ? `V${routeLog.grade_vote}` : undefined}
-                    compact
-                  />
-                );
-              })}
-            </div>
-            <Legend />
-          </>
+          <CurrentSetSection routes={miniRoutes} logs={miniLogs} />
         )}
       </ClimberStats>
 
-      {/* Badge shelf */}
       <BadgeShelf badges={badges} />
 
-      {/* Past sets */}
-      {previousSets.length > 0 && (
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Previous sets</h2>
-          <div className={styles.setList}>
-            {previousSets.map((s) => (
-              <div key={s!.id} className={styles.setCard}>
-                <span className={styles.setLabel}>{s!.label}</span>
-                <div className={styles.setStats}>
-                  <div className={styles.setStat}>
-                    <span className={`${styles.setStatValue} ${styles.sendsValue}`}>{s!.completions}</span>
-                    <span className={`${styles.setStatLabel} ${styles.sendsLabel}`}>sends</span>
-                  </div>
-                  <div className={styles.setStat}>
-                    <span className={`${styles.setStatValue} ${styles.flashValue}`}>{s!.flashes}</span>
-                    <span className={`${styles.setStatLabel} ${styles.flashLabel}`}>flash</span>
-                  </div>
-                  <div className={styles.setStat}>
-                    <span className={`${styles.setStatValue} ${styles.pointsValue}`}>{s!.points}</span>
-                    <span className={`${styles.setStatLabel} ${styles.pointsLabel}`}>pts</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Recent activity */}
-      {isOwnProfile && activityEvents.length > 0 && (
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Recent activity</h2>
-          <ul className={styles.activityList}>
-            {activityEvents.map((event) => {
-              const routeNum = event.routes?.number;
-              let text: string;
-              let isFlashEvent = false;
-
-              switch (event.type) {
-                case "flashed":
-                  text = `Flashed route ${routeNum ?? "?"}`;
-                  isFlashEvent = true;
-                  break;
-                case "completed":
-                  text = `Sent route ${routeNum ?? "?"}`;
-                  break;
-                case "beta_spray":
-                  text = `Left beta on route ${routeNum ?? "?"}`;
-                  break;
-                default:
-                  text = `Activity on route ${routeNum ?? "?"}`;
-              }
-
-              const timeAgo = formatDistanceToNow(parseISO(event.created_at));
-
-              return (
-                <li key={event.id} className={styles.activityItem}>
-                  <span className={isFlashEvent ? styles.activityFlash : styles.activityText}>
-                    {isFlashEvent && <FaBolt className={styles.activityFlashIcon} />}
-                    {text}
-                  </span>
-                  <span className={styles.activityTime}>{timeAgo}</span>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-      )}
+      <PreviousSetsSection sets={previousSets} />
     </main>
   );
 }
-
-// ── Mini send grid ────────────────────────────────
-function deriveTileState(log: RouteLog | undefined): TileState {
-  if (!log || log.attempts === 0) return "empty";
-  if (!log.completed) return "attempted";
-  if (isFlash(log)) return "flash";
-  return "completed";
-}
-
