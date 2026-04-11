@@ -8,7 +8,7 @@
   border: 1px solid var(--mono-border-subtle);
   background: var(--mono-bg);
   cursor: pointer;
-  overflow: visible;
+  overflow: hidden; // contain badges within tile bounds
   transition:
     background var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out);
@@ -16,7 +16,6 @@
   min-height: var(--size-touch-target);
   container-type: inline-size;
 
-  // Compact variant for display-only grids (e.g. profile mini grid)
   &.compact {
     min-width: 0;
     min-height: 0;
@@ -35,7 +34,7 @@
   line-height: 1;
   letter-spacing: var(--tracking-tight);
   text-align: center;
-  padding: 0 4cqi; // breathing room for italic glyphs
+  padding: 0 4cqi;
 }
 
 // ── States ──────────────────────────────────────────
@@ -64,24 +63,34 @@
 // ── Zone badge ──────────────────────────────────────
 .zoneBadge {
   position: absolute;
-  top: 4cqi;
-  left: 4cqi;
-  font-size: 14cqi;
-  color: var(--accent-on-solid);
+  top: 6cqi;
+  left: 6cqi;
+  font-size: 12cqi;
   line-height: 1;
+  color: var(--mono-text-low-contrast);
 
-  .empty &,
+  .completed & {
+    color: var(--accent-on-solid);
+    opacity: 0.7;
+  }
+
+  .flash & {
+    color: var(--flash-on-solid);
+    opacity: 0.7;
+  }
+
   .attempted & {
-    color: var(--mono-text-low-contrast);
+    color: var(--mono-app-bg);
+    opacity: 0.5;
   }
 }
 
 // ── Flash badge ─────────────────────────────────────
 .flashBadge {
   position: absolute;
-  top: 4cqi;
-  right: 4cqi;
-  font-size: 16cqi;
+  top: 6cqi;
+  right: 6cqi;
+  font-size: 14cqi;
   color: var(--flash-on-solid);
   line-height: 1;
 }
@@ -89,8 +98,8 @@
 // ── Grade overlay ───────────────────────────────────
 .gradeOverlay {
   position: absolute;
-  bottom: 4cqi;
-  right: 4cqi;
+  bottom: 6cqi;
+  right: 6cqi;
   font-family: var(--font-heading);
   font-weight: var(--weight-bold);
   font-size: 10cqi;

@@ -3,54 +3,7 @@
 @use "mixins/surfaces" as surface;
 @use "mixins/breakpoints" as bp;
 
-// ── Unauthenticated top bar ───────────────────────
-.topBar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: var(--z-navbar);
-  height: var(--navbar-height);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 var(--gutter-x);
-  background: var(--mono-app-bg);
-  border-bottom: 1px solid var(--mono-border-subtle);
-}
-
-.logoLink {
-  @include layout.cluster(var(--space-2));
-  min-height: var(--size-touch-target);
-}
-
-.logoIcon {
-  width: var(--size-icon-sm);
-  height: var(--size-icon-sm);
-  color: var(--accent-solid-hover);
-}
-
-.logoText {
-  @include type.typography(label);
-  font-size: var(--text-sm);
-}
-
-.signIn {
-  @include type.typography(button);
-  min-height: var(--size-touch-target);
-  display: flex;
-  align-items: center;
-  padding: 0 var(--space-4);
-  border: 1px solid var(--mono-border);
-  color: var(--mono-text);
-  transition: background var(--duration-fast) var(--ease-out);
-
-  &:hover {
-    background: var(--mono-bg-hover);
-  }
-}
-
-// ── Authenticated bottom bar (all breakpoints) ────
+// ── Bottom bar ────────────────────────────────────
 .bar {
   position: fixed;
   bottom: 0;
@@ -69,17 +22,18 @@
   justify-content: center;
   gap: var(--space-1);
   width: 100%;
-  max-width: var(--content-md);
+  max-width: var(--content-app);
   height: var(--navbar-height);
   padding: 0 var(--space-2);
   border-radius: var(--radius-full);
   pointer-events: auto;
+  box-shadow: var(--shadow-md);
   @include surface.glass(70%);
 }
 
 // ── Brand ─────────────────────────────────────────
 .brandLink {
-  display: none; // hidden on mobile bottom bar
+  display: none;
   align-items: center;
   gap: var(--space-2);
   height: var(--size-touch-target);
@@ -100,7 +54,6 @@
 .brandText {
   @include type.typography(label);
   font-size: var(--text-xs);
-  // Icon only on mobile, icon + name on tablet+
   display: none;
 
   @include bp.tablet {
@@ -121,21 +74,27 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: var(--space-1);
+  gap: 2px;
   min-width: var(--space-14);
   min-height: var(--size-touch-target);
   padding: var(--space-1) var(--space-3);
-  color: var(--mono-text-low-contrast);
+  color: var(--mono-solid);               // step 9 — dim, clearly inactive
   text-decoration: none;
-  border-radius: var(--radius-full);
-  transition:
-    color var(--duration-fast) var(--ease-out),
-    background var(--duration-fast) var(--ease-out);
+  border-radius: var(--radius-2);
+  transition: color 0.1s var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+
+  &:hover {
+    color: var(--mono-text-low-contrast); // step 11 — brightens on hover
+  }
 }
 
 .tabActive {
-  color: var(--accent-text-low-contrast);
-  background: color-mix(in srgb, var(--accent-subtle-bg) 80%, transparent);
+  color: var(--accent-text);              // lime step 12 — clearly selected
+
+  &:hover {
+    color: var(--accent-text);            // stays accent on hover
+  }
 }
 
 .tabIcon {
@@ -167,6 +126,6 @@
 }
 
 .tabAvatarActive {
-  outline: 2px solid var(--accent-solid);
+  // Active state handled by parent .tabActive colour change
   outline-offset: 1px;
 }

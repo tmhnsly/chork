@@ -24,7 +24,7 @@
   }
 }
 
-// ── Badge item ────────────────────────────────────
+// ── Achievement item ──────────────────────────────
 .badge {
   @include surface.card;
   border-radius: var(--radius-2);
@@ -38,25 +38,34 @@
   text-align: center;
 }
 
-.badgeEarned {
-  // Full colour — tier-specific border handled by tier class
-}
-
 .badgeLocked {
   opacity: 0.4;
 }
 
-// ── Tier variants ─────────────────────────────────
+// ── Tier variants — using Radix step 7 (border) for borders,
+//    step 11 (low-contrast text) for icons ─────────
 .tier--bronze {
-  border-color: var(--flash-border);
+  border-color: var(--flash-solid);           // amber step 9
+
+  .badgeIcon {
+    color: var(--flash-text-low-contrast);    // amber step 11
+  }
 }
 
 .tier--silver {
-  border-color: var(--mono-border-hover);
+  border-color: var(--mono-border-hover);     // olive step 8
+
+  .badgeIcon {
+    color: var(--mono-text-low-contrast);     // olive step 11
+  }
 }
 
 .tier--gold {
-  border-color: var(--accent-border);
+  border-color: var(--accent-border);         // lime step 7
+
+  .badgeIcon {
+    color: var(--accent-text-low-contrast);   // lime step 11
+  }
 }
 
 // ── Icon ──────────────────────────────────────────
@@ -64,10 +73,6 @@
   font-size: var(--text-xl);
   display: flex;
   color: var(--mono-text-low-contrast);
-
-  .badgeEarned & {
-    // colour set via inline style from tier colours
-  }
 }
 
 // ── Name ──────────────────────────────────────────

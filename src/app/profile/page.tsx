@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase/server";
 
 export const metadata = {
-  title: "Profile — Chork",
+  title: "Profile - Chork",
 };
 
 export default async function ProfilePage() {

@@ -1,52 +1,15 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
-@use "mixins/surfaces" as surface;
 
 .wrapper {
-  // Outer wrapper — no extra spacing, StatsTabs handles it
+  // Outer wrapper
 }
 
-.statsContent {
+.tabContent {
   @include layout.stack(var(--space-3));
 }
 
-// ── Ring stats card ────────────────────────────────
-.statsCard {
-  @include surface.card;
-  border-radius: var(--radius-2);
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-3);
-}
-
-.statValues {
-  display: flex;
-  gap: var(--space-4);
-  flex: 1;
-}
-
-.stat {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.value {
-  @include type.typography(number);
-  font-size: var(--text-lg);
-}
-
-.accent {
-  color: var(--accent-text);
-}
-
-.flash {
-  color: var(--flash-text-low-contrast);
-}
-
-.label {
+.tabLabel {
   @include type.typography(label);
-  font-size: var(--text-xs);
-  color: var(--mono-text-low-contrast);
+  color: var(--accent-text);
 }

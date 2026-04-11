@@ -103,7 +103,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       showToast(error.message, "error");
       return;
     }
+    // Push + refresh ensures the RSC cache is busted and home shows authenticated view
     router.push("/");
+    router.refresh();
   }, [supabase, router]);
 
   const signUp = useCallback(async (email: string, password: string) => {
@@ -118,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       showToast(error.message, "error");
       return;
     }
-    showToast("Account created — check your email to confirm");
+    showToast("Account created - check your email to confirm");
   }, [supabase]);
 
   const signOut = useCallback(async () => {

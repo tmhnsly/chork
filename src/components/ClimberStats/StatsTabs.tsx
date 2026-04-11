@@ -41,6 +41,21 @@ export function StatsTabs({ tabs }: Props) {
 
   return (
     <div className={styles.container}>
+      {/* Tab labels */}
+      <div className={styles.tabBar}>
+        {tabs.map((tab, i) => (
+          <button
+            key={i}
+            type="button"
+            className={`${styles.tabBtn} ${i === activeIndex ? styles.tabBtnActive : ""}`}
+            onClick={() => setActiveIndex(i)}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Swipeable panels */}
       <div
         className={styles.track}
         onTouchStart={handleTouchStart}
@@ -53,20 +68,6 @@ export function StatsTabs({ tabs }: Props) {
           </div>
         ))}
       </div>
-
-      {tabs.length > 1 && (
-        <div className={styles.dots}>
-          {tabs.map((tab, i) => (
-            <button
-              key={i}
-              type="button"
-              className={`${styles.dot} ${i === activeIndex ? styles.dotActive : ""}`}
-              onClick={() => setActiveIndex(i)}
-              aria-label={tab.label}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 }

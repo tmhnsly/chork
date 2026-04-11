@@ -19,7 +19,6 @@ import type { Step } from "@/components/landing/HowItWorksSection";
 import { ScoringSection } from "@/components/landing/ScoringSection";
 import type { ScoreRow } from "@/components/landing/ScoringSection";
 import { FadeIn } from "@/components/landing/FadeIn";
-import { LandingNav } from "@/components/NavBar/NavBar";
 import styles from "./landing.module.scss";
 
 const features: FeatureItem[] = [
@@ -100,7 +99,6 @@ export function LandingPage() {
 
   return (
     <div className={styles.page}>
-      <LandingNav />
       <HeroSection
         headline="Track your sends. Compete with your crew."
         subheadline="The bouldering comp tracker that keeps score so you can keep climbing."

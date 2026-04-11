@@ -11,11 +11,6 @@ type AuthSuccess = {
 type AuthFailure = { error: string };
 
 /**
- * Lightweight auth check for server actions.
- * Only fetches active_gym_id from profile — no full profile load.
- * Use this for frequent operations (attempts, zone toggle, likes).
- */
-/**
  * Auth check that only requires sign-in, no gym.
  * Use for onboarding and account setup.
  */

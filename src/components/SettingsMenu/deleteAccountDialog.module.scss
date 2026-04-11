@@ -2,31 +2,6 @@
 @use "mixins/layout" as layout;
 @use "mixins/input" as input;
 
-.overlay {
-  position: fixed;
-  inset: 0;
-  background: color-mix(in srgb, var(--mono-app-bg) 60%, transparent);
-  z-index: var(--z-overlay);
-  animation: fadeIn var(--duration-normal) var(--ease-out);
-}
-
-.content {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: var(--z-overlay);
-  width: calc(100% - var(--gutter-x) * 2);
-  max-width: var(--content-narrow);
-  padding: var(--space-6);
-  border-radius: var(--radius-3);
-  border: 1px solid var(--mono-border-subtle);
-  background: var(--mono-subtle-bg);
-  outline: none;
-  @include layout.stack(var(--space-4));
-  animation: fadeIn var(--duration-normal) var(--ease-out);
-}
-
 .heading {
   @include type.typography(card-title);
 }
@@ -52,16 +27,4 @@
 
 .actions {
   @include layout.stack(var(--space-2));
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .overlay,
-  .content {
-    animation: none;
-  }
 }

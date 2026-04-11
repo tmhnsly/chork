@@ -11,7 +11,7 @@
 // ── Mini send grid ──────────────────────────────
 .miniGrid {
   display: grid;
-  grid-template-columns: repeat(12, 1fr);
+  grid-template-columns: repeat(10, 1fr);
   gap: 3px;
   pointer-events: none;
 }
@@ -63,14 +63,18 @@
   @include type.typography(number);
 }
 
-.flashValue {
-  color: var(--flash-text-low-contrast);
-}
-
 .setStatLabel {
   @include type.typography(label);
   color: var(--mono-text-low-contrast);
 }
+
+// Stat colours — consistent with RingStatsRow
+.sendsValue { color: var(--accent-text); }
+.sendsLabel { color: var(--accent-text-low-contrast); }
+.flashValue { color: var(--flash-text); }
+.flashLabel { color: var(--flash-text-low-contrast); }
+.pointsValue { color: var(--success-text); }
+.pointsLabel { color: var(--success-text-low-contrast); }
 
 // ── Activity feed ──────────────────────────────────
 .activityList {

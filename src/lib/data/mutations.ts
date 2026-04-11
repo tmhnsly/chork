@@ -29,6 +29,7 @@ export async function upsertRouteLog(
       .from("route_logs")
       .update(data)
       .eq("id", existingLogId)
+      .eq("user_id", userId)
       .select()
       .single();
     if (error) throw error;

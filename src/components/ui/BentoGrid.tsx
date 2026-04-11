@@ -89,7 +89,7 @@ interface StatCellProps {
 
 export function BentoStat({
   label,
-  value = "—",
+  value = "-",
   icon,
   span = 1,
   variant = "default",

@@ -24,7 +24,12 @@ export async function createSet(
 
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
+  const { supabase, userId, gymId: activeGymId } = auth;
+
+  // Verify the requested gym matches the user's active gym
+  if (gymId !== activeGymId) {
+    return { error: "You can only manage your active gym" };
+  }
 
   // Check admin role
   const role = await getUserGymRole(supabase, userId, gymId);
@@ -83,7 +88,11 @@ export async function endSet(
 ): Promise<AdminResult> {
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
+  const { supabase, userId, gymId: activeGymId } = auth;
+
+  if (gymId !== activeGymId) {
+    return { error: "You can only manage your active gym" };
+  }
 
   const role = await getUserGymRole(supabase, userId, gymId);
   if (!isGymAdmin(role)) {

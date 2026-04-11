@@ -4,7 +4,7 @@ import { PageTitle } from "@/components/motion";
 import styles from "./leaderboard.module.scss";
 
 export const metadata = {
-  title: "Leaderboard — Chork",
+  title: "Leaderboard - Chork",
 };
 
 export default async function LeaderboardPage() {
@@ -17,7 +17,7 @@ export default async function LeaderboardPage() {
 
   return (
     <main className={styles.page}>
-      <PageTitle text="The Board" className={styles.title} />
+      <PageTitle text="Chork Board" className={styles.title} />
       <p className={styles.placeholder}>Coming soon</p>
     </main>
   );

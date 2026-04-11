@@ -1,6 +1,6 @@
 # Chork
 
-Multi-gym bouldering competition tracker. Climbers log attempts on competition routes, track progress via a punch card, and compete on leaderboards.
+Multi-gym bouldering competition tracker. Climbers log attempts on competition routes, track progress on the wall, and compete on leaderboards.
 
 See `docs/schema.md` for the Supabase schema. See `docs/roadmap.md` for the full feature roadmap.
 
@@ -45,7 +45,7 @@ Supabase Auth with email+password. Sessions managed by `@supabase/ssr` middlewar
 
 - `staleTimes.dynamic: 300` — 5-minute client-side RSC cache
 - Mutations call `revalidatePath("/", "layout")` to bust the cache immediately
-- Route data cached per-route in PunchCard state for instant re-open
+- Route data cached per-route in SendGrid state (`routeDataCache` Map) for instant re-open
 
 ## Visual style
 
@@ -59,6 +59,15 @@ Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
 - Golden ratio for nested radius: inner = outer − padding
 - Glassmorphism allowed on floating chrome (navbar, dropdowns) via `backdrop-filter: blur` + `color-mix` transparency
 - Radix palette: olive (mono), lime (accent), red (error), teal (success), amber (flash)
+
+## Page layout
+
+Three page layout mixins in `src/styles/mixins/_layout.scss`:
+- `@include layout.page` — app pages (send grid, profile, leaderboard). Uses `--content-app` (640px tablet, 768px desktop)
+- `@include layout.page-prose` — text content (privacy, blog). Uses `--content-prose` (672px)
+- `@include layout.page-wide` — admin/dashboard. Uses `--content-wide` (960px)
+
+All handle min-height, gutters, navbar-safe bottom padding, max-width, and centering.
 
 ## Code rules
 

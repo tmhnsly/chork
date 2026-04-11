@@ -1,5 +1,7 @@
-// Layout composition mixins — stack (vertical) and cluster (horizontal).
+// Layout composition mixins.
 // Usage: @use 'mixins/layout' as layout;
+
+// ── Flex stacks ───────────────────────────────────
 
 @mixin stack($gap: var(--stack-gap)) {
   display: flex;
@@ -14,13 +16,37 @@
   gap: $gap;
 }
 
-// Full-page layout with navbar-safe bottom padding.
-// Use on the <main> element of any page that has the bottom navbar.
-@mixin page {
+// ── Page layouts ──────────────────────────────────
+// All page mixins handle: min-height, horizontal gutters, navbar-safe
+// bottom padding, max-width, and centering. Pick the one that matches
+// the page's content type.
+
+// Shared base — all pages get this
+@mixin _page-base {
   min-height: 100vh;
   min-height: 100dvh;
   padding: var(--space-8) var(--gutter-x);
   padding-bottom: calc(var(--navbar-height) + env(safe-area-inset-bottom, 0px) + var(--space-8));
-  max-width: var(--content-md);
   margin: 0 auto;
+}
+
+// App pages — send grid, profile, leaderboard.
+// Single-column, content-focused. Widens on desktop.
+@mixin page {
+  @include _page-base;
+  max-width: var(--content-app);
+}
+
+// Prose pages — privacy policy, blog posts, terms.
+// Comfortable reading width.
+@mixin page-prose {
+  @include _page-base;
+  max-width: var(--content-prose);
+}
+
+// Wide pages — admin dashboard, analytics.
+// Multi-column or data-dense layouts.
+@mixin page-wide {
+  @include _page-base;
+  max-width: var(--content-wide);
 }

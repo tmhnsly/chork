@@ -414,9 +414,33 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
     const dy = e.clientY - dragRef.current.startY;
     const elapsed = Date.now() - dragRef.current.startTime;
     const velocity = elapsed > 0 ? dy / elapsed : 0;
-    contentRef.current.classList.remove(styles.dragging);
-    contentRef.current.style.removeProperty("--drag-y");
-    if (dy > DRAG_CLOSE_THRESHOLD || velocity > DRAG_VELOCITY_THRESHOLD) startClose();
+
+    // Kill entrance animation so it can't replay
+    contentRef.current.style.animation = "none";
+
+    if (dy > DRAG_CLOSE_THRESHOLD || velocity > DRAG_VELOCITY_THRESHOLD) {
+      contentRef.current.classList.remove(styles.dragging);
+      contentRef.current.style.removeProperty("--drag-y");
+      startClose();
+    } else {
+      // Set current position as inline transform before removing the class
+      contentRef.current.style.transform = `translateY(${dy}px)`;
+      contentRef.current.classList.remove(styles.dragging);
+      contentRef.current.style.removeProperty("--drag-y");
+
+      // Force reflow so the browser registers the start position
+      contentRef.current.offsetHeight;
+
+      // Transition smoothly back to 0
+      contentRef.current.style.transition = "transform var(--duration-normal) var(--ease-out)";
+      contentRef.current.style.transform = "translateY(0)";
+      contentRef.current.addEventListener("transitionend", () => {
+        if (contentRef.current) {
+          contentRef.current.style.transition = "";
+          contentRef.current.style.transform = "";
+        }
+      }, { once: true });
+    }
   }
 
   function startClose() {
@@ -469,9 +493,6 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
             <span className={styles.communityGrade}>
               {gradeLabel ?? "\u00A0"}
             </span>
-            {currentLog?.grade_vote != null && (
-              <span className={styles.userGrade}>You voted V{currentLog.grade_vote}</span>
-            )}
           </header>
 
           {/* ── Attempt counter (hero) ── */}

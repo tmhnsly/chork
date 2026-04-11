@@ -1,8 +1,14 @@
 /*
- * Surface tokens — dividers and shadows.
+ * Surface tokens — dividers and elevation shadows.
+ * Shadows use black with low opacity — works in both light and dark mode.
+ * Dark mode shadows are naturally more subtle (less contrast against dark bg).
  */
 :root {
   --surface-divider: var(--mono-border-subtle);
-  --surface-shadow: color-mix(in srgb, var(--mono-solid) 5%, transparent);
-  --surface-shadow-lg: color-mix(in srgb, var(--mono-solid) 12%, transparent);
+
+  // Elevation scale — use for floating elements, cards, modals
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.16), 0 2px 4px rgba(0, 0, 0, 0.08);
+  --shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.08);
 }

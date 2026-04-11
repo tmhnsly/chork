@@ -1,6 +1,4 @@
-import { FaStar, FaBolt, FaCheck, FaArrowTrendUp } from "react-icons/fa6";
-import { shimmerStyles, BentoGrid, BentoStat } from "@/components/ui";
-import { PunchTile } from "@/components/PunchTile/PunchTile";
+import { shimmerStyles } from "@/components/ui";
 import styles from "./user.module.scss";
 import headerStyles from "@/components/ProfileHeader/profileHeader.module.scss";
 import statsStyles from "@/components/ClimberStats/climberStats.module.scss";
@@ -8,43 +6,28 @@ import statsStyles from "@/components/ClimberStats/climberStats.module.scss";
 export default function ProfileLoading() {
   return (
     <main className={styles.page}>
+      {/* Header skeleton — horizontal: identity left, avatar right */}
       <header className={headerStyles.header}>
-        <div className={`${styles.avatarPlaceholder} ${shimmerStyles.skeleton}`} />
         <div className={headerStyles.identity}>
-          <h1 className={`${headerStyles.username} ${styles.namePlaceholder} ${shimmerStyles.skeleton}`}>
-            @username
-          </h1>
-          <p className={`${headerStyles.displayName} ${styles.namePlaceholder} ${shimmerStyles.skeleton}`}>
-            Display Name
-          </p>
-          <div className={styles.editPlaceholder} />
+          <div className={`${shimmerStyles.skeletonLine} ${shimmerStyles.skeletonShort}`} style={{ height: "1.5rem" }} />
+          <div className={`${shimmerStyles.skeletonLine} ${shimmerStyles.skeletonShort}`} style={{ height: "1rem" }} />
+        </div>
+        <div className={headerStyles.rightGroup}>
+          <div
+            className={`${shimmerStyles.skeleton}`}
+            style={{ width: "var(--space-16)", height: "var(--space-16)", borderRadius: "var(--radius-full)" }}
+          />
         </div>
       </header>
 
+      {/* Stats skeleton */}
       <div className={statsStyles.wrapper}>
-        <section className={statsStyles.section}>
-          <span className={statsStyles.sectionLabel}>Current set</span>
-          <div className={styles.miniGrid}>
-            {Array.from({ length: 14 }, (_, i) => (
-              <PunchTile key={i} number={i + 1} state="empty" className={shimmerStyles.skeleton} />
-            ))}
-          </div>
-          <BentoGrid columns={3}>
-            <BentoStat label="Points" icon={<FaStar />} className={shimmerStyles.skeleton} />
-            <BentoStat label="Sends" icon={<FaCheck />} className={shimmerStyles.skeleton} />
-            <BentoStat label="Flashes" icon={<FaBolt />} className={shimmerStyles.skeleton} />
-          </BentoGrid>
-        </section>
-
-        <section className={statsStyles.section}>
-          <span className={statsStyles.sectionLabel}>All time</span>
-          <BentoGrid columns={3}>
-            <BentoStat label="Points" icon={<FaStar />} className={shimmerStyles.skeleton} />
-            <BentoStat label="Sends" icon={<FaArrowTrendUp />} className={shimmerStyles.skeleton} />
-            <BentoStat label="Flashes" icon={<FaBolt />} className={shimmerStyles.skeleton} />
-          </BentoGrid>
-        </section>
+        <div className={`${statsStyles.statsCard} ${shimmerStyles.skeleton}`} style={{ height: "5rem" }} />
       </div>
+
+      {/* Section placeholders */}
+      <div className={`${shimmerStyles.skeleton}`} style={{ height: "6rem", borderRadius: "var(--radius-2)" }} />
+      <div className={`${shimmerStyles.skeleton}`} style={{ height: "4rem", borderRadius: "var(--radius-2)" }} />
     </main>
   );
 }

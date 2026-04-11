@@ -19,6 +19,7 @@
 // ── Sheet content ─────────────────────────────────
 .content {
   @include surface.glass(75%);
+  box-shadow: var(--shadow-xl);
   display: flex;
   flex-direction: column;
   position: fixed;
@@ -110,12 +111,6 @@
   @include type.typography(meta);
   display: block;
   color: var(--accent-text-low-contrast);
-}
-
-.userGrade {
-  @include type.typography(meta);
-  display: block;
-  color: var(--mono-text-low-contrast);
 }
 
 // ── Attempt counter (hero centrepiece) ─────────────

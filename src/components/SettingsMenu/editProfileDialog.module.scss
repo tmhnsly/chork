@@ -1,0 +1,53 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+@use "mixins/input" as input;
+
+.heading {
+  @include type.typography(card-title);
+}
+
+.fields {
+  @include layout.stack(var(--space-3));
+}
+
+.field {
+  @include layout.stack(var(--space-1));
+}
+
+.fieldLabel {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.usernameWrap {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--mono-border);
+  border-radius: var(--radius-2);
+  background: var(--mono-subtle-bg);
+  transition: border-color var(--duration-fast) var(--ease-out);
+
+  &:focus-within {
+    border-color: var(--accent-solid);
+  }
+}
+
+.usernamePrefix {
+  @include type.typography(body);
+  padding-left: var(--space-3);
+  color: var(--mono-text-low-contrast);
+  user-select: none;
+}
+
+.usernameWrap .input {
+  border: none;
+  padding-left: var(--space-1);
+}
+
+.input {
+  @include input.field;
+}
+
+.actions {
+  @include layout.stack(var(--space-2));
+}

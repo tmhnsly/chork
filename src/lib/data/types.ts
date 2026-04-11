@@ -31,13 +31,9 @@ export type RouteLogWithSetId = RouteLog & {
   routes?: Pick<RouteSet, "id"> | null;
 };
 
-// ── Insert types ───────────────────────────────────
+// ── Mutation types ─────────────────────────────────
 
-export type RouteLogInsert = Tables["route_logs"]["Insert"];
 export type RouteLogUpdate = Tables["route_logs"]["Update"];
-export type CommentInsert = Tables["comments"]["Insert"];
-export type ActivityEventInsert = Tables["activity_events"]["Insert"];
-export type GymMembershipInsert = Tables["gym_memberships"]["Insert"];
 
 // ── Pagination ─────────────────────────────────────
 

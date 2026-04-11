@@ -11,7 +11,7 @@ import {
   getRoutesBySet,
   getLogsBySetForUser,
 } from "@/lib/data/queries";
-import { isFlash, computePoints } from "@/lib/data";
+import { isFlash, computePoints, computeMaxPoints } from "@/lib/data";
 import type { RouteLogWithSetId, Route, RouteLog, TileState } from "@/lib/data";
 import { evaluateBadges, type BadgeContext } from "@/lib/badges";
 import { ProfileHeader } from "@/components/ProfileHeader/ProfileHeader";
@@ -26,7 +26,7 @@ interface Props {
 
 export async function generateMetadata({ params }: Props) {
   const { username } = await params;
-  return { title: `@${username} — Chork` };
+  return { title: `@${username} - Chork` };
 }
 
 function formatSetLabel(starts: string, ends: string) {
@@ -133,7 +133,14 @@ export default async function UserProfilePage({ params }: Props) {
   const badges = evaluateBadges(badgeCtx);
 
   const currentSetStats = activeSet
-    ? statsBySet.get(activeSet.id) ?? { completions: 0, flashes: 0, points: 0 }
+    ? {
+        ...(statsBySet.get(activeSet.id) ?? { completions: 0, flashes: 0, points: 0 }),
+        totalRoutes: miniRoutes.length,
+        maxPoints: computeMaxPoints(
+          miniRoutes.length,
+          miniRoutes.filter((r) => r.has_zone).length
+        ),
+      }
     : null;
 
   const previousSets = allSets
@@ -175,18 +182,16 @@ export default async function UserProfilePage({ params }: Props) {
                 <span className={styles.setLabel}>{s!.label}</span>
                 <div className={styles.setStats}>
                   <div className={styles.setStat}>
-                    <span className={styles.setStatValue}>{s!.points}</span>
-                    <span className={styles.setStatLabel}>pts</span>
+                    <span className={`${styles.setStatValue} ${styles.sendsValue}`}>{s!.completions}</span>
+                    <span className={`${styles.setStatLabel} ${styles.sendsLabel}`}>sends</span>
                   </div>
                   <div className={styles.setStat}>
-                    <span className={styles.setStatValue}>{s!.completions}</span>
-                    <span className={styles.setStatLabel}>sends</span>
+                    <span className={`${styles.setStatValue} ${styles.flashValue}`}>{s!.flashes}</span>
+                    <span className={`${styles.setStatLabel} ${styles.flashLabel}`}>flash</span>
                   </div>
                   <div className={styles.setStat}>
-                    <span className={`${styles.setStatValue} ${styles.flashValue}`}>
-                      {s!.flashes}
-                    </span>
-                    <span className={styles.setStatLabel}>flash</span>
+                    <span className={`${styles.setStatValue} ${styles.pointsValue}`}>{s!.points}</span>
+                    <span className={`${styles.setStatLabel} ${styles.pointsLabel}`}>pts</span>
                   </div>
                 </div>
               </div>

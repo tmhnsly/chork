@@ -1,9 +1,9 @@
 export { FormField } from "./FormField";
 export { InputError } from "./InputError";
-export { AvatarPicker } from "./AvatarPicker";
+export { AppDialog } from "./AppDialog";
 export { Button } from "./Button";
-export { Banner } from "./Banner";
-export { BentoGrid, BentoCell, BentoStat } from "./BentoGrid";
-export { SignOutButton } from "./SignOutButton";
 export { shimmerStyles } from "./Shimmer";
 export { ToastProvider, showToast } from "./Toast";
+
+// Available but not exported from barrel (import directly if needed):
+// AvatarPicker, Banner, BentoGrid/BentoCell/BentoStat

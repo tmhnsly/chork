@@ -2,7 +2,7 @@
 @use "mixins/layout" as layout;
 
 .page {
-  @include layout.page;
+  @include layout.page-prose;
   @include layout.stack(var(--space-6));
 }
 

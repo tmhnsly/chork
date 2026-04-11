@@ -1,8 +1,25 @@
 "use client";
 
-import type { BadgeStatus, BadgeTier } from "@/lib/badges";
-import { TIER_COLOURS } from "@/lib/badges";
+import {
+  FaBolt,
+  FaFire,
+  FaMountainSun,
+  FaTrophy,
+  FaStar,
+  FaBroom,
+} from "react-icons/fa6";
+import type { BadgeStatus, BadgeTier, BadgeIcon } from "@/lib/badges";
 import styles from "./badgeShelf.module.scss";
+
+// Map serialisable icon IDs → actual React icon components
+const ICON_MAP: Record<BadgeIcon, React.ComponentType> = {
+  bolt: FaBolt,
+  fire: FaFire,
+  mountain: FaMountainSun,
+  trophy: FaTrophy,
+  star: FaStar,
+  broom: FaBroom,
+};
 
 interface Props {
   badges: BadgeStatus[];
@@ -18,18 +35,17 @@ export function BadgeShelf({ badges }: Props) {
 
   return (
     <section className={styles.shelf}>
-      <h3 className={styles.title}>Badges</h3>
+      <h3 className={styles.title}>Achievements</h3>
       <div className={styles.grid}>
         {earned.map((b) => {
-          const Icon = b.badge.icon;
-          const colours = TIER_COLOURS[b.badge.tier];
+          const Icon = ICON_MAP[b.badge.icon];
           return (
             <div
               key={b.badge.id}
-              className={`${styles.badge} ${styles.badgeEarned} ${tierClass(b.badge.tier)}`}
-              title={`${b.badge.name} — ${b.badge.description}`}
+              className={`${styles.badge} ${tierClass(b.badge.tier)}`}
+              title={`${b.badge.name} - ${b.badge.description}`}
             >
-              <span className={styles.badgeIcon} style={{ color: colours.solid }}>
+              <span className={styles.badgeIcon}>
                 <Icon />
               </span>
               <span className={styles.badgeName}>{b.badge.name}</span>
@@ -38,7 +54,7 @@ export function BadgeShelf({ badges }: Props) {
         })}
 
         {locked.map((b) => {
-          const Icon = b.badge.icon;
+          const Icon = ICON_MAP[b.badge.icon];
           return (
             <div
               key={b.badge.id}
@@ -49,7 +65,7 @@ export function BadgeShelf({ badges }: Props) {
                 <Icon />
               </span>
               <span className={styles.badgeName}>{b.badge.name}</span>
-              {b.progress !== null && b.current !== null && b.badge.target !== null && (
+              {!b.earned && b.progress !== null && b.current !== null && b.badge.target !== null && (
                 <div className={styles.progressBar}>
                   <div
                     className={styles.progressFill}

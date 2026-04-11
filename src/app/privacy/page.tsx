@@ -2,7 +2,7 @@ import Link from "next/link";
 import styles from "./privacy.module.scss";
 
 export const metadata = {
-  title: "Privacy Policy — Chork",
+  title: "Privacy Policy - Chork",
 };
 
 export default function PrivacyPage() {
@@ -22,9 +22,9 @@ export default function PrivacyPage() {
       <section className={styles.section}>
         <h2 className={styles.heading}>What we collect</h2>
         <ul className={styles.list}>
-          <li><strong>Account info</strong> — email address, username, display name</li>
-          <li><strong>Climbing data</strong> — route attempts, completions, grades, comments</li>
-          <li><strong>Gym membership</strong> — which gyms you belong to and your role</li>
+          <li><strong>Account info</strong> - email address, username, display name</li>
+          <li><strong>Climbing data</strong> - route attempts, completions, grades, comments</li>
+          <li><strong>Gym membership</strong> - which gyms you belong to and your role</li>
         </ul>
         <p>
           We do not collect location data, device identifiers, or analytics tracking data.
@@ -34,7 +34,7 @@ export default function PrivacyPage() {
       <section className={styles.section}>
         <h2 className={styles.heading}>How we use it</h2>
         <p>
-          Your data is used solely to provide the Chork service — showing your stats,
+          Your data is used solely to provide the Chork service - showing your stats,
           powering leaderboards, and enabling beta spray comments. We do not use your
           data for advertising or profiling.
         </p>
@@ -53,10 +53,10 @@ export default function PrivacyPage() {
         <h2 className={styles.heading}>Your rights (GDPR)</h2>
         <p>As a user in the EU, you have the right to:</p>
         <ul className={styles.list}>
-          <li><strong>Access</strong> — view all data we hold about you (visible in your profile)</li>
-          <li><strong>Rectification</strong> — edit your profile information at any time</li>
-          <li><strong>Erasure</strong> — permanently delete your account and all associated data</li>
-          <li><strong>Portability</strong> — request a copy of your data</li>
+          <li><strong>Access</strong> - view all data we hold about you (visible in your profile)</li>
+          <li><strong>Rectification</strong> - edit your profile information at any time</li>
+          <li><strong>Erasure</strong> - permanently delete your account and all associated data</li>
+          <li><strong>Portability</strong> - request a copy of your data</li>
         </ul>
         <p>
           To delete your account, go to your profile, tap the settings gear, and select

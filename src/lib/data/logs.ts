@@ -22,12 +22,14 @@ export function computePoints(log: Pick<RouteLog, "attempts" | "completed" | "zo
   return pts;
 }
 
+// Points constants - used internally by computeMaxPoints
+const POINTS_PER_FLASH = 4;
+const POINTS_PER_ZONE = 1;
+
 /**
- * Compute community grade from an array of grade votes.
- * Returns the mean rounded to nearest integer, or null if empty.
+ * Compute the maximum possible points for a set of routes.
+ * Assumes every route is flashed and every zone hold is claimed.
  */
-export function computeRouteGrade(gradeVotes: number[]): number | null {
-  if (gradeVotes.length === 0) return null;
-  const sum = gradeVotes.reduce((acc, v) => acc + v, 0);
-  return Math.round(sum / gradeVotes.length);
+export function computeMaxPoints(totalRoutes: number, zoneRouteCount: number): number {
+  return totalRoutes * POINTS_PER_FLASH + zoneRouteCount * POINTS_PER_ZONE;
 }

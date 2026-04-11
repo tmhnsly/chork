@@ -63,7 +63,7 @@ export function SendGrid({ set, routes, initialLogs }: Props) {
   return (
     <>
       <div className={styles.page}>
-        <RevealText text="Send Grid" as="h2" className={styles.title} />
+        <RevealText text="The Wall" as="h2" className={styles.title} />
 
         <StatsWidget
           completions={completedCount}

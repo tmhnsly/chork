@@ -1,32 +1,24 @@
 /**
  * Badge/achievement system.
- * Badges are defined as pure data — evaluation is a pure function
- * that takes stats and returns which badges are earned + progress.
+ * Badges are defined as pure serialisable data — no React components or
+ * functions, so they can cross the server→client boundary safely.
+ * Icon rendering is handled by the BadgeShelf client component.
  */
-
-import {
-  FaBolt,
-  FaFire,
-  FaMountainSun,
-  FaTrophy,
-  FaStar,
-  FaBroom,
-} from "react-icons/fa6";
-import type { IconType } from "react-icons";
 
 // ── Types ─────────────────────────────────────────
 
 export type BadgeTier = "bronze" | "silver" | "gold";
 
+/** Icon IDs — mapped to actual components in the BadgeShelf client component */
+export type BadgeIcon = "bolt" | "fire" | "mountain" | "trophy" | "star" | "broom";
+
 export interface BadgeDefinition {
   id: string;
   name: string;
   description: string;
-  icon: IconType;
+  icon: BadgeIcon;
   tier: BadgeTier;
-  /** The stat this badge tracks for progress (null = no measurable progress) */
   progressKey: "flashes" | "sends" | "points" | null;
-  /** Target value for progress-based badges */
   target: number | null;
 }
 
@@ -38,9 +30,7 @@ export interface EarnedBadge {
 export interface LockedBadge {
   badge: BadgeDefinition;
   earned: false;
-  /** 0–1 progress toward earning (null if not measurable) */
   progress: number | null;
-  /** Current count toward target */
   current: number | null;
 }
 
@@ -53,7 +43,7 @@ export const BADGES: BadgeDefinition[] = [
     id: "first-flash",
     name: "First Flash",
     description: "Flash your first route",
-    icon: FaBolt,
+    icon: "bolt",
     tier: "bronze",
     progressKey: "flashes",
     target: 1,
@@ -62,7 +52,7 @@ export const BADGES: BadgeDefinition[] = [
     id: "flash-mob",
     name: "Flash Mob",
     description: "Flash 10 routes",
-    icon: FaFire,
+    icon: "fire",
     tier: "silver",
     progressKey: "flashes",
     target: 10,
@@ -71,7 +61,7 @@ export const BADGES: BadgeDefinition[] = [
     id: "first-send",
     name: "First Send",
     description: "Complete your first route",
-    icon: FaMountainSun,
+    icon: "mountain",
     tier: "bronze",
     progressKey: "sends",
     target: 1,
@@ -80,7 +70,7 @@ export const BADGES: BadgeDefinition[] = [
     id: "century",
     name: "Century",
     description: "Earn 100 points",
-    icon: FaTrophy,
+    icon: "trophy",
     tier: "gold",
     progressKey: "points",
     target: 100,
@@ -89,7 +79,7 @@ export const BADGES: BadgeDefinition[] = [
     id: "buckle-my-shoe",
     name: "1, 2 — Buckle My Shoe",
     description: "Send routes 1 and 2 in the same set",
-    icon: FaStar,
+    icon: "star",
     tier: "bronze",
     progressKey: null,
     target: null,
@@ -98,7 +88,7 @@ export const BADGES: BadgeDefinition[] = [
     id: "set-cleaner",
     name: "Set Cleaner",
     description: "Send every route in a set",
-    icon: FaBroom,
+    icon: "broom",
     tier: "gold",
     progressKey: null,
     target: null,
@@ -108,13 +98,10 @@ export const BADGES: BadgeDefinition[] = [
 // ── Evaluation context ────────────────────────────
 
 export interface BadgeContext {
-  /** All-time totals */
   totalFlashes: number;
   totalSends: number;
   totalPoints: number;
-  /** Per-set data: for each set, the set of completed route numbers */
   completedRoutesBySet: Map<string, Set<number>>;
-  /** Per-set data: total routes in each set */
   totalRoutesBySet: Map<string, number>;
 }
 
@@ -124,7 +111,6 @@ export function evaluateBadges(ctx: BadgeContext): BadgeStatus[] {
   return BADGES.map((badge) => {
     switch (badge.id) {
       case "first-flash":
-        return progressBadge(badge, ctx.totalFlashes);
       case "flash-mob":
         return progressBadge(badge, ctx.totalFlashes);
       case "first-send":
@@ -146,12 +132,7 @@ export function evaluateBadges(ctx: BadgeContext): BadgeStatus[] {
 function progressBadge(badge: BadgeDefinition, current: number): BadgeStatus {
   const target = badge.target!;
   if (current >= target) return { badge, earned: true };
-  return {
-    badge,
-    earned: false,
-    progress: Math.min(1, current / target),
-    current,
-  };
+  return { badge, earned: false, progress: Math.min(1, current / target), current };
 }
 
 function conditionBadge(badge: BadgeDefinition, met: boolean): BadgeStatus {
@@ -174,19 +155,3 @@ function checkSetCleaner(ctx: BadgeContext): boolean {
   return false;
 }
 
-// ── Tier colours (maps to design tokens) ──────────
-
-export const TIER_COLOURS = {
-  bronze: {
-    solid: "var(--flash-solid)",        // amber-9
-    text: "var(--flash-text-low-contrast)",
-  },
-  silver: {
-    solid: "var(--mono-text-low-contrast)", // olive-11
-    text: "var(--mono-text)",
-  },
-  gold: {
-    solid: "var(--accent-solid)",       // lime-9
-    text: "var(--accent-text)",
-  },
-} as const;

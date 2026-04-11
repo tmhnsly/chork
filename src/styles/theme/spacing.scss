@@ -1,6 +1,7 @@
 @use 'mixins/breakpoints' as bp;
 
 :root {
+  // ── Spacing scale ───────────────────────────────
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -18,31 +19,45 @@
   --space-20: 5rem;
   --space-24: 6rem;
 
-  // Component sizes
-  --size-touch-target: 2.75rem;   // 44px — minimum tap target
+  // ── Component sizes ─────────────────────────────
+  --size-touch-target: 2.75rem;   // 44px
   --size-avatar-sm: 1.5rem;       // 24px
   --size-avatar-md: 2.25rem;      // 36px
   --size-avatar-lg: 6rem;         // 96px
   --size-icon-xs: 1.125rem;       // 18px
   --size-icon-sm: 1.375rem;       // 22px
 
-  // Content widths
-  --content-narrow: 22.5rem;      // 360px
-  --content-md: 40rem;            // 640px
-  --content-wide: 60rem;          // 960px
-  --content-max: 90rem;
+  // ── Content max-widths ──────────────────────────
+  // These are upper bounds — content fills available space until it hits the cap.
+  // On mobile, gutters (--gutter-x) handle the inset. The max-width only
+  // kicks in once the viewport is wider than the value + gutters.
+  --content-narrow: 22.5rem;      // 360px — small forms (login, dialogs)
+  --content-app: 40rem;           // 640px — main app column (send grid, profile)
+  --content-wide: 60rem;          // 960px — multi-column (admin, feature grid)
+  --content-prose: 42rem;         // 672px — readable text (blog, privacy)
+  --content-max: 90rem;           // 1440px — full-bleed sections
 
-  --gutter-x: var(--space-2);
+  // ── Gutters ─────────────────────────────────────
+  --gutter-x: var(--space-4);     // 16px mobile
+
+  // ── Layout ──────────────────────────────────────
   --section-gap: var(--space-12);
   --navbar-height: 3.5rem;
-
   --stack-gap: var(--space-6);
   --cluster-gap: var(--space-3);
 }
 
+// ── Tablet (≥768px) ───────────────────────────────
 @include bp.tablet {
   :root {
-    --gutter-x: var(--space-8);
+    --gutter-x: var(--space-8);   // 32px
     --section-gap: var(--space-16);
+  }
+}
+
+// ── Desktop (≥1280px) ─────────────────────────────
+@include bp.desktop {
+  :root {
+    --content-app: 48rem;         // 768px — wider single column
   }
 }

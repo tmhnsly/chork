@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createServerSupabase } from "./supabase/server";
 import { createServiceClient } from "./supabase/server";
 import { requireAuth, requireSignedIn } from "./auth";
 import { validateUsername } from "./validation";
@@ -9,14 +8,19 @@ import { formatError } from "./errors";
 
 /**
  * Check if a username is available.
+ * Requires authentication - derives userId from session, ignores client-supplied value.
  */
 export async function checkUsernameAvailable(
   username: string,
-  userId: string
+  _userId?: string
 ): Promise<boolean> {
-  const { error } = validateUsername(username);
-  if (error) return false;
-  const supabase = await createServerSupabase();
+  const { error: validationError } = validateUsername(username);
+  if (validationError) return false;
+
+  const auth = await requireSignedIn();
+  if ("error" in auth) return false;
+  const { supabase, userId } = auth;
+
   const { data } = await supabase
     .from("profiles")
     .select("id")

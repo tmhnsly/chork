@@ -1,8 +1,15 @@
 // Surface mixins — solid card, chrome, and glass backgrounds.
 // Usage: @use 'mixins/surfaces' as surface;
+//
+// Elevation guide (use shadow tokens from surfaces.scss):
+//   Inline content (cards, tiles)     → no shadow, border only
+//   Floating chrome (navbar)          → glass + --shadow-md
+//   Popovers / dropdowns              → glass + --shadow-lg
+//   Sheets / modals / dialogs         → glass or card + --shadow-xl
 
 // ── Card ────────────────────────────────────────────
-// Solid card for content panels, forms, profile cards.
+// Solid card for inline content — panels, forms, profile cards.
+// No shadow — these are part of the page flow, not floating.
 @mixin card {
   background-color: var(--mono-subtle-bg);
   border: 1px solid var(--mono-border-subtle);

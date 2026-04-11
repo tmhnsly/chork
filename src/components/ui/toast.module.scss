@@ -4,6 +4,7 @@
 .toast {
   @include type.typography(meta);
   @include surface.chrome;
+  box-shadow: var(--shadow-md);
   display: flex;
   align-items: center;
   gap: var(--space-2);

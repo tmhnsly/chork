@@ -167,7 +167,7 @@ export async function postComment(
 ): Promise<CommentResult> {
   if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
   const trimmed = typeof body === "string" ? body.trim() : "";
-  if (!trimmed) return { error: "Comment can't be empty — write something first" };
+  if (!trimmed) return { error: "Comment can't be empty - write something first" };
   if (trimmed.length > 500) return { error: "Comments must be 500 characters or less" };
 
   const auth = await requireAuth();
@@ -189,6 +189,7 @@ export async function postComment(
       gym_id: gymId,
     });
 
+    revalidatePath("/", "layout");
     return { comment };
   } catch (err) {
     return { error: formatError(err) };
@@ -260,7 +261,7 @@ export async function editComment(
 ): Promise<CommentResult> {
   if (typeof commentId !== "string" || !commentId) return { error: "Invalid comment" };
   const trimmed = typeof body === "string" ? body.trim() : "";
-  if (!trimmed) return { error: "Comment can't be empty — write something first" };
+  if (!trimmed) return { error: "Comment can't be empty - write something first" };
   if (trimmed.length > 500) return { error: "Comments must be 500 characters or less" };
 
   const auth = await requireAuth();

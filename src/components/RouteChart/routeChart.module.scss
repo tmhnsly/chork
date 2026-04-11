@@ -3,7 +3,7 @@
 .chart {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: 2px; // tight coupling between bars and zone dots
 }
 
 .bars {
@@ -35,18 +35,14 @@
 }
 
 .barCompleted {
-  background: var(--accent-solid);
+  background: var(--accent-solid);       // step 9
 }
 
 .barFlash {
-  background: var(--flash-solid);
+  background: var(--flash-solid);        // step 9
 }
 
-.barAttempted {
-  background: var(--mono-border-hover);
-}
-
-// ── Flash dots ─────────────────────────────────────
+// ── Zone dots ──────────────────────────────────────
 .dots {
   display: flex;
   gap: 2px;
@@ -55,10 +51,15 @@
 .dot {
   flex: 1;
   height: 4px;
-  background: var(--mono-bg);
+  background: transparent;
 }
 
-.dotActive {
-  background: var(--flash-solid);
+// Zone available, not claimed
+.dotZone {
+  background: var(--mono-bg);            // step 3
 }
 
+// Zone claimed
+.dotClaimed {
+  background: var(--mono-border);        // step 7
+}

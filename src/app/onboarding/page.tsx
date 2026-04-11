@@ -1,7 +1,7 @@
 import { OnboardingForm } from "./onboarding-form";
 
 export const metadata = {
-  title: "Set up your profile — Chork",
+  title: "Set up your profile - Chork",
 };
 
 export default function OnboardingPage() {

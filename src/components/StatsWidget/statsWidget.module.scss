@@ -10,69 +10,6 @@
   padding: var(--space-4);
 }
 
-// ── Rings + stat lines side by side ────────────────
-.ringSection {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-}
-
-.statLines {
-  display: flex;
-  gap: var(--space-4);
-  flex: 1;
-}
-
-.statLine {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.statLabel {
-  @include type.typography(label);
-  font-size: var(--text-xs);
-}
-
-// Coloured labels — low-contrast variant to match ring
-.accentLabel {
-  color: var(--accent-text-low-contrast);
-}
-
-.flashLabel {
-  color: var(--flash-text-low-contrast);
-}
-
-.scoreLabel {
-  color: var(--success-text-low-contrast);
-}
-
-.statValue {
-  @include type.typography(number);
-  font-size: var(--text-lg);
-  line-height: 1.1;
-
-  small {
-    @include type.typography(label);
-    font-size: var(--text-xs);
-    margin-left: var(--space-1);
-    font-style: normal;
-  }
-}
-
-// Value colours — full contrast
-.accent {
-  color: var(--accent-text);
-}
-
-.score {
-  color: var(--success-text);
-}
-
-.flash {
-  color: var(--flash-text-low-contrast);
-}
-
 // ── Chart area ─────────────────────────────────────
 .chartBlock {
   display: flex;
