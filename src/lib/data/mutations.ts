@@ -106,12 +106,11 @@ export async function toggleCommentLike(
     if (deleteError) throw deleteError;
 
     // Atomic decrement — no race condition
-    // TODO: regenerate database.types.ts after applying migration 003
     const { data: newLikes, error: rpcError } = await service
-      .rpc("increment_comment_likes" as never, { p_comment_id: commentId, p_delta: -1 } as never);
+      .rpc("increment_comment_likes", { p_comment_id: commentId, p_delta: -1 });
     if (rpcError) throw rpcError;
 
-    return { liked: false, likes: (newLikes as number) ?? 0 };
+    return { liked: false, likes: newLikes ?? 0 };
   }
 
   const { error: insertError } = await supabase
@@ -120,12 +119,11 @@ export async function toggleCommentLike(
   if (insertError) throw insertError;
 
   // Atomic increment — no race condition
-    // TODO: regenerate database.types.ts after applying migration 003
     const { data: newLikes, error: rpcError } = await service
-      .rpc("increment_comment_likes" as never, { p_comment_id: commentId, p_delta: 1 } as never);
+      .rpc("increment_comment_likes", { p_comment_id: commentId, p_delta: 1 });
     if (rpcError) throw rpcError;
 
-    return { liked: true, likes: (newLikes as number) ?? 0 };
+    return { liked: true, likes: newLikes ?? 0 };
 }
 
 // ── Activity events ────────────────────────────────

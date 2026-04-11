@@ -453,6 +453,10 @@ export type Database = {
         }[]
       }
       gym_id_for_route: { Args: { p_route_id: string }; Returns: string }
+      increment_comment_likes: {
+        Args: { p_comment_id: string; p_delta: number }
+        Returns: number
+      }
       is_gym_member: { Args: { p_gym_id: string }; Returns: boolean }
     }
     Enums: {
