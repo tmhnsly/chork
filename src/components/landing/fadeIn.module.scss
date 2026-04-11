@@ -2,8 +2,8 @@
   opacity: 0;
   transform: translateY(24px);
   transition:
-    opacity var(--duration-slow) var(--ease-out),
-    transform var(--duration-slow) var(--ease-out);
+    opacity var(--duration-slow) var(--ease-out) var(--fade-delay, 0ms),
+    transform var(--duration-slow) var(--ease-out) var(--fade-delay, 0ms);
 }
 
 .visible {

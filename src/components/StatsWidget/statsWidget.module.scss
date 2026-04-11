@@ -4,23 +4,29 @@
 .widget {
   @include surface.card;
   display: flex;
-  gap: var(--space-5);
-  padding: var(--space-4);
-  align-items: stretch;
-}
-
-// ── Left: rings + stat lines ───────────────────────
-.left {
-  display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  flex-shrink: 0;
+  padding: var(--space-4);
+}
+
+// ── Chart area ─────────────────────────────────────
+.chartBlock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+// ── Rings + stat lines side by side ────────────────
+.ringSection {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
 }
 
 .statLines {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
+  flex: 1;
 }
 
 .statLine {
@@ -29,51 +35,45 @@
 }
 
 .statLabel {
-  @include type.typography(body);
-  font-size: var(--text-sm);
-  color: var(--mono-text);
+  @include type.typography(label);
+  font-size: var(--text-xs);
+}
+
+// Coloured labels — low-contrast variant to match ring
+.accentLabel {
+  color: var(--accent-text-low-contrast);
+}
+
+.flashLabel {
+  color: var(--flash-text-low-contrast);
+}
+
+.scoreLabel {
+  color: var(--success-text-low-contrast);
 }
 
 .statValue {
   @include type.typography(number);
-  font-size: var(--text-xl);
+  font-size: var(--text-lg);
   line-height: 1.1;
 
   small {
     @include type.typography(label);
-    font-size: var(--text-sm);
-    margin-left: 2px;
+    font-size: var(--text-xs);
+    margin-left: 1px;
     font-style: normal;
   }
 }
 
+// Value colours — full contrast
 .accent {
   color: var(--accent-text);
 }
 
+.score {
+  color: var(--success-text);
+}
+
 .flash {
   color: var(--flash-text-low-contrast);
-}
-
-// ── Right: charts ──────────────────────────────────
-.right {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: var(--space-3);
-}
-
-.chartBlock {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  flex: 1;
-}
-
-.chartLabel {
-  @include type.typography(label);
-  font-size: var(--text-xs);
-  color: var(--mono-text-low-contrast);
 }

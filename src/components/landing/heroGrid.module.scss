@@ -7,6 +7,7 @@
 .cell {
   position: relative;
   animation: cellGrow 0.35s var(--ease-out) both;
+  animation-delay: calc(var(--entrance-i, 0) * 50ms);
 }
 
 @keyframes cellGrow {
@@ -29,6 +30,8 @@
   position: absolute;
   inset: 0;
   animation: tileReveal 10s var(--ease-out) both;
+  // Wait for cell entrance (12 tiles × 50ms = 600ms) + per-tile stagger
+  animation-delay: calc(600ms + var(--reveal-i, 0) * 150ms);
 }
 
 @keyframes tileReveal {

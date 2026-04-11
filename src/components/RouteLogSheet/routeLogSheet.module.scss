@@ -123,8 +123,8 @@
 
 .counterBtn {
   @include type.typography(button);
-  width: 44px;
-  height: 44px;
+  width: var(--size-touch-target);
+  height: var(--size-touch-target);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -167,7 +167,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  min-height: 44px;
+  min-height: var(--size-touch-target);
   width: 100%;
   padding: 0 var(--space-3);
   border: 1px solid var(--mono-border);
@@ -282,7 +282,7 @@
   display: flex;
   align-items: center;
   gap: var(--space-1);
-  min-height: 44px;
+  min-height: var(--size-touch-target);
   padding: 0 var(--space-3);
   border: none;
   border-radius: var(--radius-2);
@@ -388,8 +388,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 44px;
-  min-width: 44px;
+  min-height: var(--size-touch-target);
+  min-width: var(--size-touch-target);
   padding: 0;
   border: none;
   background: transparent;
@@ -405,7 +405,7 @@
 }
 
 .actionBtnSpacer {
-  min-width: 44px;
+  min-width: var(--size-touch-target);
   flex-shrink: 0;
 }
 
@@ -428,8 +428,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  min-height: 44px;
+  width: var(--size-touch-target);
+  min-height: var(--size-touch-target);
   border: none;
   cursor: pointer;
 }
@@ -452,7 +452,7 @@
 
 .loadMore {
   @include type.typography(button);
-  min-height: 44px;
+  min-height: var(--size-touch-target);
   width: 100%;
   border: 1px solid var(--mono-border);
   background: transparent;
@@ -478,7 +478,7 @@
 .commentInput {
   @include type.typography(body);
   flex: 1;
-  min-height: 44px;
+  min-height: var(--size-touch-target);
   padding: 0 var(--space-3);
   border: 1px solid var(--mono-border);
   background: var(--mono-subtle-bg);
@@ -499,8 +499,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  min-height: 44px;
+  width: var(--size-touch-target);
+  min-height: var(--size-touch-target);
   border: none;
   background: var(--accent-solid);
   color: var(--accent-on-solid);
@@ -522,7 +522,7 @@
 // ── Close button ────────────────────────────────────
 .closeBtn {
   @include type.typography(button);
-  min-height: 44px;
+  min-height: var(--size-touch-target);
   width: 100%;
   border-radius: var(--radius-2);
   border: 1px solid var(--mono-border);

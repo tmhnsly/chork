@@ -7,6 +7,7 @@ import type { Profile } from "@/lib/data";
 import { getAvatarUrl } from "@/lib/avatar";
 import { useAuth } from "@/lib/auth-context";
 import { Button, showToast } from "@/components/ui";
+import { RevealText } from "@/components/motion";
 import { updateProfile } from "@/lib/user-actions";
 import styles from "./profileHeader.module.scss";
 
@@ -96,7 +97,7 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
         </div>
       ) : (
         <div className={styles.identity}>
-          <h1 className={styles.username}>@{user.username}</h1>
+          <RevealText text={`@${user.username}`} as="h1" className={styles.username} />
           {user.name && <p className={styles.displayName}>{user.name}</p>}
           {isOwnProfile && (
             <Button variant="ghost" onClick={() => setEditing(true)} className={styles.editBtn}>

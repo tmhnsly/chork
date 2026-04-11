@@ -8,13 +8,8 @@
   min-height: 100vh;
   padding: var(--space-8) var(--gutter-x);
   padding-bottom: calc(var(--navbar-height) + env(safe-area-inset-bottom, 0px) + var(--space-8));
-  max-width: 640px;
+  max-width: var(--content-md);
   margin: 0 auto;
-
-  @include bp.tablet {
-    padding-top: calc(var(--navbar-height) + var(--space-8));
-    padding-bottom: var(--space-8);
-  }
 }
 
 // ── Mini send grid ──────────────────────────────
@@ -125,8 +120,8 @@
 
 // ── Loading placeholders ────────────────────────
 .avatarPlaceholder {
-  width: 96px;
-  height: 96px;
+  width: var(--size-avatar-lg);
+  height: var(--size-avatar-lg);
   border-radius: var(--radius-full);
   border: 3px solid var(--accent-solid);
 }
@@ -137,7 +132,7 @@
 
 .editPlaceholder {
   // Matches the ghost button height so layout is stable
-  min-height: 44px;
+  min-height: var(--size-touch-target);
 }
 
 // ── Sign out ───────────────────────────────────────

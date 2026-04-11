@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { motion } from "motion/react";
 import { FaMountain } from "react-icons/fa6";
 import { useAuth } from "@/lib/auth-context";
 import { RevealText } from "@/components/motion";
@@ -68,30 +67,14 @@ export function LoginForm() {
 
   return (
     <main className={styles.page}>
-      <motion.div
-        className={styles.content}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
-      >
+      <div className={styles.content}>
         <div className={styles.brand}>
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-          >
-            <FaMountain className={styles.logo} />
-          </motion.div>
-          <RevealText text="Chork" as="h1" className={styles.title} delay={0.15} />
+          <FaMountain className={styles.logo} />
+          <RevealText text="Chork" as="h1" className={styles.title} />
         </div>
-        <motion.p
-          className={styles.tagline}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, delay: 0.3 }}
-        >
+        <p className={styles.tagline}>
           Track your sends. Compete with your crew.
-        </motion.p>
+        </p>
 
         <form className={styles.form} onSubmit={handleSubmit} noValidate>
           <div className={styles.field}>
@@ -162,7 +145,7 @@ export function LoginForm() {
             ? "Don't have an account? Sign up"
             : "Already have an account? Sign in"}
         </button>
-      </motion.div>
+      </div>
     </main>
   );
 }

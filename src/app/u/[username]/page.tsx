@@ -17,7 +17,6 @@ import { ProfileHeader } from "@/components/ProfileHeader/ProfileHeader";
 import { ClimberStats } from "@/components/ClimberStats/ClimberStats";
 import { PunchTile } from "@/components/PunchTile/PunchTile";
 import { SignOutButton } from "@/components/ui";
-import { ProfileContent } from "./ProfileContent";
 import styles from "./user.module.scss";
 
 interface Props {
@@ -123,7 +122,6 @@ export default async function UserProfilePage({ params }: Props) {
 
   return (
     <main className={styles.page}>
-      <ProfileContent username={profileUser.username}>
       <ProfileHeader user={profileUser} isOwnProfile={isOwnProfile} />
 
       <ClimberStats
@@ -211,7 +209,6 @@ export default async function UserProfilePage({ params }: Props) {
           <SignOutButton />
         </div>
       )}
-      </ProfileContent>
     </main>
   );
 }

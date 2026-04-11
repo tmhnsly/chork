@@ -23,7 +23,7 @@
 .retry {
   @include type.typography(button);
   margin-top: var(--space-5);
-  min-height: 44px;
+  min-height: var(--size-touch-target);
   padding: 0 var(--space-6);
   background: var(--accent-solid);
   color: var(--accent-on-solid);

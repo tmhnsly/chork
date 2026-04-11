@@ -1,0 +1,26 @@
+.wordClip {
+  display: inline-block;
+  clip-path: inset(-10% -10% 0 -10%);
+}
+
+.word {
+  display: inline-block;
+  animation: revealWord 0.4s var(--ease-out) both;
+  animation-delay: calc(var(--delay, 0s) + var(--i, 0) * 0.035s);
+}
+
+@keyframes revealWord {
+  from {
+    transform: translateY(110%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .word {
+    animation: none;
+    transform: none;
+  }
+}

@@ -13,16 +13,10 @@
 .app {
   min-height: 100vh;
   padding: var(--space-8) var(--gutter-x);
-  // Mobile: no top bar, bottom bar instead
+  // Bottom bar on all breakpoints — add clearance
   padding-bottom: calc(var(--navbar-height) + env(safe-area-inset-bottom, 0px) + var(--space-8));
-  max-width: 640px;
+  max-width: var(--content-md);
   margin: 0 auto;
-
-  // Tablet+: top bar, no bottom bar
-  @include bp.tablet {
-    padding-top: calc(var(--navbar-height) + var(--space-8));
-    padding-bottom: var(--space-8);
-  }
 }
 
 .title {
@@ -37,7 +31,7 @@
 .cta {
   @include type.typography(button);
   align-self: flex-start;
-  min-height: 44px;
+  min-height: var(--size-touch-target);
   display: inline-flex;
   align-items: center;
   padding: 0 var(--space-6);

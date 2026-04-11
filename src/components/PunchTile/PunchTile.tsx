@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, type CSSProperties } from "react";
 import { FaBolt, FaBullseye } from "react-icons/fa6";
 import type { TileState } from "@/lib/data";
 import styles from "./punchTile.module.scss";
@@ -13,15 +13,17 @@ interface Props {
   className?: string;
   /** Remove min-size constraints for display-only contexts */
   compact?: boolean;
+  style?: CSSProperties;
 }
 
-export const PunchTile = memo(function PunchTile({ number, state, zone, onClick, className, compact }: Props) {
+export const PunchTile = memo(function PunchTile({ number, state, zone, onClick, className, compact, style }: Props) {
   return (
     <button
       className={[styles.tile, styles[state], compact && styles.compact, className].filter(Boolean).join(" ")}
       onClick={onClick}
       type="button"
       aria-label={`Route ${number}, ${state}`}
+      style={style}
     >
       {zone && (
         <span className={styles.zoneBadge}>

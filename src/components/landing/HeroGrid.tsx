@@ -51,7 +51,6 @@ export function HeroGrid() {
   }, []);
 
   const session = SESSIONS[sessionIndex];
-  const entranceDuration = TILE_COUNT * ENTRANCE_STAGGER;
 
   return (
     <div className={styles.grid} aria-hidden="true">
@@ -63,7 +62,7 @@ export function HeroGrid() {
           <div
             key={i}
             className={styles.cell}
-            style={{ animationDelay: `${ENTRANCE_ORDER[i] * ENTRANCE_STAGGER}ms` }}
+            style={{ "--entrance-i": ENTRANCE_ORDER[i] } as React.CSSProperties}
           >
             <div className={styles.emptyLayer}>
               <DemoTile number={i + 1} state="empty" />
@@ -72,9 +71,7 @@ export function HeroGrid() {
               <div
                 key={`${sessionIndex}-${i}`}
                 className={styles.stateLayer}
-                style={{
-                  animationDelay: `${entranceDuration + i * 150}ms`,
-                }}
+                style={{ "--reveal-i": i } as React.CSSProperties}
               >
                 <DemoTile number={i + 1} state={state} />
               </div>

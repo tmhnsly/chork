@@ -9,7 +9,7 @@
 
 .inner {
   @include layout.stack(var(--space-8));
-  max-width: 640px;
+  max-width: var(--content-md);
   margin: 0 auto;
   padding: calc(var(--navbar-height) + var(--space-8)) var(--gutter-x) 0;
 }
@@ -31,7 +31,7 @@
 .headline {
   @include type.typography(display);
   color: var(--accent-text);
-  animation: heroIn var(--duration-hero) var(--ease-out) both;
+  // Word-by-word reveal handled by RevealText component
 }
 
 .subheadline {

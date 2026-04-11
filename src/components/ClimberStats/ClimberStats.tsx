@@ -32,8 +32,8 @@ function RingStats({ stats }: { stats: SetStats }) {
       <ActivityRings
         rings={[
           { value: completionRate, color: "var(--accent-solid)" },
-          { value: scoreRate, color: "var(--mono-text-low-contrast)" },
           { value: flashRate, color: "var(--flash-solid)" },
+          { value: scoreRate, color: "var(--success-solid)" },
         ]}
         size={56}
       />

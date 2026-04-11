@@ -9,92 +9,76 @@ import { getAvatarUrl } from "@/lib/avatar";
 import styles from "./navBar.module.scss";
 
 export function NavBar() {
-  const { profile, isLoading } = useAuth();
+  const { profile } = useAuth();
   const pathname = usePathname();
 
-  // Unauthenticated: top bar with logo + sign in
-  if (isLoading || !profile) {
-    return (
-      <nav className={styles.topBar}>
-        <Link href="/" className={styles.logoLink}>
-          <FaMountain className={styles.logoIcon} />
-          <span className={styles.logoText}>Chork</span>
-        </Link>
-        {!isLoading && (
-          <Link href="/login" className={styles.signIn}>
-            Sign in
-          </Link>
-        )}
-      </nav>
-    );
-  }
-
-  // Don't show nav on login/onboarding
+  // Pages that handle their own nav
   if (pathname === "/login" || pathname === "/onboarding") return null;
 
+  // Unauthenticated — no bottom bar (landing has its own nav)
+  if (!profile) return null;
+
+  // Loading or authenticated — always render the bar structure
   const homeActive = pathname === "/";
   const leaderboardActive = pathname.startsWith("/leaderboard");
   const profileActive = pathname.startsWith("/u/");
-
-  const avatarUrl = getAvatarUrl(profile, { size: 64 });
-
-  const profileIcon = (
-    <span className={`${styles.tabAvatarWrap} ${profileActive ? styles.tabAvatarActive : ""}`}>
-      {profile.avatar_url ? (
-        <Image
-          src={avatarUrl}
-          alt=""
-          width={24}
-          height={24}
-          className={styles.tabAvatar}
-          unoptimized
-        />
-      ) : (
-        <FaUser />
-      )}
-    </span>
-  );
+  const profileHref = profile ? `/u/${profile.username}` : "#";
+  const avatarUrl = profile ? getAvatarUrl(profile, { size: 64 }) : "";
 
   return (
-    <>
-      {/* Desktop: top bar */}
-      <nav className={`${styles.topBar} ${styles.desktopOnly}`}>
-        <Link href="/" className={styles.logoLink}>
-          <FaMountain className={styles.logoIcon} />
-          <span className={styles.logoText}>Chork</span>
+    <nav className={styles.bar}>
+      <div className={styles.barInner}>
+        <Link href="/" className={styles.brandLink} aria-label="Home">
+          <FaMountain className={styles.brandIcon} />
+          <span className={styles.brandText}>Chork</span>
         </Link>
-        <div className={styles.desktopNav}>
-          <Link href="/leaderboard" className={`${styles.desktopLink} ${leaderboardActive ? styles.desktopLinkActive : ""}`}>
-            Leaderboard
+
+        <div className={styles.tabs}>
+          <Link href="/" className={`${styles.tab} ${homeActive ? styles.tabActive : ""}`}>
+            <FaHouse className={styles.tabIcon} />
+            <span className={styles.tabLabel}>Home</span>
           </Link>
-          <Link href={`/u/${profile.username}`} className={styles.avatarLink}>
-            <Image
-              src={avatarUrl}
-              alt={profile.name || profile.username}
-              width={36}
-              height={36}
-              className={styles.avatar}
-              unoptimized
-            />
+          <Link href="/leaderboard" className={`${styles.tab} ${leaderboardActive ? styles.tabActive : ""}`}>
+            <FaTrophy className={styles.tabIcon} />
+            <span className={styles.tabLabel}>Board</span>
+          </Link>
+          <Link href={profileHref} className={`${styles.tab} ${profileActive ? styles.tabActive : ""}`}>
+            <span className={`${styles.tabAvatarWrap} ${profileActive ? styles.tabAvatarActive : ""}`}>
+              {profile?.avatar_url ? (
+                <Image
+                  src={avatarUrl}
+                  alt=""
+                  width={24}
+                  height={24}
+                  className={styles.tabAvatar}
+                  unoptimized
+                />
+              ) : (
+                <FaUser />
+              )}
+            </span>
+            <span className={styles.tabLabel}>Profile</span>
           </Link>
         </div>
-      </nav>
+      </div>
+    </nav>
+  );
+}
 
-      {/* Mobile: bottom tab bar */}
-      <nav className={styles.bottomBar}>
-        <Link href="/" className={`${styles.tab} ${homeActive ? styles.tabActive : ""}`}>
-          <FaHouse className={styles.tabIcon} />
-          <span className={styles.tabLabel}>Home</span>
-        </Link>
-        <Link href="/leaderboard" className={`${styles.tab} ${leaderboardActive ? styles.tabActive : ""}`}>
-          <FaTrophy className={styles.tabIcon} />
-          <span className={styles.tabLabel}>Leaderboard</span>
-        </Link>
-        <Link href={`/u/${profile.username}`} className={`${styles.tab} ${profileActive ? styles.tabActive : ""}`}>
-          {profileIcon}
-          <span className={styles.tabLabel}>Profile</span>
-        </Link>
-      </nav>
-    </>
+/**
+ * Top bar for the unauthenticated landing page.
+ * Rendered by the landing page itself — no auth dependency, no flash.
+ */
+export function LandingNav() {
+  return (
+    <nav className={styles.topBar}>
+      <Link href="/" className={styles.logoLink}>
+        <FaMountain className={styles.logoIcon} />
+        <span className={styles.logoText}>Chork</span>
+      </Link>
+      <Link href="/login" className={styles.signIn}>
+        Sign in
+      </Link>
+    </nav>
   );
 }

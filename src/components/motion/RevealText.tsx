@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "motion/react";
+import styles from "./revealText.module.scss";
 
 interface Props {
   text: string;
@@ -11,8 +11,8 @@ interface Props {
 }
 
 /**
- * Reveals text word-by-word with a staggered mask/clip animation.
- * Inspired by motion.dev's text reveal pattern.
+ * Reveals text word-by-word with a staggered slide-up animation.
+ * Pure CSS — uses clip-path to mask each word and a keyframe to slide it in.
  */
 export function RevealText({ text, className, as: Tag = "h1", delay = 0 }: Props) {
   const words = text.split(" ");
@@ -20,19 +20,13 @@ export function RevealText({ text, className, as: Tag = "h1", delay = 0 }: Props
   return (
     <Tag className={className}>
       {words.map((word, i) => (
-        <span key={i} style={{ display: "inline-block", overflow: "hidden", verticalAlign: "top" }}>
-          <motion.span
-            style={{ display: "inline-block" }}
-            initial={{ y: "100%" }}
-            animate={{ y: 0 }}
-            transition={{
-              duration: 0.5,
-              ease: [0.25, 0.1, 0.25, 1],
-              delay: delay + i * 0.04,
-            }}
+        <span key={i} className={styles.wordClip}>
+          <span
+            className={styles.word}
+            style={{ "--i": i, "--delay": `${delay}s` } as React.CSSProperties}
           >
             {word}
-          </motion.span>
+          </span>
           {i < words.length - 1 && "\u00A0"}
         </span>
       ))}

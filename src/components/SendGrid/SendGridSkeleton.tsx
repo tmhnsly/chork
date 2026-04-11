@@ -10,27 +10,19 @@ import widgetStyles from "@/components/StatsWidget/statsWidget.module.scss";
 export function SendGridSkeleton() {
   return (
     <div className={styles.page}>
-      <h2 className={styles.title}>Send Grid</h2>
+      <div className={styles.header}>
+        <h2 className={styles.title}>Send Grid</h2>
+      </div>
 
       {/* Stats widget skeleton */}
       <div className={`${widgetStyles.widget} ${shimmerStyles.skeleton}`}>
-        <div style={{ width: 88, height: 88 }} />
-        <div className={widgetStyles.stats}>
-          <div className={widgetStyles.stat}>
-            <span className={widgetStyles.value}>&nbsp;</span>
-            <span className={widgetStyles.label}>SENDS</span>
-          </div>
-          <div className={widgetStyles.stat}>
-            <span className={widgetStyles.value}>&nbsp;</span>
-            <span className={widgetStyles.label}>FLASHES</span>
-          </div>
-          <div className={widgetStyles.stat}>
-            <span className={widgetStyles.value}>&nbsp;</span>
-            <span className={widgetStyles.label}>POINTS</span>
-          </div>
-          <div className={widgetStyles.stat}>
-            <span className={widgetStyles.value}>&nbsp;</span>
-            <span className={widgetStyles.label}>RESET</span>
+        <div style={{ height: 64 }} />
+        <div className={widgetStyles.ringSection}>
+          <div style={{ width: 72, height: 72, flexShrink: 0 }} />
+          <div className={widgetStyles.statLines}>
+            <div className={widgetStyles.statLine}>&nbsp;</div>
+            <div className={widgetStyles.statLine}>&nbsp;</div>
+            <div className={widgetStyles.statLine}>&nbsp;</div>
           </div>
         </div>
       </div>

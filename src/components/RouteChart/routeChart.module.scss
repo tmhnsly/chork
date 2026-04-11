@@ -10,7 +10,7 @@
   display: flex;
   align-items: flex-end;
   gap: 2px;
-  height: 64px;
+  height: var(--space-16);
 }
 
 .column {

@@ -7,7 +7,7 @@
 
 .inner {
   @include layout.stack(var(--space-8));
-  max-width: 640px;
+  max-width: var(--content-md);
   margin: 0 auto;
 }
 

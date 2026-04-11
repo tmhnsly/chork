@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase/server";
+import { PageTitle } from "@/components/motion";
 import styles from "./leaderboard.module.scss";
 
 export const metadata = {
@@ -16,7 +17,7 @@ export default async function LeaderboardPage() {
 
   return (
     <main className={styles.page}>
-      <h1 className={styles.title}>Leaderboard</h1>
+      <PageTitle text="Leaderboard" className={styles.title} />
       <p className={styles.placeholder}>Leaderboard coming soon</p>
     </main>
   );

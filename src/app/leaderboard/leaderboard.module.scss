@@ -7,13 +7,8 @@
   min-height: 100vh;
   padding: var(--space-8) var(--gutter-x);
   padding-bottom: calc(var(--navbar-height) + env(safe-area-inset-bottom, 0px) + var(--space-8));
-  max-width: 640px;
+  max-width: var(--content-md);
   margin: 0 auto;
-
-  @include bp.tablet {
-    padding-top: calc(var(--navbar-height) + var(--space-8));
-    padding-bottom: var(--space-8);
-  }
 }
 
 .title {

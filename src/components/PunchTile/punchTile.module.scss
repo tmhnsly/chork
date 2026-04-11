@@ -12,8 +12,8 @@
   transition:
     background var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out);
-  min-width: 44px;
-  min-height: 44px;
+  min-width: var(--size-touch-target);
+  min-height: var(--size-touch-target);
   container-type: inline-size;
 
   // Compact variant for display-only grids (e.g. profile mini grid)

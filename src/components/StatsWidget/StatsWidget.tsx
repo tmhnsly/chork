@@ -10,8 +10,7 @@ interface Props {
   points: number;
   logs: Map<string, RouteLog>;
   routeIds: string[];
-  zoneRouteCount: number;
-  resetDate?: string;
+  routeHasZone: boolean[];
 }
 
 export function StatsWidget({
@@ -21,9 +20,9 @@ export function StatsWidget({
   points,
   logs,
   routeIds,
-  zoneRouteCount,
-  resetDate,
+  routeHasZone,
 }: Props) {
+  const zoneRouteCount = routeHasZone.filter(Boolean).length;
   const completionRate = total > 0 ? completions / total : 0;
   const flashRate = completions > 0 ? flashes / completions : 0;
   const maxPoints = total * 4 + zoneRouteCount;
@@ -31,52 +30,45 @@ export function StatsWidget({
 
   return (
     <div className={styles.widget}>
-      <div className={styles.left}>
+      {/* Chart area */}
+      <div className={styles.chartBlock}>
+        <RouteChart
+          logs={logs}
+          routeIds={routeIds}
+          routeHasZone={routeHasZone}
+        />
+      </div>
+
+      {/* Rings + stats */}
+      <div className={styles.ringSection}>
         <ActivityRings
           rings={[
             { value: completionRate, color: "var(--accent-solid)" },
-            { value: scoreRate, color: "var(--mono-text-low-contrast)" },
             { value: flashRate, color: "var(--flash-solid)" },
+            { value: scoreRate, color: "var(--success-solid)" },
           ]}
           size={72}
         />
 
         <div className={styles.statLines}>
           <div className={styles.statLine}>
-            <span className={styles.statLabel}>Sends</span>
+            <span className={`${styles.statLabel} ${styles.accentLabel}`}>SENDS</span>
             <span className={`${styles.statValue} ${styles.accent}`}>
-              {completions}/{total}
+              {completions}<small>/{total}</small>
             </span>
           </div>
           <div className={styles.statLine}>
-            <span className={styles.statLabel}>Score</span>
-            <span className={styles.statValue}>
-              {points}<small>PTS</small>
-            </span>
-          </div>
-          <div className={styles.statLine}>
-            <span className={styles.statLabel}>Flashes</span>
+            <span className={`${styles.statLabel} ${styles.flashLabel}`}>FLASHES</span>
             <span className={`${styles.statValue} ${styles.flash}`}>
               {flashes}
             </span>
           </div>
-          {resetDate && (
-            <div className={styles.statLine}>
-              <span className={styles.statLabel}>Resets</span>
-              <span className={styles.statValue}>{resetDate}</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className={styles.right}>
-        <div className={styles.chartBlock}>
-          <span className={styles.chartLabel}>SCORE</span>
-          <RouteChart
-            routeCount={total}
-            logs={logs}
-            routeIds={routeIds}
-          />
+          <div className={styles.statLine}>
+            <span className={`${styles.statLabel} ${styles.scoreLabel}`}>SCORE</span>
+            <span className={`${styles.statValue} ${styles.score}`}>
+              {points}<small>PTS</small>
+            </span>
+          </div>
         </div>
       </div>
     </div>

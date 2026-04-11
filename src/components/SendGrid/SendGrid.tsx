@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { format, parseISO } from "date-fns";
-import { motion } from "motion/react";
 import type { RouteSet, Route, RouteLog, TileState } from "@/lib/data";
 import { isFlash, computePoints } from "@/lib/data";
 import { StatsWidget } from "@/components/StatsWidget/StatsWidget";
@@ -62,31 +61,22 @@ export function SendGrid({ set, routes, initialLogs }: Props) {
   return (
     <>
       <div className={styles.page}>
-        <RevealText text="Send Grid" as="h2" className={styles.title} />
+        <div className={styles.header}>
+          <RevealText text="Send Grid" as="h2" className={styles.title} />
+          <span className={styles.resetDate}>Resets {endsAt}</span>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.1, ease: [0.25, 0.1, 0.25, 1] }}
-        >
-          <StatsWidget
-            completions={completedCount}
-            total={routes.length}
-            flashes={flashCount}
-            points={totalScore}
-            logs={logByRoute}
-            routeIds={routes.map((r) => r.id)}
-            zoneRouteCount={routes.filter((r) => r.has_zone).length}
-            resetDate={endsAt}
-          />
-        </motion.div>
+        <StatsWidget
+          completions={completedCount}
+          total={routes.length}
+          flashes={flashCount}
+          points={totalScore}
+          logs={logByRoute}
+          routeIds={routes.map((r) => r.id)}
+          routeHasZone={routes.map((r) => r.has_zone)}
+        />
 
-        <motion.footer
-          className={styles.legend}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-        >
+        <footer className={styles.legend}>
           <span className={styles.legendItem}>
             <span className={`${styles.legendSwatch} ${styles.swatchCompleted}`} />
             Completed
@@ -99,38 +89,24 @@ export function SendGrid({ set, routes, initialLogs }: Props) {
             <span className={`${styles.legendSwatch} ${styles.swatchAttempted}`} />
             Attempted
           </span>
-        </motion.footer>
+        </footer>
 
-        <motion.div
-          className={styles.tileGrid}
-          initial="hidden"
-          animate="show"
-          variants={{
-            hidden: {},
-            show: { transition: { staggerChildren: 0.02, delayChildren: 0.15 } },
-          }}
-        >
-          {routes.map((route) => {
+        <div className={styles.tileGrid}>
+          {routes.map((route, i) => {
             const log = logByRoute.get(route.id);
             return (
-              <motion.div
+              <PunchTile
                 key={route.id}
-                variants={{
-                  hidden: { opacity: 0, scale: 0.85 },
-                  show: { opacity: 1, scale: 1 },
-                }}
-                transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] as const }}
-              >
-                <PunchTile
-                  number={route.number}
-                  state={deriveTileState(log)}
-                  zone={log?.zone}
-                  onClick={() => setSelectedRoute(route)}
-                />
-              </motion.div>
+                number={route.number}
+                state={deriveTileState(log)}
+                zone={log?.zone}
+                onClick={() => setSelectedRoute(route)}
+                className={styles.tileEntrance}
+                style={{ "--i": i } as React.CSSProperties}
+              />
             );
           })}
-        </motion.div>
+        </div>
       </div>
 
       {selectedRoute && (

@@ -47,8 +47,8 @@ function ScoreBar({ row }: { row: ScoreRow }) {
       </span>
       <div className={styles.barTrack}>
         <div
-          className={styles.barFill}
-          style={{ width: visible ? `${row.weight * 100}%` : "0%" }}
+          className={`${styles.barFill} ${visible ? styles.barFillVisible : ""}`}
+          style={{ "--bar-width": `${row.weight * 100}%` } as React.CSSProperties}
         />
         <span className={styles.points}>{row.points}</span>
       </div>

@@ -18,7 +18,20 @@
   --space-20: 5rem;
   --space-24: 6rem;
 
+  // Component sizes
+  --size-touch-target: 2.75rem;   // 44px — minimum tap target
+  --size-avatar-sm: 1.5rem;       // 24px
+  --size-avatar-md: 2.25rem;      // 36px
+  --size-avatar-lg: 6rem;         // 96px
+  --size-icon-xs: 1.125rem;       // 18px
+  --size-icon-sm: 1.375rem;       // 22px
+
+  // Content widths
+  --content-narrow: 22.5rem;      // 360px
+  --content-md: 40rem;            // 640px
+  --content-wide: 60rem;          // 960px
   --content-max: 90rem;
+
   --gutter-x: var(--space-2);
   --section-gap: var(--space-12);
   --navbar-height: 3.5rem;

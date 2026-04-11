@@ -3,25 +3,28 @@ import { computePoints, isFlash } from "@/lib/data";
 import styles from "./routeChart.module.scss";
 
 interface Props {
-  routeCount: number;
   logs: Map<string, RouteLog>;
   routeIds: string[];
+  /** Whether each route has a zone hold — used to compute per-route max points */
+  routeHasZone: boolean[];
 }
 
 /**
- * Mini bar chart — points per route. Bars fill relative to max (5).
- * Below: zone indicator dots showing which routes have zone claimed.
+ * Mini bar chart — points per route. Each bar fills relative to that route's
+ * max possible score (4 for non-zone, 5 for zone routes).
+ * Below: zone indicator dots.
  */
-export function RouteChart({ routeCount, logs, routeIds }: Props) {
+export function RouteChart({ logs, routeIds, routeHasZone }: Props) {
   return (
     <div className={styles.chart}>
       <div className={styles.bars}>
-        {routeIds.map((routeId) => {
+        {routeIds.map((routeId, i) => {
           const log = logs.get(routeId);
           const points = log ? computePoints(log) : 0;
           const flash = log ? isFlash(log) : false;
           const attempted = log && log.attempts > 0 && !log.completed;
-          const height = points > 0 ? (points / 5) * 100 : 0;
+          const maxForRoute = routeHasZone[i] ? 5 : 4;
+          const height = points > 0 ? (points / maxForRoute) * 100 : 0;
 
           let barClass = styles.bar;
           if (flash) barClass += ` ${styles.barFlash}`;

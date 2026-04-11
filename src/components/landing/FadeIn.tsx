@@ -42,7 +42,7 @@ export function FadeIn({ children, className, delay = 0 }: Props) {
     <div
       ref={ref}
       className={cls}
-      style={delay ? { transitionDelay: `${delay}ms` } : undefined}
+      style={delay ? { "--fade-delay": `${delay}ms` } as React.CSSProperties : undefined}
     >
       {children}
     </div>

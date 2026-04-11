@@ -7,19 +7,38 @@
   gap: var(--space-4);
 }
 
+.header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
 .title {
   @include type.typography(display);
+}
+
+.resetDate {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
 }
 
 // ── Route tile grid ────────────────────────────────
 .tileGrid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--space-2);
+}
 
-  // Ensure motion wrapper divs fill grid cells
-  > div {
-    min-width: 0;
+@keyframes tileIn {
+  from { opacity: 0; }
+}
+
+.tileEntrance {
+  animation: tileIn 0.15s ease backwards;
+  animation-delay: calc(var(--i, 0) * 12ms);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
   }
 }
 
@@ -35,8 +54,8 @@
 }
 
 .legendSwatch {
-  width: 12px;
-  height: 12px;
+  width: var(--space-3);
+  height: var(--space-3);
 }
 
 .swatchCompleted {

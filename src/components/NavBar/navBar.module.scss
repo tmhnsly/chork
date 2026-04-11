@@ -1,11 +1,9 @@
 @use "mixins/typography" as type;
-@use "mixins/surfaces" as surface;
 @use "mixins/layout" as layout;
 @use "mixins/breakpoints" as bp;
 
-// ── Top bar — always visible on desktop, auth-only on mobile for unauth ──
+// ── Unauthenticated top bar ───────────────────────
 .topBar {
-  @include surface.chrome;
   position: fixed;
   top: 0;
   left: 0;
@@ -16,26 +14,18 @@
   align-items: center;
   justify-content: space-between;
   padding: 0 var(--gutter-x);
-
-}
-
-// When authenticated, top bar only shows on tablet+
-.desktopOnly {
-  display: none;
-
-  @include bp.tablet {
-    display: flex;
-  }
+  background: var(--mono-app-bg);
+  border-bottom: 1px solid var(--mono-border-subtle);
 }
 
 .logoLink {
   @include layout.cluster(var(--space-2));
-  min-height: 44px;
+  min-height: var(--size-touch-target);
 }
 
 .logoIcon {
-  width: 22px;
-  height: 22px;
+  width: var(--size-icon-sm);
+  height: var(--size-icon-sm);
   color: var(--accent-solid-hover);
 }
 
@@ -46,7 +36,7 @@
 
 .signIn {
   @include type.typography(button);
-  min-height: 44px;
+  min-height: var(--size-touch-target);
   display: flex;
   align-items: center;
   padding: 0 var(--space-4);
@@ -59,70 +49,71 @@
   }
 }
 
-// ── Desktop nav links (right side of top bar) ──────
-.desktopNav {
-  display: none;
-
-  @include bp.tablet {
-    @include layout.cluster(var(--space-3));
-  }
-}
-
-.desktopLink {
-  @include type.typography(button);
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  padding: 0 var(--space-3);
-  color: var(--mono-text-low-contrast);
-  transition: color var(--duration-fast) var(--ease-out);
-
-  &:hover {
-    color: var(--mono-text);
-  }
-}
-
-.desktopLinkActive {
-  color: var(--accent-text-low-contrast);
-}
-
-.avatarLink {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-full);
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-full);
-  object-fit: cover;
-}
-
-// ── Bottom bar — mobile only, authenticated only ───
-.bottomBar {
-  @include surface.chrome;
+// ── Authenticated bottom bar (all breakpoints) ────
+.bar {
   position: fixed;
   bottom: 0;
   left: 0;
   right: 0;
   z-index: var(--z-navbar);
   display: flex;
-  justify-content: space-around;
+  justify-content: center;
+  padding: 0 var(--gutter-x) calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
+  pointer-events: none;
+}
+
+.barInner {
+  display: flex;
   align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  width: 100%;
+  max-width: var(--content-md);
   height: var(--navbar-height);
-  padding-bottom: env(safe-area-inset-bottom);
-  border-top: 1px solid var(--mono-border-subtle);
-  border-bottom: none;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--mono-border-subtle);
+  pointer-events: auto;
+
+  // Glassmorphism
+  background: color-mix(in srgb, var(--mono-subtle-bg) 70%, transparent);
+  backdrop-filter: blur(1.5rem) saturate(1.5);
+  -webkit-backdrop-filter: blur(1.5rem) saturate(1.5);
+}
+
+// ── Brand ─────────────────────────────────────────
+.brandLink {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--size-touch-target);
+  padding: 0 var(--space-2);
+  flex-shrink: 0;
+  color: var(--accent-solid-hover);
+}
+
+.brandIcon {
+  width: var(--size-icon-xs);
+  height: var(--size-icon-xs);
+}
+
+.brandText {
+  @include type.typography(label);
+  font-size: var(--text-xs);
+  // Icon only on mobile, icon + name on tablet+
+  display: none;
 
   @include bp.tablet {
-    display: none;
+    display: inline;
   }
+}
+
+// ── Tab items ─────────────────────────────────────
+.tabs {
+  display: flex;
+  flex: 1;
+  justify-content: space-around;
+  align-items: center;
 }
 
 .tab {
@@ -131,11 +122,12 @@
   align-items: center;
   justify-content: center;
   gap: var(--space-1);
-  min-width: 64px;
-  min-height: 44px;
+  min-width: var(--space-14);
+  min-height: var(--size-touch-target);
   padding: var(--space-1) var(--space-3);
   color: var(--mono-text-low-contrast);
   text-decoration: none;
+  border-radius: var(--radius-full);
   transition:
     color var(--duration-fast) var(--ease-out),
     background var(--duration-fast) var(--ease-out);
@@ -143,28 +135,27 @@
 
 .tabActive {
   color: var(--accent-text-low-contrast);
-  background: var(--accent-subtle-bg);
-  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--accent-subtle-bg) 80%, transparent);
 }
 
 .tabIcon {
-  font-size: 20px;
+  font-size: var(--size-icon-xs);
 }
 
 .tabLabel {
   @include type.typography(label);
-  font-size: 10px;
+  font-size: var(--text-2xs);
 }
 
 .tabAvatarWrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: var(--size-avatar-sm);
+  height: var(--size-avatar-sm);
   border-radius: var(--radius-full);
   overflow: hidden;
-  font-size: 14px;
+  font-size: var(--text-sm);
   color: inherit;
 }
 
