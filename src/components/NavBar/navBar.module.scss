@@ -46,11 +46,6 @@
   }
 }
 
-.brandIcon {
-  width: var(--size-icon-xs);
-  height: var(--size-icon-xs);
-}
-
 .brandText {
   @include type.typography(label);
   font-size: var(--text-xs);

@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { FaMountain, FaBorderAll, FaTrophy, FaUser, FaRightToBracket } from "react-icons/fa6";
+import { FaBorderAll, FaTrophy, FaUser, FaRightToBracket } from "react-icons/fa6";
+import { ChorkMark } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { getAvatarUrl } from "@/lib/avatar";
 import styles from "./navBar.module.scss";
@@ -22,7 +23,7 @@ export function NavBar() {
     <nav className={styles.bar}>
       <div className={styles.barInner}>
         <Link href="/" className={styles.brandLink} aria-label="Home">
-          <FaMountain className={styles.brandIcon} />
+          <ChorkMark size={18} />
           <span className={styles.brandText}>Chork</span>
         </Link>
 

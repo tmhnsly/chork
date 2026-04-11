@@ -34,7 +34,10 @@ export function RouteChart({ logs, routeIds, routeHasZone }: Props) {
             <div key={routeId} className={styles.column}>
               <div className={styles.barTrack}>
                 {height > 0 && (
-                  <div className={barClass} style={{ height: `${height}%` }} />
+                  <div
+                    className={barClass}
+                    style={{ "--bar-h": `${height}%` } as React.CSSProperties}
+                  />
                 )}
               </div>
             </div>

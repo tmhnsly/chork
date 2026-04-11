@@ -1,5 +1,4 @@
 @use "mixins/typography" as type;
-@use "mixins/layout" as layout;
 
 .page {
   display: flex;
@@ -29,32 +28,4 @@
   @media (prefers-reduced-motion: reduce) {
     animation: none;
   }
-}
-
-// ── Legend ──────────────────────────────────────────
-.legend {
-  @include layout.cluster(var(--space-4));
-}
-
-.legendItem {
-  @include type.typography(label);
-  @include layout.cluster(var(--space-2));
-  color: var(--mono-text-low-contrast);
-}
-
-.legendSwatch {
-  width: var(--space-3);
-  height: var(--space-3);
-}
-
-.swatchCompleted {
-  background: var(--accent-solid);
-}
-
-.swatchFlash {
-  background: var(--flash-solid);
-}
-
-.swatchAttempted {
-  background: var(--mono-solid);
 }

@@ -69,7 +69,7 @@ export function BadgeShelf({ badges }: Props) {
                 <div className={styles.progressBar}>
                   <div
                     className={styles.progressFill}
-                    style={{ width: `${Math.round(b.progress * 100)}%` }}
+                    style={{ "--progress": `${Math.round(b.progress * 100)}%` } as React.CSSProperties}
                   />
                   <span className={styles.progressText}>
                     {b.current}/{b.badge.target}

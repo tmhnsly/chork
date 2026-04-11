@@ -1,0 +1,48 @@
+.mark {
+  display: block;
+  flex-shrink: 0;
+}
+
+// ── Default: auto theme ───────────────────────────
+// Follows the app's light/dark mode via Radix tokens
+.auto .arc {
+  stroke: var(--accent-solid);
+}
+
+.auto .dot {
+  fill: var(--accent-solid);
+}
+
+// ── Duotone presets ───────────────────────────────
+.duotone-dark .arc {
+  stroke: var(--mono-text);
+}
+
+.duotone-dark .dot {
+  fill: var(--accent-solid);
+}
+
+.duotone-light .arc {
+  stroke: var(--mono-text);
+}
+
+.duotone-light .dot {
+  fill: var(--accent-solid);
+}
+
+// ── Mono presets ──────────────────────────────────
+.mono-dark .arc {
+  stroke: var(--mono-text);
+}
+
+.mono-dark .dot {
+  fill: var(--mono-text);
+}
+
+.mono-light .arc {
+  stroke: var(--mono-text-low-contrast);
+}
+
+.mono-light .dot {
+  fill: var(--mono-text-low-contrast);
+}

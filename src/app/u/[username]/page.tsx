@@ -18,6 +18,7 @@ import { ProfileHeader } from "@/components/ProfileHeader/ProfileHeader";
 import { ClimberStats } from "@/components/ClimberStats/ClimberStats";
 import { BadgeShelf } from "@/components/BadgeShelf/BadgeShelf";
 import { PunchTile } from "@/components/PunchTile/PunchTile";
+import { Legend } from "@/components/ui";
 import styles from "./user.module.scss";
 
 interface Props {
@@ -183,20 +184,7 @@ export default async function UserProfilePage({ params }: Props) {
                 );
               })}
             </div>
-            <footer className={styles.legend}>
-              <span className={styles.legendItem}>
-                <span className={`${styles.legendSwatch} ${styles.swatchFlash}`} />
-                Flashed
-              </span>
-              <span className={styles.legendItem}>
-                <span className={`${styles.legendSwatch} ${styles.swatchCompleted}`} />
-                Sent
-              </span>
-              <span className={styles.legendItem}>
-                <span className={`${styles.legendSwatch} ${styles.swatchAttempted}`} />
-                Attempted
-              </span>
-            </footer>
+            <Legend />
           </>
         )}
       </ClimberStats>

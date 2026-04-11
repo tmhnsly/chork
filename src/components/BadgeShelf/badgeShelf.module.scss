@@ -99,6 +99,7 @@
 
 .progressFill {
   height: 100%;
+  width: var(--progress, 0%);
   background: var(--accent-solid);
   border-radius: var(--radius-full);
   transition: width var(--duration-normal) var(--ease-out);

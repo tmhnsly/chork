@@ -8,6 +8,7 @@ import { scatteredOrder } from "@/lib/stagger";
 import { StatsWidget } from "@/components/StatsWidget/StatsWidget";
 import { RevealText } from "@/components/motion";
 import { PunchTile } from "@/components/PunchTile/PunchTile";
+import { Legend } from "@/components/ui";
 import { RouteLogSheet } from "@/components/RouteLogSheet/RouteLogSheet";
 import type { CachedRouteData } from "@/components/RouteLogSheet/RouteLogSheet";
 import styles from "./sendGrid.module.scss";
@@ -76,20 +77,7 @@ export function SendGrid({ set, routes, initialLogs }: Props) {
           resetDate={endsAt}
         />
 
-        <footer className={styles.legend}>
-          <span className={styles.legendItem}>
-            <span className={`${styles.legendSwatch} ${styles.swatchCompleted}`} />
-            Completed
-          </span>
-          <span className={styles.legendItem}>
-            <span className={`${styles.legendSwatch} ${styles.swatchFlash}`} />
-            Flash
-          </span>
-          <span className={styles.legendItem}>
-            <span className={`${styles.legendSwatch} ${styles.swatchAttempted}`} />
-            Attempted
-          </span>
-        </footer>
+        <Legend />
 
         <div className={styles.tileGrid}>
           {routes.map((route, i) => {

@@ -1,0 +1,52 @@
+@use "mixins/layout" as layout;
+
+.page {
+  @include layout.page;
+  @include layout.stack(var(--space-7));
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.headerText {
+  @include layout.stack(var(--space-2));
+  flex: 1;
+}
+
+.lineTall {
+  height: 1.5rem;
+  width: 60%;
+  border-radius: var(--radius-1);
+}
+
+.lineShort {
+  height: 1rem;
+  width: 40%;
+  border-radius: var(--radius-1);
+}
+
+.avatar {
+  width: var(--space-16);
+  height: var(--space-16);
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.statsBlock {
+  height: 5rem;
+  border-radius: var(--radius-3);
+}
+
+.sectionBlock {
+  height: 6rem;
+  border-radius: var(--radius-2);
+}
+
+.sectionBlockSmall {
+  height: 4rem;
+  border-radius: var(--radius-2);
+}

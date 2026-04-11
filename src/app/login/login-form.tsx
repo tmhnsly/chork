@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { FaMountain } from "react-icons/fa6";
 import { useAuth } from "@/lib/auth-context";
 import { RevealText } from "@/components/motion";
-import { Button, showToast } from "@/components/ui";
+import { Button, ChorkMark, showToast } from "@/components/ui";
 import styles from "./login.module.scss";
 
 type Mode = "sign-in" | "sign-up";
@@ -69,7 +68,7 @@ export function LoginForm() {
     <main className={styles.page}>
       <div className={styles.content}>
         <div className={styles.brand}>
-          <FaMountain className={styles.logo} />
+          <ChorkMark size={48} />
           <RevealText text="Chork" as="h1" className={styles.title} />
         </div>
         <p className={styles.tagline}>

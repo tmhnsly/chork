@@ -1,0 +1,30 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+
+.legend {
+  @include layout.cluster(var(--space-4));
+}
+
+.item {
+  @include type.typography(label);
+  @include layout.cluster(var(--space-2));
+  color: var(--mono-text-low-contrast);
+}
+
+.swatch {
+  width: var(--space-3);
+  height: var(--space-3);
+  border-radius: var(--radius-1);
+}
+
+.flash {
+  background: var(--flash-solid);
+}
+
+.completed {
+  background: var(--accent-solid);
+}
+
+.attempted {
+  background: var(--mono-solid);
+}
