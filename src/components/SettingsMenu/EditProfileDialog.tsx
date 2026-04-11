@@ -7,6 +7,7 @@ import type { Profile } from "@/lib/data";
 import { useAuth } from "@/lib/auth-context";
 import { useUsernameValidation } from "@/hooks/use-username-validation";
 import { updateProfile, uploadAvatar } from "@/lib/user-actions";
+import { resizeAvatar } from "@/lib/image";
 import { AppDialog, Button, InputError, UserAvatar, showToast } from "@/components/ui";
 import styles from "./editProfileDialog.module.scss";
 
@@ -38,11 +39,17 @@ export function EditProfileDialog({ user, open, onOpenChange }: Props) {
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      showToast("Please select an image", "error");
+      return;
+    }
 
     setUploading(true);
     try {
+      // Resize to 256x256 JPEG client-side (~30-50KB)
+      const resized = await resizeAvatar(file);
       const formData = new FormData();
-      formData.set("avatar", file);
+      formData.set("avatar", resized);
       const result = await uploadAvatar(formData);
       if ("error" in result) {
         showToast(result.error, "error");
@@ -104,13 +111,13 @@ export function EditProfileDialog({ user, open, onOpenChange }: Props) {
       <div className={styles.avatarSection}>
         <button
           type="button"
-          className={styles.avatarBtn}
+          className={`${styles.avatarBtn} ${uploading ? styles.avatarUploading : ""}`}
           onClick={() => fileRef.current?.click()}
           disabled={uploading}
         >
           <UserAvatar user={user} size={72} />
           <span className={styles.avatarOverlay}>
-            <FaCamera />
+            {uploading ? <span className={styles.spinner} /> : <FaCamera />}
           </span>
         </button>
         <input

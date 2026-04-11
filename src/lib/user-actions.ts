@@ -84,11 +84,12 @@ export async function uploadAvatar(
 
   const file = formData.get("avatar") as File | null;
   if (!file || file.size === 0) return { error: "No file provided" };
-  if (file.size > 2 * 1024 * 1024) return { error: "Image must be under 2MB" };
-  if (!file.type.startsWith("image/")) return { error: "File must be an image" };
+  // Client should resize to 256x256 JPEG before upload.
+  // These are safety limits, not the primary validation.
+  if (file.size > 500 * 1024) return { error: "Image too large - should be resized client-side" };
+  if (file.type !== "image/jpeg") return { error: "Only JPEG accepted" };
 
-  const ext = file.name.split(".").pop() ?? "jpg";
-  const path = `${userId}/avatar.${ext}`;
+  const path = `${userId}/avatar.jpg`;
 
   try {
     const { error: uploadError } = await supabase.storage
