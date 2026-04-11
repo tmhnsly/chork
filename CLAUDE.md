@@ -57,7 +57,11 @@ Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
 - Flash badge: amber (`--flash-*` tokens) — never lime
 - Squircle border radius via `--radius-1` through `--radius-4` tokens. PunchTile stays square (no radius)
 - Golden ratio for nested radius: inner = outer − padding
-- Glassmorphism allowed on floating chrome (navbar, dropdowns) via `backdrop-filter: blur` + `color-mix` transparency
+- Glass materials aligned with Apple HIG: `saturate(180%) blur(20px)` via `@include surface.glass($opacity)`
+  - Thin (30%): maximum background bleed
+  - Regular (50%): floating chrome (navbar, dropdowns)
+  - Thick (70%, default): sheets, modals, alerts
+  - Nested glass uses opacity layering, not stacked backdrop-filter (CSS limitation)
 - Radix palette: olive (mono), lime (accent), red (error), teal (success), amber (flash)
 
 ## Page layout

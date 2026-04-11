@@ -6,6 +6,11 @@
 //   Floating chrome (navbar)          → glass + --shadow-md
 //   Popovers / dropdowns              → glass + --shadow-lg
 //   Sheets / modals / dialogs         → glass or card + --shadow-xl
+//
+// Glass material tiers (aligned with Apple HIG):
+//   thin    → 30% opacity — maximum background bleed
+//   regular → 50% opacity — tab bars, sidebars, floating chrome
+//   thick   → 70% opacity — sheets, modals, alerts (default)
 
 // ── Card ────────────────────────────────────────────
 // Solid card for inline content — panels, forms, profile cards.
@@ -24,13 +29,14 @@
 
 // ── Glass ───────────────────────────────────────────
 // Translucent panel using our Radix mono palette.
-// backdrop-filter is progressive enhancement — the translucent
-// background looks good on its own without blur.
+// Blur and saturation values match Apple's web implementation:
+//   backdrop-filter: saturate(180%) blur(20px)
 //
 // $opacity: 0–100, how much of --mono-subtle-bg shows through.
+// Use 30% for thin, 50% for regular, 70% for thick (default).
 @mixin glass($opacity: 70%) {
   background: color-mix(in srgb, var(--mono-subtle-bg) $opacity, transparent);
   border: 1px solid var(--mono-border-subtle);
-  -webkit-backdrop-filter: blur(1.5rem) saturate(1.8);
-  backdrop-filter: blur(1.5rem) saturate(1.8);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
 }

@@ -18,7 +18,7 @@
 
 // ── Sheet content ─────────────────────────────────
 .content {
-  @include surface.glass(75%);
+  @include surface.glass; // thick material (70% default) — sheet
   box-shadow: var(--shadow-xl);
   display: flex;
   flex-direction: column;
