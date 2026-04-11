@@ -9,6 +9,7 @@ import type {
   Comment,
   ActivityEvent,
   ActivityEventType,
+  GymRole,
 } from "./types";
 
 type Supabase = SupabaseClient<Database>;
@@ -104,21 +105,13 @@ export async function toggleCommentLike(
       .eq("id", existing.id);
     if (deleteError) throw deleteError;
 
-    const { data: current, error: readError } = await service
-      .from("comments")
-      .select("likes")
-      .eq("id", commentId)
-      .single();
-    if (readError) throw readError;
+    // Atomic decrement — no race condition
+    // TODO: regenerate database.types.ts after applying migration 003
+    const { data: newLikes, error: rpcError } = await service
+      .rpc("increment_comment_likes" as never, { p_comment_id: commentId, p_delta: -1 } as never);
+    if (rpcError) throw rpcError;
 
-    const newLikes = Math.max(0, (current?.likes ?? 0) - 1);
-    const { error: updateError } = await service
-      .from("comments")
-      .update({ likes: newLikes })
-      .eq("id", commentId);
-    if (updateError) throw updateError;
-
-    return { liked: false, likes: newLikes };
+    return { liked: false, likes: (newLikes as number) ?? 0 };
   }
 
   const { error: insertError } = await supabase
@@ -126,21 +119,13 @@ export async function toggleCommentLike(
     .insert({ user_id: userId, comment_id: commentId, gym_id: gymId });
   if (insertError) throw insertError;
 
-  const { data: current, error: readError } = await service
-    .from("comments")
-    .select("likes")
-    .eq("id", commentId)
-    .single();
-  if (readError) throw readError;
+  // Atomic increment — no race condition
+    // TODO: regenerate database.types.ts after applying migration 003
+    const { data: newLikes, error: rpcError } = await service
+      .rpc("increment_comment_likes" as never, { p_comment_id: commentId, p_delta: 1 } as never);
+    if (rpcError) throw rpcError;
 
-  const newLikes = (current?.likes ?? 0) + 1;
-  const { error: updateError } = await service
-    .from("comments")
-    .update({ likes: newLikes })
-    .eq("id", commentId);
-  if (updateError) throw updateError;
-
-  return { liked: true, likes: newLikes };
+    return { liked: true, likes: (newLikes as number) ?? 0 };
 }
 
 // ── Activity events ────────────────────────────────
@@ -175,12 +160,15 @@ export async function deleteCompletionEvents(
 
 // ── Gym memberships ────────────────────────────────
 
+const VALID_ROLES: GymRole[] = ["climber", "setter", "admin", "owner"];
+
 export async function createGymMembership(
   supabase: Supabase,
   userId: string,
   gymId: string,
-  role: string = "climber"
+  role: GymRole = "climber"
 ): Promise<void> {
+  if (!VALID_ROLES.includes(role)) throw new Error(`Invalid role: ${role}`);
   const { error } = await supabase
     .from("gym_memberships")
     .insert({ user_id: userId, gym_id: gymId, role });

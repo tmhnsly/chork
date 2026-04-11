@@ -1,14 +1,42 @@
 "use server";
 
 import { requireSignedIn } from "@/lib/auth";
+import { createServerSupabase } from "@/lib/supabase/server";
+import { validateUsername } from "@/lib/validation";
 import { createGymMembership } from "@/lib/data/mutations";
+import { searchGyms as searchGymsQuery } from "@/lib/data/queries";
 import { formatError } from "@/lib/errors";
+import type { Gym } from "@/lib/data";
+
+/**
+ * Fetch listed gyms. Used by the onboarding gym picker.
+ * Goes through the data access layer instead of querying Supabase from the client.
+ */
+export async function fetchListedGyms(): Promise<Gym[]> {
+  const supabase = await createServerSupabase();
+  const { data, error } = await supabase
+    .from("gyms")
+    .select("*")
+    .eq("is_listed", true)
+    .order("name");
+  if (error) {
+    console.warn("[chork] fetchListedGyms failed:", error);
+    return [];
+  }
+  return data ?? [];
+}
 
 export async function completeOnboarding(
   username: string,
   name: string,
   gymId: string
 ): Promise<{ error: string } | { success: true }> {
+  // Input validation
+  const { error: usernameError } = validateUsername(username);
+  if (usernameError) return { error: usernameError };
+  if (typeof name !== "string") return { error: "Invalid name" };
+  if (typeof gymId !== "string" || !gymId) return { error: "Please select a gym" };
+
   const auth = await requireSignedIn();
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId } = auth;

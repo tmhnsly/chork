@@ -25,6 +25,12 @@
 - [ ] Google OAuth (add back)
 - [ ] Apple Sign In
 
+## Infrastructure (before scaling)
+
+- [ ] Rate limiting on server actions (Vercel WAF, or edge middleware with sliding window)
+- [ ] Error monitoring (Sentry or similar)
+- [ ] Database connection pooling (Supabase has this, verify config)
+
 ## Next up
 
 - [ ] Leaderboard: ranked by points per set, per gym

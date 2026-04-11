@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { checkUsernameAvailable } from "@/lib/user-actions";
-import { USERNAME_RE } from "@/lib/validation";
+import { validateUsername } from "@/lib/validation";
 
 export function useUsernameValidation(currentUsername?: string) {
   const [error, setError] = useState("");
@@ -11,12 +11,9 @@ export function useUsernameValidation(currentUsername?: string) {
     async (value: string, userId: string): Promise<boolean> => {
       setError("");
 
-      if (!value || value.length < 3) {
-        setError("Username must be at least 3 characters");
-        return false;
-      }
-      if (!USERNAME_RE.test(value)) {
-        setError("Lowercase letters, numbers, and underscores only");
+      const { error: validationError } = validateUsername(value);
+      if (validationError) {
+        setError(validationError);
         return false;
       }
       if (value === currentUsername) return true;

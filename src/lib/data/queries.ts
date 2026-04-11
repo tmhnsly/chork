@@ -246,21 +246,10 @@ export async function getCommentsByRoute(
   const from = (page - 1) * perPage;
   const to = from + perPage - 1;
 
-  const { count, error: countError } = await supabase
+  // Single query: fetch data + exact count in one round trip
+  const { data, count, error } = await supabase
     .from("comments")
-    .select("*", { count: "exact", head: true })
-    .eq("route_id", routeId);
-
-  if (countError) {
-    console.warn("[chork] getCommentsByRoute count failed:", countError);
-  }
-
-  const totalItems = count ?? 0;
-  const totalPages = Math.ceil(totalItems / perPage);
-
-  const { data, error } = await supabase
-    .from("comments")
-    .select("*, profiles(id, username, name, avatar_url)")
+    .select("*, profiles(id, username, name, avatar_url)", { count: "exact" })
     .eq("route_id", routeId)
     .order("likes", { ascending: false })
     .order("created_at", { ascending: false })
@@ -270,10 +259,12 @@ export async function getCommentsByRoute(
     console.warn("[chork] getCommentsByRoute failed:", error);
   }
 
+  const totalItems = count ?? 0;
+
   return {
     items: (data ?? []) as Comment[],
     totalItems,
-    totalPages,
+    totalPages: Math.ceil(totalItems / perPage),
     page,
   };
 }

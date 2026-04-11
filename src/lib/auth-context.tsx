@@ -46,6 +46,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Bootstrap: check session on mount + listen for changes
   useEffect(() => {
+    let initialCheckDone = false;
+
     // Initial auth check — getUser() validates with the server
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (user) {
@@ -53,15 +55,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(p);
       }
       setIsLoading(false);
+      initialCheckDone = true;
     });
 
     // Listen for auth changes (sign in, sign out, token refresh)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === "SIGNED_IN" && session?.user) {
+          // Skip if this is just the initial session echo — we already fetched
+          if (!initialCheckDone) return;
           const p = await fetchProfile(session.user.id);
           setProfile(p);
-          setIsLoading(false);
           router.refresh();
         } else if (event === "SIGNED_OUT") {
           setProfile(null);

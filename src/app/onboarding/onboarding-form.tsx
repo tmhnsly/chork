@@ -1,14 +1,13 @@
 "use client";
 
-import { useState, useEffect, useMemo, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { useUsernameValidation } from "@/hooks/use-username-validation";
-import { createBrowserSupabase } from "@/lib/supabase/client";
 import { RevealText } from "@/components/motion";
 import { FormField, Button, showToast } from "@/components/ui";
-import { completeOnboarding } from "./actions";
+import { completeOnboarding, fetchListedGyms } from "./actions";
 import type { Gym } from "@/lib/data";
 import styles from "./onboarding.module.scss";
 
@@ -18,7 +17,6 @@ export function OnboardingForm() {
   const { profile, refreshProfile } = useAuth();
   const router = useRouter();
   const usernameValidation = useUsernameValidation();
-  const supabase = useMemo(() => createBrowserSupabase(), []);
 
   const [step, setStep] = useState<Step>("form");
   const [username, setUsername] = useState("");
@@ -32,17 +30,11 @@ export function OnboardingForm() {
   const [loadingGyms, setLoadingGyms] = useState(true);
 
   useEffect(() => {
-    supabase
-      .from("gyms")
-      .select("*")
-      .eq("is_listed", true)
-      .order("name")
-      .then(({ data, error }) => {
-        if (error) console.warn("[chork] gym fetch failed:", error);
-        setAllGyms(data ?? []);
-        setLoadingGyms(false);
-      });
-  }, [supabase]);
+    fetchListedGyms().then((gyms) => {
+      setAllGyms(gyms);
+      setLoadingGyms(false);
+    });
+  }, []);
 
   const filteredGyms = gymQuery.trim()
     ? allGyms.filter((g) =>

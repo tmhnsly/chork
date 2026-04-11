@@ -2,7 +2,7 @@
 
 import { createServerSupabase } from "./supabase/server";
 import { requireAuth } from "./auth";
-import { USERNAME_RE } from "./validation";
+import { validateUsername } from "./validation";
 import { formatError } from "./errors";
 
 /**
@@ -12,9 +12,8 @@ export async function checkUsernameAvailable(
   username: string,
   userId: string
 ): Promise<boolean> {
-  if (!username || username.length < 3 || !USERNAME_RE.test(username)) {
-    return false;
-  }
+  const { error } = validateUsername(username);
+  if (error) return false;
   const supabase = await createServerSupabase();
   const { data } = await supabase
     .from("profiles")
@@ -27,18 +26,24 @@ export async function checkUsernameAvailable(
 
 /**
  * Update the authenticated user's profile.
+ * Only the display name is accepted — sensitive fields like
+ * onboarded, active_gym_id, and username are managed by dedicated actions.
  */
 export async function updateProfile(
-  updates: { username?: string; name?: string; onboarded?: boolean; active_gym_id?: string }
+  updates: { name?: string }
 ): Promise<{ error: string } | { success: true }> {
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId } = auth;
 
+  // Only allow name updates
+  const name = updates.name;
+  if (name === undefined) return { error: "Nothing to update" };
+
   try {
     const { error } = await supabase
       .from("profiles")
-      .update(updates)
+      .update({ name })
       .eq("id", userId);
 
     if (error) return { error: formatError(error) };
