@@ -6,6 +6,8 @@
   overflow: hidden;
   flex-shrink: 0;
   container-type: inline-size;
+  background: var(--mono-bg);
+  color: var(--mono-text-low-contrast);
 }
 
 .image {
@@ -17,20 +19,4 @@
 
 .icon {
   font-size: 45cqi;
-}
-
-// ── Colour variants (fallback only) ───────────────
-.brand {
-  background: var(--accent-bg);
-  color: var(--accent-text-low-contrast);
-}
-
-.flash {
-  background: var(--flash-subtle-bg);
-  color: var(--flash-text-low-contrast);
-}
-
-.teal {
-  background: var(--success-bg);
-  color: var(--success-text-low-contrast);
 }
