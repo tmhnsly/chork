@@ -33,6 +33,19 @@
   width: 100%;
   height: var(--bar-h, 0%);
   min-height: 2px;
+  transform-origin: bottom;
+  animation: barGrow var(--duration-slow) var(--ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * 30ms);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes barGrow {
+  from {
+    transform: scaleY(0);
+  }
 }
 
 .barCompleted {

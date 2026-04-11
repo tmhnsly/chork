@@ -1,5 +1,5 @@
 .ring {
-  transition: stroke-dashoffset var(--duration-normal) var(--ease-out);
+  transition: stroke-dashoffset var(--duration-slow) var(--ease-out);
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;

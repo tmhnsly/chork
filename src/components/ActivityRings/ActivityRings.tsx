@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import styles from "./activityRings.module.scss";
 
 interface Ring {
@@ -19,12 +22,18 @@ const TRACK_COLOR = "var(--mono-bg)";
 
 /**
  * Apple Fitness-style concentric progress rings.
- * Rings animate via CSS transition when values change.
+ * Rings animate from empty to their value on mount with staggered delay.
  */
 export function ActivityRings({ rings, size = 72, className }: Props) {
+  const [mounted, setMounted] = useState(false);
   const strokeWidth = size * 0.1;
   const gap = strokeWidth * 0.4;
   const center = size / 2;
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   return (
     <svg
@@ -37,7 +46,7 @@ export function ActivityRings({ rings, size = 72, className }: Props) {
       {rings.map((ring, i) => {
         const radius = center - strokeWidth / 2 - i * (strokeWidth + gap);
         const circumference = 2 * Math.PI * radius;
-        const progress = Math.min(1, Math.max(0, ring.value));
+        const progress = mounted ? Math.min(1, Math.max(0, ring.value)) : 0;
         const offset = circumference * (1 - progress);
 
         return (
@@ -63,6 +72,7 @@ export function ActivityRings({ rings, size = 72, className }: Props) {
               strokeDashoffset={offset}
               transform={`rotate(-90 ${center} ${center})`}
               className={styles.ring}
+              style={{ transitionDelay: `${i * 150}ms` }}
             />
           </g>
         );
