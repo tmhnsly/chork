@@ -119,6 +119,7 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
   const [editBody, setEditBody] = useState("");
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const gradeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingAttemptsRef = useRef<number | null>(null);
   const logIdRef = useRef(currentLog?.id);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -151,7 +152,10 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
       return;
     }
 
-    // Fetch grade eagerly
+    // Fetch grade eagerly — set commentsLoaded immediately to prevent
+    // double-fetch if user expands beta spray before this resolves
+    setCommentsLoaded(true);
+    setLoadingComments(true);
     fetchRouteData(route.id)
       .then((data) => {
         const { grade, comments: result, likedIds: liked } = data;
@@ -161,10 +165,10 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
         setTotalComments(result.totalItems);
         setHasMore(result.page < result.totalPages);
         setNextPage(2);
-        setCommentsLoaded(true);
         onCacheRef.current?.(route.id, data);
       })
-      .catch((err) => console.warn("[chork] fetchRouteData failed:", err));
+      .catch((err) => console.warn("[chork] fetchRouteData failed:", err))
+      .finally(() => setLoadingComments(false));
   }, [route.id, cachedData]);
 
   // ── Load comments when beta expanded (lazy) ──
@@ -299,7 +303,11 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
   }
 
   // ── Zone toggle ──
+  const zoningRef = useRef(false);
   async function handleZoneToggle(checked: boolean) {
+    if (zoningRef.current) return;
+    zoningRef.current = true;
+
     setCurrentLog((prev) => (prev ? { ...prev, zone: checked } : prev));
     const latest = currentLogRef.current;
     if (latest) onLogUpdate(route.id, { ...latest, zone: checked });
@@ -309,6 +317,7 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
       showToast(result.error, "error");
       setCurrentLog((prev) => (prev ? { ...prev, zone: !checked } : prev));
     }
+    zoningRef.current = false;
   }
 
   // ── Comments ──
@@ -534,17 +543,21 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
             {isCompleted && (
               <GradeSlider
                 value={gradeVote}
-                onChange={async (grade) => {
+                onChange={(grade) => {
                   setGradeVote(grade);
-                  if (currentLog?.id) {
-                    const result = await updateGradeVote(route.id, grade, currentLog.id);
+                  // Debounce the server call — user may tap multiple chips quickly
+                  if (gradeDebounceRef.current) clearTimeout(gradeDebounceRef.current);
+                  gradeDebounceRef.current = setTimeout(async () => {
+                    const logId = logIdRef.current;
+                    if (!logId) return;
+                    const result = await updateGradeVote(route.id, grade, logId);
                     if ("error" in result) {
                       showToast(result.error, "error");
                     } else {
                       setCurrentLog(result.log);
                       onLogUpdateRef.current(route.id, result.log);
                     }
-                  }
+                  }, 600);
                 }}
               />
             )}

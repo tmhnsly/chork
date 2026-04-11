@@ -34,6 +34,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const supabase = useMemo(() => createBrowserSupabase(), []);
   const profileRef = useRef(profile);
   useEffect(() => { profileRef.current = profile; }, [profile]);
+  const routerRef = useRef(router);
+  useEffect(() => { routerRef.current = router; }, [router]);
 
   const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     const { data, error } = await supabase
@@ -69,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!initialCheckDone) return;
           const p = await fetchProfile(session.user.id);
           setProfile(p);
-          router.refresh();
+          routerRef.current.refresh();
         } else if (event === "TOKEN_REFRESHED" && session?.user) {
           // Token was silently refreshed — ensure profile is still set
           if (!profileRef.current) {
@@ -79,13 +81,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else if (event === "SIGNED_OUT") {
           setProfile(null);
           setIsLoading(false);
-          router.refresh();
+          routerRef.current.refresh();
         }
       }
     );
 
     return () => subscription.unsubscribe();
-  }, [supabase, fetchProfile, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase, fetchProfile]);
 
   // Redirect non-onboarded users
   useEffect(() => {
