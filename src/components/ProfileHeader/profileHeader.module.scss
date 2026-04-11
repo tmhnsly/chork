@@ -24,6 +24,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  // Prevent italic overhang from being clipped by overflow: hidden
+  padding-right: 0.15em;
 }
 
 .displayName {

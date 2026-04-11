@@ -16,9 +16,13 @@
 }
 
 // ── Visual (grid) ─────────────────────────────────
+// Grid sits at the bottom of the container, giving the impression
+// it extends behind the next section.
 .visual {
   overflow: hidden;
   aspect-ratio: 2 / 1;
+  display: flex;
+  align-items: flex-end;
 }
 
 // ── Typography ─────────────────────────────────────

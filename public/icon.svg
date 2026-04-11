@@ -1,0 +1,11 @@
+<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .arc { stroke: #1b1d16; }
+    .dot { fill: #bdee63; }
+    @media (prefers-color-scheme: dark) {
+      .arc { stroke: #ecede8; }
+    }
+  </style>
+  <path d="M29 11 A14 14 0 1 0 29 37" class="arc" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="38" cy="24" r="7.5" class="dot"/>
+</svg>

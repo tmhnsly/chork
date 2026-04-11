@@ -12,11 +12,10 @@
   font-family: var(--font-heading);
   font-weight: var(--weight-black);
   font-style: italic;
-  font-size: 40cqi; // matches PunchTile
+  font-size: 40cqi;
   line-height: 1;
   letter-spacing: var(--tracking-tight);
   text-align: center;
-  padding: 0 4cqi;
 }
 
 // ── States — matches PunchTile palette ──────────────
@@ -36,15 +35,15 @@
 
 .flash {
   background: var(--flash-solid);
-  color: var(--flash-text);
+  color: var(--flash-on-solid);
 }
 
-// ── Flash badge — matches PunchTile sizing ──────────
+// ── Flash badge — matches PunchTile ──────────────────
 .flashBadge {
   position: absolute;
-  top: 4cqi;
-  right: 4cqi;
-  font-size: 16cqi;
+  top: 8cqi;
+  right: 8cqi;
+  font-size: 20cqi;
   color: var(--flash-on-solid);
   line-height: 1;
 }

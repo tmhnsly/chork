@@ -30,16 +30,18 @@ import { isFlash, computePoints } from "@/lib/data";
 import { useAuth } from "@/lib/auth-context";
 import { getAvatarUrl } from "@/lib/avatar";
 import {
-  updateAttempts,
-  completeRoute,
-  uncompleteRoute,
-  toggleZone,
+  offlineUpdateAttempts as updateAttempts,
+  offlineCompleteRoute as completeRoute,
+  offlineUncompleteRoute as uncompleteRoute,
+  offlineToggleZone as toggleZone,
+  offlineUpdateGradeVote as updateGradeVote,
+} from "@/lib/offline";
+import {
   postComment,
   fetchComments,
   fetchRouteData,
   editComment,
   likeComment,
-  updateGradeVote,
 } from "@/app/(app)/actions";
 import { Button, shimmerStyles, showToast } from "@/components/ui";
 import styles from "./routeLogSheet.module.scss";
@@ -210,8 +212,10 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
         showToast(result.error, "error");
         return;
       }
-      setCurrentLog(result.log);
-      onLogUpdateRef.current(route.id, result.log);
+      if (result.log) {
+        setCurrentLog(result.log);
+        onLogUpdateRef.current(route.id, result.log);
+      }
     },
     [route.id]
   );
@@ -282,7 +286,7 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
       setCurrentLog(log);
       setAttempts(log?.attempts ?? 0);
       if (log) onLogUpdate(route.id, log);
-    } else {
+    } else if (result.log) {
       setCurrentLog(result.log);
       onLogUpdate(route.id, result.log);
     }
@@ -295,10 +299,12 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
       showToast(result.error, "error");
       return;
     }
-    setCurrentLog(result.log);
-    setAttempts(result.log.attempts);
+    if (result.log) {
+      setCurrentLog(result.log);
+      setAttempts(result.log.attempts);
+      onLogUpdate(route.id, result.log);
+    }
     setGradeVote(null);
-    onLogUpdate(route.id, result.log);
     showToast("Completion removed");
   }
 
@@ -322,6 +328,10 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
 
   // ── Comments ──
   async function handlePostComment() {
+    if (!navigator.onLine) {
+      showToast("You're offline — comments available when you reconnect", "info");
+      return;
+    }
     const trimmed = commentBody.trim();
     if (!trimmed) return;
     setPosting(true);
@@ -361,6 +371,10 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
   }
 
   async function handleLike(commentId: string) {
+    if (!navigator.onLine) {
+      showToast("You're offline — likes available when you reconnect", "info");
+      return;
+    }
     if (likingRef.current.has(commentId)) return;
     likingRef.current.add(commentId);
 
@@ -478,6 +492,9 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
           <VisuallyHidden.Root asChild>
             <Dialog.Title>Route {route.number}</Dialog.Title>
           </VisuallyHidden.Root>
+          <VisuallyHidden.Root asChild>
+            <Dialog.Description>Log details for route {route.number}</Dialog.Description>
+          </VisuallyHidden.Root>
 
           {/* Handle */}
           <button type="button" className={styles.handleBtn} onClick={startClose} aria-label="Close">
@@ -574,7 +591,7 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
                     const result = await updateGradeVote(route.id, grade, logId);
                     if ("error" in result) {
                       showToast(result.error, "error");
-                    } else {
+                    } else if (result.log) {
                       setCurrentLog(result.log);
                       onLogUpdateRef.current(route.id, result.log);
                     }

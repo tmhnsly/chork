@@ -27,6 +27,9 @@ export function AppDialog({ open, onOpenChange, title, children }: Props) {
           <VisuallyHidden.Root asChild>
             <Dialog.Title>{title}</Dialog.Title>
           </VisuallyHidden.Root>
+          <VisuallyHidden.Root asChild>
+            <Dialog.Description>{title}</Dialog.Description>
+          </VisuallyHidden.Root>
           {children}
         </Dialog.Content>
       </Dialog.Portal>

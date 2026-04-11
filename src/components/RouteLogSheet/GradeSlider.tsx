@@ -14,11 +14,16 @@ interface Props {
 
 export function GradeSlider({ value, onChange }: Props) {
   const [enabled, setEnabled] = useState(value !== null);
-  const [grade, setGrade] = useState(value ?? 5);
+  const [grade, setGrade] = useState<number | null>(value);
 
   function handleToggle(checked: boolean) {
     setEnabled(checked);
-    onChange(checked ? grade : null);
+    if (!checked) {
+      // Toggling off — clear the grade
+      setGrade(null);
+      onChange(null);
+    }
+    // Toggling on — don't fire onChange yet, wait for user to pick a grade
   }
 
   function handleSelect(index: number) {

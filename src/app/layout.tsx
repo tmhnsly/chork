@@ -20,6 +20,9 @@ export const metadata: Metadata = {
   title: "Chork",
   description: "Bouldering comp tracker - send it, log it, prove it.",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.svg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
