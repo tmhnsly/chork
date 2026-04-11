@@ -10,7 +10,7 @@
 }
 
 .auto .dot {
-  fill: var(--accent-solid);
+  fill: var(--brand);
 }
 
 // ── Duotone presets ───────────────────────────────
@@ -19,7 +19,7 @@
 }
 
 .duotone-dark .dot {
-  fill: var(--accent-solid);
+  fill: var(--brand);
 }
 
 .duotone-light .arc {
@@ -27,7 +27,7 @@
 }
 
 .duotone-light .dot {
-  fill: var(--accent-solid);
+  fill: var(--brand);
 }
 
 // ── Mono presets ──────────────────────────────────

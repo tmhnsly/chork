@@ -153,9 +153,16 @@
   --flash-text: var(--amber-12);              /* Step 12: Flash primary text */
   --flash-on-solid: #21201c;                  /* Foreground on step 9 */
 
+  /* ── Brand ─────────────────────────────────────────── */
+  /* Primary brand colour — solid fills, active states, accent UI. */
+  --brand: var(--accent-solid);               /* lime step 9 */
+  /* Secondary brand colour — brand-coloured text on light backgrounds */
+  /* where --brand has insufficient contrast for readability. */
+  --brand-text: var(--accent-text-low-contrast); /* lime step 11 */
+
   /* ── Aliases ───────────────────────────────────────── */
-  --focus-ring: var(--lime-8);                /* Step 8: Focus ring = accent border-hover */
-  --toggle-thumb: #fff;                       /* Toggle thumb — always white for contrast */
+  --focus-ring: var(--lime-8);
+  --toggle-thumb: #fff;
   --surface-divider: var(--mono-border-subtle);
 
   --app-bg: var(--mono-app-bg);

@@ -33,7 +33,7 @@ export function RingStatsRow({ completions, flashes, points, totalRoutes, maxPoi
   const scoreRate = maxPoints ? points / maxPoints : 0;
 
   const rings = [
-    { value: completionRate, color: "var(--accent-solid)" },
+    { value: completionRate, color: "var(--brand)" },
     { value: flashRate, color: "var(--flash-solid)" },
   ];
 

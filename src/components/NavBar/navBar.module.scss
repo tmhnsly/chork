@@ -91,7 +91,7 @@
   color: var(--accent-text-low-contrast);
 
   :root.dark & {
-    color: var(--accent-solid);
+    color: var(--brand);
   }
 
   // Frosted pill — uses Radix step 3 (UI element bg) which is designed
@@ -114,7 +114,7 @@
       color: var(--accent-text-low-contrast);
 
       :root.dark & {
-        color: var(--accent-solid);
+        color: var(--brand);
       }
     }
   }
