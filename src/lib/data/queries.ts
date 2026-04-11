@@ -37,11 +37,8 @@ export async function getUserGymRole(
   return (data?.role as GymRole) ?? null;
 }
 
-const ADMIN_ROLES: GymRole[] = ["admin", "owner", "setter"];
-
-export function isGymAdmin(role: GymRole | null): boolean {
-  return role !== null && ADMIN_ROLES.includes(role);
-}
+// Re-export from pure module so existing imports don't break
+export { isGymAdmin } from "./roles";
 
 // ── Profiles ───────────────────────────────────────
 
