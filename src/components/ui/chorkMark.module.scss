@@ -4,9 +4,9 @@
 }
 
 // ── Default: auto theme ───────────────────────────
-// Follows the app's light/dark mode via Radix tokens
+// Mono arc + accent dot, follows light/dark via Radix tokens
 .auto .arc {
-  stroke: var(--accent-solid);
+  stroke: var(--mono-text);
 }
 
 .auto .dot {

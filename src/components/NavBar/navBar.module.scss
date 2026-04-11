@@ -39,7 +39,7 @@
   height: var(--size-touch-target);
   padding: 0 var(--space-2);
   flex-shrink: 0;
-  color: var(--accent-solid-hover);
+  color: var(--mono-text-low-contrast);
 
   @include bp.tablet {
     display: flex;
@@ -65,6 +65,7 @@
 }
 
 .tab {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -72,23 +73,50 @@
   gap: 2px;
   min-width: var(--space-14);
   min-height: var(--size-touch-target);
-  padding: var(--space-1) var(--space-3);
-  color: var(--mono-solid);               // step 9 — dim, clearly inactive
+  padding: var(--space-1) var(--space-5);
+  color: var(--mono-solid);
   text-decoration: none;
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-full);
   transition: color 0.1s var(--ease-out);
   -webkit-tap-highlight-color: transparent;
 
-  &:hover {
-    color: var(--mono-text-low-contrast); // step 11 — brightens on hover
+  @media (hover: hover) {
+    &:hover {
+      color: var(--mono-text-low-contrast);
+    }
   }
 }
 
 .tabActive {
-  color: var(--accent-text);              // lime step 12 — clearly selected
+  color: var(--accent-text-low-contrast);
 
-  &:hover {
-    color: var(--accent-text);            // stays accent on hover
+  :root.dark & {
+    color: var(--accent-solid);
+  }
+
+  // Frosted pill — uses Radix step 3 (UI element bg) which is designed
+  // to be visually distinct from step 2 (subtle bg) in both light and dark.
+  // Nested backdrop-filter doesn't work in CSS, so we rely on opacity
+  // contrast against the already-blurred navbar surface.
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--mono-bg);
+    opacity: 0.5;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--accent-text-low-contrast);
+
+      :root.dark & {
+        color: var(--accent-solid);
+      }
+    }
   }
 }
 
