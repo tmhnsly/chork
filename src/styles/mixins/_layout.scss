@@ -13,3 +13,14 @@
   align-items: $align;
   gap: $gap;
 }
+
+// Full-page layout with navbar-safe bottom padding.
+// Use on the <main> element of any page that has the bottom navbar.
+@mixin page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: var(--space-8) var(--gutter-x);
+  padding-bottom: calc(var(--navbar-height) + env(safe-area-inset-bottom, 0px) + var(--space-8));
+  max-width: var(--content-md);
+  margin: 0 auto;
+}

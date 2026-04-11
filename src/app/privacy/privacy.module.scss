@@ -2,13 +2,8 @@
 @use "mixins/layout" as layout;
 
 .page {
+  @include layout.page;
   @include layout.stack(var(--space-6));
-  min-height: 100vh;
-  min-height: 100dvh;
-  padding: var(--space-8) var(--gutter-x);
-  padding-bottom: var(--space-12);
-  max-width: var(--content-md);
-  margin: 0 auto;
 }
 
 .title {
