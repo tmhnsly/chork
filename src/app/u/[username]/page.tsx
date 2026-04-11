@@ -17,6 +17,7 @@ import { ProfileHeader } from "@/components/ProfileHeader/ProfileHeader";
 import { ClimberStats } from "@/components/ClimberStats/ClimberStats";
 import { PunchTile } from "@/components/PunchTile/PunchTile";
 import { SignOutButton } from "@/components/ui";
+import { ProfileContent } from "./ProfileContent";
 import styles from "./user.module.scss";
 
 interface Props {
@@ -122,6 +123,7 @@ export default async function UserProfilePage({ params }: Props) {
 
   return (
     <main className={styles.page}>
+      <ProfileContent username={profileUser.username}>
       <ProfileHeader user={profileUser} isOwnProfile={isOwnProfile} />
 
       <ClimberStats
@@ -131,7 +133,7 @@ export default async function UserProfilePage({ params }: Props) {
         allTimePoints={allTimeStats.points}
       >
         {miniRoutes.length > 0 && (
-          <MiniPunchCard routes={miniRoutes} logs={miniLogs} />
+          <MiniSendGrid routes={miniRoutes} logs={miniLogs} />
         )}
       </ClimberStats>
 
@@ -209,11 +211,12 @@ export default async function UserProfilePage({ params }: Props) {
           <SignOutButton />
         </div>
       )}
+      </ProfileContent>
     </main>
   );
 }
 
-// ── Mini punch card ────────────────────────────────
+// ── Mini send grid ────────────────────────────────
 function deriveTileState(log: RouteLog | undefined): TileState {
   if (!log || log.attempts === 0) return "empty";
   if (!log.completed) return "attempted";
@@ -221,7 +224,7 @@ function deriveTileState(log: RouteLog | undefined): TileState {
   return "completed";
 }
 
-function MiniPunchCard({ routes, logs }: { routes: Route[]; logs: RouteLog[] }) {
+function MiniSendGrid({ routes, logs }: { routes: Route[]; logs: RouteLog[] }) {
   const logByRoute = new Map(logs.map((l) => [l.route_id, l]));
 
   return (
@@ -232,6 +235,7 @@ function MiniPunchCard({ routes, logs }: { routes: Route[]; logs: RouteLog[] }) 
           number={route.number}
           state={deriveTileState(logByRoute.get(route.id))}
           zone={logByRoute.get(route.id)?.zone}
+          compact
         />
       ))}
     </div>

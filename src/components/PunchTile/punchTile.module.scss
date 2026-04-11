@@ -16,6 +16,12 @@
   min-height: 44px;
   container-type: inline-size;
 
+  // Compact variant for display-only grids (e.g. profile mini grid)
+  &.compact {
+    min-width: 0;
+    min-height: 0;
+  }
+
   &:hover {
     border-color: var(--mono-border-hover);
   }
@@ -58,11 +64,11 @@
 // ── Zone badge ──────────────────────────────────────
 .zoneBadge {
   position: absolute;
-  top: var(--space-1);
-  left: var(--space-1);
-  font-size: 10cqi;
+  top: 4cqi;
+  left: 4cqi;
+  font-size: 14cqi;
   color: var(--accent-on-solid);
-  opacity: 0.7;
+  line-height: 1;
 
   .empty &,
   .attempted & {
@@ -73,8 +79,9 @@
 // ── Flash badge ─────────────────────────────────────
 .flashBadge {
   position: absolute;
-  top: var(--space-1);
-  right: var(--space-1);
-  font-size: 12cqi;
+  top: 4cqi;
+  right: 4cqi;
+  font-size: 16cqi;
   color: var(--flash-on-solid);
+  line-height: 1;
 }

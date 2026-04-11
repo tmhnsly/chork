@@ -14,7 +14,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Hero with the animated punch card grid visual. */
+/** Hero with the animated send grid visual. */
 export const WithGrid: Story = {
   args: {
     headline: "Track your sends. Compete with your crew.",

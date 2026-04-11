@@ -15,6 +15,7 @@ interface Props {
   allTimeCompletions: number;
   allTimeFlashes: number;
   allTimePoints: number;
+  /** Mini send grid, rendered below the current set stats */
   children?: ReactNode;
 }
 
@@ -63,14 +64,7 @@ export function ClimberStats({
 }: Props) {
   return (
     <div className={styles.wrapper}>
-      {currentSet && (
-        <section className={styles.section}>
-          <span className={styles.sectionLabel}>Current set</span>
-          {children}
-          <RingStats stats={currentSet} />
-        </section>
-      )}
-
+      {/* All time first */}
       <section className={styles.section}>
         <span className={styles.sectionLabel}>All time</span>
         <RingStats
@@ -81,6 +75,15 @@ export function ClimberStats({
           }}
         />
       </section>
+
+      {/* Current set with mini grid below */}
+      {currentSet && (
+        <section className={styles.section}>
+          <span className={styles.sectionLabel}>Current set</span>
+          <RingStats stats={currentSet} />
+          {children}
+        </section>
+      )}
     </div>
   );
 }

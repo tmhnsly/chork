@@ -3,9 +3,11 @@
 import { useState, useEffect, useMemo, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { motion } from "motion/react";
 import { useAuth } from "@/lib/auth-context";
 import { useUsernameValidation } from "@/hooks/use-username-validation";
 import { createBrowserSupabase } from "@/lib/supabase/client";
+import { RevealText } from "@/components/motion";
 import { FormField, Button, showToast } from "@/components/ui";
 import { completeOnboarding } from "./actions";
 import type { Gym } from "@/lib/data";
@@ -85,9 +87,21 @@ export function OnboardingForm() {
   if (step === "confirm" && selectedGym) {
     return (
       <main className={styles.page}>
-        <div className={styles.card}>
-          <h1 className={styles.title}>Looking good?</h1>
-          <p className={styles.subtitle}>Check your details before we get started</p>
+        <motion.div
+          className={styles.card}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+        >
+          <RevealText text="Looking good?" as="h1" className={styles.title} />
+          <motion.p
+            className={styles.subtitle}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
+            Check your details before we get started
+          </motion.p>
 
           <div className={styles.confirmDetails}>
             <div className={styles.confirmRow}>
@@ -119,7 +133,7 @@ export function OnboardingForm() {
               Go back and edit
             </Button>
           </div>
-        </div>
+        </motion.div>
       </main>
     );
   }
@@ -127,9 +141,22 @@ export function OnboardingForm() {
   // ── Form step ────────────────────────────────────
   return (
     <main className={styles.page}>
-      <form className={styles.card} onSubmit={handleReview}>
-        <h1 className={styles.title}>Set up your profile</h1>
-        <p className={styles.subtitle}>Choose a username and pick your gym</p>
+      <motion.form
+        className={styles.card}
+        onSubmit={handleReview}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+      >
+        <RevealText text="Set up your profile" as="h1" className={styles.title} />
+        <motion.p
+          className={styles.subtitle}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+        >
+          Choose a username and pick your gym
+        </motion.p>
 
         <div className={styles.usernameField}>
           <label className={styles.usernameLabel} htmlFor="username">
@@ -244,7 +271,7 @@ export function OnboardingForm() {
         >
           Continue
         </Button>
-      </form>
+      </motion.form>
     </main>
   );
 }

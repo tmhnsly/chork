@@ -30,7 +30,7 @@ const defaultSteps: Step[] = [
     number: 3,
     title: "Log your attempts",
     description:
-      "Track every send and attempt on your punch card. Flash a route for bonus points.",
+      "Track every send and attempt on your send grid. Flash a route for bonus points.",
   },
   {
     number: 4,

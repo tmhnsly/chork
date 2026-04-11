@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getCurrentSet, getRoutesBySet, getLogsBySetForUser, getUserGymRole, isGymAdmin } from "@/lib/data/queries";
-import { PunchCard } from "@/components/PunchCard/PunchCard";
-import { PunchCardSkeleton } from "@/components/PunchCard/PunchCardSkeleton";
+import { SendGrid } from "@/components/SendGrid/SendGrid";
+import { SendGridSkeleton } from "@/components/SendGrid/SendGridSkeleton";
 import { CreateSetForm } from "@/components/AdminControls/CreateSetForm";
 import { ManageSetBar } from "@/components/AdminControls/ManageSetBar";
 import { LandingPage } from "./landing";
@@ -33,7 +33,7 @@ async function AuthenticatedHome({ userId, gymId }: { userId: string; gymId: str
   return (
     <>
       {admin && <ManageSetBar set={set} gymId={gymId} routeCount={routes.length} />}
-      <PunchCard set={set} routes={routes} initialLogs={logs} />
+      <SendGrid set={set} routes={routes} initialLogs={logs} />
     </>
   );
 }
@@ -58,7 +58,7 @@ export default async function Home() {
 
   return (
     <main className={styles.app}>
-      <Suspense fallback={<PunchCardSkeleton />}>
+      <Suspense fallback={<SendGridSkeleton />}>
         <AuthenticatedHome userId={user.id} gymId={profile.active_gym_id} />
       </Suspense>
     </main>

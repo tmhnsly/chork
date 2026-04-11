@@ -63,7 +63,7 @@ const steps: Step[] = [
   {
     number: 2,
     title: "See the current set",
-    description: "Your gym's active routes appear as a punch card. Tap any tile to start logging.",
+    description: "Your gym's active routes appear as a send grid. Tap any tile to start logging.",
   },
   {
     number: 3,

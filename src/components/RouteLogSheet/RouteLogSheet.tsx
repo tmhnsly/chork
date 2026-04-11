@@ -40,7 +40,7 @@ import { Button, shimmerStyles, showToast } from "@/components/ui";
 import { CompleteModal } from "@/components/CompleteModal/CompleteModal";
 import styles from "./routeLogSheet.module.scss";
 
-/** Data returned by fetchRouteData, cacheable at the PunchCard level. */
+/** Data returned by fetchRouteData, cacheable at the SendGrid level. */
 export interface CachedRouteData {
   grade: number | null;
   comments: PaginatedComments;

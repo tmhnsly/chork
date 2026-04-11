@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/nextjs";
 import { PunchTile } from "./PunchTile";
 
 /**
- * Individual route tile in the punch card grid.
+ * Individual route tile in the send grid.
  * Shows the route number and reflects the user's log state.
  */
 const meta = {

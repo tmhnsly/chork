@@ -1,16 +1,16 @@
 import { shimmerStyles } from "@/components/ui";
 import { PunchTile } from "@/components/PunchTile/PunchTile";
-import styles from "./punchCard.module.scss";
+import styles from "./sendGrid.module.scss";
 import widgetStyles from "@/components/StatsWidget/statsWidget.module.scss";
 
 /**
- * Loading skeleton for the punch card page.
+ * Loading skeleton for the send grid page.
  * Static text renders immediately; only dynamic data shimmers.
  */
-export function PunchCardSkeleton() {
+export function SendGridSkeleton() {
   return (
     <div className={styles.page}>
-      <h2 className={styles.title}>Punch Card</h2>
+      <h2 className={styles.title}>Send Grid</h2>
 
       {/* Stats widget skeleton */}
       <div className={`${widgetStyles.widget} ${shimmerStyles.skeleton}`}>

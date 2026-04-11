@@ -11,6 +11,7 @@ interface Props {
   logs: Map<string, RouteLog>;
   routeIds: string[];
   zoneRouteCount: number;
+  resetDate?: string;
 }
 
 export function StatsWidget({
@@ -21,6 +22,7 @@ export function StatsWidget({
   logs,
   routeIds,
   zoneRouteCount,
+  resetDate,
 }: Props) {
   const completionRate = total > 0 ? completions / total : 0;
   const flashRate = completions > 0 ? flashes / completions : 0;
@@ -58,6 +60,12 @@ export function StatsWidget({
               {flashes}
             </span>
           </div>
+          {resetDate && (
+            <div className={styles.statLine}>
+              <span className={styles.statLabel}>Resets</span>
+              <span className={styles.statValue}>{resetDate}</span>
+            </div>
+          )}
         </div>
       </div>
 
