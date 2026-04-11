@@ -5,38 +5,17 @@
 .hero {
   position: relative;
   background: var(--mono-app-bg);
-
-  // Parallax: hero scrolls out slower than the content below.
-  // The wrapper is taller than its content, and the inner sticks
-  // to the top — as the user scrolls past, the hero stays visible
-  // longer, creating a subtle depth effect.
-  min-height: 120vh;
-  display: flex;
-  align-items: flex-start;
-
-  @media (prefers-reduced-motion: reduce) {
-    min-height: auto;
-  }
 }
 
 .inner {
   @include layout.stack(var(--space-8));
-  position: sticky;
-  top: 0;
   width: 100%;
   max-width: var(--content-app);
   margin: 0 auto;
-  padding: calc(var(--navbar-height) + var(--space-8)) var(--gutter-x) var(--space-8);
-
-  @media (prefers-reduced-motion: reduce) {
-    position: relative;
-  }
+  padding: var(--space-8) var(--gutter-x);
 }
 
 // ── Visual (grid) ─────────────────────────────────
-// Show 2.5 rows of a 5-column square-tile grid, clipped.
-// 5 cols of 1:1 tiles → row height ≈ 20% of width.
-// 2.5 rows ≈ 50% + gaps → aspect-ratio 2:1 clips nicely.
 .visual {
   overflow: hidden;
   aspect-ratio: 2 / 1;
@@ -46,7 +25,6 @@
 .headline {
   @include type.typography(display);
   color: var(--accent-text);
-  // Word-by-word reveal handled by RevealText component
 }
 
 .subheadline {
@@ -65,7 +43,7 @@
   @include bp.tablet {
     > * {
       width: auto;
-      min-width: 200px;
+      min-width: 12.5rem;
     }
   }
 }

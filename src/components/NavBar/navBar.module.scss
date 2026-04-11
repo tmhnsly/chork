@@ -32,6 +32,7 @@
 }
 
 // ── Brand ─────────────────────────────────────────
+// Hidden on mobile when authenticated (tabs take priority)
 .brandLink {
   display: none;
   align-items: center;
@@ -44,6 +45,17 @@
   @include bp.tablet {
     display: flex;
   }
+}
+
+// Always visible (unauthenticated + loading states)
+.brandLinkVisible {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: var(--size-touch-target);
+  padding: 0 var(--space-2);
+  flex-shrink: 0;
+  color: var(--mono-text-low-contrast);
 }
 
 .brandText {

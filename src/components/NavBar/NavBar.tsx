@@ -13,6 +13,39 @@ export function NavBar() {
 
   if (pathname === "/login" || pathname === "/onboarding") return null;
 
+  // Unauthenticated: brand + sign in only
+  if (!isLoading && !profile) {
+    return (
+      <nav className={styles.bar}>
+        <div className={styles.barInner}>
+          <Link href="/" className={styles.brandLinkVisible} aria-label="Home">
+            <ChorkMark size={18} />
+            <span className={styles.brandText}>Chork</span>
+          </Link>
+          <Link href="/login" className={styles.tab}>
+            <FaRightToBracket className={styles.tabIcon} />
+            <span className={styles.tabLabel}>Sign in</span>
+          </Link>
+        </div>
+      </nav>
+    );
+  }
+
+  // Loading: brand only, no tabs (prevents flash)
+  if (isLoading) {
+    return (
+      <nav className={styles.bar}>
+        <div className={styles.barInner}>
+          <Link href="/" className={styles.brandLinkVisible} aria-label="Home">
+            <ChorkMark size={18} />
+            <span className={styles.brandText}>Chork</span>
+          </Link>
+        </div>
+      </nav>
+    );
+  }
+
+  // Authenticated: full nav
   const homeActive = pathname === "/";
   const leaderboardActive = pathname.startsWith("/leaderboard");
   const profileActive = pathname.startsWith("/u/");
@@ -34,23 +67,10 @@ export function NavBar() {
             <FaTrophy className={styles.tabIcon} />
             <span className={styles.tabLabel}>Board</span>
           </Link>
-
-          {profile ? (
-            <Link href={`/u/${profile.username}`} className={`${styles.tab} ${profileActive ? styles.tabActive : ""}`}>
-              <FaUser className={styles.tabIcon} />
-              <span className={styles.tabLabel}>Profile</span>
-            </Link>
-          ) : isLoading ? (
-            <span className={styles.tab}>
-              <FaUser className={styles.tabIcon} />
-              <span className={styles.tabLabel}>Profile</span>
-            </span>
-          ) : (
-            <Link href="/login" className={styles.tab}>
-              <FaRightToBracket className={styles.tabIcon} />
-              <span className={styles.tabLabel}>Sign in</span>
-            </Link>
-          )}
+          <Link href={`/u/${profile!.username}`} className={`${styles.tab} ${profileActive ? styles.tabActive : ""}`}>
+            <FaUser className={styles.tabIcon} />
+            <span className={styles.tabLabel}>Profile</span>
+          </Link>
         </div>
       </div>
     </nav>

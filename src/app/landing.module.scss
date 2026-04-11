@@ -2,7 +2,7 @@
 @use "mixins/layout" as layout;
 
 .page {
-  // no top padding — hero handles its own vertical centering
+  padding-bottom: calc(var(--navbar-height) + env(safe-area-inset-bottom, 0px) + var(--space-8));
 }
 
 // ── CTA section ───────────────────────────────────
