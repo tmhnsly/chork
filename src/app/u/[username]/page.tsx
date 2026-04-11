@@ -8,6 +8,7 @@ import {
   getUserSetStats,
   getRoutesBySet,
   getLogsBySetForUser,
+  isFollowing,
 } from "@/lib/data/queries";
 import { isFlash, computePoints, computeMaxPoints } from "@/lib/data";
 import type { RouteLogWithSetId } from "@/lib/data";
@@ -44,12 +45,24 @@ export default async function UserProfilePage({ params }: Props) {
   if (!profileUser) notFound();
 
   const isOwnProfile = authUser?.id === profileUser.id;
+
+  // Fetch follow state when viewing another user's profile while signed in
+  const followState = (!isOwnProfile && authUser)
+    ? await isFollowing(supabase, authUser.id, profileUser.id)
+    : undefined;
+
   const gymId = profileUser.active_gym_id;
 
   if (!gymId) {
     return (
       <main className={styles.page}>
-        <ProfileHeader user={profileUser} isOwnProfile={isOwnProfile} />
+        <ProfileHeader
+          user={profileUser}
+          isOwnProfile={isOwnProfile}
+          isFollowing={followState}
+          followerCount={profileUser.follower_count}
+          followingCount={profileUser.following_count}
+        />
         <p>No gym selected</p>
       </main>
     );
@@ -147,7 +160,13 @@ export default async function UserProfilePage({ params }: Props) {
 
   return (
     <main className={styles.page}>
-      <ProfileHeader user={profileUser} isOwnProfile={isOwnProfile} />
+      <ProfileHeader
+        user={profileUser}
+        isOwnProfile={isOwnProfile}
+        isFollowing={followState}
+        followerCount={profileUser.follower_count}
+        followingCount={profileUser.following_count}
+      />
 
       <ClimberStats
         currentSet={currentSetStats}

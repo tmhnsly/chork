@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import { DemoTile } from "./DemoTile";
+import { TILE_STATES } from "@/lib/data";
 
 /** Presentational punch tile — no interactivity. Used in the landing hero. */
 const meta = {
@@ -8,7 +9,7 @@ const meta = {
   argTypes: {
     state: {
       control: "select",
-      options: ["empty", "attempted", "completed", "flash"],
+      options: [...TILE_STATES],
     },
   },
   decorators: [

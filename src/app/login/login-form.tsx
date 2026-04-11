@@ -11,7 +11,7 @@ type Mode = "sign-in" | "sign-up";
 const MIN_PASSWORD_LENGTH = 8;
 
 export function LoginForm() {
-  const { signIn, signUp, isLoading } = useAuth();
+  const { signIn, signUp, resetPassword, isLoading } = useAuth();
   const [mode, setMode] = useState<Mode>("sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -106,6 +106,21 @@ export function LoginForm() {
             {errors.password && <p id="password-error" className={styles.error}>{errors.password}</p>}
             {mode === "sign-up" && !errors.password && (
               <p className={styles.hint}>At least {MIN_PASSWORD_LENGTH} characters</p>
+            )}
+            {mode === "sign-in" && (
+              <button
+                type="button"
+                className={styles.forgotLink}
+                onClick={async () => {
+                  if (!email.trim()) {
+                    setErrors({ email: "Enter your email first" });
+                    return;
+                  }
+                  await resetPassword(email);
+                }}
+              >
+                Forgot password?
+              </button>
             )}
           </div>
 

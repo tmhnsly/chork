@@ -56,18 +56,35 @@ Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
 - Surfaces: `@include surface.card` for panels, `@include surface.chrome` for sticky chrome
 - Flash badge: amber (`--flash-*` tokens) — never lime
 - Squircle border radius via `--radius-1` through `--radius-4` tokens. PunchTile stays square (no radius)
-- Golden ratio for nested radius: inner = outer − padding
+- Golden radius for nested containers: inner radius = outer radius − gap. Pre-computed tokens in `radius.scss`: `--radius-inner-{outer}-{gap}` (e.g. `--radius-inner-4-4`). When adding `border-radius` to an element nested inside a rounded parent with padding, always use a golden radius token instead of picking an arbitrary step. If the formula yields 0 or negative, the inner element needs no radius
 - Glass materials aligned with Apple HIG: `saturate(180%) blur(20px)` via `@include surface.glass($opacity)`
   - Thin (30%): maximum background bleed
   - Regular (50%): floating chrome (navbar, dropdowns)
   - Thick (70%, default): sheets, modals, alerts
   - Nested glass uses opacity layering, not stacked backdrop-filter (CSS limitation)
-- Radix palette: olive (mono), lime (accent), red (error), teal (success), amber (flash)
+- Radix palette: olive (mono), lime (accent), red (error), teal (success/zone), amber (flash)
+- Radix colour usage — follow the 12-step scale strictly:
+  - Steps 1-2: page/section backgrounds (`--*-app-bg`, `--*-subtle-bg`)
+  - Steps 3-5: UI element backgrounds (`--*-bg`, `--*-bg-hover`, `--*-bg-active`)
+  - Steps 6-8: borders (`--*-border-subtle`, `--*-border`, `--*-border-hover`)
+  - Step 9: solid fills — buttons, badges, chart bars, **tile backgrounds** (completed/attempted/flash). Lime/amber are light-bg scales → use `--*-on-solid` for foreground text
+  - Step 10: solid fill hover states
+  - Step 11: low-contrast text and secondary icons (`--*-text-low-contrast`)
+  - Step 12: high-contrast text and primary icons (`--*-text`)
+  - **Never use step 9 as a text colour** (except `--mono-solid` for muted/disabled text)
+  - **Never use opacity to dim text/icons** — pick the correct step from the scale instead
+  - **No `color-mix()`** — use Radix tokens directly
 - Radix interactive colour pattern (menus, lists, buttons):
-  - Default text: step 11 (low-contrast), icons: step 9 (solid)
+  - Default: text step 11, icons step 9
   - Hover: bg step 4, text step 12, icons step 11
+  - Active/selected: bg step 5 or solid step 9
   - For coloured variants (warning/danger): same step pattern within that colour scale
-  - Transitions: 0.1s for interactive feedback, `--duration-fast` (0.2s) for state changes
+- Consistent palette for tile states (wall grid, legend, chart bars):
+  - Completed/send: accent (lime) scale
+  - Flash: flash (amber) scale
+  - Attempted: mono (olive) scale
+  - Zone/points: success (teal) scale
+- Transitions: 0.1s for interactive feedback, `--duration-fast` (0.2s) for state changes. Navbar uses `transition: none` for instant feedback
 
 ## Page layout
 
@@ -76,7 +93,7 @@ Three page layout mixins in `src/styles/mixins/_layout.scss`:
 - `@include layout.page-prose` — text content (privacy, blog). Uses `--content-prose` (672px)
 - `@include layout.page-wide` — admin/dashboard. Uses `--content-wide` (960px)
 
-All handle min-height, gutters, navbar-safe bottom padding, max-width, and centering.
+All handle min-height, gutters, safe-area insets (top for notch, bottom for navbar + home indicator), max-width, and centering.
 
 ## Code rules
 

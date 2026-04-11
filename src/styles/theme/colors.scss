@@ -147,6 +147,12 @@
   /* Amber is a light-bg scale like lime — use dark foreground on step 9 */
   --flash-app-bg: var(--amber-1);
   --flash-subtle-bg: var(--amber-2);
+  --flash-bg: var(--amber-3);                 /* Step 3:  Flash UI element bg */
+  --flash-bg-hover: var(--amber-4);           /* Step 4:  Flash UI element bg (hover) */
+  --flash-bg-active: var(--amber-5);          /* Step 5:  Flash UI element bg (active) */
+  --flash-border-subtle: var(--amber-6);      /* Step 6:  Flash non-interactive borders */
+  --flash-border: var(--amber-7);             /* Step 7:  Flash interactive borders */
+  --flash-border-hover: var(--amber-8);       /* Step 8:  Flash hover/focus borders */
   --flash-solid: var(--amber-9);              /* Step 9:  Flash badge solid fill */
   --flash-solid-hover: var(--amber-10);       /* Step 10: Flash badge solid (hover) */
   --flash-text-low-contrast: var(--amber-11); /* Step 11: Flash secondary text */

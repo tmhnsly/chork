@@ -1,16 +1,20 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { format, parseISO } from "date-fns";
 import type { RouteSet, Route, RouteLog } from "@/lib/data";
 import { isFlash, computePoints, deriveTileState } from "@/lib/data";
-import { scatteredOrder } from "@/lib/stagger";
 import { StatsWidget } from "@/components/StatsWidget/StatsWidget";
 import { RevealText } from "@/components/motion";
 import { PunchTile } from "@/components/PunchTile/PunchTile";
 import { Legend } from "@/components/ui";
-import { RouteLogSheet } from "@/components/RouteLogSheet/RouteLogSheet";
+import dynamic from "next/dynamic";
 import type { CachedRouteData } from "@/components/RouteLogSheet/RouteLogSheet";
+
+const RouteLogSheet = dynamic(
+  () => import("@/components/RouteLogSheet/RouteLogSheet").then((m) => m.RouteLogSheet),
+  { ssr: false }
+);
 import styles from "./sendGrid.module.scss";
 
 interface Props {
@@ -23,7 +27,6 @@ export function SendGrid({ set, routes, initialLogs }: Props) {
   const [logs, setLogs] = useState<RouteLog[]>(initialLogs);
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [routeDataCache, setRouteDataCache] = useState<Map<string, CachedRouteData>>(new Map());
-  const entranceOrder = useMemo(() => scatteredOrder(routes.length), [routes.length]);
 
   // Sync when server re-fetches (e.g. revalidation, navigation)
   useEffect(() => {
@@ -83,8 +86,6 @@ export function SendGrid({ set, routes, initialLogs }: Props) {
                 zone={log?.zone}
                 gradeLabel={log?.grade_vote != null ? `V${log.grade_vote}` : undefined}
                 onClick={() => setSelectedRoute(route)}
-                className={styles.tileEntrance}
-                style={{ "--i": entranceOrder[i] } as React.CSSProperties}
               />
             );
           })}

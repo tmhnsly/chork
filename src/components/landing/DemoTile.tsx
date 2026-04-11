@@ -1,11 +1,10 @@
 import { FaBolt } from "react-icons/fa6";
+import type { TileState } from "@/lib/data";
 import styles from "./demoTile.module.scss";
-
-type DemoTileState = "empty" | "attempted" | "completed" | "flash";
 
 interface Props {
   number: number;
-  state: DemoTileState;
+  state: TileState;
 }
 
 /**
@@ -25,5 +24,3 @@ export function DemoTile({ number, state }: Props) {
     </div>
   );
 }
-
-export type { DemoTileState };

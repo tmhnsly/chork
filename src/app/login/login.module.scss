@@ -81,6 +81,21 @@
   color: var(--mono-text-low-contrast);
 }
 
+// ── Forgot password ───────────────────────────────
+.forgotLink {
+  @include type.typography(meta);
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--mono-text-low-contrast);
+  cursor: pointer;
+  align-self: flex-start;
+
+  &:hover {
+    color: var(--mono-text);
+  }
+}
+
 // ── Toggle ─────────────────────────────────────────
 .toggle {
   @include type.typography(meta);

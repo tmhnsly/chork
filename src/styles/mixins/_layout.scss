@@ -25,7 +25,7 @@
 @mixin _page-base {
   min-height: 100vh;
   min-height: 100dvh;
-  padding: var(--space-8) var(--gutter-x);
+  padding: calc(var(--space-8) + env(safe-area-inset-top, 0px)) var(--gutter-x);
   padding-bottom: calc(var(--navbar-height) + env(safe-area-inset-bottom, 0px) + var(--space-8));
   margin: 0 auto;
 }

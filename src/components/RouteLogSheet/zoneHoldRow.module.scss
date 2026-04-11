@@ -21,7 +21,8 @@
 }
 
 .rowDisabled {
-  opacity: 0.5;
+  color: var(--mono-solid);
+  pointer-events: none;
 }
 
 // ── Left side ─────────────────────────────────────

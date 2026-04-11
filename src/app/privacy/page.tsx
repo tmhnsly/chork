@@ -79,6 +79,10 @@ export default function PrivacyPage() {
           <Link href="mailto:hi@chork.app" className={styles.link}>hi@chork.app</Link>.
         </p>
       </section>
+
+      <footer className={styles.footer}>
+        <Link href="/" className={styles.link}>Back to Chork</Link>
+      </footer>
     </main>
   );
 }

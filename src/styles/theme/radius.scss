@@ -4,4 +4,16 @@
   --radius-3: 0.75rem;   // 12px — prominent (sheets, modals)
   --radius-4: 1rem;      // 16px — hero (large panels)
   --radius-full: 9999px; // pills, avatars
+
+  // Golden radius: inner = max(0, outer − gap).
+  // Use on children nested inside a rounded container.
+  // Example: parent has --radius-3 with --space-4 padding →
+  //   border-radius: var(--radius-inner-3-4);
+  //
+  // Naming: --radius-inner-{outer step}-{gap step}
+  --radius-inner-3-3: max(0px, calc(var(--radius-3) - var(--space-3)));
+  --radius-inner-3-4: max(0px, calc(var(--radius-3) - var(--space-4)));
+  --radius-inner-4-3: max(0px, calc(var(--radius-4) - var(--space-3)));
+  --radius-inner-4-4: max(0px, calc(var(--radius-4) - var(--space-4)));
+  --radius-inner-4-6: max(0px, calc(var(--radius-4) - var(--space-6)));
 }

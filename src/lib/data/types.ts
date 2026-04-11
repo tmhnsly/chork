@@ -16,6 +16,7 @@ export type Route = Tables["routes"]["Row"];
 export type RouteLog = Tables["route_logs"]["Row"];
 export type CommentLike = Tables["comment_likes"]["Row"];
 export type ActivityEvent = Tables["activity_events"]["Row"];
+export type Follow = Tables["follows"]["Row"];
 
 // ── Types with joined data ─────────────────────────
 
@@ -45,13 +46,19 @@ export interface PaginatedComments {
 }
 
 // ── Domain enums ───────────────────────────────────
+// Define values as const arrays, derive types from them.
+// This keeps runtime validation and TypeScript types in sync.
 
-export type ActivityEventType = "completed" | "flashed" | "beta_spray" | "reply";
-export type GymRole = "climber" | "setter" | "admin" | "owner";
+export const ACTIVITY_EVENT_TYPES = ["completed", "flashed", "beta_spray", "reply"] as const;
+export type ActivityEventType = (typeof ACTIVITY_EVENT_TYPES)[number];
+
+export const GYM_ROLES = ["climber", "setter", "admin", "owner"] as const;
+export type GymRole = (typeof GYM_ROLES)[number];
 
 // ── UI types ───────────────────────────────────────
 
-export type TileState = "empty" | "attempted" | "completed" | "flash";
+export const TILE_STATES = ["empty", "attempted", "completed", "flash"] as const;
+export type TileState = (typeof TILE_STATES)[number];
 
 // ── Helpers ────────────────────────────────────────
 

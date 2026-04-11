@@ -3,13 +3,14 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../database.types";
 import { createServiceClient } from "../supabase/server";
-import type {
-  RouteLog,
-  RouteLogUpdate,
-  Comment,
-  ActivityEvent,
-  ActivityEventType,
-  GymRole,
+import {
+  GYM_ROLES,
+  type RouteLog,
+  type RouteLogUpdate,
+  type Comment,
+  type ActivityEvent,
+  type ActivityEventType,
+  type GymRole,
 } from "./types";
 
 type Supabase = SupabaseClient<Database>;
@@ -157,9 +158,50 @@ export async function deleteCompletionEvents(
   if (error) throw error;
 }
 
-// ── Gym memberships ────────────────────────────────
+// ── Follows ───────────────────────────────────────
 
-const VALID_ROLES: GymRole[] = ["climber", "setter", "admin", "owner"];
+export async function toggleFollow(
+  supabase: Supabase,
+  followerId: string,
+  followingId: string
+): Promise<{ following: boolean; followerCount: number }> {
+  // Try to insert first — ON CONFLICT means they already follow
+  const { error: insertError } = await supabase
+    .from("follows")
+    .insert({ follower_id: followerId, following_id: followingId });
+
+  let nowFollowing: boolean;
+
+  if (insertError && insertError.code === "23505") {
+    // Unique violation — already following, so unfollow
+    const { error: deleteError } = await supabase
+      .from("follows")
+      .delete()
+      .eq("follower_id", followerId)
+      .eq("following_id", followingId);
+    if (deleteError) throw deleteError;
+    nowFollowing = false;
+  } else if (insertError) {
+    throw insertError;
+  } else {
+    nowFollowing = true;
+  }
+
+  // Read back fresh follower count (trigger has already fired)
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("follower_count")
+    .eq("id", followingId)
+    .single();
+  if (profileError) throw profileError;
+
+  return {
+    following: nowFollowing,
+    followerCount: profile.follower_count,
+  };
+}
+
+// ── Gym memberships ────────────────────────────────
 
 export async function createGymMembership(
   supabase: Supabase,
@@ -167,7 +209,7 @@ export async function createGymMembership(
   gymId: string,
   role: GymRole = "climber"
 ): Promise<void> {
-  if (!VALID_ROLES.includes(role)) throw new Error(`Invalid role: ${role}`);
+  if (!GYM_ROLES.includes(role)) throw new Error(`Invalid role: ${role}`);
   const { error } = await supabase
     .from("gym_memberships")
     .insert({ user_id: userId, gym_id: gymId, role });

@@ -41,10 +41,10 @@
 
 .icon {
   font-size: 0.85em;
-  color: var(--flash-solid-hover);
+  color: var(--flash-text-low-contrast);
 
   .zoneRow & {
-    color: var(--accent-solid-hover);
+    color: var(--accent-text-low-contrast);
   }
 }
 

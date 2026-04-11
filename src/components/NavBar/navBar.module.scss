@@ -12,7 +12,7 @@
   z-index: var(--z-navbar);
   display: flex;
   justify-content: center;
-  padding: 0 var(--gutter-x) calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
+  padding: 0 0 calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
   pointer-events: none;
 }
 
@@ -20,9 +20,6 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-1);
-  width: 100%;
-  max-width: var(--content-app);
   height: var(--navbar-height);
   padding: 0 var(--space-2);
   border-radius: var(--radius-full);
@@ -32,18 +29,29 @@
 }
 
 // ── Brand ─────────────────────────────────────────
-// Hidden on mobile when authenticated (tabs take priority)
+// Desktop only — on mobile and tablet the tabs fill the bar.
+// flex: 1 so brand and spacer absorb equal space, keeping tabs centred.
 .brandLink {
   display: none;
   align-items: center;
   gap: var(--space-2);
   height: var(--size-touch-target);
   padding: 0 var(--space-2);
-  flex-shrink: 0;
   color: var(--mono-text-low-contrast);
 
-  @include bp.tablet {
+  @include bp.desktop {
     display: flex;
+    flex: 1;
+  }
+}
+
+// Counterweight — equal flex to brandLink keeps tabs centred
+.brandSpacer {
+  display: none;
+
+  @include bp.desktop {
+    display: block;
+    flex: 1;
   }
 }
 
@@ -58,21 +66,28 @@
   color: var(--mono-text-low-contrast);
 }
 
+// Desktop-only when authenticated (tabs take priority on mobile)
 .brandText {
   @include type.typography(label);
   font-size: var(--text-xs);
   display: none;
 
-  @include bp.tablet {
+  @include bp.desktop {
     display: inline;
   }
+}
+
+// Always visible — used in unauth/loading states
+.brandTextVisible {
+  @include type.typography(label);
+  font-size: var(--text-xs);
 }
 
 // ── Tab items ─────────────────────────────────────
 .tabs {
   display: flex;
   flex: 1;
-  justify-content: space-around;
+  justify-content: space-evenly;
   align-items: center;
 }
 
@@ -82,14 +97,14 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: var(--space-1);
   min-width: var(--space-14);
   min-height: var(--size-touch-target);
   padding: var(--space-1) var(--space-5);
   color: var(--mono-solid);
   text-decoration: none;
   border-radius: var(--radius-full);
-  transition: color 0.1s var(--ease-out);
+  transition: none;
   -webkit-tap-highlight-color: transparent;
 
   @media (hover: hover) {
@@ -100,12 +115,10 @@
 }
 
 .tabActive {
-  color: var(--brand);
+  // Brand text (lime step 11) — readable on surfaces, unlike step 9
+  // which is a fill colour. Neutral pill keeps it legible in both themes.
+  color: var(--brand-text);
 
-  // Frosted pill — uses Radix step 3 (UI element bg) which is designed
-  // to be visually distinct from step 2 (subtle bg) in both light and dark.
-  // Nested backdrop-filter doesn't work in CSS, so we rely on opacity
-  // contrast against the already-blurred navbar surface.
   &::before {
     content: "";
     position: absolute;
@@ -113,19 +126,17 @@
     z-index: -1;
     border-radius: inherit;
     background: var(--mono-bg);
-    opacity: 0.5;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   }
 
   @media (hover: hover) {
     &:hover {
-      color: var(--brand);
+      color: var(--brand-text);
     }
   }
 }
 
 .tabIcon {
-  font-size: var(--size-icon-xs);
+  font-size: var(--size-icon-sm);
 }
 
 .tabLabel {

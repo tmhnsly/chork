@@ -62,10 +62,10 @@
 
 // Zone available, not claimed
 .dotZone {
-  background: var(--mono-bg);            // step 3
+  background: var(--mono-bg);            // step 3 — matches bar track
 }
 
 // Zone claimed
 .dotClaimed {
-  background: var(--mono-border);        // step 7
+  background: var(--success-solid);      // teal step 9
 }

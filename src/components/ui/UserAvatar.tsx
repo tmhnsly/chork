@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { FaRegUser } from "react-icons/fa";
+import { FaRegUser } from "react-icons/fa6";
 import type { Profile } from "@/lib/data";
 import { getAvatarUrl } from "@/lib/avatar";
 import styles from "./userAvatar.module.scss";

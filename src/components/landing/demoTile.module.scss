@@ -3,7 +3,7 @@
   aspect-ratio: 1;
   display: grid;
   place-items: center;
-  border: 1px solid var(--mono-border-subtle);
+  border: none;
   background: var(--mono-bg);
   container-type: inline-size;
 }
@@ -19,27 +19,24 @@
   padding: 0 4cqi;
 }
 
-// ── States ──────────────────────────────────────────
+// ── States — matches PunchTile palette ──────────────
 .empty {
   color: var(--mono-text-low-contrast);
 }
 
 .attempted {
   background: var(--mono-solid);
-  border-color: var(--mono-solid);
   color: var(--mono-app-bg);
 }
 
 .completed {
-  background: var(--brand);
-  border-color: var(--brand);
+  background: var(--accent-solid);
   color: var(--accent-on-solid);
 }
 
 .flash {
   background: var(--flash-solid);
-  border-color: var(--flash-solid);
-  color: var(--flash-on-solid, var(--mono-app-bg));
+  color: var(--flash-text);
 }
 
 // ── Flash badge — matches PunchTile sizing ──────────

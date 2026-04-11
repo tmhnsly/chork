@@ -106,7 +106,7 @@
 }
 
 .flashIcon {
-  color: var(--flash-solid);
+  color: var(--flash-text-low-contrast);
   font-size: 0.6em;
 }
 
@@ -192,7 +192,7 @@
 }
 
 .ptsFlash {
-  color: var(--flash-solid);
+  color: var(--flash-text-low-contrast);
   font-size: 0.85em;
 }
 
@@ -236,7 +236,7 @@
   color: var(--flash-text-low-contrast);
 
   .completedIcon {
-    color: var(--flash-solid);
+    color: var(--flash-text-low-contrast);
   }
 }
 
@@ -313,8 +313,7 @@
 
 .betaPostHint {
   @include type.typography(meta);
-  color: var(--mono-text-low-contrast);
-  opacity: 0.6;
+  color: var(--mono-solid);
 }
 
 // ── Comment list ───────────────────────────────────

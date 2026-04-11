@@ -38,33 +38,28 @@
   text-align: center;
 }
 
+// ── Earned — accent (lime) scale ──────────────────
+.badgeEarned {
+  background: var(--accent-bg);
+  border-color: var(--accent-border-subtle);
+
+  .badgeIcon {
+    color: var(--accent-text-low-contrast);
+  }
+
+  .badgeName {
+    color: var(--accent-text);
+  }
+}
+
+// ── Locked — plain mono, no dimming ───────────────
 .badgeLocked {
-  opacity: 0.4;
-}
-
-// ── Tier variants — using Radix step 7 (border) for borders,
-//    step 11 (low-contrast text) for icons ─────────
-.tier--bronze {
-  border-color: var(--flash-solid);           // amber step 9
-
   .badgeIcon {
-    color: var(--flash-text-low-contrast);    // amber step 11
+    color: var(--mono-solid);
   }
-}
 
-.tier--silver {
-  border-color: var(--mono-border-hover);     // olive step 8
-
-  .badgeIcon {
-    color: var(--mono-text-low-contrast);     // olive step 11
-  }
-}
-
-.tier--gold {
-  border-color: var(--accent-border);         // lime step 7
-
-  .badgeIcon {
-    color: var(--accent-text-low-contrast);   // lime step 11
+  .badgeName {
+    color: var(--mono-text-low-contrast);
   }
 }
 
@@ -72,25 +67,19 @@
 .badgeIcon {
   font-size: var(--text-xl);
   display: flex;
-  color: var(--mono-text-low-contrast);
 }
 
 // ── Name ──────────────────────────────────────────
 .badgeName {
   @include type.typography(label);
   font-size: var(--text-2xs);
-  color: var(--mono-text);
   line-height: var(--leading-snug);
-
-  .badgeLocked & {
-    color: var(--mono-text-low-contrast);
-  }
 }
 
 // ── Progress bar ──────────────────────────────────
 .progressBar {
   width: 100%;
-  height: 4px;
+  height: var(--space-1);
   background: var(--mono-border);
   border-radius: var(--radius-full);
   position: relative;

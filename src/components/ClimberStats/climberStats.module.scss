@@ -76,5 +76,5 @@
 .footerLabel {
   @include type.typography(label);
   font-size: var(--text-xs);
-  color: var(--mono-text-low-contrast);
+  color: var(--success-text-low-contrast);
 }

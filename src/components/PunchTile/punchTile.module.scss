@@ -5,13 +5,12 @@
   aspect-ratio: 1;
   display: grid;
   place-items: center;
-  border: 1px solid var(--mono-border-subtle);
+  border: none;
   background: var(--mono-bg);
   cursor: pointer;
-  overflow: hidden; // contain badges within tile bounds
+  overflow: hidden;
   transition:
-    background var(--duration-fast) var(--ease-out),
-    border-color var(--duration-fast) var(--ease-out);
+    background var(--duration-fast) var(--ease-out);
   min-width: var(--size-touch-target);
   min-height: var(--size-touch-target);
   container-type: inline-size;
@@ -22,7 +21,7 @@
   }
 
   &:hover {
-    border-color: var(--mono-border-hover);
+    background: var(--mono-bg-hover);
   }
 }
 
@@ -34,75 +33,76 @@
   line-height: 1;
   letter-spacing: var(--tracking-tight);
   text-align: center;
-  padding: 0 4cqi;
+  // Compensate for italic slant — the glyph leans right,
+  // shifting the optical centre. A small left padding offsets this.
+  padding: 0 6cqi 0 2cqi;
 }
 
 // ── States ──────────────────────────────────────────
+// Step 9 solid backgrounds. Hover uses step 10.
+// Number uses on-solid for maximum contrast.
+// Secondary elements (badges, grade) use on-solid too but
+// are visually subordinate through smaller size.
+
 .empty {
   color: var(--mono-text-low-contrast);
 }
 
 .attempted {
   background: var(--mono-solid);
-  border-color: var(--mono-solid);
   color: var(--mono-app-bg);
+
+  &:hover { background: var(--mono-solid-hover); }
 }
 
 .completed {
-  background: var(--brand);
-  border-color: var(--brand);
+  background: var(--accent-solid);
   color: var(--accent-on-solid);
+
+  &:hover { background: var(--accent-solid-hover); }
 }
 
 .flash {
   background: var(--flash-solid);
-  border-color: var(--flash-solid);
-  color: var(--flash-on-solid, var(--mono-app-bg));
+  color: var(--flash-on-solid);
+
+  &:hover { background: var(--flash-solid-hover); }
 }
 
 // ── Zone badge ──────────────────────────────────────
 .zoneBadge {
   position: absolute;
-  top: 6cqi;
-  left: 6cqi;
-  font-size: 12cqi;
+  top: 8cqi;
+  left: 8cqi;
+  font-size: 18cqi;
   line-height: 1;
-  color: var(--mono-text-low-contrast);
+  color: var(--mono-solid);
 
-  .completed & {
-    color: var(--accent-on-solid);
-    opacity: 0.7;
-  }
-
-  .flash & {
-    color: var(--flash-on-solid);
-    opacity: 0.7;
-  }
-
-  .attempted & {
-    color: var(--mono-app-bg);
-    opacity: 0.5;
-  }
+  .completed & { color: var(--accent-text-low-contrast); }
+  .flash &     { color: var(--flash-text-low-contrast); }
+  .attempted & { color: var(--mono-app-bg); }
 }
 
 // ── Flash badge ─────────────────────────────────────
 .flashBadge {
   position: absolute;
-  top: 6cqi;
-  right: 6cqi;
-  font-size: 14cqi;
-  color: var(--flash-on-solid);
+  top: 8cqi;
+  right: 8cqi;
+  font-size: 20cqi;
+  color: var(--flash-text-low-contrast);
   line-height: 1;
 }
 
 // ── Grade overlay ───────────────────────────────────
 .gradeOverlay {
   position: absolute;
-  bottom: 6cqi;
-  right: 6cqi;
+  bottom: 8cqi;
+  right: 8cqi;
   font-family: var(--font-heading);
   font-weight: var(--weight-bold);
-  font-size: 10cqi;
+  font-size: 16cqi;
   line-height: 1;
-  opacity: 0.6;
+
+  .completed & { color: var(--accent-text-low-contrast); }
+  .flash &     { color: var(--flash-text-low-contrast); }
 }

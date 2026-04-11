@@ -75,7 +75,7 @@
 
 .cellFlash {
   background: var(--flash-subtle-bg);
-  border-color: var(--flash-solid);
+  border-color: var(--flash-border-subtle);
 }
 
 // ── Stat cell ──────────────────────────────────────
@@ -95,7 +95,6 @@
 
   .cellAccent & {
     color: var(--accent-on-solid);
-    opacity: 0.7;
   }
 
   .cellFlash & {

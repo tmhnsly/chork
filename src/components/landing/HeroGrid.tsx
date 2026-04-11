@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { DemoTile } from "./DemoTile";
-import type { DemoTileState } from "./DemoTile";
+import type { TileState } from "@/lib/data";
 import { scatteredOrder } from "@/lib/stagger";
 import styles from "./heroGrid.module.scss";
 
-type TileSet = DemoTileState[];
+type TileSet = TileState[];
 
 /**
  * Session snapshots — 15 tiles (5 columns × 3 rows) to match the send grid.

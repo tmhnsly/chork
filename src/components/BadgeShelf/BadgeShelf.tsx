@@ -8,7 +8,7 @@ import {
   FaStar,
   FaBroom,
 } from "react-icons/fa6";
-import type { BadgeStatus, BadgeTier, BadgeIcon } from "@/lib/badges";
+import type { BadgeStatus, BadgeIcon } from "@/lib/badges";
 import styles from "./badgeShelf.module.scss";
 
 // Map serialisable icon IDs → actual React icon components
@@ -25,10 +25,6 @@ interface Props {
   badges: BadgeStatus[];
 }
 
-function tierClass(tier: BadgeTier): string {
-  return styles[`tier--${tier}`] ?? "";
-}
-
 export function BadgeShelf({ badges }: Props) {
   const earned = badges.filter((b) => b.earned);
   const locked = badges.filter((b) => !b.earned);
@@ -42,7 +38,7 @@ export function BadgeShelf({ badges }: Props) {
           return (
             <div
               key={b.badge.id}
-              className={`${styles.badge} ${tierClass(b.badge.tier)}`}
+              className={`${styles.badge} ${styles.badgeEarned}`}
               title={`${b.badge.name} - ${b.badge.description}`}
             >
               <span className={styles.badgeIcon}>

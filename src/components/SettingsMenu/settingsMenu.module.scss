@@ -7,7 +7,6 @@
   border-radius: var(--radius-3);
   overflow: hidden;
   z-index: var(--z-overlay);
-  animation: menuIn var(--duration-fast) var(--ease-out);
   box-shadow: var(--shadow-lg);
   @include surface.glass(65%, var(--mono-bg));
 }
@@ -105,6 +104,26 @@
     opacity: 1;
     transform: scale(1);
   }
+}
+
+@keyframes menuOut {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+// Radix data-state attributes for enter/exit
+.content[data-state="open"] {
+  animation: menuIn var(--duration-fast) var(--ease-out);
+}
+
+.content[data-state="closed"] {
+  animation: menuOut var(--duration-fast) var(--ease-out);
 }
 
 @media (prefers-reduced-motion: reduce) {

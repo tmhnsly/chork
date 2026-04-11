@@ -20,7 +20,7 @@ export function NavBar() {
         <div className={styles.barInner}>
           <Link href="/" className={styles.brandLinkVisible} aria-label="Home">
             <ChorkMark size={18} />
-            <span className={styles.brandText}>Chork</span>
+            <span className={styles.brandTextVisible}>Chork</span>
           </Link>
           <Link href="/login" className={styles.tab}>
             <FaRightToBracket className={styles.tabIcon} />
@@ -38,7 +38,7 @@ export function NavBar() {
         <div className={styles.barInner}>
           <Link href="/" className={styles.brandLinkVisible} aria-label="Home">
             <ChorkMark size={18} />
-            <span className={styles.brandText}>Chork</span>
+            <span className={styles.brandTextVisible}>Chork</span>
           </Link>
         </div>
       </nav>
@@ -72,6 +72,9 @@ export function NavBar() {
             <span className={styles.tabLabel}>Profile</span>
           </Link>
         </div>
+
+        {/* Counterweight spacer — matches brandLink width to keep tabs centred */}
+        <div className={styles.brandSpacer} aria-hidden="true" />
       </div>
     </nav>
   );

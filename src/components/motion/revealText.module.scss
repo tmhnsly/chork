@@ -2,8 +2,14 @@
   display: inline-block;
   vertical-align: bottom;
   // Clip only the bottom edge where the slide-up animation enters from.
-  // Top/left/right are fully unclipped so italic glyph overhang is never cut.
-  clip-path: inset(-100% -100% 0 -100%);
+  // Uses a large polygon so italic overhang, ascenders, and descenders
+  // are never clipped on top, left, or right.
+  clip-path: polygon(
+    -200% -200%,
+     200% -200%,
+     200% 100%,
+    -200% 100%
+  );
 }
 
 .word {

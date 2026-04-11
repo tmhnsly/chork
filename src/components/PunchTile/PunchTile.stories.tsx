@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import { PunchTile } from "./PunchTile";
+import { TILE_STATES } from "@/lib/data";
 
 /**
  * Individual route tile in the send grid.
@@ -12,7 +13,7 @@ const meta = {
     number: { control: { type: "number", min: 1, max: 20 } },
     state: {
       control: "select",
-      options: ["empty", "attempted", "completed", "flash"],
+      options: [...TILE_STATES],
     },
   },
   args: {

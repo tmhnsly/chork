@@ -21,6 +21,7 @@ interface AuthContextValue {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
 
@@ -48,38 +49,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data;
   }, [supabase]);
 
-  // Bootstrap: check session on mount + listen for changes
+  // Bootstrap: two-phase auth check.
+  // Phase 1: getSession() reads from local storage — instant, no network.
+  //          Sets profile immediately so PWA resumes without a flash.
+  // Phase 2: getUser() validates with the server — catches expired tokens.
+  //          If the session was invalid, clears the profile.
   useEffect(() => {
     let initialCheckDone = false;
 
-    // Initial auth check — getUser() validates with the server
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (user) {
-        const p = await fetchProfile(user.id);
+    async function bootstrap() {
+      // Phase 1 — instant local session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const p = await fetchProfile(session.user.id);
         setProfile(p);
       }
       setIsLoading(false);
-      initialCheckDone = true;
-    });
 
-    // Listen for auth changes (sign in, sign out, token refresh)
+      // Phase 2 — server validation (catches expired/revoked tokens)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user && session?.user) {
+        // Session was stale — clear it
+        setProfile(null);
+      } else if (user && !profileRef.current) {
+        // Edge case: getSession had no session but getUser found one
+        const p = await fetchProfile(user.id);
+        setProfile(p);
+      }
+
+      initialCheckDone = true;
+    }
+
+    bootstrap();
+
+    // Listen for auth changes after bootstrap completes.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        if (!initialCheckDone) return;
+
         if (event === "SIGNED_IN" && session?.user) {
-          // Skip if this is just the initial session echo — we already fetched
-          if (!initialCheckDone) return;
           const p = await fetchProfile(session.user.id);
           setProfile(p);
           routerRef.current.refresh();
         } else if (event === "TOKEN_REFRESHED" && session?.user) {
-          // Token was silently refreshed — ensure profile is still set
           if (!profileRef.current) {
             const p = await fetchProfile(session.user.id);
             setProfile(p);
           }
         } else if (event === "SIGNED_OUT") {
           setProfile(null);
-          setIsLoading(false);
           routerRef.current.refresh();
         }
       }
@@ -117,13 +135,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     showToast("Account created - check your email to confirm");
   }, [supabase]);
 
+  const resetPassword = useCallback(async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/login`,
+    });
+    if (error) {
+      showToast(error.message, "error");
+      return;
+    }
+    showToast("Check your email for a password reset link");
+  }, [supabase]);
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setProfile(null);
     showToast("Signed out", "info");
-    router.push("/");
-    router.refresh();
-  }, [supabase, router]);
+    // Hard navigation — same as signIn. router.push + refresh
+    // doesn't reliably bust the RSC cache or update middleware state.
+    window.location.href = "/";
+  }, [supabase]);
 
   const refreshProfile = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -134,8 +164,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [supabase, fetchProfile]);
 
   const value = useMemo(
-    () => ({ profile, isLoading, signIn, signUp, signOut, refreshProfile }),
-    [profile, isLoading, signIn, signUp, signOut, refreshProfile]
+    () => ({ profile, isLoading, signIn, signUp, signOut, resetPassword, refreshProfile }),
+    [profile, isLoading, signIn, signUp, signOut, resetPassword, refreshProfile]
   );
 
   return (

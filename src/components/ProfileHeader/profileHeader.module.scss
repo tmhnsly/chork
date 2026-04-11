@@ -7,6 +7,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
+  container-type: inline-size;
 }
 
 // ── Left: identity ────────────────────────────────
@@ -17,10 +18,37 @@
 
 .username {
   @include type.typography(display);
+  // Scale down for long usernames — shrinks from 3rem to 1.5rem
+  // based on container width, with ellipsis as a hard safety net.
+  font-size: clamp(var(--text-2xl), 10cqi, var(--text-5xl));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .displayName {
   @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+}
+
+// ── Follow counts ─────────────────────────────────
+.counts {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.count {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+
+  strong {
+    color: var(--mono-text);
+    font-weight: 600;
+  }
+}
+
+.dot {
   color: var(--mono-text-low-contrast);
 }
 

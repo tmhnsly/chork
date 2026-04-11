@@ -286,3 +286,23 @@ export async function getLikedCommentIds(
 
   return new Set((data ?? []).map((r) => r.comment_id));
 }
+
+// ── Follows ───────────────────────────────────────
+
+export async function isFollowing(
+  supabase: Supabase,
+  followerId: string,
+  followingId: string
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("follows")
+    .select("id")
+    .eq("follower_id", followerId)
+    .eq("following_id", followingId)
+    .maybeSingle();
+  if (error) {
+    console.warn("[chork] isFollowing failed:", error);
+    return false;
+  }
+  return data !== null;
+}
