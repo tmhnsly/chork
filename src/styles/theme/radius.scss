@@ -1,7 +1,7 @@
 :root {
-  --radius-1: 0;
-  --radius-2: 0;
-  --radius-3: 0;
-  --radius-4: 0;
-  --radius-full: 9999px;
+  --radius-1: 0.375rem;  // 6px  — subtle (inputs, small chips)
+  --radius-2: 0.5rem;    // 8px  — standard (buttons, cards)
+  --radius-3: 0.75rem;   // 12px — prominent (sheets, modals)
+  --radius-4: 1rem;      // 16px — hero (large panels)
+  --radius-full: 9999px; // pills, avatars
 }

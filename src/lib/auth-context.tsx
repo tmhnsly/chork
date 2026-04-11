@@ -115,6 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
     showToast("Signed out", "info");
     router.push("/");
+    router.refresh();
   }, [supabase, router]);
 
   const refreshProfile = useCallback(async () => {

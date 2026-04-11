@@ -9,6 +9,8 @@ interface Props {
   number: number;
   state: TileState;
   zone?: boolean;
+  /** Grade label to display on completed tiles (e.g. "V4") */
+  gradeLabel?: string;
   onClick?: () => void;
   className?: string;
   /** Remove min-size constraints for display-only contexts */
@@ -16,7 +18,7 @@ interface Props {
   style?: CSSProperties;
 }
 
-export const PunchTile = memo(function PunchTile({ number, state, zone, onClick, className, compact, style }: Props) {
+export const PunchTile = memo(function PunchTile({ number, state, zone, gradeLabel, onClick, className, compact, style }: Props) {
   return (
     <button
       className={[styles.tile, styles[state], compact && styles.compact, className].filter(Boolean).join(" ")}
@@ -37,6 +39,9 @@ export const PunchTile = memo(function PunchTile({ number, state, zone, onClick,
         <span className={styles.flashBadge}>
           <FaBolt />
         </span>
+      )}
+      {gradeLabel && (state === "completed" || state === "flash") && (
+        <span className={styles.gradeOverlay}>{gradeLabel}</span>
       )}
     </button>
   );

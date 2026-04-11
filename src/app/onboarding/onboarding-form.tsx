@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { useUsernameValidation } from "@/hooks/use-username-validation";
 import { RevealText } from "@/components/motion";
-import { FormField, Button, showToast } from "@/components/ui";
+import { FormField, InputError, Button, showToast } from "@/components/ui";
 import { completeOnboarding, fetchListedGyms } from "./actions";
 import type { Gym } from "@/lib/data";
 import styles from "./onboarding.module.scss";
@@ -142,9 +142,7 @@ export function OnboardingForm() {
               autoComplete="off"
             />
           </div>
-          {usernameValidation.error && (
-            <p className={styles.fieldError}>{usernameValidation.error}</p>
-          )}
+          <InputError message={usernameValidation.error} />
         </div>
 
         <FormField

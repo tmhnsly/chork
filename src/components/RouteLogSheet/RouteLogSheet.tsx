@@ -57,7 +57,8 @@ interface Props {
   onLogUpdate: (routeId: string, log: RouteLog) => void;
 }
 
-const DRAG_CLOSE_THRESHOLD = 100;
+const DRAG_CLOSE_THRESHOLD = 60;
+const DRAG_VELOCITY_THRESHOLD = 0.4; // px/ms — fast swipe closes regardless of distance
 
 function getPointsPreview(
   attempts: number,
@@ -103,7 +104,7 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
   const pendingAttemptsRef = useRef<number | null>(null);
   const logIdRef = useRef(currentLog?.id);
   const contentRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{ startY: number; dragging: boolean }>({ startY: 0, dragging: false });
+  const dragRef = useRef<{ startY: number; startTime: number; dragging: boolean }>({ startY: 0, startTime: 0, dragging: false });
   const preCompleteRef = useRef<{ log: RouteLog | null; attempts: number } | null>(null);
   const onCacheRef = useRef(onCacheRouteData);
   const likingRef = useRef<Set<string>>(new Set());
@@ -386,19 +387,18 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
     const target = e.target as HTMLElement;
     if (!target.closest(`.${styles.handleBtn}`)) return;
 
-    dragRef.current = { startY: e.clientY, dragging: true };
+    dragRef.current = { startY: e.clientY, startTime: Date.now(), dragging: true };
     contentRef.current?.setPointerCapture(e.pointerId);
-    // Disable the CSS animation while dragging
     if (contentRef.current) {
-      contentRef.current.style.animation = "none";
-      contentRef.current.style.transition = "none";
+      contentRef.current.style.setProperty("--drag-y", "0px");
+      contentRef.current.classList.add(styles.dragging);
     }
   }
 
   function handleDragMove(e: React.PointerEvent) {
     if (!dragRef.current.dragging || !contentRef.current) return;
     const dy = Math.max(0, e.clientY - dragRef.current.startY);
-    contentRef.current.style.transform = `translateY(${dy}px)`;
+    contentRef.current.style.setProperty("--drag-y", `${dy}px`);
   }
 
   function handleDragEnd(e: React.PointerEvent) {
@@ -407,27 +407,16 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
     contentRef.current.releasePointerCapture(e.pointerId);
 
     const dy = e.clientY - dragRef.current.startY;
-    if (dy > DRAG_CLOSE_THRESHOLD) {
-      // Fling down — close
-      contentRef.current.style.transform = "";
-      contentRef.current.style.animation = "";
-      contentRef.current.style.transition = "";
+    const elapsed = Date.now() - dragRef.current.startTime;
+    const velocity = elapsed > 0 ? dy / elapsed : 0;
+
+    contentRef.current.classList.remove(styles.dragging);
+    contentRef.current.style.removeProperty("--drag-y");
+
+    if (dy > DRAG_CLOSE_THRESHOLD || velocity > DRAG_VELOCITY_THRESHOLD) {
       startClose();
-    } else {
-      // Snap back
-      contentRef.current.style.transition = `transform var(--duration-normal) var(--ease-out)`;
-      contentRef.current.style.transform = "translateY(0)";
-      contentRef.current.addEventListener(
-        "transitionend",
-        () => {
-          if (contentRef.current) {
-            contentRef.current.style.transition = "";
-            contentRef.current.style.animation = "";
-          }
-        },
-        { once: true }
-      );
     }
+    // Otherwise snaps back automatically via CSS (no inline styles to clean up)
   }
 
   function startClose() {
@@ -480,9 +469,16 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
               {route.number}
               {isCurrentFlash && <FaBolt className={styles.flashIcon} />}
             </h2>
-            <span className={`${styles.communityGrade} ${loadingComments ? shimmerStyles.skeleton : ""}`}>
-              {gradeLabel ?? "\u00A0"}
-            </span>
+            <div className={styles.gradeRow}>
+              <span className={`${styles.communityGrade} ${loadingComments ? shimmerStyles.skeleton : ""}`}>
+                {gradeLabel ?? "\u00A0"}
+              </span>
+              {currentLog?.grade_vote != null && (
+                <span className={styles.userGrade}>
+                  You voted V{currentLog.grade_vote}
+                </span>
+              )}
+            </div>
           </header>
 
           {/* Attempt counter */}

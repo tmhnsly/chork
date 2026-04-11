@@ -1,13 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { Profile } from "@/lib/data";
 import { getAvatarUrl } from "@/lib/avatar";
 import { useAuth } from "@/lib/auth-context";
-import { Button, showToast } from "@/components/ui";
+import { useUsernameValidation } from "@/hooks/use-username-validation";
+import { Button, InputError, showToast } from "@/components/ui";
 import { RevealText } from "@/components/motion";
+import { SettingsMenu } from "@/components/SettingsMenu/SettingsMenu";
+import { DeleteAccountDialog } from "@/components/SettingsMenu/DeleteAccountDialog";
 import { updateProfile } from "@/lib/user-actions";
 import styles from "./profileHeader.module.scss";
 
@@ -19,27 +22,42 @@ interface Props {
 export function ProfileHeader({ user, isOwnProfile }: Props) {
   const router = useRouter();
   const { refreshProfile } = useAuth();
+  const usernameValidation = useUsernameValidation(user.username);
+
   const [editing, setEditing] = useState(false);
   const [displayName, setDisplayName] = useState(user.name ?? "");
+  const [username, setUsername] = useState(user.username);
   const [submitting, setSubmitting] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Sync when user prop changes (navigating between profiles)
   useEffect(() => {
     setDisplayName(user.name ?? "");
+    setUsername(user.username);
     setEditing(false);
-  }, [user.id, user.name]);
+  }, [user.id, user.name, user.username]);
 
   const avatarSrc = getAvatarUrl(user, { size: 200 });
 
   async function handleSave() {
-    if (displayName === (user.name ?? "")) {
+    // Validate username if changed
+    if (username !== user.username) {
+      const valid = await usernameValidation.validate(username, user.id);
+      if (!valid) return;
+    }
+
+    const updates: { name?: string; username?: string } = {};
+    if (displayName !== (user.name ?? "")) updates.name = displayName;
+    if (username !== user.username) updates.username = username;
+
+    if (Object.keys(updates).length === 0) {
       setEditing(false);
       return;
     }
+
     setSubmitting(true);
     try {
-      const result = await updateProfile({ name: displayName });
+      const result = await updateProfile(updates);
       if ("error" in result) {
         showToast(result.error, "error");
         return;
@@ -47,7 +65,12 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
       await refreshProfile();
       setEditing(false);
       showToast("Profile updated");
-      router.refresh();
+      // If username changed, navigate to new URL
+      if (updates.username) {
+        router.replace(`/u/${updates.username}`);
+      } else {
+        router.refresh();
+      }
     } catch (err) {
       console.warn("[chork] profile update failed:", err);
       showToast("Something went wrong", "error");
@@ -58,54 +81,82 @@ export function ProfileHeader({ user, isOwnProfile }: Props) {
 
   function handleCancel() {
     setDisplayName(user.name ?? "");
+    setUsername(user.username);
+    usernameValidation.setError("");
     setEditing(false);
   }
 
   return (
-    <header className={styles.header}>
-      <div className={styles.avatarWrap}>
-        <Image
-          src={avatarSrc}
-          alt={user.name || user.username}
-          width={96}
-          height={96}
-          className={styles.avatarImg}
-          unoptimized
-        />
-      </div>
-
-      {editing ? (
-        <div className={styles.editFields}>
-          <label className={styles.editLabel}>
-            <span className={styles.fieldLabel}>Display name</span>
-            <input
-              className={styles.input}
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
+    <>
+      <header className={styles.header}>
+        {isOwnProfile && (
+          <div className={styles.settingsRow}>
+            <SettingsMenu
+              onEditProfile={() => setEditing(true)}
+              onDeleteAccount={() => setShowDeleteDialog(true)}
             />
-          </label>
-          <p className={styles.username}>@{user.username}</p>
-          <div className={styles.editActions}>
-            <Button onClick={handleSave} disabled={submitting}>
-              Save
-            </Button>
-            <Button variant="ghost" onClick={handleCancel}>
-              Cancel
-            </Button>
           </div>
+        )}
+
+        <div className={styles.avatarWrap}>
+          <Image
+            src={avatarSrc}
+            alt={user.name || user.username}
+            width={96}
+            height={96}
+            className={styles.avatarImg}
+            unoptimized
+          />
         </div>
-      ) : (
-        <div className={styles.identity}>
-          <RevealText text={`@${user.username}`} as="h1" className={styles.username} />
-          {user.name && <p className={styles.displayName}>{user.name}</p>}
-          {isOwnProfile && (
-            <Button variant="ghost" onClick={() => setEditing(true)} className={styles.editBtn}>
-              Edit profile
-            </Button>
-          )}
-        </div>
+
+        {editing ? (
+          <div className={styles.editFields}>
+            <label className={styles.editLabel}>
+              <span className={styles.fieldLabel}>Username</span>
+              <div className={styles.usernameWrap}>
+                <span className={styles.usernamePrefix}>@</span>
+                <input
+                  className={styles.input}
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.currentTarget.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+                  onBlur={() => usernameValidation.validate(username, user.id)}
+                />
+              </div>
+              <InputError message={usernameValidation.error} />
+            </label>
+            <label className={styles.editLabel}>
+              <span className={styles.fieldLabel}>Display name</span>
+              <input
+                className={styles.input}
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+              />
+            </label>
+            <div className={styles.editActions}>
+              <Button onClick={handleSave} disabled={submitting}>
+                {submitting ? "Saving..." : "Save"}
+              </Button>
+              <Button variant="ghost" onClick={handleCancel}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className={styles.identity}>
+            <RevealText text={`@${user.username}`} as="h1" className={styles.username} />
+            {user.name && <p className={styles.displayName}>{user.name}</p>}
+          </div>
+        )}
+      </header>
+
+      {isOwnProfile && (
+        <DeleteAccountDialog
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+        />
       )}
-    </header>
+    </>
   );
 }

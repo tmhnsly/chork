@@ -12,6 +12,7 @@
 
 .app {
   min-height: 100vh;
+  min-height: 100dvh;
   padding: var(--space-8) var(--gutter-x);
   // Bottom bar on all breakpoints — add clearance
   padding-bottom: calc(var(--navbar-height) + env(safe-area-inset-bottom, 0px) + var(--space-8));

@@ -1,3 +1,5 @@
+import styles from "./activityRings.module.scss";
+
 interface Ring {
   /** 0–1 progress value */
   value: number;
@@ -16,7 +18,8 @@ interface Props {
 const TRACK_COLOR = "var(--mono-bg)";
 
 /**
- * Apple Fitness-style concentric progress rings. Pure SVG, no animation.
+ * Apple Fitness-style concentric progress rings.
+ * Rings animate via CSS transition when values change.
  */
 export function ActivityRings({ rings, size = 72, className }: Props) {
   const strokeWidth = size * 0.1;
@@ -48,20 +51,19 @@ export function ActivityRings({ rings, size = 72, className }: Props) {
               strokeWidth={strokeWidth}
               strokeLinecap="round"
             />
-            {progress > 0 && (
-              <circle
-                cx={center}
-                cy={center}
-                r={radius}
-                fill="none"
-                stroke={ring.color}
-                strokeWidth={strokeWidth}
-                strokeLinecap="round"
-                strokeDasharray={circumference}
-                strokeDashoffset={offset}
-                transform={`rotate(-90 ${center} ${center})`}
-              />
-            )}
+            <circle
+              cx={center}
+              cy={center}
+              r={radius}
+              fill="none"
+              stroke={ring.color}
+              strokeWidth={strokeWidth}
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={offset}
+              transform={`rotate(-90 ${center} ${center})`}
+              className={styles.ring}
+            />
           </g>
         );
       })}

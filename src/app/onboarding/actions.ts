@@ -1,10 +1,10 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { requireSignedIn } from "@/lib/auth";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { validateUsername } from "@/lib/validation";
 import { createGymMembership } from "@/lib/data/mutations";
-import { searchGyms as searchGymsQuery } from "@/lib/data/queries";
 import { formatError } from "@/lib/errors";
 import type { Gym } from "@/lib/data";
 
@@ -66,6 +66,7 @@ export async function completeOnboarding(
       return { error: formatError(profileError) };
     }
 
+    revalidatePath("/", "layout");
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };

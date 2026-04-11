@@ -44,3 +44,15 @@
   color: var(--mono-text-low-contrast);
   opacity: 0.5;
 }
+
+.footerLink {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  opacity: 0.5;
+  margin-top: var(--space-2);
+  text-decoration: underline;
+
+  &:hover {
+    opacity: 0.8;
+  }
+}

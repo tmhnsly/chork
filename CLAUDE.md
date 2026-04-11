@@ -55,7 +55,9 @@ Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
 - Accent: Radix `lime` scale. Text on accent uses `--accent-on-solid`
 - Surfaces: `@include surface.card` for panels, `@include surface.chrome` for sticky chrome
 - Flash badge: amber (`--flash-*` tokens) — never lime
-- No glassmorphism. No rounded corners — all radius tokens are 0, except `--radius-full` for avatars
+- Squircle border radius via `--radius-1` through `--radius-4` tokens. PunchTile stays square (no radius)
+- Golden ratio for nested radius: inner = outer − padding
+- Glassmorphism allowed on floating chrome (navbar, dropdowns) via `backdrop-filter: blur` + `color-mix` transparency
 - Radix palette: olive (mono), lime (accent), red (error), teal (success), amber (flash)
 
 ## Code rules

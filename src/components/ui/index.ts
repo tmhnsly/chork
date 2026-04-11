@@ -1,4 +1,5 @@
 export { FormField } from "./FormField";
+export { InputError } from "./InputError";
 export { AvatarPicker } from "./AvatarPicker";
 export { Button } from "./Button";
 export { Banner } from "./Banner";

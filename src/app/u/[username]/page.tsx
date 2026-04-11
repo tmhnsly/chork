@@ -16,7 +16,6 @@ import type { RouteLogWithSetId, Route, RouteLog, TileState } from "@/lib/data";
 import { ProfileHeader } from "@/components/ProfileHeader/ProfileHeader";
 import { ClimberStats } from "@/components/ClimberStats/ClimberStats";
 import { PunchTile } from "@/components/PunchTile/PunchTile";
-import { SignOutButton } from "@/components/ui";
 import styles from "./user.module.scss";
 
 interface Props {
@@ -204,11 +203,6 @@ export default async function UserProfilePage({ params }: Props) {
         </section>
       )}
 
-      {isOwnProfile && (
-        <div className={styles.signOutSection}>
-          <SignOutButton />
-        </div>
-      )}
     </main>
   );
 }
@@ -226,15 +220,19 @@ function MiniSendGrid({ routes, logs }: { routes: Route[]; logs: RouteLog[] }) {
 
   return (
     <div className={styles.miniGrid}>
-      {routes.map((route) => (
-        <PunchTile
-          key={route.id}
-          number={route.number}
-          state={deriveTileState(logByRoute.get(route.id))}
-          zone={logByRoute.get(route.id)?.zone}
-          compact
-        />
-      ))}
+      {routes.map((route) => {
+        const routeLog = logByRoute.get(route.id);
+        return (
+          <PunchTile
+            key={route.id}
+            number={route.number}
+            state={deriveTileState(routeLog)}
+            zone={routeLog?.zone}
+            gradeLabel={routeLog?.grade_vote != null ? `V${routeLog.grade_vote}` : undefined}
+            compact
+          />
+        );
+      })}
     </div>
   );
 }

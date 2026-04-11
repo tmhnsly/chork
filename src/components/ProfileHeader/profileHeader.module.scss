@@ -8,11 +8,18 @@
   align-items: center;
   gap: var(--space-3);
   text-align: center;
+  position: relative;
 }
 
-// ── Avatar — identical sizing in both display and edit mode ──
-.avatarWrap,
-.avatarButton {
+// ── Settings gear ─────────────────────────────────
+.settingsRow {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+// ── Avatar ────────────────────────────────────────
+.avatarWrap {
   position: relative;
   width: var(--size-avatar-lg);
   height: var(--size-avatar-lg);
@@ -20,12 +27,6 @@
   overflow: hidden;
   border: 3px solid var(--accent-solid);
   flex-shrink: 0;
-  padding: 0;
-  background: none;
-}
-
-.avatarButton {
-  cursor: pointer;
 }
 
 .avatarImg {
@@ -33,24 +34,6 @@
   height: 100%;
   object-fit: cover;
   display: block;
-}
-
-.avatarOverlay {
-  @include type.typography(label);
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: color-mix(in srgb, var(--mono-app-bg) 50%, transparent);
-  color: white;
-  opacity: 0;
-  transition: opacity var(--duration-fast) var(--ease-out);
-
-  .avatarButton:hover &,
-  .avatarButton:focus-visible & {
-    opacity: 1;
-  }
 }
 
 // ── Display mode ──────────────────────────────────
@@ -66,10 +49,6 @@
 .displayName {
   @include type.typography(body);
   color: var(--mono-text-low-contrast);
-}
-
-.editBtn {
-  margin-top: var(--space-2);
 }
 
 // ── Edit mode ──────────────────────────────────────
@@ -88,12 +67,38 @@
   color: var(--mono-text-low-contrast);
 }
 
+.usernameWrap {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--mono-border);
+  border-radius: var(--radius-2);
+  background: var(--mono-subtle-bg);
+  transition: border-color var(--duration-fast) var(--ease-out);
+
+  &:focus-within {
+    border-color: var(--accent-solid);
+  }
+}
+
+.usernamePrefix {
+  @include type.typography(body);
+  padding-left: var(--space-3);
+  color: var(--mono-text-low-contrast);
+  user-select: none;
+}
+
+.usernameWrap .input {
+  border: none;
+  padding-left: var(--space-1);
+}
+
 .input {
   @include type.typography(body);
   width: 100%;
   min-height: var(--size-touch-target);
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--mono-border);
+  border-radius: var(--radius-2);
   background: var(--mono-subtle-bg);
   color: var(--mono-text);
   outline: none;

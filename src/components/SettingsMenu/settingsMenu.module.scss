@@ -1,0 +1,99 @@
+@use "mixins/typography" as type;
+
+.trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-touch-target);
+  height: var(--size-touch-target);
+  border: none;
+  background: transparent;
+  color: var(--mono-text-low-contrast);
+  cursor: pointer;
+  border-radius: var(--radius-2);
+  transition: color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    color: var(--mono-text);
+  }
+}
+
+.content {
+  min-width: 12rem;
+  padding: var(--space-1) 0;
+  border-radius: var(--radius-3);
+  border: 1px solid var(--mono-border-subtle);
+  z-index: var(--z-overlay);
+  animation: menuIn var(--duration-fast) var(--ease-out);
+
+  // Glassmorphism panel
+  background: color-mix(in srgb, var(--mono-subtle-bg) 80%, transparent);
+  backdrop-filter: blur(1.5rem) saturate(1.5);
+  -webkit-backdrop-filter: blur(1.5rem) saturate(1.5);
+}
+
+.item {
+  @include type.typography(body);
+  font-size: var(--text-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  min-height: var(--size-touch-target);
+  border: none;
+  background: transparent;
+  color: var(--mono-text);
+  cursor: pointer;
+  text-decoration: none;
+  outline: none;
+
+  &:hover,
+  &[data-highlighted] {
+    background: var(--mono-bg-hover);
+  }
+}
+
+.itemIcon {
+  font-size: var(--text-sm);
+  color: var(--mono-text-low-contrast);
+  flex-shrink: 0;
+}
+
+.itemWarning {
+  color: var(--flash-text-low-contrast);
+
+  .itemIcon {
+    color: inherit;
+  }
+}
+
+.itemDanger {
+  color: var(--error-text-low-contrast);
+
+  .itemIcon {
+    color: inherit;
+  }
+}
+
+.separator {
+  height: 1px;
+  background: var(--mono-border-subtle);
+  margin: var(--space-1) 0;
+}
+
+@keyframes menuIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .content {
+    animation: none;
+  }
+}

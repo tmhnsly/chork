@@ -31,6 +31,7 @@
   padding: var(--space-3) var(--gutter-x) calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
   height: 90svh;
   overflow: hidden;
+  outline: none; // prevent browser focus ring on dialog content
   animation: slideUp var(--duration-normal) var(--ease-out);
 }
 
@@ -64,10 +65,24 @@
 }
 
 .handle {
-  width: 36px;
+  width: var(--space-9);
   height: 4px;
   border-radius: var(--radius-full);
   background: var(--mono-border);
+  transition: width var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+
+  .handleBtn:active & {
+    width: var(--space-12);
+    background: var(--mono-text-low-contrast);
+  }
+}
+
+// ── Drag state ────────────────────────────────────
+.dragging {
+  animation: none !important;
+  transition: none !important;
+  transform: translateY(var(--drag-y, 0));
 }
 
 // ── Header ──────────────────────────────────────────
@@ -90,11 +105,26 @@
   font-size: 0.7em;
 }
 
+.gradeRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 1lh;
+}
+
 .communityGrade {
   @include type.typography(meta);
   color: var(--accent-text-low-contrast);
-  display: inline-block;
-  min-height: 1lh;
+}
+
+.userGrade {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+
+  &::before {
+    content: "·";
+    margin-right: var(--space-2);
+  }
 }
 
 

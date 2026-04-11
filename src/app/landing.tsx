@@ -133,6 +133,7 @@ export function LandingPage() {
       <footer className={styles.footer}>
         <span className={styles.footerName}>Chork</span>
         <span className={styles.footerTagline}>Send it. Log it. Prove it.</span>
+        <Link href="/privacy" className={styles.footerLink}>Privacy Policy</Link>
       </footer>
     </div>
   );

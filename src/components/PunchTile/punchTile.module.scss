@@ -85,3 +85,15 @@
   color: var(--flash-on-solid);
   line-height: 1;
 }
+
+// ── Grade overlay ───────────────────────────────────
+.gradeOverlay {
+  position: absolute;
+  bottom: 4cqi;
+  right: 4cqi;
+  font-family: var(--font-heading);
+  font-weight: var(--weight-bold);
+  font-size: 10cqi;
+  line-height: 1;
+  opacity: 0.6;
+}
