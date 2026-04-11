@@ -63,6 +63,11 @@ Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
   - Thick (70%, default): sheets, modals, alerts
   - Nested glass uses opacity layering, not stacked backdrop-filter (CSS limitation)
 - Radix palette: olive (mono), lime (accent), red (error), teal (success), amber (flash)
+- Radix interactive colour pattern (menus, lists, buttons):
+  - Default text: step 11 (low-contrast), icons: step 9 (solid)
+  - Hover: bg step 4, text step 12, icons step 11
+  - For coloured variants (warning/danger): same step pattern within that colour scale
+  - Transitions: 0.1s for interactive feedback, `--duration-fast` (0.2s) for state changes
 
 ## Page layout
 
