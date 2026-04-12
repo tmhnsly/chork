@@ -9,6 +9,7 @@ import {
   getAllRouteDataForUserInGym,
   isFollowing,
   getEarnedAchievements,
+  getRoutesBySetIds,
 } from "@/lib/data/queries";
 import type { UserLogInGym } from "@/lib/data/queries";
 import { computeMaxPoints } from "@/lib/data";
@@ -93,13 +94,18 @@ export default async function UserProfilePage({ params }: Props) {
   const activeSet = allSets.find((s) => s.active) ?? null;
   const previousSetRecords = allSets.filter((s) => !s.active);
 
-  const [miniRoutes, miniLogs, routeData, previousSetRoutes, earnedAchievements] = await Promise.all([
+  // One batched routes query for all previous sets (was N round-trips,
+  // one per previous set — hot spot for climbers with long histories).
+  const [miniRoutes, miniLogs, routeData, previousSetRoutesById, earnedAchievements] = await Promise.all([
     activeSet ? getRoutesBySet(supabase, activeSet.id) : Promise.resolve<Route[]>([]),
     activeSet ? getLogsBySetForUser(supabase, activeSet.id, profileUser.id) : Promise.resolve<RouteLog[]>([]),
     getAllRouteDataForUserInGym(supabase, gymId, profileUser.id, allSets.map((s) => s.id)),
-    Promise.all(previousSetRecords.map((s) => getRoutesBySet(supabase, s.id))),
+    getRoutesBySetIds(supabase, previousSetRecords.map((s) => s.id)),
     getEarnedAchievements(supabase, profileUser.id),
   ]);
+  const previousSetRoutes: Route[][] = previousSetRecords.map(
+    (s) => previousSetRoutesById.get(s.id) ?? []
+  );
 
   // ── Per-set stats (single source of truth — raw logs) ─
   const statsBySet = new Map<string, SetStats>();

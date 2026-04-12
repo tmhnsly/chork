@@ -4,6 +4,7 @@ import { createMiddlewareSupabase } from "@/lib/supabase/middleware";
 const AUTH_ROUTES = ["/login"];
 const PUBLIC_ROUTES = ["/", "/privacy"];
 const ONBOARDING_ROUTE = "/onboarding";
+const ONBOARDED_COOKIE = "chork-onboarded";
 
 export async function middleware(request: NextRequest) {
   const { supabase, response } = createMiddlewareSupabase(request);
@@ -16,7 +17,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // Public routes and login - no further checks needed
+  // Public routes and login — no further checks needed
   if (AUTH_ROUTES.some((r) => pathname.startsWith(r)) || PUBLIC_ROUTES.includes(pathname)) {
     return response;
   }
@@ -26,17 +27,34 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Check onboarding status for authenticated users on non-onboarding routes
+  // Onboarding gate. We used to hit `profiles.select("onboarded")` on
+  // every authenticated request — a ~50-100ms Supabase round-trip per
+  // page nav. The flag only ever transitions false→true (once per
+  // user's lifetime), so we cache it in a cookie once confirmed and
+  // skip the query on subsequent requests.
   if (pathname !== ONBOARDING_ROUTE) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("onboarded")
-      .eq("id", user.id)
-      .single();
+    // Cookie value format: "<user_id>:1" so a user switch invalidates
+    // the fast path automatically (the cached uid no longer matches).
+    const cached = request.cookies.get(ONBOARDED_COOKIE)?.value;
+    const expected = `${user.id}:1`;
+    if (cached !== expected) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("onboarded")
+        .eq("id", user.id)
+        .single();
 
-    // No profile yet (trigger hasn't fired) or not onboarded - redirect
-    if (!profile || !profile.onboarded) {
-      return NextResponse.redirect(new URL(ONBOARDING_ROUTE, request.url));
+      if (!profile || !profile.onboarded) {
+        return NextResponse.redirect(new URL(ONBOARDING_ROUTE, request.url));
+      }
+
+      response.cookies.set(ONBOARDED_COOKIE, expected, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: 60 * 60 * 24 * 365, // 1 year — invalidated on uid mismatch
+        path: "/",
+      });
     }
   }
 

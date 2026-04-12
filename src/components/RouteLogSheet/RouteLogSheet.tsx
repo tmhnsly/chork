@@ -266,6 +266,18 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
     if (attempts < 1 || completing) return;
     setCompleting(true);
 
+    // Cancel any pending debounced attempts-save. If we don't, the
+    // debounce fires after completeRoute has already started and its
+    // updateAttempts RPC returns a log with completed=false, which
+    // overwrites the completion state and flashes the panel back to
+    // the non-completed layout before the completeRoute response
+    // lands and flips it forward again.
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+      debounceRef.current = null;
+    }
+    pendingAttemptsRef.current = null;
+
     const optimisticLog = createOptimisticLog({
       id: currentLog?.id ?? "",
       user_id: user?.id ?? "",

@@ -160,6 +160,38 @@ export async function getRoutesBySet(supabase: Supabase, setId: string): Promise
   return data ?? [];
 }
 
+/**
+ * Batched variant of `getRoutesBySet` — fetches routes for many sets
+ * in a single round-trip and returns a Map keyed by set_id. Avoids
+ * N+1 when a page needs per-set route info for a user's entire
+ * history (the profile page's previous-sets grid is the canonical
+ * caller).
+ */
+export async function getRoutesBySetIds(
+  supabase: Supabase,
+  setIds: string[]
+): Promise<Map<string, Route[]>> {
+  const byId = new Map<string, Route[]>();
+  if (setIds.length === 0) return byId;
+
+  const { data, error } = await supabase
+    .from("routes")
+    .select("*")
+    .in("set_id", setIds)
+    .order("number");
+  if (error) {
+    console.warn("[chork] getRoutesBySetIds failed:", error);
+    return byId;
+  }
+
+  for (const route of data ?? []) {
+    const arr = byId.get(route.set_id) ?? [];
+    arr.push(route);
+    byId.set(route.set_id, arr);
+  }
+  return byId;
+}
+
 // ── Route logs ─────────────────────────────────────
 
 export async function getLogsBySetForUser(
