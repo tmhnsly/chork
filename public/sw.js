@@ -24,6 +24,50 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+// ── Push notifications ──────────────────────────────────────────
+// Server dispatches JSON payloads shaped `{ title, body, url? }`.
+// `url` is the path we open when the climber taps the notification.
+self.addEventListener("push", (event) => {
+  if (!event.data) return;
+  let payload;
+  try {
+    payload = event.data.json();
+  } catch {
+    payload = { title: "Chork", body: event.data.text() };
+  }
+  const title = payload.title || "Chork";
+  const options = {
+    body: payload.body || "",
+    icon: "/icon.svg",
+    badge: "/icon.svg",
+    data: { url: payload.url || "/" },
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || "/";
+  event.waitUntil(
+    (async () => {
+      const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      // If the app is already open, focus that tab and navigate.
+      for (const client of all) {
+        if (new URL(client.url).origin === self.location.origin) {
+          await client.focus();
+          if ("navigate" in client) {
+            try { await client.navigate(targetUrl); } catch { /* cross-origin guard */ }
+          }
+          return;
+        }
+      }
+      if (self.clients.openWindow) {
+        await self.clients.openWindow(targetUrl);
+      }
+    })()
+  );
+});
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);

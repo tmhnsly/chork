@@ -344,6 +344,73 @@ export async function followUser(
 }
 
 // ────────────────────────────────────────────────────────────────
+// Push notification subscriptions
+// ────────────────────────────────────────────────────────────────
+// Climber opts in from a UI toggle; PushManager.subscribe returns the
+// endpoint + keys which we persist here. RLS on push_subscriptions
+// (migration 014) allows a user to manage only their own rows, so the
+// authed supabase client below is enough — no service role needed.
+
+export async function savePushSubscription(input: {
+  endpoint: string;
+  p256dh: string;
+  auth: string;
+}): Promise<ActionResult> {
+  if (typeof input.endpoint !== "string" || input.endpoint.length < 10) {
+    return { error: "Invalid subscription." };
+  }
+  if (typeof input.p256dh !== "string" || typeof input.auth !== "string") {
+    return { error: "Invalid subscription keys." };
+  }
+
+  const auth = await requireSignedIn();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase, userId } = auth;
+
+  try {
+    const { error } = await supabase
+      .from("push_subscriptions")
+      .upsert(
+        {
+          user_id: userId,
+          endpoint: input.endpoint,
+          p256dh: input.p256dh,
+          auth: input.auth,
+        },
+        { onConflict: "user_id,endpoint" }
+      );
+    if (error) return { error: formatError(error) };
+    return { success: true };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
+
+export async function removePushSubscription(
+  endpoint: string
+): Promise<ActionResult> {
+  if (typeof endpoint !== "string" || endpoint.length < 10) {
+    return { error: "Invalid subscription." };
+  }
+
+  const auth = await requireSignedIn();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase, userId } = auth;
+
+  try {
+    const { error } = await supabase
+      .from("push_subscriptions")
+      .delete()
+      .eq("user_id", userId)
+      .eq("endpoint", endpoint);
+    if (error) return { error: formatError(error) };
+    return { success: true };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
+
+// ────────────────────────────────────────────────────────────────
 // Competitions — climber participation
 // ────────────────────────────────────────────────────────────────
 

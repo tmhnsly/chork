@@ -20,6 +20,9 @@ import {
 } from "@/lib/data/admin-mutations";
 import { createServiceClient } from "@/lib/supabase/server";
 import { formatError } from "@/lib/errors";
+import { getGym } from "@/lib/data/queries";
+import { formatSetLabel } from "@/lib/data/set-label";
+import { getGymClimberUserIds, sendPushToUsers } from "@/lib/push/server";
 import { randomBytes } from "node:crypto";
 
 type ActionResult<T = unknown> = { error: string } | ({ success: true } & T);
@@ -249,10 +252,12 @@ export async function updateSet(
   if (!UUID_RE.test(setId)) return { error: "Invalid set." };
 
   // Ownership check: confirm caller admins the gym that owns this set.
+  // Also read the previous status + set name so we can detect the
+  // draft→live transition and dispatch notifications below.
   const service = createServiceClient();
   const { data: setRow } = await service
     .from("sets")
-    .select("gym_id")
+    .select("gym_id, status, name, starts_at, ends_at")
     .eq("id", setId)
     .maybeSingle();
   if (!setRow) return { error: "Set not found." };
@@ -272,6 +277,27 @@ export async function updateSet(
     competitionId: form.competitionId,
   });
   if ("error" in result) return { error: result.error };
+
+  // Draft → live transition: notify every climber who has logged at
+  // this gym. Best-effort — failures never block the publish. Errors
+  // inside sendPushToUsers are already swallowed + logged.
+  if (setRow.status !== "live" && form.status === "live") {
+    try {
+      const [userIds, gym] = await Promise.all([
+        getGymClimberUserIds(setRow.gym_id),
+        getGym(service, setRow.gym_id),
+      ]);
+      if (userIds.length > 0) {
+        await sendPushToUsers(userIds, {
+          title: `New set at ${gym?.name ?? "your gym"}`,
+          body: `${formatSetLabel({ name: form.name ?? setRow.name, starts_at: form.startsAt ?? setRow.starts_at, ends_at: form.endsAt ?? setRow.ends_at })} is now live. Get climbing.`,
+          url: "/",
+        });
+      }
+    } catch (err) {
+      console.warn("[chork] set-live push dispatch failed:", err);
+    }
+  }
 
   revalidatePath("/admin", "layout");
   revalidatePath("/", "layout");
