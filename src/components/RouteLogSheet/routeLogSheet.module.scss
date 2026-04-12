@@ -27,22 +27,27 @@
   font-size: 0.6em;
 }
 
+// Both the real grade and its skeleton render inside this single
+// container. The container owns the dimensions so the header never
+// shifts between loading and loaded — only the inner text content
+// swaps, with identical box metrics on both sides.
 .communityGrade {
   @include type.typography(meta);
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: var(--accent-text-low-contrast);
-  // Reserve the same footprint as the skeleton so the header doesn't
-  // shift when the grade resolves after fetch.
-  min-height: 1em;
-  min-width: 4rem;
-  text-align: center;
-}
-
-// Skeleton variant — shown while grade is loading
-.communityGradeSkeleton {
-  height: 1em;
+  // Fixed (not min-*) so the box is pixel-identical whether the inner
+  // text is "V4" or nothing. Height uses `lh` (line-height) rather than
+  // `em` so the real text's leading can't overflow the box and push
+  // subsequent elements down.
+  height: 1lh;
   width: 4rem;
   margin: 0 auto;
+}
+
+// Skeleton variant — uses the same box; only applies the shimmer.
+.communityGradeSkeleton {
   border-radius: var(--radius-1);
 }
 
