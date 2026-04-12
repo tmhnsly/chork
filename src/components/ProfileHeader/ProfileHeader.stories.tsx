@@ -11,6 +11,9 @@ const mockUser: Profile = {
   active_gym_id: "gym1",
   created_at: "2026-01-01T00:00:00Z",
   updated_at: "2026-01-01T00:00:00Z",
+  allow_crew_invites: true,
+  invites_sent_today: 0,
+  invites_sent_date: null,
 };
 
 const meta = {

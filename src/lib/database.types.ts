@@ -63,6 +63,42 @@ export type Database = {
           },
         ]
       }
+      blocked_users: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blocked_users_blocked_id_fkey"
+            columns: ["blocked_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blocked_users_blocker_id_fkey"
+            columns: ["blocker_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comment_likes: {
         Row: {
           comment_id: string
@@ -326,6 +362,84 @@ export type Database = {
           },
         ]
       }
+      crew_members: {
+        Row: {
+          created_at: string
+          crew_id: string
+          id: string
+          invited_by: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          crew_id: string
+          id?: string
+          invited_by: string
+          status: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          crew_id?: string
+          id?: string
+          invited_by?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crew_members_crew_id_fkey"
+            columns: ["crew_id"]
+            isOneToOne: false
+            referencedRelation: "crews"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_members_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crew_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crews: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crews_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gym_admins: {
         Row: {
           created_at: string
@@ -500,9 +614,12 @@ export type Database = {
       profiles: {
         Row: {
           active_gym_id: string | null
+          allow_crew_invites: boolean
           avatar_url: string
           created_at: string
           id: string
+          invites_sent_date: string | null
+          invites_sent_today: number
           name: string
           onboarded: boolean
           updated_at: string
@@ -510,9 +627,12 @@ export type Database = {
         }
         Insert: {
           active_gym_id?: string | null
+          allow_crew_invites?: boolean
           avatar_url?: string
           created_at?: string
           id: string
+          invites_sent_date?: string | null
+          invites_sent_today?: number
           name?: string
           onboarded?: boolean
           updated_at?: string
@@ -520,9 +640,12 @@ export type Database = {
         }
         Update: {
           active_gym_id?: string | null
+          allow_crew_invites?: boolean
           avatar_url?: string
           created_at?: string
           id?: string
+          invites_sent_date?: string | null
+          invites_sent_today?: number
           name?: string
           onboarded?: boolean
           updated_at?: string
@@ -895,6 +1018,8 @@ export type Database = {
     }
     Functions: {
       auto_publish_due_sets: { Args: never; Returns: number }
+      bump_invite_rate_limit: { Args: never; Returns: boolean }
+      crew_member_status: { Args: { p_crew_id: string }; Returns: string }
       get_active_climber_count: { Args: { p_set_id: string }; Returns: number }
       get_all_time_overview: {
         Args: { p_gym_id: string }
@@ -1094,7 +1219,12 @@ export type Database = {
         Args: { p_comment_id: string; p_delta: number }
         Returns: number
       }
+      is_active_crew_member: { Args: { p_crew_id: string }; Returns: boolean }
       is_admin_of_route: { Args: { p_route_id: string }; Returns: boolean }
+      is_blocking: {
+        Args: { p_blocked: string; p_blocker: string }
+        Returns: boolean
+      }
       is_competition_organiser: {
         Args: { p_competition_id: string }
         Returns: boolean
