@@ -6,6 +6,7 @@ import type {
   Crew,
   PendingInvite,
   ActiveSetOption,
+  CrewActivityEvent,
 } from "@/lib/data/crew-queries";
 import { PendingInvitesCard } from "./PendingInvitesCard";
 import { CrewActivityFeed } from "./CrewActivityFeed";
@@ -20,6 +21,8 @@ interface Props {
   liveSets: ActiveSetOption[];
   currentUserId: string;
   activeGymId: string | null;
+  initialFeed: CrewActivityEvent[];
+  initialFeedExhausted: boolean;
 }
 
 /**
@@ -34,6 +37,8 @@ export function CrewHome({
   liveSets,
   currentUserId,
   activeGymId,
+  initialFeed,
+  initialFeedExhausted,
 }: Props) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -70,7 +75,11 @@ export function CrewHome({
             <FaMagnifyingGlass />
           </button>
         </div>
-        <CrewActivityFeed hasCrew={myCrews.length > 0} />
+        <CrewActivityFeed
+          hasCrew={myCrews.length > 0}
+          initialEvents={initialFeed}
+          initialExhausted={initialFeedExhausted}
+        />
       </section>
 
       <CrewLeaderboardSection

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireSignedIn } from "@/lib/auth";
 import { formatError } from "@/lib/errors";
+import { sendPushToUsers } from "@/lib/push/server";
 
 type ActionResult<T = unknown> = { error: string } | ({ success: true } & T);
 
@@ -106,6 +107,24 @@ export async function inviteToCrew(
         return { error: "This climber already has an invite for that crew." };
       }
       return { error: formatError(error) };
+    }
+
+    // Fire a push notification to the invitee. Best-effort — push
+    // failures never propagate to the user because the invite row is
+    // already written. `sendPushToUsers` is a noop when VAPID isn't
+    // configured, so this stays safe in dev without extra guards.
+    try {
+      const [{ data: crewRow }, { data: inviterRow }] = await Promise.all([
+        supabase.from("crews").select("name").eq("id", crewId).maybeSingle(),
+        supabase.from("profiles").select("username").eq("id", userId).maybeSingle(),
+      ]);
+      await sendPushToUsers([targetUserId], {
+        title: "New crew invite",
+        body: `@${inviterRow?.username ?? "someone"} invited you to ${crewRow?.name ?? "a crew"}.`,
+        url: "/crew",
+      });
+    } catch (err) {
+      console.warn("[chork] crew-invite push dispatch failed:", err);
     }
 
     revalidatePath("/crew", "layout");

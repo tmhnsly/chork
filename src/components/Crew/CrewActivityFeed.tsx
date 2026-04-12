@@ -1,72 +1,56 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { FaBolt, FaBullseye, FaCheck } from "react-icons/fa6";
-import { UserAvatar, shimmerStyles } from "@/components/ui";
+import { UserAvatar } from "@/components/ui";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import {
   getCrewActivityFeed,
   type CrewActivityEvent,
 } from "@/lib/data/crew-queries";
 import { formatSetLabel } from "@/lib/data/set-label";
+import { relativeDay } from "@/lib/data/crew-time";
 import styles from "./crewActivityFeed.module.scss";
 
 const PAGE_SIZE = 30;
 
 interface Props {
   hasCrew: boolean;
+  /** First page of feed events, rendered server-side for instant paint. */
+  initialEvents: CrewActivityEvent[];
+  /** True when the first page returned fewer than PAGE_SIZE rows. */
+  initialExhausted: boolean;
 }
 
 /**
- * Chronological feed of crew-mate achievements. Cursor paginates by
- * the server-side RPC; timestamps are coarse relative-time only
- * ("today", "yesterday", "3 days ago") — deliberate privacy choice
- * so climbers can't infer when others are physically at the gym.
+ * Chronological feed of crew-mate achievements. First page ships from
+ * the server so the tab opens fully populated; subsequent pages load
+ * lazily via the get_crew_activity_feed RPC with an updated_at cursor.
+ *
+ * Timestamps are coarse relative-time only — see `relativeDay` in
+ * src/lib/data/crew-time.ts for the privacy contract.
  */
-export function CrewActivityFeed({ hasCrew }: Props) {
-  // Lazy-init based on hasCrew. Users with no crews never hit the
-  // fetch path — no setState inside the effect, which would trip
-  // Next 15's react-hooks/set-state-in-effect rule.
-  const [events, setEvents] = useState<CrewActivityEvent[] | null>(
-    () => (hasCrew ? null : [])
+export function CrewActivityFeed({
+  hasCrew,
+  initialEvents,
+  initialExhausted,
+}: Props) {
+  const [events, setEvents] = useState<CrewActivityEvent[]>(initialEvents);
+  const [cursor, setCursor] = useState<string | null>(
+    initialEvents.length > 0 ? initialEvents[initialEvents.length - 1].happened_at : null
   );
-  const [cursor, setCursor] = useState<string | null>(null);
-  const [exhausted, setExhausted] = useState<boolean>(() => !hasCrew);
+  const [exhausted, setExhausted] = useState<boolean>(initialExhausted);
   const [loadingMore, setLoadingMore] = useState(false);
-
-  useEffect(() => {
-    if (!hasCrew) return;
-    let cancelled = false;
-    (async () => {
-      const supabase = createBrowserSupabase();
-      const page = await getCrewActivityFeed(supabase, PAGE_SIZE);
-      if (cancelled) return;
-      setEvents(page);
-      if (page.length < PAGE_SIZE) setExhausted(true);
-      else setCursor(page[page.length - 1].happened_at);
-    })();
-    return () => { cancelled = true; };
-  }, [hasCrew]);
 
   async function handleLoadMore() {
     if (!cursor || loadingMore || exhausted) return;
     setLoadingMore(true);
     const supabase = createBrowserSupabase();
     const page = await getCrewActivityFeed(supabase, PAGE_SIZE, cursor);
-    setEvents((prev) => [...(prev ?? []), ...page]);
+    setEvents((prev) => [...prev, ...page]);
     if (page.length < PAGE_SIZE) setExhausted(true);
     else setCursor(page[page.length - 1].happened_at);
     setLoadingMore(false);
-  }
-
-  if (events === null) {
-    return (
-      <ul className={styles.list} aria-busy="true">
-        {[0, 1, 2].map((i) => (
-          <li key={i} className={`${styles.row} ${shimmerStyles.skeleton}`} />
-        ))}
-      </ul>
-    );
   }
 
   if (events.length === 0) {
@@ -159,21 +143,4 @@ function FeedRow({ event }: { event: CrewActivityEvent }) {
       </div>
     </li>
   );
-}
-
-/**
- * Coarse relative time. Always rounded to a whole day — never shows
- * clock time or "X hours ago" so climbers can't infer when crewmates
- * are physically at the gym. Privacy-first by design.
- */
-function relativeDay(iso: string): string {
-  const then = new Date(iso);
-  const now = new Date();
-  const thenDay = Date.UTC(then.getUTCFullYear(), then.getUTCMonth(), then.getUTCDate());
-  const nowDay = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-  const diffDays = Math.round((nowDay - thenDay) / (24 * 60 * 60 * 1000));
-  if (diffDays <= 0) return "today";
-  if (diffDays === 1) return "yesterday";
-  if (diffDays <= 30) return `${diffDays} days ago`;
-  return "over a month ago";
 }
