@@ -936,6 +936,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      auto_publish_due_sets: { Args: never; Returns: number }
       get_leaderboard_all_time: {
         Args: { p_gym_id: string; p_limit?: number; p_offset?: number }
         Returns: {
@@ -1026,6 +1027,18 @@ export type Database = {
       is_gym_admin: { Args: { p_gym_id: string }; Returns: boolean }
       is_gym_member: { Args: { p_gym_id: string }; Returns: boolean }
       is_gym_owner: { Args: { p_gym_id: string }; Returns: boolean }
+      resolve_admin_invite: {
+        Args: { p_token: string }
+        Returns: {
+          accepted: boolean
+          email: string
+          expired: boolean
+          expires_at: string
+          gym_id: string
+          id: string
+          role: string
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never

@@ -10,16 +10,25 @@ interface Props {
   gymId: string;
 }
 
+// Default date window — today → today + 4 weeks. Computed once inside
+// lazy `useState` initialisers so the impure clock read only happens at
+// mount, not on every render (Next.js 15's react-hooks/purity rule
+// flags Date.now() / new Date() in a component body).
+function defaultStartDate(): string {
+  return new Date().toISOString().split("T")[0];
+}
+function defaultEndDate(): string {
+  return new Date(new Date().getTime() + 28 * 24 * 60 * 60 * 1000)
+    .toISOString()
+    .split("T")[0];
+}
+
 export function CreateSetForm({ gymId }: Props) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
 
-  // Default: starts today, ends in 4 weeks
-  const today = new Date().toISOString().split("T")[0];
-  const fourWeeks = new Date(Date.now() + 28 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-
-  const [startsAt, setStartsAt] = useState(today);
-  const [endsAt, setEndsAt] = useState(fourWeeks);
+  const [startsAt, setStartsAt] = useState(defaultStartDate);
+  const [endsAt, setEndsAt] = useState(defaultEndDate);
   const [routeCount, setRouteCount] = useState(14);
   const [zoneRoutes, setZoneRoutes] = useState<Set<number>>(new Set());
 

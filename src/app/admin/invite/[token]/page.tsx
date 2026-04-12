@@ -18,6 +18,12 @@ interface Props {
  * card that posts to the accept server action. The actual admin-row
  * insert happens in `acceptAdminInvite()`; this page only decides
  * whether to offer the confirmation.
+ *
+ * Expiry is computed by the DB (`resolve_admin_invite` RPC, migration
+ * 016). Comparing `expires_at` to `Date.now()` in the render path
+ * trips Next.js 15's react-hooks/purity rule and would also drift
+ * against the DB's clock — Postgres's `now()` is the only authority
+ * that matters.
  */
 export default async function InviteAcceptPage({ params }: Props) {
   const { token } = await params;
@@ -27,17 +33,15 @@ export default async function InviteAcceptPage({ params }: Props) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect(`/login?next=/admin/invite/${token}`);
 
-  // Read the invite with the service role — the caller's JWT can't see
-  // invites addressed to other emails, and we want to surface a useful
-  // error if the email doesn't match rather than a blank 404.
+  // Resolve the invite via the SECURITY DEFINER RPC so we read rows
+  // addressed to a different email than the caller's, and so expiry
+  // is computed in SQL rather than on the Node server.
   const service = createServiceClient();
-  const { data: invite } = await service
-    .from("gym_invites")
-    .select("id, gym_id, email, role, accepted_at, expires_at")
-    .eq("token", token)
+  const { data: resolved } = await service
+    .rpc("resolve_admin_invite", { p_token: token })
     .maybeSingle();
 
-  if (!invite) {
+  if (!resolved) {
     return (
       <main className={styles.page}>
         <h1 className={styles.title}>Invite not found</h1>
@@ -52,11 +56,9 @@ export default async function InviteAcceptPage({ params }: Props) {
   const { data: userRow } = await service.auth.admin.getUserById(user.id);
   const callerEmail = userRow?.user?.email ?? "";
 
-  const expired = new Date(invite.expires_at).getTime() < Date.now();
-  const wrongEmail = callerEmail.toLowerCase() !== invite.email.toLowerCase();
-  const alreadyAccepted = !!invite.accepted_at;
+  const wrongEmail = callerEmail.toLowerCase() !== resolved.email.toLowerCase();
 
-  const gym = await getGym(service, invite.gym_id);
+  const gym = await getGym(service, resolved.gym_id);
 
   return (
     <main className={styles.page}>
@@ -64,12 +66,12 @@ export default async function InviteAcceptPage({ params }: Props) {
       <InviteAcceptCard
         token={token}
         gymName={gym?.name ?? "a gym"}
-        role={invite.role as "admin" | "owner"}
-        email={invite.email}
+        role={resolved.role as "admin" | "owner"}
+        email={resolved.email}
         signedInEmail={callerEmail}
         state={
-          alreadyAccepted ? "accepted"
-          : expired ? "expired"
+          resolved.accepted ? "accepted"
+          : resolved.expired ? "expired"
           : wrongEmail ? "wrong-email"
           : "ready"
         }
