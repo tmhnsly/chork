@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { createServerSupabase } from "@/lib/supabase/server";
-import { getCurrentSet, getRoutesBySet, getLogsBySetForUser, getUserGymRole, isGymAdmin } from "@/lib/data/queries";
+import { getCurrentSet, getRoutesBySet, getLogsBySetForUser, getUserGymRole, isGymAdmin, getGym } from "@/lib/data/queries";
 import { SendsGrid } from "@/components/SendsGrid/SendsGrid";
 import { SendsGridSkeleton } from "@/components/SendsGrid/SendsGridSkeleton";
 import { CreateSetForm } from "@/components/AdminControls/CreateSetForm";
@@ -11,12 +11,14 @@ import styles from "./page.module.scss";
 async function AuthenticatedHome({ userId, gymId }: { userId: string; gymId: string }) {
   const supabase = await createServerSupabase();
 
-  const [set, role] = await Promise.all([
+  const [set, role, gym] = await Promise.all([
     getCurrentSet(supabase, gymId),
     getUserGymRole(supabase, userId, gymId),
+    getGym(supabase, gymId),
   ]);
 
   const admin = isGymAdmin(role);
+  const gymName = gym?.name ?? null;
 
   if (!set) {
     if (admin) {
@@ -33,7 +35,7 @@ async function AuthenticatedHome({ userId, gymId }: { userId: string; gymId: str
   return (
     <>
       {admin && <ManageSetBar set={set} gymId={gymId} routeCount={routes.length} />}
-      <SendsGrid set={set} routes={routes} initialLogs={logs} />
+      <SendsGrid set={set} routes={routes} initialLogs={logs} gymName={gymName} />
     </>
   );
 }

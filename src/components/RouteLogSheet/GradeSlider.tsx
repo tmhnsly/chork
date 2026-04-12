@@ -1,20 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import * as Switch from "@radix-ui/react-switch";
+import {
+  gradeLabels,
+  SCALE_DEFAULT_MAX,
+  type GradingScale,
+} from "@/lib/data/grade-label";
 import styles from "./gradeSlider.module.scss";
-
-const GRADES = ["V0", "V1", "V2", "V3", "V4", "V5", "V6", "V7", "V8", "V9", "V10"];
 
 interface Props {
   /** Current grade vote (null = not rated) */
   value: number | null;
   onChange: (grade: number | null) => void;
+  /** Grading scale of the active set. Defaults to V for backward compat. */
+  scale?: GradingScale;
+  /** Maximum selectable grade index, bounded by the set's max_grade. */
+  maxGrade?: number;
 }
 
-export function GradeSlider({ value, onChange }: Props) {
+/**
+ * Climber-facing community-grade slider. The range and labels are
+ * derived from the active set's `grading_scale` + `max_grade` so a
+ * V-scale set cannot record an 8B vote and a Font-scale set cannot
+ * record V17. For `points` scale the admin has opted out of grading
+ * entirely; the caller should not render the slider at all.
+ */
+export function GradeSlider({ value, onChange, scale = "v", maxGrade }: Props) {
   const [enabled, setEnabled] = useState(value !== null);
   const [grade, setGrade] = useState<number | null>(value);
+
+  const labels = useMemo(
+    () => gradeLabels(scale, maxGrade ?? SCALE_DEFAULT_MAX[scale]),
+    [scale, maxGrade]
+  );
 
   function handleToggle(checked: boolean) {
     setEnabled(checked);
@@ -31,6 +50,10 @@ export function GradeSlider({ value, onChange }: Props) {
     setGrade(index);
     onChange(index);
   }
+
+  // Defensive: if the caller forgot to check for `points` scale,
+  // collapsing to an empty row at least avoids a broken column.
+  if (labels.length === 0) return null;
 
   return (
     <div className={styles.panel}>
@@ -49,7 +72,7 @@ export function GradeSlider({ value, onChange }: Props) {
 
       <div className={`${styles.gradeSection} ${enabled ? styles.gradeSectionVisible : ""}`}>
         <div className={styles.gradeRow}>
-          {GRADES.map((label, i) => (
+          {labels.map((label, i) => (
             <button
               key={label}
               type="button"

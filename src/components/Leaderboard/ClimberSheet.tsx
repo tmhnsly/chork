@@ -7,6 +7,7 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button, UserAvatar, shimmerStyles } from "@/components/ui";
 import { PunchTile } from "@/components/PunchTile/PunchTile";
 import type { LeaderboardEntry, Profile, Route, TileState } from "@/lib/data";
+import { formatGrade } from "@/lib/data/grade-label";
 import { fetchClimberSheetData, type SanitisedLog } from "@/app/leaderboard/actions";
 import { toAvatarUser } from "./helpers";
 import styles from "./climberSheet.module.scss";
@@ -105,7 +106,7 @@ export function ClimberSheet({ entry, setId, onClose }: Props) {
                       number={route.number}
                       state={tileStateFromSanitised(log)}
                       zone={log?.zone}
-                      gradeLabel={log?.grade_vote != null ? `V${log.grade_vote}` : undefined}
+                      gradeLabel={log?.grade_vote != null ? (formatGrade(log.grade_vote, "v") ?? undefined) : undefined}
                     />
                   );
                 })}

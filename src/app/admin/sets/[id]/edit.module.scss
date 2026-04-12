@@ -9,3 +9,24 @@
   @include type.typography(display);
   color: var(--mono-text);
 }
+
+.routesLink {
+  @include type.typography(label);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  align-self: flex-start;
+  min-height: var(--size-touch-target);
+  padding: 0 var(--space-3);
+  color: var(--mono-text-low-contrast);
+  background: var(--mono-subtle-bg);
+  border: 1px solid var(--mono-border);
+  border-radius: var(--radius-full);
+  text-decoration: none;
+  transition: border-color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    border-color: var(--mono-border-hover);
+    color: var(--mono-text);
+  }
+}

@@ -201,6 +201,111 @@ export interface UpdateSetInput {
   competitionId?: string | null;
 }
 
+// ────────────────────────────────────────────────────────────────
+// Route mutations
+// ────────────────────────────────────────────────────────────────
+
+export interface QuickSetupInput {
+  setId: string;
+  count: number;
+  /** Route numbers (1-indexed) that should be flagged as zone-hold routes. */
+  zoneRouteNumbers: number[];
+}
+
+/**
+ * Quick-setup: create `count` routes numbered 1..count on the given set.
+ * Idempotent on re-run — existing (set_id, number) rows are untouched
+ * thanks to the unique constraint on routes(set_id, number) combined
+ * with upsert onConflict. Zone flags are re-applied on every call so
+ * admins can quickly correct a miscount.
+ */
+export async function quickSetupRoutes(
+  supabase: Supabase,
+  input: QuickSetupInput
+): Promise<{ created: number } | { error: string }> {
+  if (input.count < 1 || input.count > 100) {
+    return { error: "Route count must be between 1 and 100." };
+  }
+
+  const zoneSet = new Set(input.zoneRouteNumbers);
+  const rows = Array.from({ length: input.count }, (_, i) => ({
+    set_id: input.setId,
+    number: i + 1,
+    has_zone: zoneSet.has(i + 1),
+  }));
+
+  const { error, count } = await supabase
+    .from("routes")
+    .upsert(rows, { onConflict: "set_id,number", count: "exact" });
+
+  if (error) return { error: error.message };
+  return { created: count ?? rows.length };
+}
+
+export interface UpdateRouteInput {
+  number?: number;
+  hasZone?: boolean;
+  setterName?: string | null;
+}
+
+export async function updateAdminRoute(
+  supabase: Supabase,
+  routeId: string,
+  input: UpdateRouteInput
+): Promise<{ success: true } | { error: string }> {
+  type RouteUpdate = Database["public"]["Tables"]["routes"]["Update"];
+  const patch: RouteUpdate = {};
+  if (input.number !== undefined) patch.number = input.number;
+  if (input.hasZone !== undefined) patch.has_zone = input.hasZone;
+  if (input.setterName !== undefined) patch.setter_name = input.setterName;
+
+  const { error } = await supabase.from("routes").update(patch).eq("id", routeId);
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
+/**
+ * Replace the tag set for a route atomically — deletes rows that were
+ * removed and inserts new ones, skipping any that are already present.
+ * The route_tags_map RLS policy gates both sides via is_admin_of_route.
+ */
+export async function setRouteTags(
+  supabase: Supabase,
+  routeId: string,
+  tagIds: string[]
+): Promise<{ success: true } | { error: string }> {
+  // Fetch the current set so we only touch rows that actually change.
+  const { data: existing, error: readErr } = await supabase
+    .from("route_tags_map")
+    .select("tag_id")
+    .eq("route_id", routeId);
+  if (readErr) return { error: readErr.message };
+
+  const current = new Set((existing ?? []).map((r) => r.tag_id));
+  const next = new Set(tagIds);
+
+  const toRemove = [...current].filter((id) => !next.has(id));
+  const toAdd = [...next].filter((id) => !current.has(id));
+
+  if (toRemove.length > 0) {
+    const { error } = await supabase
+      .from("route_tags_map")
+      .delete()
+      .eq("route_id", routeId)
+      .in("tag_id", toRemove);
+    if (error) return { error: error.message };
+  }
+
+  if (toAdd.length > 0) {
+    const { error } = await supabase
+      .from("route_tags_map")
+      .insert(toAdd.map((tag_id) => ({ route_id: routeId, tag_id })));
+    if (error) return { error: error.message };
+  }
+
+  return { success: true };
+}
+
 export async function updateAdminSet(
   supabase: Supabase,
   setId: string,

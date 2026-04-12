@@ -542,6 +542,35 @@ export async function getEarnedAchievements(
   return new Map((data ?? []).map((r) => [r.badge_id, r.earned_at]));
 }
 
+// ── Gym directory ─────────────────────────────────
+
+export interface GymListing {
+  id: string;
+  name: string;
+  slug: string;
+  city: string | null;
+  country: string | null;
+}
+
+/**
+ * Publicly-listed gyms. Powers the climber gym switcher — surfacing
+ * only gyms the gym admin has opted to list keeps private / staging
+ * gyms out of the search.
+ */
+export async function getListedGyms(supabase: Supabase): Promise<GymListing[]> {
+  const { data, error } = await supabase
+    .from("gyms")
+    .select("id, name, slug, city, country")
+    .eq("is_listed", true)
+    .order("name");
+
+  if (error) {
+    console.warn("[chork] getListedGyms failed:", error);
+    return [];
+  }
+  return data ?? [];
+}
+
 // ── Gym-wide aggregates ───────────────────────────
 
 export interface GymStats {

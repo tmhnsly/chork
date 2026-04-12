@@ -1,4 +1,5 @@
 @use "mixins/typography" as type;
+@use "mixins/layout" as layout;
 
 .page {
   display: flex;
@@ -6,8 +7,19 @@
   gap: var(--space-4);
 }
 
+// Mirrors the Chorkboard header — title with gym name stacked below in
+// the low-contrast label style, so both primary pages read the same.
+.header {
+  @include layout.stack(var(--space-1));
+}
+
 .title {
   @include type.typography(display);
+}
+
+.gym {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
 }
 
 // ── Route tile grid ────────────────────────────────

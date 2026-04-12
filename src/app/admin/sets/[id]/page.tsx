@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { FaListUl } from "react-icons/fa6";
 import { requireGymAdmin } from "@/lib/auth";
 import { getAllSetsForAdminGym } from "@/lib/data/admin-queries";
 import { SetForm } from "@/components/admin/SetForm";
@@ -25,6 +27,9 @@ export default async function EditSetPage({ params }: Props) {
   return (
     <main className={styles.page}>
       <h1 className={styles.title}>Edit set</h1>
+      <Link href={`/admin/sets/${id}/routes`} className={styles.routesLink}>
+        <FaListUl aria-hidden /> Manage routes
+      </Link>
       <SetForm
         mode="edit"
         gymId={gymId}

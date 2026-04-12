@@ -122,3 +122,40 @@ export async function getRouteTags(supabase: Supabase): Promise<RouteTagRow[]> {
   }
   return data ?? [];
 }
+
+export interface AdminRouteRow {
+  id: string;
+  number: number;
+  has_zone: boolean;
+  setter_name: string | null;
+  tag_ids: string[];
+}
+
+/**
+ * All routes in a set with their tags pre-joined. One round-trip for
+ * the admin routes page — avoids N+1 fetches when the admin scans
+ * down a 20-route list.
+ */
+export async function getAdminRoutesForSet(
+  supabase: Supabase,
+  setId: string
+): Promise<AdminRouteRow[]> {
+  const { data, error } = await supabase
+    .from("routes")
+    .select("id, number, has_zone, setter_name, route_tags_map (tag_id)")
+    .eq("set_id", setId)
+    .order("number");
+
+  if (error) {
+    console.warn("[chork] getAdminRoutesForSet failed:", error);
+    return [];
+  }
+
+  return (data ?? []).map((r) => ({
+    id: r.id,
+    number: r.number,
+    has_zone: r.has_zone,
+    setter_name: r.setter_name,
+    tag_ids: (r.route_tags_map ?? []).map((m) => m.tag_id),
+  }));
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { FaGear, FaKey, FaPen, FaRightFromBracket, FaTrash, FaShieldHalved } from "react-icons/fa6";
+import { FaGear, FaKey, FaPen, FaRightFromBracket, FaTrash, FaShieldHalved, FaMountainSun } from "react-icons/fa6";
 import type { Profile } from "@/lib/data";
 import { useAuth } from "@/lib/auth-context";
 import { UserAvatar } from "@/components/ui";
@@ -11,6 +11,7 @@ import { FollowListSheet, type FollowListMode } from "@/components/FollowListShe
 import { DropdownMenu } from "@/components/SettingsMenu/SettingsMenu";
 import { EditProfileDialog } from "@/components/SettingsMenu/EditProfileDialog";
 import { DeleteAccountDialog } from "@/components/SettingsMenu/DeleteAccountDialog";
+import { GymSwitcherSheet } from "@/components/GymSwitcher/GymSwitcherSheet";
 import styles from "./profileHeader.module.scss";
 
 interface Props {
@@ -25,6 +26,7 @@ export function ProfileHeader({ user, isOwnProfile, isFollowing, followerCount: 
   const { signOut, resetPassword } = useAuth();
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showGymSwitcher, setShowGymSwitcher] = useState(false);
   const [followerCount, setFollowerCount] = useState(initialFollowerCount);
   const [followList, setFollowList] = useState<FollowListMode | null>(null);
 
@@ -79,6 +81,7 @@ export function ProfileHeader({ user, isOwnProfile, isFollowing, followerCount: 
                 {
                   items: [
                     { label: "Edit profile", icon: <FaPen />, onSelect: () => setShowEditDialog(true) },
+                    { label: "Change gym", icon: <FaMountainSun />, onSelect: () => setShowGymSwitcher(true) },
                     { label: "Reset password", icon: <FaKey />, onSelect: async () => {
                       const { createBrowserSupabase } = await import("@/lib/supabase/client");
                       const sb = createBrowserSupabase();
@@ -106,6 +109,11 @@ export function ProfileHeader({ user, isOwnProfile, isFollowing, followerCount: 
         <>
           <EditProfileDialog user={user} open={showEditDialog} onOpenChange={setShowEditDialog} />
           <DeleteAccountDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog} />
+          <GymSwitcherSheet
+            open={showGymSwitcher}
+            onClose={() => setShowGymSwitcher(false)}
+            activeGymId={user.active_gym_id ?? null}
+          />
         </>
       )}
 

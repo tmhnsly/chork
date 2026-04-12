@@ -22,6 +22,7 @@ import type { ReactNode } from "react";
 import { RollingNumber } from "@/components/RollingNumber/RollingNumber";
 import { ZoneHoldRow } from "./ZoneHoldRow";
 import { GradeSlider } from "./GradeSlider";
+import { formatGrade, type GradingScale } from "@/lib/data/grade-label";
 import type { RouteSet, Route, RouteLog, Comment, PaginatedComments } from "@/lib/data";
 import { createOptimisticLog } from "@/lib/data";
 import { isFlash, computePoints } from "@/lib/data";
@@ -97,6 +98,13 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
   const [currentLog, setCurrentLog] = useState(log);
   const [gradeLabel, setGradeLabel] = useState<string | null>(null);
   const [gradeVote, setGradeVote] = useState<number | null>(log?.grade_vote ?? null);
+
+  // Scale context pulled from the active set. When the set's grading
+  // scale is "points", the rating UI is hidden entirely and the header
+  // doesn't try to show a community grade.
+  const gradingScale = (set.grading_scale ?? "v") as GradingScale;
+  const maxGrade = set.max_grade ?? undefined;
+  const gradingDisabled = gradingScale === "points";
   const [completing, setCompleting] = useState(false);
 
   // Beta spray state
@@ -138,7 +146,7 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
   useEffect(() => {
     if (cachedData) {
       const { grade, comments: result, likedIds: liked } = cachedData;
-      setGradeLabel(grade !== null ? `V${grade}` : "Ungraded");
+      setGradeLabel(grade !== null ? (formatGrade(grade, gradingScale) ?? "Ungraded") : "Ungraded");
       setLikedIds(new Set(liked));
       setComments(result.items);
       setTotalComments(result.totalItems);
@@ -155,7 +163,7 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
     fetchRouteData(route.id)
       .then((data) => {
         const { grade, comments: result, likedIds: liked } = data;
-        setGradeLabel(grade !== null ? `V${grade}` : "Ungraded");
+        setGradeLabel(grade !== null ? (formatGrade(grade, gradingScale) ?? "Ungraded") : "Ungraded");
         setLikedIds(new Set(liked));
         setComments(result.items);
         setTotalComments(result.totalItems);
@@ -165,7 +173,7 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
       })
       .catch((err) => console.warn("[chork] fetchRouteData failed:", err))
       .finally(() => setLoadingComments(false));
-  }, [route.id, cachedData]);
+  }, [route.id, cachedData, gradingScale]);
 
   // ── Load comments when beta expanded (lazy) ──
   function handleExpandBeta() {
@@ -410,7 +418,9 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
               {route.number}
               {isCurrentFlash && <FaBolt className={styles.flashIcon} />}
             </h2>
-            {gradeLabel !== null ? (
+            {/* Community grade display — hidden for points-only sets
+                where grading is disabled at the set level. */}
+            {gradingDisabled ? null : gradeLabel !== null ? (
               <span className={styles.communityGrade}>{gradeLabel}</span>
             ) : (
               <span
@@ -485,10 +495,14 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
               </Button>
             )}
 
-            {/* Grade slider (post-completion only) */}
-            {isCompleted && (
+            {/* Grade slider (post-completion only). Hidden entirely
+                for points-only sets where the admin has opted out of
+                climber-side grading. */}
+            {isCompleted && !gradingDisabled && (
               <GradeSlider
                 value={gradeVote}
+                scale={gradingScale}
+                maxGrade={maxGrade}
                 onChange={(grade) => {
                   setGradeVote(grade);
                   // Debounce the server call — user may tap multiple chips quickly

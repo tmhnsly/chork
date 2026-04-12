@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { format, parseISO } from "date-fns";
 import type { RouteSet, Route, RouteLog } from "@/lib/data";
 import { isFlash, computePoints, deriveTileState } from "@/lib/data";
+import { formatGrade, type GradingScale } from "@/lib/data/grade-label";
 import { StatsWidget } from "@/components/StatsWidget/StatsWidget";
 import { RevealText } from "@/components/motion";
 import { PunchTile } from "@/components/PunchTile/PunchTile";
@@ -21,9 +22,11 @@ interface Props {
   set: RouteSet;
   routes: Route[];
   initialLogs: RouteLog[];
+  /** Current gym name — rendered under the title to match the Chorkboard header. */
+  gymName?: string | null;
 }
 
-export function SendsGrid({ set, routes, initialLogs }: Props) {
+export function SendsGrid({ set, routes, initialLogs, gymName }: Props) {
   const [logs, setLogs] = useState<RouteLog[]>(initialLogs);
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [routeDataCache, setRouteDataCache] = useState<Map<string, CachedRouteData>>(new Map());
@@ -60,7 +63,10 @@ export function SendsGrid({ set, routes, initialLogs }: Props) {
   return (
     <>
       <div className={styles.page}>
-        <RevealText text="The Wall" as="h2" className={styles.title} />
+        <header className={styles.header}>
+          <RevealText text="The Wall" as="h2" className={styles.title} />
+          {gymName && <p className={styles.gym}>{gymName}</p>}
+        </header>
 
         <StatsWidget
           completions={completedCount}
@@ -84,7 +90,7 @@ export function SendsGrid({ set, routes, initialLogs }: Props) {
                 number={route.number}
                 state={deriveTileState(log)}
                 zone={log?.zone}
-                gradeLabel={log?.grade_vote != null ? `V${log.grade_vote}` : undefined}
+                gradeLabel={log?.grade_vote != null ? (formatGrade(log.grade_vote, (set.grading_scale ?? "v") as GradingScale) ?? undefined) : undefined}
                 onClick={() => setSelectedRoute(route)}
               />
             );

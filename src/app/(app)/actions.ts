@@ -342,3 +342,56 @@ export async function followUser(
     return { error: formatError(err) };
   }
 }
+
+// ────────────────────────────────────────────────────────────────
+// Gym switching — set the climber's active gym context
+// ────────────────────────────────────────────────────────────────
+
+/**
+ * Switch the signed-in climber's active gym. If they aren't already a
+ * member of the target gym, a `climber` membership is created first so
+ * subsequent RLS checks against `is_gym_member` succeed. Previous
+ * memberships are preserved — switching is purely about which gym
+ * surfaces on the wall and Chorkboard.
+ */
+export async function switchActiveGym(
+  gymId: string
+): Promise<ActionResult<{ gymId: string }>> {
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (typeof gymId !== "string" || !UUID_RE.test(gymId)) {
+    return { error: "Invalid gym" };
+  }
+
+  const auth = await requireSignedIn();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase, userId } = auth;
+
+  try {
+    // Confirm the target is a real, listed gym (RLS already gates reads
+    // — `is_listed=true` are visible to any authed user).
+    const { data: gym, error: gymErr } = await supabase
+      .from("gyms")
+      .select("id")
+      .eq("id", gymId)
+      .eq("is_listed", true)
+      .maybeSingle();
+    if (gymErr || !gym) return { error: "Gym not found" };
+
+    // Ensure membership exists — upsert keeps switching idempotent.
+    const { error: memErr } = await supabase
+      .from("gym_memberships")
+      .upsert({ user_id: userId, gym_id: gymId }, { onConflict: "user_id,gym_id" });
+    if (memErr) return { error: formatError(memErr) };
+
+    const { error: profErr } = await supabase
+      .from("profiles")
+      .update({ active_gym_id: gymId })
+      .eq("id", userId);
+    if (profErr) return { error: formatError(profErr) };
+
+    revalidatePath("/", "layout");
+    return { success: true, gymId };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}

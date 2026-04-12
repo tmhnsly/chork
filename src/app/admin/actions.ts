@@ -8,6 +8,9 @@ import {
   acceptGymInvite,
   createAdminSet,
   updateAdminSet,
+  quickSetupRoutes,
+  updateAdminRoute,
+  setRouteTags,
 } from "@/lib/data/admin-mutations";
 import { createServiceClient } from "@/lib/supabase/server";
 import { formatError } from "@/lib/errors";
@@ -279,6 +282,122 @@ export async function publishSet(setId: string): Promise<ActionResult> {
 
 export async function unpublishSet(setId: string): Promise<ActionResult> {
   return updateSet(setId, { status: "draft" });
+}
+
+// ────────────────────────────────────────────────────────────────
+// Routes
+// ────────────────────────────────────────────────────────────────
+
+// Explicit return types so discriminated-union narrowing via
+// `"error" in gate` reliably exposes `gate.error: string` (without the
+// explicit return type, `as const` literals on each branch trick TS
+// into seeing `error` as optionally-undefined on the union).
+
+async function verifyAdminOfSet(setId: string): Promise<
+  { error: string } | { auth: Extract<Awaited<ReturnType<typeof requireGymAdmin>>, { gymId: string }>; setRow: { gym_id: string } }
+> {
+  if (!UUID_RE.test(setId)) return { error: "Invalid set." };
+  const service = createServiceClient();
+  const { data: setRow } = await service
+    .from("sets")
+    .select("gym_id")
+    .eq("id", setId)
+    .maybeSingle();
+  if (!setRow) return { error: "Set not found." };
+  const auth = await requireGymAdmin(setRow.gym_id);
+  if ("error" in auth) return { error: auth.error };
+  return { auth, setRow };
+}
+
+async function verifyAdminOfRoute(routeId: string): Promise<
+  { error: string } | { auth: Extract<Awaited<ReturnType<typeof requireGymAdmin>>, { gymId: string }>; routeRow: { id: string; set_id: string; gym_id: string } }
+> {
+  if (!UUID_RE.test(routeId)) return { error: "Invalid route." };
+  const service = createServiceClient();
+  const { data: routeRow } = await service
+    .from("routes")
+    .select("id, set_id, sets!inner(gym_id)")
+    .eq("id", routeId)
+    .maybeSingle<{ id: string; set_id: string; sets: { gym_id: string } | { gym_id: string }[] }>();
+  if (!routeRow) return { error: "Route not found." };
+  const gymId = Array.isArray(routeRow.sets) ? routeRow.sets[0]?.gym_id : routeRow.sets?.gym_id;
+  if (!gymId) return { error: "Route not found." };
+  const auth = await requireGymAdmin(gymId);
+  if ("error" in auth) return { error: auth.error };
+  return { auth, routeRow: { id: routeRow.id, set_id: routeRow.set_id, gym_id: gymId } };
+}
+
+export async function quickSetupSetRoutes(form: {
+  setId: string;
+  count: number;
+  zoneRouteNumbers: number[];
+}): Promise<ActionResult<{ created: number }>> {
+  if (!Number.isInteger(form.count) || form.count < 1 || form.count > 100) {
+    return { error: "Route count must be between 1 and 100." };
+  }
+  if (!Array.isArray(form.zoneRouteNumbers)) {
+    return { error: "Invalid zone route list." };
+  }
+  const gate = await verifyAdminOfSet(form.setId);
+  if ("error" in gate) return { error: gate.error };
+
+  const result = await quickSetupRoutes(gate.auth.supabase, {
+    setId: form.setId,
+    count: form.count,
+    zoneRouteNumbers: form.zoneRouteNumbers.filter((n) => Number.isInteger(n) && n > 0 && n <= form.count),
+  });
+  if ("error" in result) return { error: result.error };
+
+  revalidatePath("/admin", "layout");
+  revalidatePath("/", "layout");
+  return { success: true, created: result.created };
+}
+
+export async function updateRoute(
+  routeId: string,
+  form: {
+    number?: number;
+    hasZone?: boolean;
+    setterName?: string | null;
+  }
+): Promise<ActionResult> {
+  const gate = await verifyAdminOfRoute(routeId);
+  if ("error" in gate) return { error: gate.error };
+
+  if (form.number !== undefined && (!Number.isInteger(form.number) || form.number < 1 || form.number > 999)) {
+    return { error: "Route number must be between 1 and 999." };
+  }
+  if (form.setterName !== undefined && form.setterName !== null) {
+    const trimmed = form.setterName.trim();
+    if (trimmed.length > 80) return { error: "Setter name too long." };
+    form.setterName = trimmed || null;
+  }
+
+  const result = await updateAdminRoute(gate.auth.supabase, routeId, form);
+  if ("error" in result) return { error: result.error };
+
+  revalidatePath("/admin", "layout");
+  revalidatePath("/", "layout");
+  return { success: true };
+}
+
+export async function updateRouteTags(
+  routeId: string,
+  tagIds: string[]
+): Promise<ActionResult> {
+  const gate = await verifyAdminOfRoute(routeId);
+  if ("error" in gate) return { error: gate.error };
+
+  if (!Array.isArray(tagIds) || tagIds.some((t) => !UUID_RE.test(t))) {
+    return { error: "Invalid tag list." };
+  }
+
+  const result = await setRouteTags(gate.auth.supabase, routeId, tagIds);
+  if ("error" in result) return { error: result.error };
+
+  revalidatePath("/admin", "layout");
+  revalidatePath("/", "layout");
+  return { success: true };
 }
 
 // ────────────────────────────────────────────────────────────────
