@@ -1,0 +1,56 @@
+@use "mixins/layout" as layout;
+
+.title {
+  height: var(--text-5xl);
+  width: 30%;
+  border-radius: var(--radius-1);
+}
+
+.sub {
+  height: var(--text-sm);
+  width: 50%;
+  border-radius: var(--radius-1);
+}
+
+.section {
+  @include layout.stack(var(--space-3));
+}
+
+.sectionTitle {
+  height: var(--text-lg);
+  width: 6rem;
+  border-radius: var(--radius-1);
+}
+
+.list {
+  @include layout.stack(var(--space-2));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+// Feed row matches .row in crewActivityFeed — avatar (36) + 3 text lines.
+.feedRow {
+  height: calc(var(--space-12) + var(--space-4));
+  border-radius: var(--radius-2);
+}
+
+.pillRow {
+  display: flex;
+  gap: var(--space-2);
+  padding-bottom: var(--space-1);
+}
+
+.pill {
+  width: 6rem;
+  height: var(--size-touch-target);
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+// Leaderboard row matches .row in crewLeaderboardSection — min-height
+// of the real row so swapping in content doesn't shift.
+.leaderboardRow {
+  height: calc(var(--size-touch-target) + var(--space-3));
+  border-radius: var(--radius-2);
+}

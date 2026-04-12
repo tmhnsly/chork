@@ -6,18 +6,11 @@ import { NavBar } from "@/components/NavBar/NavBar";
 import { OfflineBanner } from "@/components/OfflineBanner/OfflineBanner";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import { ToastProvider } from "@/components/ui";
-import type { Profile } from "@/lib/data/types";
 
-export function Providers({
-  children,
-  initialProfile,
-}: {
-  children: React.ReactNode;
-  initialProfile: Profile | null;
-}) {
+export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-      <AuthProvider initialProfile={initialProfile}>
+      <AuthProvider>
         <OfflineBanner />
         <NavBar />
         <div id="main-content">{children}</div>

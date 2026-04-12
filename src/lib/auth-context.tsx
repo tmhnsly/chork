@@ -27,25 +27,15 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-export function AuthProvider({
-  children,
-  initialProfile = null,
-}: {
-  children: ReactNode;
-  /**
-   * Server-rendered profile for the current session. When provided, the
-   * navbar (and any other auth-aware component) renders the correct state
-   * on first paint instead of flashing the logged-out UI while the
-   * client-side bootstrap runs.
-   */
-  initialProfile?: Profile | null;
-}) {
-  const [profile, setProfile] = useState<Profile | null>(initialProfile);
-  // The server-rendered initialProfile has already resolved the auth
-  // state (authed → Profile, anon → null), so consumers start with
-  // accurate info. The bootstrap below still runs to catch token refresh
-  // and drift.
-  const [isLoading, setIsLoading] = useState(false);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  // Start in the "loading" state. The two-phase bootstrap below reads
+  // the session from localStorage (instant, no network) and populates
+  // profile ~50-100ms after hydration. NavBar's isLoading branch
+  // renders a brand-only nav during this window — much better trade
+  // than blocking the root layout on a Supabase round-trip to avoid
+  // that tiny flash.
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const supabase = useMemo(() => createBrowserSupabase(), []);
   const profileRef = useRef(profile);
