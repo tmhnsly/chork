@@ -1,9 +1,9 @@
 @use "mixins/layout" as layout;
 @use "mixins/surfaces" as surface;
 
-// Full-card skeleton rather than a flat block — matches StatsWidget's
-// internal layout (RingStatsRow + RouteChart + footer) so the wall page
-// doesn't shift when the real widget paints.
+// Card box mirrors StatsWidget exactly. Children are real sub-components
+// (RingStatsRow + RouteChart) so dimensions stay in sync without any
+// magic numbers.
 .statsCard {
   @include surface.card;
   @include layout.stack(var(--space-4));
@@ -11,50 +11,7 @@
   border-radius: var(--radius-3);
 }
 
-.ringRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-}
-
-.ring {
-  width: 72px;
-  height: 72px;
-  border-radius: var(--radius-full);
-  flex-shrink: 0;
-}
-
-.statsStack {
-  flex: 1;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-2);
-}
-
-.stat {
-  @include layout.stack(var(--space-1));
-}
-
-.statValue {
-  height: var(--text-lg);
-  width: var(--space-8);
-  border-radius: var(--radius-1);
-}
-
-.statLabel {
-  height: var(--text-xs);
-  width: var(--space-10);
-  border-radius: var(--radius-1);
-}
-
-// RouteChart total height = bars (space-16) + chart gap (2px) + dots (4px).
-// Match exactly so swapping the skeleton for the real chart doesn't nudge
-// anything below by a few pixels.
-.chartPlaceholder {
-  height: calc(var(--space-16) + 6px);
-  border-radius: var(--radius-1);
-}
-
+// Matches the .footerLabel reserved line in StatsWidget's footer row.
 .footerLine {
   height: var(--text-xs);
   width: var(--space-12);

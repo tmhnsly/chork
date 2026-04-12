@@ -1,4 +1,8 @@
 import { shimmerStyles } from "@/components/ui";
+import {
+  PODIUM_AVATAR_SIZE_FIRST,
+  PODIUM_AVATAR_SIZE_RUNNER_UP,
+} from "@/components/Leaderboard/podium-constants";
 import styles from "./loading.module.scss";
 
 /**
@@ -28,22 +32,34 @@ export default function LeaderboardLoading() {
       {/* Segment control */}
       <div className={`${styles.segment} ${shimmerStyles.skeleton}`} />
 
-      {/* Podium — 2nd | 1st | 3rd with crowns + medals matches the real sizes */}
+      {/* Podium — 2nd | 1st | 3rd. Avatar sizes come from the shared
+          podium-constants module so the skeleton and real component can't
+          drift, and the sizes are applied via inline style (no magic
+          pixel values in the stylesheet). */}
       <div className={styles.podium}>
         <div className={styles.podiumSlot}>
-          <div className={`${styles.avatarMid} ${shimmerStyles.skeleton}`} />
+          <div
+            className={`${styles.avatarPlaceholder} ${shimmerStyles.skeleton}`}
+            style={{ width: PODIUM_AVATAR_SIZE_RUNNER_UP, height: PODIUM_AVATAR_SIZE_RUNNER_UP }}
+          />
           <div className={`${styles.smallLine} ${shimmerStyles.skeleton}`} />
           <div className={`${styles.smallLine} ${shimmerStyles.skeleton}`} />
           <div className={`${styles.plinth} ${styles.plinth2} ${shimmerStyles.skeleton}`} />
         </div>
         <div className={styles.podiumSlot}>
-          <div className={`${styles.avatarLarge} ${shimmerStyles.skeleton}`} />
+          <div
+            className={`${styles.avatarPlaceholder} ${shimmerStyles.skeleton}`}
+            style={{ width: PODIUM_AVATAR_SIZE_FIRST, height: PODIUM_AVATAR_SIZE_FIRST }}
+          />
           <div className={`${styles.smallLine} ${shimmerStyles.skeleton}`} />
           <div className={`${styles.smallLine} ${shimmerStyles.skeleton}`} />
           <div className={`${styles.plinth} ${styles.plinth1} ${shimmerStyles.skeleton}`} />
         </div>
         <div className={styles.podiumSlot}>
-          <div className={`${styles.avatarMid} ${shimmerStyles.skeleton}`} />
+          <div
+            className={`${styles.avatarPlaceholder} ${shimmerStyles.skeleton}`}
+            style={{ width: PODIUM_AVATAR_SIZE_RUNNER_UP, height: PODIUM_AVATAR_SIZE_RUNNER_UP }}
+          />
           <div className={`${styles.smallLine} ${shimmerStyles.skeleton}`} />
           <div className={`${styles.smallLine} ${shimmerStyles.skeleton}`} />
           <div className={`${styles.plinth} ${styles.plinth3} ${shimmerStyles.skeleton}`} />

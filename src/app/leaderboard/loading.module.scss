@@ -71,16 +71,12 @@
   width: 100%;
 }
 
-.avatarLarge {
-  width: 88px;
-  height: 88px;
+// Width/height are applied via inline style using the constants in
+// ./podium-constants.ts — see loading.tsx. This class only handles
+// what's independent of the size (shape + colour).
+.avatarPlaceholder {
   border-radius: var(--radius-full);
-}
-
-.avatarMid {
-  width: 64px;
-  height: 64px;
-  border-radius: var(--radius-full);
+  flex-shrink: 0;
 }
 
 .smallLine {
