@@ -1,0 +1,40 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+
+.card {
+  @include surface.card;
+  @include layout.stack(var(--space-3));
+  padding: var(--space-5);
+  border-radius: var(--radius-3);
+}
+
+.heading {
+  @include type.typography(card-title);
+  color: var(--mono-text);
+}
+
+.body {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+  max-width: 40ch;
+}
+
+.cta {
+  @include type.typography(label);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  align-self: flex-start;
+  min-height: var(--size-touch-target);
+  padding: 0 var(--space-4);
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+  border-radius: var(--radius-full);
+  text-decoration: none;
+  transition: filter var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    filter: brightness(0.95);
+  }
+}

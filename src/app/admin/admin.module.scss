@@ -1,0 +1,18 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+
+.page {
+  @include layout.stack(var(--space-5));
+}
+
+.dashboardPlaceholder {
+  @include surface.card;
+  padding: var(--space-4);
+  border-radius: var(--radius-3);
+}
+
+.note {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+}

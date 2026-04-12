@@ -11,6 +11,15 @@ export function mockRouteSet(overrides: Partial<RouteSet> & { id: string; gym_id
     starts_at: "2026-04-07T00:00:00Z",
     ends_at: "2026-05-04T00:00:00Z",
     active: true,
+    // Columns added in migration 014 — defaults mirror the SQL defaults so
+    // fixtures stay valid whether callers override or not.
+    name: null,
+    status: "live",
+    grading_scale: "v",
+    max_grade: 10,
+    competition_id: null,
+    closing_event: false,
+    venue_gym_id: null,
     created_at: DEFAULT_DATE,
     updated_at: DEFAULT_DATE,
     ...overrides,
@@ -20,6 +29,7 @@ export function mockRouteSet(overrides: Partial<RouteSet> & { id: string; gym_id
 export function mockRoute(overrides: Partial<Route> & { id: string; set_id: string; number: number }): Route {
   return {
     has_zone: false,
+    setter_name: null,
     created_at: DEFAULT_DATE,
     updated_at: DEFAULT_DATE,
     ...overrides,

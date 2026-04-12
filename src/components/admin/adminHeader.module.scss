@@ -1,0 +1,33 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+
+.header {
+  @include layout.stack(var(--space-1));
+}
+
+.title {
+  @include type.typography(display);
+  color: var(--mono-text);
+}
+
+.subline {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.gym {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+}
+
+.roleBadge {
+  @include type.typography(label);
+  font-size: var(--text-2xs);
+  padding: var(--space-1) var(--space-2);
+  background: var(--accent-bg);
+  color: var(--accent-text);
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
