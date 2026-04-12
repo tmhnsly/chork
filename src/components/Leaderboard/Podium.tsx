@@ -1,5 +1,6 @@
 "use client";
 
+import { FaCrown } from "react-icons/fa6";
 import { UserAvatar } from "@/components/ui";
 import type { LeaderboardEntry } from "@/lib/data";
 import { toAvatarUser } from "./helpers";
@@ -47,9 +48,15 @@ function Slot({ entry, place, currentUserId, onPress }: SlotProps) {
     isSelf ? styles.self : "",
   ].filter(Boolean).join(" ");
 
+  const avatarSize = place === 1 ? 88 : 64;
+
   const content = (
     <>
-      <UserAvatar user={toAvatarUser(entry)} size={place === 1 ? 72 : 56} />
+      <div className={styles.avatarWrap}>
+        {place === 1 && <FaCrown className={styles.crown} aria-hidden />}
+        <UserAvatar user={toAvatarUser(entry)} size={avatarSize} />
+        <span className={styles.medal} aria-hidden>{place}</span>
+      </div>
       <span className={styles.username}>@{entry.username}</span>
       <span className={styles.points}>{entry.points} pts</span>
       <div className={styles.plinth} aria-hidden="true">

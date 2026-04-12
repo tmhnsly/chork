@@ -8,7 +8,12 @@ import { LeaderboardList } from "./LeaderboardList";
 import { NeighbourhoodSection } from "./NeighbourhoodSection";
 import { EmptyLeaderboard } from "./EmptyLeaderboard";
 import { ClimberSheet } from "./ClimberSheet";
+import { GymStatsStrip } from "./GymStatsStrip";
+import { ScoringBreakdown } from "./ScoringBreakdown";
+import { InviteCard } from "./InviteCard";
+import { RevealText } from "@/components/motion/RevealText";
 import type { LeaderboardEntry } from "@/lib/data";
+import type { GymStats } from "@/lib/data/queries";
 import {
   fetchLeaderboardTab,
   fetchLeaderboardPage,
@@ -31,6 +36,8 @@ interface Props {
   currentUserId: string;
   /** Initial data for the "set" tab (pre-fetched by server page). */
   initialSetData: TabData | null;
+  /** Gym-wide aggregate numbers rendered in the stats strip. */
+  gymStats: GymStats;
 }
 
 export function LeaderboardView({
@@ -38,6 +45,7 @@ export function LeaderboardView({
   currentSetId,
   currentUserId,
   initialSetData,
+  gymStats,
 }: Props) {
   const [tab, setTab] = useState<Tab>(currentSetId ? "set" : "all");
   const [cache, setCache] = useState<Partial<Record<Tab, TabData>>>(() =>
@@ -131,9 +139,11 @@ export function LeaderboardView({
   return (
     <div className={styles.view}>
       <header className={styles.header}>
-        <h1 className={styles.title}>BOARD</h1>
+        <RevealText text="Chorkboard" as="h1" className={styles.title} />
         <p className={styles.gym}>{gymName}</p>
       </header>
+
+      <GymStatsStrip stats={gymStats} />
 
       <div className={styles.segmentRow}>
         <SegmentedControl
@@ -214,6 +224,9 @@ export function LeaderboardView({
               )}
             </section>
           )}
+
+          <ScoringBreakdown />
+          <InviteCard gymName={gymName} />
         </>
       )}
 

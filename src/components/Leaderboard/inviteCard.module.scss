@@ -1,0 +1,66 @@
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+
+.card {
+  @include surface.card;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-3);
+  background: var(--accent-subtle-bg);
+  border-color: var(--accent-border-subtle);
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-10);
+  height: var(--space-10);
+  border-radius: var(--radius-full);
+  background: var(--accent-bg);
+  color: var(--accent-text-low-contrast);
+  font-size: var(--text-lg);
+  flex-shrink: 0;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.heading {
+  @include type.typography(card-title);
+  font-size: var(--text-md);
+  color: var(--mono-text);
+}
+
+.body {
+  @include type.typography(body);
+  font-size: var(--text-sm);
+  color: var(--mono-text-low-contrast);
+}
+
+.cta {
+  @include type.typography(label);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--size-touch-target);
+  padding: 0 var(--space-3);
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    background: var(--accent-solid-hover, var(--accent-solid));
+  }
+}

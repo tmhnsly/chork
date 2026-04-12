@@ -116,12 +116,28 @@ export async function getCurrentSet(supabase: Supabase, gymId: string): Promise<
   return data;
 }
 
-export async function getAllSets(supabase: Supabase, gymId: string): Promise<RouteSet[]> {
-  const { data, error } = await supabase
+/**
+ * @param sinceIso Optional ISO timestamp — when provided, only returns sets
+ *   whose `ends_at` is on or after this date. Use the profile's `created_at`
+ *   to hide sets that finished before the user joined the app.
+ *   Filter runs in the query (SQL) so it stays O(matching rows).
+ */
+export async function getAllSets(
+  supabase: Supabase,
+  gymId: string,
+  sinceIso?: string
+): Promise<RouteSet[]> {
+  let query = supabase
     .from("sets")
     .select("*")
     .eq("gym_id", gymId)
     .order("starts_at", { ascending: false });
+
+  if (sinceIso) {
+    query = query.gte("ends_at", sinceIso);
+  }
+
+  const { data, error } = await query;
   if (error) {
     console.warn("[chork] getAllSets failed:", error);
     return [];
@@ -524,4 +540,49 @@ export async function getEarnedAchievements(
     return new Map();
   }
   return new Map((data ?? []).map((r) => [r.badge_id, r.earned_at]));
+}
+
+// ── Gym-wide aggregates ───────────────────────────
+
+export interface GymStats {
+  climberCount: number;
+  totalSends: number;
+  totalFlashes: number;
+  totalRoutes: number;
+}
+
+/**
+ * Aggregate headline numbers for a gym. Used by the Chorkboard stats strip.
+ * Each count is a cheap `head: true` select — the DB never returns rows,
+ * only the row count, so this is safe to run on every Chorkboard paint.
+ */
+export async function getGymStats(supabase: Supabase, gymId: string): Promise<GymStats> {
+  const [members, sends, flashes, routes] = await Promise.all([
+    supabase
+      .from("gym_memberships")
+      .select("user_id", { count: "exact", head: true })
+      .eq("gym_id", gymId),
+    supabase
+      .from("route_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("gym_id", gymId)
+      .eq("completed", true),
+    supabase
+      .from("route_logs")
+      .select("id", { count: "exact", head: true })
+      .eq("gym_id", gymId)
+      .eq("completed", true)
+      .eq("attempts", 1),
+    supabase
+      .from("routes")
+      .select("id, sets!inner(gym_id)", { count: "exact", head: true })
+      .eq("sets.gym_id", gymId),
+  ]);
+
+  return {
+    climberCount: members.count ?? 0,
+    totalSends: sends.count ?? 0,
+    totalFlashes: flashes.count ?? 0,
+    totalRoutes: routes.count ?? 0,
+  };
 }

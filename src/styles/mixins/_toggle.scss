@@ -4,8 +4,9 @@
 //   .myThumb  { @include toggle.thumb; }
 
 @mixin root {
-  width: 2.625rem;    // 42px
-  height: 1.5rem;     // 24px
+  position: relative;
+  width: 2.625rem;    // 42px visual
+  height: 1.5rem;     // 24px visual
   border-radius: var(--radius-full);
   background: var(--mono-border);
   border: none;
@@ -13,6 +14,16 @@
   cursor: pointer;
   flex-shrink: 0;
   transition: background var(--duration-fast) var(--ease-out);
+
+  // Extend the hit area to ≥44×44 without changing the visual — a
+  // transparent pseudo-element captures taps around the pill.
+  // Fixes flaky zone-toggle taps on mobile (AHIG minimum touch target).
+  &::before {
+    content: "";
+    position: absolute;
+    inset: calc((var(--size-touch-target) - 1.5rem) / -2)
+           calc((var(--size-touch-target) - 2.625rem) / -2);
+  }
 
   &[data-state="checked"] {
     background: var(--accent-solid);

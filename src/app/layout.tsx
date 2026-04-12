@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Outfit, Inter } from "next/font/google";
 import { Providers } from "./providers";
+import { createServerSupabase } from "@/lib/supabase/server";
+import type { Profile } from "@/lib/data/types";
 import "@/styles/globals.scss";
 
 const outfit = Outfit({
@@ -34,14 +36,38 @@ export const viewport: Viewport = {
   themeColor: "#bdee63",
   width: "device-width",
   initialScale: 1,
+  // Prevent iOS Safari from zooming the viewport on input focus.
+  // The primary fix is ensuring every text input is ≥16px (see input
+  // typography rules), but locking the scale is a belt-and-braces
+  // guard for inputs that momentarily render smaller during transition.
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+// Read the user's profile server-side so the navbar renders the correct
+// auth state on the FIRST paint. Without this, the client boots with a
+// null profile and the logged-out bar flashes before the auth context
+// rehydrates from storage.
+async function getInitialProfile(): Promise<Profile | null> {
+  try {
+    const supabase = await createServerSupabase();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+    return data ?? null;
+  } catch {
+    return null;
+  }
+}
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const initialProfile = await getInitialProfile();
+
   return (
     <html
       lang="en"
@@ -50,7 +76,7 @@ export default function RootLayout({
     >
       <body>
         <a href="#main-content" className="skip-link">Skip to main content</a>
-        <Providers>{children}</Providers>
+        <Providers initialProfile={initialProfile}>{children}</Providers>
       </body>
     </html>
   );

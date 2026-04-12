@@ -17,11 +17,15 @@
   display: inline-block;
   vertical-align: bottom;
   overflow: hidden;
-  // Horizontal padding = italic overhang room; negative margin cancels
-  // the layout effect so words render at their natural width.
-  padding: 0 0.3em;
-  margin: 0 -0.3em;
-  // Release the clip after the longest possible animation finishes.
+  // Padding reserves room for glyph overhang while the clip is active:
+  //   horizontal → italic overhangs on display typefaces
+  //   vertical   → capital ascenders and descenders (e.g. "g", "p", italic "f")
+  // Negative margin cancels the layout effect so words render at their
+  // natural width/height and align correctly with adjacent inline text.
+  padding: 0.15em 0.3em;
+  margin: -0.15em -0.3em;
+  // Release the clip after the longest possible animation finishes so
+  // glyphs that would normally overhang can do so in the resting state.
   animation: revealRelease 0s 2s forwards;
 }
 

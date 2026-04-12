@@ -1,4 +1,59 @@
-.statsBlock {
-  height: 10rem;
+@use "mixins/layout" as layout;
+@use "mixins/surfaces" as surface;
+
+// Full-card skeleton rather than a flat block — matches StatsWidget's
+// internal layout (RingStatsRow + RouteChart + footer) so the wall page
+// doesn't shift when the real widget paints.
+.statsCard {
+  @include surface.card;
+  @include layout.stack(var(--space-4));
+  padding: var(--space-4);
   border-radius: var(--radius-3);
+}
+
+.ringRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.ring {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.statsStack {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.stat {
+  @include layout.stack(var(--space-1));
+}
+
+.statValue {
+  height: var(--text-lg);
+  width: var(--space-8);
+  border-radius: var(--radius-1);
+}
+
+.statLabel {
+  height: var(--text-xs);
+  width: var(--space-10);
+  border-radius: var(--radius-1);
+}
+
+.chartPlaceholder {
+  height: var(--space-16);
+  border-radius: var(--radius-1);
+}
+
+.footerLine {
+  height: var(--text-xs);
+  width: var(--space-12);
+  border-radius: var(--radius-1);
 }

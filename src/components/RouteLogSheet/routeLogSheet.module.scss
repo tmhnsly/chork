@@ -31,6 +31,11 @@
   @include type.typography(meta);
   display: block;
   color: var(--accent-text-low-contrast);
+  // Reserve the same footprint as the skeleton so the header doesn't
+  // shift when the grade resolves after fetch.
+  min-height: 1em;
+  min-width: 4rem;
+  text-align: center;
 }
 
 // Skeleton variant — shown while grade is loading
@@ -89,7 +94,10 @@
 .counterValue {
   @include type.typography(number);
   font-size: var(--text-4xl);
-  min-width: 2ch;
+  // Reserve room for 3 digits so the +/- buttons don't shift once the
+  // attempt count reaches 100+. `ch` is relative to the current font's
+  // "0" glyph — matches the typography(number) preset exactly.
+  min-width: 3ch;
   text-align: center;
 }
 
@@ -192,6 +200,11 @@
   background: transparent;
   color: var(--mono-text-low-contrast);
   cursor: pointer;
+
+  &:disabled {
+    color: var(--mono-solid);
+    cursor: not-allowed;
+  }
 }
 
 .betaChevron {
@@ -402,7 +415,9 @@
 
 .commentInput {
   @include input.field;
-  font-size: var(--text-sm);
+  // 16px minimum — iOS Safari zooms the viewport on focus for any
+  // input rendered below 16px. Never set this smaller.
+  font-size: var(--text-md);
   flex: 1;
 }
 

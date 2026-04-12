@@ -21,27 +21,82 @@
   border-radius: var(--radius-1);
 }
 
+// ── Gym stats strip — mirrors GymStatsStrip ────────
+.statsStrip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-3);
+  background: var(--mono-subtle-bg);
+}
+
+.statsCell {
+  @include layout.stack(var(--space-1));
+  align-items: center;
+}
+
+.statValue {
+  height: var(--text-xl);
+  width: var(--space-8);
+  border-radius: var(--radius-1);
+}
+
+.statLabel {
+  height: var(--text-2xs);
+  width: var(--space-10);
+  border-radius: var(--radius-1);
+}
+
 .segment {
   height: var(--size-touch-target);
   width: 14rem;
   border-radius: var(--radius-full);
 }
 
+// ── Podium — matches Podium.tsx proportions ──────
 .podium {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1.2fr 1fr;
   gap: var(--space-2);
   align-items: end;
-  padding: var(--space-4) 0;
+  padding: var(--space-4) 0 0;
+}
+
+.podiumSlot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.avatarLarge {
+  width: 88px;
+  height: 88px;
+  border-radius: var(--radius-full);
+}
+
+.avatarMid {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-full);
+}
+
+.smallLine {
+  height: var(--text-xs);
+  width: 70%;
+  border-radius: var(--radius-1);
 }
 
 .plinth {
+  width: 100%;
   border-radius: var(--radius-2) var(--radius-2) 0 0;
 }
 
 .plinth1 { height: var(--space-20); }
-.plinth2 { height: var(--space-16); }
-.plinth3 { height: var(--space-12); }
+.plinth2 { height: var(--space-14); }
+.plinth3 { height: var(--space-10); }
 
 .rows {
   @include layout.stack(var(--space-2));
@@ -50,4 +105,16 @@
 .row {
   height: calc(var(--size-touch-target) + var(--space-3));
   border-radius: var(--radius-2);
+}
+
+// ── Scoring + invite ──────────────────────────────
+// Heights match the real card (header + 4 rows + zone line ≈ 16rem).
+.card {
+  height: 16rem;
+  border-radius: var(--radius-3);
+}
+
+.inviteCard {
+  height: 6rem;
+  border-radius: var(--radius-3);
 }

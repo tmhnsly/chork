@@ -509,13 +509,22 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
             )}
           </div>
 
-          {/* ── Beta spray (collapsible) ── */}
+          {/* ── Beta spray (collapsible) ──
+              Trigger is disabled when there is nothing to do — no existing
+              comments AND the user hasn't completed the route (so they
+              can't post either). Prevents a useless open/empty/close
+              interaction from the tile. */}
+          {(() => {
+            const betaDisabled = !isCompleted && totalComments === 0;
+            return (
           <div className={styles.betaSection}>
             <button
               type="button"
               className={styles.betaToggleBtn}
               onClick={handleExpandBeta}
               aria-expanded={betaExpanded}
+              disabled={betaDisabled}
+              aria-disabled={betaDisabled}
             >
               <span className={styles.sectionLabel}>
                 BETA SPRAY
@@ -574,15 +583,20 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
                                 )}
                               </Link>
                               <div className={styles.commentContent}>
+                                {/* Render the author line in BOTH modes so the
+                                    row height doesn't collapse during edit —
+                                    prevents sibling comments (and content
+                                    above the panel) from shifting. */}
+                                <Link href={`/u/${username}`} className={styles.commentAuthor}>@{username}</Link>
                                 {editingId === c.id ? (
-                                  <div className={styles.editForm}>
-                                    <input type="text" className={styles.commentInput} value={editBody} onChange={(e) => setEditBody(e.target.value)} autoFocus />
-                                    <button type="button" className={styles.editConfirm} onClick={() => handleEditComment(c.id)} disabled={!editBody.trim()}><FaCheck /></button>
-                                    <button type="button" className={styles.editCancel} onClick={() => setEditingId(null)}><FaXmark /></button>
-                                  </div>
+                                  <EditCommentForm
+                                    initialBody={editBody}
+                                    onChange={setEditBody}
+                                    onSubmit={() => handleEditComment(c.id)}
+                                    onCancel={() => setEditingId(null)}
+                                  />
                                 ) : (
                                   <>
-                                    <Link href={`/u/${username}`} className={styles.commentAuthor}>@{username}</Link>
                                     <p className={styles.commentBody}>{c.body}</p>
                                     {c.likes > 0 && <span className={styles.commentLikes}>{c.likes} {c.likes === 1 ? "like" : "likes"}</span>}
                                   </>
@@ -642,6 +656,61 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
               </div>
             )}
           </div>
+            );
+          })()}
     </BottomSheet>
+  );
+}
+
+/**
+ * Inline edit form for a comment. Focuses the input on mount using
+ * `preventScroll: true` — this stops mobile browsers from auto-scrolling
+ * the sheet to pull the input into view when the virtual keyboard opens,
+ * which is the root cause of the "panel shifts when I start editing" bug.
+ */
+function EditCommentForm({
+  initialBody,
+  onChange,
+  onSubmit,
+  onCancel,
+}: {
+  initialBody: string;
+  onChange: (v: string) => void;
+  onSubmit: () => void;
+  onCancel: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus({ preventScroll: true });
+  }, []);
+
+  return (
+    <div className={styles.editForm}>
+      <input
+        ref={inputRef}
+        type="text"
+        className={styles.commentInput}
+        value={initialBody}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      <button
+        type="button"
+        className={styles.editConfirm}
+        onClick={onSubmit}
+        disabled={!initialBody.trim()}
+        aria-label="Save comment"
+      >
+        <FaCheck />
+      </button>
+      <button
+        type="button"
+        className={styles.editCancel}
+        onClick={onCancel}
+        aria-label="Cancel edit"
+      >
+        <FaXmark />
+      </button>
+    </div>
   );
 }

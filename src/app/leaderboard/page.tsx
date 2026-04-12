@@ -6,12 +6,13 @@ import {
   getLeaderboard,
   getLeaderboardNeighbourhood,
   getLeaderboardUserRow,
+  getGymStats,
 } from "@/lib/data/queries";
 import { LeaderboardView } from "@/components/Leaderboard/LeaderboardView";
 import styles from "./leaderboard.module.scss";
 
 export const metadata = {
-  title: "Leaderboard - Chork",
+  title: "Chorkboard - Chork",
 };
 
 const TOP_LIMIT = 5;
@@ -21,9 +22,10 @@ export default async function LeaderboardPage() {
   if ("error" in auth) redirect("/login");
   const { supabase, userId, gymId } = auth;
 
-  const [gym, currentSet] = await Promise.all([
+  const [gym, currentSet, gymStats] = await Promise.all([
     getGym(supabase, gymId),
     getCurrentSet(supabase, gymId),
+    getGymStats(supabase, gymId),
   ]);
 
   // Determine initial tab's setId — prefer active set, fall back to all-time
@@ -48,6 +50,7 @@ export default async function LeaderboardPage() {
         currentSetId={currentSet?.id ?? null}
         currentUserId={userId}
         initialSetData={{ top, userRow, neighbourhood }}
+        gymStats={gymStats}
       />
     </main>
   );
