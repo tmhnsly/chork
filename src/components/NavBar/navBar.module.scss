@@ -149,6 +149,34 @@
   font-size: var(--size-icon-sm);
 }
 
+// Wrapper for icon + badge on tabs that carry a notification count.
+// The icon renders inside; the badge pins to its top-right corner.
+.tabIconWrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tabBadge {
+  position: absolute;
+  top: calc(var(--space-1) * -0.5);
+  right: calc(var(--space-1) * -0.75);
+  min-width: 1rem;
+  height: 1rem;
+  padding: 0 0.25rem;
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+  border-radius: var(--radius-full);
+  border: 2px solid var(--mono-bg);
+  @include type.typography(label);
+  font-size: 0.625rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .tabLabel {
   @include type.typography(label);
   font-size: var(--text-2xs);
