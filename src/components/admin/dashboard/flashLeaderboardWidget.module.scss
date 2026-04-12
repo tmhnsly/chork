@@ -1,0 +1,39 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+
+.list {
+  @include layout.stack(var(--space-2));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1.5rem auto 1fr auto;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.rank {
+  @include type.typography(number);
+  font-size: var(--text-sm);
+  color: var(--mono-text-low-contrast);
+  text-align: right;
+}
+
+.handle {
+  @include type.typography(label);
+  color: var(--mono-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.count {
+  @include type.typography(number);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--flash-text);
+}

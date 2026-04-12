@@ -1,0 +1,33 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: var(--space-3);
+}
+
+.cell {
+  @include layout.stack(var(--space-1));
+  align-items: flex-start;
+}
+
+.value {
+  @include type.typography(number);
+  font-size: var(--text-2xl);
+  line-height: 1.1;
+  color: var(--mono-text);
+}
+
+.valueAccent { color: var(--accent-text); }
+
+.label {
+  @include type.typography(label);
+  font-size: var(--text-2xs);
+  color: var(--mono-text-low-contrast);
+}
+
+.subtitle {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}

@@ -1,0 +1,76 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+
+// ── Metric pill switcher ──────────────────────────
+.metricRow {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  background: var(--mono-subtle-bg);
+  border: 1px solid var(--mono-border);
+  border-radius: var(--radius-full);
+}
+
+.metricChip {
+  @include type.typography(label);
+  font-size: var(--text-2xs);
+  padding: var(--space-1) var(--space-2);
+  background: transparent;
+  border: none;
+  color: var(--mono-text-low-contrast);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--mono-text);
+  }
+}
+
+.metricChipActive {
+  background: var(--mono-app-bg);
+  color: var(--mono-text);
+}
+
+// ── Row list ──────────────────────────────────────
+.list {
+  @include layout.stack(var(--space-2));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 2rem 1fr auto;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.number {
+  @include type.typography(number);
+  font-size: var(--text-sm);
+  color: var(--mono-text-low-contrast);
+}
+
+.barTrack {
+  height: var(--space-2);
+  background: var(--mono-bg);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  width: var(--bar-w, 0%);
+  background: var(--accent-solid);
+  border-radius: var(--radius-full);
+  transition: width var(--duration-normal) var(--ease-out);
+}
+
+.value {
+  @include type.typography(number);
+  font-size: var(--text-sm);
+  color: var(--mono-text);
+  min-width: 2.5rem;
+  text-align: right;
+}

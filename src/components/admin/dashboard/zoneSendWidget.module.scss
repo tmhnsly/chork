@@ -1,0 +1,89 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+
+.list {
+  @include layout.stack(var(--space-2));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 2rem 1fr auto;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.number {
+  @include type.typography(number);
+  font-size: var(--text-sm);
+  color: var(--mono-text-low-contrast);
+}
+
+.stackTrack {
+  height: var(--space-2);
+  background: var(--mono-bg);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.stack {
+  display: flex;
+  height: 100%;
+  width: var(--total-w, 0%);
+  transition: width var(--duration-normal) var(--ease-out);
+}
+
+.stackSend {
+  display: block;
+  height: 100%;
+  width: var(--part-w, 0%);
+  background: var(--accent-solid);
+}
+
+.stackZone {
+  display: block;
+  flex: 1;
+  height: 100%;
+  background: var(--success-solid);
+}
+
+.counts {
+  @include type.typography(number);
+  font-size: var(--text-xs);
+  min-width: 4rem;
+  text-align: right;
+  display: inline-flex;
+  gap: var(--space-1);
+  justify-content: flex-end;
+}
+
+.sendCount { color: var(--accent-text); }
+.zoneCount { color: var(--success-text); }
+.separator { color: var(--mono-text-low-contrast); }
+
+.legend {
+  display: flex;
+  gap: var(--space-4);
+  margin-top: var(--space-1);
+}
+
+.legendItem {
+  @include type.typography(label);
+  font-size: var(--text-2xs);
+  color: var(--mono-text-low-contrast);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.swatch {
+  display: inline-block;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-1);
+}
+
+.swatchSend { background: var(--accent-solid); }
+.swatchZone { background: var(--success-solid); }

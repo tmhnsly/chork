@@ -1,0 +1,28 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+
+.page {
+  @include layout.page;
+  @include layout.stack(var(--space-5));
+}
+
+.header {
+  @include layout.stack(var(--space-1));
+}
+
+.title {
+  @include type.typography(display);
+  color: var(--mono-text);
+}
+
+.subtitle {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.description {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+  margin-top: var(--space-2);
+  max-width: 56ch;
+}

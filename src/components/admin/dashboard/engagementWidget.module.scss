@@ -1,0 +1,43 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+
+.layout {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.stat {
+  @include layout.stack(var(--space-1));
+}
+
+.value {
+  @include type.typography(number);
+  font-size: var(--text-3xl);
+  color: var(--accent-text);
+}
+
+.label {
+  @include type.typography(label);
+  font-size: var(--text-2xs);
+  color: var(--mono-text-low-contrast);
+}
+
+.sparkWrap {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: var(--space-12);
+  flex: 1;
+  max-width: 12rem;
+}
+
+.sparkBar {
+  flex: 1;
+  min-width: 4px;
+  height: var(--bar-h, 0%);
+  background: var(--accent-solid);
+  border-radius: var(--radius-1);
+  transition: height var(--duration-normal) var(--ease-out);
+}

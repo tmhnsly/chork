@@ -2,8 +2,18 @@ import Link from "next/link";
 import { requireGymAdmin } from "@/lib/auth";
 import { getGym } from "@/lib/data/queries";
 import { getActiveSetForAdminGym } from "@/lib/data/admin-queries";
+import {
+  getSetOverview,
+  getTopRoutes,
+  getActiveClimberCount,
+  getEngagementTrend,
+  getFlashLeaderboardSet,
+  getZoneSendRatio,
+  getAllTimeOverview,
+} from "@/lib/data/dashboard-queries";
 import { AdminDashboardEmpty } from "@/components/admin/AdminDashboardEmpty";
 import { AdminHeader } from "@/components/admin/AdminHeader";
+import { AdminDashboard } from "@/components/admin/dashboard/AdminDashboard";
 import styles from "./admin.module.scss";
 
 export const metadata = {
@@ -11,12 +21,19 @@ export const metadata = {
 };
 
 /**
- * Admin dashboard landing page. Resolves the caller's admin gym if
- * they have one and shows either the empty state (no active set yet)
- * or the dashboard. Callers without any admin gym still land here via
- * the /admin shell — they see the "start a gym" CTA so they can opt
- * into being a gym admin without leaving the admin surface, and the
- * sub-nav lets them jump to Competitions (separate role) either way.
+ * Admin dashboard landing page. Three render branches:
+ *
+ *   1. Caller isn't an admin of any gym → "start a gym" CTA + link to
+ *      /admin/competitions (the organiser role lives here too).
+ *   2. Caller admins a gym but there's no active set → empty-state
+ *      card guiding them to create the first set.
+ *   3. Caller admins a gym with an active set → full dashboard:
+ *      overview, engagement, flash leaderboard, top routes,
+ *      zone-vs-send ratio, all-time snapshot.
+ *
+ * All widget data is fetched via Supabase RPCs (migration 018) that
+ * aggregate in SQL and guard with is_gym_admin — no client-side loops
+ * over raw route_logs.
  */
 export default async function AdminHomePage() {
   const auth = await requireGymAdmin();
@@ -47,20 +64,48 @@ export default async function AdminHomePage() {
     getActiveSetForAdminGym(supabase, gymId),
   ]);
 
+  // No active set yet → direct the admin to create one.
+  if (activeSet === null) {
+    return (
+      <main className={styles.page}>
+        <AdminHeader gymName={gym?.name ?? "Your gym"} isOwner={isOwner} />
+        <AdminDashboardEmpty />
+      </main>
+    );
+  }
+
+  // Populate every widget in parallel — one parallel fan-out per paint.
+  const [
+    overview,
+    topRoutes,
+    engagement,
+    activeCount,
+    flashes,
+    zoneRows,
+    allTime,
+  ] = await Promise.all([
+    getSetOverview(supabase, activeSet.id),
+    getTopRoutes(supabase, activeSet.id, 15),
+    getEngagementTrend(supabase, gymId, 12),
+    getActiveClimberCount(supabase, activeSet.id),
+    getFlashLeaderboardSet(supabase, activeSet.id, 5),
+    getZoneSendRatio(supabase, activeSet.id),
+    getAllTimeOverview(supabase, gymId),
+  ]);
+
   return (
     <main className={styles.page}>
       <AdminHeader gymName={gym?.name ?? "Your gym"} isOwner={isOwner} />
-
-      {activeSet === null ? (
-        <AdminDashboardEmpty />
-      ) : (
-        <section className={styles.dashboardPlaceholder} aria-label="Dashboard">
-          <p className={styles.note}>
-            Dashboard widgets ship in the next phase. Active set:{" "}
-            <strong>{activeSet.name ?? "Untitled"}</strong>.
-          </p>
-        </section>
-      )}
+      <AdminDashboard
+        activeSet={activeSet}
+        overview={overview}
+        topRoutes={topRoutes}
+        engagement={engagement}
+        activeCount={activeCount}
+        flashes={flashes}
+        zoneRows={zoneRows}
+        allTime={allTime}
+      />
     </main>
   );
 }

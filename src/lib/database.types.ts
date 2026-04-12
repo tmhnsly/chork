@@ -937,6 +937,28 @@ export type Database = {
     }
     Functions: {
       auto_publish_due_sets: { Args: never; Returns: number }
+      get_active_climber_count: { Args: { p_set_id: string }; Returns: number }
+      get_all_time_overview: {
+        Args: { p_gym_id: string }
+        Returns: {
+          set_count: number
+          top_route_id: string
+          top_route_number: number
+          top_route_send_count: number
+          top_route_set_id: string
+          total_sends: number
+          unique_climbers: number
+        }[]
+      }
+      get_community_grade_distribution: {
+        Args: { p_set_id: string }
+        Returns: {
+          grade: number
+          number: number
+          route_id: string
+          vote_count: number
+        }[]
+      }
       get_competition_leaderboard: {
         Args: {
           p_category_id?: string
@@ -955,6 +977,26 @@ export type Database = {
           user_id: string
           username: string
           zones: number
+        }[]
+      }
+      get_engagement_trend: {
+        Args: { p_gym_id: string; p_limit?: number }
+        Returns: {
+          active_climber_count: number
+          ends_at: string
+          name: string
+          set_id: string
+          starts_at: string
+          status: string
+        }[]
+      }
+      get_flash_leaderboard_set: {
+        Args: { p_limit?: number; p_set_id: string }
+        Returns: {
+          avatar_url: string
+          flash_count: number
+          user_id: string
+          username: string
         }[]
       }
       get_leaderboard_all_time: {
@@ -1026,6 +1068,39 @@ export type Database = {
           vote_count: number
         }[]
       }
+      get_set_overview: {
+        Args: { p_set_id: string }
+        Returns: {
+          active_climber_count: number
+          days_remaining: number
+          max_possible_sends: number
+          send_completion_pct: number
+          total_routes: number
+          total_sends: number
+        }[]
+      }
+      get_setter_breakdown: {
+        Args: { p_set_id: string }
+        Returns: {
+          flash_rate: number
+          route_count: number
+          setter_name: string
+          total_attempts: number
+          total_sends: number
+        }[]
+      }
+      get_top_routes: {
+        Args: { p_limit?: number; p_set_id: string }
+        Returns: {
+          attempt_count: number
+          flash_count: number
+          flash_rate: number
+          has_zone: boolean
+          number: number
+          route_id: string
+          send_count: number
+        }[]
+      }
       get_user_set_stats: {
         Args: { p_gym_id: string; p_user_id: string }
         Returns: {
@@ -1033,6 +1108,16 @@ export type Database = {
           flashes: number
           points: number
           set_id: string
+        }[]
+      }
+      get_zone_send_ratio: {
+        Args: { p_set_id: string }
+        Returns: {
+          has_zone: boolean
+          number: number
+          route_id: string
+          send_count: number
+          zone_only: number
         }[]
       }
       increment_comment_likes: {

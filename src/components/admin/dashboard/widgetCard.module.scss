@@ -1,0 +1,44 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+
+.card {
+  @include surface.card;
+  @include layout.stack(var(--space-3));
+  padding: var(--space-4);
+  border-radius: var(--radius-3);
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.headerText {
+  @include layout.stack(var(--space-1));
+  min-width: 0;
+}
+
+.title {
+  @include type.typography(card-title);
+  color: var(--mono-text);
+}
+
+.subtitle {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.empty {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+}

@@ -1,0 +1,16 @@
+// Responsive grid: single column on mobile, two columns on tablet+.
+// Wide widgets span both columns so heavier visualisations always get
+// full width.
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+
+  @media (min-width: 720px) {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.wide {
+  grid-column: 1 / -1;
+}

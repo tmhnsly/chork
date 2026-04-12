@@ -1,0 +1,48 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+@use "mixins/input" as input;
+
+.bar {
+  @include surface.card;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-3);
+}
+
+.field {
+  @include layout.stack(var(--space-1));
+  flex: 1;
+  min-width: 12rem;
+}
+
+.label {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.select {
+  @include input.field;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.joinedPill {
+  @include type.typography(label);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  background: var(--accent-bg);
+  color: var(--accent-text);
+  border-radius: var(--radius-full);
+}
