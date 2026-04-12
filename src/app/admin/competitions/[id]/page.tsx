@@ -4,11 +4,13 @@ import {
   getCompetitionById,
   getCompetitionGyms,
   getCompetitionCategories,
+  getCompetitionVenueStats,
 } from "@/lib/data/competition-queries";
 import { getAdminGymsForUser } from "@/lib/data/admin-queries";
 import { CompetitionForm } from "@/components/admin/CompetitionForm";
 import { CompetitionGymsPanel } from "@/components/admin/CompetitionGymsPanel";
 import { CompetitionCategoriesPanel } from "@/components/admin/CompetitionCategoriesPanel";
+import { VenueStatsWidget } from "@/components/admin/dashboard/VenueStatsWidget";
 import styles from "./edit.module.scss";
 
 export const metadata = {
@@ -29,10 +31,11 @@ export default async function EditCompetitionPage({ params }: Props) {
   if (!competition) notFound();
   if (competition.organiser_id !== userId) redirect("/admin/competitions");
 
-  const [linkedGyms, categories, myGyms] = await Promise.all([
+  const [linkedGyms, categories, myGyms, venueStats] = await Promise.all([
     getCompetitionGyms(supabase, id),
     getCompetitionCategories(supabase, id),
     getAdminGymsForUser(supabase, userId),
+    getCompetitionVenueStats(supabase, id),
   ]);
 
   return (
@@ -64,6 +67,8 @@ export default async function EditCompetitionPage({ params }: Props) {
         competitionId={id}
         categories={categories}
       />
+
+      {linkedGyms.length > 0 && <VenueStatsWidget venues={venueStats} />}
     </main>
   );
 }

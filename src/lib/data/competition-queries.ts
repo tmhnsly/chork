@@ -150,6 +150,36 @@ export async function getMyCompetitionParticipation(
   return data ?? null;
 }
 
+export interface CompetitionVenueStats {
+  gym_id: string;
+  gym_name: string;
+  gym_slug: string;
+  set_count: number;
+  active_climber_count: number;
+  total_sends: number;
+  total_flashes: number;
+}
+
+/**
+ * Per-venue activity for a competition — used by the organiser
+ * dashboard to surface where the engagement is landing across the
+ * participating gyms. RPC enforces `is_competition_organiser`; any
+ * non-organiser caller gets an empty array.
+ */
+export async function getCompetitionVenueStats(
+  supabase: Supabase,
+  competitionId: string
+): Promise<CompetitionVenueStats[]> {
+  const { data, error } = await supabase.rpc("get_competition_venue_stats", {
+    p_competition_id: competitionId,
+  });
+  if (error) {
+    console.warn("[chork] getCompetitionVenueStats failed:", error);
+    return [];
+  }
+  return (data ?? []) as CompetitionVenueStats[];
+}
+
 /** Ranked leaderboard rows via the SQL RPC. Category filter optional. */
 export async function getCompetitionLeaderboard(
   supabase: Supabase,

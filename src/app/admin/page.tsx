@@ -10,6 +10,8 @@ import {
   getFlashLeaderboardSet,
   getZoneSendRatio,
   getAllTimeOverview,
+  getCommunityGradeDistribution,
+  getSetterBreakdown,
 } from "@/lib/data/dashboard-queries";
 import { AdminDashboardEmpty } from "@/components/admin/AdminDashboardEmpty";
 import { AdminHeader } from "@/components/admin/AdminHeader";
@@ -83,6 +85,8 @@ export default async function AdminHomePage() {
     flashes,
     zoneRows,
     allTime,
+    gradeDistribution,
+    setterRows,
   ] = await Promise.all([
     getSetOverview(supabase, activeSet.id),
     getTopRoutes(supabase, activeSet.id, 15),
@@ -91,6 +95,8 @@ export default async function AdminHomePage() {
     getFlashLeaderboardSet(supabase, activeSet.id, 5),
     getZoneSendRatio(supabase, activeSet.id),
     getAllTimeOverview(supabase, gymId),
+    getCommunityGradeDistribution(supabase, activeSet.id),
+    getSetterBreakdown(supabase, activeSet.id),
   ]);
 
   return (
@@ -105,6 +111,8 @@ export default async function AdminHomePage() {
         flashes={flashes}
         zoneRows={zoneRows}
         allTime={allTime}
+        gradeDistribution={gradeDistribution}
+        setterRows={setterRows}
       />
     </main>
   );

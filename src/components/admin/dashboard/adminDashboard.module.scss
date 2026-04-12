@@ -1,3 +1,14 @@
+@use "mixins/layout" as layout;
+
+.wrapper {
+  @include layout.stack(var(--space-4));
+}
+
+.tabRow {
+  display: flex;
+  justify-content: flex-start;
+}
+
 // Responsive grid: single column on mobile, two columns on tablet+.
 // Wide widgets span both columns so heavier visualisations always get
 // full width.

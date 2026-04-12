@@ -979,6 +979,18 @@ export type Database = {
           zones: number
         }[]
       }
+      get_competition_venue_stats: {
+        Args: { p_competition_id: string }
+        Returns: {
+          active_climber_count: number
+          gym_id: string
+          gym_name: string
+          gym_slug: string
+          set_count: number
+          total_flashes: number
+          total_sends: number
+        }[]
+      }
       get_engagement_trend: {
         Args: { p_gym_id: string; p_limit?: number }
         Returns: {

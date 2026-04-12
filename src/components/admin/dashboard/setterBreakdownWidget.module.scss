@@ -1,0 +1,71 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+
+.list {
+  @include layout.stack(var(--space-3));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.row {
+  @include layout.stack(var(--space-1));
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.name {
+  @include type.typography(label);
+  color: var(--mono-text);
+}
+
+.routes {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+.barTrack {
+  height: var(--space-2);
+  background: var(--mono-bg);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.barFill {
+  height: 100%;
+  width: var(--bar-w, 0%);
+  background: var(--accent-solid);
+  border-radius: var(--radius-full);
+  transition: width var(--duration-normal) var(--ease-out);
+}
+
+.stats {
+  display: flex;
+  gap: var(--space-1);
+  align-items: baseline;
+}
+
+.statValue {
+  @include type.typography(number);
+  font-size: var(--text-sm);
+  color: var(--mono-text);
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: baseline;
+}
+
+.statLabel {
+  @include type.typography(label);
+  font-size: var(--text-2xs);
+  color: var(--mono-text-low-contrast);
+}
+
+.separator {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
