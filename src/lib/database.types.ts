@@ -477,6 +477,67 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_leaderboard_all_time: {
+        Args: { p_gym_id: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          avatar_url: string
+          flashes: number
+          name: string
+          points: number
+          rank: number
+          sends: number
+          user_id: string
+          username: string
+          zones: number
+        }[]
+      }
+      get_leaderboard_neighbourhood: {
+        Args: { p_gym_id: string; p_set_id?: string; p_user_id: string }
+        Returns: {
+          avatar_url: string
+          flashes: number
+          name: string
+          points: number
+          rank: number
+          sends: number
+          user_id: string
+          username: string
+          zones: number
+        }[]
+      }
+      get_leaderboard_set: {
+        Args: {
+          p_gym_id: string
+          p_limit?: number
+          p_offset?: number
+          p_set_id: string
+        }
+        Returns: {
+          avatar_url: string
+          flashes: number
+          name: string
+          points: number
+          rank: number
+          sends: number
+          user_id: string
+          username: string
+          zones: number
+        }[]
+      }
+      get_leaderboard_user_row: {
+        Args: { p_gym_id: string; p_set_id?: string; p_user_id: string }
+        Returns: {
+          avatar_url: string
+          flashes: number
+          name: string
+          points: number
+          rank: number
+          sends: number
+          user_id: string
+          username: string
+          zones: number
+        }[]
+      }
       get_route_grade: {
         Args: { p_route_id: string }
         Returns: {
@@ -494,7 +555,6 @@ export type Database = {
           set_id: string
         }[]
       }
-      gym_id_for_route: { Args: { p_route_id: string }; Returns: string }
       increment_comment_likes: {
         Args: { p_comment_id: string; p_delta: number }
         Returns: number

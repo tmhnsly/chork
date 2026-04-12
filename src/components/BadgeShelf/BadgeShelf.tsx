@@ -31,7 +31,14 @@ export function BadgeShelf({ badges }: Props) {
 
   return (
     <section className={styles.shelf}>
-      <h3 className={styles.title}>Achievements</h3>
+      <header className={styles.header}>
+        <h3 className={styles.title}>Achievements</h3>
+        {badges.length > 0 && (
+          <span className={styles.count}>
+            {earned.length} of {badges.length} earned
+          </span>
+        )}
+      </header>
       <div className={styles.grid}>
         {earned.map((b) => {
           const Icon = ICON_MAP[b.badge.icon];

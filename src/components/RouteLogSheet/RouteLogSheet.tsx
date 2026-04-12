@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import * as Dialog from "@radix-ui/react-dialog";
-import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -44,9 +42,10 @@ import {
   likeComment,
 } from "@/app/(app)/actions";
 import { Button, shimmerStyles, showToast } from "@/components/ui";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import styles from "./routeLogSheet.module.scss";
 
-/** Data returned by fetchRouteData, cacheable at the SendGrid level. */
+/** Data returned by fetchRouteData, cacheable at the SendsGrid level. */
 export interface CachedRouteData {
   grade: number | null;
   comments: PaginatedComments;
@@ -63,8 +62,6 @@ interface Props {
   onLogUpdate: (routeId: string, log: RouteLog) => void;
 }
 
-const DRAG_CLOSE_THRESHOLD = 60;
-const DRAG_VELOCITY_THRESHOLD = 0.4;
 
 function PointsPreview({
   attempts,
@@ -98,7 +95,6 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
   const { profile: user } = useAuth();
   const [attempts, setAttempts] = useState(log?.attempts ?? 0);
   const [currentLog, setCurrentLog] = useState(log);
-  const [closing, setClosing] = useState(false);
   const [gradeLabel, setGradeLabel] = useState<string | null>(null);
   const [gradeVote, setGradeVote] = useState<number | null>(log?.grade_vote ?? null);
   const [completing, setCompleting] = useState(false);
@@ -124,9 +120,6 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
   const gradeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingAttemptsRef = useRef<number | null>(null);
   const logIdRef = useRef(currentLog?.id);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const closeBtnRef = useRef<HTMLButtonElement>(null);
-  const dragRef = useRef<{ startY: number; startTime: number; dragging: boolean }>({ startY: 0, startTime: 0, dragging: false });
   const onCacheRef = useRef(onCacheRouteData);
   const onLogUpdateRef = useRef(onLogUpdate);
   const likingRef = useRef<Set<string>>(new Set());
@@ -404,113 +397,27 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
     likingRef.current.delete(commentId);
   }
 
-  // ── Drag to close ──
-  function handleDragStart(e: React.PointerEvent) {
-    const target = e.target as HTMLElement;
-    if (!target.closest(`.${styles.handleBtn}`)) return;
-    dragRef.current = { startY: e.clientY, startTime: Date.now(), dragging: true };
-    contentRef.current?.setPointerCapture(e.pointerId);
-    if (contentRef.current) {
-      contentRef.current.style.setProperty("--drag-y", "0px");
-      contentRef.current.classList.add(styles.dragging);
-    }
-  }
-
-  function handleDragMove(e: React.PointerEvent) {
-    if (!dragRef.current.dragging || !contentRef.current) return;
-    const dy = Math.max(0, e.clientY - dragRef.current.startY);
-    contentRef.current.style.setProperty("--drag-y", `${dy}px`);
-  }
-
-  function handleDragEnd(e: React.PointerEvent) {
-    if (!dragRef.current.dragging || !contentRef.current) return;
-    dragRef.current.dragging = false;
-    contentRef.current.releasePointerCapture(e.pointerId);
-    const dy = e.clientY - dragRef.current.startY;
-    const elapsed = Date.now() - dragRef.current.startTime;
-    const velocity = elapsed > 0 ? dy / elapsed : 0;
-
-    // Kill entrance animation so it can't replay
-    contentRef.current.style.animation = "none";
-
-    if (dy > DRAG_CLOSE_THRESHOLD || velocity > DRAG_VELOCITY_THRESHOLD) {
-      contentRef.current.classList.remove(styles.dragging);
-      contentRef.current.style.removeProperty("--drag-y");
-      startClose();
-    } else {
-      // Set current position as inline transform before removing the class
-      contentRef.current.style.transform = `translateY(${dy}px)`;
-      contentRef.current.classList.remove(styles.dragging);
-      contentRef.current.style.removeProperty("--drag-y");
-
-      // Force reflow so the browser registers the start position
-      contentRef.current.offsetHeight;
-
-      // Transition smoothly back to 0
-      contentRef.current.style.transition = "transform var(--duration-normal) var(--ease-out)";
-      contentRef.current.style.transform = "translateY(0)";
-      contentRef.current.addEventListener("transitionend", () => {
-        if (contentRef.current) {
-          contentRef.current.style.transition = "";
-          contentRef.current.style.transform = "";
-        }
-      }, { once: true });
-    }
-  }
-
-  function startClose() {
-    if (closing) return;
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-      if (pendingAttemptsRef.current !== null) {
-        saveAttempts(pendingAttemptsRef.current);
-        pendingAttemptsRef.current = null;
-      }
-    }
-    setClosing(true);
-  }
-
-  // pointsPreview is now rendered inline as a component
-
   return (
-    <Dialog.Root open onOpenChange={(open) => !open && startClose()}>
-      <Dialog.Portal>
-        <Dialog.Overlay
-          className={`${styles.overlay} ${closing ? styles.overlayClosing : ""}`}
-          onClick={startClose}
-        />
-        <Dialog.Content
-          ref={contentRef}
-          className={`${styles.content} ${closing ? styles.contentClosing : ""}`}
-          onOpenAutoFocus={(e) => { e.preventDefault(); closeBtnRef.current?.focus(); }}
-          onInteractOutside={(e) => e.preventDefault()}
-          onPointerDownOutside={(e) => e.preventDefault()}
-          onPointerDown={handleDragStart}
-          onPointerMove={handleDragMove}
-          onPointerUp={handleDragEnd}
-          onAnimationEnd={() => { if (closing) onClose(); }}
-        >
-          <VisuallyHidden.Root asChild>
-            <Dialog.Title>Route {route.number}</Dialog.Title>
-          </VisuallyHidden.Root>
-          <VisuallyHidden.Root asChild>
-            <Dialog.Description>Log details for route {route.number}</Dialog.Description>
-          </VisuallyHidden.Root>
-
-          {/* Handle */}
-          <button ref={closeBtnRef} type="button" className={styles.handleBtn} onClick={startClose} aria-label="Close">
-            <div className={styles.handle} />
-          </button>
-
+    <BottomSheet
+      open
+      onClose={onClose}
+      title={`Route ${route.number}`}
+      description={`Log details for route ${route.number}`}
+    >
           {/* ── Header ── */}
           <header className={styles.header}>
             <h2 className={styles.routeNumber}>
               {route.number}
               {isCurrentFlash && <FaBolt className={styles.flashIcon} />}
             </h2>
-            <span className={styles.communityGrade}>
-              {gradeLabel ?? "\u00A0"}
-            </span>
+            {gradeLabel !== null ? (
+              <span className={styles.communityGrade}>{gradeLabel}</span>
+            ) : (
+              <span
+                className={`${styles.communityGrade} ${styles.communityGradeSkeleton} ${shimmerStyles.skeleton}`}
+                aria-hidden="true"
+              />
+            )}
           </header>
 
           {/* ── Attempt counter (hero) ── */}
@@ -620,7 +527,7 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
             {betaExpanded && (
               <div className={styles.betaContent}>
                 {loadingComments ? (
-                  <div className={styles.commentList}>
+                  <div className={styles.commentList} role="status" aria-busy="true" aria-label="Loading beta spray">
                     {[0, 1].map((i) => (
                       <div key={i} className={styles.commentRow}>
                         <div className={styles.avatarLink}>
@@ -735,8 +642,6 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
               </div>
             )}
           </div>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+    </BottomSheet>
   );
 }

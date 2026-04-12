@@ -54,6 +54,48 @@
 .flash { color: var(--flash-text); }
 .points { color: var(--success-text); }
 
+// ── Extras grid ───────────────────────────────────
+// Secondary stats: flash rate, pts/send, attempts, completion, coverage, streak
+.extrasGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.extraCell {
+  @include layout.stack(var(--space-1));
+  padding: var(--space-2) var(--space-3);
+  background: var(--mono-bg);
+  border-radius: var(--radius-2);
+}
+
+.extraCellEmphasis {
+  background: var(--flash-subtle-bg);
+}
+
+.extraValue {
+  @include type.typography(number);
+  font-size: var(--text-lg);
+  line-height: 1.1;
+  color: var(--mono-text);
+}
+
+.extraCellEmphasis .extraValue {
+  color: var(--flash-text);
+}
+
+.extraLabel {
+  @include type.typography(label);
+  font-size: var(--text-2xs);
+  color: var(--mono-text-low-contrast);
+}
+
+.extraSubtitle {
+  @include type.typography(meta);
+  font-size: var(--text-2xs);
+  color: var(--mono-text-low-contrast);
+}
+
 // ── Current Set card ──────────────────────────────
 .sectionLabel {
   @include type.typography(label);

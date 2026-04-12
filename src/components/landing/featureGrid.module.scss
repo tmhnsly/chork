@@ -29,6 +29,7 @@
   padding: var(--space-5);
   background: var(--mono-app-bg);
   border: 1px solid var(--mono-border-subtle);
+  border-radius: var(--radius-3);
   opacity: 0;
   transform: translateY(16px);
   animation: cardIn var(--duration-slow) var(--ease-out) forwards;

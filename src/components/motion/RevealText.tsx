@@ -32,9 +32,10 @@ export function RevealText({ text, className, as: Tag = "h1", delay = 0, divider
               className={styles.word}
               style={{ "--i": i, "--delay": `${delay}s` } as React.CSSProperties}
             >
-              {segment.text}{segment.trailing}
+              {segment.text}
             </span>
           </span>
+          {segment.trailing}
         </span>
       ))}
     </Tag>

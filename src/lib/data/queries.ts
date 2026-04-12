@@ -13,6 +13,7 @@ import type {
   PaginatedComments,
   ActivityEventWithRoute,
   GymRole,
+  LeaderboardEntry,
 } from "./types";
 
 type Supabase = SupabaseClient<Database>;
@@ -166,15 +167,85 @@ export async function getAllLogsForUser(
   supabase: Supabase,
   userId: string
 ): Promise<RouteLogWithSetId[]> {
+  // Only select columns needed for all-time stats derivation.
+  // computePoints/isFlash use attempts + completed + zone; set grouping uses routes(id).
   const { data, error } = await supabase
     .from("route_logs")
-    .select("*, routes(id)")
+    .select("route_id, attempts, completed, zone, routes(id)")
     .eq("user_id", userId);
   if (error) {
     console.warn("[chork] getAllLogsForUser failed:", error);
     return [];
   }
-  return (data ?? []) as RouteLogWithSetId[];
+  return (data ?? []) as unknown as RouteLogWithSetId[];
+}
+
+export interface UserLogInGym {
+  route_id: string;
+  set_id: string;
+  attempts: number;
+  completed: boolean;
+  zone: boolean;
+  grade_vote: number | null;
+}
+
+/**
+ * Single-call fetch of everything the profile page needs for all-time stats
+ * and per-set mini grids — user's logs scoped to the gym, plus the total
+ * number of routes in that gym for the coverage denominator.
+ */
+export async function getAllRouteDataForUserInGym(
+  supabase: Supabase,
+  gymId: string,
+  userId: string,
+  setIds: string[]
+): Promise<{ logs: UserLogInGym[]; totalRoutesInGym: number }> {
+  if (setIds.length === 0) return { logs: [], totalRoutesInGym: 0 };
+
+  const [logsResult, routesResult] = await Promise.all([
+    supabase
+      .from("route_logs")
+      .select("route_id, attempts, completed, zone, grade_vote, routes!inner(set_id)")
+      .eq("user_id", userId)
+      .eq("gym_id", gymId),
+    supabase
+      .from("routes")
+      .select("id", { count: "exact", head: true })
+      .in("set_id", setIds),
+  ]);
+
+  if (logsResult.error) {
+    console.warn("[chork] getAllRouteDataForUserInGym logs failed:", logsResult.error);
+  }
+  if (routesResult.error) {
+    console.warn("[chork] getAllRouteDataForUserInGym count failed:", routesResult.error);
+  }
+
+  type LogRow = {
+    route_id: string;
+    attempts: number;
+    completed: boolean;
+    zone: boolean;
+    grade_vote: number | null;
+    routes: { set_id: string } | { set_id: string }[] | null;
+  };
+
+  const logs: UserLogInGym[] = (logsResult.data ?? []).map((r: LogRow) => {
+    const route = Array.isArray(r.routes) ? r.routes[0] : r.routes;
+    return {
+      route_id: r.route_id,
+      set_id: route?.set_id ?? "",
+      attempts: r.attempts,
+      completed: r.completed,
+      zone: r.zone,
+      grade_vote: r.grade_vote,
+    };
+  }).filter((l) => l.set_id !== "");
+
+  return {
+    logs,
+    totalRoutesInGym: routesResult.count ?? 0,
+  };
 }
 
 // ── Stats (RPC functions) ──────────────────────────
@@ -305,4 +376,133 @@ export async function isFollowing(
     return false;
   }
   return data !== null;
+}
+
+export type FollowListUser = Pick<Profile, "id" | "username" | "name" | "avatar_url">;
+
+/** Users who follow the given userId. Ordered newest-first. */
+export async function getFollowers(
+  supabase: Supabase,
+  userId: string
+): Promise<FollowListUser[]> {
+  const { data, error } = await supabase
+    .from("follows")
+    .select("created_at, follower:profiles!follows_follower_id_fkey(id, username, name, avatar_url)")
+    .eq("following_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.warn("[chork] getFollowers failed:", error);
+    return [];
+  }
+  return (data ?? [])
+    .map((r) => r.follower as unknown as FollowListUser | null)
+    .filter((p): p is FollowListUser => p !== null);
+}
+
+/** Users the given userId follows. Ordered newest-first. */
+export async function getFollowing(
+  supabase: Supabase,
+  userId: string
+): Promise<FollowListUser[]> {
+  const { data, error } = await supabase
+    .from("follows")
+    .select("created_at, following:profiles!follows_following_id_fkey(id, username, name, avatar_url)")
+    .eq("follower_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) {
+    console.warn("[chork] getFollowing failed:", error);
+    return [];
+  }
+  return (data ?? [])
+    .map((r) => r.following as unknown as FollowListUser | null)
+    .filter((p): p is FollowListUser => p !== null);
+}
+
+// ── Leaderboard ───────────────────────────────────
+
+/** Fetch a page of the leaderboard. setId=null returns the all-time leaderboard. */
+export async function getLeaderboard(
+  supabase: Supabase,
+  gymId: string,
+  setId: string | null,
+  limit: number = 10,
+  offset: number = 0
+): Promise<LeaderboardEntry[]> {
+  const { data, error } = setId
+    ? await supabase.rpc("get_leaderboard_set", {
+        p_gym_id: gymId,
+        p_set_id: setId,
+        p_limit: limit,
+        p_offset: offset,
+      })
+    : await supabase.rpc("get_leaderboard_all_time", {
+        p_gym_id: gymId,
+        p_limit: limit,
+        p_offset: offset,
+      });
+
+  if (error) {
+    console.warn("[chork] getLeaderboard failed:", error);
+    return [];
+  }
+  return normaliseLeaderboardRows(data ?? []);
+}
+
+/** Fetch 5 rows centred on the user's rank. Empty array if user has no climbs. */
+export async function getLeaderboardNeighbourhood(
+  supabase: Supabase,
+  gymId: string,
+  userId: string,
+  setId: string | null
+): Promise<LeaderboardEntry[]> {
+  const { data, error } = await supabase.rpc("get_leaderboard_neighbourhood", {
+    p_gym_id: gymId,
+    p_user_id: userId,
+    p_set_id: setId ?? undefined,
+  });
+  if (error) {
+    console.warn("[chork] getLeaderboardNeighbourhood failed:", error);
+    return [];
+  }
+  return normaliseLeaderboardRows(data ?? []);
+}
+
+/** Fetch the user's own row. Returns a zero-stats row with rank=null if unranked. */
+export async function getLeaderboardUserRow(
+  supabase: Supabase,
+  gymId: string,
+  userId: string,
+  setId: string | null
+): Promise<LeaderboardEntry | null> {
+  const { data, error } = await supabase.rpc("get_leaderboard_user_row", {
+    p_gym_id: gymId,
+    p_user_id: userId,
+    p_set_id: setId ?? undefined,
+  });
+  if (error) {
+    console.warn("[chork] getLeaderboardUserRow failed:", error);
+    return null;
+  }
+  const rows = normaliseLeaderboardRows(data ?? []);
+  return rows[0] ?? null;
+}
+
+/** Normalise RPC rows — rank comes back as bigint (string in JSON). */
+function normaliseLeaderboardRows(
+  rows: Array<{
+    user_id: string;
+    username: string;
+    name: string;
+    avatar_url: string;
+    rank: number | string | null;
+    sends: number;
+    flashes: number;
+    zones: number;
+    points: number;
+  }>
+): LeaderboardEntry[] {
+  return rows.map((r) => ({
+    ...r,
+    rank: r.rank === null ? null : Number(r.rank),
+  }));
 }

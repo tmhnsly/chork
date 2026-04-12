@@ -1,31 +1,57 @@
+// Reveal text — word-by-word mask reveal.
+//
+// Each segment is wrapped in a .wordClip with overflow:hidden. The inner
+// .word starts translated down by 100% (hidden below the mask) and
+// animates up to its natural position.
+//
+// CSS limitation: setting overflow-y:hidden forces overflow-x to auto
+// (not visible). That would clip italic overhang on the right side
+// during the animation. To work around: add horizontal padding to the
+// clip container (giving italic glyphs room) with matching negative
+// margin so layout stays flush with adjacent text.
+//
+// After the animation completes, the wrapper's overflow releases via a
+// delayed keyframe so nothing is clipped in the final resting state.
+
 .wordClip {
   display: inline-block;
   vertical-align: bottom;
-  // Clip only the bottom edge where the slide-up animation enters from.
-  // Uses a large polygon so italic overhang, ascenders, and descenders
-  // are never clipped on top, left, or right.
-  clip-path: polygon(
-    -200% -200%,
-     200% -200%,
-     200% 100%,
-    -200% 100%
-  );
+  overflow: hidden;
+  // Horizontal padding = italic overhang room; negative margin cancels
+  // the layout effect so words render at their natural width.
+  padding: 0 0.3em;
+  margin: 0 -0.3em;
+  // Release the clip after the longest possible animation finishes.
+  animation: revealRelease 0s 2s forwards;
 }
 
 .word {
   display: inline-block;
-  animation: revealWord 0.4s var(--ease-out) backwards;
-  animation-delay: calc(var(--delay, 0s) + var(--i, 0) * 0.035s);
+  animation: revealWord 0.6s var(--ease-out) backwards;
+  animation-delay: calc(var(--delay, 0s) + var(--i, 0) * 0.05s);
 }
 
 @keyframes revealWord {
   from {
-    transform: translateY(110%);
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes revealRelease {
+  to {
+    overflow: visible;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .word {
+  .word,
+  .wordClip {
     animation: none;
+  }
+  .wordClip {
+    overflow: visible;
   }
 }

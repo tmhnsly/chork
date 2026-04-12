@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import { mockRouteSet, mockRoute, mockRouteLog } from "@/test/mocks";
-import { SendGrid } from "./SendGrid";
+import { SendsGrid } from "./SendsGrid";
 
 const set = mockRouteSet({ id: "set_001", gym_id: "gym_001" });
 
@@ -40,8 +40,8 @@ const allCompletedLogs = Array.from({ length: 12 }, (_, i) =>
 );
 
 const meta = {
-  title: "Components/SendGrid",
-  component: SendGrid,
+  title: "Components/SendsGrid",
+  component: SendsGrid,
   parameters: { layout: "padded" },
   decorators: [
     (Story) => (
@@ -50,7 +50,7 @@ const meta = {
       </div>
     ),
   ],
-} satisfies Meta<typeof SendGrid>;
+} satisfies Meta<typeof SendsGrid>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

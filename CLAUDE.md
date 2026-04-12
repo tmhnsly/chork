@@ -45,7 +45,7 @@ Supabase Auth with email+password. Sessions managed by `@supabase/ssr` middlewar
 
 - `staleTimes.dynamic: 300` — 5-minute client-side RSC cache
 - Mutations call `revalidatePath("/", "layout")` to bust the cache immediately
-- Route data cached per-route in SendGrid state (`routeDataCache` Map) for instant re-open
+- Route data cached per-route in SendsGrid state (`routeDataCache` Map) for instant re-open
 
 ## Visual style
 

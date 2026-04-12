@@ -109,6 +109,33 @@
   overflow-y: auto;
 }
 
+// Skeleton row — matches .gymOption dimensions to prevent layout shift
+.gymSkeleton {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--space-14);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--mono-border-subtle);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.gymSkeletonLogo {
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: var(--radius-2);
+  flex-shrink: 0;
+}
+
+.gymSkeletonText {
+  height: var(--text-md);
+  width: 60%;
+  border-radius: var(--radius-1);
+}
+
 .gymOption {
   display: flex;
   align-items: center;

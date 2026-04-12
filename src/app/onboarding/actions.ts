@@ -2,19 +2,23 @@
 
 import { revalidatePath } from "next/cache";
 import { requireSignedIn } from "@/lib/auth";
-import { createServerSupabase } from "@/lib/supabase/server";
 import { validateUsername } from "@/lib/validation";
 import { createGymMembership } from "@/lib/data/mutations";
 import { formatError } from "@/lib/errors";
 import type { Gym } from "@/lib/data";
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const MAX_NAME_LENGTH = 80;
+
 /**
  * Fetch listed gyms. Used by the onboarding gym picker.
- * Goes through the data access layer instead of querying Supabase from the client.
+ * Requires sign-in so unauthenticated bots can't poll this endpoint.
  */
 export async function fetchListedGyms(): Promise<Gym[]> {
-  const supabase = await createServerSupabase();
-  const { data, error } = await supabase
+  const auth = await requireSignedIn();
+  if ("error" in auth) return [];
+
+  const { data, error } = await auth.supabase
     .from("gyms")
     .select("*")
     .eq("is_listed", true)
@@ -35,7 +39,9 @@ export async function completeOnboarding(
   const { error: usernameError } = validateUsername(username);
   if (usernameError) return { error: usernameError };
   if (typeof name !== "string") return { error: "Invalid name" };
-  if (typeof gymId !== "string" || !gymId) return { error: "Please select a gym" };
+  if (!UUID_RE.test(gymId)) return { error: "Please select a gym" };
+
+  const trimmedName = name.trim().slice(0, MAX_NAME_LENGTH);
 
   const auth = await requireSignedIn();
   if ("error" in auth) return { error: auth.error };
@@ -50,7 +56,7 @@ export async function completeOnboarding(
       .from("profiles")
       .update({
         username,
-        name,
+        name: trimmedName,
         onboarded: true,
         active_gym_id: gymId,
       })

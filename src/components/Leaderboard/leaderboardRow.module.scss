@@ -1,0 +1,104 @@
+@use "mixins/typography" as type;
+@use "mixins/focus";
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: var(--size-touch-target);
+  padding: var(--space-3);
+  border: none;
+  background: var(--mono-subtle-bg);
+  border-radius: var(--radius-2);
+  color: var(--mono-text);
+  text-align: left;
+  cursor: pointer;
+  @include focus.ring;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+button.row {
+  @media (hover: hover) {
+    &:hover {
+      background: var(--mono-bg-hover);
+    }
+  }
+}
+
+.highlighted {
+  background: var(--accent-bg);
+  border-left: 3px solid var(--accent-solid);
+
+  @media (hover: hover) {
+    &:hover {
+      background: var(--accent-bg-hover);
+    }
+  }
+}
+
+.rank {
+  @include type.typography(number);
+  font-size: var(--text-md);
+  min-width: var(--space-7);
+  text-align: center;
+  color: var(--mono-text-low-contrast);
+  flex-shrink: 0;
+}
+
+.highlighted .rank {
+  color: var(--accent-text);
+}
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.username {
+  @include type.typography(label);
+  font-size: var(--text-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.highlighted .username {
+  color: var(--accent-text);
+}
+
+.name {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+}
+
+.points {
+  @include type.typography(number);
+  font-size: var(--text-lg);
+  color: var(--mono-text);
+}
+
+.highlighted .points {
+  color: var(--accent-text);
+}
+
+.flashes {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  @include type.typography(meta);
+  color: var(--flash-text-low-contrast);
+}

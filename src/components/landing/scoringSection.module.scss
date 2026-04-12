@@ -58,6 +58,7 @@
   height: var(--space-8);
   width: 0%;
   background: var(--mono-border);
+  border-radius: var(--radius-2);
   transition: width var(--duration-slow) var(--ease-out);
 
   &.barFillVisible {

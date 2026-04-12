@@ -26,11 +26,15 @@ export async function upsertRouteLog(
   gymId?: string | null
 ): Promise<RouteLog> {
   if (existingLogId) {
+    if (!gymId) throw new Error("gym_id is required to update a route log");
+    // Scope by gym_id too — a user in multiple gyms can't accidentally
+    // update a log scoped to a different gym by passing its id.
     const { data: log, error } = await supabase
       .from("route_logs")
       .update(data)
       .eq("id", existingLogId)
       .eq("user_id", userId)
+      .eq("gym_id", gymId)
       .select()
       .single();
     if (error) throw error;

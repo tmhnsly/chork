@@ -4,15 +4,22 @@ import { createServerSupabase } from "@/lib/supabase/server";
 import {
   getProfileByUsername,
   getAllSets,
-  getAllLogsForUser,
-  getUserSetStats,
   getRoutesBySet,
   getLogsBySetForUser,
+  getAllRouteDataForUserInGym,
   isFollowing,
 } from "@/lib/data/queries";
-import { isFlash, computePoints, computeMaxPoints } from "@/lib/data";
-import type { RouteLogWithSetId } from "@/lib/data";
-import { evaluateBadges, type BadgeContext } from "@/lib/badges";
+import type { UserLogInGym } from "@/lib/data/queries";
+import { computeMaxPoints } from "@/lib/data";
+import type { Route, RouteLog } from "@/lib/data";
+import { evaluateBadges } from "@/lib/badges";
+import {
+  computeAllTimeAggregates,
+  flashRate,
+  pointsPerSend,
+  completionRate,
+  computeSetStreak,
+} from "@/lib/data/profile-stats";
 import { ProfileHeader } from "@/components/ProfileHeader/ProfileHeader";
 import { ClimberStats } from "@/components/ClimberStats/ClimberStats";
 import { BadgeShelf } from "@/components/BadgeShelf/BadgeShelf";
@@ -46,7 +53,8 @@ export default async function UserProfilePage({ params }: Props) {
 
   const isOwnProfile = authUser?.id === profileUser.id;
 
-  // Fetch follow state when viewing another user's profile while signed in
+  // Follow state: only fetched when viewing another user's profile while signed in.
+  // `undefined` → ProfileHeader hides the Follow button entirely.
   const followState = (!isOwnProfile && authUser)
     ? await isFollowing(supabase, authUser.id, profileUser.id)
     : undefined;
@@ -68,54 +76,60 @@ export default async function UserProfilePage({ params }: Props) {
     );
   }
 
+  // Fetch everything we need in parallel.
   const allSets = await getAllSets(supabase, gymId);
   const activeSet = allSets.find((s) => s.active) ?? null;
+  const previousSetRecords = allSets.filter((s) => !s.active);
 
-  const [viewStats, miniRoutes, miniLogs] = await Promise.all([
-    getUserSetStats(supabase, profileUser.id, gymId),
-    activeSet ? getRoutesBySet(supabase, activeSet.id) : Promise.resolve([]),
-    activeSet ? getLogsBySetForUser(supabase, activeSet.id, profileUser.id) : Promise.resolve([]),
+  const [miniRoutes, miniLogs, routeData, previousSetRoutes] = await Promise.all([
+    activeSet ? getRoutesBySet(supabase, activeSet.id) : Promise.resolve<Route[]>([]),
+    activeSet ? getLogsBySetForUser(supabase, activeSet.id, profileUser.id) : Promise.resolve<RouteLog[]>([]),
+    getAllRouteDataForUserInGym(supabase, gymId, profileUser.id, allSets.map((s) => s.id)),
+    Promise.all(previousSetRecords.map((s) => getRoutesBySet(supabase, s.id))),
   ]);
 
-  // Build stats
+  // ── Per-set stats ────────────────────────────────
+  // Aggregate per-set from raw logs (single source of truth).
   const statsBySet = new Map<string, { completions: number; flashes: number; points: number }>();
-  let allTimeStats: { completions: number; flashes: number; points: number };
 
+  for (const log of routeData.logs) {
+    const existing = statsBySet.get(log.set_id) ?? { completions: 0, flashes: 0, points: 0 };
+    if (log.completed) {
+      existing.completions++;
+      if (log.attempts === 1) existing.flashes++;
+      if (log.attempts === 1) existing.points += 4;
+      else if (log.attempts === 2) existing.points += 3;
+      else if (log.attempts === 3) existing.points += 2;
+      else existing.points += 1;
+      if (log.zone) existing.points += 1;
+    }
+    statsBySet.set(log.set_id, existing);
+  }
+
+  // ── All-time aggregates (derived from raw logs) ──
+  const aggregates = computeAllTimeAggregates(routeData.logs);
+  const streak = computeSetStreak(
+    // allSets is ordered newest-first by getAllSets
+    allSets.map((s) => ({
+      hasSend: (statsBySet.get(s.id)?.completions ?? 0) > 0,
+    }))
+  );
+
+  const allTimeExtras = {
+    flashRate: flashRate(aggregates.sends, aggregates.flashes),
+    pointsPerSend: pointsPerSend(aggregates.points, aggregates.sends),
+    totalAttempts: aggregates.totalAttempts,
+    completionRate: completionRate(aggregates.sends, aggregates.uniqueRoutesAttempted),
+    uniqueRoutesAttempted: aggregates.uniqueRoutesAttempted,
+    totalRoutesInGym: routeData.totalRoutesInGym,
+    streakCurrent: streak.current,
+    streakBest: streak.best,
+  };
+
+  // ── Badge context ────────────────────────────────
   const completedRoutesBySet = new Map<string, Set<number>>();
   const totalRoutesBySet = new Map<string, number>();
 
-  if (viewStats.length > 0) {
-    for (const row of viewStats) {
-      statsBySet.set(row.set_id, {
-        completions: row.completions ?? 0,
-        flashes: row.flashes ?? 0,
-        points: row.points ?? 0,
-      });
-    }
-    allTimeStats = {
-      completions: viewStats.reduce((s, r) => s + (r.completions ?? 0), 0),
-      flashes: viewStats.reduce((s, r) => s + (r.flashes ?? 0), 0),
-      points: viewStats.reduce((s, r) => s + (r.points ?? 0), 0),
-    };
-  } else {
-    const allLogs = await getAllLogsForUser(supabase, profileUser.id);
-    for (const log of allLogs) {
-      const setId = (log as RouteLogWithSetId).routes?.id;
-      if (!setId) continue;
-      const existing = statsBySet.get(setId) ?? { completions: 0, flashes: 0, points: 0 };
-      if (log.completed) existing.completions++;
-      if (isFlash(log)) existing.flashes++;
-      existing.points += computePoints(log);
-      statsBySet.set(setId, existing);
-    }
-    allTimeStats = {
-      completions: allLogs.filter((l) => l.completed).length,
-      flashes: allLogs.filter((l) => isFlash(l)).length,
-      points: allLogs.reduce((s, l) => s + computePoints(l), 0),
-    };
-  }
-
-  // Badge context
   if (miniRoutes.length > 0 && activeSet) {
     totalRoutesBySet.set(activeSet.id, miniRoutes.length);
     const completed = new Set<number>();
@@ -129,13 +143,14 @@ export default async function UserProfilePage({ params }: Props) {
   }
 
   const badges = evaluateBadges({
-    totalFlashes: allTimeStats.flashes,
-    totalSends: allTimeStats.completions,
-    totalPoints: allTimeStats.points,
+    totalFlashes: aggregates.flashes,
+    totalSends: aggregates.sends,
+    totalPoints: aggregates.points,
     completedRoutesBySet,
     totalRoutesBySet,
   });
 
+  // ── Current set card data ────────────────────────
   const currentSetStats = activeSet
     ? {
         ...(statsBySet.get(activeSet.id) ?? { completions: 0, flashes: 0, points: 0 }),
@@ -147,19 +162,49 @@ export default async function UserProfilePage({ params }: Props) {
       }
     : null;
 
-  const previousSets = allSets
-    .filter((s) => !s.active)
-    .map((set) => {
+  // ── Previous sets with mini-grid data ────────────
+  // Group logs by set for thumbnails
+  const logsBySet = new Map<string, UserLogInGym[]>();
+  for (const log of routeData.logs) {
+    const arr = logsBySet.get(log.set_id) ?? [];
+    arr.push(log);
+    logsBySet.set(log.set_id, arr);
+  }
+
+  const previousSets = previousSetRecords
+    .map((set, i) => {
       const stats = statsBySet.get(set.id);
       if (!stats || stats.completions === 0) return null;
-      return { id: set.id, label: formatSetLabel(set.starts_at, set.ends_at), ...stats };
+      const routes = previousSetRoutes[i];
+      const setLogs = logsBySet.get(set.id) ?? [];
+      const logMap = new Map(
+        setLogs.map((l) => [l.route_id, { attempts: l.attempts, completed: l.completed, zone: l.zone }])
+      );
+      return {
+        id: set.id,
+        label: formatSetLabel(set.starts_at, set.ends_at),
+        ...stats,
+        routes,
+        logs: logMap,
+      };
     })
     .filter((s): s is NonNullable<typeof s> => s !== null);
 
   const logByRoute = new Map(miniLogs.map((l) => [l.route_id, l]));
 
+  // Empty state for previous sets: show helpful message on user's first set,
+  // but only if they have an active set to climb in.
+  const showPreviousSetsEmpty = activeSet !== null && previousSets.length === 0;
+
   return (
     <main className={styles.page}>
+      {/*
+        ProfileHeader — own vs other profile invariants:
+        - `isOwnProfile` hides follow button and shows settings gear + edit/delete
+        - `isFollowing` is `undefined` for own profile (follow button hidden)
+        - All personal management controls (edit, delete, reset password) are
+          gated inside ProfileHeader on `isOwnProfile`.
+      */}
       <ProfileHeader
         user={profileUser}
         isOwnProfile={isOwnProfile}
@@ -170,9 +215,10 @@ export default async function UserProfilePage({ params }: Props) {
 
       <ClimberStats
         currentSet={currentSetStats}
-        allTimeCompletions={allTimeStats.completions}
-        allTimeFlashes={allTimeStats.flashes}
-        allTimePoints={allTimeStats.points}
+        allTimeCompletions={aggregates.sends}
+        allTimeFlashes={aggregates.flashes}
+        allTimePoints={aggregates.points}
+        allTimeExtras={allTimeExtras}
         routeIds={miniRoutes.length > 0 ? miniRoutes.map((r) => r.id) : undefined}
         routeHasZone={miniRoutes.length > 0 ? miniRoutes.map((r) => r.has_zone) : undefined}
         logs={miniRoutes.length > 0 ? logByRoute : undefined}
@@ -180,7 +226,7 @@ export default async function UserProfilePage({ params }: Props) {
 
       <BadgeShelf badges={badges} />
 
-      <PreviousSetsSection sets={previousSets} />
+      <PreviousSetsSection sets={previousSets} showEmptyState={showPreviousSetsEmpty} />
     </main>
   );
 }

@@ -1,0 +1,49 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+
+.view {
+  @include layout.stack(var(--space-5));
+}
+
+.header {
+  @include layout.stack(var(--space-1));
+}
+
+.title {
+  @include type.typography(display);
+  color: var(--accent-text);
+}
+
+.gym {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.segmentRow {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.unranked {
+  @include layout.stack(var(--space-2));
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--mono-border-subtle);
+}
+
+.unrankedHint {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  text-align: center;
+}
+
+.seeAll {
+  @include layout.stack(var(--space-2));
+}

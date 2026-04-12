@@ -1,24 +1,54 @@
 import { redirect } from "next/navigation";
-import { createServerSupabase } from "@/lib/supabase/server";
-import { PageTitle } from "@/components/motion";
+import { requireAuth } from "@/lib/auth";
+import {
+  getGym,
+  getCurrentSet,
+  getLeaderboard,
+  getLeaderboardNeighbourhood,
+  getLeaderboardUserRow,
+} from "@/lib/data/queries";
+import { LeaderboardView } from "@/components/Leaderboard/LeaderboardView";
 import styles from "./leaderboard.module.scss";
 
 export const metadata = {
   title: "Leaderboard - Chork",
 };
 
-export default async function LeaderboardPage() {
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+const TOP_LIMIT = 5;
 
-  if (!user) {
-    redirect("/login");
-  }
+export default async function LeaderboardPage() {
+  const auth = await requireAuth();
+  if ("error" in auth) redirect("/login");
+  const { supabase, userId, gymId } = auth;
+
+  const [gym, currentSet] = await Promise.all([
+    getGym(supabase, gymId),
+    getCurrentSet(supabase, gymId),
+  ]);
+
+  // Determine initial tab's setId — prefer active set, fall back to all-time
+  const initialSetId = currentSet?.id ?? null;
+
+  const [top, userRow] = await Promise.all([
+    getLeaderboard(supabase, gymId, initialSetId, TOP_LIMIT, 0),
+    getLeaderboardUserRow(supabase, gymId, userId, initialSetId),
+  ]);
+
+  const needsNeighbourhood =
+    userRow !== null && userRow.rank !== null && userRow.rank > TOP_LIMIT;
+
+  const neighbourhood = needsNeighbourhood
+    ? await getLeaderboardNeighbourhood(supabase, gymId, userId, initialSetId)
+    : [];
 
   return (
     <main className={styles.page}>
-      <PageTitle text="Chorkboard" className={styles.title} />
-      <p className={styles.placeholder}>Coming soon</p>
+      <LeaderboardView
+        gymName={gym?.name ?? "Your gym"}
+        currentSetId={currentSet?.id ?? null}
+        currentUserId={userId}
+        initialSetData={{ top, userRow, neighbourhood }}
+      />
     </main>
   );
 }

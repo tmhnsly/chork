@@ -1,0 +1,24 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+
+.empty {
+  @include layout.stack(var(--space-3));
+  align-items: center;
+  text-align: center;
+  padding: var(--space-12) var(--gutter-x);
+}
+
+.icon {
+  font-size: var(--space-12);
+  color: var(--mono-text-low-contrast);
+}
+
+.heading {
+  @include type.typography(card-title);
+}
+
+.body {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+  max-width: 24rem;
+}

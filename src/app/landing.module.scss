@@ -10,9 +10,11 @@
 .ctaSection {
   @include layout.stack(var(--space-4));
   padding: var(--section-gap) var(--gutter-x);
+  margin: 0 var(--gutter-x);
   text-align: center;
   align-items: center;
   background: var(--brand);
+  border-radius: var(--radius-4);
 }
 
 .ctaHeadline {

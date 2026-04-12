@@ -12,7 +12,7 @@ beforeEach(() => vi.resetAllMocks());
 describe("completeOnboarding", () => {
   it("rejects invalid username", async () => {
     const { completeOnboarding } = await import("./actions");
-    const result = await completeOnboarding("ab", "Tom", "gym1");
+    const result = await completeOnboarding("ab", "Tom", "11111111-2222-3333-4444-555555555555");
     expect(result).toHaveProperty("error");
   });
 
@@ -27,7 +27,7 @@ describe("completeOnboarding", () => {
     vi.mocked(requireSignedIn).mockResolvedValue({ error: "Not signed in" });
 
     const { completeOnboarding } = await import("./actions");
-    const result = await completeOnboarding("validuser", "Tom", "gym1");
+    const result = await completeOnboarding("validuser", "Tom", "11111111-2222-3333-4444-555555555555");
     expect(result).toHaveProperty("error", "Not signed in");
   });
 
@@ -51,7 +51,7 @@ describe("completeOnboarding", () => {
     mock._resolveWith({ data: null, error: null });
 
     const { completeOnboarding } = await import("./actions");
-    await completeOnboarding("validuser", "Tom", "gym1");
+    await completeOnboarding("validuser", "Tom", "11111111-2222-3333-4444-555555555555");
 
     expect(callOrder[0]).toBe("membership");
   });
@@ -68,7 +68,7 @@ describe("completeOnboarding", () => {
     mock._resolveWith({ data: null, error: { message: "profile error", code: "500" } });
 
     const { completeOnboarding } = await import("./actions");
-    const result = await completeOnboarding("validuser", "Tom", "gym1");
+    const result = await completeOnboarding("validuser", "Tom", "11111111-2222-3333-4444-555555555555");
 
     expect(result).toHaveProperty("error");
     // Verify delete was called for rollback

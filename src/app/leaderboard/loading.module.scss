@@ -1,0 +1,53 @@
+@use "mixins/layout" as layout;
+
+.page {
+  @include layout.page;
+  @include layout.stack(var(--space-5));
+}
+
+.header {
+  @include layout.stack(var(--space-1));
+}
+
+.title {
+  height: var(--text-5xl);
+  width: 40%;
+  border-radius: var(--radius-1);
+}
+
+.gym {
+  height: var(--text-sm);
+  width: 30%;
+  border-radius: var(--radius-1);
+}
+
+.segment {
+  height: var(--size-touch-target);
+  width: 14rem;
+  border-radius: var(--radius-full);
+}
+
+.podium {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-2);
+  align-items: end;
+  padding: var(--space-4) 0;
+}
+
+.plinth {
+  border-radius: var(--radius-2) var(--radius-2) 0 0;
+}
+
+.plinth1 { height: var(--space-20); }
+.plinth2 { height: var(--space-16); }
+.plinth3 { height: var(--space-12); }
+
+.rows {
+  @include layout.stack(var(--space-2));
+}
+
+.row {
+  height: calc(var(--size-touch-target) + var(--space-3));
+  border-radius: var(--radius-2);
+}

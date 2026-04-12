@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { createServerSupabase } from "@/lib/supabase/server";
 import { requireAuth, requireSignedIn } from "@/lib/auth";
 import {
   upsertRouteLog,
@@ -35,7 +34,7 @@ export async function updateAttempts(
   logId?: string
 ): Promise<LogResult> {
   if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
-  if (!Number.isInteger(attempts) || attempts < 0) return { error: "Invalid attempts" };
+  if (!Number.isInteger(attempts) || attempts < 0 || attempts > 999) return { error: "Invalid attempts" };
 
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
@@ -59,7 +58,7 @@ export async function completeRoute(
   logId?: string
 ): Promise<LogResult> {
   if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
-  if (!Number.isInteger(attempts) || attempts < 1) return { error: "Invalid attempts" };
+  if (!Number.isInteger(attempts) || attempts < 1 || attempts > 999) return { error: "Invalid attempts" };
   if (gradeVote !== null && (!Number.isInteger(gradeVote) || gradeVote < 0 || gradeVote > 10)) {
     return { error: "Invalid grade" };
   }
@@ -110,7 +109,7 @@ export async function uncompleteRoute(
         completed: false,
         completed_at: null,
         grade_vote: null,
-      }, logId),
+      }, logId, gymId),
       deleteCompletionEvents(supabase, userId, routeId),
     ]);
     revalidatePath("/", "layout");
@@ -152,10 +151,10 @@ export async function updateGradeVote(
 
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
+  const { supabase, userId, gymId } = auth;
 
   try {
-    const log = await upsertRouteLog(supabase, userId, routeId, { grade_vote: gradeVote }, logId);
+    const log = await upsertRouteLog(supabase, userId, routeId, { grade_vote: gradeVote }, logId, gymId);
     return { success: true, log };
   } catch (err) {
     return { error: formatError(err) };
@@ -201,9 +200,15 @@ export async function fetchComments(
   routeId: string,
   page: number = 1
 ): Promise<PaginatedComments> {
-  const supabase = await createServerSupabase();
+  if (typeof routeId !== "string" || !routeId) {
+    return { items: [], totalItems: 0, totalPages: 0, page: 1 };
+  }
+  const auth = await requireAuth();
+  if ("error" in auth) {
+    return { items: [], totalItems: 0, totalPages: 0, page: 1 };
+  }
   try {
-    return await getCommentsByRoute(supabase, routeId, page, 20);
+    return await getCommentsByRoute(auth.supabase, routeId, page, 20);
   } catch (err) {
     console.warn("[chork] fetchComments failed:", err);
     return { items: [], totalItems: 0, totalPages: 0, page: 1 };
@@ -215,10 +220,16 @@ export async function fetchRouteData(routeId: string): Promise<{
   comments: PaginatedComments;
   likedIds: string[];
 }> {
-  const supabase = await createServerSupabase();
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
-  if (authError) console.warn("[chork] fetchRouteData auth failed:", authError);
-  const userId = user?.id;
+  const empty = {
+    grade: null,
+    comments: { items: [], totalItems: 0, totalPages: 0, page: 1 } as PaginatedComments,
+    likedIds: [],
+  };
+  if (typeof routeId !== "string" || !routeId) return empty;
+
+  const auth = await requireAuth();
+  if ("error" in auth) return empty;
+  const { supabase, userId } = auth;
 
   const [grade, comments, likedSet] = await Promise.all([
     getRouteGrade(supabase, routeId).catch((err) => {
@@ -229,12 +240,10 @@ export async function fetchRouteData(routeId: string): Promise<{
       console.warn("[chork] fetchRouteData comments failed:", err);
       return { items: [], totalItems: 0, totalPages: 0, page: 1 } as PaginatedComments;
     }),
-    userId
-      ? getLikedCommentIds(supabase, userId, routeId).catch((err) => {
-          console.warn("[chork] fetchRouteData likedIds failed:", err);
-          return new Set<string>();
-        })
-      : Promise.resolve(new Set<string>()),
+    getLikedCommentIds(supabase, userId, routeId).catch((err) => {
+      console.warn("[chork] fetchRouteData likedIds failed:", err);
+      return new Set<string>();
+    }),
   ]);
 
   return { grade, comments, likedIds: [...likedSet] };
@@ -270,15 +279,18 @@ export async function editComment(
   const { supabase, userId, gymId } = auth;
 
   try {
-    // Ownership check
+    // Ownership + gym-scope check
     const { data: existing, error: fetchError } = await supabase
       .from("comments")
-      .select("user_id")
+      .select("user_id, gym_id")
       .eq("id", commentId)
       .single();
 
     if (fetchError || !existing || existing.user_id !== userId) {
       return { error: "You can only edit your own comments" };
+    }
+    if (existing.gym_id !== gymId) {
+      return { error: "Comment not found" };
     }
 
     const comment = await updateComment(supabase, commentId, trimmed);

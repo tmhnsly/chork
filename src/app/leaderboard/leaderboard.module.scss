@@ -1,18 +1,6 @@
-@use "mixins/typography" as type;
 @use "mixins/layout" as layout;
 
 .page {
   @include layout.page;
-  @include layout.stack(var(--space-6));
-}
-
-.title {
-  @include type.typography(display);
-}
-
-.placeholder {
-  @include type.typography(body);
-  color: var(--mono-text-low-contrast);
-  text-align: center;
-  padding-top: var(--space-16);
+  @include layout.stack(var(--space-5));
 }

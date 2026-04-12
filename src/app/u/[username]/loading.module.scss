@@ -1,12 +1,13 @@
 @use "mixins/layout" as layout;
 @use "mixins/surfaces" as surface;
+@use "mixins/typography" as type;
 
 .page {
   @include layout.page;
-  @include layout.stack(var(--space-4));
+  @include layout.stack(var(--space-7));
 }
 
-// ── Profile header skeleton ──────────────────────
+// ── Profile header ───────────────────────────────
 .header {
   display: flex;
   align-items: center;
@@ -44,7 +45,12 @@
   flex-shrink: 0;
 }
 
-// ── All Time card skeleton ───────────────────────
+// ── Stats wrapper — mirrors ClimberStats.wrapper ─
+.statsWrapper {
+  @include layout.stack(var(--space-4));
+}
+
+// ── All Time card ────────────────────────────────
 .allTimeCard {
   @include surface.card;
   border-radius: var(--radius-3);
@@ -93,15 +99,48 @@
   border-radius: var(--radius-1);
 }
 
-// ── Current set card skeleton ────────────────────
+// ── Current Set ──────────────────────────────────
+.sectionLabel {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
 .currentSetCard {
   @include surface.card;
   border-radius: var(--radius-3);
   padding: var(--space-4);
-  height: 12rem;
+  @include layout.stack(var(--space-4));
 }
 
-// ── Badges skeleton ──────────────────────────────
+.currentSetRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.currentSetRing {
+  width: var(--space-18);
+  height: var(--space-18);
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.chartPlaceholder {
+  height: var(--space-16);
+  border-radius: var(--radius-1);
+}
+
+.chartFooter {
+  height: var(--text-xs);
+  width: var(--space-10);
+  border-radius: var(--radius-1);
+}
+
+// ── Badges ───────────────────────────────────────
+.badgeSection {
+  @include layout.stack(var(--space-3));
+}
+
 .badgeRow {
   display: flex;
   gap: var(--space-2);

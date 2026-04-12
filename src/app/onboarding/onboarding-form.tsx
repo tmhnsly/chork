@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { useUsernameValidation } from "@/hooks/use-username-validation";
 import { RevealText } from "@/components/motion";
-import { FormField, InputError, Button, showToast } from "@/components/ui";
+import { FormField, InputError, Button, showToast, shimmerStyles } from "@/components/ui";
 import { completeOnboarding, fetchListedGyms } from "./actions";
 import type { Gym } from "@/lib/data";
 import styles from "./onboarding.module.scss";
@@ -185,9 +185,14 @@ export function OnboardingForm() {
                 onChange={(e) => setGymQuery(e.target.value)}
                 placeholder="Search for your gym..."
               />
-              <ul className={styles.gymList}>
+              <ul className={styles.gymList} aria-busy={loadingGyms}>
                 {loadingGyms ? (
-                  <li className={styles.gymStatus}>Loading gyms...</li>
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <li key={`skel-${i}`} className={styles.gymSkeleton}>
+                      <div className={`${styles.gymSkeletonLogo} ${shimmerStyles.skeleton}`} />
+                      <div className={`${styles.gymSkeletonText} ${shimmerStyles.skeleton}`} />
+                    </li>
+                  ))
                 ) : filteredGyms.length === 0 ? (
                   <li className={styles.gymStatus}>
                     {gymQuery ? "No gyms found" : "No gyms available"}

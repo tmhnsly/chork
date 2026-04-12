@@ -3,7 +3,7 @@ import styles from "./loading.module.scss";
 
 export default function ProfileLoading() {
   return (
-    <main className={styles.page}>
+    <main className={styles.page} role="status" aria-busy="true" aria-label="Loading profile">
       {/* Profile header */}
       <header className={styles.header}>
         <div className={styles.headerText}>
@@ -14,30 +14,51 @@ export default function ProfileLoading() {
         <div className={`${styles.avatar} ${shimmerStyles.skeleton}`} />
       </header>
 
-      {/* All Time card */}
-      <div className={styles.allTimeCard}>
-        <div className={styles.allTimeRow}>
-          <div className={`${styles.ringPlaceholder} ${shimmerStyles.skeleton}`} />
-          <div className={styles.statsRow}>
-            {[0, 1, 2].map((i) => (
-              <div key={i} className={styles.statBlock}>
-                <div className={`${styles.statValue} ${shimmerStyles.skeleton}`} />
-                <div className={`${styles.statLabel} ${shimmerStyles.skeleton}`} />
-              </div>
-            ))}
+      {/* Stats — mirrors ClimberStats wrapper */}
+      <div className={styles.statsWrapper}>
+        {/* All Time card */}
+        <div className={styles.allTimeCard}>
+          <div className={styles.allTimeRow}>
+            <div className={`${styles.ringPlaceholder} ${shimmerStyles.skeleton}`} />
+            <div className={styles.statsRow}>
+              {[0, 1, 2].map((i) => (
+                <div key={i} className={styles.statBlock}>
+                  <div className={`${styles.statValue} ${shimmerStyles.skeleton}`} />
+                  <div className={`${styles.statLabel} ${shimmerStyles.skeleton}`} />
+                </div>
+              ))}
+            </div>
           </div>
+          <div className={`${styles.allTimeTag} ${shimmerStyles.skeleton}`} />
         </div>
-        <div className={`${styles.allTimeTag} ${shimmerStyles.skeleton}`} />
+
+        {/* Current Set label + card */}
+        <div className={`${styles.sectionLabel} ${shimmerStyles.skeleton}`} style={{ width: "6rem", height: "var(--text-xs)" }} />
+        <div className={styles.currentSetCard}>
+          <div className={styles.currentSetRow}>
+            <div className={`${styles.currentSetRing} ${shimmerStyles.skeleton}`} />
+            <div className={styles.statsRow}>
+              {[0, 1, 2].map((i) => (
+                <div key={i} className={styles.statBlock}>
+                  <div className={`${styles.statValue} ${shimmerStyles.skeleton}`} />
+                  <div className={`${styles.statLabel} ${shimmerStyles.skeleton}`} />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className={`${styles.chartPlaceholder} ${shimmerStyles.skeleton}`} />
+          <div className={`${styles.chartFooter} ${shimmerStyles.skeleton}`} />
+        </div>
       </div>
 
-      {/* Current set card */}
-      <div className={`${styles.currentSetCard} ${shimmerStyles.skeleton}`} />
-
-      {/* Badges */}
-      <div className={styles.badgeRow}>
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className={`${styles.badge} ${shimmerStyles.skeleton}`} />
-        ))}
+      {/* Achievements */}
+      <div className={styles.badgeSection}>
+        <div className={`${styles.sectionLabel} ${shimmerStyles.skeleton}`} style={{ width: "8rem", height: "var(--text-xs)" }} />
+        <div className={styles.badgeRow}>
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className={`${styles.badge} ${shimmerStyles.skeleton}`} />
+          ))}
+        </div>
       </div>
     </main>
   );

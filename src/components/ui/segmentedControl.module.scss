@@ -1,0 +1,37 @@
+@use "mixins/typography" as type;
+@use "mixins/focus";
+
+.track {
+  display: inline-flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  background: var(--mono-subtle-bg);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--mono-border-subtle);
+}
+
+.option {
+  @include type.typography(label);
+  @include focus.ring;
+  font-size: var(--text-2xs);
+  min-height: var(--size-touch-target);
+  padding: 0 var(--space-4);
+  border: none;
+  background: transparent;
+  color: var(--mono-solid);
+  cursor: pointer;
+  border-radius: var(--radius-full);
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--duration-fast) var(--ease-out);
+
+  @media (hover: hover) {
+    &:hover {
+      color: var(--mono-text-low-contrast);
+    }
+  }
+}
+
+.optionSelected {
+  background: var(--mono-bg);
+  color: var(--mono-text);
+}

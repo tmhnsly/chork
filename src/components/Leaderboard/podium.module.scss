@@ -1,0 +1,97 @@
+@use "mixins/typography" as type;
+@use "mixins/focus";
+
+.podium {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  align-items: end;
+  gap: var(--space-2);
+  padding: var(--space-4) 0;
+  list-style: none;
+  margin: 0;
+
+  > li {
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    width: 100%;
+  }
+}
+
+.slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  @include focus.ring;
+  -webkit-tap-highlight-color: transparent;
+}
+
+div.slot {
+  cursor: default;
+}
+
+.username {
+  @include type.typography(label);
+  font-size: var(--text-xs);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.points {
+  @include type.typography(number);
+  font-size: var(--text-sm);
+  color: var(--mono-text-low-contrast);
+}
+
+.plinth {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  padding-top: var(--space-2);
+  background: var(--mono-subtle-bg);
+  border-radius: var(--radius-2) var(--radius-2) 0 0;
+  border: 1px solid var(--mono-border-subtle);
+  border-bottom: none;
+}
+
+.placeLabel {
+  @include type.typography(number);
+  font-size: var(--text-2xl);
+  color: var(--mono-text-low-contrast);
+}
+
+// ── Per-place heights ─────────────────────────────
+.place1 .plinth {
+  height: var(--space-16);
+}
+
+.place2 .plinth {
+  height: var(--space-12);
+}
+
+.place3 .plinth {
+  height: var(--space-10);
+}
+
+// ── Self highlight ────────────────────────────────
+.self .plinth {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+}
+
+.self .placeLabel {
+  color: var(--accent-text);
+}
+
+.self .username {
+  color: var(--accent-text);
+}

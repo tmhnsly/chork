@@ -15,7 +15,7 @@ const RouteLogSheet = dynamic(
   () => import("@/components/RouteLogSheet/RouteLogSheet").then((m) => m.RouteLogSheet),
   { ssr: false }
 );
-import styles from "./sendGrid.module.scss";
+import styles from "./sendsGrid.module.scss";
 
 interface Props {
   set: RouteSet;
@@ -23,7 +23,7 @@ interface Props {
   initialLogs: RouteLog[];
 }
 
-export function SendGrid({ set, routes, initialLogs }: Props) {
+export function SendsGrid({ set, routes, initialLogs }: Props) {
   const [logs, setLogs] = useState<RouteLog[]>(initialLogs);
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [routeDataCache, setRouteDataCache] = useState<Map<string, CachedRouteData>>(new Map());

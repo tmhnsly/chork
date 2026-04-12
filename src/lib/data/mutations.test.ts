@@ -10,16 +10,25 @@ import { createMockSupabase } from "@/test/mock-supabase";
 describe("upsertRouteLog", () => {
   beforeEach(() => vi.resetModules());
 
-  it("includes user_id ownership check on update path", async () => {
+  it("includes user_id + gym_id ownership check on update path", async () => {
     const mock = createMockSupabase();
     mock._resolveWith({ data: { id: "log1" }, error: null });
 
     const { upsertRouteLog } = await import("./mutations");
-    await upsertRouteLog(mock as never, "user1", "route1", { attempts: 3 }, "log1");
+    await upsertRouteLog(mock as never, "user1", "route1", { attempts: 3 }, "log1", "gym1");
 
     expect(mock.update).toHaveBeenCalled();
     expect(mock.eq).toHaveBeenCalledWith("id", "log1");
     expect(mock.eq).toHaveBeenCalledWith("user_id", "user1");
+    expect(mock.eq).toHaveBeenCalledWith("gym_id", "gym1");
+  });
+
+  it("throws when gymId is missing on update path", async () => {
+    const mock = createMockSupabase();
+    const { upsertRouteLog } = await import("./mutations");
+    await expect(
+      upsertRouteLog(mock as never, "user1", "route1", { attempts: 3 }, "log1")
+    ).rejects.toThrow("gym_id is required");
   });
 
   it("throws when gymId is missing on create path", async () => {
@@ -50,7 +59,7 @@ describe("upsertRouteLog", () => {
 
     const { upsertRouteLog } = await import("./mutations");
     await expect(
-      upsertRouteLog(mock as never, "user1", "route1", { attempts: 1 }, "log1")
+      upsertRouteLog(mock as never, "user1", "route1", { attempts: 1 }, "log1", "gym1")
     ).rejects.toBeDefined();
   });
 });

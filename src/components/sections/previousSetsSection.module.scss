@@ -19,12 +19,26 @@
 
 .card {
   @include surface.card;
+  @include layout.stack(var(--space-3));
   border-radius: var(--radius-2);
+  padding: var(--space-4);
+}
+
+.cardHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-4);
   gap: var(--space-4);
+}
+
+.empty {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+  padding: var(--space-6);
+  text-align: center;
+  background: var(--mono-subtle-bg);
+  border: 1px solid var(--mono-border-subtle);
+  border-radius: var(--radius-2);
 }
 
 .label {

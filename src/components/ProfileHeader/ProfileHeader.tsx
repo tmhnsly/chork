@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { UserAvatar } from "@/components/ui";
 import { RevealText } from "@/components/motion";
 import { FollowButton } from "@/components/FollowButton/FollowButton";
+import { FollowListSheet, type FollowListMode } from "@/components/FollowListSheet/FollowListSheet";
 import { DropdownMenu } from "@/components/SettingsMenu/SettingsMenu";
 import { EditProfileDialog } from "@/components/SettingsMenu/EditProfileDialog";
 import { DeleteAccountDialog } from "@/components/SettingsMenu/DeleteAccountDialog";
@@ -25,6 +26,7 @@ export function ProfileHeader({ user, isOwnProfile, isFollowing, followerCount: 
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [followerCount, setFollowerCount] = useState(initialFollowerCount);
+  const [followList, setFollowList] = useState<FollowListMode | null>(null);
 
   const handleFollowChange = useCallback((following: boolean, serverFollowerCount: number | null) => {
     if (serverFollowerCount !== null) {
@@ -43,13 +45,17 @@ export function ProfileHeader({ user, isOwnProfile, isFollowing, followerCount: 
           <RevealText text={`@${user.username}`} className={styles.username} />
           {user.name && <p className={styles.displayName}>{user.name}</p>}
           <div className={styles.counts}>
-            <span className={styles.count}>
-              <strong>{followerCount}</strong> {followerCount === 1 ? "follower" : "followers"}
-            </span>
+            <CountPill
+              count={followerCount}
+              label={followerCount === 1 ? "follower" : "followers"}
+              onOpen={() => setFollowList("followers")}
+            />
             <span className={styles.dot}>&middot;</span>
-            <span className={styles.count}>
-              <strong>{followingCount}</strong> following
-            </span>
+            <CountPill
+              count={followingCount}
+              label="following"
+              onOpen={() => setFollowList("following")}
+            />
           </div>
         </div>
 
@@ -102,6 +108,41 @@ export function ProfileHeader({ user, isOwnProfile, isFollowing, followerCount: 
           <DeleteAccountDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog} />
         </>
       )}
+
+      {followList && (
+        <FollowListSheet
+          userId={user.id}
+          mode={followList}
+          onClose={() => setFollowList(null)}
+        />
+      )}
     </>
+  );
+}
+
+interface CountPillProps {
+  count: number;
+  label: string;
+  onOpen: () => void;
+}
+
+function CountPill({ count, label, onOpen }: CountPillProps) {
+  // When count is 0, render as plain text — nothing to show in a sheet
+  if (count === 0) {
+    return (
+      <span className={styles.count}>
+        <strong>0</strong> {label}
+      </span>
+    );
+  }
+  return (
+    <button
+      type="button"
+      className={styles.countButton}
+      onClick={onOpen}
+      aria-label={`View ${label}`}
+    >
+      <strong>{count}</strong> {label}
+    </button>
   );
 }
