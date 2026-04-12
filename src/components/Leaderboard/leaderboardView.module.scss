@@ -11,7 +11,9 @@
 
 .title {
   @include type.typography(display);
-  color: var(--accent-text);
+  // Page titles are --mono-text across the app (wall, profile, admin,
+  // competition). One rule so hierarchy reads the same on every page.
+  color: var(--mono-text);
 }
 
 .gym {

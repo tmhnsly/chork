@@ -38,6 +38,37 @@ export const createServerSupabase = cache(async () => {
 });
 
 /**
+ * Cached getUser — same cookie context as `createServerSupabase`, but
+ * returned value is memoised per render. Any server component, layout,
+ * server action, or auth helper that reads the current user during a
+ * single request shares the result instead of hitting auth.getUser
+ * repeatedly.
+ */
+export const getServerUser = cache(async () => {
+  const supabase = await createServerSupabase();
+  const { data: { user } } = await supabase.auth.getUser();
+  return user;
+});
+
+/**
+ * Cached profile row for the current user. Returned as-shipped from
+ * the DB so any caller can destructure `onboarded`, `active_gym_id`,
+ * etc. without another query. Null when the user isn't signed in or
+ * the trigger hasn't created the profile yet.
+ */
+export const getServerProfile = cache(async () => {
+  const user = await getServerUser();
+  if (!user) return null;
+  const supabase = await createServerSupabase();
+  const { data } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .single();
+  return data ?? null;
+});
+
+/**
  * Service role client — bypasses RLS. Server-only.
  * Used for operations that need to modify data the user doesn't own
  * (e.g. incrementing comment like counts, deleting activity events on undo).

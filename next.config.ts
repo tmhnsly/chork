@@ -2,6 +2,18 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const nextConfig: NextConfig = {
+  // `/index` is Pages-Router-era shorthand that Next keeps responding
+  // to out of habit — it serves the home page with no nav highlight
+  // and no middleware redirect. We only expose `/` as the home route;
+  // redirect any stale deep-links so they can't leak an orphan copy
+  // of the dashboard.
+  async redirects() {
+    return [
+      { source: "/index",       destination: "/", permanent: true },
+      { source: "/index.html",  destination: "/", permanent: true },
+    ];
+  },
+
   experimental: {
     staleTimes: {
       // Cache server component output for 5 minutes on client navigation.

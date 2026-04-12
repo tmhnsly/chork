@@ -1,0 +1,67 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+
+.chart {
+  @include layout.stack(var(--space-3));
+}
+
+.row {
+  @include layout.stack(var(--space-1));
+}
+
+.label {
+  @include type.typography(meta);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--mono-text-low-contrast);
+}
+
+.icon {
+  font-size: 0.85em;
+  color: var(--flash-text-low-contrast);
+
+  .zoneRow & {
+    color: var(--accent-text-low-contrast);
+  }
+}
+
+.barTrack {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.barFill {
+  height: var(--space-8);
+  width: 0%;
+  background: var(--mono-border);
+  border-radius: var(--radius-2);
+  transition: width var(--duration-slow) var(--ease-out);
+
+  &.barFillVisible {
+    width: var(--bar-width, 0%);
+  }
+
+  .flashRow & {
+    background: var(--flash-solid);
+  }
+
+  .zoneRow & {
+    background: var(--brand);
+  }
+}
+
+.points {
+  @include type.typography(card-title);
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  .flashRow & {
+    color: var(--flash-text-low-contrast);
+  }
+
+  .zoneRow & {
+    color: var(--accent-text-low-contrast);
+  }
+}

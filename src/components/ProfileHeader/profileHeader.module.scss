@@ -19,6 +19,7 @@
 
 .username {
   @include type.typography(display);
+  color: var(--mono-text);
   // Aggressive clamp so the rendered text fits in the container even
   // for 24-char usernames. At the minimum (text-xl = 20px), a 24-char
   // username fits in a ~240px container — well within mobile width.

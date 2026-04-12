@@ -1,5 +1,9 @@
 import "server-only";
-import { createServerSupabase } from "./supabase/server";
+import {
+  createServerSupabase,
+  getServerUser,
+  getServerProfile,
+} from "./supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
 
@@ -13,35 +17,37 @@ type AuthFailure = { error: string };
 /**
  * Auth check that only requires sign-in, no gym.
  * Use for onboarding and account setup.
+ *
+ * Reads through the React-cache-wrapped `getServerUser` so multiple
+ * auth helpers invoked during the same request share a single auth
+ * round-trip.
  */
 export async function requireSignedIn(): Promise<
   { supabase: SupabaseClient<Database>; userId: string } | AuthFailure
 > {
-  const supabase = await createServerSupabase();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) return { error: "You need to be signed in to do that" };
+  const [supabase, user] = await Promise.all([
+    createServerSupabase(),
+    getServerUser(),
+  ]);
+  if (!user) return { error: "You need to be signed in to do that" };
   return { supabase, userId: user.id };
 }
 
 export async function requireAuth(): Promise<AuthSuccess | AuthFailure> {
-  const supabase = await createServerSupabase();
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const [supabase, profile] = await Promise.all([
+    createServerSupabase(),
+    getServerProfile(),
+  ]);
 
-  if (error || !user) {
+  if (!profile) {
     return { error: "You need to be signed in to do that" };
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("active_gym_id")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile?.active_gym_id) {
+  if (!profile.active_gym_id) {
     return { error: "No gym selected" };
   }
 
-  return { supabase, userId: user.id, gymId: profile.active_gym_id };
+  return { supabase, userId: profile.id, gymId: profile.active_gym_id };
 }
 
 type AdminAuthSuccess = {
@@ -69,9 +75,11 @@ type AdminAuthSuccess = {
 export async function requireGymAdmin(
   gymId?: string
 ): Promise<AdminAuthSuccess | AuthFailure> {
-  const supabase = await createServerSupabase();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) {
+  const [supabase, user] = await Promise.all([
+    createServerSupabase(),
+    getServerUser(),
+  ]);
+  if (!user) {
     return { error: "You need to be signed in to do that" };
   }
 

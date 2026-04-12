@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { createServerSupabase, getServerProfile } from "@/lib/supabase/server";
 import { getCurrentSet, getRoutesBySet, getLogsBySetForUser, getUserGymRole, isGymAdmin, getGym } from "@/lib/data/queries";
 import { SendsGrid } from "@/components/SendsGrid/SendsGrid";
 import { SendsGridSkeleton } from "@/components/SendsGrid/SendsGridSkeleton";
@@ -41,27 +41,22 @@ async function AuthenticatedHome({ userId, gymId }: { userId: string; gymId: str
 }
 
 export default async function Home() {
-  const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  // `getServerProfile` is deduped (React cache) against the root
+  // layout — this page doesn't add a second auth round-trip.
+  const profile = await getServerProfile();
 
-  if (!user) {
+  if (!profile) {
     return <LandingPage />;
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("active_gym_id, onboarded")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile?.onboarded || !profile.active_gym_id) {
+  if (!profile.onboarded || !profile.active_gym_id) {
     return <LandingPage />;
   }
 
   return (
     <main className={styles.app}>
       <Suspense fallback={<SendsGridSkeleton />}>
-        <AuthenticatedHome userId={user.id} gymId={profile.active_gym_id} />
+        <AuthenticatedHome userId={profile.id} gymId={profile.active_gym_id} />
       </Suspense>
     </main>
   );

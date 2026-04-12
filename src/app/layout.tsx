@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Outfit, Inter } from "next/font/google";
 import { Providers } from "./providers";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { getServerProfile } from "@/lib/supabase/server";
 import type { Profile } from "@/lib/data/types";
 import "@/styles/globals.scss";
 
@@ -46,16 +46,12 @@ export const viewport: Viewport = {
 };
 
 // Read the user's profile server-side so the navbar renders the correct
-// auth state on the FIRST paint. Without this, the client boots with a
-// null profile and the logged-out bar flashes before the auth context
-// rehydrates from storage.
+// auth state on the FIRST paint. Deduped against page.tsx and any auth
+// helper via the React-cache-wrapped `getServerProfile` so a single
+// request only hits auth + profiles once total.
 async function getInitialProfile(): Promise<Profile | null> {
   try {
-    const supabase = await createServerSupabase();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
-    const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-    return data ?? null;
+    return await getServerProfile();
   } catch {
     return null;
   }

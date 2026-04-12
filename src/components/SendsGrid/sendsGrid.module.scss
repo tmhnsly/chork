@@ -15,6 +15,7 @@
 
 .title {
   @include type.typography(display);
+  color: var(--mono-text);
 }
 
 .gym {

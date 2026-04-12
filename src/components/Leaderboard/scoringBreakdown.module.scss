@@ -2,6 +2,9 @@
 @use "mixins/surfaces" as surface;
 @use "mixins/layout" as layout;
 
+// Card wrapper for the shared ScoringChart. All bar / label / points
+// styling lives in ScoringChart.module.scss so the landing hero and
+// this Chorkboard card stay pixel-identical.
 .card {
   @include surface.card;
   @include layout.stack(var(--space-3));
@@ -18,64 +21,4 @@
 .heading {
   @include type.typography(card-title);
   color: var(--mono-text);
-}
-
-.list {
-  @include layout.stack(var(--space-2));
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  background: var(--mono-subtle-bg);
-  border-radius: var(--radius-2);
-}
-
-.attempts {
-  @include type.typography(body);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--mono-text);
-}
-
-.flashIcon {
-  color: var(--flash-solid);
-}
-
-.points {
-  @include type.typography(number);
-  font-size: var(--text-lg);
-  color: var(--mono-text);
-  display: inline-flex;
-  align-items: baseline;
-  gap: var(--space-1);
-}
-
-.pointsFlash {
-  color: var(--flash-text);
-}
-
-.pointsUnit {
-  @include type.typography(label);
-  font-size: var(--text-2xs);
-  color: var(--mono-text-low-contrast);
-}
-
-.zone {
-  @include type.typography(body);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--mono-text-low-contrast);
-}
-
-.zoneIcon {
-  color: var(--success-solid);
 }
