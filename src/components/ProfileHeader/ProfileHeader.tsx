@@ -11,6 +11,8 @@ import {
   FaMountainSun,
   FaBell,
   FaBellSlash,
+  FaUserSlash,
+  FaUserGroup,
 } from "react-icons/fa6";
 import type { Profile } from "@/lib/data";
 import { useAuth } from "@/lib/auth-context";
@@ -20,6 +22,7 @@ import { DropdownMenu } from "@/components/SettingsMenu/SettingsMenu";
 import { EditProfileDialog } from "@/components/SettingsMenu/EditProfileDialog";
 import { DeleteAccountDialog } from "@/components/SettingsMenu/DeleteAccountDialog";
 import { GymSwitcherSheet } from "@/components/GymSwitcher/GymSwitcherSheet";
+import { BlockedUsersSheet } from "@/components/Crew/BlockedUsersSheet";
 import {
   pushSupported,
   readPushStatus,
@@ -28,6 +31,7 @@ import {
   type PushStatus,
 } from "@/lib/push/client";
 import { savePushSubscription, removePushSubscription } from "@/app/(app)/actions";
+import { setAllowCrewInvites } from "@/app/crew/actions";
 import styles from "./profileHeader.module.scss";
 
 interface Props {
@@ -47,6 +51,23 @@ export function ProfileHeader({ user, isOwnProfile, contextLine }: Props) {
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showGymSwitcher, setShowGymSwitcher] = useState(false);
+  const [showBlocked, setShowBlocked] = useState(false);
+
+  // Optimistic view of allow_crew_invites — keeps the menu label in
+  // sync after the toggle without waiting for a full refresh.
+  const [allowInvites, setAllowInvites] = useState<boolean>(user.allow_crew_invites);
+
+  const handleToggleAllowInvites = useCallback(async () => {
+    const next = !allowInvites;
+    setAllowInvites(next);
+    const res = await setAllowCrewInvites(next);
+    if ("error" in res) {
+      setAllowInvites(!next);
+      showToast(res.error, "error");
+      return;
+    }
+    showToast(next ? "Crew invites on" : "Crew invites off", "info");
+  }, [allowInvites]);
 
   // Push subscription status — "default" / "granted" / "subscribed" /
   // "denied" / "unsupported". Read once on mount from the live SW
@@ -113,6 +134,12 @@ export function ProfileHeader({ user, isOwnProfile, contextLine }: Props) {
                   items: [
                     { label: "Edit profile", icon: <FaPen />, onSelect: () => setShowEditDialog(true) },
                     { label: "Change gym", icon: <FaMountainSun />, onSelect: () => setShowGymSwitcher(true) },
+                    {
+                      label: allowInvites ? "Disable crew invites" : "Allow crew invites",
+                      icon: <FaUserGroup />,
+                      onSelect: handleToggleAllowInvites,
+                    },
+                    { label: "Blocked climbers", icon: <FaUserSlash />, onSelect: () => setShowBlocked(true) },
                     // Push toggle — hidden when the browser can't do web
                     // push (e.g. incognito / unsupported platforms) and
                     // when the user has explicitly denied permissions
@@ -156,6 +183,11 @@ export function ProfileHeader({ user, isOwnProfile, contextLine }: Props) {
             open={showGymSwitcher}
             onClose={() => setShowGymSwitcher(false)}
             activeGymId={user.active_gym_id ?? null}
+          />
+          <BlockedUsersSheet
+            open={showBlocked}
+            onClose={() => setShowBlocked(false)}
+            userId={user.id}
           />
         </>
       )}

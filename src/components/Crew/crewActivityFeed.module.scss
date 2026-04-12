@@ -1,0 +1,94 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+
+.list {
+  @include layout.stack(var(--space-2));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.row {
+  @include surface.card;
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-2);
+  align-items: flex-start;
+  min-height: var(--size-touch-target);
+}
+
+.rowText {
+  @include layout.stack(var(--space-1));
+  flex: 1;
+  min-width: 0;
+}
+
+.line1 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.handle {
+  @include type.typography(label);
+  color: var(--mono-text);
+}
+
+.badge {
+  @include type.typography(label);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-2xs);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+}
+
+.badgeFlash { background: var(--flash-bg);   color: var(--flash-text);   }
+.badgeSend  { background: var(--accent-bg);  color: var(--accent-text);  }
+.badgeZone  { background: var(--success-bg); color: var(--success-text); }
+
+.line2 {
+  @include type.typography(meta);
+  display: flex;
+  gap: var(--space-1);
+  flex-wrap: wrap;
+  color: var(--mono-text-low-contrast);
+  align-items: baseline;
+}
+
+.dot { opacity: 0.6; }
+
+.line3 {
+  @include type.typography(label);
+  font-size: var(--text-2xs);
+  color: var(--mono-text-low-contrast);
+}
+
+.empty {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+  max-width: 40ch;
+}
+
+.loadMore {
+  @include type.typography(label);
+  align-self: stretch;
+  min-height: var(--size-touch-target);
+  padding: 0 var(--space-4);
+  background: var(--mono-subtle-bg);
+  color: var(--mono-text-low-contrast);
+  border: 1px solid var(--mono-border);
+  border-radius: var(--radius-2);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--mono-bg);
+    color: var(--mono-text);
+  }
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}

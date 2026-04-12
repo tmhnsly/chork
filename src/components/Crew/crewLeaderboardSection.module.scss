@@ -1,0 +1,152 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+@use "mixins/input" as input;
+
+.section {
+  @include layout.stack(var(--space-3));
+}
+
+.heading {
+  @include type.typography(card-title);
+  color: var(--mono-text);
+}
+
+// ── Crew pill picker ──────────────────────────────
+.pillRow {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: var(--space-1);
+
+  &::-webkit-scrollbar { display: none; }
+}
+
+.pill {
+  @include type.typography(label);
+  flex-shrink: 0;
+  min-height: var(--size-touch-target);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--mono-subtle-bg);
+  color: var(--mono-text-low-contrast);
+  border: 1px solid var(--mono-border);
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    color      var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    background: var(--mono-bg);
+    color: var(--mono-text);
+  }
+}
+
+.pillActive {
+  background: var(--accent-bg);
+  color: var(--accent-text);
+  border-color: var(--accent-border-subtle);
+
+  &:hover {
+    background: var(--accent-bg);
+    color: var(--accent-text);
+  }
+}
+
+.pillCreate {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+// ── Set picker ────────────────────────────────────
+.setPicker {
+  @include layout.stack(var(--space-1));
+}
+
+.setPickerLabel {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.setSelect {
+  @include input.field;
+}
+
+// ── Leaderboard rows ──────────────────────────────
+.list {
+  @include layout.stack(var(--space-2));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.row {
+  @include surface.card;
+  border-radius: var(--radius-2);
+  min-height: var(--size-touch-target);
+}
+
+.rowLink {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  text-decoration: none;
+  color: inherit;
+}
+
+.rowSelf {
+  border-color: var(--accent-border);
+  background: var(--accent-subtle-bg);
+}
+
+.rank {
+  @include type.typography(number);
+  min-width: 2.5rem;
+  text-align: center;
+  color: var(--mono-text-low-contrast);
+}
+
+.rowText {
+  @include layout.stack(var(--space-1));
+  min-width: 0;
+  flex: 1;
+}
+
+.rowName {
+  @include type.typography(label);
+  color: var(--mono-text);
+}
+
+.rowSub {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+.rowStats {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+
+.statValue {
+  @include type.typography(number);
+  font-size: var(--text-lg);
+  color: var(--success-text);
+}
+
+.statLabel {
+  @include type.typography(label);
+  font-size: var(--text-2xs);
+  color: var(--mono-text-low-contrast);
+}
+
+.empty {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+  max-width: 40ch;
+}

@@ -12,6 +12,7 @@ import {
   getGym,
   getLeaderboardUserRow,
 } from "@/lib/data/queries";
+import { getCrewCountForUser } from "@/lib/data/crew-queries";
 import type { UserLogInGym } from "@/lib/data/queries";
 import { computeMaxPoints } from "@/lib/data";
 import type { Route, RouteLog } from "@/lib/data";
@@ -238,19 +239,21 @@ export default async function UserProfilePage({ params }: Props) {
   // Empty state: user on their first set (active set exists, no previous sets)
   const showSetsEmpty = activeSet !== null && previousSetRecords.length === 0;
 
-  // Build the "Yonder · #4 this set · N crews" context line that sits
-  // under the name on another climber's profile. Crew count will be
-  // wired in after migration 021 lands — leaving the "·"-separated
-  // join logic below handles the missing piece without showing "0".
+  // "Yonder · #4 this set · 2 crews" under the name on another
+  // climber's profile. Replaces the old follower/following count
+  // pills — each segment drops out gracefully when its data is
+  // missing (e.g. no active set, no rank, zero crews).
   let contextLine: string | null = null;
   if (!isOwnProfile) {
-    const [gym, rankRow] = await Promise.all([
+    const [gym, rankRow, crewCount] = await Promise.all([
       getGym(supabase, gymId),
       activeSet ? getLeaderboardUserRow(supabase, gymId, profileUser.id, activeSet.id) : Promise.resolve(null),
+      getCrewCountForUser(supabase, profileUser.id),
     ]);
     const parts: string[] = [];
     if (gym?.name) parts.push(gym.name);
     if (rankRow?.rank != null) parts.push(`#${rankRow.rank} this set`);
+    if (crewCount > 0) parts.push(`${crewCount} crew${crewCount === 1 ? "" : "s"}`);
     contextLine = parts.length > 0 ? parts.join(" · ") : null;
   }
 

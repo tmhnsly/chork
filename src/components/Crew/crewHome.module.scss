@@ -1,0 +1,42 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+
+.wrapper {
+  @include layout.stack(var(--space-5));
+}
+
+.section {
+  @include layout.stack(var(--space-3));
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.sectionTitle {
+  @include type.typography(card-title);
+  color: var(--mono-text);
+}
+
+.searchBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--size-touch-target);
+  min-height: var(--size-touch-target);
+  border: none;
+  background: transparent;
+  color: var(--mono-text-low-contrast);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  font-size: var(--size-icon-sm);
+  transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    background: var(--mono-bg);
+    color: var(--mono-text);
+  }
+}

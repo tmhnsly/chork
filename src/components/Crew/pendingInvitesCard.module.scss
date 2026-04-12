@@ -1,0 +1,87 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+
+.card {
+  @include surface.card;
+  @include layout.stack(var(--space-3));
+  padding: var(--space-4);
+  border-radius: var(--radius-3);
+  border-color: var(--accent-border-subtle);
+  background: var(--accent-subtle-bg);
+}
+
+.heading {
+  @include type.typography(card-title);
+  color: var(--mono-text);
+}
+
+.list {
+  @include layout.stack(var(--space-2));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--mono-app-bg);
+  border-radius: var(--radius-2);
+  min-height: var(--size-touch-target);
+}
+
+.rowText {
+  @include layout.stack(var(--space-1));
+  flex: 1;
+  min-width: 0;
+}
+
+.crewName {
+  @include type.typography(label);
+  color: var(--mono-text);
+}
+
+.rowMeta {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.accept,
+.decline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--size-touch-target);
+  min-height: var(--size-touch-target);
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: filter var(--duration-fast) var(--ease-out);
+
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+  &:hover    { filter: brightness(0.95); }
+}
+
+.accept {
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+}
+
+.decline {
+  background: transparent;
+  color: var(--mono-text-low-contrast);
+  border: 1px solid var(--mono-border);
+
+  &:hover {
+    color: var(--error-text);
+    border-color: var(--error-border);
+  }
+}

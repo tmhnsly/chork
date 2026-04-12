@@ -1,0 +1,245 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+@use "mixins/input" as input;
+
+.body {
+  @include layout.stack(var(--space-4));
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+}
+
+.heading {
+  @include type.typography(card-title);
+  color: var(--mono-text);
+}
+
+// ── Search input ──────────────────────────────────
+.searchWrap {
+  position: relative;
+}
+
+.searchIcon {
+  position: absolute;
+  top: 50%;
+  left: var(--space-3);
+  transform: translateY(-50%);
+  color: var(--mono-text-low-contrast);
+  pointer-events: none;
+}
+
+.search {
+  @include input.field;
+  padding-left: var(--space-8);
+}
+
+// ── Results list ──────────────────────────────────
+.list {
+  @include layout.stack(var(--space-2));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 55svh;
+  overflow-y: auto;
+}
+
+.row {
+  @include surface.card;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-2);
+  min-height: var(--size-touch-target);
+}
+
+.rowText {
+  @include layout.stack(var(--space-1));
+  flex: 1;
+  min-width: 0;
+}
+
+.rowName {
+  @include type.typography(label);
+  color: var(--mono-text);
+}
+
+.rowSub {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+.rowGym {
+  @include type.typography(label);
+  font-size: var(--text-2xs);
+  color: var(--mono-text-low-contrast);
+}
+
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.inviteBtn {
+  @include type.typography(label);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: var(--size-touch-target);
+  padding: 0 var(--space-3);
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  flex-shrink: 0;
+
+  &:hover { filter: brightness(0.95); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.inviteBtnDisabled {
+  background: var(--mono-subtle-bg);
+  color: var(--mono-text-low-contrast);
+  border: 1px solid var(--mono-border);
+}
+
+.menuTrigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--size-touch-target);
+  min-height: var(--size-touch-target);
+  padding: 0;
+  background: transparent;
+  border: none;
+  color: var(--mono-text-low-contrast);
+  cursor: pointer;
+  border-radius: var(--radius-full);
+
+  &:hover {
+    color: var(--mono-text);
+    background: var(--mono-bg);
+  }
+}
+
+.menuContent {
+  @include layout.stack(var(--space-1));
+  min-width: 12rem;
+  padding: var(--space-1);
+  background: var(--mono-app-bg);
+  border: 1px solid var(--mono-border);
+  border-radius: var(--radius-2);
+  box-shadow: var(--shadow-md);
+  z-index: 9999;
+}
+
+.menuItem {
+  @include type.typography(body);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  min-height: var(--size-touch-target);
+  color: var(--mono-text);
+  border-radius: var(--radius-1);
+  cursor: pointer;
+  outline: none;
+
+  &[data-highlighted] { background: var(--mono-bg); }
+}
+
+.menuItemDanger {
+  color: var(--error-text);
+
+  &[data-highlighted] { background: var(--error-subtle-bg); }
+}
+
+.empty {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+  max-width: 40ch;
+}
+
+// ── Picker sheet (second-level) ───────────────────
+.pickerBody {
+  @include layout.stack(var(--space-3));
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+}
+
+.pickerSub {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+}
+
+.pickerList {
+  @include layout.stack(var(--space-2));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.pickerRow {
+  @include surface.card;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-2);
+  min-height: var(--size-touch-target);
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+
+  &:hover { border-color: var(--mono-border-hover); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
+
+.pickerName {
+  @include type.typography(label);
+  color: var(--mono-text);
+}
+
+.pickerMeta {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+.pickerSpinner {
+  display: inline-block;
+  width: 1rem;
+  height: 1rem;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--mono-border);
+  border-top-color: var(--accent-solid);
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.createBtn {
+  @include type.typography(label);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--size-touch-target);
+  padding: 0 var(--space-4);
+  background: transparent;
+  border: 1px dashed var(--mono-border);
+  color: var(--mono-text-low-contrast);
+  border-radius: var(--radius-2);
+  cursor: pointer;
+
+  &:hover {
+    border-style: solid;
+    border-color: var(--accent-border);
+    color: var(--accent-text);
+  }
+
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
+}
