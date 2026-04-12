@@ -47,7 +47,12 @@
 
 // ── Stats wrapper — mirrors ClimberStats.wrapper ─
 .statsWrapper {
-  @include layout.stack(var(--space-4));
+  @include layout.stack(var(--space-6));
+}
+
+// Tight grouping: section label above its card.
+.labelledSection {
+  @include layout.stack(var(--space-2));
 }
 
 // ── All Time card ────────────────────────────────
@@ -56,6 +61,17 @@
   border-radius: var(--radius-3);
   padding: var(--space-4);
   @include layout.stack(var(--space-3));
+}
+
+.extrasGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.extraCell {
+  height: var(--space-12);
+  border-radius: var(--radius-2);
 }
 
 .allTimeRow {
@@ -93,13 +109,7 @@
   border-radius: var(--radius-1);
 }
 
-.allTimeTag {
-  height: var(--text-xs);
-  width: var(--space-14);
-  border-radius: var(--radius-1);
-}
-
-// ── Current Set ──────────────────────────────────
+// ── Section label (matches ClimberStats.sectionLabel) ──
 .sectionLabel {
   @include type.typography(label);
   color: var(--mono-text-low-contrast);
@@ -152,4 +162,35 @@
   width: 5.5rem;
   height: 5.5rem;
   flex-shrink: 0;
+}
+
+// ── Sets grid ────────────────────────────────────
+.setsSection {
+  @include layout.stack(var(--space-3));
+}
+
+.setsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+}
+
+.setTile {
+  @include surface.card;
+  @include layout.stack(var(--space-2));
+  align-items: center;
+  padding: var(--space-3);
+  border-radius: var(--radius-3);
+}
+
+.setRing {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-full);
+}
+
+.setLabel {
+  height: var(--text-xs);
+  width: 70%;
+  border-radius: var(--radius-1);
 }

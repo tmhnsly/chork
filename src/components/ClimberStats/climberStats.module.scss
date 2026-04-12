@@ -2,8 +2,16 @@
 @use "mixins/layout" as layout;
 @use "mixins/surfaces" as surface;
 
+// Mirrors the outer profile page section spacing so All Time / Current Set
+// read as distinct sections rather than a tight pair of stacked cards.
 .wrapper {
-  @include layout.stack(var(--space-4));
+  @include layout.stack(var(--space-6));
+}
+
+// Wraps a section label + its card with a tight inner gap so the label
+// hugs the card while the wrapper-level gap keeps sections breathing.
+.labelledSection {
+  @include layout.stack(var(--space-2));
 }
 
 // ── All Time card ─────────────────────────────────
@@ -39,12 +47,6 @@
 }
 
 .allTimeLabel {
-  @include type.typography(label);
-  font-size: var(--text-xs);
-  color: var(--mono-text-low-contrast);
-}
-
-.allTimeTag {
   @include type.typography(label);
   font-size: var(--text-xs);
   color: var(--mono-text-low-contrast);

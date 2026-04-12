@@ -506,3 +506,22 @@ function normaliseLeaderboardRows(
     rank: r.rank === null ? null : Number(r.rank),
   }));
 }
+
+// ── Achievements ──────────────────────────────────
+
+/** Return a Map of badge_id → earned_at ISO for the given user. */
+export async function getEarnedAchievements(
+  supabase: Supabase,
+  userId: string
+): Promise<Map<string, string>> {
+  const { data, error } = await supabase
+    .from("user_achievements")
+    .select("badge_id, earned_at")
+    .eq("user_id", userId);
+
+  if (error) {
+    console.warn("[chork] getEarnedAchievements failed:", error);
+    return new Map();
+  }
+  return new Map((data ?? []).map((r) => [r.badge_id, r.earned_at]));
+}

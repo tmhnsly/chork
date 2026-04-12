@@ -54,7 +54,10 @@ function splitSegments(text: string, dividers: string): Segment[] {
   // Build regex: split on spaces or before/after divider chars
   // e.g. "@slab_slob" → ["@", "slab", "_", "slob"]
   const escaped = dividers.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const pattern = new RegExp(`([${escaped}@])| +`, "g");
+  // Two capture groups so BOTH dividers and whitespace survive the split.
+  // Without capturing the whitespace branch, spaces are dropped and
+  // multi-word titles like "The Wall" collapse to "TheWall".
+  const pattern = new RegExp(`([${escaped}@])|( +)`, "g");
 
   // Split and keep delimiters
   const parts = text.split(pattern).filter((p) => p !== undefined && p !== "");

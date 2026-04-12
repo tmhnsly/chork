@@ -7,37 +7,66 @@ import {
   FaTrophy,
   FaStar,
   FaBroom,
+  FaMoon,
+  FaUsers,
+  FaUserPlus,
+  FaChevronRight,
+  FaLock,
 } from "react-icons/fa6";
+import { format, parseISO } from "date-fns";
 import type { BadgeStatus, BadgeIcon } from "@/lib/badges";
 import styles from "./badgeShelf.module.scss";
 
 // Map serialisable icon IDs → actual React icon components
-const ICON_MAP: Record<BadgeIcon, React.ComponentType> = {
+export const ICON_MAP: Record<BadgeIcon, React.ComponentType> = {
   bolt: FaBolt,
   fire: FaFire,
   mountain: FaMountainSun,
   trophy: FaTrophy,
   star: FaStar,
   broom: FaBroom,
+  moon: FaMoon,
+  "fire-streak": FaFire,
+  users: FaUsers,
+  "user-plus": FaUserPlus,
 };
 
 interface Props {
   badges: BadgeStatus[];
+  onSeeAll?: () => void;
 }
 
-export function BadgeShelf({ badges }: Props) {
-  const earned = badges.filter((b) => b.earned);
+export function BadgeShelf({ badges, onSeeAll }: Props) {
+  const earned = badges
+    .filter((b) => b.earned)
+    .sort((a, b) => {
+      const aDate = a.earned && a.earnedAt ? a.earnedAt : "";
+      const bDate = b.earned && b.earnedAt ? b.earnedAt : "";
+      return bDate.localeCompare(aDate);
+    });
   const locked = badges.filter((b) => !b.earned);
 
   return (
     <section className={styles.shelf}>
       <header className={styles.header}>
         <h3 className={styles.title}>Achievements</h3>
-        {badges.length > 0 && (
-          <span className={styles.count}>
-            {earned.length} of {badges.length} earned
-          </span>
-        )}
+        <div className={styles.headerRight}>
+          {badges.length > 0 && (
+            <span className={styles.count}>
+              {earned.length} of {badges.length} earned
+            </span>
+          )}
+          {onSeeAll && (
+            <button
+              type="button"
+              className={styles.seeAll}
+              onClick={onSeeAll}
+              aria-label="See all achievements"
+            >
+              See all <FaChevronRight aria-hidden />
+            </button>
+          )}
+        </div>
       </header>
       <div className={styles.grid}>
         {earned.map((b) => {
@@ -52,23 +81,31 @@ export function BadgeShelf({ badges }: Props) {
                 <Icon />
               </span>
               <span className={styles.badgeName}>{b.badge.name}</span>
+              {b.earned && b.earnedAt && (
+                <span className={styles.earnedDate}>
+                  {format(parseISO(b.earnedAt), "MMM d")}
+                </span>
+              )}
             </div>
           );
         })}
 
         {locked.map((b) => {
           const Icon = ICON_MAP[b.badge.icon];
+          const isSecret = b.badge.isSecret;
           return (
             <div
               key={b.badge.id}
               className={`${styles.badge} ${styles.badgeLocked}`}
-              title={b.badge.description}
+              title={isSecret ? "Secret achievement" : b.badge.description}
             >
               <span className={styles.badgeIcon}>
-                <Icon />
+                {isSecret ? <FaLock /> : <Icon />}
               </span>
-              <span className={styles.badgeName}>{b.badge.name}</span>
-              {!b.earned && b.progress !== null && b.current !== null && b.badge.target !== null && (
+              <span className={styles.badgeName}>
+                {isSecret ? "???" : b.badge.name}
+              </span>
+              {!isSecret && !b.earned && b.progress !== null && b.current !== null && b.badge.target !== null && (
                 <div className={styles.progressBar}>
                   <div
                     className={styles.progressFill}

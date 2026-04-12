@@ -8,11 +8,12 @@ import {
   getLogsBySetForUser,
   getAllRouteDataForUserInGym,
   isFollowing,
+  getEarnedAchievements,
 } from "@/lib/data/queries";
 import type { UserLogInGym } from "@/lib/data/queries";
 import { computeMaxPoints } from "@/lib/data";
 import type { Route, RouteLog } from "@/lib/data";
-import { evaluateBadges } from "@/lib/badges";
+import { evaluateBadges, evaluateBadgesForSet } from "@/lib/badges";
 import {
   computeAllTimeAggregates,
   flashRate,
@@ -22,8 +23,9 @@ import {
 } from "@/lib/data/profile-stats";
 import { ProfileHeader } from "@/components/ProfileHeader/ProfileHeader";
 import { ClimberStats } from "@/components/ClimberStats/ClimberStats";
-import { BadgeShelf } from "@/components/BadgeShelf/BadgeShelf";
-import { PreviousSetsSection } from "@/components/sections/PreviousSetsSection";
+import { ProfileAchievements } from "@/components/Achievements/ProfileAchievements";
+import { PreviousSetsGrid } from "@/components/sections/PreviousSetsGrid";
+import type { SetCell, SetCellLog } from "@/components/sections/PreviousSetsGrid";
 import styles from "./user.module.scss";
 
 interface Props {
@@ -40,6 +42,13 @@ function formatSetLabel(starts: string, ends: string) {
     format(parseISO(starts), "MMM d").toUpperCase(),
     format(parseISO(ends), "MMM d").toUpperCase(),
   ].join(" – ");
+}
+
+interface SetStats {
+  completions: number;
+  flashes: number;
+  points: number;
+  zones: number;
 }
 
 export default async function UserProfilePage({ params }: Props) {
@@ -81,22 +90,23 @@ export default async function UserProfilePage({ params }: Props) {
   const activeSet = allSets.find((s) => s.active) ?? null;
   const previousSetRecords = allSets.filter((s) => !s.active);
 
-  const [miniRoutes, miniLogs, routeData, previousSetRoutes] = await Promise.all([
+  const [miniRoutes, miniLogs, routeData, previousSetRoutes, earnedAchievements] = await Promise.all([
     activeSet ? getRoutesBySet(supabase, activeSet.id) : Promise.resolve<Route[]>([]),
     activeSet ? getLogsBySetForUser(supabase, activeSet.id, profileUser.id) : Promise.resolve<RouteLog[]>([]),
     getAllRouteDataForUserInGym(supabase, gymId, profileUser.id, allSets.map((s) => s.id)),
     Promise.all(previousSetRecords.map((s) => getRoutesBySet(supabase, s.id))),
+    getEarnedAchievements(supabase, profileUser.id),
   ]);
 
-  // ── Per-set stats ────────────────────────────────
-  // Aggregate per-set from raw logs (single source of truth).
-  const statsBySet = new Map<string, { completions: number; flashes: number; points: number }>();
+  // ── Per-set stats (single source of truth — raw logs) ─
+  const statsBySet = new Map<string, SetStats>();
 
   for (const log of routeData.logs) {
-    const existing = statsBySet.get(log.set_id) ?? { completions: 0, flashes: 0, points: 0 };
+    const existing = statsBySet.get(log.set_id) ?? { completions: 0, flashes: 0, points: 0, zones: 0 };
     if (log.completed) {
       existing.completions++;
       if (log.attempts === 1) existing.flashes++;
+      if (log.zone) existing.zones++;
       if (log.attempts === 1) existing.points += 4;
       else if (log.attempts === 2) existing.points += 3;
       else if (log.attempts === 3) existing.points += 2;
@@ -104,6 +114,14 @@ export default async function UserProfilePage({ params }: Props) {
       if (log.zone) existing.points += 1;
     }
     statsBySet.set(log.set_id, existing);
+  }
+
+  // ── Group logs by set for thumbnails / charts ────
+  const logsBySet = new Map<string, UserLogInGym[]>();
+  for (const log of routeData.logs) {
+    const arr = logsBySet.get(log.set_id) ?? [];
+    arr.push(log);
+    logsBySet.set(log.set_id, arr);
   }
 
   // ── All-time aggregates (derived from raw logs) ──
@@ -126,7 +144,7 @@ export default async function UserProfilePage({ params }: Props) {
     streakBest: streak.best,
   };
 
-  // ── Badge context ────────────────────────────────
+  // ── Badge context (all-time badges on the Achievements shelf) ─
   const completedRoutesBySet = new Map<string, Set<number>>();
   const totalRoutesBySet = new Map<string, number>();
 
@@ -148,6 +166,12 @@ export default async function UserProfilePage({ params }: Props) {
     totalPoints: aggregates.points,
     completedRoutesBySet,
     totalRoutesBySet,
+  }).map((b) => {
+    if (b.earned) {
+      const earnedAt = earnedAchievements.get(b.badge.id);
+      return earnedAt ? { ...b, earnedAt } : b;
+    }
+    return b;
   });
 
   // ── Current set card data ────────────────────────
@@ -162,39 +186,59 @@ export default async function UserProfilePage({ params }: Props) {
       }
     : null;
 
-  // ── Previous sets with mini-grid data ────────────
-  // Group logs by set for thumbnails
-  const logsBySet = new Map<string, UserLogInGym[]>();
-  for (const log of routeData.logs) {
-    const arr = logsBySet.get(log.set_id) ?? [];
-    arr.push(log);
-    logsBySet.set(log.set_id, arr);
+  // ── Build SetCell[] for the grid (active first, then previous) ─
+  function buildSetCell(
+    setRecord: { id: string; starts_at: string; ends_at: string },
+    routes: Route[],
+    isActive: boolean
+  ): SetCell {
+    const stats = statsBySet.get(setRecord.id) ?? { completions: 0, flashes: 0, points: 0, zones: 0 };
+    const setLogs = logsBySet.get(setRecord.id) ?? [];
+    const logs: Map<string, SetCellLog> = new Map(
+      setLogs.map((l) => [l.route_id, { attempts: l.attempts, completed: l.completed, zone: l.zone }])
+    );
+    const totalRoutes = routes.length;
+    const maxPoints = computeMaxPoints(totalRoutes, routes.filter((r) => r.has_zone).length);
+
+    // Per-set earned badges — condition-based only
+    const completedNumbers = new Set<number>();
+    for (const log of setLogs) {
+      if (log.completed) {
+        const route = routes.find((r) => r.id === log.route_id);
+        if (route) completedNumbers.add(route.number);
+      }
+    }
+    const badgesForSet = evaluateBadgesForSet(completedNumbers, totalRoutes);
+
+    return {
+      id: setRecord.id,
+      label: formatSetLabel(setRecord.starts_at, setRecord.ends_at),
+      isActive,
+      hasActivity: stats.completions > 0 || setLogs.some((l) => l.attempts > 0),
+      completions: stats.completions,
+      flashes: stats.flashes,
+      zones: stats.zones,
+      points: stats.points,
+      totalRoutes,
+      maxPoints,
+      routes,
+      logs,
+      badges: badgesForSet,
+    };
   }
 
-  const previousSets = previousSetRecords
-    .map((set, i) => {
-      const stats = statsBySet.get(set.id);
-      if (!stats || stats.completions === 0) return null;
-      const routes = previousSetRoutes[i];
-      const setLogs = logsBySet.get(set.id) ?? [];
-      const logMap = new Map(
-        setLogs.map((l) => [l.route_id, { attempts: l.attempts, completed: l.completed, zone: l.zone }])
-      );
-      return {
-        id: set.id,
-        label: formatSetLabel(set.starts_at, set.ends_at),
-        ...stats,
-        routes,
-        logs: logMap,
-      };
-    })
-    .filter((s): s is NonNullable<typeof s> => s !== null);
+  const setCells: SetCell[] = [];
+  if (activeSet) {
+    setCells.push(buildSetCell(activeSet, miniRoutes, true));
+  }
+  previousSetRecords.forEach((set, i) => {
+    setCells.push(buildSetCell(set, previousSetRoutes[i], false));
+  });
 
   const logByRoute = new Map(miniLogs.map((l) => [l.route_id, l]));
 
-  // Empty state for previous sets: show helpful message on user's first set,
-  // but only if they have an active set to climb in.
-  const showPreviousSetsEmpty = activeSet !== null && previousSets.length === 0;
+  // Empty state: user on their first set (active set exists, no previous sets)
+  const showSetsEmpty = activeSet !== null && previousSetRecords.length === 0;
 
   return (
     <main className={styles.page}>
@@ -224,9 +268,14 @@ export default async function UserProfilePage({ params }: Props) {
         logs={miniRoutes.length > 0 ? logByRoute : undefined}
       />
 
-      <BadgeShelf badges={badges} />
+      <ProfileAchievements badges={badges} />
 
-      <PreviousSetsSection sets={previousSets} showEmptyState={showPreviousSetsEmpty} />
+      <PreviousSetsGrid
+        sets={setCells}
+        gymId={gymId}
+        userId={profileUser.id}
+        showEmptyState={showSetsEmpty}
+      />
     </main>
   );
 }

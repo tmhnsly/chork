@@ -1,0 +1,163 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+@use "mixins/surfaces" as surface;
+
+.body {
+  @include layout.stack(var(--space-4));
+  padding-top: var(--space-2);
+  padding-bottom: var(--space-2);
+}
+
+.heading {
+  @include type.typography(card-title);
+}
+
+// ── Category pills ────────────────────────────────
+.pills {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.pill {
+  @include type.typography(label);
+  flex-shrink: 0;
+  padding: var(--space-2) var(--space-3);
+  min-height: var(--size-touch-target);
+  border-radius: var(--radius-full);
+  background: var(--mono-subtle-bg);
+  color: var(--mono-text-low-contrast);
+  border: 1px solid var(--mono-border);
+  cursor: pointer;
+  transition: background 0.1s ease, color 0.1s ease;
+
+  &:hover {
+    background: var(--mono-bg);
+    color: var(--mono-text);
+  }
+}
+
+.pillActive {
+  background: var(--accent-bg);
+  color: var(--accent-text);
+  border-color: var(--accent-border-subtle);
+
+  &:hover {
+    background: var(--accent-bg);
+    color: var(--accent-text);
+  }
+}
+
+// ── List ──────────────────────────────────────────
+.list {
+  @include layout.stack(var(--space-2));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3);
+  background: var(--mono-subtle-bg);
+  border: 1px solid var(--mono-border);
+  border-radius: var(--radius-2);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s ease;
+
+  &:hover {
+    background: var(--mono-bg);
+  }
+}
+
+.rowIcon {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-10);
+  height: var(--space-10);
+  border-radius: var(--radius-full);
+  background: var(--mono-bg);
+  color: var(--mono-solid);
+  font-size: var(--text-lg);
+}
+
+.rowIconEarned {
+  background: var(--accent-bg);
+  color: var(--accent-text-low-contrast);
+}
+
+.rowText {
+  @include layout.stack(var(--space-1));
+  flex: 1;
+  min-width: 0;
+}
+
+.rowName {
+  @include type.typography(label);
+  color: var(--mono-text);
+}
+
+.rowDesc {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+.progress {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.progressBar {
+  flex: 1;
+  height: var(--space-1);
+  background: var(--mono-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progressFill {
+  display: block;
+  height: 100%;
+  width: var(--progress, 0%);
+  background: var(--accent-solid);
+  border-radius: var(--radius-full);
+  transition: width var(--duration-normal) var(--ease-out);
+}
+
+.progressText {
+  @include type.typography(label);
+  font-size: var(--text-2xs);
+  color: var(--mono-text-low-contrast);
+}
+
+.earnedDate {
+  @include type.typography(meta);
+  color: var(--accent-text-low-contrast);
+}
+
+.tick {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-6);
+  height: var(--space-6);
+  border-radius: var(--radius-full);
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+  font-size: var(--text-xs);
+}

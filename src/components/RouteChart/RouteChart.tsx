@@ -21,37 +21,34 @@ export function RouteChart({ logs, routeIds, routeHasZone }: Props) {
         {routeIds.map((routeId, i) => {
           const log = logs.get(routeId);
           const completed = log?.completed ?? false;
-          const attempted = log && log.attempts > 0 && !completed;
+          const attempted = !!(log && log.attempts > 0 && !completed);
           const flash = log ? isFlash(log) : false;
 
-          if (attempted) {
-            // Attempted but not completed - show a small indicator bar
-            return (
-              <div key={routeId} className={styles.column}>
-                <div className={styles.barTrack}>
-                  <div className={`${styles.bar} ${styles.barAttempted}`} style={{ "--i": i } as React.CSSProperties} />
-                </div>
-              </div>
-            );
-          }
+          const state = flash
+            ? "flash"
+            : completed
+              ? "completed"
+              : attempted
+                ? "attempted"
+                : "empty";
 
-          const points = completed ? computePoints(log!) : 0;
           const maxForRoute = routeHasZone[i] ? 5 : 4;
-          const height = points > 0 ? (points / maxForRoute) * 100 : 0;
+          const height =
+            completed ? (computePoints(log!) / maxForRoute) * 100
+            : attempted ? 15
+            : 0;
 
-          let barClass = styles.bar;
-          if (flash) barClass += ` ${styles.barFlash}`;
-          else if (completed) barClass += ` ${styles.barCompleted}`;
-
+          // Always render the bar element so React reuses the same node across
+          // state changes — otherwise `height`/`background-color` transitions
+          // can't fire when a route flips from empty/attempted to completed.
           return (
             <div key={routeId} className={styles.column}>
               <div className={styles.barTrack}>
-                {height > 0 && (
-                  <div
-                    className={barClass}
-                    style={{ "--bar-h": `${height}%`, "--i": i } as React.CSSProperties}
-                  />
-                )}
+                <div
+                  className={styles.bar}
+                  data-state={state}
+                  style={{ "--bar-h": `${height}%`, "--i": i } as React.CSSProperties}
+                />
               </div>
             </div>
           );

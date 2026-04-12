@@ -23,6 +23,8 @@ import type {
   ActivityEventType,
 } from "@/lib/data";
 import { formatError } from "@/lib/errors";
+import { buildBadgeContext } from "@/lib/achievements/context";
+import { evaluateAndPersistAchievements } from "@/lib/achievements/evaluate";
 
 type ActionResult<T = unknown> = { error: string } | ({ success: true } & T);
 type LogResult = ActionResult<{ log: RouteLog }>;
@@ -86,6 +88,16 @@ export async function completeRoute(
         gym_id: gymId,
       }),
     ]);
+
+    // Evaluate badges in the background — must never break the logging flow.
+    try {
+      const ctx = await buildBadgeContext(supabase, userId, gymId);
+      if (ctx) {
+        await evaluateAndPersistAchievements(supabase, userId, ctx);
+      }
+    } catch (err) {
+      console.error("[achievements] post-send evaluation failed", err);
+    }
 
     revalidatePath("/", "layout");
     return { success: true, log };

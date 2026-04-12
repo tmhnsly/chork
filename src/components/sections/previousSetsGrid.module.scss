@@ -1,0 +1,132 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+@use "mixins/surfaces" as surface;
+@use "mixins/focus";
+
+.section {
+  @include layout.stack(var(--space-3));
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.title {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+// ── Legend ────────────────────────────────────────
+.legend {
+  display: flex;
+  gap: var(--space-3);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.legendItem {
+  @include type.typography(meta);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--mono-text-low-contrast);
+}
+
+.legendDot {
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+}
+
+.legendSends { background: var(--brand); }
+.legendFlash { background: var(--flash-solid); }
+.legendZone { background: var(--success-solid); }
+
+// ── Grid ──────────────────────────────────────────
+.gridWrapper {
+  container-type: inline-size;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  @container (min-width: 32rem) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+// ── Tile ──────────────────────────────────────────
+.tile {
+  @include surface.card;
+  @include layout.stack(var(--space-2));
+  @include focus.ring;
+  position: relative;
+  align-items: center;
+  padding: var(--space-3);
+  border-radius: var(--radius-3);
+  background: var(--mono-subtle-bg);
+  color: var(--mono-text);
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+button.tile {
+  border: 1px solid var(--mono-border-subtle);
+
+  @media (hover: hover) {
+    &:hover {
+      background: var(--mono-bg-hover);
+    }
+  }
+}
+
+div.tile {
+  cursor: default;
+}
+
+.tileActive {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+
+  @media (hover: hover) {
+    &:hover {
+      background: var(--accent-bg-hover);
+    }
+  }
+}
+
+.tileInactive {
+  opacity: 0.7;
+}
+
+.label {
+  @include type.typography(label);
+  font-size: var(--text-xs);
+  color: var(--mono-text-low-contrast);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.tileActive .label {
+  color: var(--accent-text);
+}
+
+.activeTag {
+  @include type.typography(label);
+  font-size: var(--text-2xs);
+  color: var(--accent-text-low-contrast);
+}

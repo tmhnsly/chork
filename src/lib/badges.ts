@@ -9,8 +9,20 @@
 
 export type BadgeTier = "bronze" | "silver" | "gold";
 
+export type BadgeCategory = "sends" | "flashes" | "streaks" | "social" | "secret";
+
 /** Icon IDs — mapped to actual components in the BadgeShelf client component */
-export type BadgeIcon = "bolt" | "fire" | "mountain" | "trophy" | "star" | "broom";
+export type BadgeIcon =
+  | "bolt"
+  | "fire"
+  | "mountain"
+  | "trophy"
+  | "star"
+  | "broom"
+  | "moon"
+  | "fire-streak"
+  | "users"
+  | "user-plus";
 
 export interface BadgeDefinition {
   id: string;
@@ -18,13 +30,16 @@ export interface BadgeDefinition {
   description: string;
   icon: BadgeIcon;
   tier: BadgeTier;
-  progressKey: "flashes" | "sends" | "points" | null;
+  category: BadgeCategory;
+  progressKey: "flashes" | "sends" | "points" | "streak" | "followers" | "following" | null;
   target: number | null;
+  isSecret?: boolean;
 }
 
 export interface EarnedBadge {
   badge: BadgeDefinition;
   earned: true;
+  earnedAt?: string;
 }
 
 export interface LockedBadge {
@@ -45,6 +60,7 @@ export const BADGES: BadgeDefinition[] = [
     description: "Flash your first route",
     icon: "bolt",
     tier: "bronze",
+    category: "flashes",
     progressKey: "flashes",
     target: 1,
   },
@@ -54,6 +70,7 @@ export const BADGES: BadgeDefinition[] = [
     description: "Flash 10 routes",
     icon: "fire",
     tier: "silver",
+    category: "flashes",
     progressKey: "flashes",
     target: 10,
   },
@@ -63,6 +80,7 @@ export const BADGES: BadgeDefinition[] = [
     description: "Complete your first route",
     icon: "mountain",
     tier: "bronze",
+    category: "sends",
     progressKey: "sends",
     target: 1,
   },
@@ -72,6 +90,7 @@ export const BADGES: BadgeDefinition[] = [
     description: "Earn 100 points",
     icon: "trophy",
     tier: "gold",
+    category: "sends",
     progressKey: "points",
     target: 100,
   },
@@ -81,6 +100,7 @@ export const BADGES: BadgeDefinition[] = [
     description: "Send routes 1 and 2 in the same set",
     icon: "star",
     tier: "bronze",
+    category: "sends",
     progressKey: null,
     target: null,
   },
@@ -90,6 +110,7 @@ export const BADGES: BadgeDefinition[] = [
     description: "Send every route in a set",
     icon: "broom",
     tier: "gold",
+    category: "sends",
     progressKey: null,
     target: null,
   },
@@ -153,5 +174,32 @@ function checkSetCleaner(ctx: BadgeContext): boolean {
     if (totalRoutes > 0 && completed.size >= totalRoutes) return true;
   }
   return false;
+}
+
+// ── Per-set badge evaluation ──────────────────────
+// For the "what did I earn in THIS set" view on the profile page.
+// Only condition-based badges make sense here — progress badges are all-time.
+
+/**
+ * Return the condition-based badges earned strictly within the given set.
+ * Used in the set detail sheet to show "here's what you pulled off in this set".
+ */
+export function evaluateBadgesForSet(
+  completedRouteNumbers: Set<number>,
+  totalRoutesInSet: number
+): BadgeDefinition[] {
+  const earned: BadgeDefinition[] = [];
+  for (const badge of BADGES) {
+    if (badge.id === "buckle-my-shoe") {
+      if (completedRouteNumbers.has(1) && completedRouteNumbers.has(2)) {
+        earned.push(badge);
+      }
+    } else if (badge.id === "set-cleaner") {
+      if (totalRoutesInSet > 0 && completedRouteNumbers.size >= totalRoutesInSet) {
+        earned.push(badge);
+      }
+    }
+  }
+  return earned;
 }
 

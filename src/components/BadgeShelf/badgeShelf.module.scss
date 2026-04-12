@@ -23,6 +23,35 @@
   color: var(--mono-text-low-contrast);
 }
 
+.headerRight {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.seeAll {
+  @include type.typography(meta);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--mono-text-low-contrast);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: color 0.1s ease;
+
+  &:hover {
+    color: var(--mono-text);
+  }
+}
+
+.earnedDate {
+  @include type.typography(label);
+  font-size: var(--text-2xs);
+  color: var(--accent-text-low-contrast);
+}
+
 .grid {
   display: flex;
   gap: var(--space-2);

@@ -14,40 +14,50 @@ export default function ProfileLoading() {
         <div className={`${styles.avatar} ${shimmerStyles.skeleton}`} />
       </header>
 
-      {/* Stats — mirrors ClimberStats wrapper */}
+      {/* Stats — mirrors ClimberStats layout exactly:
+          section label → card, section label → card. */}
       <div className={styles.statsWrapper}>
-        {/* All Time card */}
-        <div className={styles.allTimeCard}>
-          <div className={styles.allTimeRow}>
-            <div className={`${styles.ringPlaceholder} ${shimmerStyles.skeleton}`} />
-            <div className={styles.statsRow}>
-              {[0, 1, 2].map((i) => (
-                <div key={i} className={styles.statBlock}>
-                  <div className={`${styles.statValue} ${shimmerStyles.skeleton}`} />
-                  <div className={`${styles.statLabel} ${shimmerStyles.skeleton}`} />
-                </div>
+        {/* All Time */}
+        <div className={styles.labelledSection}>
+          <span className={styles.sectionLabel}>All Time</span>
+          <div className={styles.allTimeCard}>
+            <div className={styles.allTimeRow}>
+              <div className={`${styles.ringPlaceholder} ${shimmerStyles.skeleton}`} />
+              <div className={styles.statsRow}>
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className={styles.statBlock}>
+                    <div className={`${styles.statValue} ${shimmerStyles.skeleton}`} />
+                    <div className={`${styles.statLabel} ${shimmerStyles.skeleton}`} />
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className={styles.extrasGrid}>
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className={`${styles.extraCell} ${shimmerStyles.skeleton}`} />
               ))}
             </div>
           </div>
-          <div className={`${styles.allTimeTag} ${shimmerStyles.skeleton}`} />
         </div>
 
-        {/* Current Set label + card */}
-        <div className={`${styles.sectionLabel} ${shimmerStyles.skeleton}`} style={{ width: "6rem", height: "var(--text-xs)" }} />
-        <div className={styles.currentSetCard}>
-          <div className={styles.currentSetRow}>
-            <div className={`${styles.currentSetRing} ${shimmerStyles.skeleton}`} />
-            <div className={styles.statsRow}>
-              {[0, 1, 2].map((i) => (
-                <div key={i} className={styles.statBlock}>
-                  <div className={`${styles.statValue} ${shimmerStyles.skeleton}`} />
-                  <div className={`${styles.statLabel} ${shimmerStyles.skeleton}`} />
-                </div>
-              ))}
+        {/* Current Set */}
+        <div className={styles.labelledSection}>
+          <span className={styles.sectionLabel}>Current Set</span>
+          <div className={styles.currentSetCard}>
+            <div className={styles.currentSetRow}>
+              <div className={`${styles.currentSetRing} ${shimmerStyles.skeleton}`} />
+              <div className={styles.statsRow}>
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className={styles.statBlock}>
+                    <div className={`${styles.statValue} ${shimmerStyles.skeleton}`} />
+                    <div className={`${styles.statLabel} ${shimmerStyles.skeleton}`} />
+                  </div>
+                ))}
+              </div>
             </div>
+            <div className={`${styles.chartPlaceholder} ${shimmerStyles.skeleton}`} />
+            <div className={`${styles.chartFooter} ${shimmerStyles.skeleton}`} />
           </div>
-          <div className={`${styles.chartPlaceholder} ${shimmerStyles.skeleton}`} />
-          <div className={`${styles.chartFooter} ${shimmerStyles.skeleton}`} />
         </div>
       </div>
 
@@ -57,6 +67,19 @@ export default function ProfileLoading() {
         <div className={styles.badgeRow}>
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className={`${styles.badge} ${shimmerStyles.skeleton}`} />
+          ))}
+        </div>
+      </div>
+
+      {/* Sets grid */}
+      <div className={styles.setsSection}>
+        <div className={`${styles.sectionLabel} ${shimmerStyles.skeleton}`} style={{ width: "4rem", height: "var(--text-xs)" }} />
+        <div className={styles.setsGrid}>
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className={styles.setTile}>
+              <div className={`${styles.setRing} ${shimmerStyles.skeleton}`} />
+              <div className={`${styles.setLabel} ${shimmerStyles.skeleton}`} />
+            </div>
           ))}
         </div>
       </div>

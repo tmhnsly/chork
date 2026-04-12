@@ -70,73 +70,74 @@ export function ClimberStats({
   return (
     <div className={styles.wrapper}>
       {/* All Time — always visible at top */}
-      <div className={styles.allTimeCard}>
-        <div className={styles.allTimeHeader}>
-          <ActivityRings
-            rings={[{ value: flashRate, color: "var(--flash-solid)" }]}
-            size={56}
-          />
-          <div className={styles.allTimeStats}>
-            <div className={styles.allTimeStat}>
-              <span className={`${styles.allTimeValue} ${styles.accent}`}>{allTimeCompletions}</span>
-              <span className={styles.allTimeLabel}>SENDS</span>
-            </div>
-            <div className={styles.allTimeStat}>
-              <span className={`${styles.allTimeValue} ${styles.flash}`}>{allTimeFlashes}</span>
-              <span className={styles.allTimeLabel}>FLASHES</span>
-            </div>
-            <div className={styles.allTimeStat}>
-              <span className={`${styles.allTimeValue} ${styles.points}`}>{allTimePoints}</span>
-              <span className={styles.allTimeLabel}>POINTS</span>
+      <div className={styles.labelledSection}>
+        <span className={styles.sectionLabel}>All Time</span>
+        <div className={styles.allTimeCard}>
+          <div className={styles.allTimeHeader}>
+            <ActivityRings
+              rings={[{ value: flashRate, color: "var(--flash-solid)" }]}
+              size={56}
+            />
+            <div className={styles.allTimeStats}>
+              <div className={styles.allTimeStat}>
+                <span className={`${styles.allTimeValue} ${styles.accent}`}>{allTimeCompletions}</span>
+                <span className={styles.allTimeLabel}>SENDS</span>
+              </div>
+              <div className={styles.allTimeStat}>
+                <span className={`${styles.allTimeValue} ${styles.flash}`}>{allTimeFlashes}</span>
+                <span className={styles.allTimeLabel}>FLASHES</span>
+              </div>
+              <div className={styles.allTimeStat}>
+                <span className={`${styles.allTimeValue} ${styles.points}`}>{allTimePoints}</span>
+                <span className={styles.allTimeLabel}>POINTS</span>
+              </div>
             </div>
           </div>
+
+          {allTimeExtras && (
+            <div className={styles.extrasGrid}>
+              <ExtraCell
+                label="Flash rate"
+                value={formatPercent(allTimeExtras.flashRate)}
+                emphasis
+              />
+              <ExtraCell
+                label="Pts / send"
+                value={allTimeExtras.pointsPerSend === null ? EM_DASH : allTimeExtras.pointsPerSend.toFixed(1)}
+              />
+              <ExtraCell
+                label="Attempts"
+                value={formatNumber(allTimeExtras.totalAttempts)}
+              />
+              <ExtraCell
+                label="Completion"
+                value={formatPercent(allTimeExtras.completionRate)}
+              />
+              <ExtraCell
+                label="Coverage"
+                value={
+                  allTimeExtras.totalRoutesInGym > 0
+                    ? `${allTimeExtras.uniqueRoutesAttempted}/${allTimeExtras.totalRoutesInGym}`
+                    : formatNumber(allTimeExtras.uniqueRoutesAttempted)
+                }
+              />
+              <ExtraCell
+                label="Streak"
+                value={`${allTimeExtras.streakCurrent}`}
+                subtitle={
+                  allTimeExtras.streakBest > 0
+                    ? `Best ${allTimeExtras.streakBest}`
+                    : undefined
+                }
+              />
+            </div>
+          )}
         </div>
-
-        {allTimeExtras && (
-          <div className={styles.extrasGrid}>
-            <ExtraCell
-              label="Flash rate"
-              value={formatPercent(allTimeExtras.flashRate)}
-              emphasis
-            />
-            <ExtraCell
-              label="Pts / send"
-              value={allTimeExtras.pointsPerSend === null ? EM_DASH : allTimeExtras.pointsPerSend.toFixed(1)}
-            />
-            <ExtraCell
-              label="Attempts"
-              value={formatNumber(allTimeExtras.totalAttempts)}
-            />
-            <ExtraCell
-              label="Completion"
-              value={formatPercent(allTimeExtras.completionRate)}
-            />
-            <ExtraCell
-              label="Coverage"
-              value={
-                allTimeExtras.totalRoutesInGym > 0
-                  ? `${allTimeExtras.uniqueRoutesAttempted}/${allTimeExtras.totalRoutesInGym}`
-                  : formatNumber(allTimeExtras.uniqueRoutesAttempted)
-              }
-            />
-            <ExtraCell
-              label="Streak"
-              value={`${allTimeExtras.streakCurrent}`}
-              subtitle={
-                allTimeExtras.streakBest > 0
-                  ? `Best ${allTimeExtras.streakBest}`
-                  : undefined
-              }
-            />
-          </div>
-        )}
-
-        <span className={styles.allTimeTag}>All Time</span>
       </div>
 
       {/* Current Set — only if active set exists */}
       {currentSet && (
-        <>
+        <div className={styles.labelledSection}>
           <span className={styles.sectionLabel}>Current Set</span>
           <div className={styles.currentSetCard}>
             <RingStatsRow
@@ -160,7 +161,7 @@ export function ClimberStats({
               </>
             )}
           </div>
-        </>
+        </div>
       )}
 
       {children}

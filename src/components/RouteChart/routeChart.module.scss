@@ -32,13 +32,24 @@
 .bar {
   width: 100%;
   height: var(--bar-h, 0%);
-  min-height: 2px;
   transform-origin: bottom;
+  background: transparent;
+
+  // Initial mount: keyframe stagger grow-in.
   animation: barGrow var(--duration-slow) var(--ease-out) backwards;
   animation-delay: calc(var(--i, 0) * 30ms);
 
+  // Subsequent updates (log a route, change state): transition height and
+  // colour so the bar morphs cleanly instead of jumping. The background
+  // change is quick, the height rise matches the stagger duration so it
+  // reads as a single motion event.
+  transition:
+    height var(--duration-slow) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+
   @media (prefers-reduced-motion: reduce) {
     animation: none;
+    transition: background-color var(--duration-fast) var(--ease-out);
   }
 }
 
@@ -48,17 +59,16 @@
   }
 }
 
-.barCompleted {
-  background: var(--brand);       // step 9
+.bar[data-state="completed"] {
+  background: var(--brand);              // step 9
 }
 
-.barFlash {
+.bar[data-state="flash"] {
   background: var(--flash-solid);        // step 9
 }
 
-.barAttempted {
-  background: var(--mono-solid);         // step 9 - attempted grey
-  height: var(--bar-h, 15%);             // small indicator
+.bar[data-state="attempted"] {
+  background: var(--mono-solid);         // step 9 — attempted grey
 }
 
 // ── Zone dots ──────────────────────────────────────

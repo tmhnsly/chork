@@ -7,13 +7,16 @@
 // ── Bottom bar ────────────────────────────────────
 .bar {
   position: fixed;
-  // Anchor to the physical bottom — safe-area-inset-bottom is the
-  // home indicator region. On iOS PWA, bottom:0 can jump during
-  // rubber-band scroll because iOS measures the visual viewport.
-  // Using bottom:env() anchors above the home indicator consistently.
-  bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
+  // iOS PWA: positioning with `bottom: calc(… + env(safe-area-inset-bottom))`
+  // causes a jump on first paint because env() can momentarily evaluate to 0
+  // before the visual viewport is reported. Instead, anchor the wrapper at
+  // bottom: 0 and push the bar UP from the bottom with padding. The wrapper
+  // itself is just a layout host (no background, no pointer events), so
+  // initial vs final painted position stay identical.
+  bottom: 0;
   left: 0;
   right: 0;
+  padding-bottom: calc(var(--space-2) + env(safe-area-inset-bottom, 0px));
   z-index: var(--z-navbar);
   display: flex;
   justify-content: center;
