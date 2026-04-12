@@ -162,49 +162,6 @@ export async function deleteCompletionEvents(
   if (error) throw error;
 }
 
-// ── Follows ───────────────────────────────────────
-
-export async function toggleFollow(
-  supabase: Supabase,
-  followerId: string,
-  followingId: string
-): Promise<{ following: boolean; followerCount: number }> {
-  // Try to insert first — ON CONFLICT means they already follow
-  const { error: insertError } = await supabase
-    .from("follows")
-    .insert({ follower_id: followerId, following_id: followingId });
-
-  let nowFollowing: boolean;
-
-  if (insertError && insertError.code === "23505") {
-    // Unique violation — already following, so unfollow
-    const { error: deleteError } = await supabase
-      .from("follows")
-      .delete()
-      .eq("follower_id", followerId)
-      .eq("following_id", followingId);
-    if (deleteError) throw deleteError;
-    nowFollowing = false;
-  } else if (insertError) {
-    throw insertError;
-  } else {
-    nowFollowing = true;
-  }
-
-  // Read back fresh follower count (trigger has already fired)
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("follower_count")
-    .eq("id", followingId)
-    .single();
-  if (profileError) throw profileError;
-
-  return {
-    following: nowFollowing,
-    followerCount: profile.follower_count,
-  };
-}
-
 // ── Gym memberships ────────────────────────────────
 
 export async function createGymMembership(

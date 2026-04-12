@@ -36,47 +36,11 @@
   color: var(--mono-text-low-contrast);
 }
 
-// ── Follow counts ─────────────────────────────────
-.counts {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.count {
+// ── Context line (other-climber meta under the name) ──
+// Used to be follow-count pills; now carries gym + rank + crew count,
+// rendered as a single "·"-separated string composed in page.tsx.
+.contextLine {
   @include type.typography(meta);
-  color: var(--mono-text-low-contrast);
-
-  strong {
-    color: var(--mono-text);
-    font-weight: 600;
-  }
-}
-
-.countButton {
-  @include type.typography(meta);
-  @include focus.ring;
-  border: none;
-  background: transparent;
-  padding: 0;
-  color: var(--mono-text-low-contrast);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  transition: color var(--duration-fast) var(--ease-out);
-
-  strong {
-    color: var(--mono-text);
-    font-weight: 600;
-  }
-
-  @media (hover: hover) {
-    &:hover {
-      color: var(--mono-text);
-    }
-  }
-}
-
-.dot {
   color: var(--mono-text-low-contrast);
 }
 

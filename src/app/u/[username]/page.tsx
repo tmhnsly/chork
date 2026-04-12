@@ -7,9 +7,10 @@ import {
   getRoutesBySet,
   getLogsBySetForUser,
   getAllRouteDataForUserInGym,
-  isFollowing,
   getEarnedAchievements,
   getRoutesBySetIds,
+  getGym,
+  getLeaderboardUserRow,
 } from "@/lib/data/queries";
 import type { UserLogInGym } from "@/lib/data/queries";
 import { computeMaxPoints } from "@/lib/data";
@@ -63,24 +64,12 @@ export default async function UserProfilePage({ params }: Props) {
 
   const isOwnProfile = authUser?.id === profileUser.id;
 
-  // Follow state: only fetched when viewing another user's profile while signed in.
-  // `undefined` → ProfileHeader hides the Follow button entirely.
-  const followState = (!isOwnProfile && authUser)
-    ? await isFollowing(supabase, authUser.id, profileUser.id)
-    : undefined;
-
   const gymId = profileUser.active_gym_id;
 
   if (!gymId) {
     return (
       <main className={styles.page}>
-        <ProfileHeader
-          user={profileUser}
-          isOwnProfile={isOwnProfile}
-          isFollowing={followState}
-          followerCount={profileUser.follower_count}
-          followingCount={profileUser.following_count}
-        />
+        <ProfileHeader user={profileUser} isOwnProfile={isOwnProfile} />
         <p>No gym selected</p>
       </main>
     );
@@ -249,21 +238,28 @@ export default async function UserProfilePage({ params }: Props) {
   // Empty state: user on their first set (active set exists, no previous sets)
   const showSetsEmpty = activeSet !== null && previousSetRecords.length === 0;
 
+  // Build the "Yonder · #4 this set · N crews" context line that sits
+  // under the name on another climber's profile. Crew count will be
+  // wired in after migration 021 lands — leaving the "·"-separated
+  // join logic below handles the missing piece without showing "0".
+  let contextLine: string | null = null;
+  if (!isOwnProfile) {
+    const [gym, rankRow] = await Promise.all([
+      getGym(supabase, gymId),
+      activeSet ? getLeaderboardUserRow(supabase, gymId, profileUser.id, activeSet.id) : Promise.resolve(null),
+    ]);
+    const parts: string[] = [];
+    if (gym?.name) parts.push(gym.name);
+    if (rankRow?.rank != null) parts.push(`#${rankRow.rank} this set`);
+    contextLine = parts.length > 0 ? parts.join(" · ") : null;
+  }
+
   return (
     <main className={styles.page}>
-      {/*
-        ProfileHeader — own vs other profile invariants:
-        - `isOwnProfile` hides follow button and shows settings gear + edit/delete
-        - `isFollowing` is `undefined` for own profile (follow button hidden)
-        - All personal management controls (edit, delete, reset password) are
-          gated inside ProfileHeader on `isOwnProfile`.
-      */}
       <ProfileHeader
         user={profileUser}
         isOwnProfile={isOwnProfile}
-        isFollowing={followState}
-        followerCount={profileUser.follower_count}
-        followingCount={profileUser.following_count}
+        contextLine={contextLine}
       />
 
       <ClimberStats

@@ -9,7 +9,6 @@ import {
   createComment,
   updateComment,
   toggleCommentLike,
-  toggleFollow,
 } from "@/lib/data/mutations";
 import {
   getCommentsByRoute,
@@ -312,36 +311,8 @@ export async function editComment(
   }
 }
 
-// ── Follows ───────────────────────────────────────
-
-export async function followUser(
-  targetUserId: string
-): Promise<ActionResult<{ following: boolean; followerCount: number }>> {
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (typeof targetUserId !== "string" || !UUID_RE.test(targetUserId)) {
-    return { error: "Invalid user" };
-  }
-
-  const auth = await requireSignedIn();
-  if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
-
-  if (userId === targetUserId) {
-    return { error: "You can't follow yourself" };
-  }
-
-  try {
-    const result = await toggleFollow(supabase, userId, targetUserId);
-    revalidatePath("/", "layout");
-    return {
-      success: true,
-      following: result.following,
-      followerCount: result.followerCount,
-    };
-  } catch (err) {
-    return { error: formatError(err) };
-  }
-}
+// Follow / unfollow actions removed — the feature was replaced by the
+// crew system (migration 021). Use joinCrew / inviteToCrew instead.
 
 // ────────────────────────────────────────────────────────────────
 // Push notification subscriptions

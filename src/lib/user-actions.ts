@@ -5,11 +5,6 @@ import { createServiceClient } from "./supabase/server";
 import { requireAuth, requireSignedIn } from "./auth";
 import { validateUsername } from "./validation";
 import { formatError } from "./errors";
-import {
-  getFollowers as getFollowersQuery,
-  getFollowing as getFollowingQuery,
-  type FollowListUser,
-} from "./data/queries";
 
 /**
  * Check if a username is available.
@@ -148,24 +143,5 @@ export async function deleteAccount(): Promise<{ error: string } | { success: tr
   }
 }
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-/** List of users following the given user id. Any signed-in user can view. */
-export async function fetchFollowers(
-  userId: string
-): Promise<{ users: FollowListUser[] } | { error: string }> {
-  if (!UUID_RE.test(userId)) return { error: "Invalid user" };
-  const auth = await requireSignedIn();
-  if ("error" in auth) return { error: auth.error };
-  return { users: await getFollowersQuery(auth.supabase, userId) };
-}
-
-/** List of users the given user id follows. Any signed-in user can view. */
-export async function fetchFollowing(
-  userId: string
-): Promise<{ users: FollowListUser[] } | { error: string }> {
-  if (!UUID_RE.test(userId)) return { error: "Invalid user" };
-  const auth = await requireSignedIn();
-  if ("error" in auth) return { error: auth.error };
-  return { users: await getFollowingQuery(auth.supabase, userId) };
-}
+// fetchFollowers / fetchFollowing removed — the follows feature was
+// replaced by crews in migration 021.

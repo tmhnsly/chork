@@ -406,66 +406,6 @@ export async function getLikedCommentIds(
   return new Set((data ?? []).map((r) => r.comment_id));
 }
 
-// ── Follows ───────────────────────────────────────
-
-export async function isFollowing(
-  supabase: Supabase,
-  followerId: string,
-  followingId: string
-): Promise<boolean> {
-  const { data, error } = await supabase
-    .from("follows")
-    .select("id")
-    .eq("follower_id", followerId)
-    .eq("following_id", followingId)
-    .maybeSingle();
-  if (error) {
-    console.warn("[chork] isFollowing failed:", error);
-    return false;
-  }
-  return data !== null;
-}
-
-export type FollowListUser = Pick<Profile, "id" | "username" | "name" | "avatar_url">;
-
-/** Users who follow the given userId. Ordered newest-first. */
-export async function getFollowers(
-  supabase: Supabase,
-  userId: string
-): Promise<FollowListUser[]> {
-  const { data, error } = await supabase
-    .from("follows")
-    .select("created_at, follower:profiles!follows_follower_id_fkey(id, username, name, avatar_url)")
-    .eq("following_id", userId)
-    .order("created_at", { ascending: false });
-  if (error) {
-    console.warn("[chork] getFollowers failed:", error);
-    return [];
-  }
-  return (data ?? [])
-    .map((r) => r.follower as unknown as FollowListUser | null)
-    .filter((p): p is FollowListUser => p !== null);
-}
-
-/** Users the given userId follows. Ordered newest-first. */
-export async function getFollowing(
-  supabase: Supabase,
-  userId: string
-): Promise<FollowListUser[]> {
-  const { data, error } = await supabase
-    .from("follows")
-    .select("created_at, following:profiles!follows_following_id_fkey(id, username, name, avatar_url)")
-    .eq("follower_id", userId)
-    .order("created_at", { ascending: false });
-  if (error) {
-    console.warn("[chork] getFollowing failed:", error);
-    return [];
-  }
-  return (data ?? [])
-    .map((r) => r.following as unknown as FollowListUser | null)
-    .filter((p): p is FollowListUser => p !== null);
-}
-
 // ── Leaderboard ───────────────────────────────────
 
 /** Fetch a page of the leaderboard. setId=null returns the all-time leaderboard. */

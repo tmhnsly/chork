@@ -16,8 +16,6 @@ import type { Profile } from "@/lib/data";
 import { useAuth } from "@/lib/auth-context";
 import { UserAvatar, showToast } from "@/components/ui";
 import { RevealText } from "@/components/motion";
-import { FollowButton } from "@/components/FollowButton/FollowButton";
-import { FollowListSheet, type FollowListMode } from "@/components/FollowListSheet/FollowListSheet";
 import { DropdownMenu } from "@/components/SettingsMenu/SettingsMenu";
 import { EditProfileDialog } from "@/components/SettingsMenu/EditProfileDialog";
 import { DeleteAccountDialog } from "@/components/SettingsMenu/DeleteAccountDialog";
@@ -35,18 +33,20 @@ import styles from "./profileHeader.module.scss";
 interface Props {
   user: Profile;
   isOwnProfile: boolean;
-  isFollowing?: boolean;
-  followerCount: number;
-  followingCount: number;
+  /**
+   * Meta-line shown under the name for another climber's profile —
+   * e.g. "Yonder · #4 this set · 2 crews". Replaces the old
+   * follower/following count pills that the crew feature retired.
+   * Omit when rendering your own profile.
+   */
+  contextLine?: string | null;
 }
 
-export function ProfileHeader({ user, isOwnProfile, isFollowing, followerCount: initialFollowerCount, followingCount }: Props) {
+export function ProfileHeader({ user, isOwnProfile, contextLine }: Props) {
   const { signOut, resetPassword } = useAuth();
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showGymSwitcher, setShowGymSwitcher] = useState(false);
-  const [followerCount, setFollowerCount] = useState(initialFollowerCount);
-  const [followList, setFollowList] = useState<FollowListMode | null>(null);
 
   // Push subscription status — "default" / "granted" / "subscribed" /
   // "denied" / "unsupported". Read once on mount from the live SW
@@ -88,45 +88,18 @@ export function ProfileHeader({ user, isOwnProfile, isFollowing, followerCount: 
     showToast("Notifications on", "success");
   }, [pushStatus]);
 
-  const handleFollowChange = useCallback((following: boolean, serverFollowerCount: number | null) => {
-    if (serverFollowerCount !== null) {
-      // Server confirmed — use as source of truth
-      setFollowerCount(serverFollowerCount);
-    } else {
-      // Optimistic delta
-      setFollowerCount((c) => Math.max(0, c + (following ? 1 : -1)));
-    }
-  }, []);
-
   return (
     <>
       <header className={styles.header}>
         <div className={styles.identity}>
           <RevealText text={`@${user.username}`} className={styles.username} />
           {user.name && <p className={styles.displayName}>{user.name}</p>}
-          <div className={styles.counts}>
-            <CountPill
-              count={followerCount}
-              label={followerCount === 1 ? "follower" : "followers"}
-              onOpen={() => setFollowList("followers")}
-            />
-            <span className={styles.dot}>&middot;</span>
-            <CountPill
-              count={followingCount}
-              label="following"
-              onOpen={() => setFollowList("following")}
-            />
-          </div>
+          {!isOwnProfile && contextLine && (
+            <p className={styles.contextLine}>{contextLine}</p>
+          )}
         </div>
 
         <div className={styles.rightGroup}>
-          {!isOwnProfile && isFollowing !== undefined && (
-            <FollowButton
-              targetUserId={user.id}
-              initialFollowing={isFollowing}
-              onFollowChange={handleFollowChange}
-            />
-          )}
           <UserAvatar user={user} size={64} />
           {isOwnProfile && (
             <DropdownMenu
@@ -186,41 +159,6 @@ export function ProfileHeader({ user, isOwnProfile, isFollowing, followerCount: 
           />
         </>
       )}
-
-      {followList && (
-        <FollowListSheet
-          userId={user.id}
-          mode={followList}
-          onClose={() => setFollowList(null)}
-        />
-      )}
     </>
-  );
-}
-
-interface CountPillProps {
-  count: number;
-  label: string;
-  onOpen: () => void;
-}
-
-function CountPill({ count, label, onOpen }: CountPillProps) {
-  // When count is 0, render as plain text — nothing to show in a sheet
-  if (count === 0) {
-    return (
-      <span className={styles.count}>
-        <strong>0</strong> {label}
-      </span>
-    );
-  }
-  return (
-    <button
-      type="button"
-      className={styles.countButton}
-      onClick={onOpen}
-      aria-label={`View ${label}`}
-    >
-      <strong>{count}</strong> {label}
-    </button>
   );
 }

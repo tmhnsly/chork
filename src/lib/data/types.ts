@@ -16,7 +16,6 @@ export type Route = Tables["routes"]["Row"];
 export type RouteLog = Tables["route_logs"]["Row"];
 export type CommentLike = Tables["comment_likes"]["Row"];
 export type ActivityEvent = Tables["activity_events"]["Row"];
-export type Follow = Tables["follows"]["Row"];
 
 // ── Leaderboard ────────────────────────────────────
 
