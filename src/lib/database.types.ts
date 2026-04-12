@@ -937,6 +937,26 @@ export type Database = {
     }
     Functions: {
       auto_publish_due_sets: { Args: never; Returns: number }
+      get_competition_leaderboard: {
+        Args: {
+          p_category_id?: string
+          p_competition_id: string
+          p_limit?: number
+          p_offset?: number
+        }
+        Returns: {
+          avatar_url: string
+          category_id: string
+          flashes: number
+          name: string
+          points: number
+          rank: number
+          sends: number
+          user_id: string
+          username: string
+          zones: number
+        }[]
+      }
       get_leaderboard_all_time: {
         Args: { p_gym_id: string; p_limit?: number; p_offset?: number }
         Returns: {

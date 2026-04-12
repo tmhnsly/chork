@@ -306,6 +306,120 @@ export async function setRouteTags(
   return { success: true };
 }
 
+// ────────────────────────────────────────────────────────────────
+// Competition mutations
+// ────────────────────────────────────────────────────────────────
+
+export interface CreateCompetitionInput {
+  name: string;
+  description: string | null;
+  startsAt: string;
+  endsAt: string | null;
+  organiserId: string;
+}
+
+export async function createCompetition(
+  supabase: Supabase,
+  input: CreateCompetitionInput
+): Promise<{ competitionId: string } | { error: string }> {
+  const { data, error } = await supabase
+    .from("competitions")
+    .insert({
+      name: input.name,
+      description: input.description,
+      starts_at: input.startsAt,
+      ends_at: input.endsAt,
+      status: "draft",
+      organiser_id: input.organiserId,
+    })
+    .select("id")
+    .single();
+  if (error || !data) return { error: error?.message ?? "Could not create competition." };
+  return { competitionId: data.id };
+}
+
+export interface UpdateCompetitionInput {
+  name?: string;
+  description?: string | null;
+  startsAt?: string;
+  endsAt?: string | null;
+  status?: "draft" | "live" | "archived";
+}
+
+export async function updateCompetition(
+  supabase: Supabase,
+  competitionId: string,
+  input: UpdateCompetitionInput
+): Promise<{ success: true } | { error: string }> {
+  type CompetitionUpdate = Database["public"]["Tables"]["competitions"]["Update"];
+  const patch: CompetitionUpdate = {};
+  if (input.name !== undefined) patch.name = input.name;
+  if (input.description !== undefined) patch.description = input.description;
+  if (input.startsAt !== undefined) patch.starts_at = input.startsAt;
+  if (input.endsAt !== undefined) patch.ends_at = input.endsAt;
+  if (input.status !== undefined) patch.status = input.status;
+
+  const { error } = await supabase.from("competitions").update(patch).eq("id", competitionId);
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
+export async function linkGymToCompetition(
+  supabase: Supabase,
+  competitionId: string,
+  gymId: string
+): Promise<{ success: true } | { error: string }> {
+  const { error } = await supabase
+    .from("competition_gyms")
+    .upsert(
+      { competition_id: competitionId, gym_id: gymId },
+      { onConflict: "competition_id,gym_id" }
+    );
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
+export async function unlinkGymFromCompetition(
+  supabase: Supabase,
+  competitionId: string,
+  gymId: string
+): Promise<{ success: true } | { error: string }> {
+  const { error } = await supabase
+    .from("competition_gyms")
+    .delete()
+    .eq("competition_id", competitionId)
+    .eq("gym_id", gymId);
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
+export async function createCompetitionCategory(
+  supabase: Supabase,
+  competitionId: string,
+  name: string,
+  displayOrder: number
+): Promise<{ categoryId: string } | { error: string }> {
+  const { data, error } = await supabase
+    .from("competition_categories")
+    .insert({ competition_id: competitionId, name, display_order: displayOrder })
+    .select("id")
+    .single();
+  if (error || !data) return { error: error?.message ?? "Could not create category." };
+  return { categoryId: data.id };
+}
+
+export async function deleteCompetitionCategory(
+  supabase: Supabase,
+  categoryId: string
+): Promise<{ success: true } | { error: string }> {
+  const { error } = await supabase
+    .from("competition_categories")
+    .delete()
+    .eq("id", categoryId);
+  if (error) return { error: error.message };
+  return { success: true };
+}
+
 export async function updateAdminSet(
   supabase: Supabase,
   setId: string,

@@ -1,0 +1,81 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+@use "mixins/input" as input;
+
+.panel {
+  @include surface.card;
+  @include layout.stack(var(--space-3));
+  padding: var(--space-4);
+  border-radius: var(--radius-3);
+}
+
+.heading {
+  @include type.typography(card-title);
+  color: var(--mono-text);
+}
+
+.empty {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+}
+
+.list {
+  @include layout.stack(var(--space-2));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--mono-subtle-bg);
+  border-radius: var(--radius-2);
+  min-height: var(--size-touch-target);
+}
+
+.rowName {
+  @include type.typography(label);
+  color: var(--mono-text);
+}
+
+.unlinkBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--size-touch-target);
+  min-height: var(--size-touch-target);
+  background: transparent;
+  border: none;
+  color: var(--mono-text-low-contrast);
+  cursor: pointer;
+  border-radius: var(--radius-full);
+
+  &:hover {
+    color: var(--error-text);
+    background: var(--error-subtle-bg);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.linkRow {
+  display: flex;
+  gap: var(--space-2);
+
+  @media (max-width: 480px) {
+    flex-direction: column;
+  }
+}
+
+.select {
+  @include input.field;
+  flex: 1;
+}

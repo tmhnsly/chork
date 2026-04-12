@@ -344,6 +344,89 @@ export async function followUser(
 }
 
 // ────────────────────────────────────────────────────────────────
+// Competitions — climber participation
+// ────────────────────────────────────────────────────────────────
+
+const UUID_RE_COMP = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Climber joins a competition, optionally self-selecting a category.
+ * Upsert on the composite key keeps it idempotent and also lets the
+ * same call update an already-joined climber's category.
+ */
+export async function joinCompetition(
+  competitionId: string,
+  categoryId: string | null = null
+): Promise<ActionResult> {
+  if (typeof competitionId !== "string" || !UUID_RE_COMP.test(competitionId)) {
+    return { error: "Invalid competition" };
+  }
+  if (categoryId !== null && (typeof categoryId !== "string" || !UUID_RE_COMP.test(categoryId))) {
+    return { error: "Invalid category" };
+  }
+
+  const auth = await requireSignedIn();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase, userId } = auth;
+
+  try {
+    // If a category is supplied, confirm it belongs to the competition.
+    // Stops a client from attaching an unrelated category id via URL
+    // tampering — the RLS rule on INSERT only enforces user_id=self,
+    // not inter-row ownership.
+    if (categoryId) {
+      const { data: cat } = await supabase
+        .from("competition_categories")
+        .select("competition_id")
+        .eq("id", categoryId)
+        .maybeSingle();
+      if (!cat || cat.competition_id !== competitionId) {
+        return { error: "Category does not belong to this competition" };
+      }
+    }
+
+    const { error } = await supabase
+      .from("competition_participants")
+      .upsert(
+        { competition_id: competitionId, user_id: userId, category_id: categoryId },
+        { onConflict: "competition_id,user_id" }
+      );
+    if (error) return { error: formatError(error) };
+
+    revalidatePath("/", "layout");
+    return { success: true };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
+
+export async function leaveCompetition(
+  competitionId: string
+): Promise<ActionResult> {
+  if (typeof competitionId !== "string" || !UUID_RE_COMP.test(competitionId)) {
+    return { error: "Invalid competition" };
+  }
+
+  const auth = await requireSignedIn();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase, userId } = auth;
+
+  try {
+    const { error } = await supabase
+      .from("competition_participants")
+      .delete()
+      .eq("competition_id", competitionId)
+      .eq("user_id", userId);
+    if (error) return { error: formatError(error) };
+
+    revalidatePath("/", "layout");
+    return { success: true };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
+
+// ────────────────────────────────────────────────────────────────
 // Gym switching — set the climber's active gym context
 // ────────────────────────────────────────────────────────────────
 

@@ -1,0 +1,42 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+@use "mixins/input" as input;
+
+.form {
+  @include layout.stack(var(--space-4));
+}
+
+.field {
+  @include layout.stack(var(--space-1));
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.label {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.input {
+  @include input.field;
+}
+
+.textarea {
+  @include input.field;
+  resize: vertical;
+  min-height: calc(var(--size-touch-target) * 2);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

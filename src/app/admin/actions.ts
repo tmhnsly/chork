@@ -11,6 +11,12 @@ import {
   quickSetupRoutes,
   updateAdminRoute,
   setRouteTags,
+  createCompetition,
+  updateCompetition,
+  linkGymToCompetition,
+  unlinkGymFromCompetition,
+  createCompetitionCategory,
+  deleteCompetitionCategory,
 } from "@/lib/data/admin-mutations";
 import { createServiceClient } from "@/lib/supabase/server";
 import { formatError } from "@/lib/errors";
@@ -397,6 +403,179 @@ export async function updateRouteTags(
 
   revalidatePath("/admin", "layout");
   revalidatePath("/", "layout");
+  return { success: true };
+}
+
+// ────────────────────────────────────────────────────────────────
+// Competitions
+// ────────────────────────────────────────────────────────────────
+// Create/update gated on the caller being the organiser (stored as
+// organiser_id on the row). Linking gyms OR admins of the gym being
+// linked are both allowed via RLS, so the server action just passes
+// through and lets Postgres enforce.
+
+export async function createNewCompetition(form: {
+  name: string;
+  description: string;
+  startsAt: string;
+  endsAt: string | null;
+}): Promise<ActionResult<{ competitionId: string }>> {
+  const name = (form.name ?? "").trim();
+  if (name.length < 1 || name.length > 120) return { error: "Name must be 1–120 characters." };
+  if (!form.startsAt) return { error: "Start date is required." };
+  if (form.endsAt && new Date(form.startsAt) > new Date(form.endsAt)) {
+    return { error: "End date must be on or after the start date." };
+  }
+
+  const auth = await requireSignedIn();
+  if ("error" in auth) return { error: auth.error };
+
+  const result = await createCompetition(auth.supabase, {
+    name,
+    description: form.description?.trim() || null,
+    startsAt: form.startsAt,
+    endsAt: form.endsAt,
+    organiserId: auth.userId,
+  });
+  if ("error" in result) return { error: result.error };
+
+  revalidatePath("/admin", "layout");
+  return { success: true, competitionId: result.competitionId };
+}
+
+async function verifyCompetitionOrganiser(competitionId: string): Promise<
+  { error: string } | Extract<Awaited<ReturnType<typeof requireSignedIn>>, { supabase: unknown }>
+> {
+  if (!UUID_RE.test(competitionId)) return { error: "Invalid competition." };
+
+  const auth = await requireSignedIn();
+  if ("error" in auth) return { error: auth.error };
+
+  const service = createServiceClient();
+  const { data: comp } = await service
+    .from("competitions")
+    .select("organiser_id")
+    .eq("id", competitionId)
+    .maybeSingle();
+  if (!comp) return { error: "Competition not found." };
+  if (comp.organiser_id !== auth.userId) {
+    return { error: "Only the organiser can manage this competition." };
+  }
+  return auth;
+}
+
+export async function updateCompetitionAction(
+  competitionId: string,
+  form: {
+    name?: string;
+    description?: string | null;
+    startsAt?: string;
+    endsAt?: string | null;
+    status?: "draft" | "live" | "archived";
+  }
+): Promise<ActionResult> {
+  const gate = await verifyCompetitionOrganiser(competitionId);
+  if ("error" in gate) return { error: gate.error };
+
+  if (form.name !== undefined) {
+    const trimmed = form.name.trim();
+    if (trimmed.length < 1 || trimmed.length > 120) return { error: "Name must be 1–120 characters." };
+    form.name = trimmed;
+  }
+  if (form.endsAt !== undefined && form.startsAt !== undefined && form.endsAt && new Date(form.startsAt) > new Date(form.endsAt)) {
+    return { error: "End date must be on or after the start date." };
+  }
+  if (form.status !== undefined && !["draft", "live", "archived"].includes(form.status)) {
+    return { error: "Invalid status." };
+  }
+
+  const result = await updateCompetition(gate.supabase, competitionId, form);
+  if ("error" in result) return { error: result.error };
+
+  revalidatePath("/admin", "layout");
+  return { success: true };
+}
+
+// Linking a gym is allowed for either the comp organiser OR an admin
+// of that gym. RLS enforces both paths; the server action only checks
+// signed-in + valid UUIDs and lets Postgres reject unauthorised writes.
+export async function linkCompetitionGym(form: {
+  competitionId: string;
+  gymId: string;
+}): Promise<ActionResult> {
+  if (!UUID_RE.test(form.competitionId)) return { error: "Invalid competition." };
+  if (!UUID_RE.test(form.gymId)) return { error: "Invalid gym." };
+
+  const auth = await requireSignedIn();
+  if ("error" in auth) return { error: auth.error };
+
+  const result = await linkGymToCompetition(auth.supabase, form.competitionId, form.gymId);
+  if ("error" in result) return { error: result.error };
+
+  revalidatePath("/admin", "layout");
+  return { success: true };
+}
+
+export async function unlinkCompetitionGym(form: {
+  competitionId: string;
+  gymId: string;
+}): Promise<ActionResult> {
+  if (!UUID_RE.test(form.competitionId)) return { error: "Invalid competition." };
+  if (!UUID_RE.test(form.gymId)) return { error: "Invalid gym." };
+
+  const auth = await requireSignedIn();
+  if ("error" in auth) return { error: auth.error };
+
+  const result = await unlinkGymFromCompetition(auth.supabase, form.competitionId, form.gymId);
+  if ("error" in result) return { error: result.error };
+
+  revalidatePath("/admin", "layout");
+  return { success: true };
+}
+
+export async function addCompetitionCategory(form: {
+  competitionId: string;
+  name: string;
+  displayOrder?: number;
+}): Promise<ActionResult<{ categoryId: string }>> {
+  const gate = await verifyCompetitionOrganiser(form.competitionId);
+  if ("error" in gate) return { error: gate.error };
+
+  const name = (form.name ?? "").trim();
+  if (name.length < 1 || name.length > 60) return { error: "Name must be 1–60 characters." };
+
+  const result = await createCompetitionCategory(
+    gate.supabase,
+    form.competitionId,
+    name,
+    form.displayOrder ?? 0
+  );
+  if ("error" in result) return { error: result.error };
+
+  revalidatePath("/admin", "layout");
+  return { success: true, categoryId: result.categoryId };
+}
+
+export async function removeCompetitionCategory(categoryId: string): Promise<ActionResult> {
+  if (!UUID_RE.test(categoryId)) return { error: "Invalid category." };
+
+  // Resolve the parent competition for ownership check — the category
+  // row itself doesn't carry organiser_id.
+  const service = createServiceClient();
+  const { data: cat } = await service
+    .from("competition_categories")
+    .select("competition_id")
+    .eq("id", categoryId)
+    .maybeSingle();
+  if (!cat) return { error: "Category not found." };
+
+  const gate = await verifyCompetitionOrganiser(cat.competition_id);
+  if ("error" in gate) return { error: gate.error };
+
+  const result = await deleteCompetitionCategory(gate.supabase, categoryId);
+  if ("error" in result) return { error: result.error };
+
+  revalidatePath("/admin", "layout");
   return { success: true };
 }
 

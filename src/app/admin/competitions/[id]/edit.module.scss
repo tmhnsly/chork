@@ -1,0 +1,16 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+
+.page {
+  @include layout.stack(var(--space-5));
+}
+
+.title {
+  @include type.typography(display);
+  color: var(--mono-text);
+}
+
+.subtitle {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+}
