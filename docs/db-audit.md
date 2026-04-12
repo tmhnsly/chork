@@ -1,5 +1,12 @@
 # Chork — Supabase audit (pre-admin hardening)
 
+> **Status:** This audit was captured against migration `011`, before
+> the admin / dashboard work landed. Every issue it flagged was fixed
+> in migrations 012–022. Keeping the doc as a historical record —
+> when the next audit pass runs, add a new file (e.g.
+> `docs/db-audit-2.md`) rather than overwriting this one. `docs/schema.md`
+> is the always-current reference for schema questions.
+
 Audit of the DB as of migration `011` before the admin / dashboard feature work begins. Goal: security, performance, schema hygiene. Not a feature list.
 
 This doc lists every issue found, what it breaks, and which migration fixes it.

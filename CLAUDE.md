@@ -1,132 +1,277 @@
 # Chork
 
-Multi-gym bouldering competition tracker. Climbers log attempts on competition routes, track progress on the wall, and compete on leaderboards.
+Multi-gym bouldering competition tracker PWA. Climbers log attempts on
+numbered routes within a gym's active set, earn points on a public
+gym-wide leaderboard ("Chorkboard"), and can compete inside private
+groups called **crews**.
 
-See `docs/schema.md` for the Supabase schema. See `docs/roadmap.md` for the full feature roadmap.
+> Deep dives:
+> - `docs/architecture.md` — data access, auth, push, crew model
+> - `docs/schema.md` — Supabase tables, RPCs, RLS patterns
+> - `docs/migrations.md` — one-line-per-migration catalogue
+> - `docs/testing.md` — test patterns + stability invariants
+> - `docs/db-audit.md` — findings from the last hardening pass
+> - `docs/roadmap.md` — shipped / next / planned
+
+---
 
 ## Commands
 
 - `pnpm dev` — dev server
-- `pnpm build` — production build
+- `pnpm build` — production build (CI equivalent)
+- `pnpm test --run` — vitest, should stay green on every commit
+- `pnpm next lint` — CI-blocking. `react-hooks/purity` +
+  `react-hooks/set-state-in-effect` are both active; treat as errors
 - `pnpm storybook` — port 6006
-- `npx supabase gen types typescript --project-id <id> > src/lib/database.types.ts` — regenerate Supabase types
+- `npx supabase db push` — apply pending migrations to the linked project
+- `npx supabase gen types typescript --project-id <id> > src/lib/database.types.ts`
+  — regenerate types after every migration
 
 ## Stack
 
-- Next.js 15 App Router, Turbopack
-- Supabase (Auth, Database, RLS)
-- SCSS modules + design token system (`src/styles/`)
-- `react-icons/fa6` for all icons
+- Next.js 15 App Router, Turbopack, Server Components default
+- Supabase (Auth, Postgres, RLS, RPC functions, `pg_cron`)
+- SCSS modules + design-token system (`src/styles/`)
+- `react-icons/fa6` for every icon
 - `react-hot-toast` via `showToast()` for notifications
+- `web-push` (server) + service-worker push listener for PWA pushes
 
-## Architecture
+## Environment variables
+
+See `.env.example` for the full list. Required:
+
+- `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` — public
+- `SUPABASE_SERVICE_ROLE_KEY` — server-only, bypasses RLS
+- `NEXT_PUBLIC_SITE_URL` — public URL, used in invite links / push URLs
+
+Optional (push gracefully no-ops when unset):
+
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` + `VAPID_SUBJECT`
+
+---
+
+## Architecture at a glance (details in `docs/architecture.md`)
 
 ### Multi-tenancy
 
-Every piece of gym data is scoped to a `gym_id` at the database level. Users belong to multiple gyms via `gym_memberships` with a role (climber, setter, admin, owner). Row Level Security enforces gym isolation — application code never needs to filter by gym manually.
+Every gym-scoped row carries a `gym_id`. RLS enforces isolation using
+`is_gym_member(gym_id)` / `is_gym_admin(gym_id)` SECURITY DEFINER
+helpers — app code never filters by gym manually.
 
 ### Auth
 
-Supabase Auth with email+password. Sessions managed by `@supabase/ssr` middleware. Profiles auto-created on signup via a Postgres trigger. Two Supabase clients:
+Supabase Auth + `@supabase/ssr`. Middleware caches the onboarded flag
+in a `chork-onboarded=<uid>:1` cookie after the first successful
+check, so subsequent page navs skip a Supabase round-trip.
 
-- **Browser client** (`src/lib/supabase/client.ts`): uses anon key, safe for client components
-- **Server client** (`src/lib/supabase/server.ts`): wrapped in React `cache()` for deduplication, plus a service role client for admin operations (bypasses RLS)
+Two supabase clients:
+
+- **Browser** (`src/lib/supabase/client.ts`) — anon key, safe in
+  `"use client"` components
+- **Server** (`src/lib/supabase/server.ts`) — per-request client
+  wrapped in React `cache()` so multiple callers in one render share
+  one instance. Exports `getServerUser()` / `getServerProfile()` with
+  the same semantics for the hot auth calls
+- **Service role** (`createServiceClient()`) — bypasses RLS. **Never
+  import into `"use client"` files.** The module is guarded with
+  `import "server-only"` at the top of `src/lib/supabase/server.ts`
+
+### Auth helpers (`src/lib/auth.ts`)
+
+- `requireSignedIn()` → `{ supabase, userId } | { error }`
+- `requireAuth()` → `{ supabase, userId, gymId } | { error }` —
+  also enforces `profile.active_gym_id` is set
+- `requireGymAdmin(gymId?)` → `{ supabase, userId, gymId, isOwner } |
+  { error }` — reads the `gym_admins` table, NOT `gym_memberships.role`
 
 ### Data access
 
-- Server components: `const supabase = await createServerSupabase()`
-- Server actions: `const { supabase, userId, profile } = await requireAuth()` (from `src/lib/auth.ts`)
-- Queries: `src/lib/data/queries.ts` — all read functions take `supabase` as first param
-- Mutations: `src/lib/data/mutations.ts` — all write functions, some use service role for cross-user operations
-- Types: `src/lib/data/types.ts` — derived from `src/lib/database.types.ts` (generated)
-- Pure functions: `src/lib/data/logs.ts` — `computePoints`, `isFlash`, `computeRouteGrade`
+- Queries: `src/lib/data/queries.ts`, `.../admin-queries.ts`,
+  `.../crew-queries.ts`, `.../dashboard-queries.ts`,
+  `.../competition-queries.ts`. Every read takes `supabase` as first arg
+- Mutations: `src/lib/data/mutations.ts`, `.../admin-mutations.ts`
+  — server-side only; some use service role for cross-user writes
+- Server actions live next to their pages:
+  `src/app/(app)/actions.ts`, `src/app/admin/actions.ts`,
+  `src/app/crew/actions.ts`
+- Types: `src/lib/data/types.ts` derives from `database.types.ts`
+  (regenerated after every migration)
+- Pure logic (easily testable, no Supabase dependency):
+  `src/lib/data/logs.ts` (`computePoints`, `isFlash`,
+  `deriveTileState`), `grade-label.ts`, `crew-time.ts`,
+  `set-label.ts`, `profile-stats.ts`
 
-### Caching
+### Caching + revalidation
 
-- `staleTimes.dynamic: 300` — 5-minute client-side RSC cache
-- Mutations call `revalidatePath("/", "layout")` to bust the cache immediately
-- Route data cached per-route in SendsGrid state (`routeDataCache` Map) for instant re-open
+- `next.config.ts`: `experimental.staleTimes.dynamic = 300` (5-min
+  client RSC cache)
+- Mutations call `revalidatePath("/", "layout")` (and `/admin`,
+  `/crew` where relevant) to bust immediately
+- `SendsGrid` caches route-sheet data in a `routeDataCache` Map so
+  re-opening a tile is instant
+- `getServerProfile` / `getServerUser` wrapped in `cache()` — root
+  layout + page + auth helpers share the same data within one render
+
+### Performance invariants (learned the hard way)
+
+- **Never call `new Date()` / `Date.now()` in a render body** —
+  Next 15's `react-hooks/purity` rule breaks the build. Use a lazy
+  `useState` initialiser or compute server-side
+- **Never `setState(null)` synchronously inside `useEffect`** —
+  `react-hooks/set-state-in-effect` flags it. Use the keyed-cache
+  pattern: `{ key, data }` tagged with inputs, derive
+  `loading = cache?.key !== key`
+- **Batch multi-row lookups** — `.in(ids)` pattern, not
+  `Promise.all(ids.map(...))` N+1 fan-outs against the same table
+- **Middleware runs on every page nav** — avoid adding Supabase
+  queries there; prefer cookies for repeat checks
+
+---
 
 ## Visual style
 
 Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
 
-- Both dark and light themes must work — never override OS preference
-- Accent: Radix `lime` scale. Text on accent uses `--accent-on-solid`
-- Surfaces: `@include surface.card` for panels, `@include surface.chrome` for sticky chrome
-- Flash badge: amber (`--flash-*` tokens) — never lime
-- Squircle border radius via `--radius-1` through `--radius-4` tokens. PunchTile stays square (no radius)
-- Golden radius for nested containers: inner radius = outer radius − gap. Pre-computed tokens in `radius.scss`: `--radius-inner-{outer}-{gap}` (e.g. `--radius-inner-4-4`). When adding `border-radius` to an element nested inside a rounded parent with padding, always use a golden radius token instead of picking an arbitrary step. If the formula yields 0 or negative, the inner element needs no radius
-- Glass materials aligned with Apple HIG: `saturate(180%) blur(20px)` via `@include surface.glass($opacity)`
-  - Thin (30%): maximum background bleed
-  - Regular (50%): floating chrome (navbar, dropdowns)
-  - Thick (70%, default): sheets, modals, alerts
-  - Nested glass uses opacity layering, not stacked backdrop-filter (CSS limitation)
-- Radix palette: olive (mono), lime (accent), red (error), teal (success/zone), amber (flash)
-- Radix colour usage — follow the 12-step scale strictly:
-  - Steps 1-2: page/section backgrounds (`--*-app-bg`, `--*-subtle-bg`)
-  - Steps 3-5: UI element backgrounds (`--*-bg`, `--*-bg-hover`, `--*-bg-active`)
-  - Steps 6-8: borders (`--*-border-subtle`, `--*-border`, `--*-border-hover`)
-  - Step 9: solid fills — buttons, badges, chart bars, **tile backgrounds** (completed/attempted/flash). Lime/amber are light-bg scales → use `--*-on-solid` for foreground text
-  - Step 10: solid fill hover states
-  - Step 11: low-contrast text and secondary icons (`--*-text-low-contrast`)
-  - Step 12: high-contrast text and primary icons (`--*-text`)
-  - **Never use step 9 as a text colour** (except `--mono-solid` for muted/disabled text)
-  - **Never use opacity to dim text/icons** — pick the correct step from the scale instead
-  - **No `color-mix()`** — use Radix tokens directly
-- Radix interactive colour pattern (menus, lists, buttons):
-  - Default: text step 11, icons step 9
-  - Hover: bg step 4, text step 12, icons step 11
-  - Active/selected: bg step 5 or solid step 9
-  - For coloured variants (warning/danger): same step pattern within that colour scale
-- Consistent palette for tile states (wall grid, legend, chart bars):
-  - Completed/send: accent (lime) scale
-  - Flash: flash (amber) scale
-  - Attempted: mono (olive) scale
-  - Zone/points: success (teal) scale
-- Transitions: 0.1s for interactive feedback, `--duration-fast` (0.2s) for state changes. Navbar uses `transition: none` for instant feedback
+- Both themes must work — never override OS preference
+- Accent: Radix `lime`. Text on accent uses `--accent-on-solid`
+- Surfaces: `@include surface.card` (panels), `surface.chrome`
+  (sticky chrome), `surface.glass($opacity)` (sheets, modals)
+- Flash badge: **amber** (`--flash-*`), never lime
+- Squircle via `--radius-1..4`. PunchTile stays square
+- Golden radius for nested containers: inner = outer − gap. Pre-built
+  tokens in `radius.scss`: `--radius-inner-{outer}-{gap}`. Never
+  guess a step
+- Glass: `saturate(180%) blur(20px)`. 30% / 50% / 70% opacity tiers
+  (thin / regular / thick)
+- Radix palette: olive (mono), lime (accent), red (error), teal
+  (success / zone), amber (flash)
 
-## Page layout
+### Radix scale discipline (strictly enforced)
 
-Three page layout mixins in `src/styles/mixins/_layout.scss`:
-- `@include layout.page` — app pages (send grid, profile, leaderboard). Uses `--content-app` (640px tablet, 768px desktop)
-- `@include layout.page-prose` — text content (privacy, blog). Uses `--content-prose` (672px)
-- `@include layout.page-wide` — admin/dashboard. Uses `--content-wide` (960px)
+- Steps 1-2: page / section backgrounds (`--*-app-bg`, `--*-subtle-bg`)
+- Steps 3-5: UI element backgrounds
+- Steps 6-8: borders
+- Step 9: solid fills — buttons, badges, chart bars, tile states
+- Step 10: solid fill hover
+- Step 11: low-contrast text / secondary icons
+- Step 12: high-contrast text / primary icons
+- **Never use step 9 as a text colour** (except `--mono-solid` for disabled)
+- **Never dim text via opacity** — use the correct step
+- **No `color-mix()`** — use Radix tokens directly
 
-All handle min-height, gutters, safe-area insets (top for notch, bottom for navbar + home indicator), max-width, and centering.
+### Tile state palette
+
+Completed = accent (lime) · Flash = flash (amber) · Attempted = mono
+(olive) · Zone / points = success (teal)
+
+### Page titles
+
+Every page title uses `@include type.typography(display)` +
+`color: var(--mono-text)`. One rule, zero exceptions.
+
+### Transitions
+
+- 0.1s for interactive feedback
+- `--duration-fast` (0.2s) for state changes
+- `--duration-normal` (0.4s) for position / height / bar growth
+- Navbar uses `transition: none` for instant tab response
+
+### Page layout mixins (`src/styles/mixins/_layout.scss`)
+
+- `layout.page` — app pages; `--content-app` (640 tablet / 768 desktop)
+- `layout.page-prose` — text; `--content-prose` (672px)
+- `layout.page-wide` — admin; `--content-wide` (960px)
+
+All handle min-height, gutters, safe-area insets (top notch + bottom
+navbar + home indicator), max-width, and centering.
+
+---
 
 ## Code rules
 
 - SCSS modules only — no inline styles, no CSS-in-JS
 - Container queries for components, media queries for page layout only
-- Typography via `@include type.typography(preset)` — never set font properties manually
-- Spacing and color via design tokens — no raw values
-- 44×44px minimum tap targets, 8px spacing between them
+- Typography via `@include type.typography(preset)` — never set font
+  properties manually
+- Spacing + colour via design tokens — no raw values unless captured
+  in a shared constants module with a written reason
+- 44×44 minimum tap targets, 8px spacing between them
 - No `any` — strict TypeScript throughout
-- Server components by default; client components only when interactivity requires it
-- All data access through `src/lib/data/` helpers — never call Supabase directly from components
-- Use Postgres views/RPC functions for aggregations — don't fetch N records to compute in JS
+- Server components by default; `"use client"` only when needed
+- All data access through `src/lib/data/` helpers — never call
+  Supabase directly from components
+- Use Postgres RPCs for aggregations — never fetch N rows to sum in JS
 - Usernames always displayed with `@` prefix
+
+---
 
 ## Domain rules — IMPORTANT
 
-- **Points are never stored.** Derive using `computePoints(log)` in `src/lib/data/logs.ts`.
-  Formula: flash=4, 2 attempts=3, 3 attempts=2, 4+ attempts=1, incomplete=0. Then +1 if zone.
-- **Flash is derived, not stored.** `attempts === 1 && completed === true`.
-- **Attempt counts are private.** Never show raw attempt counts to other users. Points are public.
-- **Community grade is an average.** Via `get_route_grade()` RPC function.
-- **One active set per gym at a time.**
-- **Archived sets are read-only.** No new logs or comments when `active = false`. Enforce in UI.
-- **Beta spray uses opacity, not blur.** `opacity: 0.4` + `filter: blur(3px)` with reveal toggle.
+- **Points are never stored.** Derive via `computePoints(log)` in
+  `src/lib/data/logs.ts`. Formula: flash=4, 2=3, 3=2, 4+=1,
+  incomplete=0, + 1 if zone
+- **Flash is derived.** `attempts === 1 && completed === true`
+- **Attempt counts are private** — never show raw attempts to other
+  users. Points are public
+- **Community grade is an average** via `get_route_grade()` RPC
+- **Grading scales per set.** Each set has `grading_scale`
+  (`v` / `font` / `points`) and `max_grade`. The climber-side grade
+  slider reads both. Points-only sets hide the slider entirely.
+  Label mapping lives in `src/lib/data/grade-label.ts`
+- **One live set per gym at a time** (convention, not a DB constraint)
+- **Archived / draft sets are read-only** for climbers. Migration 003
+  blocks inserts against non-live sets at the RLS layer
+- **Legacy `sets.active` is derived from `sets.status`** via a
+  trigger. New code writes `status`; old readers of `active` still
+  work. Prefer `status` in new code
+- **Beta spray uses opacity, not blur.** `opacity: 0.4 + filter: blur(3px)`
+  with a reveal toggle
+- **Activity feed timestamps are coarse.** `relativeDay()` in
+  `src/lib/data/crew-time.ts` — "today" / "yesterday" / "N days ago".
+  Never clock time, hours, am/pm. Privacy-first so climbers can't
+  infer when mates are physically at the gym
 
-## Environment variables
+### Crews replaced follows
 
-- `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon/public key
-- `SUPABASE_SERVICE_ROLE_KEY` — server-only, bypasses RLS
+The follow / followers feature was ripped out in migration 020 and
+replaced by the crew system (migration 021). There is no asymmetric
+relationship in the app — every social link is a mutual `crew_members`
+row that both sides agreed to. If you see `follower_count` or
+`getFollowers` anywhere, it's a stale reference and should be deleted.
+
+### Admin vs climber vs organiser
+
+Three distinct roles, never conflate:
+
+- Climber membership: `gym_memberships(user_id, gym_id, role)` —
+  role column exists but is largely cosmetic now
+- Admin rights: `gym_admins(user_id, gym_id, role in ('admin','owner'))`
+  — separate table. `is_gym_admin(gym_id)` reads from here
+- Competition organiser: `competitions.organiser_id` —
+  `is_competition_organiser(comp_id)` gates organiser-only actions.
+  Distinct from gym admin
+
+---
+
+## Testing
+
+Vitest-based. See `docs/testing.md` for patterns. Key rules:
+
+- **Tests exist to catch stability regressions, not to hit a coverage
+  number.** Assert invariants, not implementation details
+- Privacy contracts get explicit anti-regression tests (e.g.
+  `relativeDay` has tests asserting no clock-time output)
+- Server actions get tests for: input validation, auth failure, each
+  distinct user-visible error path, DB error propagation
+- Fixtures must be realistic — Postgres errors need a `code` field,
+  not just `message`, or `formatError` falls through to its generic
+
+---
 
 ## Storybook
 
 - Stories live next to components: `ComponentName.stories.tsx`
 - Mock factories in `src/test/mocks.ts`
-- Autodocs enabled globally; dark/light toggle in toolbar
+- Autodocs enabled globally; dark / light toggle in toolbar
+- Mock factories include every current column — update them when a
+  migration adds fields or typecheck breaks the build

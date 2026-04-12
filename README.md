@@ -1,36 +1,121 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Chork
 
-## Getting Started
+Multi-gym bouldering competition tracker PWA. Climbers log attempts
+on numbered routes within a gym's active competition set, earn points
+on a public gym leaderboard ("Chorkboard"), and compete inside
+private groups called **crews**.
 
-First, run the development server:
+Live at https://chork.vercel.app (once a domain lands, this'll update).
+
+---
+
+## Stack
+
+- Next.js 15 App Router (Turbopack)
+- Supabase (Auth, Postgres, RLS, RPCs, `pg_cron`)
+- SCSS modules + a design-token system
+- TypeScript strict, Vitest for tests
+
+---
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+cp .env.example .env.local   # fill in Supabase URL + keys
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+If you're linked to a Supabase project:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+pnpm exec supabase db push                        # apply pending migrations
+pnpm exec supabase gen types typescript \
+  --project-id <id> > src/lib/database.types.ts   # regenerate types
+```
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## Useful commands
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| Command | Purpose |
+|---|---|
+| `pnpm dev` | Dev server |
+| `pnpm build` | Production build (CI equivalent) |
+| `pnpm test --run` | Vitest one-shot |
+| `pnpm test` | Vitest watch mode |
+| `pnpm next lint` | Next.js lint (CI-blocking) |
+| `pnpm storybook` | Storybook on :6006 |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## Documentation
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+All docs live in `docs/`:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **[`CLAUDE.md`](./CLAUDE.md)** — orientation for contributors (and
+  the Claude agent that works on this codebase). Start here
+- **[`docs/architecture.md`](./docs/architecture.md)** — auth flow,
+  data access layer, multi-tenancy, crew model, push pipeline
+- **[`docs/schema.md`](./docs/schema.md)** — Supabase tables, RPC
+  catalogue, RLS summary
+- **[`docs/migrations.md`](./docs/migrations.md)** — one-line-per-file
+  migration history (001 → current)
+- **[`docs/testing.md`](./docs/testing.md)** — test patterns,
+  mocking strategy, what to test vs skip
+- **[`docs/db-audit.md`](./docs/db-audit.md)** — DB hardening
+  findings from the last audit pass
+- **[`docs/roadmap.md`](./docs/roadmap.md)** — shipped / next / planned
+
+---
+
+## Project shape
+
+```
+src/
+├── app/                # Next.js App Router
+│   ├── (app)/         # Authenticated climber routes
+│   ├── admin/         # Gym admin + organiser surface
+│   ├── auth/          # Supabase callback
+│   ├── competitions/  # Climber-facing comp pages
+│   ├── crew/          # Crew tab
+│   ├── leaderboard/   # Chorkboard
+│   ├── login/
+│   ├── onboarding/
+│   ├── privacy/
+│   ├── profile/
+│   ├── u/[username]/
+│   ├── layout.tsx
+│   └── page.tsx       # Wall / landing
+├── components/        # React components (Storybook sits next door)
+├── lib/
+│   ├── auth.ts        # requireAuth / requireSignedIn / requireGymAdmin
+│   ├── auth-context.tsx
+│   ├── data/          # Queries, mutations, pure logic
+│   ├── offline/       # IndexedDB mutation queue
+│   ├── push/          # web-push server + client helpers
+│   └── supabase/      # Browser + server + middleware clients
+├── middleware.ts
+├── styles/            # Design tokens + mixins
+└── test/              # Mock factories shared by tests + stories
+
+supabase/migrations/   # 001_initial_schema.sql → current
+```
+
+---
+
+## Deployment
+
+Vercel. Push to `main` → auto-deploys. Preview deploys on PRs.
+
+Before shipping migrations, always:
+
+1. `pnpm test --run` green
+2. `pnpm next lint` clean
+3. `pnpm build` succeeds locally
+4. `pnpm exec supabase db push` applied (production DB is the source
+   of truth — we don't maintain multiple environments)
+5. Regenerate types
+6. Commit + push
