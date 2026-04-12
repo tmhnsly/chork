@@ -1074,6 +1074,45 @@ export type Database = {
           total_sends: number
         }[]
       }
+      get_crew_activity_feed: {
+        Args: { p_before?: string; p_limit?: number }
+        Returns: {
+          avatar_url: string
+          gym_id: string
+          gym_name: string
+          happened_at: string
+          is_flash: boolean
+          is_zone: boolean
+          route_id: string
+          route_log_id: string
+          route_number: number
+          set_ends_at: string
+          set_id: string
+          set_name: string
+          set_starts_at: string
+          user_id: string
+          username: string
+        }[]
+      }
+      get_crew_leaderboard: {
+        Args: {
+          p_crew_id: string
+          p_limit?: number
+          p_offset?: number
+          p_set_id: string
+        }
+        Returns: {
+          avatar_url: string
+          flashes: number
+          name: string
+          points: number
+          rank: number
+          sends: number
+          user_id: string
+          username: string
+          zones: number
+        }[]
+      }
       get_engagement_trend: {
         Args: { p_gym_id: string; p_limit?: number }
         Returns: {
