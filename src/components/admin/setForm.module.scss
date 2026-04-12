@@ -1,0 +1,109 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+@use "mixins/input" as input;
+
+.form {
+  @include layout.stack(var(--space-4));
+}
+
+.field {
+  @include layout.stack(var(--space-1));
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fieldset {
+  @include layout.stack(var(--space-2));
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.label {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.input {
+  @include input.field;
+}
+
+.hint {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+// ── Grading scale chips ───────────────────────────
+.scaleRow {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.scaleChip {
+  @include type.typography(label);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--size-touch-target);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--mono-subtle-bg);
+  color: var(--mono-text-low-contrast);
+  border: 1px solid var(--mono-border);
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    color      var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    background: var(--mono-bg);
+    color: var(--mono-text);
+  }
+}
+
+.scaleChipActive {
+  background: var(--accent-bg);
+  color: var(--accent-text);
+  border-color: var(--accent-border-subtle);
+
+  &:hover {
+    background: var(--accent-bg);
+    color: var(--accent-text);
+  }
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  border: 0;
+}
+
+.checkboxField {
+  @include type.typography(body);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--mono-text);
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}

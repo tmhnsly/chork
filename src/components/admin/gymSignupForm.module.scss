@@ -1,0 +1,90 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+@use "mixins/input" as input;
+
+.form {
+  @include layout.stack(var(--space-4));
+}
+
+.field {
+  @include layout.stack(var(--space-1));
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: var(--space-3);
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.label {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.input {
+  @include input.field;
+}
+
+.hint {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+// ── Plan cards ────────────────────────────────────
+.planFieldset {
+  @include layout.stack(var(--space-2));
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.planGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+
+  @media (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.planCard {
+  @include surface.card;
+  @include layout.stack(var(--space-1));
+  padding: var(--space-3);
+  border-radius: var(--radius-2);
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    border-color: var(--mono-border-hover);
+  }
+}
+
+.planCardActive {
+  border-color: var(--accent-border);
+  background: var(--accent-subtle-bg);
+}
+
+.planRadio {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.planTitle {
+  @include type.typography(card-title);
+  color: var(--mono-text);
+}
+
+.planBlurb {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}

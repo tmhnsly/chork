@@ -1,0 +1,32 @@
+@use "mixins/typography" as type;
+
+.badge {
+  @include type.typography(label);
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  font-size: var(--text-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+// Draft: mono subtle — pre-publication, not yet visible to climbers.
+.draft {
+  background: var(--mono-subtle-bg);
+  color: var(--mono-text-low-contrast);
+  border: 1px solid var(--mono-border);
+}
+
+// Live: accent — same lime treatment as send-state across the app.
+.live {
+  background: var(--accent-bg);
+  color: var(--accent-text);
+}
+
+// Archived: neutral — past-tense, read-only.
+.archived {
+  background: var(--mono-bg);
+  color: var(--mono-text-low-contrast);
+}
