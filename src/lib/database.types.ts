@@ -504,6 +504,61 @@ export type Database = {
           },
         ]
       }
+      user_set_stats: {
+        Row: {
+          flashes: number
+          gym_id: string
+          points: number
+          sends: number
+          set_id: string
+          updated_at: string
+          user_id: string
+          zones: number
+        }
+        Insert: {
+          flashes?: number
+          gym_id: string
+          points?: number
+          sends?: number
+          set_id: string
+          updated_at?: string
+          user_id: string
+          zones?: number
+        }
+        Update: {
+          flashes?: number
+          gym_id?: string
+          points?: number
+          sends?: number
+          set_id?: string
+          updated_at?: string
+          user_id?: string
+          zones?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_set_stats_gym_id_fkey"
+            columns: ["gym_id"]
+            isOneToOne: false
+            referencedRelation: "gyms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_set_stats_set_id_fkey"
+            columns: ["set_id"]
+            isOneToOne: false
+            referencedRelation: "sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_set_stats_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -591,7 +646,9 @@ export type Database = {
         Args: { p_comment_id: string; p_delta: number }
         Returns: number
       }
+      is_gym_admin: { Args: { p_gym_id: string }; Returns: boolean }
       is_gym_member: { Args: { p_gym_id: string }; Returns: boolean }
+      is_gym_owner: { Args: { p_gym_id: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
