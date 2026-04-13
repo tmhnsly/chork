@@ -5,6 +5,7 @@ export { Button } from "./Button";
 export { CardSkeleton } from "./CardSkeleton";
 export { ChorkMark } from "./ChorkMark";
 export { Legend } from "./Legend";
+export { SearchField } from "./SearchField";
 export { shimmerStyles } from "./Shimmer";
 export { ToastProvider, showToast } from "./Toast";
 export { UserAvatar } from "./UserAvatar";

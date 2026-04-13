@@ -55,15 +55,22 @@ export function EditProfileDialog({ user, open, onOpenChange }: Props) {
         showToast(result.error, "error");
         return;
       }
-      await refreshProfile();
-      showToast("Photo updated");
-      router.refresh();
-    } catch {
-      showToast("Something went wrong", "error");
-    } finally {
+      // Release the "Uploading…" state the moment the upload itself
+      // succeeds. refreshProfile/router.refresh can take a second
+      // because they re-fetch the profile + re-render RSC segments —
+      // keeping the button locked through that read as "stuck".
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
+      showToast("Photo updated");
+      // Background refetch — UI already shows success.
+      refreshProfile();
+      router.refresh();
+      return;
+    } catch {
+      showToast("Something went wrong", "error");
     }
+    setUploading(false);
+    if (fileRef.current) fileRef.current.value = "";
   }
 
   async function handleSave() {

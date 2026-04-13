@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { FaBolt, FaBullseye, FaUser } from "react-icons/fa6";
+import { FaBolt, FaFlag, FaUser } from "react-icons/fa6";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button, UserAvatar, shimmerStyles } from "@/components/ui";
 import { PunchTile } from "@/components/PunchTile/PunchTile";
@@ -82,7 +82,7 @@ export function ClimberSheet({ entry, setId, onClose }: Props) {
           <Stat label="Points" value={entry.points} />
           <Stat label="Sends" value={entry.sends} />
           <Stat label="Flashes" value={entry.flashes} icon={<FaBolt />} variant="flash" />
-          <Stat label="Zones" value={entry.zones} icon={<FaBullseye />} variant="success" />
+          <Stat label="Zones" value={entry.zones} icon={<FaFlag />} variant="success" />
         </section>
 
         {/* Send grid (current set only) */}

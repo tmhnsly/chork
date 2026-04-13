@@ -48,16 +48,14 @@
 }
 
 // ── Tablet (≥768px) ───────────────────────────────
+// Content jumps up in lock-step with the bigger viewport — otherwise
+// the column stayed at 40rem on tablet and only widened on desktop,
+// which read as the UI "shrinking" relative to the tablet viewport
+// before "growing" again at the desktop breakpoint.
 @include bp.tablet {
   :root {
     --gutter-x: var(--space-8);   // 32px
     --section-gap: var(--space-16);
-  }
-}
-
-// ── Desktop (≥1280px) ─────────────────────────────
-@include bp.desktop {
-  :root {
-    --content-app: 48rem;         // 768px — wider single column
+    --content-app: 48rem;         // 768px — same cap as desktop
   }
 }

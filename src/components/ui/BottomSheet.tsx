@@ -19,20 +19,24 @@ interface Props {
   children: ReactNode;
 }
 
-const DRAG_CLOSE_THRESHOLD = 60;     // px
+const DRAG_CLOSE_THRESHOLD = 60; // px
 const DRAG_VELOCITY_THRESHOLD = 0.4; // px/ms
 
-interface DragState {
-  startY: number;
-  startTime: number;
-  dragging: boolean;
-}
-
 /**
- * Bottom sheet with drag-to-dismiss. Wraps Radix Dialog with a swipe-down
- * gesture on the handle. Shared primitive — consume from feature sheets
- * (RouteLogSheet, ClimberSheet, etc.) rather than importing one sheet
- * into another.
+ * Bottom sheet with drag-to-dismiss. Wraps Radix Dialog with a swipe-
+ * down gesture on the handle.
+ *
+ * Open / tap-close use CSS keyframes (`.content` / `.contentClosing`).
+ * Drag uses inline transform via `--drag-y` + a `.dragging` class
+ * that turns the transition off so finger-tracking is 1:1.
+ *
+ * Drag-close is a dedicated path: when the user releases past the
+ * close threshold we animate the sheet the rest of the way down
+ * from its current drag offset using an inline transform transition,
+ * then fire `onClose` on `transitionend`. We deliberately do NOT
+ * toggle `.contentClosing` in that case — its keyframe starts from
+ * `translateY(0)` and would snap the sheet up before sliding down,
+ * producing a visible "pop up then down" flicker.
  */
 export function BottomSheet({
   open,
@@ -46,9 +50,9 @@ export function BottomSheet({
   const [closing, setClosing] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
-  const dragRef = useRef<DragState>({ startY: 0, startTime: 0, dragging: false });
+  const dragRef = useRef({ startY: 0, startTime: 0, dragging: false });
 
-  // Reset closing state when opening again (deferred to avoid sync setState-in-effect)
+  // Reset closing state when opening again.
   useEffect(() => {
     if (open) {
       const frame = requestAnimationFrame(() => setClosing(false));
@@ -82,61 +86,51 @@ export function BottomSheet({
   function handleDragEnd(e: React.PointerEvent) {
     if (!dragRef.current.dragging || !contentRef.current) return;
     dragRef.current.dragging = false;
-    contentRef.current.releasePointerCapture(e.pointerId);
+    try {
+      contentRef.current.releasePointerCapture(e.pointerId);
+    } catch {
+      // pointer capture may already be released — ignore
+    }
+
     const dy = e.clientY - dragRef.current.startY;
     const elapsed = Date.now() - dragRef.current.startTime;
     const velocity = elapsed > 0 ? dy / elapsed : 0;
-
     const shouldClose = dy > DRAG_CLOSE_THRESHOLD || velocity > DRAG_VELOCITY_THRESHOLD;
+    const el = contentRef.current;
+
+    // Pin animation to none inline BEFORE removing the `.dragging`
+    // class. Otherwise, swapping from `.dragging`'s `animation: none
+    // !important` back to `.content`'s `animation: sheetSlideUp`
+    // registers as a new animation assignment and the browser
+    // replays the slide-up keyframe (translateY(100%) → 0) — which
+    // is the source of the "pop up then down" flicker.
+    el.style.animation = "none";
+    el.style.transform = `translateY(${dy}px)`;
+    void el.offsetHeight;
+    el.classList.remove(styles.dragging);
+    el.style.removeProperty("--drag-y");
+    el.style.transition = "transform var(--duration-normal) var(--ease-out)";
 
     if (shouldClose) {
-      // Animate the sheet the rest of the way down from its current
-      // drag position. Previously we removed the `--drag-y` var first
-      // and then ran the `.contentClosing` keyframe animation — which
-      // snaps the element to translateY(0) before starting the close
-      // slide, producing a "jumps up then down" flicker on slow drags.
-      // Here we transition transform from wherever the finger left it
-      // straight to fully-offscreen, then fire the close once it lands.
-      const el = contentRef.current;
       const height = el.getBoundingClientRect().height || window.innerHeight;
-      // Sync the overlay fade-out by flagging closing state now (the
-      // overlay uses `.overlayClosing` which is fade-only, no slide,
-      // so it animates cleanly regardless of the content's position).
-      setClosing(true);
-      el.style.transform = `translateY(${dy}px)`;
-      void el.offsetHeight;
-      el.classList.remove(styles.dragging);
-      el.style.removeProperty("--drag-y");
-      el.style.transition = "transform var(--duration-normal) var(--ease-out)";
       el.style.transform = `translateY(${Math.ceil(height + 16)}px)`;
-      el.addEventListener(
-        "transitionend",
-        () => {
-          el.style.transition = "";
-          el.style.transform = "";
-          onClose();
-        },
-        { once: true },
-      );
+      const onEnd = () => {
+        el.removeEventListener("transitionend", onEnd);
+        el.style.transition = "";
+        el.style.transform = "";
+        el.style.animation = "";
+        onClose();
+      };
+      el.addEventListener("transitionend", onEnd);
     } else {
-      // Snap back to rest position with a transition. Remove the
-      // dragging class first so the stylesheet transition applies.
-      contentRef.current.classList.remove(styles.dragging);
-      contentRef.current.style.removeProperty("--drag-y");
-      contentRef.current.style.transform = `translateY(${dy}px)`;
-      void contentRef.current.offsetHeight;
-      contentRef.current.style.transition = "transform var(--duration-normal) var(--ease-out)";
-      contentRef.current.style.transform = "translateY(0)";
-      contentRef.current.addEventListener(
-        "transitionend",
-        () => {
-          if (contentRef.current) {
-            contentRef.current.style.transition = "";
-            contentRef.current.style.transform = "";
-          }
-        },
-        { once: true }
-      );
+      el.style.transform = "translateY(0)";
+      const onEnd = () => {
+        el.removeEventListener("transitionend", onEnd);
+        el.style.transition = "";
+        el.style.transform = "";
+        el.style.animation = "";
+      };
+      el.addEventListener("transitionend", onEnd);
     }
   }
 
@@ -167,8 +161,13 @@ export function BottomSheet({
           onPointerMove={handleDragMove}
           onPointerUp={handleDragEnd}
           onPointerCancel={handleDragEnd}
-          onAnimationEnd={() => {
-            if (closing) onClose();
+          onAnimationEnd={(e) => {
+            // `onAnimationEnd` bubbles — any child whose animation
+            // finishes during the close window (shimmer, count-up,
+            // reveal-in) would otherwise fire `onClose()` too early,
+            // re-mounting the sheet mid-slide. Gate on the event
+            // coming from the content element itself.
+            if (closing && e.target === e.currentTarget) onClose();
           }}
         >
           <VisuallyHidden.Root asChild>

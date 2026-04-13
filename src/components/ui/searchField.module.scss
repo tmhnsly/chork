@@ -1,0 +1,56 @@
+@use "mixins/typography" as type;
+@use "mixins/input" as input;
+
+.wrap {
+  position: relative;
+  width: 100%;
+}
+
+.icon {
+  position: absolute;
+  top: 50%;
+  left: var(--space-3);
+  transform: translateY(-50%);
+  color: var(--mono-text-low-contrast);
+  pointer-events: none;
+}
+
+// Reserve enough room for the icon plus breathing space so the query
+// text never hugs the glyph. `--space-9` = icon (≈16) + left-inset
+// (`space-3`) + a comfortable gap.
+.input {
+  @include input.field;
+  padding-left: var(--space-9);
+}
+
+// Button-mode mirrors the input styling so both reads look identical.
+.wrapButton {
+  @include input.field;
+  padding-left: var(--space-9);
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    background: var(--mono-bg-hover);
+    border-color: var(--mono-border-hover);
+  }
+
+  .icon {
+    // Icon sits inside the button's padding box — keep absolute so it
+    // stays consistently placed with the input version above.
+    position: absolute;
+  }
+}
+
+.placeholder {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+  flex: 1;
+  min-width: 0;
+  line-height: 1;
+}

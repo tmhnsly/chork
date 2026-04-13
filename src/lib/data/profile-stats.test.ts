@@ -28,17 +28,19 @@ describe("computeAllTimeAggregates", () => {
     });
   });
 
-  it("counts flashes, sends, points, and attempts only on completed logs", () => {
+  it("counts flashes, sends, points, and attempts", () => {
     const logs: Log[] = [
       log("r1", 1, true),       // flash → 4 pts, 1 send, 1 attempt
       log("r2", 3, true, true), // 3 attempts → 2 pts + 1 zone = 3 pts
-      log("r3", 2, false),      // attempted but not completed — counts as attempted route but not send
+      log("r3", 2, false),      // project — 2 attempts toward total, no send
     ];
     const agg = computeAllTimeAggregates(logs);
     expect(agg.sends).toBe(2);
     expect(agg.flashes).toBe(1);
     expect(agg.points).toBe(7);
-    expect(agg.totalAttempts).toBe(4); // 1 + 3 (incomplete excluded)
+    // Attempts include unfinished projects so the profile reflects
+    // total effort, not just time-to-send.
+    expect(agg.totalAttempts).toBe(6); // 1 + 3 + 2
     expect(agg.uniqueRoutesAttempted).toBe(3);
   });
 
@@ -81,6 +83,15 @@ describe("routeCoverage", () => {
   });
   it("is attempted divided by total", () => {
     expect(routeCoverage(5, 20)).toBe(0.25);
+  });
+  // Invariant: attempts should never exceed total. The profile page's
+  // "N/M coverage" label breaks ("20/14") if the log query leaks
+  // routes from sets that weren't included in the route total.
+  // Callers are responsible for scoping both inputs to the same set
+  // window; this test documents the expectation.
+  it("fraction stays ≤ 1 when both inputs are scoped to the same sets", () => {
+    expect(routeCoverage(14, 14)).toBe(1);
+    expect(routeCoverage(14, 14)! <= 1).toBe(true);
   });
 });
 

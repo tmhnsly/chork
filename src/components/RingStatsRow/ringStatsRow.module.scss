@@ -47,24 +47,66 @@
 .flash  { color: var(--flash-text); }
 .zone   { color: var(--success-text); }
 
-// Points sits on the right as a quiet mono total — context, not focus.
-.points {
+// Right-aligned totals group — holds the points score and, when
+// known, the climber's rank on this scope. Two cells sit side-by-
+// side so both reads as "large mono number + label", complementary
+// to the ring-and-count cluster on the left.
+.totals {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+
+.totalsCell {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: var(--space-1);
-  margin-left: auto;
 }
 
-.pointsValue {
+// Score + `/max` matches the SENDS stat's treatment on the left
+// (`N` + small `/M`) so the two numbers across the row read as the
+// same visual pattern.
+.totalsValue {
   @include type.typography(number);
   font-size: var(--text-2xl);
   line-height: 1;
   color: var(--mono-text);
+
+  small {
+    @include type.typography(label);
+    font-size: var(--text-xs);
+    margin-left: var(--space-1);
+    font-style: normal;
+    color: var(--mono-text-low-contrast);
+  }
 }
 
-.pointsLabel {
+// Brand divider sits between the Points and Rank cells, aligned
+// vertically to the centre of the value row.
+.totalsSep {
+  align-self: center;
+}
+
+// Shimmer placeholder for an in-flight rank fetch. Height matches the
+// rendered `.totalsValue` so nothing shifts when the number arrives;
+// width sized for the typical `#N`/`#NN` footprint.
+.rankLoading {
+  display: inline-block;
+  width: 2.5ch;
+  height: 1em;
+  border-radius: var(--radius-1);
+}
+
+.totalsLabel {
   @include type.typography(label);
   font-size: var(--text-xs);
+  color: var(--mono-text-low-contrast);
+}
+
+// Rank sits alongside points but as supporting context — step 11 on
+// the value so it reads as a secondary figure, not a second headline.
+.totalsCellMuted .totalsValue {
   color: var(--mono-text-low-contrast);
 }

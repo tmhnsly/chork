@@ -3,7 +3,7 @@
 import {
   FaClipboardCheck,
   FaBolt,
-  FaBullseye,
+  FaFlag,
   FaScaleBalanced,
   FaComments,
   FaTrophy,
@@ -33,7 +33,7 @@ const features: FeatureItem[] = [
     description: "Send it first try and earn maximum points. Flash badges show everyone you meant business.",
   },
   {
-    icon: <FaBullseye />,
+    icon: <FaFlag />,
     title: "Zone holds",
     description: "Reach the crux and earn partial credit. Every zone hold adds a bonus point to your score.",
   },

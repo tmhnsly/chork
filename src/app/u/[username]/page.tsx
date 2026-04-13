@@ -178,7 +178,9 @@ export default async function UserProfilePage({ params }: Props) {
   });
 
   // ── Current set card data ────────────────────────
-  const currentSetStats = activeSet
+  // rankRow is fetched below alongside the other per-profile data and
+  // threaded in once we've awaited the batch.
+  const currentSetBase = activeSet
     ? {
         ...(statsBySet.get(activeSet.id) ?? { completions: 0, flashes: 0, points: 0, zones: 0 }),
         totalRoutes: miniRoutes.length,
@@ -240,30 +242,33 @@ export default async function UserProfilePage({ params }: Props) {
   // Empty state: user on their first set (active set exists, no previous sets)
   const showSetsEmpty = activeSet !== null && previousSetRecords.length === 0;
 
-  // "Yonder · #4 this set · 2 crews" under the name on another
-  // climber's profile. Replaces the old follower/following count
-  // pills — each segment drops out gracefully when its data is
-  // missing (e.g. no active set, no rank, zero crews).
-  // Gym is needed for the current-set card on both own and other
-  // profiles; rank + crew count only power the non-own context line.
+  // Non-own profile: crew count below the username. Gym + set rank
+  // used to live here too but now render inside the Current Set card
+  // (gym in the header meta, rank next to the points total), so the
+  // context line stays focused on social signals.
   const [gym, rankRow, crewCount, pendingInvites] = await Promise.all([
     getGym(supabase, gymId),
-    !isOwnProfile && activeSet
+    // Rank is fetched for everyone when an active set exists — it
+    // drives the `#N` shown next to points in the Current Set card,
+    // regardless of whose profile we're viewing.
+    activeSet
       ? getLeaderboardUserRow(supabase, gymId, profileUser.id, activeSet.id)
       : Promise.resolve(null),
     !isOwnProfile ? getCrewCountForUser(supabase, profileUser.id) : Promise.resolve(0),
-    // Own-profile only — drives the Inbox badge + notifications sheet.
     isOwnProfile ? getPendingCrewInvites(supabase, profileUser.id) : Promise.resolve([]),
   ]);
 
   let contextLine: string | null = null;
-  if (!isOwnProfile) {
-    const parts: string[] = [];
-    if (gym?.name) parts.push(gym.name);
-    if (rankRow?.rank != null) parts.push(`#${rankRow.rank} this set`);
-    if (crewCount > 0) parts.push(`${crewCount} crew${crewCount === 1 ? "" : "s"}`);
-    contextLine = parts.length > 0 ? parts.join(" · ") : null;
+  if (!isOwnProfile && crewCount > 0) {
+    contextLine = `${crewCount} crew${crewCount === 1 ? "" : "s"}`;
   }
+
+  // Thread the rank (fetched in parallel above) into the current-set
+  // card payload. Kept separate from the base object so activeSet===null
+  // still resolves to `null` cleanly.
+  const currentSetStats = currentSetBase
+    ? { ...currentSetBase, rank: rankRow?.rank ?? null }
+    : null;
 
   return (
     <main className={styles.page}>

@@ -18,27 +18,47 @@
   100% { background-position: -200% 0; }
 }
 
+// Skeleton base matches the card surface (step-2) so shimmers inside
+// cards read as part of the card rather than a brighter patch within
+// it. The moving highlight steps up to step-3 for visible motion.
 $shimmer-bg: linear-gradient(
   105deg,
-  var(--mono-bg) 0%,
-  var(--mono-bg) 35%,
-  var(--mono-bg-hover) 45%,
-  var(--mono-bg-hover) 55%,
-  var(--mono-bg) 65%,
-  var(--mono-bg) 100%
+  var(--mono-subtle-bg) 0%,
+  var(--mono-subtle-bg) 35%,
+  var(--mono-bg) 45%,
+  var(--mono-bg) 55%,
+  var(--mono-subtle-bg) 65%,
+  var(--mono-subtle-bg) 100%
 );
 
 // ── Skeleton class ─────────────────────────────────
+// `!important` on bg/color/border so this class wins when applied to
+// elements that already set those properties (e.g. `SectionCard`'s
+// card surface). CSS-module source order between two components isn't
+// reliable, and a loading state is exactly the place where overriding
+// its surroundings is the intended behaviour.
 .skeleton {
-  color: transparent;
-  background: $shimmer-bg;
-  background-size: 400% 100%;
-  border-color: transparent;
+  color: transparent !important;
+  background: $shimmer-bg !important;
+  background-size: 400% 100% !important;
+  border-color: transparent !important;
   animation: shimmerGlow 2.2s ease-in-out infinite;
+
+  // Inner text, icons and nested surfaces all melt into the shimmer
+  // so the card reads as one seamless loading rectangle. Only applied
+  // here (not on `.skeletonLine`) because standalone bars don't have
+  // nested content.
+  * {
+    color: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    border-color: transparent !important;
+    box-shadow: none !important;
+  }
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
-    background: var(--mono-bg);
+    background: var(--mono-subtle-bg) !important;
   }
 }
 
@@ -54,7 +74,7 @@ $shimmer-bg: linear-gradient(
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
-    background: var(--mono-bg);
+    background: var(--mono-subtle-bg);
   }
 }
 

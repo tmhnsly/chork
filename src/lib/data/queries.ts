@@ -251,11 +251,17 @@ export async function getAllRouteDataForUserInGym(
   if (setIds.length === 0) return { logs: [], totalRoutesInGym: 0 };
 
   const [logsResult, routesResult] = await Promise.all([
+    // Inner-join `routes` and constrain by `set_id` IN setIds so logs
+    // from sets the caller filtered out (e.g. sets that ended before
+    // the climber's account existed) don't leak into the aggregates.
+    // Without this filter, `uniqueRoutesAttempted` could exceed
+    // `totalRoutesInGym` — a "20/14 coverage" bug on long-history gyms.
     supabase
       .from("route_logs")
       .select("route_id, attempts, completed, zone, grade_vote, routes!inner(set_id)")
       .eq("user_id", userId)
-      .eq("gym_id", gymId),
+      .eq("gym_id", gymId)
+      .in("routes.set_id", setIds),
     supabase
       .from("routes")
       .select("id", { count: "exact", head: true })

@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition, useCallback, useRef } from "react";
+import { useState, useTransition, useCallback, useRef, useEffect } from "react";
+import { getAvatarUrl } from "@/lib/avatar";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Button, showToast } from "@/components/ui";
 import { Podium } from "./Podium";
@@ -116,6 +117,34 @@ export function LeaderboardView({
     await loadMore();
   }, [loadMore]);
 
+  // Warm the browser image cache for every cached tab's top-3
+  // avatars. Without this, flipping from "This set" to "All time"
+  // caused visible avatar pop-in — the images for new climbers
+  // fetched fresh. Creating an `Image` object triggers a background
+  // load that goes straight into cache, so the `<Image>` swap on
+  // tab change hits the cache instead of the network.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    for (const tabData of Object.values(cache)) {
+      for (const entry of tabData?.top.slice(0, 3) ?? []) {
+        if (!entry.avatar_url) continue;
+        const url = getAvatarUrl(
+          {
+            id: entry.user_id,
+            avatar_url: entry.avatar_url,
+            name: entry.name,
+            username: entry.username,
+          },
+          { size: 176 },
+        );
+        if (url) {
+          const img = new window.Image();
+          img.src = url;
+        }
+      }
+    }
+  }, [cache]);
+
   const data = cache[tab];
   const top = data?.top ?? [];
   const userRow = data?.userRow ?? null;
@@ -177,7 +206,12 @@ export function LeaderboardView({
       ) : (
         <>
           {podiumEntries.length > 0 && (
-            <Podium top={podiumEntries} currentUserId={currentUserId} onPress={openSheet} />
+            <Podium
+              top={podiumEntries}
+              currentUserId={currentUserId}
+              onPress={openSheet}
+              activeUserId={sheetEntry?.user_id ?? null}
+            />
           )}
 
           {mainListEntries.length > 0 && (

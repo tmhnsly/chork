@@ -449,14 +449,21 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
               {isCurrentFlash && <FaBolt className={styles.flashIcon} />}
             </h2>
             {/* Community grade display — hidden for points-only sets
-                where grading is disabled at the set level. */}
-            {gradingDisabled ? null : gradeLabel !== null ? (
-              <span className={styles.communityGrade}>{gradeLabel}</span>
-            ) : (
-              <span
-                className={`${styles.communityGrade} ${styles.communityGradeSkeleton} ${shimmerStyles.skeleton}`}
-                aria-hidden="true"
-              />
+                where grading is disabled at the set level. "Community
+                grade" label spells out where the number comes from so
+                climbers don't mistake it for the setter's grade. */}
+            {gradingDisabled ? null : (
+              <span className={styles.communityGradeWrap}>
+                <span className={styles.communityGradeLabel}>Community grade</span>
+                {gradeLabel !== null ? (
+                  <span className={styles.communityGrade}>{gradeLabel}</span>
+                ) : (
+                  <span
+                    className={`${styles.communityGrade} ${styles.communityGradeSkeleton} ${shimmerStyles.skeleton}`}
+                    aria-hidden="true"
+                  />
+                )}
+              </span>
             )}
           </header>
 
@@ -547,9 +554,27 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
                     const result = await updateGradeVote(route.id, grade, logId);
                     if ("error" in result) {
                       showToast(result.error, "error");
-                    } else if (result.log) {
+                      return;
+                    }
+                    if (result.log) {
                       setCurrentLog(result.log);
                       onLogUpdateRef.current(route.id, result.log);
+                    }
+                    // Refresh the community grade to reflect the new
+                    // vote (or the removal of a vote — the DB's
+                    // `get_route_grade` excludes null votes, so
+                    // toggling grading off drops this climber's
+                    // contribution from the average).
+                    try {
+                      const fresh = await fetchRouteData(route.id);
+                      setGradeLabel(
+                        fresh.grade !== null
+                          ? (formatGrade(fresh.grade, gradingScale) ?? "Ungraded")
+                          : "Ungraded",
+                      );
+                      onCacheRef.current?.(route.id, fresh);
+                    } catch (err) {
+                      console.warn("[chork] grade refresh failed:", err);
                     }
                   }, 600);
                 }}
@@ -733,10 +758,20 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
 }
 
 /**
- * Inline edit form for a comment. Focuses the input on mount using
- * `preventScroll: true` — this stops mobile browsers from auto-scrolling
- * the sheet to pull the input into view when the virtual keyboard opens,
- * which is the root cause of the "panel shifts when I start editing" bug.
+ * Inline edit form for a comment.
+ *
+ * We focus the input on mount and explicitly scroll it into view
+ * afterwards. The `scrollIntoView` call mirrors what iOS does when
+ * the user taps an input directly — the browser lifts the field
+ * above the virtual keyboard. When focus is triggered *program-
+ * matically* (our effect), iOS does not perform that lift, which
+ * used to leave the edit input hidden behind the keyboard. A small
+ * timeout gives the keyboard animation time to start so the scroll
+ * position settles above it.
+ *
+ * The earlier "panel shifts up when editing" bug was fixed in CSS
+ * by pinning the edit-form row height — that's why it's safe to
+ * re-enable the natural scroll-into-view behaviour here.
  */
 function EditCommentForm({
   initialBody,
@@ -752,7 +787,13 @@ function EditCommentForm({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    inputRef.current?.focus({ preventScroll: true });
+    const el = inputRef.current;
+    if (!el) return;
+    el.focus();
+    const id = window.setTimeout(() => {
+      el.scrollIntoView({ block: "center", behavior: "smooth" });
+    }, 120);
+    return () => window.clearTimeout(id);
   }, []);
 
   return (

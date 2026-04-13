@@ -10,7 +10,11 @@ export interface AllTimeAggregates {
   sends: number;
   flashes: number;
   points: number;
-  /** Sum of attempts across completed routes only. */
+  /**
+   * Sum of attempts across every logged route in the scope — completed
+   * or not. The profile's "Attempts" stat should reflect total effort,
+   * including projects the climber hasn't sent yet.
+   */
   totalAttempts: number;
   /** Unique routes with at least one logged attempt. */
   uniqueRoutesAttempted: number;
@@ -29,6 +33,11 @@ export function computeAllTimeAggregates(logs: LogForAggregates[]): AllTimeAggre
   for (const log of logs) {
     if (log.attempts > 0) attemptedRouteIds.add(log.route_id);
 
+    // Every attempt counts toward totalAttempts — projects (tried but
+    // not sent) represent real effort and should show up under the
+    // "Attempts" label.
+    totalAttempts += log.attempts;
+
     // Zone bonus is independent of completion — a climber who got the
     // zone hold but didn't top the boulder still earns the +1.
     if (log.zone) points += 1;
@@ -36,7 +45,6 @@ export function computeAllTimeAggregates(logs: LogForAggregates[]): AllTimeAggre
     if (!log.completed) continue;
 
     sends += 1;
-    totalAttempts += log.attempts;
     if (log.attempts === 1) flashes += 1;
 
     // Send points. Mirrors computePoints(); inlined to avoid a

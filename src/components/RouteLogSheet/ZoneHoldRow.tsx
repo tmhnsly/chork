@@ -1,7 +1,7 @@
 "use client";
 
 import * as Switch from "@radix-ui/react-switch";
-import { FaBullseye } from "react-icons/fa6";
+import { FaFlag } from "react-icons/fa6";
 import styles from "./zoneHoldRow.module.scss";
 
 interface Props {
@@ -18,7 +18,7 @@ export function ZoneHoldRow({ checked, onCheckedChange, disabled, hasAttempts }:
   return (
     <div className={`${styles.row} ${checked ? styles.rowOn : ""} ${isDisabled ? styles.rowDisabled : ""}`}>
       <div className={styles.label}>
-        <FaBullseye className={styles.icon} />
+        <FaFlag className={styles.icon} />
         <span className={styles.text}>Zone hold</span>
       </div>
       {!hasAttempts ? (

@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { shimmerStyles } from "@/components/ui";
 import { RingStatsRow } from "@/components/RingStatsRow/RingStatsRow";
 import { RouteChart } from "@/components/RouteChart/RouteChart";
 import { ICON_MAP as BADGE_ICONS } from "@/components/BadgeShelf/BadgeShelf";
@@ -51,20 +50,15 @@ export function SetDetailSheet({ set, userId, onClose }: Props) {
       description={`Stats for ${set.label}`}
     >
       <div className={styles.body}>
-        {/* Header — label + rank badge */}
         <header className={styles.header}>
           <div className={styles.headerText}>
             <span className={styles.label}>{set.label}</span>
             {set.isActive && <span className={styles.activeTag}>Current set</span>}
           </div>
-          {rankLoading ? (
-            <div className={`${styles.rankBadgeSkeleton} ${shimmerStyles.skeleton}`} />
-          ) : rank !== null ? (
-            <span className={styles.rankBadge} aria-label={`Rank ${rank}`}>#{rank}</span>
-          ) : null}
         </header>
 
-        {/* Ring stats */}
+        {/* Ring stats — rank sits next to points on the right so the
+            header stays clean and the placement reads as one unit. */}
         <RingStatsRow
           completions={set.completions}
           flashes={set.flashes}
@@ -75,6 +69,9 @@ export function SetDetailSheet({ set, userId, onClose }: Props) {
             (n, r) => (r.has_zone && set.logs.get(r.id)?.completed ? n + 1 : n),
             0,
           )}
+          maxPoints={set.maxPoints}
+          rank={rank}
+          rankLoading={rankLoading}
           size={72}
         />
 

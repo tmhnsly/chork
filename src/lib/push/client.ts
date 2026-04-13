@@ -32,6 +32,25 @@ export function pushSupported(): boolean {
 }
 
 /**
+ * True when the page is running inside an installed PWA (home-screen
+ * app / standalone window). On iOS Safari the only reliable path for
+ * web push is from an installed PWA, so we gate the "Get notifications"
+ * flow on this and show install instructions when false.
+ */
+export function isStandalonePwa(): boolean {
+  if (typeof window === "undefined") return false;
+  // iOS Safari exposes this non-standard flag on navigator.
+  const iosStandalone =
+    "standalone" in window.navigator &&
+    (window.navigator as Navigator & { standalone?: boolean }).standalone ===
+      true;
+  const mediaStandalone =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(display-mode: standalone)").matches;
+  return iosStandalone || mediaStandalone;
+}
+
+/**
  * Current subscription status — "granted"/"denied"/"default" mirrors
  * the Notification permission; "subscribed" additionally reflects the
  * presence of a live PushManager subscription.

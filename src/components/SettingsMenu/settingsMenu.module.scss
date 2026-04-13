@@ -1,6 +1,5 @@
 @use "mixins/typography" as type;
 @use "mixins/surfaces" as surface;
-@use "mixins/focus";
 
 // ── Panel ─────────────────────────────────────────
 .content {
@@ -18,7 +17,11 @@
 }
 
 // ── Item ──────────────────────────────────────────
-// Default items: subtle mono hover matching navbar pill style.
+// Radix fires `data-highlighted` on both pointer hover and keyboard
+// focus; pairing it with `:hover` so the same visual applies either
+// way. Background steps up to mono step-4 — the previous step-3
+// barely registered against the glass panel. `outline: none` keeps
+// the non-keyboard path from showing a browser default border.
 .item {
   @include type.typography(body);
   font-size: var(--text-sm);
@@ -29,16 +32,26 @@
   min-height: var(--size-touch-target);
   width: 100%;
   border: none;
+  outline: none;
   background: transparent;
   color: var(--mono-text);
   cursor: pointer;
   text-decoration: none;
-  @include focus.ring-inset;
-  transition: background 0.1s var(--ease-out);
+  transition: background var(--duration-fast) var(--ease-out);
+
+  // Radix manages focus programmatically when you move the pointer
+  // over an item, and some browsers flag that programmatic focus as
+  // `:focus-visible` — which is what was drawing an unwanted outline
+  // on mouse hover. The `data-highlighted` background already serves
+  // as the keyboard-focus indicator, so we don't need a ring on top.
+  &:focus,
+  &:focus-visible {
+    outline: none;
+  }
 
   &:hover,
   &[data-highlighted] {
-    background: var(--mono-bg);             // step 3 - subtle, like nav pill
+    background: var(--mono-bg-hover);       // step 4 — clearer on glass
     color: var(--mono-text);
   }
 }

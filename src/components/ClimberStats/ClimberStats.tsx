@@ -31,6 +31,8 @@ interface Props {
     flashes: number;
     totalRoutes: number;
     resetDate?: string;
+    /** Leaderboard placement for this climber on the active set. */
+    rank?: number | null;
   } | null;
   allTimeCompletions: number;
   allTimeFlashes: number;
@@ -148,6 +150,7 @@ export function ClimberStats({
           routeNumbers={routeNumbers}
           resetDate={currentSet.resetDate}
           gymName={gymName}
+          rank={currentSet.rank}
         />
       )}
 

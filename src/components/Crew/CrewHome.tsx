@@ -1,17 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { FaMagnifyingGlass } from "react-icons/fa6";
 import type {
   Crew,
   PendingInvite,
   ActiveSetOption,
   CrewActivityEvent,
 } from "@/lib/data/crew-queries";
+import { ClimberSearch } from "./ClimberSearch";
 import { PendingInvitesCard } from "./PendingInvitesCard";
 import { CrewActivityFeed } from "./CrewActivityFeed";
 import { CrewLeaderboardSection } from "./CrewLeaderboardSection";
-import { CrewSearchSheet } from "./CrewSearchSheet";
 import { CreateCrewSheet } from "./CreateCrewSheet";
 import styles from "./crewHome.module.scss";
 
@@ -40,7 +39,6 @@ export function CrewHome({
   initialFeed,
   initialFeedExhausted,
 }: Props) {
-  const [searchOpen, setSearchOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
 
   // First crew is selected by default. If the user hasn't joined any
@@ -61,20 +59,15 @@ export function CrewHome({
 
   return (
     <div className={styles.wrapper}>
-      {/* Full-width search entry-point. Visually an input, functionally
-          a button — it opens the CrewSearchSheet where the real query
-          field lives (handles debounced async results, etc.). */}
-      <button
-        type="button"
-        className={styles.searchField}
-        onClick={() => setSearchOpen(true)}
-        aria-label="Search climbers"
-      >
-        <span className={styles.searchPlaceholder}>Search climbers…</span>
-        <span className={styles.searchIcon} aria-hidden>
-          <FaMagnifyingGlass />
-        </span>
-      </button>
+      {/* Live climber search sits at the top of the page — typing
+          surfaces results inline. The same component is wrapped in a
+          BottomSheet (CrewSearchSheet) for flows that prefer it as a
+          modal, e.g. adding members while creating a crew. */}
+      <ClimberSearch
+        currentUserId={currentUserId}
+        myCrews={myCrews}
+        onCreateCrew={() => setCreateOpen(true)}
+      />
 
       {invites.length > 0 && <PendingInvitesCard invites={invites} />}
 
@@ -96,16 +89,6 @@ export function CrewHome({
         onSelectSet={setSelectedSetId}
         currentUserId={currentUserId}
         onCreateCrew={() => setCreateOpen(true)}
-      />
-
-      <CrewSearchSheet
-        open={searchOpen}
-        onClose={() => setSearchOpen(false)}
-        myCrews={myCrews}
-        onCreateCrew={() => {
-          setSearchOpen(false);
-          setCreateOpen(true);
-        }}
       />
 
       <CreateCrewSheet

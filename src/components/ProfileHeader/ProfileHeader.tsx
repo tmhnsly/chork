@@ -8,10 +8,11 @@ import {
   FaRightFromBracket,
   FaTrash,
   FaShieldHalved,
-  FaMountainSun,
+  FaRightLeft,
   FaBell,
   FaBellSlash,
-  FaUserGroup,
+  FaUsers,
+  FaUsersSlash,
 } from "react-icons/fa6";
 import type { Profile } from "@/lib/data";
 import type { PendingInvite } from "@/lib/data/crew-queries";
@@ -24,12 +25,14 @@ import { EditProfileDialog } from "@/components/SettingsMenu/EditProfileDialog";
 import { DeleteAccountDialog } from "@/components/SettingsMenu/DeleteAccountDialog";
 import { GymSwitcherSheet } from "@/components/GymSwitcher/GymSwitcherSheet";
 import {
+  isStandalonePwa,
   pushSupported,
   readPushStatus,
   subscribeDevice,
   unsubscribeDevice,
   type PushStatus,
 } from "@/lib/push/client";
+import { InstallPwaSheet } from "@/components/InstallPwa/InstallPwaSheet";
 import { savePushSubscription, removePushSubscription } from "@/app/(app)/actions";
 import { setAllowCrewInvites } from "@/app/crew/actions";
 import styles from "./profileHeader.module.scss";
@@ -62,6 +65,7 @@ export function ProfileHeader({
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showGymSwitcher, setShowGymSwitcher] = useState(false);
+  const [showInstallSheet, setShowInstallSheet] = useState(false);
 
   // Optimistic view of allow_crew_invites — keeps the menu label in
   // sync after the toggle without waiting for a full refresh.
@@ -91,6 +95,16 @@ export function ProfileHeader({
   }, [isOwnProfile]);
 
   const handleTogglePush = useCallback(async () => {
+    // Gate enabling on running inside the installed PWA. iOS Safari
+    // *requires* a home-screen install for reliable web push, and
+    // forcing the install step on every platform keeps the behaviour
+    // consistent and the "Get notifications" action from silently
+    // failing in a regular browser tab. When already subscribed we
+    // still allow the user to turn it off from any context.
+    if (pushStatus !== "subscribed" && !isStandalonePwa()) {
+      setShowInstallSheet(true);
+      return;
+    }
     if (pushStatus === "subscribed") {
       const { endpoint } = await unsubscribeDevice();
       if (endpoint) {
@@ -146,10 +160,10 @@ export function ProfileHeader({
                 {
                   items: [
                     { label: "Edit profile", icon: <FaPen />, onSelect: () => setShowEditDialog(true) },
-                    { label: "Change gym", icon: <FaMountainSun />, onSelect: () => setShowGymSwitcher(true) },
+                    { label: "Change gym", icon: <FaRightLeft />, onSelect: () => setShowGymSwitcher(true) },
                     {
                       label: allowInvites ? "Disable crew invites" : "Allow crew invites",
-                      icon: <FaUserGroup />,
+                      icon: allowInvites ? <FaUsersSlash /> : <FaUsers />,
                       onSelect: handleToggleAllowInvites,
                     },
                     // Push toggle — hidden when the browser can't do web
@@ -172,11 +186,11 @@ export function ProfileHeader({
                         await resetPassword(authUser.email);
                       }
                     }},
-                    { label: "Privacy policy", icon: <FaShieldHalved />, href: "/privacy" },
                   ],
                 },
                 {
                   items: [
+                    { label: "Privacy policy", icon: <FaShieldHalved />, href: "/privacy" },
                     { label: "Sign out", icon: <FaRightFromBracket />, variant: "warning", onSelect: signOut },
                     { label: "Delete account", icon: <FaTrash />, variant: "danger", onSelect: () => setShowDeleteDialog(true) },
                   ],
@@ -192,6 +206,7 @@ export function ProfileHeader({
         <>
           <EditProfileDialog user={user} open={showEditDialog} onOpenChange={setShowEditDialog} />
           <DeleteAccountDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog} />
+          <InstallPwaSheet open={showInstallSheet} onClose={() => setShowInstallSheet(false)} />
           <GymSwitcherSheet
             open={showGymSwitcher}
             onClose={() => setShowGymSwitcher(false)}

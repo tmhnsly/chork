@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FaEllipsisVertical, FaPlus, FaTag, FaBullseye } from "react-icons/fa6";
+import { FaEllipsisVertical, FaPlus, FaTag, FaFlag } from "react-icons/fa6";
 import * as Primitive from "@radix-ui/react-dropdown-menu";
 import { Button, showToast } from "@/components/ui";
 import {
@@ -115,7 +115,7 @@ export function RoutesAdmin({ setId, initialRoutes, tags }: Props) {
             <div className={styles.meta}>
               {route.has_zone && (
                 <span className={styles.zone}>
-                  <FaBullseye aria-hidden /> Zone
+                  <FaFlag aria-hidden /> Zone
                 </span>
               )}
               {route.tag_ids.length > 0 && (
@@ -248,7 +248,7 @@ function RouteMenu({
       <Primitive.Portal>
         <Primitive.Content className={styles.menuContent} align="end" sideOffset={8}>
           <Primitive.Item className={styles.menuItem} onSelect={onToggleZone}>
-            <FaBullseye aria-hidden /> {route.has_zone ? "Remove zone hold" : "Mark zone hold"}
+            <FaFlag aria-hidden /> {route.has_zone ? "Remove zone hold" : "Mark zone hold"}
           </Primitive.Item>
 
           <Primitive.Item className={styles.menuItem} onSelect={onEditSetter}>

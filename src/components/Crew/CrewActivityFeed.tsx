@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FaBolt, FaBullseye, FaCheck } from "react-icons/fa6";
+import { FaBolt, FaFlag, FaCheck } from "react-icons/fa6";
 import { UserAvatar } from "@/components/ui";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import {
@@ -99,7 +99,7 @@ function FeedRow({ event }: { event: CrewActivityEvent }) {
     if (achievement === "zone") {
       return (
         <span className={`${styles.badge} ${styles.badgeZone}`}>
-          <FaBullseye aria-hidden /> Got the zone
+          <FaFlag aria-hidden /> Got the zone
         </span>
       );
     }

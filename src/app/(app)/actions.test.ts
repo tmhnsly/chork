@@ -101,6 +101,71 @@ describe("updateGradeVote", () => {
     expect(result).toHaveProperty("error", "Invalid log");
   });
 
+  it("rejects a missing route id", async () => {
+    const { updateGradeVote } = await import("./actions");
+    expect(await updateGradeVote("", 5, "log1")).toHaveProperty("error", "Invalid route");
+  });
+
+  it.each([-1, 11, 2.5, Number.NaN])(
+    "rejects out-of-range / non-integer grade (%s)",
+    async (grade) => {
+      const { updateGradeVote } = await import("./actions");
+      expect(await updateGradeVote("route1", grade, "log1")).toHaveProperty(
+        "error",
+        "Invalid grade",
+      );
+    },
+  );
+
+  it("accepts a valid grade (0..10) and writes it to the log", async () => {
+    const { requireAuth } = await import("@/lib/auth");
+    vi.mocked(requireAuth).mockResolvedValue(mockAuth);
+
+    const { upsertRouteLog } = await import("@/lib/data/mutations");
+    vi.mocked(upsertRouteLog).mockResolvedValue(mockLog);
+
+    const { updateGradeVote } = await import("./actions");
+    const result = await updateGradeVote("route1", 4, "log1");
+
+    expect(result).toEqual({ success: true, log: mockLog });
+    expect(upsertRouteLog).toHaveBeenCalledWith(
+      expect.anything(),
+      mockAuth.userId,
+      "route1",
+      { grade_vote: 4 },
+      "log1",
+      mockAuth.gymId,
+    );
+  });
+
+  // Removing a vote: the UI sends `null` when the climber toggles
+  // grading off. Persisting null means the DB's `get_route_grade`
+  // RPC — which filters `grade_vote is not null` — drops this row
+  // from the community-grade average. Anti-regression guard: if a
+  // future change rewrites the action to skip null writes, the
+  // community grade would stay artificially inflated by retired
+  // votes.
+  it("accepts `null` and writes it through so the vote is removed", async () => {
+    const { requireAuth } = await import("@/lib/auth");
+    vi.mocked(requireAuth).mockResolvedValue(mockAuth);
+
+    const { upsertRouteLog } = await import("@/lib/data/mutations");
+    vi.mocked(upsertRouteLog).mockResolvedValue(mockLog);
+
+    const { updateGradeVote } = await import("./actions");
+    const result = await updateGradeVote("route1", null, "log1");
+
+    expect(result).toEqual({ success: true, log: mockLog });
+    expect(upsertRouteLog).toHaveBeenCalledWith(
+      expect.anything(),
+      mockAuth.userId,
+      "route1",
+      { grade_vote: null },
+      "log1",
+      mockAuth.gymId,
+    );
+  });
+
   it("does NOT create an activity event", async () => {
     const { requireAuth } = await import("@/lib/auth");
     vi.mocked(requireAuth).mockResolvedValue(mockAuth);
@@ -112,6 +177,32 @@ describe("updateGradeVote", () => {
     await updateGradeVote("route1", 5, "log1");
 
     expect(createActivityEvent).not.toHaveBeenCalled();
+  });
+});
+
+// `uncompleteRoute` needs to null the climber's `grade_vote` so it
+// stops contributing to the community average — otherwise a climber
+// who uncompletes a route would keep influencing its grade without
+// actually having the route marked as sent.
+describe("uncompleteRoute grade-vote cleanup", () => {
+  it("clears grade_vote when uncompleting", async () => {
+    const { requireAuth } = await import("@/lib/auth");
+    vi.mocked(requireAuth).mockResolvedValue(mockAuth);
+
+    const { upsertRouteLog } = await import("@/lib/data/mutations");
+    vi.mocked(upsertRouteLog).mockResolvedValue(mockLog);
+
+    const { uncompleteRoute } = await import("./actions");
+    await uncompleteRoute("route1", "log1");
+
+    expect(upsertRouteLog).toHaveBeenCalledWith(
+      expect.anything(),
+      mockAuth.userId,
+      "route1",
+      expect.objectContaining({ grade_vote: null }),
+      "log1",
+      mockAuth.gymId,
+    );
   });
 });
 

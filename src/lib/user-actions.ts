@@ -116,7 +116,12 @@ export async function uploadAvatar(
 
     if (profileError) return { error: formatError(profileError) };
 
-    revalidatePath("/", "layout");
+    // Deliberately NOT calling `revalidatePath("/", "layout")` here —
+    // it busts every cached RSC segment under root (heavy) and isn't
+    // needed: the returned URL already has a `?t=` cache-buster, and
+    // the client calls refreshProfile() + router.refresh() itself.
+    // Including it here added ~1-2s of perceived "Uploading…" time
+    // after the actual upload finished.
     return { success: true, url: publicUrl };
   } catch (err) {
     return { error: formatError(err) };

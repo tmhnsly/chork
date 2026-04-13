@@ -33,31 +33,6 @@
   color: var(--accent-text-low-contrast);
 }
 
-.rankBadge {
-  @include type.typography(number);
-  font-size: var(--text-xl);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-2) var(--space-3);
-  background: var(--accent-bg);
-  color: var(--accent-text);
-  // Match the skeleton dimensions so there is zero layout shift when the
-  // rank resolves. Skeleton is 4rem × touch-target; real badge keeps the
-  // same box.
-  min-width: 4rem;
-  min-height: var(--size-touch-target);
-  border-radius: var(--radius-2);
-  flex-shrink: 0;
-}
-
-.rankBadgeSkeleton {
-  width: 4rem;
-  height: var(--size-touch-target);
-  border-radius: var(--radius-2);
-  flex-shrink: 0;
-}
-
 // ── Stats row ─────────────────────────────────────
 .stats {
   display: grid;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { FaBolt, FaBullseye } from "react-icons/fa6";
+import { FaBolt, FaFlag } from "react-icons/fa6";
 import styles from "./scoringChart.module.scss";
 
 export interface ScoreRow {
@@ -42,7 +42,7 @@ function Row({ row }: { row: ScoreRow }) {
     <div ref={ref} className={rowClass}>
       <span className={styles.label}>
         {row.accent === "flash" && <FaBolt className={styles.icon} />}
-        {row.accent === "zone" && <FaBullseye className={styles.icon} />}
+        {row.accent === "zone" && <FaFlag className={styles.icon} />}
         {row.label}
       </span>
       <div className={styles.barTrack}>

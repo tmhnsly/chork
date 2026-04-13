@@ -31,19 +31,34 @@
 // container. The container owns the dimensions so the header never
 // shifts between loading and loaded — only the inner text content
 // swaps, with identical box metrics on both sides.
+// Wrapper sits the label and the grade value side-by-side on the
+// route sheet header so climbers see "Community grade · V4" at a
+// glance rather than a bare "V4" they might mistake for the
+// setter's grade.
+.communityGradeWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0 auto;
+}
+
+.communityGradeLabel {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
 .communityGrade {
   @include type.typography(meta);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--accent-text-low-contrast);
+  color: var(--accent-text);
   // Fixed (not min-*) so the box is pixel-identical whether the inner
   // text is "V4" or nothing. Height uses `lh` (line-height) rather than
   // `em` so the real text's leading can't overflow the box and push
   // subsequent elements down.
   height: 1lh;
-  width: 4rem;
-  margin: 0 auto;
+  width: 2.5rem;
 }
 
 // Skeleton variant — uses the same box; only applies the shimmer.
