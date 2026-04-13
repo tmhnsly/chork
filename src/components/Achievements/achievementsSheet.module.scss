@@ -6,10 +6,13 @@
 // the vertical rhythm between the tab pills and the list.
 .body {
   @include layout.stack(var(--space-4));
-  // Pin to a tall, stable height so switching filters doesn't resize
-  // the sheet — shorter lists just leave empty space at the bottom
-  // rather than bouncing the whole panel.
-  min-height: 80svh;
+  // Pin BOTH min and max so switching filters never resizes the
+  // sheet — short lists leave empty space below; long lists scroll
+  // inside the sheet's own overflow (vaul + native overflow-y).
+  // `calc(…)` keeps us just under the sheet's 90svh cap so the
+  // title bar + body + bottom safe-area padding all fit.
+  min-height: calc(90svh - 5rem);
+  max-height: calc(90svh - 5rem);
 }
 
 // ── List ──────────────────────────────────────────

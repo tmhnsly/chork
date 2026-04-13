@@ -1,4 +1,19 @@
+// Inline-flex so the reset cluster and the gym name sit on one row.
+// Allow the whole thing to shrink in its container; truncate the gym
+// name with an ellipsis if the card gets narrow — previously a long
+// name (e.g. "The Climbing Academy") pushed the BrandDivider onto
+// its own line, leaving a lone dot floating above the wrap.
 .row {
   display: inline-flex;
   align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  flex-wrap: nowrap;
+}
+
+.gym {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
