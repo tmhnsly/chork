@@ -19,7 +19,13 @@ import { createContext, useContext, useEffect, useSyncExternalStore } from "reac
  * onto `<html>` for the duration of the route). The viewer's own
  * theme should restore when they leave the profile page.
  */
-export type ThemeName = "default" | "slate" | "sand";
+export type ThemeName =
+  | "default"
+  | "slate"
+  | "sand"
+  | "gray"
+  | "mauve"
+  | "sage";
 
 export interface ThemeMeta {
   id: ThemeName;
@@ -48,6 +54,24 @@ export const THEME_META: ThemeMeta[] = [
     label: "Sand",
     hint: "Sand · Tomato",
     swatches: ["var(--sand-9)", "var(--tomato-9)"],
+  },
+  {
+    id: "gray",
+    label: "Gray",
+    hint: "Gray · Violet",
+    swatches: ["var(--gray-9)", "var(--violet-9)"],
+  },
+  {
+    id: "mauve",
+    label: "Mauve",
+    hint: "Mauve · Plum",
+    swatches: ["var(--mauve-9)", "var(--plum-9)"],
+  },
+  {
+    id: "sage",
+    label: "Sage",
+    hint: "Sage · Jade",
+    swatches: ["var(--sage-9)", "var(--jade-9)"],
   },
 ];
 

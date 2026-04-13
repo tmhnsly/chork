@@ -45,19 +45,34 @@
  */
 
 /* ── Radix imports — every scale any theme may reference ─────── */
-@use "@radix-ui/colors/olive.css";
-@use "@radix-ui/colors/olive-dark.css";
+// ── Mono (gray-scale) imports ────────────────────────────────
+// Radix ships six gray scales; we surface one theme per scale.
+@use "@radix-ui/colors/gray.css";
+@use "@radix-ui/colors/gray-dark.css";
+@use "@radix-ui/colors/mauve.css";
+@use "@radix-ui/colors/mauve-dark.css";
 @use "@radix-ui/colors/slate.css";
 @use "@radix-ui/colors/slate-dark.css";
+@use "@radix-ui/colors/sage.css";
+@use "@radix-ui/colors/sage-dark.css";
+@use "@radix-ui/colors/olive.css";
+@use "@radix-ui/colors/olive-dark.css";
 @use "@radix-ui/colors/sand.css";
 @use "@radix-ui/colors/sand-dark.css";
 
+// ── Accent imports — paired per Radix palette composition guide.
 @use "@radix-ui/colors/lime.css";
 @use "@radix-ui/colors/lime-dark.css";
 @use "@radix-ui/colors/iris.css";
 @use "@radix-ui/colors/iris-dark.css";
 @use "@radix-ui/colors/tomato.css";
 @use "@radix-ui/colors/tomato-dark.css";
+@use "@radix-ui/colors/violet.css";
+@use "@radix-ui/colors/violet-dark.css";
+@use "@radix-ui/colors/plum.css";
+@use "@radix-ui/colors/plum-dark.css";
+@use "@radix-ui/colors/jade.css";
+@use "@radix-ui/colors/jade-dark.css";
 
 @use "@radix-ui/colors/teal.css";
 @use "@radix-ui/colors/teal-dark.css";
@@ -247,6 +262,64 @@
   --accent-on-solid: #fff;
 
   --focus-ring: var(--tomato-8);
+  --brand: var(--accent-solid);
+  --brand-text: var(--accent-text-low-contrast);
+}
+
+/*
+ * ── Theme: Gray (gray + violet) ───────────────────────────────
+ * Pure neutral. Violet step 9 is dark → white fg.
+ */
+[data-theme="gray"] {
+  @include mono-scale(gray);
+  @include accent-scale(violet);
+  @include zone-scale(teal);
+  @include flash-scale(amber);
+  @include warning-scale(orange);
+  @include error-scale(red);
+
+  --accent-on-solid: #fff;
+
+  --focus-ring: var(--violet-8);
+  --brand: var(--accent-solid);
+  --brand-text: var(--accent-text-low-contrast);
+}
+
+/*
+ * ── Theme: Mauve (mauve + plum) ───────────────────────────────
+ * Warm neutral. Plum step 9 is dark → white fg.
+ */
+[data-theme="mauve"] {
+  @include mono-scale(mauve);
+  @include accent-scale(plum);
+  @include zone-scale(teal);
+  @include flash-scale(amber);
+  @include warning-scale(orange);
+  @include error-scale(red);
+
+  --accent-on-solid: #fff;
+
+  --focus-ring: var(--plum-8);
+  --brand: var(--accent-solid);
+  --brand-text: var(--accent-text-low-contrast);
+}
+
+/*
+ * ── Theme: Sage (sage + jade) ─────────────────────────────────
+ * Green-tinted neutral with a deeper jade accent. Jade step 9 is
+ * a dark scale → white fg.
+ */
+[data-theme="sage"] {
+  @include mono-scale(sage);
+  @include accent-scale(jade);
+  @include zone-scale(teal);
+  @include flash-scale(amber);
+  @include warning-scale(orange);
+  @include error-scale(red);
+
+  --accent-on-solid: #fff;
+
+  --focus-ring: var(--jade-8);
   --brand: var(--accent-solid);
   --brand-text: var(--accent-text-low-contrast);
 }
