@@ -3,22 +3,22 @@
 @use "mixins/focus";
 
 // ── Overlay ────────────────────────────────────────
+// Vaul animates the overlay opacity in response to drag progress.
+// We own the colour; vaul owns the transition. No extra keyframes
+// needed — `data-vaul-overlay` is set on the element, and vaul
+// handles mount/unmount via CSS transitions on its own side.
 .overlay {
   position: fixed;
   inset: 0;
   background: color-mix(in srgb, var(--mono-app-bg) 60%, transparent);
   z-index: var(--z-overlay);
-  animation: sheetFadeIn var(--duration-normal) var(--ease-out);
-}
-
-.overlayClosing {
-  animation: sheetFadeOut var(--duration-normal) var(--ease-out) forwards;
 }
 
 // ── Sheet content ─────────────────────────────────
-// Single scroll container — the title bar is sticky inside it so
-// long content scrolls under it while the close button stays
-// reachable at the top.
+// Single scroll container. Title bar inside is `position: sticky`
+// so long content scrolls beneath it. Vaul applies the slide-up
+// animation + drag transform on this element — we avoid fighting
+// it by not adding our own `transform` or `animation`.
 .content {
   @include surface.glass; // thick material (70% default)
   box-shadow: var(--shadow-xl);
@@ -33,94 +33,31 @@
   margin: 0 auto;
   z-index: var(--z-overlay);
   border-radius: var(--radius-4) var(--radius-4) 0 0;
-  // No max-height on `.content` itself — the ScrollArea.Root child
-  // owns the 90svh cap so its Viewport has a definite size to
-  // constrain against (flex basis alone didn't give Radix anything
-  // to scroll). `.content` sizes to whatever the scroll root takes.
-  overflow: hidden;
-  @include focus.ring-inset;
-  // Expo out for the arrival — sheets feel "presented" rather than
-  // "slid". The dismiss path stays on the plain ease-out so it reads
-  // as a faster, neutral retreat.
-  animation: sheetSlideUp var(--duration-normal) var(--ease-out-expo);
-}
-
-.contentClosing {
-  animation: sheetSlideDown var(--duration-normal) var(--ease-out) forwards;
-}
-
-.content,
-.contentClosing {
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-  }
-}
-
-// ── ScrollArea plumbing ───────────────────────────
-.scrollRoot {
-  // `max-height` on the Root alone doesn't give Radix's Viewport
-  // anything to scroll against — the Viewport would inherit
-  // `height: auto` and just grow with its content. The trick is to
-  // cap both the Root and the Viewport: Root sizes to
-  // min(content, 90svh); Viewport inherits that cap and overflows
-  // anything beyond via its internal scroll div. Short content
-  // still lets the sheet shrink; tall content scrolls.
   max-height: 90svh;
-  width: 100%;
-  overflow: hidden;
-  border-radius: inherit;
-}
-
-.viewport {
-  width: 100%;
-  max-height: inherit;
-  border-radius: inherit;
-}
-
-// Panel-coloured scrollbar. Matches the sheet's chrome so it reads
-// as part of the surface rather than OS paint. 10px wide with 3px
-// padding puts a 4px thumb inside a 10px track — readable without
-// being chunky.
-.scrollbar {
-  display: flex;
-  user-select: none;
-  touch-action: none;
-  width: 10px;
-  padding: 3px;
-  background: transparent;
-  transition: opacity var(--duration-fast) var(--ease-out);
-
-  &[data-state="hidden"] {
-    opacity: 0;
+  // Native scroll — vaul's drag-to-close cooperates with inner
+  // scroll automatically (sheet only drags when the scroll has
+  // reached the top, matching native iOS drawers).
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  // Hide the OS scrollbar — the sheet has its own visual chrome
+  // and a native bar breaks the glass illusion. Drag + scroll
+  // affordances remain via vaul's physics and touch scroll.
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+    display: none;
   }
-}
-
-.thumb {
-  flex: 1;
-  background: var(--mono-border-hover);
-  border-radius: var(--radius-full);
-  position: relative;
-  // Bigger hit target than the visible bar for easier grabbing.
-  &::before {
-    content: "";
-    position: absolute;
-    inset: -4px;
-  }
-
-  &:hover {
-    background: var(--mono-solid);
-  }
+  @include focus.ring-inset;
+  // `outline` would collide with vaul's focus-trap hidden focus.
+  outline: none;
 }
 
 // ── Title bar ─────────────────────────────────────
-// Sticky inside the scrolling Viewport so content genuinely passes
-// beneath it — that's what the glass is blurring.
-//
-// Backdrop-filter goes on a `::before` pseudo rather than the bar
-// itself, because `position: sticky` inside a scroll container
-// breaks `backdrop-filter` on Chromium when applied directly. The
-// pseudo-element creates a fresh positioned layer that Chromium
-// treats as a simple blur target and reliably resolves.
+// Sticky at the top of the sheet's scroll viewport. Backdrop blur
+// lives on a `::before` pseudo so Chromium's backdrop-filter + sticky
+// combo actually resolves (known bug when applied to the sticky
+// element itself).
 .titleBar {
   position: sticky;
   top: 0;
@@ -131,7 +68,6 @@
   gap: var(--space-3);
   padding: var(--space-4) var(--gutter-x);
   border-bottom: 1px solid var(--mono-border-subtle);
-  // Fallback fill for browsers without backdrop-filter support.
   background: color-mix(in srgb, var(--mono-subtle-bg) 85%, transparent);
 
   &::before {
@@ -147,8 +83,6 @@
   }
 }
 
-// Enhance: when backdrop-filter works, drop the solid fallback so
-// the pseudo's blur actually shows through.
 @supports (
   (-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))
 ) {
@@ -194,49 +128,7 @@
 }
 
 // ── Body ──────────────────────────────────────────
-// Horizontal padding matches the title bar so the children always
-// line up with the title + close button above. Bottom padding
-// clears the iOS home indicator. Children that want edge-to-edge
-// content (rare) can negatively margin out of this — but the
-// default keeps every sheet consistent.
 .body {
   padding: var(--space-4) var(--gutter-x)
     calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
-}
-
-// ── Keyframes ──────────────────────────────────────
-@keyframes sheetFadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes sheetFadeOut {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes sheetSlideUp {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
-@keyframes sheetSlideDown {
-  from {
-    transform: translateY(0);
-  }
-  to {
-    transform: translateY(100%);
-  }
 }

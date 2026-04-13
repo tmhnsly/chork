@@ -1,8 +1,7 @@
 "use client";
 
-import { useRef, useState, useEffect, type ReactNode } from "react";
-import * as Dialog from "@radix-ui/react-dialog";
-import * as ScrollArea from "@radix-ui/react-scroll-area";
+import { useRef, type ReactNode } from "react";
+import { Drawer } from "vaul";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { FaXmark } from "react-icons/fa6";
 import styles from "./bottomSheet.module.scss";
@@ -12,7 +11,7 @@ interface Props {
   onClose: () => void;
   /**
    * Title rendered visibly at the top of the sheet (also used as the
-   * accessible `Dialog.Title`). Every sheet surfaces a title so the
+   * accessible `Drawer.Title`). Every sheet surfaces a title so the
    * close button has a natural partner to line up with.
    */
   title: string;
@@ -24,27 +23,35 @@ interface Props {
 }
 
 /**
- * Bottom sheet.
+ * Bottom sheet — implemented on top of `vaul` for iOS-native physics:
+ * drag-to-close, spring-back on short drags, scroll-coupling so the
+ * sheet only drags after inner scroll reaches the top, backdrop
+ * fades in lockstep with the drag. Vaul wraps Radix Dialog under
+ * the hood so we still get focus trapping, ESC close and portal
+ * semantics for free.
  *
  * Layout:
  *
  *   +---------------------------+
- *   |  Title            [ × ]   |  sticky title bar
+ *   |  Title            [ × ]   |  sticky title bar (glass)
  *   +---------------------------+
  *   |                           |
  *   |  children …               |  scrollable body
  *   |                           |
  *   +---------------------------+
  *
- * The title bar is `position: sticky; top: 0` inside the same
- * scroll container as the content, so long content scrolls under
- * it while the close button stays reachable. Dismiss via:
- *   • Close button in the header
- *   • Overlay tap (unless `disableOutsideClose`)
- *   • ESC (Radix handles this)
+ * The whole sheet is one vertical scroll container. The title bar
+ * is `position: sticky; top: 0` so long content scrolls *under* it
+ * — that's what gives the glass backdrop something to blur.
  *
- * Enter / exit use CSS keyframes (`.content` / `.contentClosing`).
- * No drag-to-dismiss — the close button is the intended affordance.
+ * Dismiss paths:
+ *   • Close button in the header
+ *   • Drag the sheet down past a threshold
+ *   • Tap overlay (unless `disableOutsideClose`)
+ *   • ESC key
+ *
+ * Public API is unchanged from the previous Radix-only implementation
+ * so consumers don't have to migrate.
  */
 export function BottomSheet({
   open,
@@ -54,91 +61,53 @@ export function BottomSheet({
   disableOutsideClose = false,
   children,
 }: Props) {
-  const [closing, setClosing] = useState(false);
-  const contentRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
 
-  // Reset closing state when opening again.
-  useEffect(() => {
-    if (open) {
-      const frame = requestAnimationFrame(() => setClosing(false));
-      return () => cancelAnimationFrame(frame);
-    }
-  }, [open]);
-
-  function startClose() {
-    if (closing) return;
-    setClosing(true);
-  }
-
-  if (!open) return null;
-
   return (
-    <Dialog.Root
-      open
-      onOpenChange={(isOpen) => {
-        if (!isOpen && !disableOutsideClose) startClose();
+    <Drawer.Root
+      open={open}
+      onOpenChange={(next) => {
+        if (!next && !disableOutsideClose) onClose();
       }}
+      // `dismissible={!disableOutsideClose}` maps the prop to vaul's
+      // native flag — when false, drag-to-close and overlay-tap are
+      // both disabled, matching the previous behaviour.
+      dismissible={!disableOutsideClose}
+      // Trigger close animation smoothly; vaul handles spring-back.
+      shouldScaleBackground={false}
     >
-      <Dialog.Portal>
-        <Dialog.Overlay
-          className={`${styles.overlay} ${closing ? styles.overlayClosing : ""}`}
-          onClick={disableOutsideClose ? undefined : startClose}
-        />
-        <Dialog.Content
-          ref={contentRef}
-          className={`${styles.content} ${closing ? styles.contentClosing : ""}`}
+      <Drawer.Portal>
+        <Drawer.Overlay className={styles.overlay} />
+        <Drawer.Content
+          className={styles.content}
           onOpenAutoFocus={(e) => {
             e.preventDefault();
             closeBtnRef.current?.focus();
           }}
-          onInteractOutside={(e) => e.preventDefault()}
-          onPointerDownOutside={(e) => e.preventDefault()}
-          onAnimationEnd={(e) => {
-            // `onAnimationEnd` bubbles — any child whose animation
-            // finishes during the close window (shimmer, reveal text)
-            // would otherwise fire `onClose()` too early. Gate on
-            // the event coming from the content element itself.
-            if (closing && e.target === e.currentTarget) onClose();
-          }}
+          // Prevent vaul's default scrollbar-style layout shift. We
+          // already paint our own scroll inside the sheet.
+          data-chork-bottom-sheet
         >
           <VisuallyHidden.Root asChild>
-            <Dialog.Description>{description ?? title}</Dialog.Description>
+            <Drawer.Description>{description ?? title}</Drawer.Description>
           </VisuallyHidden.Root>
 
-          {/*
-            Radix ScrollArea wraps the scrollable region so we get a
-            custom-styled thin scrollbar (design-token driven) instead
-            of the OS one, which was breaking the panel illusion.
-            The title bar lives inside the viewport so it can sit
-            `position: sticky` and the content genuinely scrolls
-            *under* it — enabling the glass blur.
-          */}
-          <ScrollArea.Root className={styles.scrollRoot} type="auto">
-            <ScrollArea.Viewport className={styles.viewport}>
-              <header className={styles.titleBar}>
-                <Dialog.Title className={styles.title}>{title}</Dialog.Title>
-                <button
-                  ref={closeBtnRef}
-                  type="button"
-                  className={styles.closeBtn}
-                  onClick={startClose}
-                  aria-label="Close"
-                >
-                  <FaXmark />
-                </button>
-              </header>
-              <div className={styles.body}>{children}</div>
-            </ScrollArea.Viewport>
-            <ScrollArea.Scrollbar
-              orientation="vertical"
-              className={styles.scrollbar}
+          <header className={styles.titleBar}>
+            <Drawer.Title className={styles.title}>{title}</Drawer.Title>
+            <button
+              ref={closeBtnRef}
+              type="button"
+              className={styles.closeBtn}
+              onClick={onClose}
+              aria-label="Close"
             >
-              <ScrollArea.Thumb className={styles.thumb} />
-            </ScrollArea.Scrollbar>
-          </ScrollArea.Root>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+              <FaXmark />
+            </button>
+          </header>
+
+          <div className={styles.body}>{children}</div>
+        </Drawer.Content>
+      </Drawer.Portal>
+    </Drawer.Root>
   );
 }
