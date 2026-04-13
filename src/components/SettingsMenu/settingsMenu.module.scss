@@ -64,6 +64,30 @@
   flex-shrink: 0;
 }
 
+.itemLabel {
+  flex: 1;
+  min-width: 0;
+}
+
+// Right-aligned slot for status icons (check, swatches, etc.)
+.itemTrailing {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+  color: var(--mono-text-low-contrast);
+}
+
+// Chevron on submenu triggers — mono, subtle.
+.subChevron {
+  @include type.typography(label);
+  font-size: var(--text-lg);
+  color: var(--mono-text-low-contrast);
+  flex-shrink: 0;
+  margin-inline-start: var(--space-1);
+  line-height: 1;
+}
+
 // ── Variants ──────────────────────────────────────
 // Warning/danger keep bold backgrounds for clear intent.
 .item--warning {

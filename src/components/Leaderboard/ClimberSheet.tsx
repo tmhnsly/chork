@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FaBolt, FaFlag, FaUser } from "react-icons/fa6";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { Button, UserAvatar, shimmerStyles } from "@/components/ui";
+import { Button, UserAvatar } from "@/components/ui";
 import { PunchTile } from "@/components/PunchTile/PunchTile";
 import type { LeaderboardEntry, Route, TileState } from "@/lib/data";
 import { formatGrade } from "@/lib/data/grade-label";
@@ -90,19 +90,22 @@ export function ClimberSheet({ entry, setId, routes, onClose }: Props) {
               aria-busy={loading || undefined}
               aria-label={loading ? "Loading send grid" : undefined}
             >
-              {routes.map((route) => {
-                const log = logByRoute?.get(route.id);
-                return (
-                  <PunchTile
-                    key={route.id}
-                    number={route.number}
-                    state={tileStateFromSanitised(log)}
-                    zone={log?.zone}
-                    gradeLabel={log?.grade_vote != null ? (formatGrade(log.grade_vote, "v") ?? undefined) : undefined}
-                    className={loading ? shimmerStyles.skeleton : undefined}
-                  />
-                );
-              })}
+              {loading
+                ? routes.map((route) => (
+                    <div key={route.id} className={styles.loadingTile} aria-hidden />
+                  ))
+                : routes.map((route) => {
+                    const log = logByRoute?.get(route.id);
+                    return (
+                      <PunchTile
+                        key={route.id}
+                        number={route.number}
+                        state={tileStateFromSanitised(log)}
+                        zone={log?.zone}
+                        gradeLabel={log?.grade_vote != null ? (formatGrade(log.grade_vote, "v") ?? undefined) : undefined}
+                      />
+                    );
+                  })}
             </div>
             {!loading && error && (
               <p className={styles.empty}>Couldn&apos;t load send grid. {error}</p>

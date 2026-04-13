@@ -13,7 +13,10 @@ import {
   FaBellSlash,
   FaUsers,
   FaUsersSlash,
+  FaPalette,
+  FaCheck,
 } from "react-icons/fa6";
+import { useTheme, THEME_META, type ThemeName } from "@/lib/theme";
 import type { Profile } from "@/lib/data";
 import type { PendingInvite } from "@/lib/data/crew-queries";
 import { NotificationsButton } from "@/components/Notifications/NotificationsButton";
@@ -62,6 +65,7 @@ export function ProfileHeader({
   pendingInvites = [],
 }: Props) {
   const { signOut, resetPassword } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showGymSwitcher, setShowGymSwitcher] = useState(false);
@@ -186,6 +190,47 @@ export function ProfileHeader({
                         await resetPassword(authUser.email);
                       }
                     }},
+                  ],
+                },
+                {
+                  items: [
+                    {
+                      label: "Theme",
+                      icon: <FaPalette />,
+                      trailing: (
+                        <span style={{ color: "var(--mono-text-low-contrast)" }}>
+                          {THEME_META.find((t) => t.id === theme)?.label ?? ""}
+                        </span>
+                      ),
+                      submenu: THEME_META.map((t) => ({
+                        label: t.label,
+                        icon: theme === t.id ? <FaCheck /> : undefined,
+                        trailing: (
+                          <span
+                            aria-hidden
+                            style={{
+                              display: "inline-flex",
+                              gap: 2,
+                            }}
+                          >
+                            {t.swatches.map((s, i) => (
+                              <span
+                                key={i}
+                                style={{
+                                  width: 10,
+                                  height: 10,
+                                  borderRadius: 999,
+                                  background: s,
+                                  display: "inline-block",
+                                  border: "1px solid var(--mono-border-subtle)",
+                                }}
+                              />
+                            ))}
+                          </span>
+                        ),
+                        onSelect: () => setTheme(t.id as ThemeName),
+                      })),
+                    },
                   ],
                 },
                 {

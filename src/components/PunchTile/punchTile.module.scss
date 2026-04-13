@@ -29,13 +29,13 @@
 
 // Static (informational) variant — read-only tiles used in other
 // climbers' send grids, previous-set displays, etc. No pointer, no
-// hover state, no keyboard focus affordance.
+// hover state, no keyboard focus affordance. `pointer-events: none`
+// disables every `&:hover` rule below in one shot (including the
+// state-specific hovers on `.completed` / `.flash` / `.attempted`)
+// so informational tiles never appear interactive.
 .tile.static {
   cursor: default;
-
-  &:hover {
-    background: var(--mono-bg);
-  }
+  pointer-events: none;
 }
 
 .number {

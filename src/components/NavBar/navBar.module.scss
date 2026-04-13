@@ -180,5 +180,14 @@
 .tabLabel {
   @include type.typography(label);
   font-size: var(--text-2xs);
+  // Icons keep the tab's inherited step-9 mono tint (a muted fill
+  // colour), but the label takes the step-11 text token so it's
+  // properly readable — lighter in dark mode, darker in light mode.
+  // Active tabs override via `.tabActive` below to use brand text.
+  color: var(--mono-text-low-contrast);
+}
+
+.tabActive .tabLabel {
+  color: inherit;
 }
 

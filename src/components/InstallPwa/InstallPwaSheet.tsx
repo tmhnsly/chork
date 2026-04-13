@@ -79,7 +79,7 @@ export function InstallPwaSheet({ open, onClose }: Props) {
               <li>
                 Choose <strong>Install app</strong>{" "}
                 <FaPlus className={styles.inlineIcon} aria-hidden /> (or
-                "Add to home screen").
+                &ldquo;Add to home screen&rdquo;).
               </li>
               <li>Open Chork from your home screen to enable notifications.</li>
             </ol>

@@ -1,175 +1,252 @@
-/* Light mode */
-@use "@radix-ui/colors/olive.css";
-@use "@radix-ui/colors/lime.css";
-@use "@radix-ui/colors/red.css";
-@use "@radix-ui/colors/teal.css";
-@use "@radix-ui/colors/amber.css";
-@use "@radix-ui/colors/orange.css";
+/*
+ * Theme palette system.
+ *
+ * Chork exposes three user-selectable themes. Each swaps the MONO
+ * (gray) base + ACCENT scale; flash (amber) and error (red) stay
+ * fixed across themes so semantic colours never drift (warning amber
+ * = flash everywhere, red = destructive everywhere). The ZONE scale
+ * is overridable per theme because it sits visually next to the
+ * accent and needs to breathe.
+ *
+ * Themes swap MONO and ACCENT only. FLASH (amber) and ZONE (teal)
+ * are brand-fixed so "flash = amber" and "zone claimed = teal" read
+ * the same regardless of theme — that's a product rule, not a
+ * stylistic choice. Error (red) and warning (orange) are also fixed
+ * for the same reason.
+ *
+ * Themes are applied by setting `data-theme="<name>"` on `<html>`.
+ * The default theme is the bare `:root`, so the first paint (before
+ * hydration) always renders the brand palette.
+ *
+ * To add a new theme:
+ *   1. Add `@use "@radix-ui/colors/<scale>.css"` + dark variant below.
+ *   2. Declare a new `[data-theme="<name>"]` block and call each
+ *      `*-scale` mixin with the chosen Radix scale names.
+ *   3. Override `--accent-on-solid` per Radix's light/dark foreground
+ *      guidance (light-bg scales like lime/amber/yellow → dark text;
+ *      dark-bg scales like iris/tomato → white text).
+ *   4. Add the theme to `ThemeName` in `src/lib/theme.tsx` and the
+ *      picker in the settings menu.
+ *
+ * Radix color scale usage (unchanged from before):
+ *
+ *  Step 1  → app-bg            App background, main canvas
+ *  Step 2  → subtle-bg         Subtle component bg (cards, sidebars)
+ *  Step 3  → bg                UI element bg (default state)
+ *  Step 4  → bg-hover          UI element bg (hover)
+ *  Step 5  → bg-active         UI element bg (pressed / selected)
+ *  Step 6  → border-subtle     Non-interactive borders (dividers)
+ *  Step 7  → border            Interactive component borders
+ *  Step 8  → border-hover      Strong borders, focus rings
+ *  Step 9  → solid             Solid fills (buttons, badges)
+ *  Step 10 → solid-hover       Solid fills (hover)
+ *  Step 11 → text-low-contrast Secondary text, icon labels
+ *  Step 12 → text              Primary text, headings
+ */
 
-/* Dark mode */
+/* ── Radix imports — every scale any theme may reference ─────── */
+@use "@radix-ui/colors/olive.css";
 @use "@radix-ui/colors/olive-dark.css";
+@use "@radix-ui/colors/slate.css";
+@use "@radix-ui/colors/slate-dark.css";
+@use "@radix-ui/colors/sand.css";
+@use "@radix-ui/colors/sand-dark.css";
+
+@use "@radix-ui/colors/lime.css";
 @use "@radix-ui/colors/lime-dark.css";
-@use "@radix-ui/colors/red-dark.css";
+@use "@radix-ui/colors/iris.css";
+@use "@radix-ui/colors/iris-dark.css";
+@use "@radix-ui/colors/tomato.css";
+@use "@radix-ui/colors/tomato-dark.css";
+
+@use "@radix-ui/colors/teal.css";
 @use "@radix-ui/colors/teal-dark.css";
+
+@use "@radix-ui/colors/amber.css";
 @use "@radix-ui/colors/amber-dark.css";
+@use "@radix-ui/colors/red.css";
+@use "@radix-ui/colors/red-dark.css";
+@use "@radix-ui/colors/orange.css";
 @use "@radix-ui/colors/orange-dark.css";
 
 /*
- * Semantic token layer — maps Radix steps 1–12 to role-based names.
+ * ── Scale mixins ─────────────────────────────────────────────
  *
- * Radix color scale usage:
- *
- *  Step 1  → app-bg            App background, main canvas
- *  Step 2  → subtle-bg         Subtle component bg (cards, sidebars, striped rows)
- *  Step 3  → bg                UI element bg (default state)
- *  Step 4  → bg-hover          UI element bg (hover state)
- *  Step 5  → bg-active         UI element bg (pressed / selected state)
- *  Step 6  → border-subtle     Subtle, non-interactive borders (cards, separators, dividers)
- *  Step 7  → border            Interactive component borders, focus rings
- *  Step 8  → border-hover      Strong borders on interactive components, focus rings
- *  Step 9  → solid             Solid backgrounds (buttons, badges, accent fills).
- *                               Highest chroma — the purest, most vibrant step.
- *                               Lime/amber/yellow: use dark foreground text (on-solid).
- *  Step 10 → solid-hover       Hover state for solid backgrounds
- *  Step 11 → text-low-contrast Low-contrast text. Guaranteed Lc 60 APCA on step 2 bg.
- *                               Use for: secondary text, labels, placeholders, icons-as-text.
- *  Step 12 → text              High-contrast text. Guaranteed Lc 90 APCA on step 2 bg.
- *                               Use for: headings, body text, primary labels.
- *
- * When to use which token for TEXT:
- *   - Headings / primary text on surfaces  → *-text (step 12)
- *   - Secondary text / labels on surfaces  → *-text-low-contrast (step 11)
- *   - Text on solid (step 9) backgrounds   → *-on-solid (manually set for contrast)
- *   - NEVER use *-solid (step 9) for text — it's a background color, not a text color
- *
- * When to use which token for BACKGROUNDS:
- *   - Page / app background                → *-app-bg (step 1)
- *   - Section / card / panel background    → *-subtle-bg (step 2)
- *   - Interactive element default bg       → *-bg (step 3)
- *   - Filled buttons / badges / tags       → *-solid (step 9)
- *
- * When to use which token for BORDERS:
- *   - Card edges, dividers, separators     → *-border-subtle (step 6)
- *   - Input borders, interactive elements  → *-border (step 7)
- *   - Focus rings, hover borders           → *-border-hover (step 8)
+ * Each mixin emits the full 1–12 semantic mapping for one role
+ * (mono / accent / flash / zone / warning / error) given a Radix
+ * scale name. Themes compose by calling each mixin with the scale
+ * that fits their palette, so the downstream semantic tokens
+ * (--mono-*, --accent-*, ...) stay identical across themes —
+ * nothing else in the app has to know which theme is active.
+ */
+
+@mixin mono-scale($s) {
+  --mono-app-bg: var(--#{$s}-1);
+  --mono-subtle-bg: var(--#{$s}-2);
+  --mono-bg: var(--#{$s}-3);
+  --mono-bg-hover: var(--#{$s}-4);
+  --mono-bg-active: var(--#{$s}-5);
+  --mono-border-subtle: var(--#{$s}-6);
+  --mono-border: var(--#{$s}-7);
+  --mono-border-hover: var(--#{$s}-8);
+  --mono-solid: var(--#{$s}-9);
+  --mono-solid-hover: var(--#{$s}-10);
+  --mono-text-low-contrast: var(--#{$s}-11);
+  --mono-text: var(--#{$s}-12);
+}
+
+@mixin accent-scale($s) {
+  --accent-app-bg: var(--#{$s}-1);
+  --accent-subtle-bg: var(--#{$s}-2);
+  --accent-bg: var(--#{$s}-3);
+  --accent-bg-hover: var(--#{$s}-4);
+  --accent-bg-active: var(--#{$s}-5);
+  --accent-border-subtle: var(--#{$s}-6);
+  --accent-border: var(--#{$s}-7);
+  --accent-border-hover: var(--#{$s}-8);
+  --accent-solid: var(--#{$s}-9);
+  --accent-solid-hover: var(--#{$s}-10);
+  --accent-text-low-contrast: var(--#{$s}-11);
+  --accent-text: var(--#{$s}-12);
+}
+
+@mixin zone-scale($s) {
+  --success-app-bg: var(--#{$s}-1);
+  --success-subtle-bg: var(--#{$s}-2);
+  --success-bg: var(--#{$s}-3);
+  --success-bg-hover: var(--#{$s}-4);
+  --success-bg-active: var(--#{$s}-5);
+  --success-border-subtle: var(--#{$s}-6);
+  --success-border: var(--#{$s}-7);
+  --success-border-hover: var(--#{$s}-8);
+  --success-solid: var(--#{$s}-9);
+  --success-solid-hover: var(--#{$s}-10);
+  --success-text-low-contrast: var(--#{$s}-11);
+  --success-text: var(--#{$s}-12);
+}
+
+@mixin flash-scale($s) {
+  --flash-app-bg: var(--#{$s}-1);
+  --flash-subtle-bg: var(--#{$s}-2);
+  --flash-bg: var(--#{$s}-3);
+  --flash-bg-hover: var(--#{$s}-4);
+  --flash-bg-active: var(--#{$s}-5);
+  --flash-border-subtle: var(--#{$s}-6);
+  --flash-border: var(--#{$s}-7);
+  --flash-border-hover: var(--#{$s}-8);
+  --flash-solid: var(--#{$s}-9);
+  --flash-solid-hover: var(--#{$s}-10);
+  --flash-text-low-contrast: var(--#{$s}-11);
+  --flash-text: var(--#{$s}-12);
+}
+
+@mixin warning-scale($s) {
+  --warning-app-bg: var(--#{$s}-1);
+  --warning-subtle-bg: var(--#{$s}-2);
+  --warning-bg: var(--#{$s}-3);
+  --warning-bg-hover: var(--#{$s}-4);
+  --warning-bg-active: var(--#{$s}-5);
+  --warning-border-subtle: var(--#{$s}-6);
+  --warning-border: var(--#{$s}-7);
+  --warning-border-hover: var(--#{$s}-8);
+  --warning-solid: var(--#{$s}-9);
+  --warning-solid-hover: var(--#{$s}-10);
+  --warning-text-low-contrast: var(--#{$s}-11);
+  --warning-text: var(--#{$s}-12);
+}
+
+@mixin error-scale($s) {
+  --error-app-bg: var(--#{$s}-1);
+  --error-subtle-bg: var(--#{$s}-2);
+  --error-bg: var(--#{$s}-3);
+  --error-bg-hover: var(--#{$s}-4);
+  --error-bg-active: var(--#{$s}-5);
+  --error-border-subtle: var(--#{$s}-6);
+  --error-border: var(--#{$s}-7);
+  --error-border-hover: var(--#{$s}-8);
+  --error-solid: var(--#{$s}-9);
+  --error-solid-hover: var(--#{$s}-10);
+  --error-text-low-contrast: var(--#{$s}-11);
+  --error-text: var(--#{$s}-12);
+}
+
+/*
+ * ── Cross-theme constants ────────────────────────────────────
+ * Everything here is identical regardless of the active theme:
+ * foregrounds-on-solid for fixed-scale roles, toggle thumb, etc.
  */
 :root {
-  /* ── Mono (olive) ──────────────────────────────────── */
-  --mono-app-bg: var(--olive-1);             /* Step 1:  App background */
-  --mono-subtle-bg: var(--olive-2);          /* Step 2:  Subtle bg (cards, sections) */
-  --mono-bg: var(--olive-3);                 /* Step 3:  UI element bg */
-  --mono-bg-hover: var(--olive-4);           /* Step 4:  UI element bg (hover) */
-  --mono-bg-active: var(--olive-5);          /* Step 5:  UI element bg (active/selected) */
-  --mono-border-subtle: var(--olive-6);      /* Step 6:  Non-interactive borders */
-  --mono-border: var(--olive-7);             /* Step 7:  Interactive borders */
-  --mono-border-hover: var(--olive-8);       /* Step 8:  Strong/hover borders, focus rings */
-  --mono-solid: var(--olive-9);              /* Step 9:  Solid fills */
-  --mono-solid-hover: var(--olive-10);       /* Step 10: Solid fills (hover) */
-  --mono-text-low-contrast: var(--olive-11); /* Step 11: Secondary/low-contrast text */
-  --mono-text: var(--olive-12);              /* Step 12: Primary/high-contrast text */
-
-  /* ── Accent (lime) ─────────────────────────────────── */
-  --accent-app-bg: var(--lime-1);             /* Step 1:  Tinted app background */
-  --accent-subtle-bg: var(--lime-2);          /* Step 2:  Tinted section/card bg */
-  --accent-bg: var(--lime-3);                 /* Step 3:  Accent UI element bg */
-  --accent-bg-hover: var(--lime-4);           /* Step 4:  Accent UI element bg (hover) */
-  --accent-bg-active: var(--lime-5);          /* Step 5:  Accent UI element bg (active) */
-  --accent-border-subtle: var(--lime-6);      /* Step 6:  Accent non-interactive borders */
-  --accent-border: var(--lime-7);             /* Step 7:  Accent interactive borders */
-  --accent-border-hover: var(--lime-8);       /* Step 8:  Accent hover/focus borders */
-  --accent-solid: var(--lime-9);              /* Step 9:  Accent solid fills (buttons, badges) */
-  --accent-solid-hover: var(--lime-10);       /* Step 10: Accent solid fills (hover) */
-  --accent-text-low-contrast: var(--lime-11); /* Step 11: Accent secondary text, icon labels */
-  --accent-text: var(--lime-12);              /* Step 12: Accent primary text, headings */
-  --accent-on-solid: #1a1a1a;                 /* Foreground on step 9 (lime is light-bg scale) */
-
-  /* ── Error (red) ───────────────────────────────────── */
-  --error-app-bg: var(--red-1);
-  --error-subtle-bg: var(--red-2);
-  --error-bg: var(--red-3);
-  --error-bg-hover: var(--red-4);
-  --error-bg-active: var(--red-5);
-  --error-border-subtle: var(--red-6);
-  --error-border: var(--red-7);
-  --error-border-hover: var(--red-8);
-  --error-solid: var(--red-9);
-  --error-solid-hover: var(--red-10);
-  --error-text-low-contrast: var(--red-11);
-  --error-text: var(--red-12);
+  /* Error/warning scales are brand-fixed, so their on-solid fgs are
+     the same across every theme. */
   --error-on-solid: #fff;
-
-  /* ── Success (teal) ────────────────────────────────── */
-  --success-app-bg: var(--teal-1);
-  --success-subtle-bg: var(--teal-2);
-  --success-bg: var(--teal-3);
-  --success-bg-hover: var(--teal-4);
-  --success-bg-active: var(--teal-5);
-  --success-border-subtle: var(--teal-6);
-  --success-border: var(--teal-7);
-  --success-border-hover: var(--teal-8);
-  --success-solid: var(--teal-9);
-  --success-solid-hover: var(--teal-10);
-  --success-text-low-contrast: var(--teal-11);
-  --success-text: var(--teal-12);
-  --success-on-solid: #fff;
-
-  /* ── Warning (orange) ──────────────────────────────── */
-  --warning-app-bg: var(--orange-1);
-  --warning-subtle-bg: var(--orange-2);
-  --warning-bg: var(--orange-3);
-  --warning-bg-hover: var(--orange-4);
-  --warning-bg-active: var(--orange-5);
-  --warning-border-subtle: var(--orange-6);
-  --warning-border: var(--orange-7);
-  --warning-border-hover: var(--orange-8);
-  --warning-solid: var(--orange-9);
-  --warning-solid-hover: var(--orange-10);
-  --warning-text-low-contrast: var(--orange-11);
-  --warning-text: var(--orange-12);
   --warning-on-solid: #21201c;
+  --flash-on-solid: #21201c; /* amber step 9 is light — dark text */
+  --success-on-solid: #fff;   /* teal / jade step 9 → white fg */
 
-  /* ── Info (reuses lime for brand consistency) ──────── */
-  --info-app-bg: var(--lime-1);
-  --info-subtle-bg: var(--lime-2);
-  --info-bg: var(--lime-3);
-  --info-bg-hover: var(--lime-4);
-  --info-bg-active: var(--lime-5);
-  --info-border-subtle: var(--lime-6);
-  --info-border: var(--lime-7);
-  --info-border-hover: var(--lime-8);
-  --info-solid: var(--lime-9);
-  --info-solid-hover: var(--lime-10);
-  --info-text-low-contrast: var(--lime-11);
-  --info-text: var(--lime-12);
-  --info-on-solid: #1a1a1a;
-
-  /* ── Flash badge (amber) ───────────────────────────── */
-  /* Amber is a light-bg scale like lime — use dark foreground on step 9 */
-  --flash-app-bg: var(--amber-1);
-  --flash-subtle-bg: var(--amber-2);
-  --flash-bg: var(--amber-3);                 /* Step 3:  Flash UI element bg */
-  --flash-bg-hover: var(--amber-4);           /* Step 4:  Flash UI element bg (hover) */
-  --flash-bg-active: var(--amber-5);          /* Step 5:  Flash UI element bg (active) */
-  --flash-border-subtle: var(--amber-6);      /* Step 6:  Flash non-interactive borders */
-  --flash-border: var(--amber-7);             /* Step 7:  Flash interactive borders */
-  --flash-border-hover: var(--amber-8);       /* Step 8:  Flash hover/focus borders */
-  --flash-solid: var(--amber-9);              /* Step 9:  Flash badge solid fill */
-  --flash-solid-hover: var(--amber-10);       /* Step 10: Flash badge solid (hover) */
-  --flash-text-low-contrast: var(--amber-11); /* Step 11: Flash secondary text */
-  --flash-text: var(--amber-12);              /* Step 12: Flash primary text */
-  --flash-on-solid: #21201c;                  /* Foreground on step 9 */
-
-  /* ── Brand ─────────────────────────────────────────── */
-  /* Primary brand colour — lime step 9, the vibrant Chork lime. */
-  --brand: var(--accent-solid);               /* lime step 9 */
-  /* Brand text — step 11, readable on app backgrounds where step 9 is too bright. */
-  --brand-text: var(--accent-text-low-contrast); /* lime step 11 */
-
-  /* ── Aliases ───────────────────────────────────────── */
-  --focus-ring: var(--lime-8);
   --toggle-thumb: #fff;
-  --surface-divider: var(--mono-border-subtle);
+}
 
+/*
+ * ── Theme: Default (olive + lime) ─────────────────────────────
+ * Applied on bare `:root` so pre-hydration HTML already uses the
+ * brand palette.
+ */
+:root {
+  @include mono-scale(olive);
+  @include accent-scale(lime);
+  @include zone-scale(teal);
+  @include flash-scale(amber);
+  @include warning-scale(orange);
+  @include error-scale(red);
+
+  /* Lime step 9 is a light scale — dark foreground on solid. */
+  --accent-on-solid: #1a1a1a;
+
+  --focus-ring: var(--lime-8);
+  --brand: var(--accent-solid);
+  --brand-text: var(--accent-text-low-contrast);
+
+  --surface-divider: var(--mono-border-subtle);
   --app-bg: var(--mono-app-bg);
   --app-text: var(--mono-text);
+}
+
+/*
+ * ── Theme: Slate (slate + iris) ───────────────────────────────
+ * Cool, technical feel. Iris step 9 is a dark scale → white fg.
+ * Zone swaps to jade so it doesn't read as muddy next to iris.
+ */
+[data-theme="slate"] {
+  @include mono-scale(slate);
+  @include accent-scale(iris);
+  @include zone-scale(teal);
+  @include flash-scale(amber);
+  @include warning-scale(orange);
+  @include error-scale(red);
+
+  --accent-on-solid: #fff;
+
+  --focus-ring: var(--iris-8);
+  --brand: var(--accent-solid);
+  --brand-text: var(--accent-text-low-contrast);
+}
+
+/*
+ * ── Theme: Sand (sand + tomato) ───────────────────────────────
+ * Warm, earthy. Tomato step 9 is a dark scale → white fg. Zone
+ * stays teal — strong enough against sand to remain legible.
+ */
+[data-theme="sand"] {
+  @include mono-scale(sand);
+  @include accent-scale(tomato);
+  @include zone-scale(teal);
+  @include flash-scale(amber);
+  @include warning-scale(orange);
+  @include error-scale(red);
+
+  --accent-on-solid: #fff;
+
+  --focus-ring: var(--tomato-8);
+  --brand: var(--accent-solid);
+  --brand-text: var(--accent-text-low-contrast);
 }

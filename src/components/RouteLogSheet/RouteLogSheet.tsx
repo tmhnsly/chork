@@ -10,6 +10,7 @@ import {
   FaEye,
   FaPaperPlane,
   FaBolt,
+  FaFlag,
   FaPen,
   FaCheck,
   FaXmark,
@@ -445,9 +446,17 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
     >
           {/* ── Header ── */}
           <header className={styles.header}>
+            {/* Route number sits in a 3-column grid so the digit is
+                always centred — flanking icons fill the side slots
+                when present without pushing the number off axis. */}
             <h2 className={styles.routeNumber}>
-              {route.number}
-              {isCurrentFlash && <FaBolt className={styles.flashIcon} />}
+              <span className={styles.numberSlot} aria-hidden>
+                {zoneValue && <FaFlag className={styles.zoneIcon} />}
+              </span>
+              <span className={styles.numberText}>{route.number}</span>
+              <span className={styles.numberSlot} aria-hidden>
+                {isCurrentFlash && <FaBolt className={styles.flashIcon} />}
+              </span>
             </h2>
             {/* Community grade display — hidden for points-only sets.
                 Value and "Community grade" label render in the same
@@ -511,12 +520,14 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
 
           {/* ── Secondary controls ── */}
           <div className={styles.controls}>
-            {/* Zone hold */}
-            {route.has_zone && (
+            {/* Zone hold — only shown pre-send. Once the route is
+                completed, the toggle is disabled anyway; we surface
+                the claimed zone as a chip next to the "Sent / Flashed"
+                badge instead so the sheet stays tight. */}
+            {route.has_zone && !isCompleted && (
               <ZoneHoldRow
                 checked={zoneValue}
                 onCheckedChange={handleZoneToggle}
-                disabled={isCompleted && zoneValue}
                 hasAttempts={attempts > 0}
               />
             )}
@@ -524,13 +535,20 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
             {/* Complete / Undo */}
             {isCompleted && set.active ? (
               <div className={styles.completedRow}>
-                <span className={`${styles.completedBadge} ${isCurrentFlash ? styles.completedFlash : ""}`}>
-                  {isCurrentFlash ? (
-                    <><FaBolt className={styles.completedIcon} /> Flashed</>
-                  ) : (
-                    <><FaCheck className={styles.completedIcon} /> Sent</>
+                <div className={styles.completedBadges}>
+                  <span className={`${styles.completedBadge} ${isCurrentFlash ? styles.completedFlash : ""}`}>
+                    {isCurrentFlash ? (
+                      <><FaBolt className={styles.completedIcon} /> Flashed</>
+                    ) : (
+                      <><FaCheck className={styles.completedIcon} /> Sent</>
+                    )}
+                  </span>
+                  {zoneValue && (
+                    <span className={styles.zoneBadgeChip}>
+                      <FaFlag className={styles.completedIcon} /> Zone
+                    </span>
                   )}
-                </span>
+                </div>
                 <Button variant="ghost" onClick={handleUncomplete}>Undo</Button>
               </div>
             ) : (

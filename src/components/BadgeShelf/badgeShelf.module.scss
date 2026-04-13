@@ -59,7 +59,11 @@
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  padding-bottom: var(--space-1);
+  // `overflow-x: auto` forces `overflow-y` to auto too, which clips
+  // the slot's hover `translateY(-1px)` at the top. A small vertical
+  // padding absorbs the lift inside the scroller's viewport so the
+  // circle doesn't get shaved by its parent.
+  padding-block: var(--space-1);
 
   &::-webkit-scrollbar {
     display: none;

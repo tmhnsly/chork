@@ -31,14 +31,19 @@
 
 .word {
   display: inline-block;
-  animation: revealWord 0.6s var(--ease-out) backwards;
+  // Initial state declared directly on the element — don't rely on
+  // `animation-fill-mode: backwards` to show the "from" keyframe
+  // during the stagger delay. Mobile Safari sometimes paints one
+  // frame of the resting position before the backwards fill engages,
+  // which reads as a pop-in. With an explicit `translateY(100%)` as
+  // the base state, the word is guaranteed hidden until the
+  // animation runs and `forwards` holds the final position.
+  transform: translateY(100%);
+  animation: revealWord 0.6s var(--ease-out) forwards;
   animation-delay: calc(var(--delay, 0s) + var(--i, 0) * 0.05s);
 }
 
 @keyframes revealWord {
-  from {
-    transform: translateY(100%);
-  }
   to {
     transform: translateY(0);
   }
@@ -54,6 +59,9 @@
   .word,
   .wordClip {
     animation: none;
+  }
+  .word {
+    transform: none;
   }
   .wordClip {
     overflow: visible;
