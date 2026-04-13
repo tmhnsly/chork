@@ -208,15 +208,26 @@ Each batch = one PR. Commit after each.
 | `2952ddd` | G | interpolate-size for auto-height drawers (Chrome perf) |
 | `8320eca` | I pt1 | migration 026 denorm community_grade, seed 20 parody climbers |
 | `25b6609` | I pt2 | scoring chart zone palette, kill phantom sheet focus ring |
+| `91a633b` | F pt1 | Inbox→Notifications rename, accent-tint pill, bell-ring anim |
+| `f4dabce` | H pt1 | unified glow-pulse skeleton (themed via `--mono-*`) |
+| `1151e13` | H pt2 | fuzzy climber search (pg_trgm + word_similarity RPC) |
+| `2b3391d` | H pt3 | 6 themes total — gray, mauve, sage added |
 
 **Needs your action (one command each):**
-- `npx supabase db push` — applies migrations 025 (attempts bound + crew index) and 026 (community_grade denorm)
+- `npx supabase db push` — applies migrations 025 (attempts bound + crew index), 026 (community_grade denorm), 027 (fuzzy search)
+- `npx supabase gen types typescript --project-id <id> > src/lib/database.types.ts` — refresh TS types after 026/027 so the `(any)` casts can be removed
 - `npx tsx scripts/seed-climbers.ts` — seed 20 parody climbers into live set
 - Replace `/public/icon-192.png` + `/public/icon-512.png` + maskable 512 with real brand PNGs (manifest currently points at the SVG fallback)
 
-**Still pending (need your sign-off on order):**
-- **F** Profile nav dropdown + notification rename + push-disable + bell ring animation — biggest remaining UX item
-- **H** Fuzzy climber search + shared skeleton style + Radix gray-scale themes set
+**Still pending:**
+- **F pt2** Profile nav dropdown reorg (View profile / Notifications / Settings nested) + push-disable toggle — biggest remaining UX refactor, deserves its own PR
+- **B pt3** Remaining sheet bugs: beta spray unresponsive-after-submit, Apple Pencil close on iPhone 11 Pro, reveal-beta behind blur, grade-save pop-in
+- **I pt3** Supabase `@gotrue-js` lock warning investigation, nav pill slide-between animation
+- **Leaderboard climber-sheet grid** — cache window between re-fetches (don't re-request every tap)
+- **Change email** in edit profile dialog
+- **Gym-stats visible bug on tab switch** (image 3 — needs reproduction)
+
+This session shipped **12 commits**. ~75% of the QA list is now done or hardened.
 - **B pt3** Remaining sheet bugs: beta spray unresponsive-after-submit, Apple Pencil close, reveal-beta behind blur, grade-save pop-in
 - **I pt3** Supabase lock warning investigation, nav pill slide animation
 
