@@ -22,7 +22,7 @@
   color: var(--flash-text-low-contrast);
 
   .zoneRow & {
-    color: var(--accent-text-low-contrast);
+    color: var(--success-text-low-contrast);
   }
 }
 
@@ -35,7 +35,10 @@
 .barFill {
   height: var(--space-8);
   width: 0%;
-  background: var(--mono-border);
+  // Default bar = attempt rows (1st send, 2nd, etc). Accent lime so
+  // the attempt-count bars read as "you scoring points". Flash +
+  // zone rows override to their own palette below.
+  background: var(--accent-solid);
   border-radius: var(--radius-2);
   transition: width var(--duration-slow) var(--ease-out);
 
@@ -48,7 +51,9 @@
   }
 
   .zoneRow & {
-    background: var(--brand);
+    // Zone = teal (success) to match the zone badge on a PunchTile
+    // and the zone chip in the RouteLogSheet header.
+    background: var(--success-solid);
   }
 }
 
@@ -62,6 +67,6 @@
   }
 
   .zoneRow & {
-    color: var(--accent-text-low-contrast);
+    color: var(--success-text-low-contrast);
   }
 }

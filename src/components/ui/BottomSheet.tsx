@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { Drawer } from "vaul";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { FaXmark } from "react-icons/fa6";
@@ -61,8 +61,6 @@ export function BottomSheet({
   disableOutsideClose = false,
   children,
 }: Props) {
-  const closeBtnRef = useRef<HTMLButtonElement>(null);
-
   return (
     <Drawer.Root
       open={open}
@@ -81,8 +79,15 @@ export function BottomSheet({
         <Drawer.Content
           className={styles.content}
           onOpenAutoFocus={(e) => {
+            // Prevent Radix's default "focus the first focusable
+            // element" behaviour — on mobile sheets that caused a
+            // visible keyboard-focus ring to appear on the close
+            // button every time a user tapped to open, which reads
+            // as a phantom outline. Focus stays on whatever the
+            // user had focused before the sheet opened (usually
+            // body), and keyboard users can Tab into the sheet
+            // naturally.
             e.preventDefault();
-            closeBtnRef.current?.focus();
           }}
           // Prevent vaul's default scrollbar-style layout shift. We
           // already paint our own scroll inside the sheet.
@@ -95,7 +100,6 @@ export function BottomSheet({
           <header className={styles.titleBar}>
             <Drawer.Title className={styles.title}>{title}</Drawer.Title>
             <button
-              ref={closeBtnRef}
               type="button"
               className={styles.closeBtn}
               onClick={onClose}
