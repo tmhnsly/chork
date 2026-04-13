@@ -29,6 +29,47 @@
   }
 }
 
+// Unread variant — tint the whole chip in the accent palette so a
+// waiting notification reads clearly without a separate badge.
+.triggerUnread {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent-text);
+
+  &:hover {
+    background: var(--accent-bg);
+    border-color: var(--accent-border-hover);
+  }
+}
+
+.icon {
+  transform-origin: 50% 0;
+}
+
+// Bell-ring: 3 quick swings on first paint when the climber has
+// pending notifications. Stops after 3s — the goal is to catch the
+// eye, not pester.
+@keyframes bellRing {
+  0%   { transform: rotate(0); }
+  10%  { transform: rotate(15deg); }
+  25%  { transform: rotate(-12deg); }
+  40%  { transform: rotate(8deg); }
+  55%  { transform: rotate(-5deg); }
+  70%  { transform: rotate(2deg); }
+  100% { transform: rotate(0); }
+}
+
+.iconRinging {
+  animation: bellRing 1.6s var(--ease-out) both;
+  animation-delay: 0.4s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iconRinging {
+    animation: none;
+  }
+}
+
 .badge {
   @include type.typography(number);
   display: inline-flex;

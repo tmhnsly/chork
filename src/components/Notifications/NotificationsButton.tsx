@@ -29,26 +29,33 @@ interface Props {
 export function NotificationsButton({ invites }: Props) {
   const [open, setOpen] = useState(false);
   const count = invites.length;
+  const label = count > 0
+    ? `${count} notification${count === 1 ? "" : "s"}`
+    : "Notifications";
 
   return (
     <>
       <button
         type="button"
-        className={styles.trigger}
+        className={[
+          styles.trigger,
+          count > 0 ? styles.triggerUnread : "",
+        ].filter(Boolean).join(" ")}
         onClick={() => setOpen(true)}
         aria-label={
           count > 0
-            ? `Notifications (${count} unread)`
+            ? `${count} unread notification${count === 1 ? "" : "s"}`
             : "Notifications"
         }
       >
-        <FaBell aria-hidden />
-        <span>Inbox</span>
-        {count > 0 && (
-          <span className={styles.badge} aria-hidden>
-            {count > 99 ? "99+" : count}
-          </span>
-        )}
+        <FaBell
+          aria-hidden
+          className={[
+            styles.icon,
+            count > 0 ? styles.iconRinging : "",
+          ].filter(Boolean).join(" ")}
+        />
+        <span>{label}</span>
       </button>
 
       {open && (
