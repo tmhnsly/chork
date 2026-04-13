@@ -124,8 +124,10 @@ function EditProfileBody({ user, onClose }: BodyProps) {
     }
   }
 
+  // Body is rendered *inside* the outer `EditProfileDialog`'s
+  // `AppDialog`, so no dialog wrapper here — just the content.
   return (
-    <AppDialog open={open} onOpenChange={onOpenChange} title="Edit profile">
+    <>
       <h2 className={styles.heading}>Edit profile</h2>
 
       {/* Avatar picker */}
@@ -190,6 +192,6 @@ function EditProfileBody({ user, onClose }: BodyProps) {
           Cancel
         </Button>
       </div>
-    </AppDialog>
+    </>
   );
 }

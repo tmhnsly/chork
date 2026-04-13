@@ -69,7 +69,7 @@ export function AchievementDetailSheet({ badge, open, onClose }: Props) {
           ].filter(Boolean).join(" ")}
           aria-hidden
         >
-          {heroState === "progress" && badge.progress !== null && (
+          {heroState === "progress" && !badge.earned && badge.progress !== null && (
             <ProgressRing progress={badge.progress} />
           )}
           <Icon />
