@@ -317,21 +317,34 @@ export async function getUserSetStats(
   return data ?? [];
 }
 
+/**
+ * Community grade is maintained on `routes.community_grade` by the
+ * trigger in migration 026 — reading it is a single indexed row
+ * fetch, no aggregation. Replaces the `get_route_grade` RPC that
+ * averaged route_logs on every call.
+ *
+ * TODO: after `npx supabase gen types typescript` runs on migration
+ * 026, `Route` will include `community_grade` directly and callers
+ * that already have the route row (RouteLogSheet, SendsGrid) can
+ * skip this fetch entirely.
+ */
 export async function getRouteGrade(
   supabase: Supabase,
   routeId: string
 ): Promise<number | null> {
-  const { data, error } = await supabase.rpc("get_route_grade", {
-    p_route_id: routeId,
-  });
+  const { data, error } = await supabase
+    .from("routes")
+    // Typed via `any` cast until the supabase types are regenerated;
+    // `community_grade` is a real column added in migration 026.
+    .select("community_grade" as never)
+    .eq("id", routeId)
+    .maybeSingle();
   if (error) {
     console.warn("[chork] getRouteGrade failed:", error);
     return null;
   }
-  if (data && data.length > 0) {
-    return data[0].community_grade;
-  }
-  return null;
+  const row = data as { community_grade: number | null } | null;
+  return row?.community_grade ?? null;
 }
 
 // ── Activity events ────────────────────────────────
