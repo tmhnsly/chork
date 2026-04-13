@@ -3,22 +3,22 @@
 @use "mixins/focus";
 
 // ── Overlay ────────────────────────────────────────
-// Vaul animates the overlay opacity in response to drag progress.
-// We own the colour; vaul owns the transition. No extra keyframes
-// needed — `data-vaul-overlay` is set on the element, and vaul
-// handles mount/unmount via CSS transitions on its own side.
 .overlay {
   position: fixed;
   inset: 0;
   background: color-mix(in srgb, var(--mono-app-bg) 60%, transparent);
   z-index: var(--z-overlay);
+  animation: overlayIn var(--duration-normal) var(--ease-out-expo);
+
+  &[data-state="closed"] {
+    animation: overlayOut var(--duration-fast) var(--ease-out) forwards;
+  }
 }
 
 // ── Sheet content ─────────────────────────────────
-// Single scroll container. Title bar inside is `position: sticky`
-// so long content scrolls beneath it. Vaul applies the slide-up
-// animation + drag transform on this element — we avoid fighting
-// it by not adding our own `transform` or `animation`.
+// Sizes to its content up to 90svh; native scroll kicks in past that.
+// Title bar sits sticky at the top so long content slides under it
+// (that's what the backdrop blur is actually blurring).
 .content {
   @include surface.glass; // thick material (70% default)
   box-shadow: var(--shadow-xl);
@@ -34,30 +34,37 @@
   z-index: var(--z-overlay);
   border-radius: var(--radius-4) var(--radius-4) 0 0;
   max-height: 90svh;
-  // Native scroll — vaul's drag-to-close cooperates with inner
-  // scroll automatically (sheet only drags when the scroll has
-  // reached the top, matching native iOS drawers).
   overflow-y: auto;
   overscroll-behavior: contain;
-  // Hide the OS scrollbar — the sheet has its own visual chrome
-  // and a native bar breaks the glass illusion. Drag + scroll
-  // affordances remain via vaul's physics and touch scroll.
+  @include focus.ring-inset;
+  outline: none;
+
+  // Hide the native scrollbar — panel has its own visual chrome.
   scrollbar-width: none;
   &::-webkit-scrollbar {
     width: 0;
     height: 0;
     display: none;
   }
-  @include focus.ring-inset;
-  // `outline` would collide with vaul's focus-trap hidden focus.
-  outline: none;
+
+  animation: sheetIn var(--duration-normal) var(--ease-out-expo);
+
+  &[data-state="closed"] {
+    animation: sheetOut var(--duration-fast) var(--ease-out) forwards;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .content {
+    animation: none;
+  }
 }
 
 // ── Title bar ─────────────────────────────────────
-// Sticky at the top of the sheet's scroll viewport. Backdrop blur
-// lives on a `::before` pseudo so Chromium's backdrop-filter + sticky
-// combo actually resolves (known bug when applied to the sticky
-// element itself).
+// Sticky inside the scrollable content. Backdrop blur on the
+// `::before` pseudo-element so Chromium's "sticky + backdrop-filter"
+// bug doesn't drop the blur.
 .titleBar {
   position: sticky;
   top: 0;
@@ -131,4 +138,28 @@
 .body {
   padding: var(--space-4) var(--gutter-x)
     calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
+}
+
+// ── Keyframes ─────────────────────────────────────
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes overlayOut {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+// Pure slide — no fade, no scale. The sheet travels from below the
+// viewport into place. `ease-out-expo` gives the settle-at-the-top
+// feel without any opacity shift that would muddy the motion.
+@keyframes sheetIn {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+@keyframes sheetOut {
+  from { transform: translateY(0); }
+  to   { transform: translateY(100%); }
 }
