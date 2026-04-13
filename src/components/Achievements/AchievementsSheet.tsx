@@ -15,19 +15,32 @@ interface Props {
   onClose: () => void;
 }
 
-// Filter values map 1:1 to `BadgeCategory` values (+ "all"). Adding a
-// new category narrows to TS error here — keeps the pills in sync
-// with the catalogue automatically.
-type Filter = "all" | BadgeCategory;
+// Filters = the catalogue categories plus two meta filters:
+//   "earned" shows only badges the climber has unlocked — the new
+//            default, since it's the most rewarding view and hopefully
+//            nudges a new user toward tapping through to see them;
+//   "all"    is the everything view, available but no longer default.
+// Any new `BadgeCategory` value becomes a compile error here, keeping
+// the pills in sync with the catalogue.
+type Filter = "earned" | "all" | BadgeCategory;
 
 const ALL_FILTERS: { id: Filter; label: string }[] = [
+  { id: "earned", label: "Earned" },
   { id: "all", label: "All" },
   { id: "sends", label: "Sends" },
   { id: "flashes", label: "Flashes" },
 ];
 
 export function AchievementsSheet({ badges, open, onClose }: Props) {
-  const [filter, setFilter] = useState<Filter>("all");
+  const earnedCount = useMemo(
+    () => badges.filter((b) => b.earned).length,
+    [badges],
+  );
+  // Default to Earned when the climber has at least one badge; fall
+  // back to All on a fresh account so they don't open an empty sheet.
+  const [filter, setFilter] = useState<Filter>(
+    earnedCount > 0 ? "earned" : "all",
+  );
 
   // Every filter pill is always shown; empty categories render as
   // disabled so the choices stay predictable across sessions.
@@ -37,23 +50,29 @@ export function AchievementsSheet({ badges, open, onClose }: Props) {
       countByCategory.set(b.badge.category, (countByCategory.get(b.badge.category) ?? 0) + 1);
     }
     return ALL_FILTERS.map((f) => {
+      if (f.id === "earned") {
+        return {
+          value: f.id,
+          label: f.label,
+          count: earnedCount,
+          disabled: earnedCount === 0,
+        };
+      }
       if (f.id === "all") return { value: f.id, label: f.label, count: badges.length };
       const count = countByCategory.get(f.id) ?? 0;
       return { value: f.id, label: f.label, count, disabled: count === 0 };
     });
-  }, [badges]);
+  }, [badges, earnedCount]);
 
   const visible = useMemo(() => {
     // Preserve the catalogue's authored order — achievements are
     // written ladder-ascending in `src/config/achievements.ts`
     // (flash 1 → 1000, rhyme pairs 1-2 → 9-10, etc.), so keeping the
     // input order automatically groups related badges together and
-    // reads in the climber's progression order. A name-based sort
-    // was scattering "Thunder Shock" to T and "Spark" to S, which
-    // broke the ladder visually.
-    return filter === "all"
-      ? badges
-      : badges.filter((b) => b.badge.category === filter);
+    // reads in the climber's progression order.
+    if (filter === "all") return badges;
+    if (filter === "earned") return badges.filter((b) => b.earned);
+    return badges.filter((b) => b.badge.category === filter);
   }, [badges, filter]);
 
   return (

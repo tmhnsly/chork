@@ -50,8 +50,13 @@ export function AchievementDetailSheet({ badge, open, onClose }: Props) {
     : isQuantifiable
       ? "progress"
       : "muted";
+  // Family drives both the earned tint AND the in-progress ring
+  // colour so a flash-category badge reads amber at both 60% and
+  // 100% earned.
   const family: "flash" | "success" | "accent" | null =
-    heroState === "earned" ? earnedFamily(badge.badge) : null;
+    heroState === "earned" || heroState === "progress"
+      ? earnedFamily(badge.badge)
+      : null;
 
   return (
     <BottomSheet
@@ -70,7 +75,7 @@ export function AchievementDetailSheet({ badge, open, onClose }: Props) {
           aria-hidden
         >
           {heroState === "progress" && !badge.earned && badge.progress !== null && (
-            <ProgressRing progress={badge.progress} />
+            <ProgressRing progress={badge.progress} family={family ?? "accent"} />
           )}
           <Icon />
         </div>

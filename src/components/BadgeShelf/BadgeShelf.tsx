@@ -166,16 +166,23 @@ export function BadgeShelf({ badges, onSeeAll }: Props) {
           const name = isSecret ? "???" : b.badge.name;
 
           // Visual state:
-          //   earned    — lime tint, lime border, lime name
-          //   progress  — mono circle wrapped in an accent progress
-          //                ring (Apple Fitness style) showing how
-          //                close the climber is to the target
+          //   earned    — category tint, category border, category name
+          //   progress  — category-coloured progress ring around the
+          //                mono circle. Flash-category badges get the
+          //                amber ring, zone-category (icon: flag) the
+          //                teal ring, everything else the accent lime
           //   muted     — plain muted circle, muted name
           //                (one-off condition or secret)
           let state: "earned" | "progress" | "muted" = "muted";
           if (b.earned) state = "earned";
           else if (!isSecret && b.badge.kind === "progress") state = "progress";
-          const family = state === "earned" ? earnedFamily(b.badge) : null;
+          // Family drives both the earned tint and the in-progress
+          // ring colour, so a climber sees the same colour signal
+          // whether the badge is 60% earned or 100%.
+          const family =
+            state === "earned" || state === "progress"
+              ? earnedFamily(b.badge)
+              : null;
           const progress =
             state === "progress" && !b.earned && b.progress !== null
               ? b.progress
@@ -190,7 +197,12 @@ export function BadgeShelf({ badges, onSeeAll }: Props) {
               aria-label={`${name}. ${isSecret ? "Secret achievement." : b.badge.description}`}
             >
               <span className={styles.circle}>
-                {progress !== null && <ProgressRing progress={progress} />}
+                {progress !== null && (
+                  <ProgressRing
+                    progress={progress}
+                    family={family ?? "accent"}
+                  />
+                )}
                 <Icon />
               </span>
               <span className={styles.name}>{name}</span>
@@ -231,8 +243,17 @@ export function BadgeShelf({ badges, onSeeAll }: Props) {
  * Uses `pathLength={1}` so the dashoffset range is a simple 0-1
  * regardless of radius — same trick ActivityRings uses.
  */
-export function ProgressRing({ progress }: { progress: number }) {
+export function ProgressRing({
+  progress,
+  family = "accent",
+}: {
+  progress: number;
+  /** Colour family for the filled arc. Matches the earned-state
+   *  tint so a flash-category badge reads amber at 50% AND 100%. */
+  family?: "accent" | "flash" | "success";
+}) {
   const clamped = Math.min(1, Math.max(0, progress));
+  const strokeVar = `var(--${family === "accent" ? "accent" : family}-solid)`;
   return (
     <svg
       className={styles.progressRing}
@@ -252,7 +273,7 @@ export function ProgressRing({ progress }: { progress: number }) {
         cy={50}
         r={46}
         fill="none"
-        stroke="var(--accent-solid)"
+        stroke={strokeVar}
         strokeWidth={6}
         strokeLinecap="round"
         pathLength={1}

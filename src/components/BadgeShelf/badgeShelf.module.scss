@@ -179,6 +179,20 @@
   }
 }
 
+// Family-tinted icon inside the circle for in-progress badges so the
+// glyph matches its ring colour. Matches the earned-state colour for
+// each family one step down (text-low-contrast, not text) so the
+// earned tier still reads as the brighter one.
+.slot--progress.slot--accent .circle {
+  color: var(--accent-text-low-contrast);
+}
+.slot--progress.slot--flash .circle {
+  color: var(--flash-text-low-contrast);
+}
+.slot--progress.slot--success .circle {
+  color: var(--success-text-low-contrast);
+}
+
 .progressRing {
   position: absolute;
   // Extends slightly outside the circle so the stroke sits on the
