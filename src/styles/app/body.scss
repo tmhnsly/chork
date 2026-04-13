@@ -1,3 +1,13 @@
+// Opt into height-to-auto interpolation for every element on the
+// page. Chrome 129+ and Safari 17.4+ implement this; where it isn't
+// supported the animations fall back to snapping (no worse than
+// today). Cheaper than the `grid-template-rows 0fr → 1fr` trick we
+// were using — grid recalc per frame is what was making the beta
+// spray drawer and grade slider chug on Chrome first load.
+:root {
+  interpolate-size: allow-keywords;
+}
+
 body {
   color: var(--app-text);
   background: var(--app-bg);

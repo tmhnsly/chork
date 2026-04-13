@@ -302,22 +302,23 @@
   transform: rotate(180deg);
 }
 
-// Animated drawer: grid-template-rows 0fr → 1fr is the cleanest way
-// to interpolate auto-height. Inner element needs min-height:0 +
-// overflow:hidden so children can be clipped while collapsed.
+// Animated drawer. Switched from `grid-template-rows: 0fr → 1fr`
+// to `height: 0 → auto` under `interpolate-size: allow-keywords`
+// (set on :root in globals). Chrome's layout engine composites the
+// latter much more cheaply — grid recalc per frame was what made
+// this drawer noticeably laggy on first open.
 .betaDrawer {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows var(--duration-normal) var(--ease-out);
+  height: 0;
+  overflow: hidden;
+  transition: height var(--duration-normal) var(--ease-out);
 }
 
 .betaDrawerOpen {
-  grid-template-rows: 1fr;
+  height: auto;
 }
 
 .betaDrawerInner {
-  min-height: 0;
-  overflow: hidden;
+  // No longer needed as a grid child, but kept for visual grouping.
 }
 
 .betaContent {
@@ -343,22 +344,20 @@
   color: var(--mono-solid);
 }
 
-// Post-beta form sits below the drawer. Same grid-row trick so it
-// collapses layout smoothly when the drawer opens (hiding the form)
-// and re-opens when the drawer closes.
+// Post-beta form sits below the drawer. Same `height: 0 → auto`
+// trick as the beta drawer above.
 .postFormWrap {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows var(--duration-normal) var(--ease-out);
+  height: 0;
+  overflow: hidden;
+  transition: height var(--duration-normal) var(--ease-out);
 }
 
 .postFormVisible {
-  grid-template-rows: 1fr;
+  height: auto;
 }
 
 .postFormInner {
-  min-height: 0;
-  overflow: hidden;
+  // Placeholder — kept for structural symmetry, no style needed.
 }
 
 .postFormWrap .commentForm {

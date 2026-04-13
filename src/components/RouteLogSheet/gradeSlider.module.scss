@@ -40,13 +40,14 @@
 // open and close are mirror images and the closed state collapses
 // down to a clean single-row input with nothing peeking out.
 .gradeSection {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows var(--duration-normal) var(--ease-out);
+  // `height: 0 → auto` with `interpolate-size: allow-keywords` (set
+  // on :root) — cheaper than grid-template-rows for Chrome and
+  // produces a smoother open on cold start.
+  height: 0;
+  overflow: hidden;
+  transition: height var(--duration-normal) var(--ease-out);
 
   > * {
-    min-height: 0;
-    overflow: hidden;
     opacity: 0;
     transform: translateY(-4px);
     transition:
@@ -56,7 +57,7 @@
 }
 
 .gradeSectionVisible {
-  grid-template-rows: 1fr;
+  height: auto;
 
   > * {
     opacity: 1;
