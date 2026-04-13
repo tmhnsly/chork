@@ -1,9 +1,10 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
 
+// BottomSheet owns the outer padding; this container only handles
+// vertical rhythm between the child blocks.
 .sheet {
   @include layout.stack(var(--space-5));
-  padding: var(--space-4) 0 var(--space-6);
 }
 
 .header {

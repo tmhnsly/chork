@@ -12,20 +12,27 @@
   color: var(--mono-text);
 }
 
-// ── Crew pill picker ──────────────────────────────
-.pillRow {
+// ── Crew picker row ───────────────────────────────
+// The tablist (shared TabPills primitive) carries the crew selection;
+// the "+ New crew" button sits beside it as a separate action so it
+// doesn't pretend to be a selectable tab.
+.pickerRow {
   display: flex;
   gap: var(--space-2);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  padding-bottom: var(--space-1);
-
-  &::-webkit-scrollbar { display: none; }
+  align-items: stretch;
+  min-width: 0;
 }
 
-.pill {
+.picker {
+  flex: 1;
+  min-width: 0;
+}
+
+.createBtn {
   @include type.typography(label);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   flex-shrink: 0;
   min-height: var(--size-touch-target);
   padding: 0 var(--space-4);
@@ -43,23 +50,6 @@
     background: var(--mono-bg);
     color: var(--mono-text);
   }
-}
-
-.pillActive {
-  background: var(--accent-bg);
-  color: var(--accent-text);
-  border-color: var(--accent-border-subtle);
-
-  &:hover {
-    background: var(--accent-bg);
-    color: var(--accent-text);
-  }
-}
-
-.pillCreate {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
 }
 
 // ── Set picker ────────────────────────────────────

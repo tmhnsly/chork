@@ -140,7 +140,6 @@ export async function acceptCrewInvite(crewMemberId: string): Promise<ActionResu
     if (error) return { error: formatError(error) };
 
     revalidatePath("/crew", "layout");
-    revalidatePath("/", "layout");
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
@@ -187,7 +186,6 @@ export async function leaveCrew(crewId: string): Promise<ActionResult> {
     if (error) return { error: formatError(error) };
 
     revalidatePath("/crew", "layout");
-    revalidatePath("/", "layout");
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
@@ -210,7 +208,7 @@ export async function setAllowCrewInvites(allow: boolean): Promise<ActionResult>
       .eq("id", userId);
     if (error) return { error: formatError(error) };
 
-    revalidatePath("/", "layout");
+    revalidatePath("/crew", "layout");
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };

@@ -1,0 +1,74 @@
+@use "mixins/typography" as type;
+@use "mixins/focus";
+
+// Horizontal pill-tab row. Scrolls when overflowed; scrollbar hidden
+// so the affordance is visual overflow + swipe, matching the native
+// feel of a segmented filter bar.
+.row {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.pill {
+  @include type.typography(label);
+  @include focus.ring;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--size-touch-target);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--mono-subtle-bg);
+  color: var(--mono-text-low-contrast);
+  border: 1px solid var(--mono-border);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+
+  &:hover:not(:disabled) {
+    background: var(--mono-bg);
+    color: var(--mono-text);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.pillActive {
+  background: var(--accent-bg);
+  color: var(--accent-text);
+  border-color: var(--accent-border-subtle);
+
+  &:hover:not(:disabled) {
+    background: var(--accent-bg);
+    color: var(--accent-text);
+  }
+}
+
+// Count badge alongside the label (e.g. "Sends 6") — reads as
+// supplementary context, not the primary label.
+.count {
+  @include type.typography(number);
+  font-size: var(--text-2xs);
+  color: var(--mono-text-low-contrast);
+  padding: 0 var(--space-1);
+  min-width: 1.25rem;
+  text-align: center;
+}
+
+.pillActive .count {
+  color: var(--accent-text-low-contrast);
+}

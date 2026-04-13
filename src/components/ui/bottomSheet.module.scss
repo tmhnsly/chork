@@ -1,4 +1,5 @@
 @use "mixins/surfaces" as surface;
+@use "mixins/typography" as type;
 @use "mixins/focus";
 
 // ── Overlay ────────────────────────────────────────
@@ -15,6 +16,9 @@
 }
 
 // ── Sheet content ─────────────────────────────────
+// Single scroll container — the title bar is sticky inside it so
+// long content scrolls under it while the close button stays
+// reachable at the top.
 .content {
   @include surface.glass; // thick material (70% default)
   box-shadow: var(--shadow-xl);
@@ -29,9 +33,9 @@
   margin: 0 auto;
   z-index: var(--z-overlay);
   border-radius: var(--radius-4) var(--radius-4) 0 0;
-  padding: 0 var(--gutter-x) calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
   max-height: 90svh;
   overflow-y: auto;
+  overscroll-behavior: contain;
   @include focus.ring-inset;
   animation: sheetSlideUp var(--duration-normal) var(--ease-out);
 }
@@ -47,44 +51,70 @@
   }
 }
 
-// ── Drag handle ────────────────────────────────────
-.handleBtn {
+// ── Title bar ─────────────────────────────────────
+// Sticky inside the scrolling `.content` so the user always has a
+// visible exit. Glass bg blurs whatever scrolls underneath. Close
+// button sits flush with the title's baseline.
+.titleBar {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   display: flex;
-  justify-content: center;
   align-items: center;
-  width: 100%;
-  min-height: var(--space-8);
-  padding: var(--space-2) 0;
-  border: none;
-  background: transparent;
-  cursor: grab;
-  touch-action: none;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--gutter-x);
+  background: color-mix(in srgb, var(--mono-subtle-bg) 80%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--mono-border-subtle);
+}
+
+.title {
+  @include type.typography(card-title);
+  color: var(--mono-text);
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.closeBtn {
+  @include type.typography(button);
+  @include focus.ring;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-touch-target);
+  height: var(--size-touch-target);
   flex-shrink: 0;
-
-  &:active {
-    cursor: grabbing;
-  }
-}
-
-.handle {
-  width: var(--space-9);
-  height: 4px;
+  border: 1px solid var(--mono-border);
   border-radius: var(--radius-full);
-  background: var(--mono-border);
-  transition: width var(--duration-fast) var(--ease-out),
-    background var(--duration-fast) var(--ease-out);
+  background: var(--mono-subtle-bg);
+  color: var(--mono-text);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
 
-  .handleBtn:active & {
-    width: var(--space-12);
-    background: var(--mono-text-low-contrast);
+  &:hover {
+    background: var(--mono-bg-hover);
+    border-color: var(--mono-border-hover);
   }
 }
 
-// Live drag — suspend animations/transitions and track pointer
-.dragging {
-  animation: none !important;
-  transition: none !important;
-  transform: translateY(var(--drag-y, 0px));
+// ── Body ──────────────────────────────────────────
+// Horizontal padding matches the title bar so the children always
+// line up with the title + close button above. Bottom padding
+// clears the iOS home indicator. Children that want edge-to-edge
+// content (rare) can negatively margin out of this — but the
+// default keeps every sheet consistent.
+.body {
+  padding: var(--space-4) var(--gutter-x)
+    calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
 }
 
 // ── Keyframes ──────────────────────────────────────

@@ -6,8 +6,14 @@
 // This module only owns route-log-specific content styles.
 
 // ── Header (hero) ──────────────────────────────────
+// Route number above, "Community grade · V4" beneath. Previously the
+// two were inline-block so they rendered side-by-side on one line —
+// now a flex column with centred children so they stack.
 .header {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
   padding: var(--space-2) 0 var(--space-4);
   flex-shrink: 0;
 }
@@ -35,33 +41,40 @@
 // route sheet header so climbers see "Community grade · V4" at a
 // glance rather than a bare "V4" they might mistake for the
 // setter's grade.
-.communityGradeWrap {
+// "V7 · Community grade" renders as a single inline line; value
+// and meta share the same typography so the pair reads as one
+// piece of text, only the colours differ. Ungraded routes reuse
+// the same line.
+//
+// `min-height: 1lh` + a `min-width` make the line reserve its
+// footprint before the grade resolves, so swapping the skeleton
+// for the real text doesn't shift the header below.
+.communityGradeLine {
+  @include type.typography(label);
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  // Centre the content inside the reserved-width box — otherwise
+  // short variants like "Ungraded" sit left-aligned within the
+  // 11rem min-width that's there to stop layout shift on load.
+  justify-content: center;
+  gap: 0;
+  white-space: nowrap;
+  min-height: 1lh;
+  min-width: 11rem;
   margin: 0 auto;
 }
 
-.communityGradeLabel {
-  @include type.typography(label);
+.communityGradeValue {
+  color: var(--accent-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.communityGradeMeta {
   color: var(--mono-text-low-contrast);
 }
 
-.communityGrade {
-  @include type.typography(meta);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--accent-text);
-  // Fixed (not min-*) so the box is pixel-identical whether the inner
-  // text is "V4" or nothing. Height uses `lh` (line-height) rather than
-  // `em` so the real text's leading can't overflow the box and push
-  // subsequent elements down.
-  height: 1lh;
-  width: 2.5rem;
-}
-
-// Skeleton variant — uses the same box; only applies the shimmer.
+// Skeleton variant — same min dimensions as the loaded state so
+// there's zero shift on resolve.
 .communityGradeSkeleton {
   border-radius: var(--radius-1);
 }

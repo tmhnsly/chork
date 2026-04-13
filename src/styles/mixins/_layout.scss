@@ -50,3 +50,25 @@
   @include _page-base;
   max-width: var(--content-wide);
 }
+
+// ── Full-bleed horizontal scroller ────────────────
+// Lets a child "pop out" of its page-max-width parent so the row
+// can scroll edge-to-edge of the viewport. Use on horizontal
+// scrolling galleries (achievements shelf, crew member row, any
+// other "swipe me" strip where clipping at the column edge hurts
+// discoverability).
+//
+// The element extends to 100vw via a negative inline margin, then
+// padding restores the same leading edge as the parent column so
+// the FIRST item still lines up with body copy. On mobile where
+// the viewport is narrower than `--content-app`, padding falls
+// back to the page's `--gutter-x`.
+@mixin bleed-x($max-content: var(--content-app)) {
+  margin-inline: calc(50% - 50vw);
+  width: 100vw;
+  padding-inline: max(
+    var(--gutter-x),
+    calc((100vw - #{$max-content}) / 2)
+  );
+  box-sizing: border-box;
+}

@@ -234,7 +234,6 @@ export interface UserLogInGym {
   attempts: number;
   completed: boolean;
   zone: boolean;
-  grade_vote: number | null;
 }
 
 /**
@@ -258,7 +257,7 @@ export async function getAllRouteDataForUserInGym(
     // `totalRoutesInGym` — a "20/14 coverage" bug on long-history gyms.
     supabase
       .from("route_logs")
-      .select("route_id, attempts, completed, zone, grade_vote, routes!inner(set_id)")
+      .select("route_id, attempts, completed, zone, routes!inner(set_id)")
       .eq("user_id", userId)
       .eq("gym_id", gymId)
       .in("routes.set_id", setIds),
@@ -280,7 +279,6 @@ export async function getAllRouteDataForUserInGym(
     attempts: number;
     completed: boolean;
     zone: boolean;
-    grade_vote: number | null;
     routes: { set_id: string } | { set_id: string }[] | null;
   };
 
@@ -292,7 +290,6 @@ export async function getAllRouteDataForUserInGym(
       attempts: r.attempts,
       completed: r.completed,
       zone: r.zone,
-      grade_vote: r.grade_vote,
     };
   }).filter((l) => l.set_id !== "");
 

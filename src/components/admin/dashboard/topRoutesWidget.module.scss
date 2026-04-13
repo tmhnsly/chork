@@ -1,36 +1,6 @@
 @use "mixins/layout" as layout;
 @use "mixins/typography" as type;
 
-// ── Metric pill switcher ──────────────────────────
-.metricRow {
-  display: flex;
-  gap: var(--space-1);
-  padding: var(--space-1);
-  background: var(--mono-subtle-bg);
-  border: 1px solid var(--mono-border);
-  border-radius: var(--radius-full);
-}
-
-.metricChip {
-  @include type.typography(label);
-  font-size: var(--text-2xs);
-  padding: var(--space-1) var(--space-2);
-  background: transparent;
-  border: none;
-  color: var(--mono-text-low-contrast);
-  border-radius: var(--radius-full);
-  cursor: pointer;
-
-  &:hover {
-    color: var(--mono-text);
-  }
-}
-
-.metricChipActive {
-  background: var(--mono-app-bg);
-  color: var(--mono-text);
-}
-
 // ── Row list ──────────────────────────────────────
 .list {
   @include layout.stack(var(--space-2));

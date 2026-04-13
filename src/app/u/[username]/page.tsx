@@ -148,20 +148,44 @@ export default async function UserProfilePage({ params }: Props) {
   };
 
   // ── Badge context (all-time badges on the Achievements shelf) ─
+  // Build the full per-set view across *every* set the climber has
+  // attempted, so condition-based achievements (Saviour, Not Easy
+  // Being Green, In the Zone, rhyme pairs) can evaluate correctly
+  // even when those were earned on a previous set. The active set's
+  // data is layered in alongside each previous set's routes below.
   const completedRoutesBySet = new Map<string, Set<number>>();
+  const flashedRoutesBySet = new Map<string, Set<number>>();
   const totalRoutesBySet = new Map<string, number>();
+  const zoneAvailableBySet = new Map<string, Set<number>>();
+  const zoneClaimedBySet = new Map<string, Set<number>>();
 
-  if (miniRoutes.length > 0 && activeSet) {
-    totalRoutesBySet.set(activeSet.id, miniRoutes.length);
-    const completed = new Set<number>();
-    for (const log of miniLogs) {
-      if (log.completed) {
-        const route = miniRoutes.find((r) => r.id === log.route_id);
-        if (route) completed.add(route.number);
-      }
+  const registerSet = (setId: string, routes: Route[]) => {
+    totalRoutesBySet.set(setId, routes.length);
+    const routeNumberById = new Map(routes.map((r) => [r.id, r.number]));
+    const zoneAvailable = new Set<number>();
+    for (const r of routes) {
+      if (r.has_zone) zoneAvailable.add(r.number);
     }
-    completedRoutesBySet.set(activeSet.id, completed);
-  }
+    zoneAvailableBySet.set(setId, zoneAvailable);
+    const completed = new Set<number>();
+    const flashed = new Set<number>();
+    const zoneClaimed = new Set<number>();
+    for (const log of routeData.logs) {
+      if (log.set_id !== setId) continue;
+      const num = routeNumberById.get(log.route_id);
+      if (num === undefined) continue;
+      if (log.zone) zoneClaimed.add(num);
+      if (!log.completed) continue;
+      completed.add(num);
+      if (log.attempts === 1) flashed.add(num);
+    }
+    completedRoutesBySet.set(setId, completed);
+    flashedRoutesBySet.set(setId, flashed);
+    zoneClaimedBySet.set(setId, zoneClaimed);
+  };
+
+  if (activeSet) registerSet(activeSet.id, miniRoutes);
+  previousSetRecords.forEach((set, i) => registerSet(set.id, previousSetRoutes[i]));
 
   const badges = evaluateBadges({
     totalFlashes: aggregates.flashes,
@@ -169,6 +193,9 @@ export default async function UserProfilePage({ params }: Props) {
     totalPoints: aggregates.points,
     completedRoutesBySet,
     totalRoutesBySet,
+    flashedRoutesBySet,
+    zoneAvailableBySet,
+    zoneClaimedBySet,
   }).map((b) => {
     if (b.earned) {
       const earnedAt = earnedAchievements.get(b.badge.id);
@@ -202,15 +229,31 @@ export default async function UserProfilePage({ params }: Props) {
     const totalRoutes = routes.length;
     const maxPoints = computeMaxPoints(totalRoutes, routes.filter((r) => r.has_zone).length);
 
-    // Per-set earned badges — condition-based only
-    const completedNumbers = new Set<number>();
-    for (const log of setLogs) {
-      if (log.completed) {
-        const route = routes.find((r) => r.id === log.route_id);
-        if (route) completedNumbers.add(route.number);
-      }
+    // Per-set earned badges — condition-based only. Includes flash
+    // / zone info so new achievements (Saviour, Not Easy Being
+    // Green, In the Zone) surface on the set's detail card.
+    const completed = new Set<number>();
+    const flashed = new Set<number>();
+    const zoneClaimed = new Set<number>();
+    const zoneAvailable = new Set<number>();
+    for (const r of routes) {
+      if (r.has_zone) zoneAvailable.add(r.number);
     }
-    const badgesForSet = evaluateBadgesForSet(completedNumbers, totalRoutes);
+    for (const log of setLogs) {
+      const route = routes.find((r) => r.id === log.route_id);
+      if (!route) continue;
+      if (log.zone) zoneClaimed.add(route.number);
+      if (!log.completed) continue;
+      completed.add(route.number);
+      if (log.attempts === 1) flashed.add(route.number);
+    }
+    const badgesForSet = evaluateBadgesForSet({
+      completed,
+      flashed,
+      zoneAvailable,
+      zoneClaimed,
+      totalRoutes,
+    });
 
     return {
       id: setRecord.id,

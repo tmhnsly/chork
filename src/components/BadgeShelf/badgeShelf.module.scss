@@ -1,60 +1,61 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
-@use "mixins/surfaces" as surface;
+@use "mixins/focus";
 
 .shelf {
   @include layout.stack(var(--space-3));
 }
 
+// ── Section header ────────────────────────────────
+// Uppercase label on the left, bold-italic "X / Y" on the right —
+// matches the `typography(number)` + `--accent-text` pattern used
+// by the stat values in RingStatsRow / ClimberStats.
 .header {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  gap: var(--space-2);
-}
-
-.title {
-  @include type.typography(label);
-  color: var(--mono-text-low-contrast);
-}
-
-.count {
-  @include type.typography(meta);
-  color: var(--mono-text-low-contrast);
-}
-
-.headerRight {
-  display: flex;
-  align-items: baseline;
   gap: var(--space-3);
 }
 
-.seeAll {
-  @include type.typography(meta);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
+.heading {
+  @include type.typography(label);
   color: var(--mono-text-low-contrast);
-  background: none;
+  margin: 0;
+}
+
+.count {
+  @include type.typography(number);
+  font-size: var(--text-lg);
+  color: var(--accent-text);
+  background: transparent;
   border: none;
   padding: 0;
   cursor: pointer;
-  transition: color 0.1s ease;
+  @include focus.ring;
+  -webkit-tap-highlight-color: transparent;
 
   &:hover {
-    color: var(--mono-text);
+    color: var(--accent-solid);
+  }
+
+  small {
+    @include type.typography(label);
+    font-size: var(--text-xs);
+    margin-left: var(--space-1);
+    font-style: normal;
+    color: var(--accent-text-low-contrast);
   }
 }
 
-.earnedDate {
-  @include type.typography(label);
-  font-size: var(--text-2xs);
-  color: var(--accent-text-low-contrast);
-}
-
+// ── Shelf track ───────────────────────────────────
+// Breaks out of the profile page's centred column via the shared
+// `bleed-x` layout mixin so the scroller can run the full viewport
+// width — items no longer clip at the page's inner gutter when the
+// user swipes. The first/last item still align with body copy
+// because `bleed-x` restores an equivalent leading padding.
 .grid {
   display: flex;
-  gap: var(--space-2);
+  gap: var(--space-3);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
@@ -65,83 +66,134 @@
   }
 }
 
-// ── Achievement item ──────────────────────────────
-.badge {
-  @include surface.card;
-  border-radius: var(--radius-2);
-  flex-shrink: 0;
-  width: 5.5rem;
-  padding: var(--space-3) var(--space-2);
+// ── Slot (icon circle + name below) ───────────────
+// Each shelf entry is a tap target — circle on top, name below.
+// Slot width matches the "name" under it so the column reads as
+// one block rather than an icon floating above a wider label.
+.slot {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-2);
-  text-align: center;
-}
+  flex-shrink: 0;
+  width: 4.5rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  @include focus.ring;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--duration-fast) var(--ease-out);
 
-// ── Earned — accent (lime) scale ──────────────────
-.badgeEarned {
-  background: var(--accent-bg);
-  border-color: var(--accent-border-subtle);
-
-  .badgeIcon {
-    color: var(--accent-text-low-contrast);
-  }
-
-  .badgeName {
-    color: var(--accent-text);
-  }
-}
-
-// ── Locked — plain mono, no dimming ───────────────
-.badgeLocked {
-  .badgeIcon {
-    color: var(--mono-solid);
-  }
-
-  .badgeName {
-    color: var(--mono-text-low-contrast);
+  &:hover,
+  &:focus-visible {
+    transform: translateY(-1px);
   }
 }
 
-// ── Icon ──────────────────────────────────────────
-.badgeIcon {
+.circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--radius-full);
   font-size: var(--text-xl);
-  display: flex;
+  line-height: 1;
+  background: var(--mono-bg);
+  border: 1px solid var(--mono-border);
+  color: var(--mono-text-low-contrast);
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
 }
 
-// ── Name ──────────────────────────────────────────
-.badgeName {
+.name {
   @include type.typography(label);
   font-size: var(--text-2xs);
   line-height: var(--leading-snug);
-}
-
-// ── Progress bar ──────────────────────────────────
-.progressBar {
-  width: 100%;
-  height: var(--space-1);
-  background: var(--mono-border);
-  border-radius: var(--radius-full);
-  position: relative;
-  overflow: hidden;
-}
-
-.progressFill {
-  height: 100%;
-  width: var(--progress, 0%);
-  background: var(--accent-solid);
-  border-radius: var(--radius-full);
-  transition: width var(--duration-normal) var(--ease-out);
-}
-
-.progressText {
-  @include type.typography(label);
-  font-size: var(--text-2xs);
   color: var(--mono-text-low-contrast);
-  position: absolute;
-  top: var(--space-2);
-  left: 0;
-  width: 100%;
   text-align: center;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  text-wrap: balance;
+  max-width: 100%;
+}
+
+// Number-pair icon text ("1,2" etc.) — use the display typography
+// so it reads as a badge mark rather than body text.
+.iconText {
+  @include type.typography(display);
+  font-size: var(--text-md);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+// ── Earned ─────────────────────────────────────────
+// Family-scoped colouring so flash / zone achievements visually match
+// their equivalents on a PunchTile (amber / teal) rather than every
+// earned badge reading as lime.
+.slot--earned.slot--accent {
+  .circle {
+    background: var(--accent-bg);
+    border-color: var(--accent-border);
+    color: var(--accent-text);
+  }
+  .name { color: var(--accent-text); }
+}
+
+.slot--earned.slot--flash {
+  .circle {
+    background: var(--flash-bg);
+    border-color: var(--flash-border);
+    color: var(--flash-text);
+  }
+  .name { color: var(--flash-text); }
+}
+
+.slot--earned.slot--success {
+  .circle {
+    background: var(--success-bg);
+    border-color: var(--success-border);
+    color: var(--success-text);
+  }
+  .name { color: var(--success-text); }
+}
+
+// ── In-progress quantifiable ──────────────────────
+// Mono circle at reduced opacity so an in-progress ring never hints
+// at completion — only earned badges carry category colour. Small
+// dot below the name hints progress is underway without exposing
+// raw numbers (those live in the achievement detail sheet).
+.slot--progress {
+  .circle {
+    opacity: 0.65;
+  }
+}
+
+.progressDot {
+  display: block;
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: var(--radius-full);
+  margin-top: calc(var(--space-1) * -1);
+  background: var(--mono-solid);
+}
+
+// ── Fully muted (locked condition / secret) ───────
+.slot--muted .circle {
+  opacity: 0.5;
+}
+
+// ── "+N more" trailing pill ───────────────────────
+// Dashed, muted, same footprint as the other slots so the shelf
+// keeps a consistent rhythm to the end.
+.slot--more .circle {
+  background: transparent;
+  border: 1px dashed var(--mono-border);
+  color: var(--mono-text-low-contrast);
+  @include type.typography(number);
+  font-size: var(--text-md);
 }

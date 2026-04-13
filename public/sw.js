@@ -38,8 +38,8 @@ self.addEventListener("push", (event) => {
   const title = payload.title || "Chork";
   const options = {
     body: payload.body || "",
-    icon: "/icon.svg",
-    badge: "/icon.svg",
+    icon: "/notification-icon.svg",
+    badge: "/notification-icon.svg",
     data: { url: payload.url || "/" },
   };
   event.waitUntil(self.registration.showNotification(title, options));

@@ -6,9 +6,9 @@ import { FaBolt, FaFlag, FaUser } from "react-icons/fa6";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button, UserAvatar, shimmerStyles } from "@/components/ui";
 import { PunchTile } from "@/components/PunchTile/PunchTile";
-import type { LeaderboardEntry, Profile, Route, TileState } from "@/lib/data";
+import type { LeaderboardEntry, Route, TileState } from "@/lib/data";
 import { formatGrade } from "@/lib/data/grade-label";
-import { fetchClimberSheetData, type SanitisedLog } from "@/app/leaderboard/actions";
+import { fetchClimberSheetLogs, type SanitisedLog } from "@/app/leaderboard/actions";
 import { toAvatarUser } from "./helpers";
 import styles from "./climberSheet.module.scss";
 
@@ -24,44 +24,40 @@ interface Props {
   entry: LeaderboardEntry;
   /** Active set id (only provided when on "This set" tab). */
   setId: string | null;
+  /** Routes for the active set — preloaded by the leaderboard page so
+   *  the grid can render its real shape instantly while logs load. */
+  routes: Route[];
   onClose: () => void;
 }
 
-interface SheetData {
-  profile: Profile;
-  routes: Route[];
-  logs: SanitisedLog[];
-}
-
-export function ClimberSheet({ entry, setId, onClose }: Props) {
-  // Start "loading" only if we have a setId to fetch (all-time tab skips fetch)
-  const [data, setData] = useState<SheetData | null>(null);
+export function ClimberSheet({ entry, setId, routes, onClose }: Props) {
+  const [logs, setLogs] = useState<SanitisedLog[] | null>(null);
   const [loading, setLoading] = useState(setId !== null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!setId) return;
     let cancelled = false;
-    fetchClimberSheetData(entry.user_id, setId).then((result) => {
+    fetchClimberSheetLogs(entry.user_id, setId).then((result) => {
       if (cancelled) return;
       if ("error" in result) {
         setError(result.error);
         setLoading(false);
         return;
       }
-      setData(result.data);
+      setLogs(result.logs);
       setLoading(false);
     });
     return () => { cancelled = true; };
   }, [entry.user_id, setId]);
 
-  const logByRoute = data ? new Map(data.logs.map((l) => [l.route_id, l])) : null;
+  const logByRoute = logs ? new Map(logs.map((l) => [l.route_id, l])) : null;
 
   return (
     <BottomSheet
       open
       onClose={onClose}
-      title={`@${entry.username}`}
+      title="Current Set"
       description={`Climber stats for @${entry.username}`}
     >
       <div className={styles.body}>
@@ -86,39 +82,35 @@ export function ClimberSheet({ entry, setId, onClose }: Props) {
         </section>
 
         {/* Send grid (current set only) */}
-        {setId && (
+        {setId && routes.length > 0 && (
           <section className={styles.gridSection} aria-label="Send grid for current set">
-            <h3 className={styles.gridLabel}>Current set</h3>
-            {loading && (
-              <div className={styles.grid} role="status" aria-busy="true" aria-label="Loading send grid">
-                {Array.from({ length: 14 }).map((_, i) => (
-                  <PunchTile key={i} number={i + 1} state="empty" className={shimmerStyles.skeleton} />
-                ))}
-              </div>
-            )}
-            {!loading && data && data.routes.length > 0 && (
-              <div className={styles.grid}>
-                {data.routes.map((route) => {
-                  const log = logByRoute?.get(route.id);
-                  return (
-                    <PunchTile
-                      key={route.id}
-                      number={route.number}
-                      state={tileStateFromSanitised(log)}
-                      zone={log?.zone}
-                      gradeLabel={log?.grade_vote != null ? (formatGrade(log.grade_vote, "v") ?? undefined) : undefined}
-                    />
-                  );
-                })}
-              </div>
-            )}
-            {!loading && data && data.routes.length === 0 && (
-              <p className={styles.empty}>No routes in the current set yet.</p>
-            )}
+            <div
+              className={styles.grid}
+              role={loading ? "status" : undefined}
+              aria-busy={loading || undefined}
+              aria-label={loading ? "Loading send grid" : undefined}
+            >
+              {routes.map((route) => {
+                const log = logByRoute?.get(route.id);
+                return (
+                  <PunchTile
+                    key={route.id}
+                    number={route.number}
+                    state={tileStateFromSanitised(log)}
+                    zone={log?.zone}
+                    gradeLabel={log?.grade_vote != null ? (formatGrade(log.grade_vote, "v") ?? undefined) : undefined}
+                    className={loading ? shimmerStyles.skeleton : undefined}
+                  />
+                );
+              })}
+            </div>
             {!loading && error && (
               <p className={styles.empty}>Couldn&apos;t load send grid. {error}</p>
             )}
           </section>
+        )}
+        {setId && routes.length === 0 && (
+          <p className={styles.empty}>No routes in the current set yet.</p>
         )}
 
         <Link href={`/u/${entry.username}`} className={styles.profileLink}>

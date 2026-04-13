@@ -45,6 +45,7 @@ import {
 } from "@/app/(app)/actions";
 import { Button, shimmerStyles, showToast } from "@/components/ui";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { BrandDivider } from "@/components/ui/BrandDivider";
 import styles from "./routeLogSheet.module.scss";
 
 /** Data returned by fetchRouteData, cacheable at the SendsGrid level. */
@@ -448,21 +449,27 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
               {route.number}
               {isCurrentFlash && <FaBolt className={styles.flashIcon} />}
             </h2>
-            {/* Community grade display — hidden for points-only sets
-                where grading is disabled at the set level. "Community
-                grade" label spells out where the number comes from so
-                climbers don't mistake it for the setter's grade. */}
-            {gradingDisabled ? null : (
-              <span className={styles.communityGradeWrap}>
-                <span className={styles.communityGradeLabel}>Community grade</span>
-                {gradeLabel !== null ? (
-                  <span className={styles.communityGrade}>{gradeLabel}</span>
-                ) : (
-                  <span
-                    className={`${styles.communityGrade} ${styles.communityGradeSkeleton} ${shimmerStyles.skeleton}`}
-                    aria-hidden="true"
-                  />
-                )}
+            {/* Community grade display — hidden for points-only sets.
+                Value and "Community grade" label render in the same
+                font size so the pair reads as a single line; they
+                only differ in colour. An ungraded route shows just
+                "Ungraded" in the same typography — no redundant
+                label. While the server call resolves, a shimmer fills
+                the same box to stop the header jumping. */}
+            {gradingDisabled ? null : gradeLabel === null ? (
+              <span
+                className={`${styles.communityGradeLine} ${styles.communityGradeSkeleton} ${shimmerStyles.skeleton}`}
+                aria-hidden="true"
+              />
+            ) : gradeLabel === "Ungraded" ? (
+              <span className={`${styles.communityGradeLine} ${styles.communityGradeMeta}`}>
+                Ungraded
+              </span>
+            ) : (
+              <span className={styles.communityGradeLine}>
+                <span className={styles.communityGradeValue}>{gradeLabel}</span>
+                <BrandDivider />
+                <span className={styles.communityGradeMeta}>Community grade</span>
               </span>
             )}
           </header>

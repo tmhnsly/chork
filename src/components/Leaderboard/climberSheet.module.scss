@@ -3,7 +3,6 @@
 
 .body {
   @include layout.stack(var(--space-5));
-  padding-top: var(--space-4);
 }
 
 // ── Header (identity) ─────────────────────────────
@@ -90,11 +89,6 @@
 // ── Grid section ──────────────────────────────────
 .gridSection {
   @include layout.stack(var(--space-2));
-}
-
-.gridLabel {
-  @include type.typography(label);
-  color: var(--mono-text-low-contrast);
 }
 
 .grid {

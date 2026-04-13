@@ -5,11 +5,9 @@ import {
   getLeaderboard,
   getLeaderboardNeighbourhood,
   getLeaderboardUserRow,
-  getProfile,
-  getRoutesBySet,
   getLogsBySetForUser,
 } from "@/lib/data/queries";
-import type { LeaderboardEntry, Profile, Route } from "@/lib/data";
+import type { LeaderboardEntry } from "@/lib/data";
 
 const TOP_LIMIT = 5;
 const PAGE_LIMIT = 10;
@@ -71,20 +69,17 @@ export interface SanitisedLog {
   grade_vote: number | null;
 }
 
-interface ClimberSheetData {
-  profile: Profile;
-  routes: Route[];
-  logs: SanitisedLog[];
-}
-
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Fetch a climber's profile + their logs for the given set (for the sheet). */
-export async function fetchClimberSheetData(
+/**
+ * Fetch a climber's sanitised logs for the given set. Routes are
+ * preloaded by the leaderboard page (identical for every climber), so
+ * the sheet only needs the per-user log rows.
+ */
+export async function fetchClimberSheetLogs(
   climberUserId: string,
   setId: string
-): Promise<{ data: ClimberSheetData } | { error: string }> {
-  // Input validation — reject malformed UUIDs early
+): Promise<{ logs: SanitisedLog[] } | { error: string }> {
   if (!UUID_RE.test(climberUserId) || !UUID_RE.test(setId)) {
     return { error: "Invalid request" };
   }
@@ -103,20 +98,7 @@ export async function fetchClimberSheetData(
     return { error: "Set not found" };
   }
 
-  // Note: the set-belongs-to-gym check above pins the context to the
-  // caller's gym. We deliberately don't query `gym_memberships` here —
-  // its RLS only allows a user to read their own membership row, so a
-  // direct lookup for another climber returns null even when they
-  // legitimately belong to the gym. The logs query below is already
-  // scoped to the set, so there's no cross-gym leak risk.
-
-  const [profile, routes, rawLogs] = await Promise.all([
-    getProfile(supabase, climberUserId),
-    getRoutesBySet(supabase, setId),
-    getLogsBySetForUser(supabase, setId, climberUserId),
-  ]);
-
-  if (!profile) return { error: "Climber not found" };
+  const rawLogs = await getLogsBySetForUser(supabase, setId, climberUserId);
 
   const logs: SanitisedLog[] = rawLogs.map((l) => ({
     route_id: l.route_id,
@@ -127,5 +109,5 @@ export async function fetchClimberSheetData(
     grade_vote: l.grade_vote,
   }));
 
-  return { data: { profile, routes, logs } };
+  return { logs };
 }

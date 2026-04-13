@@ -34,6 +34,11 @@
 }
 
 // ── Grade picker (expandable) ─────────────────────
+// Container collapses via the grid-template-rows 0fr → 1fr trick.
+// Content opacity / transform transitions use the SAME duration +
+// easing as the row change, no delays in either direction — so the
+// open and close are mirror images and the closed state collapses
+// down to a clean single-row input with nothing peeking out.
 .gradeSection {
   display: grid;
   grid-template-rows: 0fr;
@@ -45,8 +50,8 @@
     opacity: 0;
     transform: translateY(-4px);
     transition:
-      opacity var(--duration-fast) var(--ease-out),
-      transform var(--duration-fast) var(--ease-out);
+      opacity var(--duration-normal) var(--ease-out),
+      transform var(--duration-normal) var(--ease-out);
   }
 }
 
@@ -56,7 +61,6 @@
   > * {
     opacity: 1;
     transform: none;
-    transition-delay: 0.1s;
   }
 }
 

@@ -1,10 +1,10 @@
 "use client";
 
-import { FaLock } from "react-icons/fa6";
+import { FaCheck, FaLock } from "react-icons/fa6";
 import { format, parseISO } from "date-fns";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { ICON_MAP } from "@/components/BadgeShelf/BadgeShelf";
-import type { BadgeStatus } from "@/lib/badges";
+import type { BadgeStatus, BadgeCategory, BadgeIcon } from "@/lib/badges";
 import styles from "./achievementDetailSheet.module.scss";
 
 interface Props {
@@ -13,44 +13,124 @@ interface Props {
   onClose: () => void;
 }
 
+/**
+ * Detail view for a single achievement, opened from the profile
+ * BadgeShelf. Structure:
+ *
+ *   Large icon circle (matches the shelf's earned / locked styling)
+ *   Achievement name (bold italic)
+ *   Criteria copy
+ *   Divider
+ *   Progress section:
+ *     • Earned  → earned-on date
+ *     • Locked + quantifiable → single progress bar + "N / target
+ *       <unit>" label
+ *     • Locked + binary condition → empty-state line, no bar
+ *
+ * Dismissal is standard — tap backdrop or close button in the sheet
+ * header (handled by BottomSheet itself).
+ */
 export function AchievementDetailSheet({ badge, open, onClose }: Props) {
   const hidden = badge.badge.isSecret && !badge.earned;
   const Icon = hidden ? FaLock : ICON_MAP[badge.badge.icon];
-  const name = hidden ? "???" : badge.badge.name;
+  const name = hidden ? "Secret achievement" : badge.badge.name;
   const description = hidden
-    ? "This is a secret achievement. Keep climbing to unlock it."
+    ? "Keep climbing to discover this one."
     : badge.badge.description;
 
+  const isQuantifiable =
+    !hidden && !badge.earned && badge.current !== null && badge.badge.target !== null;
+  const progressPct = isQuantifiable && badge.progress !== null
+    ? Math.round(badge.progress * 100)
+    : 0;
+
+  // Circle / hero styling mirrors the shelf tile for the same badge.
+  const heroState: "earned" | "progress" | "muted" = badge.earned
+    ? "earned"
+    : isQuantifiable
+      ? "progress"
+      : "muted";
+  const family: "flash" | "success" | "accent" | null =
+    heroState === "earned" ? earnedFamily(badge.badge) : null;
+
   return (
-    <BottomSheet open={open} onClose={onClose} title={name} description={description}>
-      <div className={styles.body}>
-        <div className={`${styles.iconWrap} ${badge.earned ? styles.iconWrapEarned : ""}`}>
+    <BottomSheet
+      open={open}
+      onClose={onClose}
+      title={hidden ? "Locked" : badge.badge.name}
+      description={description}
+    >
+      <div className={styles.sheet}>
+        <div
+          className={[
+            styles.hero,
+            styles[`hero--${heroState}`],
+            family ? styles[`hero--${family}`] : "",
+          ].filter(Boolean).join(" ")}
+          aria-hidden
+        >
           <Icon />
         </div>
 
         <h2 className={styles.name}>{name}</h2>
-        <p className={styles.description}>{description}</p>
+        <p className={styles.criteria}>{description}</p>
 
-        {badge.earned && badge.earnedAt && (
-          <p className={styles.earned}>
-            Earned {format(parseISO(badge.earnedAt), "MMM d, yyyy")}
-          </p>
-        )}
+        <div className={styles.divider} aria-hidden />
 
-        {!hidden && !badge.earned && badge.progress !== null && badge.current !== null && badge.badge.target !== null && (
-          <div className={styles.progressBlock}>
+        {badge.earned ? (
+          <div className={styles.earnedRow}>
+            <span className={styles.tick} aria-hidden><FaCheck /></span>
+            <span className={styles.earnedLabel}>
+              {badge.earnedAt
+                ? `Earned ${format(parseISO(badge.earnedAt), "MMM d, yyyy")}`
+                : "Earned"}
+            </span>
+          </div>
+        ) : isQuantifiable ? (
+          <div className={styles.progress}>
             <div className={styles.progressBar}>
               <div
                 className={styles.progressFill}
-                style={{ "--progress": `${Math.round(badge.progress * 100)}%` } as React.CSSProperties}
+                style={{ "--progress": `${progressPct}%` } as React.CSSProperties}
               />
             </div>
-            <span className={styles.progressText}>
+            <span className={styles.progressLabel}>
               {badge.current} / {badge.badge.target}
+              {" "}
+              <span className={styles.progressUnit}>
+                {progressUnit(badge.badge.progressKey, badge.badge.target)}
+              </span>
             </span>
           </div>
+        ) : (
+          <p className={styles.empty}>
+            {hidden
+              ? "Keep climbing to unlock this one."
+              : "Pull it off in a single set to earn this."}
+          </p>
         )}
       </div>
     </BottomSheet>
   );
+}
+
+/** Match the shelf's badge → colour family mapping. */
+function earnedFamily(badge: { category: BadgeCategory; icon: BadgeIcon }): "flash" | "success" | "accent" {
+  if (badge.category === "flashes") return "flash";
+  if (badge.icon === "flag") return "success";
+  return "accent";
+}
+
+/** Human unit for the "N / target <unit>" progress label. */
+function progressUnit(key: string | null, target: number | null): string {
+  const plural = target !== 1;
+  switch (key) {
+    case "flashes":   return plural ? "flashes" : "flash";
+    case "sends":     return plural ? "sends" : "send";
+    case "points":    return plural ? "points" : "point";
+    case "streak":    return plural ? "sets" : "set";
+    case "followers": return plural ? "followers" : "follower";
+    case "following": return plural ? "following" : "following";
+    default:          return "";
+  }
 }

@@ -7,6 +7,7 @@ import {
   getLeaderboardNeighbourhood,
   getLeaderboardUserRow,
   getGymStats,
+  getRoutesBySet,
 } from "@/lib/data/queries";
 import { LeaderboardView } from "@/components/Leaderboard/LeaderboardView";
 import styles from "./leaderboard.module.scss";
@@ -31,10 +32,11 @@ export default async function LeaderboardPage() {
   // Determine initial tab's setId — prefer active set, fall back to all-time
   const initialSetId = currentSet?.id ?? null;
 
-  const [top, userRow, setStats] = await Promise.all([
+  const [top, userRow, setStats, currentSetRoutes] = await Promise.all([
     getLeaderboard(supabase, gymId, initialSetId, TOP_LIMIT, 0),
     getLeaderboardUserRow(supabase, gymId, userId, initialSetId),
     initialSetId ? getGymStats(supabase, gymId, initialSetId) : Promise.resolve(null),
+    initialSetId ? getRoutesBySet(supabase, initialSetId) : Promise.resolve([]),
   ]);
 
   const needsNeighbourhood =
@@ -53,6 +55,7 @@ export default async function LeaderboardPage() {
         initialSetData={{ top, userRow, neighbourhood }}
         setStats={setStats}
         allTimeStats={allTimeStats}
+        currentSetRoutes={currentSetRoutes}
       />
     </main>
   );

@@ -1,57 +1,122 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
 
-.body {
+// BottomSheet owns outer padding; this container handles vertical
+// rhythm + horizontal centring only.
+.sheet {
   @include layout.stack(var(--space-4));
   align-items: center;
-  padding-top: var(--space-4);
-  padding-bottom: var(--space-4);
   text-align: center;
 }
 
-.iconWrap {
+// ── Hero icon ─────────────────────────────────────
+// 80px circle. Three variants mirror the shelf's tile styling so
+// the detail view feels like a continuation of the tap.
+.hero {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--space-16);
-  height: var(--space-16);
+  width: 5rem;
+  height: 5rem;
   border-radius: var(--radius-full);
-  background: var(--mono-subtle-bg);
-  color: var(--mono-solid);
   font-size: var(--text-3xl);
+  line-height: 1;
+  background: var(--mono-bg);
+  border: 1px solid var(--mono-border);
+  color: var(--mono-text-low-contrast);
 }
 
-.iconWrapEarned {
+.hero--earned.hero--accent {
   background: var(--accent-bg);
-  color: var(--accent-text-low-contrast);
+  border-color: var(--accent-border);
+  color: var(--accent-text);
 }
 
+.hero--earned.hero--flash {
+  background: var(--flash-bg);
+  border-color: var(--flash-border);
+  color: var(--flash-text);
+}
+
+.hero--earned.hero--success {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+  color: var(--success-text);
+}
+
+.hero--progress {
+  opacity: 0.65;
+}
+
+.hero--muted {
+  opacity: 0.5;
+}
+
+// ── Copy ──────────────────────────────────────────
+// Name uses the `typography(number)` preset (bold italic heading
+// face) — matches the "bold italic" headline feel elsewhere.
 .name {
-  @include type.typography(card-title);
+  @include type.typography(number);
+  font-size: var(--text-3xl);
   color: var(--mono-text);
+  margin: 0;
+  text-wrap: balance;
 }
 
-.description {
+.criteria {
   @include type.typography(body);
   color: var(--mono-text-low-contrast);
-  max-width: 28rem;
+  max-width: 32ch;
+  margin: 0;
 }
 
-.earned {
+.divider {
+  width: 100%;
+  height: 1px;
+  background: var(--mono-border-subtle);
+}
+
+// ── Earned row ────────────────────────────────────
+.earnedRow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--accent-bg);
+  color: var(--accent-text);
+}
+
+.tick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-6);
+  height: var(--space-6);
+  border-radius: var(--radius-full);
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+  font-size: var(--text-xs);
+}
+
+.earnedLabel {
   @include type.typography(label);
-  color: var(--accent-text-low-contrast);
 }
 
-.progressBlock {
+// ── Progress block (quantifiable) ─────────────────
+// Single bar + "1 / 5 flashes" label below — deliberately not
+// split into separate "so far" / "needed" cells.
+.progress {
   @include layout.stack(var(--space-2));
   width: 100%;
-  max-width: 20rem;
+  max-width: 22rem;
   align-items: stretch;
 }
 
 .progressBar {
-  height: var(--space-2);
-  background: var(--mono-border);
+  height: var(--space-3);
+  background: var(--mono-bg);
+  border: 1px solid var(--mono-border-subtle);
   border-radius: var(--radius-full);
   overflow: hidden;
 }
@@ -64,7 +129,27 @@
   transition: width var(--duration-normal) var(--ease-out);
 }
 
-.progressText {
+.progressLabel {
+  @include type.typography(number);
+  font-size: var(--text-md);
+  color: var(--mono-text);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.progressUnit {
   @include type.typography(label);
   color: var(--mono-text-low-contrast);
+  margin-left: 0.1em;
+  font-weight: var(--weight-regular);
+  font-style: normal;
+  text-transform: lowercase;
+}
+
+// ── Empty state (binary achievement) ──────────────
+.empty {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  max-width: 32ch;
+  margin: 0;
 }

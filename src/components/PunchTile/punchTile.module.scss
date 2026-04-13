@@ -27,6 +27,17 @@
   }
 }
 
+// Static (informational) variant — read-only tiles used in other
+// climbers' send grids, previous-set displays, etc. No pointer, no
+// hover state, no keyboard focus affordance.
+.tile.static {
+  cursor: default;
+
+  &:hover {
+    background: var(--mono-bg);
+  }
+}
+
 .number {
   font-family: var(--font-heading);
   font-weight: var(--weight-black);

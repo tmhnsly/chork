@@ -94,8 +94,6 @@ export function GymSwitcherSheet({ open, onClose, activeGymId }: Props) {
   return (
     <BottomSheet open={open} onClose={onClose} title="Change gym" description="Pick the gym you're climbing at today">
       <div className={styles.body}>
-        <h2 className={styles.heading}>Change gym</h2>
-
         <div className={styles.searchWrap}>
           <FaMagnifyingGlass className={styles.searchIcon} aria-hidden />
           <input

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { WidgetCard } from "./WidgetCard";
+import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import type { TopRouteRow } from "@/lib/data/dashboard-queries";
 import styles from "./topRoutesWidget.module.scss";
 
@@ -53,20 +54,15 @@ export function TopRoutesWidget({ routes }: Props) {
       empty={routes.length === 0}
       emptyMessage="No route activity yet."
       actions={
-        <div className={styles.metricRow} role="tablist" aria-label="Metric">
-          {(Object.keys(METRIC_LABELS) as Metric[]).map((m) => (
-            <button
-              key={m}
-              type="button"
-              role="tab"
-              aria-selected={metric === m}
-              className={`${styles.metricChip} ${metric === m ? styles.metricChipActive : ""}`}
-              onClick={() => setMetric(m)}
-            >
-              {METRIC_LABELS[m]}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl<Metric>
+          options={(Object.keys(METRIC_LABELS) as Metric[]).map((m) => ({
+            value: m,
+            label: METRIC_LABELS[m],
+          }))}
+          value={metric}
+          onChange={setMetric}
+          ariaLabel="Metric"
+        />
       }
     >
       <ul className={styles.list}>

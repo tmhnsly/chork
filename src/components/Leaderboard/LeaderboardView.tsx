@@ -14,7 +14,7 @@ import { GymStatsStrip } from "./GymStatsStrip";
 import { ScoringBreakdown } from "./ScoringBreakdown";
 import { InviteCard } from "./InviteCard";
 import { PageHeader } from "@/components/motion";
-import type { LeaderboardEntry } from "@/lib/data";
+import type { LeaderboardEntry, Route } from "@/lib/data";
 import type { GymStats } from "@/lib/data/queries";
 import {
   fetchLeaderboardTab,
@@ -42,6 +42,9 @@ interface Props {
   setStats: GymStats | null;
   /** All-time gym-wide aggregate numbers. */
   allTimeStats: GymStats;
+  /** Routes for the active set — passed down to ClimberSheet so it
+   *  can render the grid shape immediately while logs fetch. */
+  currentSetRoutes: Route[];
 }
 
 export function LeaderboardView({
@@ -51,6 +54,7 @@ export function LeaderboardView({
   initialSetData,
   setStats,
   allTimeStats,
+  currentSetRoutes,
 }: Props) {
   const [tab, setTab] = useState<Tab>(currentSetId ? "set" : "all");
   const [cache, setCache] = useState<Partial<Record<Tab, TabData>>>(() =>
@@ -279,6 +283,7 @@ export function LeaderboardView({
         <ClimberSheet
           entry={sheetEntry}
           setId={activeSetIdForTab}
+          routes={currentSetRoutes}
           onClose={() => setSheetEntry(null)}
         />
       )}

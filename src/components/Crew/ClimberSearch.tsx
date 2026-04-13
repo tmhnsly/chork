@@ -235,7 +235,6 @@ function CrewPickerSheet({
       description="Pick a crew to add them to"
     >
       <div className={styles.pickerBody}>
-        <h2 className={styles.heading}>Invite @{target.username}</h2>
         <p className={styles.pickerSub}>Pick a crew to add them to.</p>
 
         {myCrews.length === 0 ? (

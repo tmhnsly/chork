@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { getCompetitionLeaderboard, type CompetitionLeaderboardRow } from "@/lib/data/competition-queries";
-import { UserAvatar, shimmerStyles } from "@/components/ui";
+import { UserAvatar, shimmerStyles, TabPills, type TabPillOption } from "@/components/ui";
 import { toAvatarUser } from "@/components/Leaderboard/helpers";
 import type { CompetitionCategory } from "@/lib/data/competition-queries";
 import styles from "./competitionLeaderboard.module.scss";
@@ -49,31 +49,23 @@ export function CompetitionLeaderboard({
     return () => { cancelled = true; };
   }, [competitionId, categoryId, queryKey]);
 
-  const pills = useMemo<Array<{ id: string | null; label: string }>>(() => {
+  const pills = useMemo<TabPillOption<string | null>[]>(() => {
     if (categories.length === 0) return [];
     return [
-      { id: null, label: "All" },
-      ...categories.map((c) => ({ id: c.id, label: c.name })),
+      { value: null, label: "All" },
+      ...categories.map((c) => ({ value: c.id, label: c.name })),
     ];
   }, [categories]);
 
   return (
     <section className={styles.section} aria-label="Competition leaderboard">
       {pills.length > 0 && (
-        <div className={styles.pillRow} role="tablist" aria-label="Filter by category">
-          {pills.map((p) => (
-            <button
-              key={p.id ?? "all"}
-              type="button"
-              role="tab"
-              aria-selected={categoryId === p.id}
-              className={`${styles.pill} ${categoryId === p.id ? styles.pillActive : ""}`}
-              onClick={() => setCategoryId(p.id)}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
+        <TabPills
+          options={pills}
+          value={categoryId}
+          onChange={setCategoryId}
+          ariaLabel="Filter by category"
+        />
       )}
 
       {rows === null ? (

@@ -43,13 +43,10 @@ export function InstallPwaSheet({ open, onClose }: Props) {
       description="Add Chork to your home screen to turn on notifications"
     >
       <div className={styles.sheet}>
-        <header className={styles.header}>
-          <h2 className={styles.heading}>Install Chork</h2>
-          <p className={styles.lede}>
-            Notifications run through an installed app. Add Chork to your
-            home screen and open it from there to turn them on.
-          </p>
-        </header>
+        <p className={styles.lede}>
+          Notifications run through an installed app. Add Chork to your
+          home screen and open it from there to turn them on.
+        </p>
 
         {platform !== "android" && (
           <section className={styles.section} aria-labelledby="ios-heading">

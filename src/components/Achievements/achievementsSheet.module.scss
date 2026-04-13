@@ -2,56 +2,14 @@
 @use "mixins/layout" as layout;
 @use "mixins/surfaces" as surface;
 
+// BottomSheet owns the outer padding; this inner stack just controls
+// the vertical rhythm between the tab pills and the list.
 .body {
   @include layout.stack(var(--space-4));
-  padding-top: var(--space-2);
-  padding-bottom: var(--space-2);
-}
-
-.heading {
-  @include type.typography(card-title);
-}
-
-// ── Category pills ────────────────────────────────
-.pills {
-  display: flex;
-  gap: var(--space-2);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
-}
-
-.pill {
-  @include type.typography(label);
-  flex-shrink: 0;
-  padding: var(--space-2) var(--space-3);
-  min-height: var(--size-touch-target);
-  border-radius: var(--radius-full);
-  background: var(--mono-subtle-bg);
-  color: var(--mono-text-low-contrast);
-  border: 1px solid var(--mono-border);
-  cursor: pointer;
-  transition: background 0.1s ease, color 0.1s ease;
-
-  &:hover {
-    background: var(--mono-bg);
-    color: var(--mono-text);
-  }
-}
-
-.pillActive {
-  background: var(--accent-bg);
-  color: var(--accent-text);
-  border-color: var(--accent-border-subtle);
-
-  &:hover {
-    background: var(--accent-bg);
-    color: var(--accent-text);
-  }
+  // Pin to a tall, stable height so switching filters doesn't resize
+  // the sheet — shorter lists just leave empty space at the bottom
+  // rather than bouncing the whole panel.
+  min-height: 80svh;
 }
 
 // ── List ──────────────────────────────────────────
@@ -62,6 +20,8 @@
   margin: 0;
 }
 
+// Rows are informational only — no hover / tap state, no detail
+// sheet. Plain inset surface, static.
 .row {
   display: flex;
   align-items: center;
@@ -69,15 +29,19 @@
   width: 100%;
   padding: var(--space-3);
   background: var(--mono-subtle-bg);
-  border: 1px solid var(--mono-border);
+  border: 1px solid var(--mono-border-subtle);
   border-radius: var(--radius-2);
   text-align: left;
-  cursor: pointer;
-  transition: background 0.1s ease;
+}
 
-  &:hover {
-    background: var(--mono-bg);
-  }
+// Right-hand cluster: earned date + tick. Dates use `--mono-text-low-
+// contrast` (step 11) so they sit as metadata, not competing with the
+// bolder accent tick.
+.rowRight {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
 }
 
 .rowIcon {
@@ -146,9 +110,15 @@
 
 .earnedDate {
   @include type.typography(meta);
-  color: var(--accent-text-low-contrast);
+  color: var(--mono-text-low-contrast);
+  font-variant-numeric: tabular-nums;
 }
 
+// Tick uses the Radix accent scale: step-9 solid background, the
+// semantic `on-solid` foreground token from `colors.scss` (which
+// resolves to high-contrast text for the accent fill). No one-off
+// hex values — matches every other "accent + on-solid" pair in the
+// app (Button primary, medal, active states).
 .tick {
   flex-shrink: 0;
   display: inline-flex;

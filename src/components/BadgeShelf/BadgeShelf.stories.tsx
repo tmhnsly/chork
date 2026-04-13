@@ -24,6 +24,9 @@ const emptyCtx: BadgeContext = {
   totalPoints: 0,
   completedRoutesBySet: new Map(),
   totalRoutesBySet: new Map(),
+  flashedRoutesBySet: new Map(),
+  zoneAvailableBySet: new Map(),
+  zoneClaimedBySet: new Map(),
 };
 
 /** No badges earned yet — all locked with zero progress. */
@@ -40,6 +43,9 @@ export const MixedProgress: Story = {
       totalPoints: 42,
       completedRoutesBySet: new Map([["set1", new Set([1, 2, 3])]]),
       totalRoutesBySet: new Map([["set1", 14]]),
+      flashedRoutesBySet: new Map([["set1", new Set([1])]]),
+      zoneAvailableBySet: new Map([["set1", new Set([3, 7, 11])]]),
+      zoneClaimedBySet: new Map([["set1", new Set([3])]]),
     }),
   },
 };
@@ -48,11 +54,14 @@ export const MixedProgress: Story = {
 export const AllEarned: Story = {
   args: {
     badges: evaluateBadges({
-      totalFlashes: 15,
-      totalSends: 50,
-      totalPoints: 150,
+      totalFlashes: 1200,
+      totalSends: 1200,
+      totalPoints: 5000,
       completedRoutesBySet: new Map([["set1", new Set(Array.from({ length: 14 }, (_, i) => i + 1))]]),
       totalRoutesBySet: new Map([["set1", 14]]),
+      flashedRoutesBySet: new Map([["set1", new Set(Array.from({ length: 14 }, (_, i) => i + 1))]]),
+      zoneAvailableBySet: new Map([["set1", new Set([3, 7, 11])]]),
+      zoneClaimedBySet: new Map([["set1", new Set([3, 7, 11])]]),
     }),
   },
 };

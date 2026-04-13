@@ -44,10 +44,9 @@
   line-height: 1;
 }
 
-// Sheet body
+// Sheet body — BottomSheet handles the outer padding.
 .sheet {
   @include layout.stack(var(--space-5));
-  padding: var(--space-4) 0 var(--space-6);
 }
 
 .section {

@@ -44,7 +44,6 @@ export function CreateCrewSheet({ open, onClose, onCreated }: Props) {
       description="Name the crew you're starting"
     >
       <form className={styles.form} onSubmit={handleSubmit}>
-        <h2 className={styles.heading}>New crew</h2>
         <label className={styles.field}>
           <span className={styles.label}>Crew name</span>
           <input

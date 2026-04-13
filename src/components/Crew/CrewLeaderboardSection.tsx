@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { FaPlus } from "react-icons/fa6";
 import { createBrowserSupabase } from "@/lib/supabase/client";
-import { UserAvatar, shimmerStyles } from "@/components/ui";
+import { UserAvatar, shimmerStyles, TabPills, type TabPillOption } from "@/components/ui";
 import {
   getCrewLeaderboard,
   type Crew,
@@ -60,23 +60,23 @@ export function CrewLeaderboardSection({
     <section className={styles.section} aria-labelledby="crew-leaderboard-heading">
       <h2 id="crew-leaderboard-heading" className={styles.heading}>Leaderboard</h2>
 
-      {/* Crew pill picker — horizontal scroll on narrow screens */}
-      <div className={styles.pillRow} role="tablist" aria-label="Pick a crew">
-        {myCrews.map((crew) => (
-          <button
-            key={crew.id}
-            type="button"
-            role="tab"
-            aria-selected={selectedCrewId === crew.id}
-            className={`${styles.pill} ${selectedCrewId === crew.id ? styles.pillActive : ""}`}
-            onClick={() => onSelectCrew(crew.id)}
-          >
-            {crew.name}
-          </button>
-        ))}
+      {/* Crew pill picker — horizontal scroll on narrow screens. The
+          tablist itself is the crew selector; "New crew" is an
+          action, not a tab, so it sits outside the tablist. */}
+      <div className={styles.pickerRow}>
+        <TabPills
+          className={styles.picker}
+          options={myCrews.map<TabPillOption<string>>((crew) => ({
+            value: crew.id,
+            label: crew.name,
+          }))}
+          value={selectedCrewId ?? ""}
+          onChange={(id) => onSelectCrew(id || null)}
+          ariaLabel="Pick a crew"
+        />
         <button
           type="button"
-          className={`${styles.pill} ${styles.pillCreate}`}
+          className={styles.createBtn}
           onClick={onCreateCrew}
         >
           <FaPlus aria-hidden /> New crew
