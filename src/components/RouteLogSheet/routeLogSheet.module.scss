@@ -376,6 +376,15 @@
   color: var(--mono-text-low-contrast);
 }
 
+// Wrapper around the reveal toggle + the (optionally blurred)
+// comment list. Keeps the reveal button OUT of the blur filter so
+// its label stays crisp while the comments below stay masked.
+.betaRegion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
 .revealBtn {
   @include type.typography(button);
   display: flex;

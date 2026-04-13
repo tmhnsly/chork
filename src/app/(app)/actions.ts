@@ -208,7 +208,13 @@ export async function postComment(
       gym_id: gymId,
     });
 
-    revalidatePath("/", "layout");
+    // Narrow: only the crew activity feed renders beta-spray events.
+    // The old `revalidatePath("/", "layout")` was scorching the whole
+    // app tree on every comment post, which re-rendered the
+    // RouteLogSheet's parent → caused the sheet's title bar + close
+    // button to flicker and the beta toggle to drop interaction
+    // until a full page reload.
+    revalidatePath("/crew");
     return { comment };
   } catch (err) {
     return { error: formatError(err) };

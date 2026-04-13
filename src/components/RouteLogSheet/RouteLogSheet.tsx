@@ -661,7 +661,11 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
                 ) : comments.length === 0 ? (
                   <p className={styles.betaEmpty}>No comments yet</p>
                 ) : (
-                  <div className={!isCompleted && !betaRevealed ? styles.betaBlurred : ""}>
+                  <div className={styles.betaRegion}>
+                    {/* Reveal toggle sits OUTSIDE the blur layer so the
+                        label stays sharp when the beta is hidden —
+                        previously it was nested inside the blurred div
+                        and got the same `filter: blur()` as the text. */}
                     {!isCompleted && comments.length > 0 && (
                       <button
                         type="button"
@@ -672,6 +676,7 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
                         <span>{betaRevealed ? "Hide beta" : "Reveal beta"}</span>
                       </button>
                     )}
+                    <div className={!isCompleted && !betaRevealed ? styles.betaBlurred : ""}>
                     <ul className={styles.commentList}>
                       {(expanded ? comments : comments.slice(0, 2)).map((c) => {
                         const author = c.profiles;
@@ -739,6 +744,7 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
                         {loadingMore ? "Loading..." : "Load more"}
                       </button>
                     )}
+                    </div>
                   </div>
                 )}
 
