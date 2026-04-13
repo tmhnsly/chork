@@ -338,29 +338,19 @@ export async function searchClimbersForInvite(
   if (q.length < 2) return [];
 
   // Fuzzy search via `search_climbers_fuzzy` RPC (migration 027).
-  // pg_trgm word_similarity catches typos and near-matches that a
+  // pg_trgm `word_similarity` catches typos and near-matches that a
   // bare `ilike '%q%'` would miss ("Magns" → "Magnus"). Results
   // come back pre-ranked by similarity score so the best candidate
-  // is first. `any` cast until the supabase types are regenerated —
-  // the RPC is a real function in the DB.
-  //
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rpc = (supabase as any).rpc("search_climbers_fuzzy", {
-    p_query: q,
-    p_caller_id: callerId,
-    p_limit: limit * 2,
-  });
-  const { data: profiles, error } = (await rpc) as {
-    data: Array<{
-      id: string;
-      username: string;
-      name: string | null;
-      avatar_url: string | null;
-      active_gym_id: string | null;
-      allow_crew_invites: boolean;
-    }> | null;
-    error: unknown;
-  };
+  // lands first — the in-app block/crew filters below just trim
+  // the already-sorted list.
+  const { data: profiles, error } = await supabase.rpc(
+    "search_climbers_fuzzy",
+    {
+      p_query: q,
+      p_caller_id: callerId,
+      p_limit: limit * 2,
+    },
+  );
 
   if (error || !profiles) {
     console.warn("[chork] searchClimbersForInvite failed:", error);

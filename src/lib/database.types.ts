@@ -780,7 +780,9 @@ export type Database = {
       }
       routes: {
         Row: {
+          community_grade: number | null
           created_at: string
+          grade_vote_count: number
           has_zone: boolean
           id: string
           number: number
@@ -789,7 +791,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          community_grade?: number | null
           created_at?: string
+          grade_vote_count?: number
           has_zone?: boolean
           id?: string
           number: number
@@ -798,7 +802,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          community_grade?: number | null
           created_at?: string
+          grade_vote_count?: number
           has_zone?: boolean
           id?: string
           number?: number
@@ -1239,6 +1245,10 @@ export type Database = {
       is_gym_admin: { Args: { p_gym_id: string }; Returns: boolean }
       is_gym_member: { Args: { p_gym_id: string }; Returns: boolean }
       is_gym_owner: { Args: { p_gym_id: string }; Returns: boolean }
+      recompute_route_grade: {
+        Args: { p_route_id: string }
+        Returns: undefined
+      }
       resolve_admin_invite: {
         Args: { p_token: string }
         Returns: {
@@ -1249,6 +1259,18 @@ export type Database = {
           gym_id: string
           id: string
           role: string
+        }[]
+      }
+      search_climbers_fuzzy: {
+        Args: { p_caller_id: string; p_limit?: number; p_query: string }
+        Returns: {
+          active_gym_id: string
+          allow_crew_invites: boolean
+          avatar_url: string
+          id: string
+          name: string
+          score: number
+          username: string
         }[]
       }
     }

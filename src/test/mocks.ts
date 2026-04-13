@@ -30,6 +30,10 @@ export function mockRoute(overrides: Partial<Route> & { id: string; set_id: stri
   return {
     has_zone: false,
     setter_name: null,
+    // Populated by the trigger in migration 026; mocks default to a
+    // blank route with no votes yet.
+    community_grade: null,
+    grade_vote_count: 0,
     created_at: DEFAULT_DATE,
     updated_at: DEFAULT_DATE,
     ...overrides,

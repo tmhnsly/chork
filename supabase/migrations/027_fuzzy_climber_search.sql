@@ -3,7 +3,7 @@
 --
 -- The existing `searchClimbersForInvite()` uses `ilike '%q%'` which
 -- misses typos and near-matches ("Magns" doesn't find "Magnus").
--- Trigram indexes + `word_similarity()` catch those while staying
+-- Trigram indexes + `extensions.word_similarity()` catch those while staying
 -- fast at scale.
 --
 -- We ship a SECURITY DEFINER RPC rather than calling similarity
@@ -12,14 +12,19 @@
 -- path produced. Caller filters stay in-app (blocks, shared crews).
 -- ─────────────────────────────────────────────────────────────────
 
-create extension if not exists pg_trgm;
+-- Ensure pg_trgm lives in the `extensions` schema (Supabase's
+-- convention). Using `if not exists` means this is a no-op if it's
+-- already installed there from a prior project bootstrap.
+create extension if not exists pg_trgm with schema extensions;
 
 -- Trigram GIN indexes — `%` and `word_similarity` both hit these.
+-- Operator classes are globally visible once the extension is
+-- installed, so no schema-qualification needed on `gin_trgm_ops`.
 create index if not exists profiles_username_trgm_idx
-  on public.profiles using gin (username gin_trgm_ops);
+  on public.profiles using gin (username extensions.gin_trgm_ops);
 
 create index if not exists profiles_name_trgm_idx
-  on public.profiles using gin (name gin_trgm_ops);
+  on public.profiles using gin (name extensions.gin_trgm_ops);
 
 -- Fuzzy username/name search. Returns candidates ordered by the
 -- best of the username-match or name-match similarity scores. The
@@ -49,8 +54,8 @@ as $$
          p.active_gym_id,
          p.allow_crew_invites,
          greatest(
-           word_similarity(lower(p_query), lower(coalesce(p.username, ''))),
-           word_similarity(lower(p_query), lower(coalesce(p.name, '')))
+           extensions.word_similarity(lower(p_query), lower(coalesce(p.username, ''))),
+           extensions.word_similarity(lower(p_query), lower(coalesce(p.name, '')))
          ) as score
     from public.profiles p
    where p.id <> p_caller_id
@@ -58,8 +63,8 @@ as $$
      and (
        p.username ilike '%' || p_query || '%'
        or p.name ilike '%' || p_query || '%'
-       or word_similarity(lower(p_query), lower(coalesce(p.username, ''))) > 0.2
-       or word_similarity(lower(p_query), lower(coalesce(p.name, '')))     > 0.2
+       or extensions.word_similarity(lower(p_query), lower(coalesce(p.username, ''))) > 0.2
+       or extensions.word_similarity(lower(p_query), lower(coalesce(p.name, '')))     > 0.2
      )
    order by score desc,
             -- deterministic tiebreaker so pagination is stable
