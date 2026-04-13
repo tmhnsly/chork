@@ -216,6 +216,8 @@ Each batch = one PR. Commit after each.
 | `1d28674` | — | favicon dark/light pairing swap + profile tab notification dot |
 | `95afae5` | — | climber-sheet 30s cache + email/reset-pw in Edit Profile |
 | `672735a` | B pt4 | reveal-beta unblurred + postComment narrow revalidate |
+| `605d7f6` | — | migrations 025/026/027 applied to live DB, types regenerated, any-casts dropped, 20 climbers seeded |
+| `8a3eb14` | F pt2 | Profile nav dropdown (View + Notifications); notifications moved off profile page into nav |
 
 **Needs your action (one command each):**
 - `npx supabase db push` — applies migrations 025 (attempts bound + crew index), 026 (community_grade denorm), 027 (fuzzy search)
