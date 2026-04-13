@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ActivityRings } from "@/components/ActivityRings/ActivityRings";
 import { SetDetailSheet } from "./SetDetailSheet";
+import { BrandDivider } from "@/components/ui/BrandDivider";
 import type { Route, RouteLog } from "@/lib/data";
 import type { BadgeDefinition } from "@/lib/badges";
 import styles from "./previousSetsGrid.module.scss";
@@ -53,7 +54,13 @@ export function PreviousSetsGrid({ sets, gymId, userId, showEmptyState = false }
   return (
     <section className={styles.section}>
       <header className={styles.sectionHeader}>
-        <h2 className={styles.title}>Sets</h2>
+        <div className={styles.titleGroup}>
+          <h2 className={styles.title}>Sets</h2>
+          <BrandDivider />
+          <span className={styles.count} aria-label={`${sets.length} sets`}>
+            {sets.length}
+          </span>
+        </div>
         <ul className={styles.legend} aria-label="Ring colours">
           <li className={styles.legendItem}>
             <span className={`${styles.legendDot} ${styles.legendSends}`} aria-hidden="true" />

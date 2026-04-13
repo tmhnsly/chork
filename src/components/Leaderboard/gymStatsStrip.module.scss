@@ -17,7 +17,11 @@
 .value {
   @include type.typography(number);
   font-size: var(--text-xl);
-  line-height: 1.1;
+  // 1.1 was too tight — italic bold numerals overhang their line
+  // box on the heading face and got shaved at the top by
+  // SectionCard's overflow clip. 1.25 leaves enough vertical room
+  // without loosening the card's visual rhythm.
+  line-height: 1.25;
   color: var(--mono-text);
 }
 

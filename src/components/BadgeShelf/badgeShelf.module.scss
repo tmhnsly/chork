@@ -13,8 +13,9 @@
 .header {
   display: flex;
   align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-3);
+  // Title + brand divider + count read as a single line; no longer
+  // pushed to opposite edges, which was leaving a big empty gap.
+  gap: var(--space-2);
 }
 
 .heading {
@@ -96,6 +97,7 @@
 }
 
 .circle {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -167,23 +169,24 @@
 }
 
 // ── In-progress quantifiable ──────────────────────
-// Mono circle at reduced opacity so an in-progress ring never hints
-// at completion — only earned badges carry category colour. Small
-// dot below the name hints progress is underway without exposing
-// raw numbers (those live in the achievement detail sheet).
+// Mono circle wrapped in an accent progress ring. The SVG replaces
+// the circle's own border so the ring track sits exactly where the
+// badge edge used to be — no visual jump when a progress badge
+// finally earns and flips to the solid-border earned state.
 .slot--progress {
   .circle {
-    opacity: 0.65;
+    border-color: transparent;
   }
 }
 
-.progressDot {
-  display: block;
-  width: 0.375rem;
-  height: 0.375rem;
-  border-radius: var(--radius-full);
-  margin-top: calc(var(--space-1) * -1);
-  background: var(--mono-solid);
+.progressRing {
+  position: absolute;
+  // Extends slightly outside the circle so the stroke sits on the
+  // edge rather than inside it — matches Activity Rings' visual.
+  inset: -2px;
+  width: calc(100% + 4px);
+  height: calc(100% + 4px);
+  pointer-events: none;
 }
 
 // ── Fully muted (locked condition / secret) ───────

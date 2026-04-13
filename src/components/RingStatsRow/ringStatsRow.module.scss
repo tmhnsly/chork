@@ -32,7 +32,10 @@
 .value {
   @include type.typography(number);
   font-size: var(--text-lg);
-  line-height: 1.1;
+  // Italic bold numerals on the heading face overhang their line
+  // box; 1.1 was shaving the tops inside SectionCard's overflow
+  // clip. 1.25 gives them breathing room without widening the row.
+  line-height: 1.25;
 
   small {
     @include type.typography(label);
@@ -71,7 +74,9 @@
 .totalsValue {
   @include type.typography(number);
   font-size: var(--text-2xl);
-  line-height: 1;
+  // Same reasoning as `.value` — italic bold glyphs need a taller
+  // line box than 1.0 or they get shaved by the card's overflow.
+  line-height: 1.2;
   color: var(--mono-text);
 
   small {

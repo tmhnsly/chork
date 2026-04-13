@@ -1,9 +1,8 @@
-import { Fragment } from "react";
 import { FaLayerGroup } from "react-icons/fa6";
 import { RingStatsRow } from "@/components/RingStatsRow/RingStatsRow";
 import { RouteChart } from "@/components/RouteChart/RouteChart";
 import { SectionCard } from "@/components/ui/SectionCard";
-import { BrandDivider } from "@/components/ui/BrandDivider";
+import { SetMeta } from "@/components/ui";
 import { computeMaxPoints } from "@/lib/data";
 import type { RouteLog } from "@/lib/data";
 import styles from "./statsWidget.module.scss";
@@ -53,26 +52,12 @@ export function StatsWidget({
   const zoneRouteCount = routeHasZone.filter(Boolean).length;
   const maxPoints = total > 0 ? computeMaxPoints(total, zoneRouteCount) : undefined;
 
-  // Meta slot shows gym name and reset date side-by-side, separated
-  // by the shared BrandDivider. Either can be absent; the other still
-  // reads cleanly.
-  const metaParts = [gymName, resetDate ? `Resets ${resetDate}` : null].filter(
-    (p): p is string => Boolean(p),
-  );
-  const meta =
-    metaParts.length > 0 ? (
-      <span className={styles.metaRow}>
-        {metaParts.map((part, i) => (
-          <Fragment key={part}>
-            {i > 0 && <BrandDivider />}
-            <span>{part}</span>
-          </Fragment>
-        ))}
-      </span>
-    ) : undefined;
-
   return (
-    <SectionCard title="Current Set" icon={<FaLayerGroup />} meta={meta}>
+    <SectionCard
+      title="Current Set"
+      icon={<FaLayerGroup />}
+      meta={<SetMeta resetDate={resetDate} gymName={gymName} />}
+    >
       <RingStatsRow
         completions={completions}
         flashes={flashes}

@@ -9,6 +9,7 @@ import {
 } from "@/lib/data/competition-queries";
 import { CompetitionLeaderboard } from "@/components/Competitions/CompetitionLeaderboard";
 import { CompetitionJoinBar } from "@/components/Competitions/CompetitionJoinBar";
+import { PageHeader } from "@/components/motion";
 import styles from "./competition.module.scss";
 
 interface Props {
@@ -51,16 +52,18 @@ export default async function CompetitionDetailPage({ params }: Props) {
 
   return (
     <main className={styles.page}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>{competition.name}</h1>
-        <p className={styles.subtitle}>
-          {dateRange}
-          {gyms.length > 0 && ` · ${gyms.length} ${gyms.length === 1 ? "gym" : "gyms"}`}
-        </p>
-        {competition.description && (
-          <p className={styles.description}>{competition.description}</p>
-        )}
-      </header>
+      <PageHeader
+        title={competition.name}
+        subtitle={
+          <>
+            {dateRange}
+            {gyms.length > 0 && ` · ${gyms.length} ${gyms.length === 1 ? "gym" : "gyms"}`}
+          </>
+        }
+      />
+      {competition.description && (
+        <p className={styles.description}>{competition.description}</p>
+      )}
 
       <CompetitionJoinBar
         competitionId={id}

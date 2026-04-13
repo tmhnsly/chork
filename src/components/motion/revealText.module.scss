@@ -13,46 +13,47 @@
 // After the animation completes, the wrapper's overflow releases via a
 // delayed keyframe so nothing is clipped in the final resting state.
 
+// ── Reveal mechanism ─────────────────────────────
+// Each word is clipped by a `clip-path: inset()` that starts as a
+// full top-to-bottom mask (100% bottom inset = everything hidden)
+// and animates down to zero inset. The `.word` itself also
+// translates up so the letters appear to rise INTO the reveal
+// window rather than fading in place.
+//
+// We deliberately DO NOT use `overflow: hidden` on the clip
+// wrapper: italic bold display glyphs on Outfit overhang their line
+// box by a pixel or two at the top (visible as a notch on letters
+// like T / H / E at certain sizes). `clip-path` with negative
+// insets post-animation means the final rendered state has NO clip
+// active — the glyph is drawn in full regardless of size.
 .wordClip {
   display: inline-block;
   vertical-align: bottom;
-  overflow: hidden;
-  // Padding reserves room for glyph overhang while the clip is active:
-  //   horizontal → italic overhangs on display typefaces
-  //   vertical   → capital ascenders and descenders (e.g. "g", "p", italic "f")
-  // Negative margin cancels the layout effect so words render at their
-  // natural width/height and align correctly with adjacent inline text.
-  padding: 0.15em 0.5em;
-  margin: -0.15em -0.5em;
-  // Release the clip after the longest possible animation finishes so
-  // glyphs that would normally overhang can do so in the resting state.
-  animation: revealRelease 0s 2s forwards;
+  // Start fully masked from the bottom. `inset(0 0 100% 0)` hides
+  // everything by pulling the bottom edge all the way up.
+  clip-path: inset(0 -0.5em 100% -0.5em);
+  animation: revealClip 0.7s var(--ease-out-expo) forwards;
+  animation-delay: calc(var(--delay, 0s) + var(--i, 0) * 0.05s);
 }
 
 .word {
   display: inline-block;
-  // Initial state declared directly on the element — don't rely on
-  // `animation-fill-mode: backwards` to show the "from" keyframe
-  // during the stagger delay. Mobile Safari sometimes paints one
-  // frame of the resting position before the backwards fill engages,
-  // which reads as a pop-in. With an explicit `translateY(100%)` as
-  // the base state, the word is guaranteed hidden until the
-  // animation runs and `forwards` holds the final position.
-  transform: translateY(100%);
-  animation: revealWord 0.6s var(--ease-out) forwards;
+  // Small vertical lift so letters rise into the clip window as it
+  // opens — subtle, paired with the clip to read as a real reveal
+  // rather than a bottom-up wipe.
+  transform: translateY(30%);
+  animation: revealLift 0.7s var(--ease-out-expo) forwards;
   animation-delay: calc(var(--delay, 0s) + var(--i, 0) * 0.05s);
 }
 
-@keyframes revealWord {
-  to {
-    transform: translateY(0);
-  }
+@keyframes revealClip {
+  // Final state has large negative insets so the clip is effectively
+  // disabled — no glyph overhang ever gets shaved once revealed.
+  to { clip-path: inset(-50% -0.5em -50% -0.5em); }
 }
 
-@keyframes revealRelease {
-  to {
-    overflow: visible;
-  }
+@keyframes revealLift {
+  to { transform: translateY(0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -64,6 +65,6 @@
     transform: none;
   }
   .wordClip {
-    overflow: visible;
+    clip-path: none;
   }
 }

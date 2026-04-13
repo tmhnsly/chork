@@ -33,11 +33,16 @@
   margin: 0 auto;
   z-index: var(--z-overlay);
   border-radius: var(--radius-4) var(--radius-4) 0 0;
-  max-height: 90svh;
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  // No max-height on `.content` itself — the ScrollArea.Root child
+  // owns the 90svh cap so its Viewport has a definite size to
+  // constrain against (flex basis alone didn't give Radix anything
+  // to scroll). `.content` sizes to whatever the scroll root takes.
+  overflow: hidden;
   @include focus.ring-inset;
-  animation: sheetSlideUp var(--duration-normal) var(--ease-out);
+  // Expo out for the arrival — sheets feel "presented" rather than
+  // "slid". The dismiss path stays on the plain ease-out so it reads
+  // as a faster, neutral retreat.
+  animation: sheetSlideUp var(--duration-normal) var(--ease-out-expo);
 }
 
 .contentClosing {
@@ -51,10 +56,68 @@
   }
 }
 
+// ── ScrollArea plumbing ───────────────────────────
+.scrollRoot {
+  // This is the element with a *definite* height cap — Radix's
+  // Viewport needs a fixed height to know when to scroll. Letting
+  // flex sort it out produced a root that collapsed to its content,
+  // so the sheet never scrolled.
+  max-height: 90svh;
+  width: 100%;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+.viewport {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+}
+
+// Panel-coloured scrollbar. Matches the sheet's chrome so it reads
+// as part of the surface rather than OS paint. 10px wide with 3px
+// padding puts a 4px thumb inside a 10px track — readable without
+// being chunky.
+.scrollbar {
+  display: flex;
+  user-select: none;
+  touch-action: none;
+  width: 10px;
+  padding: 3px;
+  background: transparent;
+  transition: opacity var(--duration-fast) var(--ease-out);
+
+  &[data-state="hidden"] {
+    opacity: 0;
+  }
+}
+
+.thumb {
+  flex: 1;
+  background: var(--mono-border-hover);
+  border-radius: var(--radius-full);
+  position: relative;
+  // Bigger hit target than the visible bar for easier grabbing.
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
+  }
+
+  &:hover {
+    background: var(--mono-solid);
+  }
+}
+
 // ── Title bar ─────────────────────────────────────
-// Sticky inside the scrolling `.content` so the user always has a
-// visible exit. Glass bg blurs whatever scrolls underneath. Close
-// button sits flush with the title's baseline.
+// Sticky inside the scrolling Viewport so content genuinely passes
+// beneath it — that's what the glass is blurring.
+//
+// Backdrop-filter goes on a `::before` pseudo rather than the bar
+// itself, because `position: sticky` inside a scroll container
+// breaks `backdrop-filter` on Chromium when applied directly. The
+// pseudo-element creates a fresh positioned layer that Chromium
+// treats as a simple blur target and reliably resolves.
 .titleBar {
   position: sticky;
   top: 0;
@@ -64,10 +127,29 @@
   justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-4) var(--gutter-x);
-  background: color-mix(in srgb, var(--mono-subtle-bg) 80%, transparent);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  backdrop-filter: saturate(180%) blur(20px);
   border-bottom: 1px solid var(--mono-border-subtle);
+  // Fallback fill for browsers without backdrop-filter support.
+  background: color-mix(in srgb, var(--mono-subtle-bg) 85%, transparent);
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: -1;
+    background: color-mix(in srgb, var(--mono-subtle-bg) 55%, transparent);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
+    border-bottom: 1px solid var(--mono-border-subtle);
+  }
+}
+
+// Enhance: when backdrop-filter works, drop the solid fallback so
+// the pseudo's blur actually shows through.
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .titleBar {
+    background: transparent;
+  }
 }
 
 .title {

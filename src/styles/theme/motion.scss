@@ -1,5 +1,38 @@
+/*
+ * Motion tokens — keep bezier curves close together so the whole app
+ * shares the same motion character. When tuning, edit values here and
+ * every animation picks them up.
+ *
+ * Curves:
+ *   --ease-out       Default UI curve. Smooth deceleration — panels
+ *                    opening, state changes, hover springs. Based on
+ *                    iOS's standard ease-out (close to cubic Bezier
+ *                    0.22, 0.61, 0.36, 1).
+ *   --ease-out-expo  Exponential decelerate. Fast start, long gentle
+ *                    settle — ideal for reveals, count-ups and
+ *                    hero-scale entrances where the motion should
+ *                    feel "landed" rather than "stopped".
+ *   --ease-spring    Subtle overshoot. Use for playful / tactile
+ *                    interactions (badge pops, tile taps) where you
+ *                    want a bit of life without feeling cartoony.
+ *   --ease-in-out    Symmetric curve for cross-fades and two-way
+ *                    transitions (tab switches, drawer open/close).
+ *   --ease-in        Rare — use when something is about to leave the
+ *                    screen so it accelerates away cleanly.
+ *
+ * Durations:
+ *   --duration-fast    state flips, hover feedback
+ *   --duration-normal  panels, drawers, tab swaps
+ *   --duration-slow    entrance reveals, progress rings
+ *   --duration-hero    headline, splash, first-paint flourishes
+ */
 :root {
-  --ease-out: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-in: cubic-bezier(0.55, 0, 1, 0.45);
+
   --duration-fast: 0.2s;
   --duration-normal: 0.4s;
   --duration-slow: 0.6s;

@@ -105,7 +105,6 @@
 // Long, soft cycle so the grid breathes rather than flickers.
 .loadingTile {
   aspect-ratio: 1;
-  border-radius: var(--radius-2);
   background: linear-gradient(
     105deg,
     var(--mono-bg) 0%,

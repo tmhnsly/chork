@@ -13,6 +13,7 @@
 // 80px circle. Three variants mirror the shelf's tile styling so
 // the detail view feels like a continuation of the tap.
 .hero {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -44,8 +45,11 @@
   color: var(--success-text);
 }
 
+// Progress hero — drop the hero's own border and let the overlaid
+// ProgressRing act as the edge instead. Keeps full-opacity colour so
+// the icon reads cleanly; the arc communicates "not yet earned".
 .hero--progress {
-  opacity: 0.65;
+  border-color: transparent;
 }
 
 .hero--muted {

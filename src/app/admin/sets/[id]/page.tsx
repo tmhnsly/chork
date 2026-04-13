@@ -4,6 +4,7 @@ import { FaListUl } from "react-icons/fa6";
 import { requireGymAdmin } from "@/lib/auth";
 import { getAllSetsForAdminGym } from "@/lib/data/admin-queries";
 import { SetForm } from "@/components/admin/SetForm";
+import { PageHeader } from "@/components/motion";
 import styles from "./edit.module.scss";
 
 export const metadata = {
@@ -26,7 +27,7 @@ export default async function EditSetPage({ params }: Props) {
 
   return (
     <main className={styles.page}>
-      <h1 className={styles.title}>Edit set</h1>
+      <PageHeader title="Edit set" />
       <Link href={`/admin/sets/${id}/routes`} className={styles.routesLink}>
         <FaListUl aria-hidden /> Manage routes
       </Link>

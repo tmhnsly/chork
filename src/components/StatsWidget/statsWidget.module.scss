@@ -4,10 +4,3 @@
   gap: var(--space-1);
 }
 
-// Flex row so the BrandDivider sits on the visual midline of the text
-// instead of the text-baseline that inline-block + vertical-align give.
-.metaRow {
-  display: inline-flex;
-  align-items: center;
-}
-

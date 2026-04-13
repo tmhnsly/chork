@@ -3,8 +3,8 @@
 import { FaCheck, FaLock } from "react-icons/fa6";
 import { format, parseISO } from "date-fns";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { ICON_MAP } from "@/components/BadgeShelf/BadgeShelf";
-import type { BadgeStatus, BadgeCategory, BadgeIcon } from "@/lib/badges";
+import { ICON_MAP, ProgressRing } from "@/components/BadgeShelf/BadgeShelf";
+import type { BadgeStatus, BadgeCategory, BadgeIcon, ProgressKey } from "@/lib/badges";
 import styles from "./achievementDetailSheet.module.scss";
 
 interface Props {
@@ -39,7 +39,7 @@ export function AchievementDetailSheet({ badge, open, onClose }: Props) {
     : badge.badge.description;
 
   const isQuantifiable =
-    !hidden && !badge.earned && badge.current !== null && badge.badge.target !== null;
+    !hidden && !badge.earned && badge.badge.kind === "progress" && badge.current !== null;
   const progressPct = isQuantifiable && badge.progress !== null
     ? Math.round(badge.progress * 100)
     : 0;
@@ -69,6 +69,9 @@ export function AchievementDetailSheet({ badge, open, onClose }: Props) {
           ].filter(Boolean).join(" ")}
           aria-hidden
         >
+          {heroState === "progress" && badge.progress !== null && (
+            <ProgressRing progress={badge.progress} />
+          )}
           <Icon />
         </div>
 
@@ -86,7 +89,7 @@ export function AchievementDetailSheet({ badge, open, onClose }: Props) {
                 : "Earned"}
             </span>
           </div>
-        ) : isQuantifiable ? (
+        ) : isQuantifiable && badge.badge.kind === "progress" ? (
           <div className={styles.progress}>
             <div className={styles.progressBar}>
               <div
@@ -121,16 +124,13 @@ function earnedFamily(badge: { category: BadgeCategory; icon: BadgeIcon }): "fla
   return "accent";
 }
 
-/** Human unit for the "N / target <unit>" progress label. */
-function progressUnit(key: string | null, target: number | null): string {
+/** Human unit for the "N / target <unit>" progress label. Exhaustive
+ *  over the `ProgressKey` union — extend both together. */
+function progressUnit(key: ProgressKey, target: number): string {
   const plural = target !== 1;
   switch (key) {
-    case "flashes":   return plural ? "flashes" : "flash";
-    case "sends":     return plural ? "sends" : "send";
-    case "points":    return plural ? "points" : "point";
-    case "streak":    return plural ? "sets" : "set";
-    case "followers": return plural ? "followers" : "follower";
-    case "following": return plural ? "following" : "following";
-    default:          return "";
+    case "flashes": return plural ? "flashes" : "flash";
+    case "sends":   return plural ? "sends" : "send";
+    case "points":  return plural ? "points" : "point";
   }
 }

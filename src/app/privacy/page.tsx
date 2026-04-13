@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/motion";
 import styles from "./privacy.module.scss";
 
 export const metadata = {
@@ -8,8 +9,7 @@ export const metadata = {
 export default function PrivacyPage() {
   return (
     <main className={styles.page}>
-      <h1 className={styles.title}>Privacy Policy</h1>
-      <p className={styles.updated}>Last updated: April 2026</p>
+      <PageHeader title="Privacy Policy" subtitle="Last updated: April 2026" />
 
       <section className={styles.section}>
         <h2 className={styles.heading}>Your privacy matters</h2>

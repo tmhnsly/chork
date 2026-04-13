@@ -18,6 +18,7 @@ import {
 } from "react-icons/fa6";
 import type { BadgeStatus, BadgeCategory, BadgeIcon } from "@/lib/badges";
 import { AchievementDetailSheet } from "@/components/Achievements/AchievementDetailSheet";
+import { BrandDivider } from "@/components/ui/BrandDivider";
 import styles from "./badgeShelf.module.scss";
 
 // Text-icon factory for the nursery-rhyme pair achievements.
@@ -92,14 +93,18 @@ export function BadgeShelf({ badges, onSeeAll }: Props) {
         return bDate.localeCompare(aDate);
       });
 
-    // Next unearned tier per progress ladder.
+    // Next unearned tier per progress ladder. Only progress badges
+    // have a ladder; condition badges fall into the trailing "+N".
     const nextByKey = new Map<string, BadgeStatus>();
     for (const b of badges) {
-      if (b.earned || !b.badge.progressKey || b.badge.target === null) continue;
-      const key = b.badge.progressKey;
-      const existing = nextByKey.get(key);
-      if (!existing || (b.badge.target ?? Infinity) < (existing.badge.target ?? Infinity)) {
-        nextByKey.set(key, b);
+      if (b.earned || b.badge.kind !== "progress") continue;
+      const existing = nextByKey.get(b.badge.progressKey);
+      if (!existing || existing.badge.kind !== "progress") {
+        nextByKey.set(b.badge.progressKey, b);
+        continue;
+      }
+      if (b.badge.target < existing.badge.target) {
+        nextByKey.set(b.badge.progressKey, b);
       }
     }
     const nextInLadders = Array.from(nextByKey.values());
@@ -134,20 +139,23 @@ export function BadgeShelf({ badges, onSeeAll }: Props) {
       <header className={styles.header}>
         <h3 id="achievements-heading" className={styles.heading}>ACHIEVEMENTS</h3>
         {badges.length > 0 && (
-          onSeeAll ? (
-            <button
-              type="button"
-              className={styles.count}
-              onClick={onSeeAll}
-              aria-label={`${totalEarned} of ${badges.length} earned. See all achievements.`}
-            >
-              {totalEarned}<small>/{badges.length}</small>
-            </button>
-          ) : (
-            <span className={styles.count} aria-label={`${totalEarned} of ${badges.length} earned`}>
-              {totalEarned}<small>/{badges.length}</small>
-            </span>
-          )
+          <>
+            <BrandDivider />
+            {onSeeAll ? (
+              <button
+                type="button"
+                className={styles.count}
+                onClick={onSeeAll}
+                aria-label={`${totalEarned} of ${badges.length} earned. See all achievements.`}
+              >
+                {totalEarned}<small>/{badges.length}</small>
+              </button>
+            ) : (
+              <span className={styles.count} aria-label={`${totalEarned} of ${badges.length} earned`}>
+                {totalEarned}<small>/{badges.length}</small>
+              </span>
+            )}
+          </>
         )}
       </header>
 
@@ -159,14 +167,19 @@ export function BadgeShelf({ badges, onSeeAll }: Props) {
 
           // Visual state:
           //   earned    — lime tint, lime border, lime name
-          //   progress  — category-toned circle with small dot below
-          //                (quantifiable target, not yet earned)
+          //   progress  — mono circle wrapped in an accent progress
+          //                ring (Apple Fitness style) showing how
+          //                close the climber is to the target
           //   muted     — plain muted circle, muted name
           //                (one-off condition or secret)
           let state: "earned" | "progress" | "muted" = "muted";
           if (b.earned) state = "earned";
-          else if (!isSecret && b.badge.progressKey && b.badge.target !== null) state = "progress";
+          else if (!isSecret && b.badge.kind === "progress") state = "progress";
           const family = state === "earned" ? earnedFamily(b.badge) : null;
+          const progress =
+            state === "progress" && !b.earned && b.progress !== null
+              ? b.progress
+              : null;
 
           return (
             <button
@@ -177,12 +190,10 @@ export function BadgeShelf({ badges, onSeeAll }: Props) {
               aria-label={`${name}. ${isSecret ? "Secret achievement." : b.badge.description}`}
             >
               <span className={styles.circle}>
+                {progress !== null && <ProgressRing progress={progress} />}
                 <Icon />
               </span>
               <span className={styles.name}>{name}</span>
-              {state === "progress" && (
-                <span className={styles.progressDot} aria-hidden />
-              )}
             </button>
           );
         })}
@@ -208,5 +219,47 @@ export function BadgeShelf({ badges, onSeeAll }: Props) {
         />
       )}
     </section>
+  );
+}
+
+/**
+ * Progress ring overlay for in-progress achievement badges. Sits on
+ * top of the circle, same pattern as ActivityRings — mono track,
+ * accent fill, `stroke-dashoffset` drives the arc. Exported so the
+ * detail sheet's hero can reuse the exact geometry.
+ *
+ * Uses `pathLength={1}` so the dashoffset range is a simple 0-1
+ * regardless of radius — same trick ActivityRings uses.
+ */
+export function ProgressRing({ progress }: { progress: number }) {
+  const clamped = Math.min(1, Math.max(0, progress));
+  return (
+    <svg
+      className={styles.progressRing}
+      viewBox="0 0 100 100"
+      aria-hidden="true"
+    >
+      <circle
+        cx={50}
+        cy={50}
+        r={46}
+        fill="none"
+        stroke="var(--mono-border)"
+        strokeWidth={6}
+      />
+      <circle
+        cx={50}
+        cy={50}
+        r={46}
+        fill="none"
+        stroke="var(--accent-solid)"
+        strokeWidth={6}
+        strokeLinecap="round"
+        pathLength={1}
+        strokeDasharray={1}
+        strokeDashoffset={1 - clamped}
+        transform="rotate(-90 50 50)"
+      />
+    </svg>
   );
 }

@@ -17,13 +17,15 @@
 
 // ── Visual (grid) ─────────────────────────────────
 // Renders the full HeroGrid — 5 cols × 3 rows of animated tiles.
-// The grid intentionally bleeds *into* the section below so its
-// bottom rows are partially occluded — a subtle cue that there is
-// more to scroll to. Sibling sections sit on top via the z-index
-// below.
+// Breaks out of `.inner`'s max-width so it spans the full viewport
+// and reads as part of the hero band rather than a constrained
+// widget within it. Pulls hard upwards on its bottom margin so the
+// next section (FeatureGrid, subtle-bg band) eats the last row of
+// tiles — a deliberate "scroll for more" cue.
 .visual {
-  width: 100%;
-  margin-bottom: calc(var(--space-12) * -1);
+  width: 100vw;
+  margin-inline: calc(50% - 50vw);
+  margin-bottom: calc(var(--space-16) * -1);
   position: relative;
   z-index: 0;
 }

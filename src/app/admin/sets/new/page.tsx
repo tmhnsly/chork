@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireGymAdmin } from "@/lib/auth";
 import { SetForm } from "@/components/admin/SetForm";
+import { PageHeader } from "@/components/motion";
 import styles from "./new.module.scss";
 
 export const metadata = {
@@ -17,7 +18,7 @@ export default async function NewSetPage() {
   if ("error" in auth) redirect("/");
   return (
     <main className={styles.page}>
-      <h1 className={styles.title}>New set</h1>
+      <PageHeader title="New set" />
       <SetForm mode="create" gymId={auth.gymId} />
     </main>
   );

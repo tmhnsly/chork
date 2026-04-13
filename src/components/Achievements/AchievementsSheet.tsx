@@ -15,15 +15,15 @@ interface Props {
   onClose: () => void;
 }
 
+// Filter values map 1:1 to `BadgeCategory` values (+ "all"). Adding a
+// new category narrows to TS error here — keeps the pills in sync
+// with the catalogue automatically.
 type Filter = "all" | BadgeCategory;
 
 const ALL_FILTERS: { id: Filter; label: string }[] = [
   { id: "all", label: "All" },
   { id: "sends", label: "Sends" },
   { id: "flashes", label: "Flashes" },
-  { id: "streaks", label: "Streaks" },
-  { id: "social", label: "Social" },
-  { id: "secret", label: "Secret" },
 ];
 
 export function AchievementsSheet({ badges, open, onClose }: Props) {
@@ -44,13 +44,16 @@ export function AchievementsSheet({ badges, open, onClose }: Props) {
   }, [badges]);
 
   const visible = useMemo(() => {
-    const filtered = filter === "all"
+    // Preserve the catalogue's authored order — achievements are
+    // written ladder-ascending in `src/config/achievements.ts`
+    // (flash 1 → 1000, rhyme pairs 1-2 → 9-10, etc.), so keeping the
+    // input order automatically groups related badges together and
+    // reads in the climber's progression order. A name-based sort
+    // was scattering "Thunder Shock" to T and "Spark" to S, which
+    // broke the ladder visually.
+    return filter === "all"
       ? badges
       : badges.filter((b) => b.badge.category === filter);
-    return [...filtered].sort((a, b) => {
-      if (a.earned !== b.earned) return a.earned ? -1 : 1;
-      return a.badge.name.localeCompare(b.badge.name);
-    });
   }, [badges, filter]);
 
   return (
@@ -89,7 +92,7 @@ export function AchievementsSheet({ badges, open, onClose }: Props) {
                 <div className={styles.rowText}>
                   <span className={styles.rowName}>{name}</span>
                   <span className={styles.rowDesc}>{description}</span>
-                  {!hidden && !b.earned && b.progress !== null && b.current !== null && b.badge.target !== null && (
+                  {!hidden && !b.earned && b.badge.kind === "progress" && b.progress !== null && b.current !== null && (
                     <span className={styles.progress}>
                       <span className={styles.progressBar}>
                         <span

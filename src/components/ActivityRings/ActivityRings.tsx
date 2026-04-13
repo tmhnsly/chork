@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import styles from "./activityRings.module.scss";
 
 interface Ring {
@@ -22,18 +21,18 @@ const TRACK_COLOR = "var(--mono-bg)";
 
 /**
  * Apple Fitness-style concentric progress rings.
- * Rings animate from empty to their value on mount with staggered delay.
+ *
+ * The entrance animation is pure CSS — each ring carries
+ * `pathLength={1}`, which normalises `stroke-dashoffset` to a 0-1
+ * range regardless of radius, so the `ringDraw` keyframe can start
+ * every ring from the same "fully hidden" offset and let the
+ * element's resting `strokeDashoffset` value become the end frame.
+ * No `useEffect` / `setState` bounce needed to kick the animation.
  */
 export function ActivityRings({ rings, size = 72, className }: Props) {
-  const [mounted, setMounted] = useState(false);
   const strokeWidth = size * 0.1;
   const gap = strokeWidth * 0.4;
   const center = size / 2;
-
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => setMounted(true));
-    return () => cancelAnimationFrame(frame);
-  }, []);
 
   return (
     <svg
@@ -45,9 +44,8 @@ export function ActivityRings({ rings, size = 72, className }: Props) {
     >
       {rings.map((ring, i) => {
         const radius = center - strokeWidth / 2 - i * (strokeWidth + gap);
-        const circumference = 2 * Math.PI * radius;
-        const progress = mounted ? Math.min(1, Math.max(0, ring.value)) : 0;
-        const offset = circumference * (1 - progress);
+        const progress = Math.min(1, Math.max(0, ring.value));
+        const offset = 1 - progress;
 
         return (
           <g key={i}>
@@ -68,11 +66,12 @@ export function ActivityRings({ rings, size = 72, className }: Props) {
               stroke={ring.color}
               strokeWidth={strokeWidth}
               strokeLinecap="round"
-              strokeDasharray={circumference}
+              pathLength={1}
+              strokeDasharray={1}
               strokeDashoffset={offset}
               transform={`rotate(-90 ${center} ${center})`}
               className={styles.ring}
-              style={{ transitionDelay: `${i * 150}ms` }}
+              style={{ animationDelay: `${i * 150}ms` }}
             />
           </g>
         );

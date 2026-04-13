@@ -20,6 +20,21 @@
   color: var(--mono-text-low-contrast);
 }
 
+// Title + brand divider + count cluster — reads as one inline unit
+// ("Sets · 3") so the number stays visually bound to the heading
+// rather than floating off to the right edge.
+.titleGroup {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.count {
+  @include type.typography(number);
+  font-size: var(--text-md);
+  color: var(--accent-text);
+}
+
 // ── Legend ────────────────────────────────────────
 .legend {
   display: flex;

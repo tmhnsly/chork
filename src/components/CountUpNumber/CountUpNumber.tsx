@@ -11,10 +11,16 @@ interface Props {
 
 const DEFAULT_DURATION = 900;
 
-// Ease-out cubic — starts fast, settles gently on the target. Feels
-// like a number wheel slowing to a stop rather than accelerating.
-function easeOut(t: number): number {
-  return 1 - (1 - t) ** 3;
+/**
+ * Shared easing for every rolling-number entrance in the app.
+ * Exponential decelerate (quintic out) — fast start, long soft
+ * settle. Matches the `--ease-out-expo` CSS token so JS-driven
+ * numeric animations feel consistent with CSS transitions that use
+ * the same curve. Exported so any future count-up variant can import
+ * this rather than duplicate the math.
+ */
+export function countUpEase(t: number): number {
+  return 1 - Math.pow(1 - t, 5);
 }
 
 /**
@@ -47,7 +53,7 @@ export function CountUpNumber({ value, duration = DEFAULT_DURATION, className }:
     const tick = (now: number) => {
       const elapsed = now - start;
       const t = Math.min(1, elapsed / duration);
-      const eased = easeOut(t);
+      const eased = countUpEase(t);
       const next = Math.round(from + delta * eased);
       displayRef.current = next;
       setDisplay(next);

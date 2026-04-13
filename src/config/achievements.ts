@@ -3,22 +3,28 @@
  *  Achievements catalogue — edit me!
  * ═══════════════════════════════════════════════════════════════════
  *
- * This is the single source of truth for every achievement (badge) in
- * the app. Adding a new one is a two-step process:
+ * Single source of truth for every achievement.
  *
- *   1. Add an entry below with `id`, copy, icon, tier, etc.
- *   2. For anything beyond a simple "hit N of X" count, add a case
- *      in `evaluateBadges` (src/lib/badges.ts) that returns whether
- *      the condition is met. Progress-based achievements (target +
- *      progressKey) don't need any extra logic — they're generic.
+ * Every entry is one of two discriminated shapes:
+ *
+ *   kind: "progress"   generic — evaluator just counts `progressKey`
+ *                      against `target`. No custom logic required.
+ *   kind: "condition"  bespoke — `id` must be a `ConditionBadgeId`
+ *                      and `evaluateBadges()` in `src/lib/badges.ts`
+ *                      has a compile-time-checked case for it.
+ *
+ * Adding a progress badge:
+ *   1. Append an entry with `kind: "progress"` below.
+ *
+ * Adding a condition badge:
+ *   1. Extend `ConditionBadgeId` in `src/lib/badges.ts`.
+ *   2. Add the case to both `evaluateCondition` (all-time) and
+ *      `evaluateSetCondition` (per-set) if relevant.
+ *   3. Append an entry with `kind: "condition"` below.
  *
  * IDs must stay stable — they key the persistence row in
- * `user_achievements`, so renaming an ID will re-show a locked
+ * `user_achievements`. Renaming an ID will re-show a locked
  * achievement a climber has already earned.
- *
- * Sibling data-as-config files (e.g. `src/lib/send-messages.ts` for
- * toast copy) follow the same pattern: plain arrays of typed
- * records the rest of the app consumes read-only.
  *
  * ───────────────────────────────────────────────────────────────────
  */
@@ -26,11 +32,12 @@
 import type { BadgeDefinition } from "@/lib/badges";
 
 export const ACHIEVEMENTS: BadgeDefinition[] = [
-  // ── Flashes (progress-based — generic in eval) ─────
+  // ── Flashes (progress) ─────────────────────────────
   // Gen 1/2 electric-type Pokémon moves, roughly ordered by in-game
-  // power. `1000` gets a special cosmic name per the climber who
-  // earns it basically never logs out.
+  // power. The 1000-flash rank gets a cosmic name because the climber
+  // who earns it basically never logs out.
   {
+    kind: "progress",
     id: "flash-thundershock",
     name: "Thunder Shock",
     description: "Flash your first route",
@@ -41,6 +48,7 @@ export const ACHIEVEMENTS: BadgeDefinition[] = [
     target: 1,
   },
   {
+    kind: "progress",
     id: "flash-thunder-wave",
     name: "Thunder Wave",
     description: "Flash 5 routes",
@@ -51,6 +59,7 @@ export const ACHIEVEMENTS: BadgeDefinition[] = [
     target: 5,
   },
   {
+    kind: "progress",
     id: "flash-spark",
     name: "Spark",
     description: "Flash 10 routes",
@@ -61,6 +70,7 @@ export const ACHIEVEMENTS: BadgeDefinition[] = [
     target: 10,
   },
   {
+    kind: "progress",
     id: "flash-thunderpunch",
     name: "Thunder Punch",
     description: "Flash 25 routes",
@@ -71,6 +81,7 @@ export const ACHIEVEMENTS: BadgeDefinition[] = [
     target: 25,
   },
   {
+    kind: "progress",
     id: "flash-thunderbolt",
     name: "Thunder Bolt",
     description: "Flash 50 routes",
@@ -81,6 +92,7 @@ export const ACHIEVEMENTS: BadgeDefinition[] = [
     target: 50,
   },
   {
+    kind: "progress",
     id: "flash-thunder",
     name: "Thunder",
     description: "Flash 100 routes",
@@ -91,6 +103,7 @@ export const ACHIEVEMENTS: BadgeDefinition[] = [
     target: 100,
   },
   {
+    kind: "progress",
     id: "flash-zap-cannon",
     name: "Zap Cannon",
     description: "Flash 250 routes",
@@ -101,6 +114,7 @@ export const ACHIEVEMENTS: BadgeDefinition[] = [
     target: 250,
   },
   {
+    kind: "progress",
     id: "flash-thunderstorm",
     name: "Thunder Storm",
     description: "Flash 500 routes",
@@ -111,8 +125,12 @@ export const ACHIEVEMENTS: BadgeDefinition[] = [
     target: 500,
   },
   {
+    kind: "progress",
+    // ID preserved from the original catalogue — renaming would
+    // re-show the badge as locked for any climber who's already
+    // earned it (persistence row in `user_achievements` keys by id).
     id: "flash-saviour-of-the-universe",
-    name: "Saviour of the Universe",
+    name: "God of Thunder",
     description: "Flash 1000 routes",
     icon: "bolt",
     tier: "gold",
@@ -121,8 +139,9 @@ export const ACHIEVEMENTS: BadgeDefinition[] = [
     target: 1000,
   },
 
-  // ── Sends (progress + milestone) ───────────────────
+  // ── Sends (progress) ───────────────────────────────
   {
+    kind: "progress",
     id: "first-ascend",
     name: "First (A)send",
     description: "Complete your first route",
@@ -133,6 +152,7 @@ export const ACHIEVEMENTS: BadgeDefinition[] = [
     target: 1,
   },
   {
+    kind: "progress",
     id: "century",
     name: "Century",
     description: "Earn 100 points",
@@ -143,98 +163,84 @@ export const ACHIEVEMENTS: BadgeDefinition[] = [
     target: 100,
   },
 
-  // ── Nursery-rhyme pairs (condition-based per set) ──
+  // ── Nursery-rhyme pairs (condition) ────────────────
   // Icon IDs render the number pair as text — see ICON_MAP in
   // BadgeShelf.tsx.
   {
+    kind: "condition",
     id: "tie-your-shoe",
     name: "Tie Your Shoe",
     description: "Send routes 1 and 2 in the same set",
     icon: "num-1-2",
     tier: "bronze",
     category: "sends",
-    progressKey: null,
-    target: null,
   },
   {
+    kind: "condition",
     id: "pick-up-the-floor",
     name: "Pick Up The Floor",
     description: "Send routes 3 and 4 in the same set",
     icon: "num-3-4",
     tier: "bronze",
     category: "sends",
-    progressKey: null,
-    target: null,
   },
   {
+    kind: "condition",
     id: "dont-play-tricks",
     name: "Don't Play Tricks",
     description: "Send routes 5 and 6 in the same set",
     icon: "num-5-6",
     tier: "bronze",
     category: "sends",
-    progressKey: null,
-    target: null,
   },
   {
+    kind: "condition",
     id: "clean-your-plate",
     name: "Clean Your Plate",
     description: "Send routes 7 and 8 in the same set",
     icon: "num-7-8",
     tier: "bronze",
     category: "sends",
-    progressKey: null,
-    target: null,
   },
   {
+    kind: "condition",
     id: "start-over-again",
     name: "Start Over Again",
     description: "Send routes 9 and 10 in the same set",
     icon: "num-9-10",
     tier: "bronze",
     category: "sends",
-    progressKey: null,
-    target: null,
   },
 
-  // ── Set mastery ────────────────────────────────────
+  // ── Set mastery (condition) ────────────────────────
   {
+    kind: "condition",
     id: "saviour-of-the-universe",
     name: "Saviour of the Universe",
     description: "Flash every route in a set",
     icon: "crown",
     tier: "gold",
     category: "flashes",
-    progressKey: null,
-    target: null,
   },
   {
+    kind: "condition",
     id: "not-easy-being-green",
     name: "It's Not Easy Being Green",
     description: "Send every route in a set without a single flash",
     icon: "frog",
     tier: "gold",
     category: "sends",
-    progressKey: null,
-    target: null,
   },
   {
+    kind: "condition",
     id: "in-the-zone",
     name: "In the Zone",
     description: "Claim every zone hold in a set",
     icon: "flag",
     tier: "gold",
     category: "sends",
-    progressKey: null,
-    target: null,
   },
 ];
 
 /** Category order for filter pills on the Achievements sheet. */
-export const ACHIEVEMENT_CATEGORIES = [
-  "sends",
-  "flashes",
-  "streaks",
-  "social",
-  "secret",
-] as const;
+export const ACHIEVEMENT_CATEGORIES = ["sends", "flashes"] as const;

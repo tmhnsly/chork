@@ -3,7 +3,14 @@
 @use "mixins/surfaces" as surface;
 @use "mixins/breakpoints" as bp;
 
+// Full-bleed subtle-bg band. `position: relative` + z-index:1 so the
+// opaque section sits on top of the HeroSection's full-viewport hero
+// grid below it — the overlap is what makes the hero's last row
+// partly covered (a deliberate "more below" cue).
 .section {
+  position: relative;
+  z-index: 1;
+  width: 100%;
   padding: var(--section-gap) var(--gutter-x);
   background: var(--mono-subtle-bg);
 }

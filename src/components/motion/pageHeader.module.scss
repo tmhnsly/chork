@@ -2,15 +2,33 @@
 @use "mixins/layout" as layout;
 
 // Title + optional subtitle, tight gap — treated as one compound unit.
+// `container-type: inline-size` lets `.title` scale with the page's
+// content width via `cqi` units, matching the profile header's
+// responsive username.
 .header {
   @include layout.stack(var(--space-1));
+  container-type: inline-size;
 }
 
+// ── Title (default `size="md"`) ────────────────────
+// Clamped to scale with the page's content width, matching the
+// profile header's `.username` so every in-app page-title uses the
+// same responsive scale.
 .title {
   @include type.typography(display);
-  // Brand/accent hue on every page title — matches the landing hero
-  // so the app's primary chrome reads as one visual language.
   color: var(--accent-text);
+  font-size: clamp(var(--text-2xl), 7cqi, var(--text-4xl));
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+
+// ── Large variant (`size="lg"`) ────────────────────
+// Full `display` preset — use for splash-style headings where you
+// want the landing hero scale. Overrides the clamp above.
+.titleLg {
+  font-size: var(--text-5xl);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
 }
 
 .subtitle {

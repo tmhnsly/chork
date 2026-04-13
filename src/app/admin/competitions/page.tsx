@@ -5,6 +5,7 @@ import { requireSignedIn } from "@/lib/auth";
 import { getCompetitionsForOrganiser } from "@/lib/data/competition-queries";
 import { format, parseISO } from "date-fns";
 import { SetStatusBadge } from "@/components/admin/SetStatusBadge";
+import { PageHeader } from "@/components/motion";
 import styles from "./competitions.module.scss";
 
 export const metadata = {
@@ -25,10 +26,7 @@ export default async function AdminCompetitionsPage() {
 
   return (
     <main className={styles.page}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>Competitions</h1>
-        <p className={styles.subtitle}>Competitions you organise.</p>
-      </header>
+      <PageHeader title="Competitions" subtitle="Competitions you organise." />
 
       <Link href="/admin/competitions/new" className={styles.newBtn}>
         <FaPlus aria-hidden /> New competition

@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect, type ReactNode } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
+import * as ScrollArea from "@radix-ui/react-scroll-area";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { FaXmark } from "react-icons/fa6";
 import styles from "./bottomSheet.module.scss";
@@ -101,24 +102,41 @@ export function BottomSheet({
             if (closing && e.target === e.currentTarget) onClose();
           }}
         >
-          <header className={styles.titleBar}>
-            <Dialog.Title className={styles.title}>{title}</Dialog.Title>
-            <button
-              ref={closeBtnRef}
-              type="button"
-              className={styles.closeBtn}
-              onClick={startClose}
-              aria-label="Close"
-            >
-              <FaXmark />
-            </button>
-          </header>
-
           <VisuallyHidden.Root asChild>
             <Dialog.Description>{description ?? title}</Dialog.Description>
           </VisuallyHidden.Root>
 
-          <div className={styles.body}>{children}</div>
+          {/*
+            Radix ScrollArea wraps the scrollable region so we get a
+            custom-styled thin scrollbar (design-token driven) instead
+            of the OS one, which was breaking the panel illusion.
+            The title bar lives inside the viewport so it can sit
+            `position: sticky` and the content genuinely scrolls
+            *under* it — enabling the glass blur.
+          */}
+          <ScrollArea.Root className={styles.scrollRoot} type="auto">
+            <ScrollArea.Viewport className={styles.viewport}>
+              <header className={styles.titleBar}>
+                <Dialog.Title className={styles.title}>{title}</Dialog.Title>
+                <button
+                  ref={closeBtnRef}
+                  type="button"
+                  className={styles.closeBtn}
+                  onClick={startClose}
+                  aria-label="Close"
+                >
+                  <FaXmark />
+                </button>
+              </header>
+              <div className={styles.body}>{children}</div>
+            </ScrollArea.Viewport>
+            <ScrollArea.Scrollbar
+              orientation="vertical"
+              className={styles.scrollbar}
+            >
+              <ScrollArea.Thumb className={styles.thumb} />
+            </ScrollArea.Scrollbar>
+          </ScrollArea.Root>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

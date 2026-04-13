@@ -8,7 +8,9 @@ import {
 } from "@/lib/data/crew-queries";
 import { getServerProfile } from "@/lib/supabase/server";
 import { CrewHome } from "@/components/Crew/CrewHome";
-import { RevealText } from "@/components/motion";
+import { PageHeader } from "@/components/motion";
+// RevealText no longer needed directly — PageHeader wraps it and
+// applies the canonical page-title typography.
 import styles from "./crew.module.scss";
 
 export const metadata = {
@@ -38,10 +40,7 @@ export default async function CrewPage() {
 
   return (
     <main className={styles.page}>
-      <header className={styles.header}>
-        <RevealText text="Crew" as="h1" className={styles.title} />
-        <p className={styles.sub}>Your climbing group, your private leaderboard.</p>
-      </header>
+      <PageHeader title="Crew" subtitle="Your climbing group, your private leaderboard." />
 
       <CrewHome
         myCrews={myCrews}

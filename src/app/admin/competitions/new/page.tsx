@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireSignedIn } from "@/lib/auth";
 import { CompetitionForm } from "@/components/admin/CompetitionForm";
+import { PageHeader } from "@/components/motion";
 import styles from "./new.module.scss";
 
 export const metadata = {
@@ -13,7 +14,7 @@ export default async function NewCompetitionPage() {
 
   return (
     <main className={styles.page}>
-      <h1 className={styles.title}>New competition</h1>
+      <PageHeader title="New competition" />
       <CompetitionForm mode="create" />
     </main>
   );

@@ -6,6 +6,7 @@ export { CardSkeleton } from "./CardSkeleton";
 export { ChorkMark } from "./ChorkMark";
 export { Legend } from "./Legend";
 export { SearchField } from "./SearchField";
+export { SetMeta } from "./SetMeta";
 export { TabPills } from "./TabPills";
 export type { TabPillOption } from "./TabPills";
 export { shimmerStyles } from "./Shimmer";

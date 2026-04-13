@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { FaCamera } from "react-icons/fa6";
 import type { Profile } from "@/lib/data";
@@ -17,7 +17,29 @@ interface Props {
   onOpenChange: (open: boolean) => void;
 }
 
+/**
+ * Public wrapper. The body only mounts while `open` is true, so every
+ * open is a fresh component with clean `useState(user.*)`
+ * initialisers — no useEffect-on-open reset needed, and no chance of
+ * the stale-closure bug the previous `eslint-disable
+ * react-hooks/exhaustive-deps` was papering over. If the profile
+ * changes while the dialog is closed, the next open reads the
+ * latest props.
+ */
 export function EditProfileDialog({ user, open, onOpenChange }: Props) {
+  return (
+    <AppDialog open={open} onOpenChange={onOpenChange} title="Edit profile">
+      {open && <EditProfileBody user={user} onClose={() => onOpenChange(false)} />}
+    </AppDialog>
+  );
+}
+
+interface BodyProps {
+  user: Profile;
+  onClose: () => void;
+}
+
+function EditProfileBody({ user, onClose }: BodyProps) {
   const router = useRouter();
   const { refreshProfile } = useAuth();
   const usernameValidation = useUsernameValidation(user.username);
@@ -27,14 +49,6 @@ export function EditProfileDialog({ user, open, onOpenChange }: Props) {
   const [displayName, setDisplayName] = useState(user.name ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
-
-  useEffect(() => {
-    if (open) {
-      setUsername(user.username);
-      setDisplayName(user.name ?? "");
-      usernameValidation.setError("");
-    }
-  }, [open, user.username, user.name]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -84,7 +98,7 @@ export function EditProfileDialog({ user, open, onOpenChange }: Props) {
     if (username !== user.username) updates.username = username;
 
     if (Object.keys(updates).length === 0) {
-      onOpenChange(false);
+      onClose();
       return;
     }
 
@@ -96,7 +110,7 @@ export function EditProfileDialog({ user, open, onOpenChange }: Props) {
         return;
       }
       await refreshProfile();
-      onOpenChange(false);
+      onClose();
       showToast("Profile updated");
       if (updates.username) {
         router.replace(`/u/${updates.username}`);
@@ -172,7 +186,7 @@ export function EditProfileDialog({ user, open, onOpenChange }: Props) {
         <Button onClick={handleSave} disabled={submitting || uploading} fullWidth>
           {submitting ? "Saving..." : "Save changes"}
         </Button>
-        <Button variant="ghost" onClick={() => onOpenChange(false)} fullWidth>
+        <Button variant="ghost" onClick={() => onClose()} fullWidth>
           Cancel
         </Button>
       </div>

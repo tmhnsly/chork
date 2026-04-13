@@ -11,6 +11,7 @@ import { CompetitionForm } from "@/components/admin/CompetitionForm";
 import { CompetitionGymsPanel } from "@/components/admin/CompetitionGymsPanel";
 import { CompetitionCategoriesPanel } from "@/components/admin/CompetitionCategoriesPanel";
 import { VenueStatsWidget } from "@/components/admin/dashboard/VenueStatsWidget";
+import { PageHeader } from "@/components/motion";
 import styles from "./edit.module.scss";
 
 export const metadata = {
@@ -40,10 +41,10 @@ export default async function EditCompetitionPage({ params }: Props) {
 
   return (
     <main className={styles.page}>
-      <header>
-        <h1 className={styles.title}>{competition.name}</h1>
-        <p className={styles.subtitle}>Edit competition details, gyms and categories.</p>
-      </header>
+      <PageHeader
+        title={competition.name}
+        subtitle="Edit competition details, gyms and categories."
+      />
 
       <CompetitionForm
         mode="edit"

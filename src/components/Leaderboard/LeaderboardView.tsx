@@ -45,6 +45,10 @@ interface Props {
   /** Routes for the active set — passed down to ClimberSheet so it
    *  can render the grid shape immediately while logs fetch. */
   currentSetRoutes: Route[];
+  /** Pre-formatted reset date for the active set (e.g. "Apr 20").
+   *  Null when there is no active set. The gym-stats meta row shows
+   *  it only while the "This set" tab is active. */
+  currentSetResetDate: string | null;
 }
 
 export function LeaderboardView({
@@ -55,6 +59,7 @@ export function LeaderboardView({
   setStats,
   allTimeStats,
   currentSetRoutes,
+  currentSetResetDate,
 }: Props) {
   const [tab, setTab] = useState<Tab>(currentSetId ? "set" : "all");
   const [cache, setCache] = useState<Partial<Record<Tab, TabData>>>(() =>
@@ -185,6 +190,7 @@ export function LeaderboardView({
       <GymStatsStrip
         stats={tab === "set" && setStats ? setStats : allTimeStats}
         gymName={gymName}
+        resetDate={tab === "set" ? currentSetResetDate : null}
       />
 
       <div className={styles.segmentRow}>

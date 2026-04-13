@@ -57,7 +57,7 @@ export function ClimberSheet({ entry, setId, routes, onClose }: Props) {
     <BottomSheet
       open
       onClose={onClose}
-      title="Current Set"
+      title={setId ? "Current Set" : "All Time"}
       description={`Climber stats for @${entry.username}`}
     >
       <div className={styles.body}>

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { format, parseISO } from "date-fns";
 import { requireAuth } from "@/lib/auth";
 import {
   getGym,
@@ -56,6 +57,9 @@ export default async function LeaderboardPage() {
         setStats={setStats}
         allTimeStats={allTimeStats}
         currentSetRoutes={currentSetRoutes}
+        currentSetResetDate={
+          currentSet ? format(parseISO(currentSet.ends_at), "MMM d") : null
+        }
       />
     </main>
   );

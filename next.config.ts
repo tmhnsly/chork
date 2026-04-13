@@ -14,6 +14,37 @@ const nextConfig: NextConfig = {
     ];
   },
 
+  /*
+   * Long-lived cache on static icons so the browser fetches them once
+   * per deploy. Next.js already serves its hashed `src/app/icon.svg`
+   * with `immutable` caching in prod, but the public-dir notification
+   * icon referenced by the service worker needs explicit headers —
+   * otherwise browsers treat it as a normal static file with no
+   * cache directive and re-validate on every page load.
+   */
+  async headers() {
+    return [
+      {
+        source: "/notification-icon.svg",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=604800, stale-while-revalidate=86400",
+          },
+        ],
+      },
+      {
+        source: "/manifest.json",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
+    ];
+  },
+
   experimental: {
     staleTimes: {
       // Cache server component output for 5 minutes on client navigation.

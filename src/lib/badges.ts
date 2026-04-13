@@ -18,7 +18,39 @@ import { ACHIEVEMENTS } from "@/config/achievements";
 
 export type BadgeTier = "bronze" | "silver" | "gold";
 
-export type BadgeCategory = "sends" | "flashes" | "streaks" | "social" | "secret";
+/**
+ * Category groups achievements for the filter pills and drives the
+ * accent colour family on the shelf. Narrowed to values actually
+ * used by the catalogue — extend here only when you add real badges
+ * in a new group (and update `ACHIEVEMENT_CATEGORIES` to match).
+ */
+export type BadgeCategory = "sends" | "flashes";
+
+/**
+ * Aggregates the evaluator knows how to count. Add a value here only
+ * after you've taught `progressValue()` how to read it from
+ * `BadgeContext` — the progress path is now exhaustive.
+ */
+export type ProgressKey = "flashes" | "sends" | "points";
+
+/**
+ * IDs of every condition-based achievement. Typed as a string-
+ * literal union so the evaluator switch gets compile-time
+ * exhaustiveness — add a new condition badge and TypeScript tells
+ * you exactly which switches need a new case.
+ *
+ * Progress-based achievement IDs stay free-form strings because
+ * their handling is generic (target + progressKey).
+ */
+export type ConditionBadgeId =
+  | "tie-your-shoe"
+  | "pick-up-the-floor"
+  | "dont-play-tricks"
+  | "clean-your-plate"
+  | "start-over-again"
+  | "saviour-of-the-universe"
+  | "not-easy-being-green"
+  | "in-the-zone";
 
 /**
  * Icon IDs — mapped to actual components in BadgeShelf's ICON_MAP.
@@ -45,17 +77,38 @@ export type BadgeIcon =
   | "num-7-8"
   | "num-9-10";
 
-export interface BadgeDefinition {
-  id: string;
+interface BadgeCommon {
   name: string;
   description: string;
   icon: BadgeIcon;
   tier: BadgeTier;
   category: BadgeCategory;
-  progressKey: "flashes" | "sends" | "points" | "streak" | "followers" | "following" | null;
-  target: number | null;
+  /** Hidden in the shelf until earned. Orthogonal to category. */
   isSecret?: boolean;
 }
+
+/**
+ * Progress badge — earned when a numeric aggregate (`progressKey`)
+ * reaches `target`. Logic is fully generic.
+ */
+export interface ProgressBadgeDefinition extends BadgeCommon {
+  kind: "progress";
+  id: string;
+  progressKey: ProgressKey;
+  target: number;
+}
+
+/**
+ * Condition badge — earned via bespoke logic keyed by `id`. The
+ * evaluator switch in `evaluateBadges` must have a case for every
+ * `ConditionBadgeId`; TypeScript enforces that.
+ */
+export interface ConditionBadgeDefinition extends BadgeCommon {
+  kind: "condition";
+  id: ConditionBadgeId;
+}
+
+export type BadgeDefinition = ProgressBadgeDefinition | ConditionBadgeDefinition;
 
 export interface EarnedBadge {
   badge: BadgeDefinition;
@@ -97,63 +150,50 @@ export interface BadgeContext {
 // ── Evaluate all badges ───────────────────────────
 
 export function evaluateBadges(ctx: BadgeContext): BadgeStatus[] {
-  return BADGES.map((badge) => {
-    // Progress-based badges (flashes / sends / points milestones)
-    // use the generic progressBadge helper — `progressKey` selects
-    // which aggregate to count against.
-    if (badge.progressKey && badge.target !== null) {
+  return BADGES.map((badge): BadgeStatus => {
+    if (badge.kind === "progress") {
       const current = progressValue(badge.progressKey, ctx);
       return progressBadge(badge, current);
     }
-
-    // Condition-based badges — one case per ID.
-    switch (badge.id) {
-      case "tie-your-shoe":
-        return conditionBadge(badge, anySetHasNumbers(ctx, [1, 2]));
-      case "pick-up-the-floor":
-        return conditionBadge(badge, anySetHasNumbers(ctx, [3, 4]));
-      case "dont-play-tricks":
-        return conditionBadge(badge, anySetHasNumbers(ctx, [5, 6]));
-      case "clean-your-plate":
-        return conditionBadge(badge, anySetHasNumbers(ctx, [7, 8]));
-      case "start-over-again":
-        return conditionBadge(badge, anySetHasNumbers(ctx, [9, 10]));
-      case "saviour-of-the-universe":
-        return conditionBadge(badge, checkSaviour(ctx));
-      case "not-easy-being-green":
-        return conditionBadge(badge, checkNotEasyBeingGreen(ctx));
-      case "in-the-zone":
-        return conditionBadge(badge, checkInTheZone(ctx));
-      default:
-        return { badge, earned: false, progress: null, current: null } as LockedBadge;
-    }
+    // badge.kind === "condition" — switch on id, exhaustive.
+    return conditionBadge(badge, evaluateCondition(badge.id, ctx));
   });
+}
+
+function evaluateCondition(id: ConditionBadgeId, ctx: BadgeContext): boolean {
+  switch (id) {
+    case "tie-your-shoe":            return anySetHasNumbers(ctx, [1, 2]);
+    case "pick-up-the-floor":        return anySetHasNumbers(ctx, [3, 4]);
+    case "dont-play-tricks":         return anySetHasNumbers(ctx, [5, 6]);
+    case "clean-your-plate":         return anySetHasNumbers(ctx, [7, 8]);
+    case "start-over-again":         return anySetHasNumbers(ctx, [9, 10]);
+    case "saviour-of-the-universe":  return checkSaviour(ctx);
+    case "not-easy-being-green":     return checkNotEasyBeingGreen(ctx);
+    case "in-the-zone":              return checkInTheZone(ctx);
+  }
 }
 
 // ── Helpers ───────────────────────────────────────
 
-function progressValue(
-  key: NonNullable<BadgeDefinition["progressKey"]>,
-  ctx: BadgeContext,
-): number {
+function progressValue(key: ProgressKey, ctx: BadgeContext): number {
   switch (key) {
     case "flashes": return ctx.totalFlashes;
     case "sends":   return ctx.totalSends;
     case "points":  return ctx.totalPoints;
-    // Placeholder keys (streak / followers / following) not wired
-    // into the current context; always 0 until the context carries
-    // them.
-    default: return 0;
   }
 }
 
-function progressBadge(badge: BadgeDefinition, current: number): BadgeStatus {
-  const target = badge.target!;
-  if (current >= target) return { badge, earned: true };
-  return { badge, earned: false, progress: Math.min(1, current / target), current };
+function progressBadge(badge: ProgressBadgeDefinition, current: number): BadgeStatus {
+  if (current >= badge.target) return { badge, earned: true };
+  return {
+    badge,
+    earned: false,
+    progress: Math.min(1, current / badge.target),
+    current,
+  };
 }
 
-function conditionBadge(badge: BadgeDefinition, met: boolean): BadgeStatus {
+function conditionBadge(badge: ConditionBadgeDefinition, met: boolean): BadgeStatus {
   if (met) return { badge, earned: true };
   return { badge, earned: false, progress: null, current: null };
 }
@@ -219,33 +259,37 @@ export interface SetBadgeContext {
  * Used in the set detail sheet to show "here's what you pulled off in
  * this set".
  */
-export function evaluateBadgesForSet(ctx: SetBadgeContext): BadgeDefinition[] {
-  const has = (nums: number[]) => nums.every((n) => ctx.completed.has(n));
-
-  const earned: BadgeDefinition[] = [];
+export function evaluateBadgesForSet(ctx: SetBadgeContext): ConditionBadgeDefinition[] {
+  const earned: ConditionBadgeDefinition[] = [];
   for (const badge of BADGES) {
-    switch (badge.id) {
-      case "tie-your-shoe":       if (has([1, 2])) earned.push(badge); break;
-      case "pick-up-the-floor":   if (has([3, 4])) earned.push(badge); break;
-      case "dont-play-tricks":    if (has([5, 6])) earned.push(badge); break;
-      case "clean-your-plate":    if (has([7, 8])) earned.push(badge); break;
-      case "start-over-again":    if (has([9, 10])) earned.push(badge); break;
-      case "saviour-of-the-universe":
-        if (ctx.totalRoutes > 0 && ctx.flashed.size >= ctx.totalRoutes) earned.push(badge);
-        break;
-      case "not-easy-being-green":
-        if (ctx.totalRoutes > 0 && ctx.completed.size >= ctx.totalRoutes && ctx.flashed.size === 0) earned.push(badge);
-        break;
-      case "in-the-zone":
-        if (ctx.zoneAvailable.size > 0) {
-          let all = true;
-          for (const n of ctx.zoneAvailable) {
-            if (!ctx.zoneClaimed.has(n)) { all = false; break; }
-          }
-          if (all) earned.push(badge);
-        }
-        break;
-    }
+    if (badge.kind !== "condition") continue;
+    if (evaluateSetCondition(badge.id, ctx)) earned.push(badge);
   }
   return earned;
+}
+
+function evaluateSetCondition(id: ConditionBadgeId, ctx: SetBadgeContext): boolean {
+  const has = (nums: number[]) => nums.every((n) => ctx.completed.has(n));
+  switch (id) {
+    case "tie-your-shoe":       return has([1, 2]);
+    case "pick-up-the-floor":   return has([3, 4]);
+    case "dont-play-tricks":    return has([5, 6]);
+    case "clean-your-plate":    return has([7, 8]);
+    case "start-over-again":    return has([9, 10]);
+    case "saviour-of-the-universe":
+      return ctx.totalRoutes > 0 && ctx.flashed.size >= ctx.totalRoutes;
+    case "not-easy-being-green":
+      return (
+        ctx.totalRoutes > 0 &&
+        ctx.completed.size >= ctx.totalRoutes &&
+        ctx.flashed.size === 0
+      );
+    case "in-the-zone": {
+      if (ctx.zoneAvailable.size === 0) return false;
+      for (const n of ctx.zoneAvailable) {
+        if (!ctx.zoneClaimed.has(n)) return false;
+      }
+      return true;
+    }
+  }
 }

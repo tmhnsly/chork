@@ -1,0 +1,36 @@
+// Collapsed state — width: 0, hidden, shifted down so the reveal is
+// a slide *up* into place (matching the `RollingNumber` increment
+// keyframe). Adjacent siblings flow to fill the gap while width
+// transitions.
+.slot {
+  display: inline-flex;
+  align-items: center;
+  overflow: hidden;
+  max-width: 0;
+  opacity: 0;
+  transform: translateY(60%);
+  // Durations match `RollingNumber` (fast) for the slide-fade feel,
+  // with max-width on `normal` because a raw width collapse at fast
+  // reads as an abrupt cut.
+  transition:
+    max-width var(--duration-normal) var(--ease-out-expo),
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+  // Stop the collapsed slot from being a tap target even when it
+  // renders text inside (which it still does during the exit
+  // animation so the swap reads cleanly).
+  pointer-events: none;
+}
+
+.open {
+  max-width: var(--reveal-max-width, 20ch);
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .slot {
+    transition: none;
+  }
+}

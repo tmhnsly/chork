@@ -1,7 +1,20 @@
+// Each ring starts at `stroke-dashoffset: 1` (fully hidden thanks to
+// `pathLength="1"`) and animates TO whatever value the element
+// resting style carries — that's just the per-ring progress. Using
+// a single-keyframe animation means we don't have to interpolate
+// through a custom property, which keeps the whole thing in pure
+// CSS with no JS hand-off.
+@keyframes ringDraw {
+  from { stroke-dashoffset: 1; }
+}
+
 .ring {
-  transition: stroke-dashoffset var(--duration-slow) var(--ease-out);
+  // Expo out — the ring sweeps most of its arc early, then glides
+  // into the resting value. Matches the count-up feel so cards with
+  // both (rings + numbers) settle as one gesture.
+  animation: ringDraw var(--duration-slow) var(--ease-out-expo) both;
 
   @media (prefers-reduced-motion: reduce) {
-    transition: none;
+    animation: none;
   }
 }
