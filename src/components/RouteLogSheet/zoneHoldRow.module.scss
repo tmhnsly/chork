@@ -15,9 +15,16 @@
     border-color var(--duration-fast) var(--ease-out);
 }
 
+// Zone uses the teal success scale so the toggle matches the zone
+// badge on a PunchTile and the in-grid zone indicator — never lime,
+// which would collide with "completed".
 .rowOn {
-  background: var(--accent-subtle-bg);
-  border-color: var(--accent-border-hover);
+  background: var(--success-subtle-bg);
+  border-color: var(--success-border-hover);
+
+  .toggle[data-state="checked"] {
+    background: var(--success-solid);
+  }
 }
 
 .rowDisabled {
@@ -37,7 +44,7 @@
   color: var(--mono-text-low-contrast);
 
   .rowOn & {
-    color: var(--accent-solid-hover);
+    color: var(--success-solid-hover);
   }
 }
 
@@ -45,7 +52,7 @@
   @include type.typography(label);
 
   .rowOn & {
-    color: var(--accent-text-low-contrast);
+    color: var(--success-text-low-contrast);
   }
 }
 
