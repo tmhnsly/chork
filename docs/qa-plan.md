@@ -212,6 +212,10 @@ Each batch = one PR. Commit after each.
 | `f4dabce` | H pt1 | unified glow-pulse skeleton (themed via `--mono-*`) |
 | `1151e13` | H pt2 | fuzzy climber search (pg_trgm + word_similarity RPC) |
 | `2b3391d` | H pt3 | 6 themes total — gray, mauve, sage added |
+| `4c164f4` | B pt3 | sheet reverted to button-controlled slide, real PNG icons wired |
+| `1d28674` | — | favicon dark/light pairing swap + profile tab notification dot |
+| `95afae5` | — | climber-sheet 30s cache + email/reset-pw in Edit Profile |
+| `672735a` | B pt4 | reveal-beta unblurred + postComment narrow revalidate |
 
 **Needs your action (one command each):**
 - `npx supabase db push` — applies migrations 025 (attempts bound + crew index), 026 (community_grade denorm), 027 (fuzzy search)
@@ -219,15 +223,17 @@ Each batch = one PR. Commit after each.
 - `npx tsx scripts/seed-climbers.ts` — seed 20 parody climbers into live set
 - Replace `/public/icon-192.png` + `/public/icon-512.png` + maskable 512 with real brand PNGs (manifest currently points at the SVG fallback)
 
-**Still pending:**
-- **F pt2** Profile nav dropdown reorg (View profile / Notifications / Settings nested) + push-disable toggle — biggest remaining UX refactor, deserves its own PR
-- **B pt3** Remaining sheet bugs: beta spray unresponsive-after-submit, Apple Pencil close on iPhone 11 Pro, reveal-beta behind blur, grade-save pop-in
-- **I pt3** Supabase `@gotrue-js` lock warning investigation, nav pill slide-between animation
-- **Leaderboard climber-sheet grid** — cache window between re-fetches (don't re-request every tap)
-- **Change email** in edit profile dialog
-- **Gym-stats visible bug on tab switch** (image 3 — needs reproduction)
+**Still pending — need input or repro:**
+- **F pt2** Profile nav dropdown reorg — View / Notifications / Settings (nested). Substantial refactor moving dialogs from ProfileHeader into NavBar; risk of unwinding auth-gated state. Own PR.
+- **Push-disable toggle** — already in Settings dropdown on profile; moves with the dropdown reorg above.
+- **Apple Pencil close button on iPhone 11 Pro** — needs device repro. Best guess is a `touch-action` or pointer-event-trap somewhere in the sheet chrome.
+- **Grade save pop-in** — can't repro cleanly; likely related to the RouteLogSheet state flush on `setCurrentLog` after the debounced grade save.
+- **Supabase `@gotrue-js` lock warning** — informational, Radix Strict Mode interaction with AuthProvider. Not user-visible. Low priority.
+- **Gym-stats tab-switch visual bug** (image 3) — needs fresh repro; the earlier CollapseFade changes may already have fixed it.
+- **Nav pill slide-between animation** — pure polish, not blocking.
+- **Beta spray drawer full-viewport when open** — pending; current sheet is content-sized up to 90svh.
 
-This session shipped **12 commits**. ~75% of the QA list is now done or hardened.
+This session shipped **16 commits**. ~85% of the QA list is addressed. The remainder either needs device repro or is a big enough refactor to deserve its own scoped PR.
 - **B pt3** Remaining sheet bugs: beta spray unresponsive-after-submit, Apple Pencil close, reveal-beta behind blur, grade-save pop-in
 - **I pt3** Supabase lock warning investigation, nav pill slide animation
 
