@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useState } from "react";
 import { BrandDivider } from "./BrandDivider";
 import { CollapseFade } from "@/components/motion";
 import styles from "./setMeta.module.scss";
@@ -31,9 +31,16 @@ export function SetMeta({ resetDate, gymName }: Props) {
   // Hold the last non-null reset date so the exit animation can
   // keep rendering "Resets 20 April" while the width collapses.
   // Without this, the text would flash to "Resets " mid-transition.
-  const lastDate = useRef<string | null>(resetDate ?? null);
-  if (resetDate) lastDate.current = resetDate;
-  const displayDate = resetDate ?? lastDate.current;
+  //
+  // Implemented as derived state + setState-during-render (React's
+  // sanctioned pattern for "remember a previous prop"), not a ref —
+  // `react-hooks/refs` forbids touching `ref.current` in the render
+  // body on React 19.
+  const [lastDate, setLastDate] = useState<string | null>(resetDate ?? null);
+  if (resetDate && resetDate !== lastDate) {
+    setLastDate(resetDate);
+  }
+  const displayDate = resetDate ?? lastDate;
 
   if (!displayDate && !gymName) return null;
 
