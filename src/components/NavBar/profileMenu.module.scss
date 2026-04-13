@@ -1,0 +1,99 @@
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+@use "mixins/focus";
+
+// Dropdown panel. Glass finish matches the bottom sheet title bar
+// so the "floating chrome" visual language stays consistent.
+.menu {
+  @include surface.glass(70%);
+  min-width: 12rem;
+  padding: var(--space-1);
+  border-radius: var(--radius-3);
+  box-shadow: var(--shadow-lg);
+  z-index: var(--z-overlay);
+  outline: none;
+  animation: menuIn var(--duration-fast) var(--ease-out);
+
+  &[data-state="closed"] {
+    animation: menuOut var(--duration-fast) var(--ease-out) forwards;
+  }
+}
+
+.item {
+  @include type.typography(body);
+  @include focus.ring-inset;
+  font-size: var(--text-sm);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--size-touch-target);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-2);
+  color: var(--mono-text);
+  text-decoration: none;
+  cursor: pointer;
+  outline: none;
+
+  &[data-highlighted],
+  &:hover {
+    background: var(--mono-bg-hover);
+  }
+}
+
+.itemIcon {
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-sm);
+  flex-shrink: 0;
+}
+
+.itemLabel {
+  flex: 1;
+}
+
+.itemCount {
+  @include type.typography(number);
+  font-size: var(--text-2xs);
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.375rem;
+  border-radius: var(--radius-full);
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// Active-tab tint — mirrors `.tabActive` in the nav so the
+// dropdown's trigger reads as the current section.
+.active {
+  color: var(--brand-text);
+}
+
+@keyframes menuIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes menuOut {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.97);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu {
+    animation: none;
+  }
+}

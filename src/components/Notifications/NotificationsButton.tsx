@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { FaBell } from "react-icons/fa6";
-import { BottomSheet } from "@/components/ui/BottomSheet";
+import { NotificationsSheet } from "./NotificationsSheet";
 import type { PendingInvite } from "@/lib/data/crew-queries";
-import { PendingInvitesCard } from "@/components/Crew/PendingInvitesCard";
 import styles from "./notificationsButton.module.scss";
 
 interface Props {
@@ -58,33 +57,11 @@ export function NotificationsButton({ invites }: Props) {
         <span>{label}</span>
       </button>
 
-      {open && (
-        <BottomSheet
-          open
-          onClose={() => setOpen(false)}
-          title="Notifications"
-          description="Crew invites and activity on your climbs"
-        >
-          <div className={styles.sheet}>
-            {invites.length > 0 ? (
-              <PendingInvitesCard invites={invites} />
-            ) : (
-              <section className={styles.section} aria-label="Crew invites">
-                <h2 className={styles.sectionHeading}>Crew invites</h2>
-                <p className={styles.empty}>No pending invites.</p>
-              </section>
-            )}
-
-            <section className={styles.section} aria-label="Beta activity">
-              <h2 className={styles.sectionHeading}>Beta activity</h2>
-              <p className={styles.empty}>
-                We&apos;ll let you know when climbers like the beta you&apos;ve
-                posted. Nothing yet — go send something spicy.
-              </p>
-            </section>
-          </div>
-        </BottomSheet>
-      )}
+      <NotificationsSheet
+        invites={invites}
+        open={open}
+        onClose={() => setOpen(false)}
+      />
     </>
   );
 }

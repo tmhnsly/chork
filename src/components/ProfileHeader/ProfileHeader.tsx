@@ -18,8 +18,10 @@ import {
 } from "react-icons/fa6";
 import { useTheme, THEME_META, type ThemeName } from "@/lib/theme";
 import type { Profile } from "@/lib/data";
+// PendingInvite prop retained on the header for a future pass that
+// moves Settings into the nav too; NotificationsButton itself no
+// longer renders here — the nav's ProfileMenu owns that now.
 import type { PendingInvite } from "@/lib/data/crew-queries";
-import { NotificationsButton } from "@/components/Notifications/NotificationsButton";
 import { useAuth } from "@/lib/auth-context";
 import { UserAvatar, showToast } from "@/components/ui";
 import { RevealText } from "@/components/motion";
@@ -149,9 +151,9 @@ export function ProfileHeader({
         </div>
 
         <div className={styles.rightGroup}>
-          {isOwnProfile && (
-            <NotificationsButton invites={pendingInvites} />
-          )}
+          {/* Notifications now lives in the nav ProfileMenu dropdown,
+              available from every page. Leaving the `pendingInvites`
+              prop in place for when Settings follows the same move. */}
           {isOwnProfile && (
             <DropdownMenu
               trigger={

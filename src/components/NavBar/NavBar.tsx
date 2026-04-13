@@ -14,6 +14,7 @@ import {
 import { ChorkMark } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { createBrowserSupabase } from "@/lib/supabase/client";
+import { ProfileMenu } from "./ProfileMenu";
 import styles from "./navBar.module.scss";
 
 // Badge acknowledgement is client-side only: a user seeing the Crew tab
@@ -190,18 +191,17 @@ function AuthenticatedNav({
             </span>
             <span className={styles.tabLabel}>Crew</span>
           </Link>
-          <Link href={`/u/${username}`} className={`${styles.tab} ${profileActive ? styles.tabActive : ""}`} aria-current={profileActive ? "page" : undefined}>
-            <span className={styles.tabIconWrap}>
-              <FaUser className={styles.tabIcon} />
-              {badgeCount > 0 && (
-                <span
-                  className={styles.tabDot}
-                  aria-label={`${badgeCount} pending notification${badgeCount === 1 ? "" : "s"}`}
-                />
-              )}
-            </span>
-            <span className={styles.tabLabel}>Profile</span>
-          </Link>
+          <ProfileMenu
+            userId={userId}
+            username={username}
+            profileActive={profileActive}
+            badgeCount={badgeCount}
+            tabClassName={`${styles.tab} ${profileActive ? styles.tabActive : ""}`}
+            tabIconWrapClassName={styles.tabIconWrap}
+            tabIconClassName={styles.tabIcon}
+            tabLabelClassName={styles.tabLabel}
+            tabDotClassName={styles.tabDot}
+          />
         </div>
 
         {/* Counterweight spacer — matches brandLink width to keep tabs centred */}
