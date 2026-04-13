@@ -158,6 +158,20 @@
   justify-content: center;
 }
 
+// Tiny indicator dot — used on the Profile tab to hint at pending
+// notifications without taking up space for a count (the Crew tab
+// already shows a count badge; duplicating would read as noise).
+.tabDot {
+  position: absolute;
+  top: calc(var(--space-1) * -0.25);
+  right: calc(var(--space-1) * -0.25);
+  width: 0.5rem;
+  height: 0.5rem;
+  background: var(--accent-solid);
+  border: 2px solid var(--mono-bg);
+  border-radius: var(--radius-full);
+}
+
 .tabBadge {
   position: absolute;
   top: calc(var(--space-1) * -0.5);

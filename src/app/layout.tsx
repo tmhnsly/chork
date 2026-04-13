@@ -24,18 +24,22 @@ export const metadata: Metadata = {
   // browsers + iOS pick the right bitmap without downscaling SVG.
   // Dark/light variants let the OS match the user's colour scheme
   // (PWA installer + Safari respect the `media` hint).
+  // File naming: `-light` is a light-coloured icon (shown on dark
+  // backgrounds — i.e. dark mode); `-dark` is dark-coloured (shown
+  // on light backgrounds — light mode). So we pair scheme → the
+  // contrasting variant that'll actually be visible.
   icons: {
     icon: [
-      { url: "/icon-favicon-16-dark.png", sizes: "16x16", type: "image/png", media: "(prefers-color-scheme: dark)" },
-      { url: "/icon-favicon-16-light.png", sizes: "16x16", type: "image/png", media: "(prefers-color-scheme: light)" },
-      { url: "/icon-favicon-32-dark.png", sizes: "32x32", type: "image/png", media: "(prefers-color-scheme: dark)" },
-      { url: "/icon-favicon-32-light.png", sizes: "32x32", type: "image/png", media: "(prefers-color-scheme: light)" },
-      { url: "/icon-favicon-48-dark.png", sizes: "48x48", type: "image/png", media: "(prefers-color-scheme: dark)" },
-      { url: "/icon-favicon-48-light.png", sizes: "48x48", type: "image/png", media: "(prefers-color-scheme: light)" },
+      { url: "/icon-favicon-16-light.png", sizes: "16x16", type: "image/png", media: "(prefers-color-scheme: dark)" },
+      { url: "/icon-favicon-16-dark.png",  sizes: "16x16", type: "image/png", media: "(prefers-color-scheme: light)" },
+      { url: "/icon-favicon-32-light.png", sizes: "32x32", type: "image/png", media: "(prefers-color-scheme: dark)" },
+      { url: "/icon-favicon-32-dark.png",  sizes: "32x32", type: "image/png", media: "(prefers-color-scheme: light)" },
+      { url: "/icon-favicon-48-light.png", sizes: "48x48", type: "image/png", media: "(prefers-color-scheme: dark)" },
+      { url: "/icon-favicon-48-dark.png",  sizes: "48x48", type: "image/png", media: "(prefers-color-scheme: light)" },
     ],
     apple: [
-      { url: "/icon-apple-touch-icon-dark.png", media: "(prefers-color-scheme: dark)" },
-      { url: "/icon-apple-touch-icon-light.png", media: "(prefers-color-scheme: light)" },
+      { url: "/icon-apple-touch-icon-light.png", media: "(prefers-color-scheme: dark)" },
+      { url: "/icon-apple-touch-icon-dark.png",  media: "(prefers-color-scheme: light)" },
     ],
   },
   appleWebApp: {

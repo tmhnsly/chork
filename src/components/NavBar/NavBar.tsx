@@ -191,7 +191,15 @@ function AuthenticatedNav({
             <span className={styles.tabLabel}>Crew</span>
           </Link>
           <Link href={`/u/${username}`} className={`${styles.tab} ${profileActive ? styles.tabActive : ""}`} aria-current={profileActive ? "page" : undefined}>
-            <FaUser className={styles.tabIcon} />
+            <span className={styles.tabIconWrap}>
+              <FaUser className={styles.tabIcon} />
+              {badgeCount > 0 && (
+                <span
+                  className={styles.tabDot}
+                  aria-label={`${badgeCount} pending notification${badgeCount === 1 ? "" : "s"}`}
+                />
+              )}
+            </span>
             <span className={styles.tabLabel}>Profile</span>
           </Link>
         </div>
