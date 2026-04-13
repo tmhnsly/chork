@@ -193,3 +193,31 @@ Each batch = one PR. Commit after each.
 ---
 
 **Next step after you sign off:** start Batch A. One item, one commit, one review.
+
+---
+
+## Status — execution log
+
+| Commit | Batch | What shipped |
+|--------|-------|--------------|
+| `9565955` | A | sign-up→onboarding flow, reset-pw redirect env-driven, crew RLS guard |
+| `25b441f` | B pt1 | bottom sheet swapped to vaul (iOS-native drag physics) |
+| `e694f37` | B pt2 | achievements height lock, pill min-width, SetMeta gym-name truncate |
+| `3555f38` | C+D | home grid 4-col, hero two-tone, rank icon in current-set card, manifest svg |
+| `f20df44` | E | earned filter default, family-tinted progress rings |
+| `2952ddd` | G | interpolate-size for auto-height drawers (Chrome perf) |
+| `8320eca` | I pt1 | migration 026 denorm community_grade, seed 20 parody climbers |
+| `25b6609` | I pt2 | scoring chart zone palette, kill phantom sheet focus ring |
+
+**Needs your action (one command each):**
+- `npx supabase db push` — applies migrations 025 (attempts bound + crew index) and 026 (community_grade denorm)
+- `npx tsx scripts/seed-climbers.ts` — seed 20 parody climbers into live set
+- Replace `/public/icon-192.png` + `/public/icon-512.png` + maskable 512 with real brand PNGs (manifest currently points at the SVG fallback)
+
+**Still pending (need your sign-off on order):**
+- **F** Profile nav dropdown + notification rename + push-disable + bell ring animation — biggest remaining UX item
+- **H** Fuzzy climber search + shared skeleton style + Radix gray-scale themes set
+- **B pt3** Remaining sheet bugs: beta spray unresponsive-after-submit, Apple Pencil close, reveal-beta behind blur, grade-save pop-in
+- **I pt3** Supabase lock warning investigation, nav pill slide animation
+
+Let me know which batch to tackle next.
