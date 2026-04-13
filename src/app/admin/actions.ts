@@ -22,7 +22,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { formatError } from "@/lib/errors";
 import { getGym } from "@/lib/data/queries";
 import { formatSetLabel } from "@/lib/data/set-label";
-import { getGymClimberUserIds, sendPushToUsers } from "@/lib/push/server";
+import { getGymClimberUserIds, sendPushInBackground } from "@/lib/push/server";
 import { randomBytes } from "node:crypto";
 
 type ActionResult<T = unknown> = { error: string } | ({ success: true } & T);
@@ -279,8 +279,9 @@ export async function updateSet(
   if ("error" in result) return { error: result.error };
 
   // Draft → live transition: notify every climber who has logged at
-  // this gym. Best-effort — failures never block the publish. Errors
-  // inside sendPushToUsers are already swallowed + logged.
+  // this gym. Fan-out can be hundreds of endpoints — dispatch
+  // *after* the response is sent so the admin's publish click
+  // returns immediately instead of waiting on web-push round-trips.
   if (setRow.status !== "live" && form.status === "live") {
     try {
       const [userIds, gym] = await Promise.all([
@@ -288,14 +289,14 @@ export async function updateSet(
         getGym(service, setRow.gym_id),
       ]);
       if (userIds.length > 0) {
-        await sendPushToUsers(userIds, {
+        sendPushInBackground(userIds, {
           title: `New set at ${gym?.name ?? "your gym"}`,
           body: `${formatSetLabel({ name: form.name ?? setRow.name, starts_at: form.startsAt ?? setRow.starts_at, ends_at: form.endsAt ?? setRow.ends_at })} is now live. Get climbing.`,
           url: "/",
         });
       }
     } catch (err) {
-      console.warn("[chork] set-live push dispatch failed:", err);
+      console.warn("[chork] set-live push preparation failed:", err);
     }
   }
 

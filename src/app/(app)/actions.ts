@@ -60,7 +60,11 @@ export async function completeRoute(
 ): Promise<LogResult> {
   if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
   if (!Number.isInteger(attempts) || attempts < 1 || attempts > 999) return { error: "Invalid attempts" };
-  if (gradeVote !== null && (!Number.isInteger(gradeVote) || gradeVote < 0 || gradeVote > 10)) {
+  // Grade bound matches the DB constraint relaxed in migration 014
+  // (0..30 covers V/Font/points scales). The previous 0..10 clamp
+  // pre-dated that relaxation; raw votes 11..30 were rejected here
+  // even though the DB would happily accept them.
+  if (gradeVote !== null && (!Number.isInteger(gradeVote) || gradeVote < 0 || gradeVote > 30)) {
     return { error: "Invalid grade" };
   }
 
@@ -156,7 +160,11 @@ export async function updateGradeVote(
 ): Promise<LogResult> {
   if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
   if (typeof logId !== "string" || !logId) return { error: "Invalid log" };
-  if (gradeVote !== null && (!Number.isInteger(gradeVote) || gradeVote < 0 || gradeVote > 10)) {
+  // Grade bound matches the DB constraint relaxed in migration 014
+  // (0..30 covers V/Font/points scales). The previous 0..10 clamp
+  // pre-dated that relaxation; raw votes 11..30 were rejected here
+  // even though the DB would happily accept them.
+  if (gradeVote !== null && (!Number.isInteger(gradeVote) || gradeVote < 0 || gradeVote > 30)) {
     return { error: "Invalid grade" };
   }
 
@@ -322,12 +330,28 @@ export async function editComment(
 // (migration 014) allows a user to manage only their own rows, so the
 // authed supabase client below is enough — no service role needed.
 
+/**
+ * Push-subscription endpoints must be real HTTPS URLs pointing at a
+ * browser push service — otherwise `web-push` rejects the dispatch
+ * anyway. Validating here keeps malformed strings out of the DB in
+ * the first place (defense-in-depth for any future code path that
+ * exposes the endpoint).
+ */
+function isValidPushEndpoint(endpoint: string): boolean {
+  try {
+    const url = new URL(endpoint);
+    return url.protocol === "https:" && endpoint.length >= 10;
+  } catch {
+    return false;
+  }
+}
+
 export async function savePushSubscription(input: {
   endpoint: string;
   p256dh: string;
   auth: string;
 }): Promise<ActionResult> {
-  if (typeof input.endpoint !== "string" || input.endpoint.length < 10) {
+  if (typeof input.endpoint !== "string" || !isValidPushEndpoint(input.endpoint)) {
     return { error: "Invalid subscription." };
   }
   if (typeof input.p256dh !== "string" || typeof input.auth !== "string") {
@@ -360,7 +384,7 @@ export async function savePushSubscription(input: {
 export async function removePushSubscription(
   endpoint: string
 ): Promise<ActionResult> {
-  if (typeof endpoint !== "string" || endpoint.length < 10) {
+  if (typeof endpoint !== "string" || !isValidPushEndpoint(endpoint)) {
     return { error: "Invalid subscription." };
   }
 
@@ -431,7 +455,11 @@ export async function joinCompetition(
       );
     if (error) return { error: formatError(error) };
 
-    revalidatePath("/", "layout");
+    // Narrow: competition participation only surfaces on the
+    // competition detail page + its listing. No need to scorch the
+    // root layout (wall, crew, leaderboard are all unaffected).
+    revalidatePath(`/competitions/${competitionId}`);
+    revalidatePath("/competitions");
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
@@ -457,7 +485,8 @@ export async function leaveCompetition(
       .eq("user_id", userId);
     if (error) return { error: formatError(error) };
 
-    revalidatePath("/", "layout");
+    revalidatePath(`/competitions/${competitionId}`);
+    revalidatePath("/competitions");
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };

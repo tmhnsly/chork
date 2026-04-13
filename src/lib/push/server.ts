@@ -1,6 +1,18 @@
 import "server-only";
+import { after } from "next/server";
 import webpush, { type PushSubscription as WebPushSubscription } from "web-push";
 import { createServiceClient } from "@/lib/supabase/server";
+
+/**
+ * How many push endpoints to dispatch in parallel. Web-push calls
+ * are network-bound (tens to hundreds of ms each); with an
+ * unbounded `Promise.all` on a crew of 200 climbers we were
+ * holding a server action open for the duration of the slowest
+ * endpoint. A concurrency cap keeps the total wall time bounded
+ * (≈ ceil(n / CONCURRENCY) × mean latency) without saturating the
+ * outbound connection pool.
+ */
+const PUSH_CONCURRENCY = 10;
 
 // Re-use a single configured instance — web-push reads VAPID creds from
 // module-level state, so calling setVapidDetails repeatedly is wasteful.
@@ -67,8 +79,13 @@ export async function sendPushToUsers(
   const toRemove: string[] = [];
   let sent = 0;
 
-  await Promise.all(
-    subscriptions.map(async (row) => {
+  // Bounded parallelism. A simple worker-pool: each "worker" pulls
+  // the next endpoint off the queue until none remain. Keeps memory
+  // flat and honours `PUSH_CONCURRENCY` regardless of recipient count.
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(PUSH_CONCURRENCY, subscriptions.length) }, async () => {
+    while (cursor < subscriptions.length) {
+      const row = subscriptions[cursor++];
       const sub: WebPushSubscription = {
         endpoint: row.endpoint,
         keys: { p256dh: row.p256dh, auth: row.auth },
@@ -87,14 +104,35 @@ export async function sendPushToUsers(
           console.warn("[chork] push send failed:", err);
         }
       }
-    })
-  );
+    }
+  });
+  await Promise.all(workers);
 
   if (toRemove.length > 0) {
     await service.from("push_subscriptions").delete().in("id", toRemove);
   }
 
   return { sent, removed: toRemove.length };
+}
+
+/**
+ * Fire-and-forget variant — schedules the push dispatch to run *after*
+ * the current response is sent via Next.js 15's `after()`. The caller
+ * returns immediately; push latency stops blocking server-action
+ * round-trips.
+ *
+ * Prefer this for user-facing mutations (completeRoute, inviteToCrew,
+ * etc.). Swallows errors internally — push is best-effort.
+ */
+export function sendPushInBackground(userIds: string[], payload: PushPayload): void {
+  if (userIds.length === 0) return;
+  after(async () => {
+    try {
+      await sendPushToUsers(userIds, payload);
+    } catch (err) {
+      console.warn("[chork] background push dispatch failed:", err);
+    }
+  });
 }
 
 /**

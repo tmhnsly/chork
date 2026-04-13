@@ -46,7 +46,7 @@ describe("completeRoute", () => {
 
   it("rejects gradeVote out of range", async () => {
     const { completeRoute } = await import("./actions");
-    const result = await completeRoute("route1", 3, 11, false);
+    const result = await completeRoute("route1", 3, 31, false);
     expect(result).toHaveProperty("error", "Invalid grade");
   });
 
@@ -106,7 +106,7 @@ describe("updateGradeVote", () => {
     expect(await updateGradeVote("", 5, "log1")).toHaveProperty("error", "Invalid route");
   });
 
-  it.each([-1, 11, 2.5, Number.NaN])(
+  it.each([-1, 31, 2.5, Number.NaN])(
     "rejects out-of-range / non-integer grade (%s)",
     async (grade) => {
       const { updateGradeVote } = await import("./actions");
@@ -117,7 +117,7 @@ describe("updateGradeVote", () => {
     },
   );
 
-  it("accepts a valid grade (0..10) and writes it to the log", async () => {
+  it("accepts a valid grade (0..30) and writes it to the log", async () => {
     const { requireAuth } = await import("@/lib/auth");
     vi.mocked(requireAuth).mockResolvedValue(mockAuth);
 
