@@ -337,22 +337,30 @@ export async function searchClimbersForInvite(
   const q = query.trim();
   if (q.length < 2) return [];
 
-  // Fetch candidate profiles first. We pull gym+role data separately to
-  // keep the embed shallow and the query fast.
-  const { data: profiles, error } = await supabase
-    .from("profiles")
-    .select(`
-      id,
-      username,
-      name,
-      avatar_url,
-      active_gym_id,
-      allow_crew_invites
-    `)
-    .or(`username.ilike.%${q}%,name.ilike.%${q}%`)
-    .eq("allow_crew_invites", true)
-    .neq("id", callerId)
-    .limit(limit * 2); // over-fetch to allow block/shared-crew filtering below
+  // Fuzzy search via `search_climbers_fuzzy` RPC (migration 027).
+  // pg_trgm word_similarity catches typos and near-matches that a
+  // bare `ilike '%q%'` would miss ("Magns" → "Magnus"). Results
+  // come back pre-ranked by similarity score so the best candidate
+  // is first. `any` cast until the supabase types are regenerated —
+  // the RPC is a real function in the DB.
+  //
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rpc = (supabase as any).rpc("search_climbers_fuzzy", {
+    p_query: q,
+    p_caller_id: callerId,
+    p_limit: limit * 2,
+  });
+  const { data: profiles, error } = (await rpc) as {
+    data: Array<{
+      id: string;
+      username: string;
+      name: string | null;
+      avatar_url: string | null;
+      active_gym_id: string | null;
+      allow_crew_invites: boolean;
+    }> | null;
+    error: unknown;
+  };
 
   if (error || !profiles) {
     console.warn("[chork] searchClimbersForInvite failed:", error);
@@ -400,8 +408,8 @@ export async function searchClimbersForInvite(
   return filtered.map((p) => ({
     user_id: p.id,
     username: p.username,
-    name: p.name,
-    avatar_url: p.avatar_url,
+    name: p.name ?? "",
+    avatar_url: p.avatar_url ?? "",
     active_gym_id: p.active_gym_id,
     active_gym_name: p.active_gym_id ? gymNames.get(p.active_gym_id) ?? null : null,
     has_pending_invite: pendingToIds.has(p.id),
