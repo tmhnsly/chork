@@ -2,6 +2,11 @@ import { type NextRequest, NextResponse } from "next/server";
 import { createMiddlewareSupabase } from "@/lib/supabase/middleware";
 
 const AUTH_ROUTES = ["/login"];
+// Routes an UNAUTHED visitor may reach without a login redirect.
+// Authed users landing here fall through to the onboarding gate
+// like any other route — previously `/` short-circuited, which let
+// freshly-signed-up users see the homepage before completing the
+// onboarding form and trapped anyone who refreshed mid-flow.
 const PUBLIC_ROUTES = ["/", "/privacy"];
 const ONBOARDING_ROUTE = "/onboarding";
 const ONBOARDED_COOKIE = "chork-onboarded";
@@ -11,43 +16,37 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   const { pathname } = request.nextUrl;
   const isAuthenticated = !!user;
+  const isAuthRoute = AUTH_ROUTES.some((r) => pathname.startsWith(r));
+  const isPublic = PUBLIC_ROUTES.includes(pathname);
 
-  // Redirect authenticated users away from login
-  if (AUTH_ROUTES.some((r) => pathname.startsWith(r)) && isAuthenticated) {
+  // Signed-in users never need the login page.
+  if (isAuthRoute && isAuthenticated) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
-  // Public routes and login — no further checks needed
-  if (AUTH_ROUTES.some((r) => pathname.startsWith(r)) || PUBLIC_ROUTES.includes(pathname)) {
-    return response;
-  }
-
-  // Everything else requires authentication
+  // Unauthed: auth + public routes are fine, everything else → login.
   if (!isAuthenticated) {
+    if (isAuthRoute || isPublic) return response;
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // Onboarding gate. We used to hit `profiles.select("onboarded")` on
-  // every authenticated request — a ~50-100ms Supabase round-trip per
-  // page nav. The flag only ever transitions false→true (once per
-  // user's lifetime), so we cache it in a cookie once confirmed and
-  // skip the query on subsequent requests.
-  if (pathname !== ONBOARDING_ROUTE) {
-    // Cookie value format: "<user_id>:1" so a user switch invalidates
-    // the fast path automatically (the cached uid no longer matches).
-    const cached = request.cookies.get(ONBOARDED_COOKIE)?.value;
-    const expected = `${user.id}:1`;
-    if (cached !== expected) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("onboarded")
-        .eq("id", user.id)
-        .single();
+  // Authed from here on. Resolve onboarded state via the cookie
+  // fast-path, falling back to a profile read. The flag only ever
+  // flips false → true once per user's lifetime, so the cookie
+  // stays valid until the user id changes.
+  const cached = request.cookies.get(ONBOARDED_COOKIE)?.value;
+  const expected = `${user.id}:1`;
+  let isOnboarded = cached === expected;
 
-      if (!profile || !profile.onboarded) {
-        return NextResponse.redirect(new URL(ONBOARDING_ROUTE, request.url));
-      }
+  if (!isOnboarded) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("onboarded")
+      .eq("id", user.id)
+      .single();
+    isOnboarded = !!profile?.onboarded;
 
+    if (isOnboarded) {
       response.cookies.set(ONBOARDED_COOKIE, expected, {
         httpOnly: true,
         sameSite: "lax",
@@ -56,6 +55,18 @@ export async function middleware(request: NextRequest) {
         path: "/",
       });
     }
+  }
+
+  // Already onboarded users shouldn't be able to revisit /onboarding
+  // — previously they could land there via a refresh and get stuck
+  // because nothing redirected them away.
+  if (pathname === ONBOARDING_ROUTE && isOnboarded) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  // Not onboarded yet — force the flow before any app route.
+  if (pathname !== ONBOARDING_ROUTE && !isOnboarded) {
+    return NextResponse.redirect(new URL(ONBOARDING_ROUTE, request.url));
   }
 
   return response;
@@ -69,6 +80,9 @@ export const config = {
     "/profile/:path*",
     "/leaderboard/:path*",
     "/u/:path*",
+    "/crew/:path*",
+    "/competitions/:path*",
+    "/admin/:path*",
     "/privacy/:path*",
   ],
 };

@@ -80,6 +80,9 @@ describe("createCrew", () => {
   it("trims the name and returns the new crew id on success", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     const supabase = mockSupabase({
+      // Pre-insert profile guard — resolves to an existing row so
+      // the onboarding-check branch passes.
+      "table:profiles": { data: { id: USER_A }, error: null },
       "table:crews": { data: { id: CREW_1 }, error: null },
     });
     vi.mocked(requireSignedIn).mockResolvedValue({
@@ -92,11 +95,10 @@ describe("createCrew", () => {
     expect(result).toEqual({ success: true, crewId: CREW_1 });
   });
 
-  it("returns a DB error when insert fails", async () => {
+  it("maps the 42501 RLS code to a stale-session message", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
-    // PostgrestError shape (code + message) — formatError uses the
-    // code field as a discriminator to extract the message cleanly.
     const supabase = mockSupabase({
+      "table:profiles": { data: { id: USER_A }, error: null },
       "table:crews": { data: null, error: { code: "42501", message: "RLS violation" } },
     });
     vi.mocked(requireSignedIn).mockResolvedValue({
@@ -106,7 +108,24 @@ describe("createCrew", () => {
 
     const { createCrew } = await import("./actions");
     const result = await createCrew("My Crew");
-    expect(result).toEqual({ error: "RLS violation" });
+    expect(result).toEqual({
+      error: "Session expired — refresh the page and try again.",
+    });
+  });
+
+  it("tells the user to finish onboarding if their profile row is missing", async () => {
+    const { requireSignedIn } = await import("@/lib/auth");
+    const supabase = mockSupabase({
+      "table:profiles": { data: null, error: null },
+    });
+    vi.mocked(requireSignedIn).mockResolvedValue({
+      supabase: supabase as never,
+      userId: USER_A,
+    });
+
+    const { createCrew } = await import("./actions");
+    const result = await createCrew("My Crew");
+    expect(result).toEqual({ error: "Finish onboarding before creating a crew." });
   });
 });
 

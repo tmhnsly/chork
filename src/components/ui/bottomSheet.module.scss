@@ -58,10 +58,13 @@
 
 // ── ScrollArea plumbing ───────────────────────────
 .scrollRoot {
-  // This is the element with a *definite* height cap — Radix's
-  // Viewport needs a fixed height to know when to scroll. Letting
-  // flex sort it out produced a root that collapsed to its content,
-  // so the sheet never scrolled.
+  // `max-height` on the Root alone doesn't give Radix's Viewport
+  // anything to scroll against — the Viewport would inherit
+  // `height: auto` and just grow with its content. The trick is to
+  // cap both the Root and the Viewport: Root sizes to
+  // min(content, 90svh); Viewport inherits that cap and overflows
+  // anything beyond via its internal scroll div. Short content
+  // still lets the sheet shrink; tall content scrolls.
   max-height: 90svh;
   width: 100%;
   overflow: hidden;
@@ -70,7 +73,7 @@
 
 .viewport {
   width: 100%;
-  height: 100%;
+  max-height: inherit;
   border-radius: inherit;
 }
 
@@ -146,7 +149,9 @@
 
 // Enhance: when backdrop-filter works, drop the solid fallback so
 // the pseudo's blur actually shows through.
-@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+@supports (
+  (-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))
+) {
   .titleBar {
     background: transparent;
   }
@@ -201,21 +206,37 @@
 
 // ── Keyframes ──────────────────────────────────────
 @keyframes sheetFadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes sheetFadeOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 @keyframes sheetSlideUp {
-  from { transform: translateY(100%); }
-  to { transform: translateY(0); }
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
 }
 
 @keyframes sheetSlideDown {
-  from { transform: translateY(0); }
-  to { transform: translateY(100%); }
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
 }

@@ -142,8 +142,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [supabase]);
 
   const resetPassword = useCallback(async (email: string) => {
+    // Prefer the configured site URL over `window.location.origin` —
+    // the latter resolves to `http://localhost:3000` during local
+    // development, so the password-reset email would point a user
+    // at their machine. Fall back to the window origin only when the
+    // env isn't set (e.g. storybook, tests).
+    const base = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/login`,
+      redirectTo: `${base}/auth/callback?next=/login`,
     });
     if (error) {
       showToast(error.message, "error");

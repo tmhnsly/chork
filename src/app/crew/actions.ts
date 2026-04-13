@@ -24,12 +24,35 @@ export async function createCrew(name: string): Promise<ActionResult<{ crewId: s
   const { supabase, userId } = auth;
 
   try {
+    // Guard: the crews INSERT policy requires `created_by` matches
+    // `auth.uid()` AND `created_by` FK-resolves to a profile row.
+    // Users who bypassed onboarding (no profile yet) would otherwise
+    // hit a bare "row-level security policy" error. Explicit check
+    // here gives them a message they can act on.
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", userId)
+      .maybeSingle();
+    if (!profile) {
+      return { error: "Finish onboarding before creating a crew." };
+    }
+
     const { data, error } = await supabase
       .from("crews")
       .insert({ name: trimmed, created_by: userId })
       .select("id")
       .single();
-    if (error || !data) return { error: formatError(error) };
+    if (error || !data) {
+      if (error?.code === "42501") {
+        // RLS violation. Most likely the session JWT has drifted
+        // (long-lived tab + background sign-out). Ask the user to
+        // refresh; the middleware will restore the cookie and the
+        // next attempt should pass the policy check.
+        return { error: "Session expired — refresh the page and try again." };
+      }
+      return { error: formatError(error) };
+    }
 
     // The seat_crew_creator trigger has already inserted our active
     // membership row in the same transaction — no follow-up writes.

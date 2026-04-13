@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { FaCheck, FaSpinner } from "react-icons/fa6";
 import { useAuth } from "@/lib/auth-context";
@@ -16,7 +15,6 @@ type Step = "form" | "confirm";
 
 export function OnboardingForm() {
   const { profile, refreshProfile } = useAuth();
-  const router = useRouter();
   const usernameValidation = useUsernameValidation();
 
   const [step, setStep] = useState<Step>("form");
@@ -84,7 +82,13 @@ export function OnboardingForm() {
         return;
       }
       await refreshProfile();
-      router.push("/");
+      // Hard nav — `router.push("/")` kept failing to redirect because
+      // middleware state (the onboarded cookie) and the RSC cache
+      // didn't always line up by the time the client re-navigated.
+      // A full reload guarantees the middleware runs with fresh
+      // cookies, the profile query reads `onboarded = true`, and
+      // every cached server segment is re-fetched.
+      window.location.href = "/";
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Something went wrong", "error");
       setStep("form");
