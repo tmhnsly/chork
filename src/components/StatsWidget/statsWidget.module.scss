@@ -1,6 +1,17 @@
+@use "mixins/typography" as type;
+
 .chartBlock {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
 }
 
+// Rank shown as the card header's icon slot — reads as
+// "[#N] CURRENT SET · Reset MMM d · Gym". Styled as a number so it
+// stands out against the uppercase heading without feeling bolted on.
+.rankIcon {
+  @include type.typography(number);
+  font-size: var(--text-md);
+  color: var(--accent-text);
+  line-height: 1;
+}

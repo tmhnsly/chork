@@ -47,7 +47,7 @@ export function SetMeta({ resetDate, gymName }: Props) {
   return (
     <span className={styles.row}>
       <CollapseFade show={!!resetDate}>
-        <span>Resets {displayDate}</span>
+        <span>Reset {displayDate}</span>
         {gymName && <BrandDivider />}
       </CollapseFade>
       {gymName && <span className={styles.gym}>{gymName}</span>}

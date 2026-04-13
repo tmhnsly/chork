@@ -33,7 +33,21 @@
 // ── Typography ─────────────────────────────────────
 .headline {
   @include type.typography(display);
-  color: var(--accent-text);
+  // No single colour on the headline — each sentence span owns its
+  // tier below. Keep the display typography inheritance so word
+  // metrics stay identical between the two halves.
+}
+
+// First sentence: primary text (step 12).
+.headlinePrimary {
+  color: var(--mono-text);
+}
+
+// Second sentence: low-contrast text (step 11). Gives the two
+// sentences a readable hierarchy while still rendering both in the
+// same heavy italic weight.
+.headlineSecondary {
+  color: var(--mono-text-low-contrast);
 }
 
 .subheadline {

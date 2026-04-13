@@ -1,4 +1,3 @@
-import { FaLayerGroup } from "react-icons/fa6";
 import { RingStatsRow } from "@/components/RingStatsRow/RingStatsRow";
 import { RouteChart } from "@/components/RouteChart/RouteChart";
 import { SectionCard } from "@/components/ui/SectionCard";
@@ -52,10 +51,19 @@ export function StatsWidget({
   const zoneRouteCount = routeHasZone.filter(Boolean).length;
   const maxPoints = total > 0 ? computeMaxPoints(total, zoneRouteCount) : undefined;
 
+  // Rank text as the card's icon slot — replaces the old layer-group
+  // glyph. Using the climber's placement in the active set as the
+  // header mark is more informative *and* lets us remove the
+  // duplicate rank cell inside the RingStatsRow totals block.
+  const rankIcon =
+    rank != null ? (
+      <span className={styles.rankIcon}>#{rank}</span>
+    ) : null;
+
   return (
     <SectionCard
       title="Current Set"
-      icon={<FaLayerGroup />}
+      icon={rankIcon}
       meta={<SetMeta resetDate={resetDate} gymName={gymName} />}
     >
       <RingStatsRow
@@ -66,7 +74,6 @@ export function StatsWidget({
         totalRoutes={total}
         zoneCompletions={zoneCompletions}
         maxPoints={maxPoints}
-        rank={rank}
         size={72}
       />
 

@@ -8,9 +8,12 @@
 }
 
 // ── Route tile grid ────────────────────────────────
+// 4 columns — the tiles need to be big enough to tap cleanly with a
+// thumb and show their number + grade overlay. 5 columns made each
+// tile too narrow on phones.
 .tileGrid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-2);
 }
 
