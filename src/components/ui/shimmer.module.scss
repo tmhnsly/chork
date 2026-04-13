@@ -1,53 +1,44 @@
 // ── Skeleton system ─────────────────────────────────
 //
-// `.skeleton` — applied directly to an existing element to make it a
-// skeleton placeholder. Text becomes transparent; a soft diagonal
-// shimmer gradient drifts across. The element keeps its own sizing.
+// Unified glow-style placeholder. Every loading surface in the app
+// pulses on the same rhythm: an inner step-3 tint breathes against
+// the card's step-2 bg, with a soft step-7 border-aligned glow that
+// brightens and fades on a 2s loop. Works on every theme because
+// it's composed entirely from `--mono-*` tokens.
 //
-// Skeleton BentoStats should NOT pass a variant prop — all skeleton
-// cards look the same. This avoids specificity fights with variant
-// classes entirely.
-//
-// `.skeletonLine` / `.skeletonShort` — standalone placeholder bars.
-//
-// `.fadeIn` — apply to real content when it replaces a skeleton.
+// Classes:
+//   `.skeleton`     — applied directly to an element. Melts all
+//                     nested text/images/borders into the pulse so
+//                     the surface reads as one seamless placeholder.
+//   `.skeletonLine` — standalone rectangular bar (headings, avatars).
+//   `.skeletonShort`— narrower bar (subtitles).
+//   `.fadeIn`       — apply to real content when swapping in.
 
-// ── Shared values ──────────────────────────────────
-@keyframes shimmerGlow {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+@keyframes skeletonGlow {
+  0%, 100% {
+    opacity: 0.7;
+    box-shadow: 0 0 0 0
+      color-mix(in srgb, var(--mono-border-hover) 0%, transparent);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 16px 0
+      color-mix(in srgb, var(--mono-border-hover) 35%, transparent);
+  }
 }
 
-// Skeleton base matches the card surface (step-2) so shimmers inside
-// cards read as part of the card rather than a brighter patch within
-// it. The moving highlight steps up to step-3 for visible motion.
-$shimmer-bg: linear-gradient(
-  105deg,
-  var(--mono-subtle-bg) 0%,
-  var(--mono-subtle-bg) 35%,
-  var(--mono-bg) 45%,
-  var(--mono-bg) 55%,
-  var(--mono-subtle-bg) 65%,
-  var(--mono-subtle-bg) 100%
-);
-
 // ── Skeleton class ─────────────────────────────────
-// `!important` on bg/color/border so this class wins when applied to
-// elements that already set those properties (e.g. `SectionCard`'s
-// card surface). CSS-module source order between two components isn't
-// reliable, and a loading state is exactly the place where overriding
-// its surroundings is the intended behaviour.
 .skeleton {
+  // !important wins over whatever surface style the host element
+  // already applied (e.g. a SectionCard). Loading explicitly
+  // overrides surroundings.
   color: transparent !important;
-  background: $shimmer-bg !important;
-  background-size: 400% 100% !important;
-  border-color: transparent !important;
-  animation: shimmerGlow 2.2s ease-in-out infinite;
+  background: var(--mono-bg) !important;
+  border: 1px solid var(--mono-border-subtle) !important;
+  border-radius: var(--radius-2) !important;
+  animation: skeletonGlow 2s ease-in-out infinite;
 
-  // Inner text, icons and nested surfaces all melt into the shimmer
-  // so the card reads as one seamless loading rectangle. Only applied
-  // here (not on `.skeletonLine`) because standalone bars don't have
-  // nested content.
+  // Everything inside melts into the pulse.
   * {
     color: transparent !important;
     background-color: transparent !important;
@@ -58,7 +49,7 @@ $shimmer-bg: linear-gradient(
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
-    background: var(--mono-subtle-bg) !important;
+    opacity: 0.85;
   }
 }
 
@@ -68,13 +59,13 @@ $shimmer-bg: linear-gradient(
   height: var(--text-sm);
   width: 100%;
   margin: var(--space-1) 0;
-  background: $shimmer-bg;
-  background-size: 400% 100%;
-  animation: shimmerGlow 2.2s ease-in-out infinite;
+  background: var(--mono-bg-hover);
+  border-radius: var(--radius-2);
+  animation: skeletonGlow 2s ease-in-out infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
-    background: var(--mono-subtle-bg);
+    opacity: 0.85;
   }
 }
 
