@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { FaCamera } from "react-icons/fa6";
 import type { Profile } from "@/lib/data";
@@ -41,14 +41,62 @@ interface BodyProps {
 
 function EditProfileBody({ user, onClose }: BodyProps) {
   const router = useRouter();
-  const { refreshProfile } = useAuth();
+  const { refreshProfile, resetPassword } = useAuth();
   const usernameValidation = useUsernameValidation(user.username);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [username, setUsername] = useState(user.username);
   const [displayName, setDisplayName] = useState(user.name ?? "");
+  const [email, setEmail] = useState<string>("");
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [emailSaving, setEmailSaving] = useState(false);
+  const [resettingPw, setResettingPw] = useState(false);
+
+  // Lazy-load the current auth email once on mount so we can show it
+  // in the input and detect an actual change on save.
+  const [currentEmail, setCurrentEmail] = useState<string>("");
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { createBrowserSupabase } = await import("@/lib/supabase/client");
+      const sb = createBrowserSupabase();
+      const { data: { user: authUser } } = await sb.auth.getUser();
+      if (cancelled) return;
+      const e = authUser?.email ?? "";
+      setCurrentEmail(e);
+      setEmail(e);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  async function handleChangeEmail() {
+    if (!email || email === currentEmail || emailSaving) return;
+    setEmailSaving(true);
+    try {
+      const { createBrowserSupabase } = await import("@/lib/supabase/client");
+      const sb = createBrowserSupabase();
+      const { error } = await sb.auth.updateUser({ email });
+      if (error) {
+        showToast(error.message, "error");
+        return;
+      }
+      showToast("Check your new inbox to confirm the change");
+      setCurrentEmail(email);
+    } finally {
+      setEmailSaving(false);
+    }
+  }
+
+  async function handleResetPassword() {
+    if (!currentEmail || resettingPw) return;
+    setResettingPw(true);
+    try {
+      await resetPassword(currentEmail);
+    } finally {
+      setResettingPw(false);
+    }
+  }
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -182,6 +230,43 @@ function EditProfileBody({ user, onClose }: BodyProps) {
             placeholder="Your name"
           />
         </label>
+
+        <label className={styles.field}>
+          <span className={styles.fieldLabel}>Email</span>
+          <input
+            className={styles.input}
+            type="email"
+            autoComplete="email"
+            inputMode="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+          />
+          {email !== currentEmail && email.length > 0 && (
+            <Button
+              variant="ghost"
+              onClick={handleChangeEmail}
+              disabled={emailSaving}
+            >
+              {emailSaving ? "Sending confirmation…" : "Send confirmation email"}
+            </Button>
+          )}
+        </label>
+
+        <div className={styles.field}>
+          <span className={styles.fieldLabel}>Password</span>
+          <Button
+            variant="ghost"
+            onClick={handleResetPassword}
+            disabled={resettingPw || !currentEmail}
+            fullWidth
+          >
+            {resettingPw ? "Sending reset link…" : "Reset password"}
+          </Button>
+        </div>
       </div>
 
       <div className={styles.actions}>

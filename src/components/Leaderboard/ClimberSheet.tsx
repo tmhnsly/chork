@@ -20,6 +20,36 @@ function tileStateFromSanitised(log: SanitisedLog | undefined): TileState {
   return "completed";
 }
 
+// ── Client-side cache ─────────────────────────────
+// Opening the same climber's sheet twice in a row shouldn't fire
+// two network requests. 30s TTL catches the common "tap to peek,
+// close, tap again" flow without serving stale data during a busy
+// session where climbers are logging sends.
+interface CacheEntry {
+  logs: SanitisedLog[];
+  at: number;
+}
+const CLIMBER_SHEET_TTL = 30_000;
+const climberSheetCache = new Map<string, CacheEntry>();
+
+function cacheKey(userId: string, setId: string): string {
+  return `${userId}:${setId}`;
+}
+
+function readCache(userId: string, setId: string): SanitisedLog[] | null {
+  const entry = climberSheetCache.get(cacheKey(userId, setId));
+  if (!entry) return null;
+  if (Date.now() - entry.at > CLIMBER_SHEET_TTL) {
+    climberSheetCache.delete(cacheKey(userId, setId));
+    return null;
+  }
+  return entry.logs;
+}
+
+function writeCache(userId: string, setId: string, logs: SanitisedLog[]): void {
+  climberSheetCache.set(cacheKey(userId, setId), { logs, at: Date.now() });
+}
+
 interface Props {
   entry: LeaderboardEntry;
   /** Active set id (only provided when on "This set" tab). */
@@ -31,12 +61,16 @@ interface Props {
 }
 
 export function ClimberSheet({ entry, setId, routes, onClose }: Props) {
-  const [logs, setLogs] = useState<SanitisedLog[] | null>(null);
-  const [loading, setLoading] = useState(setId !== null);
+  // Seed from cache synchronously so a re-open inside the TTL shows
+  // the grid instantly with no loading shimmer.
+  const cached = setId ? readCache(entry.user_id, setId) : null;
+  const [logs, setLogs] = useState<SanitisedLog[] | null>(cached);
+  const [loading, setLoading] = useState(setId !== null && cached === null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!setId) return;
+    if (readCache(entry.user_id, setId)) return; // fresh cache hit, skip fetch
     let cancelled = false;
     fetchClimberSheetLogs(entry.user_id, setId).then((result) => {
       if (cancelled) return;
@@ -45,6 +79,7 @@ export function ClimberSheet({ entry, setId, routes, onClose }: Props) {
         setLoading(false);
         return;
       }
+      writeCache(entry.user_id, setId, result.logs);
       setLogs(result.logs);
       setLoading(false);
     });
