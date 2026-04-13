@@ -1,0 +1,70 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+
+.page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100svh - var(--space-16));
+  padding: var(--space-8) var(--gutter-x);
+  text-align: center;
+}
+
+.inner {
+  @include layout.stack(var(--space-5));
+  align-items: center;
+  max-width: 28rem;
+}
+
+.code {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-3);
+  background: var(--accent-bg);
+  color: var(--accent-text);
+}
+
+.codeDigit {
+  @include type.typography(display);
+  font-size: var(--text-5xl);
+  line-height: 1;
+}
+
+.codeBolt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-solid);
+  font-size: var(--text-3xl);
+}
+
+.title {
+  @include type.typography(display);
+}
+
+.body {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  min-height: var(--size-touch-target);
+  padding: 0 var(--space-6);
+  border-radius: var(--radius-2);
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+  text-decoration: none;
+  @include type.typography(button);
+
+  &:hover {
+    background: var(--accent-solid-hover);
+  }
+}

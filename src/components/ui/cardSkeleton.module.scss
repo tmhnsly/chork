@@ -1,0 +1,9 @@
+@use "mixins/surfaces" as surface;
+
+// Mirrors SectionCard's outer surface (glass bg + radius) so the
+// skeleton and its loaded counterpart occupy the same visual space.
+.card {
+  @include surface.card;
+  border-radius: var(--radius-3);
+  width: 100%;
+}

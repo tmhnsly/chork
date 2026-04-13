@@ -3,6 +3,7 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { FaCheck, FaSpinner } from "react-icons/fa6";
 import { useAuth } from "@/lib/auth-context";
 import { useUsernameValidation } from "@/hooks/use-username-validation";
 import { RevealText } from "@/components/motion";
@@ -35,6 +36,24 @@ export function OnboardingForm() {
       setLoadingGyms(false);
     });
   }, []);
+
+  // Debounced live username validation. 400ms is long enough that a
+  // climber typing a name doesn't fire a request per keystroke, short
+  // enough that the "Available" / "Taken" feedback feels immediate.
+  // The hook itself handles out-of-order responses via a request token.
+  useEffect(() => {
+    if (!profile) return;
+    if (!username) {
+      usernameValidation.reset();
+      return;
+    }
+    const handle = setTimeout(() => {
+      usernameValidation.validate(username, profile.id);
+    }, 400);
+    return () => clearTimeout(handle);
+    // usernameValidation is stable (useCallback/useRef inside the hook)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [username, profile?.id]);
 
   const filteredGyms = gymQuery.trim()
     ? allGyms.filter((g) =>
@@ -128,7 +147,9 @@ export function OnboardingForm() {
           <label className={styles.usernameLabel} htmlFor="username">
             Username *
           </label>
-          <div className={styles.usernameInputWrap}>
+          <div
+            className={`${styles.usernameInputWrap} ${usernameValidation.error ? styles.usernameInputWrapInvalid : ""}`}
+          >
             <span className={styles.usernamePrefix}>@</span>
             <input
               id="username"
@@ -136,13 +157,20 @@ export function OnboardingForm() {
               className={styles.usernameInput}
               value={username}
               onChange={(e) => setUsername(e.currentTarget.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
-              onBlur={() => profile && usernameValidation.validate(username, profile.id)}
               placeholder="your_username"
               required
               autoComplete="off"
+              aria-invalid={usernameValidation.error ? true : undefined}
+              aria-describedby={usernameValidation.error ? "username-error" : undefined}
             />
+            {usernameValidation.status === "checking" && (
+              <FaSpinner className={styles.usernameStatusSpinner} aria-label="Checking availability" />
+            )}
+            {usernameValidation.status === "available" && username && (
+              <FaCheck className={styles.usernameStatusOk} aria-label="Username available" />
+            )}
           </div>
-          <InputError message={usernameValidation.error} />
+          <InputError message={usernameValidation.error} id="username-error" />
         </div>
 
         <FormField
@@ -235,7 +263,12 @@ export function OnboardingForm() {
 
         <Button
           type="submit"
-          disabled={!username || !selectedGym || !!usernameValidation.error}
+          disabled={
+            !username ||
+            !selectedGym ||
+            !!usernameValidation.error ||
+            usernameValidation.status === "checking"
+          }
           fullWidth
         >
           Continue

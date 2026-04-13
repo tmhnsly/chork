@@ -4,42 +4,52 @@ import styles from "./ringStatsRow.module.scss";
 interface Props {
   completions: number;
   flashes: number;
+  zones: number;
   points: number;
-  /** Total routes - needed for completion ring. Omit for all-time. */
+  /** Total routes. Omit to render the sends ring as a full decorative fill. */
   totalRoutes?: number;
-  /** Max possible points (all flashes + all zones). Omit for all-time. */
-  maxPoints?: number;
+  /**
+   * Number of completed routes that have a zone. Used as the zones-ring
+   * denominator so zone rate = zones / zoneCompletions. Omit to hide
+   * the zones ring (renders 2 rings only).
+   */
+  zoneCompletions?: number;
   /** Ring size in px */
   size?: number;
 }
 
 /**
- * Shared ring + stat row used on both the Wall page (StatsWidget)
- * and the profile page (ClimberStats). Single source of truth for
- * ring colours, stat labels, and layout.
+ * Shared ring + stat row used on the wall (StatsWidget) and on
+ * profile pages (ClimberStats). Rings are consistent across contexts:
  *
- * Three rings when maxPoints is known (current set):
- *   Outer: sends completion rate (accent/lime)
- *   Middle: flash rate (amber)
- *   Inner: score rate (mono - points / max possible)
+ *   Outer:  sends completion rate (completions / totalRoutes). Full
+ *           decorative fill if no total is known.
+ *   Middle: flash rate (flashes / completions)
+ *   Inner:  zone rate (zones / zoneCompletions)
  *
- * Two rings when maxPoints is unknown (all-time):
- *   Outer: sends (no rate, just decorative fill)
- *   Inner: flashes
+ * Points is surfaced as a mono stat on the right, not a ring — score
+ * totals are context that belongs next to the other counts, not
+ * competing with rates for the "hero" ring slot.
  */
-export function RingStatsRow({ completions, flashes, points, totalRoutes, maxPoints, size = 56 }: Props) {
-  const completionRate = totalRoutes ? completions / totalRoutes : 0;
+export function RingStatsRow({
+  completions,
+  flashes,
+  zones,
+  points,
+  totalRoutes,
+  zoneCompletions,
+  size = 72,
+}: Props) {
+  const completionRate = totalRoutes ? completions / totalRoutes : 1;
   const flashRate = completions > 0 ? flashes / completions : 0;
-  const scoreRate = maxPoints ? points / maxPoints : 0;
+  const zoneRate = zoneCompletions && zoneCompletions > 0 ? zones / zoneCompletions : 0;
 
   const rings = [
     { value: completionRate, color: "var(--brand)" },
     { value: flashRate, color: "var(--flash-solid)" },
   ];
-
-  // Only show score ring when we have a known max (current set context)
-  if (maxPoints) {
-    rings.push({ value: scoreRate, color: "var(--success-solid)" });
+  if (zoneCompletions != null) {
+    rings.push({ value: zoneRate, color: "var(--success-solid)" });
   }
 
   return (
@@ -59,11 +69,15 @@ export function RingStatsRow({ completions, flashes, points, totalRoutes, maxPoi
           </span>
         </div>
         <div className={styles.stat}>
-          <span className={`${styles.label} ${styles.pointsLabel}`}>POINTS</span>
-          <span className={`${styles.value} ${styles.points}`}>
-            {points}{maxPoints != null && <small>/{maxPoints}</small>}
+          <span className={`${styles.label} ${styles.zoneLabel}`}>ZONES</span>
+          <span className={`${styles.value} ${styles.zone}`}>
+            {zones}
           </span>
         </div>
+      </div>
+      <div className={styles.points}>
+        <span className={styles.pointsValue}>{points}</span>
+        <span className={styles.pointsLabel}>PTS</span>
       </div>
     </div>
   );

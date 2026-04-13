@@ -63,42 +63,6 @@ export type Database = {
           },
         ]
       }
-      blocked_users: {
-        Row: {
-          blocked_id: string
-          blocker_id: string
-          created_at: string
-          id: string
-        }
-        Insert: {
-          blocked_id: string
-          blocker_id: string
-          created_at?: string
-          id?: string
-        }
-        Update: {
-          blocked_id?: string
-          blocker_id?: string
-          created_at?: string
-          id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "blocked_users_blocked_id_fkey"
-            columns: ["blocked_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "blocked_users_blocker_id_fkey"
-            columns: ["blocker_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       comment_likes: {
         Row: {
           comment_id: string
@@ -1132,6 +1096,10 @@ export type Database = {
           user_id: string
           username: string
         }[]
+      }
+      get_gym_active_climber_count: {
+        Args: { p_gym_id: string }
+        Returns: number
       }
       get_leaderboard_all_time: {
         Args: { p_gym_id: string; p_limit?: number; p_offset?: number }

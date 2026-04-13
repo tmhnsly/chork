@@ -5,22 +5,6 @@
   @include layout.stack(var(--space-5));
 }
 
-.header {
-  @include layout.stack(var(--space-1));
-}
-
-.title {
-  @include type.typography(display);
-  // Page titles are --mono-text across the app (wall, profile, admin,
-  // competition). One rule so hierarchy reads the same on every page.
-  color: var(--mono-text);
-}
-
-.gym {
-  @include type.typography(label);
-  color: var(--mono-text-low-contrast);
-}
-
 .segmentRow {
   display: flex;
   justify-content: flex-start;

@@ -14,8 +14,18 @@ export function FormField({ label, error, id, ...inputProps }: Props) {
       <label className={styles.label} htmlFor={id}>
         {label}
       </label>
-      <input id={id} className={styles.input} {...inputProps} />
-      {error && <span className={styles.fieldError}>{error}</span>}
+      <input
+        id={id}
+        className={styles.input}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error && id ? `${id}-error` : undefined}
+        {...inputProps}
+      />
+      {error && (
+        <span id={id ? `${id}-error` : undefined} className={styles.fieldError}>
+          {error}
+        </span>
+      )}
     </div>
   );
 }

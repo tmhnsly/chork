@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { RevealText } from "@/components/motion";
 import styles from "./error.module.scss";
 
 interface Props {
@@ -15,7 +16,7 @@ export default function GlobalError({ error, reset }: Props) {
 
   return (
     <div className={styles.page}>
-      <h2 className={styles.title}>Something went wrong</h2>
+      <RevealText text="Something went wrong" as="h2" className={styles.title} />
       <p className={styles.message}>
         An unexpected error occurred. Please try again.
       </p>

@@ -6,6 +6,7 @@ import {
   getRouteTags,
 } from "@/lib/data/admin-queries";
 import { formatSetLabel } from "@/lib/data/set-label";
+import { PageHeader } from "@/components/motion";
 import { RoutesAdmin } from "@/components/admin/RoutesAdmin";
 import styles from "./routes.module.scss";
 
@@ -37,10 +38,7 @@ export default async function AdminRoutesPage({ params }: Props) {
 
   return (
     <main className={styles.page}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>Routes</h1>
-        <p className={styles.subtitle}>{formatSetLabel(set)}</p>
-      </header>
+      <PageHeader title="Routes" subtitle={formatSetLabel(set)} />
       <RoutesAdmin setId={setId} initialRoutes={routes} tags={tags} />
     </main>
   );

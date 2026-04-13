@@ -1,11 +1,14 @@
 @use "mixins/typography" as type;
-@use "mixins/surfaces" as surface;
 @use "mixins/toggle" as toggle;
 @use "mixins/focus";
 
+// When the toggle is off the panel should read as a single-row input,
+// not a card with hidden content. Matches `input.field` for border /
+// background / radius so it sits alongside real text inputs cleanly.
 .panel {
-  @include surface.card;
+  border: 1px solid var(--mono-border);
   border-radius: var(--radius-2);
+  background: var(--mono-subtle-bg);
   overflow: hidden; // contain chip scroll within rounded corners
 }
 
@@ -35,16 +38,26 @@
   display: grid;
   grid-template-rows: 0fr;
   transition: grid-template-rows var(--duration-normal) var(--ease-out);
-  overflow: hidden;
 
   > * {
     min-height: 0;
     overflow: hidden;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition:
+      opacity var(--duration-fast) var(--ease-out),
+      transform var(--duration-fast) var(--ease-out);
   }
 }
 
 .gradeSectionVisible {
   grid-template-rows: 1fr;
+
+  > * {
+    opacity: 1;
+    transform: none;
+    transition-delay: 0.1s;
+  }
 }
 
 // ── Grade chips row (scrolls edge-to-edge) ────────

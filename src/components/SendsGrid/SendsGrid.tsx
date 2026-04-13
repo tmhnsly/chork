@@ -6,7 +6,6 @@ import type { RouteSet, Route, RouteLog } from "@/lib/data";
 import { isFlash, computePoints, deriveTileState } from "@/lib/data";
 import { formatGrade, type GradingScale } from "@/lib/data/grade-label";
 import { StatsWidget } from "@/components/StatsWidget/StatsWidget";
-import { RevealText } from "@/components/motion";
 import { PunchTile } from "@/components/PunchTile/PunchTile";
 import { Legend } from "@/components/ui";
 import dynamic from "next/dynamic";
@@ -63,11 +62,6 @@ export function SendsGrid({ set, routes, initialLogs, gymName }: Props) {
   return (
     <>
       <div className={styles.page}>
-        <header className={styles.header}>
-          <RevealText text="The Wall" as="h2" className={styles.title} />
-          {gymName && <p className={styles.gym}>{gymName}</p>}
-        </header>
-
         <StatsWidget
           completions={completedCount}
           total={routes.length}
@@ -76,7 +70,9 @@ export function SendsGrid({ set, routes, initialLogs, gymName }: Props) {
           logs={logByRoute}
           routeIds={routes.map((r) => r.id)}
           routeHasZone={routes.map((r) => r.has_zone)}
+          routeNumbers={routes.map((r) => r.number)}
           resetDate={endsAt}
+          gymName={gymName}
         />
 
         <Legend />

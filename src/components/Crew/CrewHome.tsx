@@ -61,20 +61,25 @@ export function CrewHome({
 
   return (
     <div className={styles.wrapper}>
+      {/* Full-width search entry-point. Visually an input, functionally
+          a button — it opens the CrewSearchSheet where the real query
+          field lives (handles debounced async results, etc.). */}
+      <button
+        type="button"
+        className={styles.searchField}
+        onClick={() => setSearchOpen(true)}
+        aria-label="Search climbers"
+      >
+        <span className={styles.searchPlaceholder}>Search climbers…</span>
+        <span className={styles.searchIcon} aria-hidden>
+          <FaMagnifyingGlass />
+        </span>
+      </button>
+
       {invites.length > 0 && <PendingInvitesCard invites={invites} />}
 
       <section className={styles.section}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>Activity</h2>
-          <button
-            type="button"
-            className={styles.searchBtn}
-            onClick={() => setSearchOpen(true)}
-            aria-label="Search climbers"
-          >
-            <FaMagnifyingGlass />
-          </button>
-        </div>
+        <h2 className={styles.sectionTitle}>Activity</h2>
         <CrewActivityFeed
           hasCrew={myCrews.length > 0}
           initialEvents={initialFeed}

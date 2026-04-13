@@ -1,25 +1,8 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
-@use "mixins/surfaces" as surface;
 
-// Mirrors the outer profile page section spacing so All Time / Current Set
-// read as distinct sections rather than a tight pair of stacked cards.
 .wrapper {
   @include layout.stack(var(--space-6));
-}
-
-// Wraps a section label + its card with a tight inner gap so the label
-// hugs the card while the wrapper-level gap keeps sections breathing.
-.labelledSection {
-  @include layout.stack(var(--space-2));
-}
-
-// ── All Time card ─────────────────────────────────
-.allTimeCard {
-  @include surface.card;
-  border-radius: var(--radius-3);
-  padding: var(--space-4);
-  @include layout.stack(var(--space-3));
 }
 
 .allTimeHeader {
@@ -54,10 +37,9 @@
 
 .accent { color: var(--accent-text); }
 .flash { color: var(--flash-text); }
-.points { color: var(--success-text); }
+.points { color: var(--mono-text); }
 
 // ── Extras grid ───────────────────────────────────
-// Secondary stats: flash rate, pts/send, attempts, completion, coverage, streak
 .extrasGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -95,30 +77,5 @@
 .extraSubtitle {
   @include type.typography(meta);
   font-size: var(--text-2xs);
-  color: var(--mono-text-low-contrast);
-}
-
-// ── Current Set card ──────────────────────────────
-.sectionLabel {
-  @include type.typography(label);
-  color: var(--mono-text-low-contrast);
-}
-
-.currentSetCard {
-  @include surface.card;
-  @include layout.stack(var(--space-4));
-  border-radius: var(--radius-3);
-  padding: var(--space-4);
-  container-type: inline-size;
-}
-
-.chartFooter {
-  display: flex;
-  justify-content: flex-start;
-}
-
-.footerLabel {
-  @include type.typography(label);
-  font-size: var(--text-xs);
   color: var(--mono-text-low-contrast);
 }

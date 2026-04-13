@@ -84,7 +84,10 @@
   background: var(--mono-subtle-bg);
   color: var(--mono-text);
   cursor: pointer;
-  transition: background var(--duration-fast) var(--ease-out);
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
 
   &:hover:not(:disabled) {
     background: var(--mono-bg-hover);
@@ -93,6 +96,16 @@
   &:disabled {
     opacity: 0.35;
     cursor: not-allowed;
+  }
+}
+
+.counterBtnHidden {
+  opacity: 0;
+  transform: scale(0.9);
+  pointer-events: none;
+
+  &:disabled {
+    opacity: 0;
   }
 }
 
@@ -221,11 +234,74 @@
   transform: rotate(180deg);
 }
 
+// Animated drawer: grid-template-rows 0fr → 1fr is the cleanest way
+// to interpolate auto-height. Inner element needs min-height:0 +
+// overflow:hidden so children can be clipped while collapsed.
+.betaDrawer {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--duration-normal) var(--ease-out);
+}
+
+.betaDrawerOpen {
+  grid-template-rows: 1fr;
+}
+
+.betaDrawerInner {
+  min-height: 0;
+  overflow: hidden;
+}
+
 .betaContent {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
   padding-bottom: var(--space-4);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.betaDrawerOpen .betaContent {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.12s;
+}
+
+.betaEmptyLabel {
+  @include type.typography(label);
+  color: var(--mono-solid);
+}
+
+// Post-beta form sits below the drawer. Same grid-row trick so it
+// collapses layout smoothly when the drawer opens (hiding the form)
+// and re-opens when the drawer closes.
+.postFormWrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--duration-normal) var(--ease-out);
+}
+
+.postFormVisible {
+  grid-template-rows: 1fr;
+}
+
+.postFormInner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.postFormWrap .commentForm {
+  padding-top: var(--space-3);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.postFormVisible .commentForm {
+  opacity: 1;
+  transition-delay: 0.1s;
 }
 
 .sectionLabel {
@@ -363,9 +439,21 @@
   }
 }
 
+// Edit mode lives inside a comment row alongside author + body. The
+// form's touch-target inputs would normally be taller than the body
+// text, shifting the whole row. Pin the input height to the body's
+// line-height-equivalent and shrink the action buttons to match so
+// the row doesn't breathe when toggling modes.
 .editForm {
   display: flex;
+  align-items: center;
   gap: var(--space-1);
+
+  .commentInput {
+    min-height: var(--space-8);
+    padding-top: 0;
+    padding-bottom: 0;
+  }
 }
 
 .editConfirm,
@@ -374,8 +462,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: var(--size-touch-target);
-  min-height: var(--size-touch-target);
+  width: var(--space-8);
+  height: var(--space-8);
+  min-height: var(--space-8);
+  flex-shrink: 0;
   border: none;
   border-radius: var(--radius-1);
   cursor: pointer;

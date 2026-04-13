@@ -22,7 +22,7 @@ export default async function LeaderboardPage() {
   if ("error" in auth) redirect("/login");
   const { supabase, userId, gymId } = auth;
 
-  const [gym, currentSet, gymStats] = await Promise.all([
+  const [gym, currentSet, allTimeStats] = await Promise.all([
     getGym(supabase, gymId),
     getCurrentSet(supabase, gymId),
     getGymStats(supabase, gymId),
@@ -31,9 +31,10 @@ export default async function LeaderboardPage() {
   // Determine initial tab's setId — prefer active set, fall back to all-time
   const initialSetId = currentSet?.id ?? null;
 
-  const [top, userRow] = await Promise.all([
+  const [top, userRow, setStats] = await Promise.all([
     getLeaderboard(supabase, gymId, initialSetId, TOP_LIMIT, 0),
     getLeaderboardUserRow(supabase, gymId, userId, initialSetId),
+    initialSetId ? getGymStats(supabase, gymId, initialSetId) : Promise.resolve(null),
   ]);
 
   const needsNeighbourhood =
@@ -50,7 +51,8 @@ export default async function LeaderboardPage() {
         currentSetId={currentSet?.id ?? null}
         currentUserId={userId}
         initialSetData={{ top, userRow, neighbourhood }}
-        gymStats={gymStats}
+        setStats={setStats}
+        allTimeStats={allTimeStats}
       />
     </main>
   );

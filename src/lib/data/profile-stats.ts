@@ -28,19 +28,23 @@ export function computeAllTimeAggregates(logs: LogForAggregates[]): AllTimeAggre
 
   for (const log of logs) {
     if (log.attempts > 0) attemptedRouteIds.add(log.route_id);
+
+    // Zone bonus is independent of completion — a climber who got the
+    // zone hold but didn't top the boulder still earns the +1.
+    if (log.zone) points += 1;
+
     if (!log.completed) continue;
 
     sends += 1;
     totalAttempts += log.attempts;
     if (log.attempts === 1) flashes += 1;
 
-    // Points inlined to avoid importing logs.ts in case of cycles;
-    // mirrors computePoints() — kept in sync.
+    // Send points. Mirrors computePoints(); inlined to avoid a
+    // potential cycle between logs.ts and profile-stats.ts.
     if (log.attempts === 1) points += 4;
     else if (log.attempts === 2) points += 3;
     else if (log.attempts === 3) points += 2;
     else points += 1;
-    if (log.zone) points += 1;
   }
 
   return {

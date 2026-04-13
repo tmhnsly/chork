@@ -10,6 +10,7 @@
   display: flex;
   gap: var(--space-4);
   flex: 1;
+  min-width: 0;
 }
 
 .stat {
@@ -24,13 +25,9 @@
   color: var(--mono-text-low-contrast);
 }
 
-.accentLabel {
-  color: var(--accent-text-low-contrast);
-}
-
-.flashLabel {
-  color: var(--flash-text-low-contrast);
-}
+.accentLabel { color: var(--accent-text-low-contrast); }
+.flashLabel  { color: var(--flash-text-low-contrast); }
+.zoneLabel   { color: var(--success-text-low-contrast); }
 
 .value {
   @include type.typography(number);
@@ -46,18 +43,28 @@
   }
 }
 
-.accent {
-  color: var(--accent-text);
+.accent { color: var(--accent-text); }
+.flash  { color: var(--flash-text); }
+.zone   { color: var(--success-text); }
+
+// Points sits on the right as a quiet mono total — context, not focus.
+.points {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  margin-left: auto;
 }
 
-.flash {
-  color: var(--flash-text);
+.pointsValue {
+  @include type.typography(number);
+  font-size: var(--text-2xl);
+  line-height: 1;
+  color: var(--mono-text);
 }
 
 .pointsLabel {
-  color: var(--success-text-low-contrast); // teal step 11
-}
-
-.points {
-  color: var(--success-text);             // teal step 12
+  @include type.typography(label);
+  font-size: var(--text-xs);
+  color: var(--mono-text-low-contrast);
 }

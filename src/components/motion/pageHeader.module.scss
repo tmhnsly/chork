@@ -1,0 +1,19 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+
+// Title + optional subtitle, tight gap — treated as one compound unit.
+.header {
+  @include layout.stack(var(--space-1));
+}
+
+.title {
+  @include type.typography(display);
+  // Brand/accent hue on every page title — matches the landing hero
+  // so the app's primary chrome reads as one visual language.
+  color: var(--accent-text);
+}
+
+.subtitle {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}

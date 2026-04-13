@@ -2,8 +2,9 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FaPlus, FaXmark } from "react-icons/fa6";
+import { FaBuilding, FaPlus, FaXmark } from "react-icons/fa6";
 import { Button, showToast } from "@/components/ui";
+import { SectionCard } from "@/components/ui/SectionCard";
 import {
   linkCompetitionGym,
   unlinkCompetitionGym,
@@ -59,9 +60,7 @@ export function CompetitionGymsPanel({ competitionId, linkedGyms, myGyms }: Prop
   }
 
   return (
-    <section className={styles.panel} aria-labelledby="comp-gyms-heading">
-      <h2 id="comp-gyms-heading" className={styles.heading}>Participating gyms</h2>
-
+    <SectionCard title="Participating gyms" icon={<FaBuilding />}>
       {linkedGyms.length === 0 ? (
         <p className={styles.empty}>No gyms linked yet.</p>
       ) : (
@@ -103,6 +102,6 @@ export function CompetitionGymsPanel({ competitionId, linkedGyms, myGyms }: Prop
           </Button>
         </div>
       )}
-    </section>
+    </SectionCard>
   );
 }

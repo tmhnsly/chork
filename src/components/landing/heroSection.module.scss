@@ -17,8 +17,15 @@
 
 // ── Visual (grid) ─────────────────────────────────
 // Renders the full HeroGrid — 5 cols × 3 rows of animated tiles.
+// The grid intentionally bleeds *into* the section below so its
+// bottom rows are partially occluded — a subtle cue that there is
+// more to scroll to. Sibling sections sit on top via the z-index
+// below.
 .visual {
   width: 100%;
+  margin-bottom: calc(var(--space-12) * -1);
+  position: relative;
+  z-index: 0;
 }
 
 // ── Typography ─────────────────────────────────────

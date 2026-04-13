@@ -7,14 +7,37 @@ interface Props {
   routeIds: string[];
   /** Whether each route has a zone hold — used to compute per-route max points */
   routeHasZone: boolean[];
+  /**
+   * Route numbers shown underneath each column. Optional so existing
+   * callers (skeletons, storybook) don't have to plumb them through.
+   */
+  routeNumbers?: number[];
+}
+
+/**
+ * Stride between labelled columns based on route count. We always
+ * keep the first and last columns labelled so the chart is readable
+ * end-to-end — the stride controls which middle columns get a number.
+ *
+ * These thresholds target the wall's usual route counts (14–40) but
+ * degrade gracefully: a 100-route comp will show ~1, 10, 20, … 100.
+ */
+function labelStride(n: number): number {
+  if (n <= 20) return 1;
+  if (n <= 40) return 2;
+  if (n <= 80) return 5;
+  if (n <= 150) return 10;
+  return Math.ceil(n / 15);
 }
 
 /**
  * Mini bar chart — points per route. Each bar fills relative to that route's
  * max possible score (4 for non-zone, 5 for zone routes).
- * Below: zone indicator dots.
+ * Below: zone indicator dots, then a thin axis of route numbers.
  */
-export function RouteChart({ logs, routeIds, routeHasZone }: Props) {
+export function RouteChart({ logs, routeIds, routeHasZone, routeNumbers }: Props) {
+  const stride = labelStride(routeIds.length);
+  const lastIdx = routeIds.length - 1;
   return (
     <div className={styles.chart}>
       <div className={styles.bars}>
@@ -67,6 +90,22 @@ export function RouteChart({ logs, routeIds, routeHasZone }: Props) {
           return <div key={routeId} className={cls} />;
         })}
       </div>
+
+      {routeNumbers && (
+        <div className={styles.labels} aria-hidden>
+          {routeIds.map((routeId, i) => {
+            // Always label the first and last column; label the middle
+            // ones on the stride. Empty slots still render so columns
+            // stay aligned with the bars above.
+            const show = i === 0 || i === lastIdx || i % stride === 0;
+            return (
+              <span key={routeId} className={styles.label}>
+                {show ? routeNumbers[i] : ""}
+              </span>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

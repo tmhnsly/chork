@@ -72,24 +72,13 @@ export async function inviteToCrew(
     // Reject invites where the target has opted out OR has blocked
     // the caller OR the caller has blocked them. The search query
     // filters these, but a stale client payload might still reach us.
-    const [{ data: target }, { data: blocked }] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("allow_crew_invites")
-        .eq("id", targetUserId)
-        .maybeSingle(),
-      supabase
-        .from("blocked_users")
-        .select("id")
-        .or(
-          `and(blocker_id.eq.${userId},blocked_id.eq.${targetUserId}),` +
-          `and(blocker_id.eq.${targetUserId},blocked_id.eq.${userId})`
-        )
-        .limit(1),
-    ]);
+    const { data: target } = await supabase
+      .from("profiles")
+      .select("allow_crew_invites")
+      .eq("id", targetUserId)
+      .maybeSingle();
     if (!target) return { error: "User not found." };
     if (!target.allow_crew_invites) return { error: "That climber isn't taking invites." };
-    if (blocked && blocked.length > 0) return { error: "You can't invite that climber." };
 
     const { error } = await supabase
       .from("crew_members")
@@ -198,59 +187,6 @@ export async function leaveCrew(crewId: string): Promise<ActionResult> {
     if (error) return { error: formatError(error) };
 
     revalidatePath("/crew", "layout");
-    revalidatePath("/", "layout");
-    return { success: true };
-  } catch (err) {
-    return { error: formatError(err) };
-  }
-}
-
-// ────────────────────────────────────────────────────────────────
-// Blocks
-// ────────────────────────────────────────────────────────────────
-
-export async function blockUser(targetUserId: string): Promise<ActionResult> {
-  if (!UUID_RE.test(targetUserId)) return { error: "Invalid user." };
-
-  const auth = await requireSignedIn();
-  if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
-
-  if (userId === targetUserId) {
-    return { error: "You can't block yourself." };
-  }
-
-  try {
-    const { error } = await supabase
-      .from("blocked_users")
-      .upsert(
-        { blocker_id: userId, blocked_id: targetUserId },
-        { onConflict: "blocker_id,blocked_id" }
-      );
-    if (error) return { error: formatError(error) };
-
-    revalidatePath("/", "layout");
-    return { success: true };
-  } catch (err) {
-    return { error: formatError(err) };
-  }
-}
-
-export async function unblockUser(targetUserId: string): Promise<ActionResult> {
-  if (!UUID_RE.test(targetUserId)) return { error: "Invalid user." };
-
-  const auth = await requireSignedIn();
-  if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
-
-  try {
-    const { error } = await supabase
-      .from("blocked_users")
-      .delete()
-      .eq("blocker_id", userId)
-      .eq("blocked_id", targetUserId);
-    if (error) return { error: formatError(error) };
-
     revalidatePath("/", "layout");
     return { success: true };
   } catch (err) {

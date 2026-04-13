@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
+import { FaInfinity } from "react-icons/fa6";
 import { ActivityRings } from "@/components/ActivityRings/ActivityRings";
-import { RingStatsRow } from "@/components/RingStatsRow/RingStatsRow";
-import { RouteChart } from "@/components/RouteChart/RouteChart";
+import { SectionCard } from "@/components/ui/SectionCard";
+import { StatsWidget } from "@/components/StatsWidget/StatsWidget";
 import type { RouteLog } from "@/lib/data";
 import styles from "./climberStats.module.scss";
 
@@ -28,15 +29,18 @@ interface Props {
     points: number;
     completions: number;
     flashes: number;
-    totalRoutes?: number;
-    maxPoints?: number;
+    totalRoutes: number;
+    resetDate?: string;
   } | null;
   allTimeCompletions: number;
   allTimeFlashes: number;
   allTimePoints: number;
   allTimeExtras?: AllTimeExtras;
+  /** Name of the climber's active gym — surfaced in the current-set card meta. */
+  gymName?: string | null;
   routeIds?: string[];
   routeHasZone?: boolean[];
+  routeNumbers?: number[];
   logs?: Map<string, RouteLog>;
   children?: ReactNode;
 }
@@ -59,109 +63,92 @@ export function ClimberStats({
   allTimeFlashes,
   allTimePoints,
   allTimeExtras,
+  gymName,
   routeIds,
   routeHasZone,
+  routeNumbers,
   logs,
   children,
 }: Props) {
-  const hasChart = routeIds && routeHasZone && logs;
   const flashRate = allTimeCompletions > 0 ? allTimeFlashes / allTimeCompletions : 0;
 
   return (
     <div className={styles.wrapper}>
-      {/* All Time — always visible at top */}
-      <div className={styles.labelledSection}>
-        <span className={styles.sectionLabel}>All Time</span>
-        <div className={styles.allTimeCard}>
-          <div className={styles.allTimeHeader}>
-            <ActivityRings
-              rings={[{ value: flashRate, color: "var(--flash-solid)" }]}
-              size={56}
-            />
-            <div className={styles.allTimeStats}>
-              <div className={styles.allTimeStat}>
-                <span className={`${styles.allTimeValue} ${styles.accent}`}>{allTimeCompletions}</span>
-                <span className={styles.allTimeLabel}>SENDS</span>
-              </div>
-              <div className={styles.allTimeStat}>
-                <span className={`${styles.allTimeValue} ${styles.flash}`}>{allTimeFlashes}</span>
-                <span className={styles.allTimeLabel}>FLASHES</span>
-              </div>
-              <div className={styles.allTimeStat}>
-                <span className={`${styles.allTimeValue} ${styles.points}`}>{allTimePoints}</span>
-                <span className={styles.allTimeLabel}>POINTS</span>
-              </div>
+      <SectionCard title="All Time" icon={<FaInfinity />}>
+        <div className={styles.allTimeHeader}>
+          <ActivityRings
+            rings={[{ value: flashRate, color: "var(--flash-solid)" }]}
+            size={56}
+          />
+          <div className={styles.allTimeStats}>
+            <div className={styles.allTimeStat}>
+              <span className={`${styles.allTimeValue} ${styles.accent}`}>{allTimeCompletions}</span>
+              <span className={styles.allTimeLabel}>SENDS</span>
+            </div>
+            <div className={styles.allTimeStat}>
+              <span className={`${styles.allTimeValue} ${styles.flash}`}>{allTimeFlashes}</span>
+              <span className={styles.allTimeLabel}>FLASHES</span>
+            </div>
+            <div className={styles.allTimeStat}>
+              <span className={`${styles.allTimeValue} ${styles.points}`}>{allTimePoints}</span>
+              <span className={styles.allTimeLabel}>POINTS</span>
             </div>
           </div>
-
-          {allTimeExtras && (
-            <div className={styles.extrasGrid}>
-              <ExtraCell
-                label="Flash rate"
-                value={formatPercent(allTimeExtras.flashRate)}
-                emphasis
-              />
-              <ExtraCell
-                label="Pts / send"
-                value={allTimeExtras.pointsPerSend === null ? EM_DASH : allTimeExtras.pointsPerSend.toFixed(1)}
-              />
-              <ExtraCell
-                label="Attempts"
-                value={formatNumber(allTimeExtras.totalAttempts)}
-              />
-              <ExtraCell
-                label="Completion"
-                value={formatPercent(allTimeExtras.completionRate)}
-              />
-              <ExtraCell
-                label="Coverage"
-                value={
-                  allTimeExtras.totalRoutesInGym > 0
-                    ? `${allTimeExtras.uniqueRoutesAttempted}/${allTimeExtras.totalRoutesInGym}`
-                    : formatNumber(allTimeExtras.uniqueRoutesAttempted)
-                }
-              />
-              <ExtraCell
-                label="Streak"
-                value={`${allTimeExtras.streakCurrent}`}
-                subtitle={
-                  allTimeExtras.streakBest > 0
-                    ? `Best ${allTimeExtras.streakBest}`
-                    : undefined
-                }
-              />
-            </div>
-          )}
         </div>
-      </div>
 
-      {/* Current Set — only if active set exists */}
-      {currentSet && (
-        <div className={styles.labelledSection}>
-          <span className={styles.sectionLabel}>Current Set</span>
-          <div className={styles.currentSetCard}>
-            <RingStatsRow
-              completions={currentSet.completions}
-              flashes={currentSet.flashes}
-              points={currentSet.points}
-              totalRoutes={currentSet.totalRoutes}
-              maxPoints={currentSet.maxPoints}
-              size={72}
+        {allTimeExtras && (
+          <div className={styles.extrasGrid}>
+            <ExtraCell
+              label="Flash rate"
+              value={formatPercent(allTimeExtras.flashRate)}
+              emphasis
             />
-            {hasChart && (
-              <>
-                <RouteChart
-                  logs={logs}
-                  routeIds={routeIds}
-                  routeHasZone={routeHasZone}
-                />
-                <div className={styles.chartFooter}>
-                  <span className={styles.footerLabel}>ZONE</span>
-                </div>
-              </>
-            )}
+            <ExtraCell
+              label="Pts / send"
+              value={allTimeExtras.pointsPerSend === null ? EM_DASH : allTimeExtras.pointsPerSend.toFixed(1)}
+            />
+            <ExtraCell
+              label="Attempts"
+              value={formatNumber(allTimeExtras.totalAttempts)}
+            />
+            <ExtraCell
+              label="Completion"
+              value={formatPercent(allTimeExtras.completionRate)}
+            />
+            <ExtraCell
+              label="Coverage"
+              value={
+                allTimeExtras.totalRoutesInGym > 0
+                  ? `${allTimeExtras.uniqueRoutesAttempted}/${allTimeExtras.totalRoutesInGym}`
+                  : formatNumber(allTimeExtras.uniqueRoutesAttempted)
+              }
+            />
+            <ExtraCell
+              label="Streak"
+              value={`${allTimeExtras.streakCurrent}`}
+              subtitle={
+                allTimeExtras.streakBest > 0
+                  ? `Best ${allTimeExtras.streakBest}`
+                  : undefined
+              }
+            />
           </div>
-        </div>
+        )}
+      </SectionCard>
+
+      {currentSet && routeIds && routeHasZone && logs && (
+        <StatsWidget
+          completions={currentSet.completions}
+          total={currentSet.totalRoutes}
+          flashes={currentSet.flashes}
+          points={currentSet.points}
+          logs={logs}
+          routeIds={routeIds}
+          routeHasZone={routeHasZone}
+          routeNumbers={routeNumbers}
+          resetDate={currentSet.resetDate}
+          gymName={gymName}
+        />
       )}
 
       {children}

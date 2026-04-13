@@ -557,12 +557,48 @@ export interface GymStats {
  * Each count is a cheap `head: true` select — the DB never returns rows,
  * only the row count, so this is safe to run on every Chorkboard paint.
  */
-export async function getGymStats(supabase: Supabase, gymId: string): Promise<GymStats> {
-  const [members, sends, flashes, routes] = await Promise.all([
-    supabase
-      .from("gym_memberships")
-      .select("user_id", { count: "exact", head: true })
-      .eq("gym_id", gymId),
+export async function getGymStats(
+  supabase: Supabase,
+  gymId: string,
+  setId: string | null = null,
+): Promise<GymStats> {
+  // `climberCount` counts distinct climbers who have at least one
+  // completed log in the scope — the strip reflects activity, not
+  // bare membership rows. Pulled via RPC because Supabase REST
+  // can't do `count(distinct …)`.
+  if (setId) {
+    // route_logs has no `set_id` column — it links through `routes`.
+    // Inner-join via the FK so the count is scoped to the set.
+    const [activeClimbers, sends, flashes, routes] = await Promise.all([
+      supabase.rpc("get_active_climber_count", { p_set_id: setId }),
+      supabase
+        .from("route_logs")
+        .select("id, routes!inner(set_id)", { count: "exact", head: true })
+        .eq("routes.set_id", setId)
+        .eq("completed", true),
+      supabase
+        .from("route_logs")
+        .select("id, routes!inner(set_id)", { count: "exact", head: true })
+        .eq("routes.set_id", setId)
+        .eq("completed", true)
+        .eq("attempts", 1),
+      supabase
+        .from("routes")
+        .select("id", { count: "exact", head: true })
+        .eq("set_id", setId),
+    ]);
+
+    return {
+      climberCount: activeClimbers.data ?? 0,
+      totalSends: sends.count ?? 0,
+      totalFlashes: flashes.count ?? 0,
+      totalRoutes: routes.count ?? 0,
+    };
+  }
+
+  // All-time gym-wide
+  const [activeClimbers, sends, flashes, routes] = await Promise.all([
+    supabase.rpc("get_gym_active_climber_count", { p_gym_id: gymId }),
     supabase
       .from("route_logs")
       .select("id", { count: "exact", head: true })
@@ -581,7 +617,7 @@ export async function getGymStats(supabase: Supabase, gymId: string): Promise<Gy
   ]);
 
   return {
-    climberCount: members.count ?? 0,
+    climberCount: activeClimbers.data ?? 0,
     totalSends: sends.count ?? 0,
     totalFlashes: flashes.count ?? 0,
     totalRoutes: routes.count ?? 0,

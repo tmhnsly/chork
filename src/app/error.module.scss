@@ -12,6 +12,7 @@
 
 .title {
   @include type.typography(display);
+  color: var(--accent-text);
 }
 
 .message {
@@ -25,10 +26,12 @@
   margin-top: var(--space-5);
   min-height: var(--size-touch-target);
   padding: 0 var(--space-6);
+  border: none;
+  border-radius: var(--radius-2);
   background: var(--accent-solid);
   color: var(--accent-on-solid);
-  border: none;
   cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
 
   &:hover {
     background: var(--accent-solid-hover);

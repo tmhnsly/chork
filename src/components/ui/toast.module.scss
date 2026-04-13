@@ -3,7 +3,8 @@
 
 .toast {
   @include type.typography(meta);
-  @include surface.chrome;
+  @include surface.glass(70%);
+  border: 1px solid var(--mono-border-subtle);
   box-shadow: var(--shadow-md);
   display: flex;
   align-items: center;

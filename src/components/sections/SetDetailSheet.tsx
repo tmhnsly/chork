@@ -40,6 +40,8 @@ export function SetDetailSheet({ set, userId, onClose }: Props) {
   }, [set.id, userId]);
 
   const pps = pointsPerSend(set.points, set.completions);
+  const flashRate = set.completions > 0 ? set.flashes / set.completions : null;
+  const completionRate = set.totalRoutes > 0 ? set.completions / set.totalRoutes : null;
 
   return (
     <BottomSheet
@@ -66,17 +68,29 @@ export function SetDetailSheet({ set, userId, onClose }: Props) {
         <RingStatsRow
           completions={set.completions}
           flashes={set.flashes}
+          zones={set.zones}
           points={set.points}
           totalRoutes={set.totalRoutes}
-          maxPoints={set.maxPoints}
+          zoneCompletions={set.routes.reduce(
+            (n, r) => (r.has_zone && set.logs.get(r.id)?.completed ? n + 1 : n),
+            0,
+          )}
           size={72}
         />
 
-        {/* Secondary stats */}
+        {/* Secondary stats — Total pts already reads on the RingStatsRow
+            to the right of the wheel, so the third cell here surfaces a
+            rate metric (completion %) instead of repeating the number. */}
         <div className={styles.stats}>
-          <Stat label="Zones" value={String(set.zones)} />
           <Stat label="Pts / send" value={pps === null ? EM_DASH : pps.toFixed(1)} />
-          <Stat label="Total pts" value={String(set.points)} />
+          <Stat
+            label="Flash rate"
+            value={flashRate === null ? EM_DASH : `${Math.round(flashRate * 100)}%`}
+          />
+          <Stat
+            label="Completion"
+            value={completionRate === null ? EM_DASH : `${Math.round(completionRate * 100)}%`}
+          />
         </div>
 
         {/* Route chart */}
@@ -86,6 +100,7 @@ export function SetDetailSheet({ set, userId, onClose }: Props) {
               logs={set.logs as unknown as Map<string, RouteLog>}
               routeIds={set.routes.map((r) => r.id)}
               routeHasZone={set.routes.map((r) => r.has_zone)}
+              routeNumbers={set.routes.map((r) => r.number)}
             />
             <div className={styles.chartFooter}>
               <span className={styles.footerLabel}>ZONE</span>

@@ -21,7 +21,7 @@ type Story = StoryObj<typeof meta>;
 /** Active set with current-set stats and all-time totals. */
 export const WithActiveSet: Story = {
   args: {
-    currentSet: { points: 24, completions: 8, flashes: 3 },
+    currentSet: { points: 24, completions: 8, flashes: 3, totalRoutes: 14 },
     allTimeCompletions: 45,
     allTimeFlashes: 12,
     allTimePoints: 120,
@@ -41,7 +41,7 @@ export const NoActiveSet: Story = {
 /** Brand-new climber with zero activity. */
 export const NewClimber: Story = {
   args: {
-    currentSet: { points: 0, completions: 0, flashes: 0 },
+    currentSet: { points: 0, completions: 0, flashes: 0, totalRoutes: 14 },
     allTimeCompletions: 0,
     allTimeFlashes: 0,
     allTimePoints: 0,

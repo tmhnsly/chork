@@ -9,12 +9,14 @@
 // ── CTA section ───────────────────────────────────
 .ctaSection {
   @include layout.stack(var(--space-4));
+  // Full-bleed band — edge-to-edge on every viewport, no rounded
+  // corners. Gutter padding stays on the inside so copy doesn't
+  // touch the screen edge.
   padding: var(--section-gap) var(--gutter-x);
-  margin: 0 var(--gutter-x);
+  margin: 0;
   text-align: center;
   align-items: center;
   background: var(--brand);
-  border-radius: var(--radius-4);
 }
 
 .ctaHeadline {

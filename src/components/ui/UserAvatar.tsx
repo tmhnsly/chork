@@ -10,13 +10,15 @@ interface Props {
   user: Pick<Profile, "id" | "avatar_url" | "name" | "username">;
   size?: number;
   className?: string;
+  /** Flag above-the-fold avatars so the browser fetches them eagerly. */
+  priority?: boolean;
 }
 
 /**
  * User avatar - shows image if available, otherwise a mono
  * circle with outline user icon.
  */
-export function UserAvatar({ user, size = 40, className }: Props) {
+export function UserAvatar({ user, size = 40, className, priority = false }: Props) {
   const hasImage = !!user.avatar_url;
   const src = hasImage ? getAvatarUrl(user, { size: size * 2 }) : null;
 
@@ -33,6 +35,8 @@ export function UserAvatar({ user, size = 40, className }: Props) {
           height={size}
           className={styles.image}
           unoptimized
+          priority={priority}
+          fetchPriority={priority ? "high" : undefined}
         />
       ) : (
         <FaRegUser className={styles.icon} />

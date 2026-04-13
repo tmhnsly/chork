@@ -362,21 +362,13 @@ export async function searchClimbersForInvite(
 
   const profileIds = profiles.map((p) => p.id);
 
-  // Parallel: blocks either way, gyms, pending invites from caller,
-  // and the set of users sharing an active crew with the caller.
+  // Parallel: gyms, pending invites from caller, and the set of users
+  // sharing an active crew with the caller.
   const [
-    { data: blocksOut },
-    { data: blocksIn },
     { data: gymRows },
     { data: pendingInvites },
     { data: mySharedCrews },
   ] = await Promise.all([
-    supabase.from("blocked_users").select("blocked_id")
-      .eq("blocker_id", callerId)
-      .in("blocked_id", profileIds),
-    supabase.from("blocked_users").select("blocker_id")
-      .eq("blocked_id", callerId)
-      .in("blocker_id", profileIds),
     supabase.from("gyms").select("id, name")
       .in("id", profiles.map((p) => p.active_gym_id).filter(Boolean) as string[]),
     supabase.from("crew_members").select("user_id")
@@ -386,8 +378,6 @@ export async function searchClimbersForInvite(
     supabase.from("crew_members").select("crew_id").eq("user_id", callerId).eq("status", "active"),
   ]);
 
-  const blockedByMe = new Set((blocksOut ?? []).map((r) => r.blocked_id));
-  const blockingMe  = new Set((blocksIn ?? []).map((r) => r.blocker_id));
   const gymNames = new Map((gymRows ?? []).map((g) => [g.id, g.name]));
   const pendingToIds = new Set((pendingInvites ?? []).map((r) => r.user_id));
 
@@ -405,9 +395,7 @@ export async function searchClimbersForInvite(
     sharesCrewWith = new Set((coMembers ?? []).map((r) => r.user_id));
   }
 
-  const filtered = profiles
-    .filter((p) => !blockedByMe.has(p.id) && !blockingMe.has(p.id))
-    .slice(0, limit);
+  const filtered = profiles.slice(0, limit);
 
   return filtered.map((p) => ({
     user_id: p.id,
@@ -419,51 +407,6 @@ export async function searchClimbersForInvite(
     has_pending_invite: pendingToIds.has(p.id),
     shares_crew: sharesCrewWith.has(p.id),
   }));
-}
-
-// ────────────────────────────────────────────────────────────────
-// Blocked users list (for settings)
-// ────────────────────────────────────────────────────────────────
-
-export interface BlockedRow {
-  id: string;
-  blocked_id: string;
-  username: string;
-  avatar_url: string;
-  created_at: string;
-}
-
-export async function getBlockedUsers(
-  supabase: Supabase,
-  userId: string
-): Promise<BlockedRow[]> {
-  const { data, error } = await supabase
-    .from("blocked_users")
-    .select(`
-      id,
-      blocked_id,
-      created_at,
-      blocked:blocked_id (username, avatar_url)
-    `)
-    .eq("blocker_id", userId)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    console.warn("[chork] getBlockedUsers failed:", error);
-    return [];
-  }
-
-  return (data ?? []).flatMap((row) => {
-    const p = Array.isArray(row.blocked) ? row.blocked[0] : row.blocked;
-    if (!p) return [];
-    return [{
-      id: row.id,
-      blocked_id: row.blocked_id,
-      username: p.username,
-      avatar_url: p.avatar_url,
-      created_at: row.created_at,
-    }];
-  });
 }
 
 /** How many crews a user is an active member of — used in the profile context line. */

@@ -1,12 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import * as Primitive from "@radix-ui/react-dropdown-menu";
 import {
   FaMagnifyingGlass,
-  FaEllipsisVertical,
   FaUserPlus,
-  FaBan,
   FaPlus,
   FaCheck,
 } from "react-icons/fa6";
@@ -19,7 +16,7 @@ import {
   type UserSearchResult,
   type Crew,
 } from "@/lib/data/crew-queries";
-import { blockUser, inviteToCrew } from "@/app/crew/actions";
+import { inviteToCrew } from "@/app/crew/actions";
 import styles from "./crewSearchSheet.module.scss";
 
 interface Props {
@@ -72,25 +69,6 @@ export function CrewSearchSheet({ open, onClose, myCrews, onCreateCrew }: Props)
     };
   }, [open, queryKey, currentUserId]);
 
-  function handleBlock(target: UserSearchResult) {
-    startTransition(async () => {
-      const res = await blockUser(target.user_id);
-      if ("error" in res) {
-        showToast(res.error, "error");
-        return;
-      }
-      // Evict from the keyed cache so they disappear from the UI now —
-      // the next query would re-filter anyway, but we don't want a
-      // stale list staring back at the user while they type.
-      setCache((prev) =>
-        prev
-          ? { ...prev, rows: prev.rows.filter((r) => r.user_id !== target.user_id) }
-          : prev
-      );
-      showToast(`Blocked @${target.username}`, "info");
-    });
-  }
-
   const emptyState = useMemo(() => {
     if (query.trim().length < 2) return "Start typing a handle or name.";
     if (results !== null && results.length === 0) return "No climbers match that search.";
@@ -136,7 +114,6 @@ export function CrewSearchSheet({ open, onClose, myCrews, onCreateCrew }: Props)
                   result={r}
                   pending={pending}
                   onInvite={() => setActiveTarget(r)}
-                  onBlock={() => handleBlock(r)}
                 />
               ))}
             </ul>
@@ -176,12 +153,10 @@ function ResultRow({
   result,
   pending,
   onInvite,
-  onBlock,
 }: {
   result: UserSearchResult;
   pending: boolean;
   onInvite: () => void;
-  onBlock: () => void;
 }) {
   const actionLabel = result.has_pending_invite
     ? "Pending invite"
@@ -226,27 +201,6 @@ function ResultRow({
           )}
         </button>
 
-        <Primitive.Root>
-          <Primitive.Trigger asChild>
-            <button
-              type="button"
-              className={styles.menuTrigger}
-              aria-label="More actions"
-            >
-              <FaEllipsisVertical />
-            </button>
-          </Primitive.Trigger>
-          <Primitive.Portal>
-            <Primitive.Content className={styles.menuContent} align="end" sideOffset={8}>
-              <Primitive.Item
-                className={`${styles.menuItem} ${styles.menuItemDanger}`}
-                onSelect={onBlock}
-              >
-                <FaBan aria-hidden /> Block @{result.username}
-              </Primitive.Item>
-            </Primitive.Content>
-          </Primitive.Portal>
-        </Primitive.Root>
       </div>
     </li>
   );

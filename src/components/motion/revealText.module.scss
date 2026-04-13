@@ -22,8 +22,8 @@
   //   vertical   → capital ascenders and descenders (e.g. "g", "p", italic "f")
   // Negative margin cancels the layout effect so words render at their
   // natural width/height and align correctly with adjacent inline text.
-  padding: 0.15em 0.3em;
-  margin: -0.15em -0.3em;
+  padding: 0.15em 0.5em;
+  margin: -0.15em -0.5em;
   // Release the clip after the longest possible animation finishes so
   // glyphs that would normally overhang can do so in the resting state.
   animation: revealRelease 0s 2s forwards;

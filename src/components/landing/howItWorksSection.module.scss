@@ -3,6 +3,11 @@
 
 .section {
   padding: var(--section-gap) var(--gutter-x);
+  // Sit above the hero grid so its overhang tucks behind this block —
+  // the occlusion is the "there's more below" cue.
+  position: relative;
+  z-index: 1;
+  background: var(--mono-app-bg);
 }
 
 .inner {

@@ -92,3 +92,24 @@
 .dotClaimed {
   background: var(--success-solid);      // teal step 9
 }
+
+// ── Number axis ───────────────────────────────────
+// Numbers align with the bar columns; empty slots between labelled
+// ones still render so column widths stay equal. `text-align: center`
+// keeps the number under its bar.
+.labels {
+  display: flex;
+  gap: 2px;
+  margin-top: var(--space-1);
+}
+
+.label {
+  @include type.typography(number);
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-2xs);
+  color: var(--mono-text-low-contrast);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}

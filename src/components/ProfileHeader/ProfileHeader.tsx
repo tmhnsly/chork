@@ -11,10 +11,11 @@ import {
   FaMountainSun,
   FaBell,
   FaBellSlash,
-  FaUserSlash,
   FaUserGroup,
 } from "react-icons/fa6";
 import type { Profile } from "@/lib/data";
+import type { PendingInvite } from "@/lib/data/crew-queries";
+import { NotificationsButton } from "@/components/Notifications/NotificationsButton";
 import { useAuth } from "@/lib/auth-context";
 import { UserAvatar, showToast } from "@/components/ui";
 import { RevealText } from "@/components/motion";
@@ -22,7 +23,6 @@ import { DropdownMenu } from "@/components/SettingsMenu/SettingsMenu";
 import { EditProfileDialog } from "@/components/SettingsMenu/EditProfileDialog";
 import { DeleteAccountDialog } from "@/components/SettingsMenu/DeleteAccountDialog";
 import { GymSwitcherSheet } from "@/components/GymSwitcher/GymSwitcherSheet";
-import { BlockedUsersSheet } from "@/components/Crew/BlockedUsersSheet";
 import {
   pushSupported,
   readPushStatus,
@@ -44,14 +44,24 @@ interface Props {
    * Omit when rendering your own profile.
    */
   contextLine?: string | null;
+  /**
+   * Pending crew invites addressed to the signed-in user. Drives the
+   * Inbox button's unread badge and the crew-invite section inside
+   * the notifications sheet. Only used when `isOwnProfile`.
+   */
+  pendingInvites?: PendingInvite[];
 }
 
-export function ProfileHeader({ user, isOwnProfile, contextLine }: Props) {
+export function ProfileHeader({
+  user,
+  isOwnProfile,
+  contextLine,
+  pendingInvites = [],
+}: Props) {
   const { signOut, resetPassword } = useAuth();
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showGymSwitcher, setShowGymSwitcher] = useState(false);
-  const [showBlocked, setShowBlocked] = useState(false);
 
   // Optimistic view of allow_crew_invites — keeps the menu label in
   // sync after the toggle without waiting for a full refresh.
@@ -121,12 +131,15 @@ export function ProfileHeader({ user, isOwnProfile, contextLine }: Props) {
         </div>
 
         <div className={styles.rightGroup}>
-          <UserAvatar user={user} size={64} />
+          {isOwnProfile && (
+            <NotificationsButton invites={pendingInvites} />
+          )}
           {isOwnProfile && (
             <DropdownMenu
               trigger={
-                <button className={styles.settingsTrigger} aria-label="Settings">
-                  <FaGear />
+                <button className={styles.settingsTrigger} type="button">
+                  <FaGear aria-hidden />
+                  <span>Settings</span>
                 </button>
               }
               groups={[
@@ -139,7 +152,6 @@ export function ProfileHeader({ user, isOwnProfile, contextLine }: Props) {
                       icon: <FaUserGroup />,
                       onSelect: handleToggleAllowInvites,
                     },
-                    { label: "Blocked climbers", icon: <FaUserSlash />, onSelect: () => setShowBlocked(true) },
                     // Push toggle — hidden when the browser can't do web
                     // push (e.g. incognito / unsupported platforms) and
                     // when the user has explicitly denied permissions
@@ -172,6 +184,7 @@ export function ProfileHeader({ user, isOwnProfile, contextLine }: Props) {
               ]}
             />
           )}
+          <UserAvatar user={user} size={64} />
         </div>
       </header>
 
@@ -183,11 +196,6 @@ export function ProfileHeader({ user, isOwnProfile, contextLine }: Props) {
             open={showGymSwitcher}
             onClose={() => setShowGymSwitcher(false)}
             activeGymId={user.active_gym_id ?? null}
-          />
-          <BlockedUsersSheet
-            open={showBlocked}
-            onClose={() => setShowBlocked(false)}
-            userId={user.id}
           />
         </>
       )}

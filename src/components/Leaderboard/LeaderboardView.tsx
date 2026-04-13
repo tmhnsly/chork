@@ -4,6 +4,7 @@ import { useState, useTransition, useCallback, useRef } from "react";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { Button, showToast } from "@/components/ui";
 import { Podium } from "./Podium";
+import { PodiumSkeleton } from "./PodiumSkeleton";
 import { LeaderboardList } from "./LeaderboardList";
 import { NeighbourhoodSection } from "./NeighbourhoodSection";
 import { EmptyLeaderboard } from "./EmptyLeaderboard";
@@ -11,7 +12,7 @@ import { ClimberSheet } from "./ClimberSheet";
 import { GymStatsStrip } from "./GymStatsStrip";
 import { ScoringBreakdown } from "./ScoringBreakdown";
 import { InviteCard } from "./InviteCard";
-import { RevealText } from "@/components/motion/RevealText";
+import { PageHeader } from "@/components/motion";
 import type { LeaderboardEntry } from "@/lib/data";
 import type { GymStats } from "@/lib/data/queries";
 import {
@@ -36,8 +37,10 @@ interface Props {
   currentUserId: string;
   /** Initial data for the "set" tab (pre-fetched by server page). */
   initialSetData: TabData | null;
-  /** Gym-wide aggregate numbers rendered in the stats strip. */
-  gymStats: GymStats;
+  /** Aggregate numbers scoped to the current set. Null when no active set. */
+  setStats: GymStats | null;
+  /** All-time gym-wide aggregate numbers. */
+  allTimeStats: GymStats;
 }
 
 export function LeaderboardView({
@@ -45,7 +48,8 @@ export function LeaderboardView({
   currentSetId,
   currentUserId,
   initialSetData,
-  gymStats,
+  setStats,
+  allTimeStats,
 }: Props) {
   const [tab, setTab] = useState<Tab>(currentSetId ? "set" : "all");
   const [cache, setCache] = useState<Partial<Record<Tab, TabData>>>(() =>
@@ -117,8 +121,13 @@ export function LeaderboardView({
   const userRow = data?.userRow ?? null;
   const neighbourhood = data?.neighbourhood ?? [];
 
-  // Empty gym: no entries and user has no climbs
-  const isEmpty = top.length === 0 && (userRow === null || userRow.rank === null);
+  // "Loading" vs "empty" are only distinguishable by whether we've
+  // fetched this tab yet. Without this guard, switching tabs briefly
+  // shows the empty state ("Be the first to send") while the fetch
+  // is in flight — jarring on tabs that actually have climbers.
+  const tabLoading = !data;
+  const isEmpty =
+    !tabLoading && top.length === 0 && (userRow === null || userRow.rank === null);
 
   // User in top 5 (rank 1-5 inclusive)
   const userInTop = userRow?.rank != null && userRow.rank <= 5;
@@ -138,12 +147,12 @@ export function LeaderboardView({
 
   return (
     <div className={styles.view}>
-      <header className={styles.header}>
-        <RevealText text="Chorkboard" as="h1" className={styles.title} />
-        <p className={styles.gym}>{gymName}</p>
-      </header>
+      <PageHeader title="Chork Board" />
 
-      <GymStatsStrip stats={gymStats} />
+      <GymStatsStrip
+        stats={tab === "set" && setStats ? setStats : allTimeStats}
+        gymName={gymName}
+      />
 
       <div className={styles.segmentRow}>
         <SegmentedControl
@@ -161,7 +170,9 @@ export function LeaderboardView({
         {isPending ? "Loading…" : ""}
       </div>
 
-      {isEmpty ? (
+      {tabLoading ? (
+        <PodiumSkeleton />
+      ) : isEmpty ? (
         <EmptyLeaderboard />
       ) : (
         <>

@@ -55,7 +55,7 @@ function Slot({ entry, place, currentUserId, onPress }: SlotProps) {
     <>
       <div className={styles.avatarWrap}>
         {place === 1 && <FaCrown className={styles.crown} aria-hidden />}
-        <UserAvatar user={toAvatarUser(entry)} size={avatarSize} />
+        <UserAvatar user={toAvatarUser(entry)} size={avatarSize} priority />
         <span className={styles.medal} aria-hidden>{place}</span>
       </div>
       <span className={styles.username}>@{entry.username}</span>

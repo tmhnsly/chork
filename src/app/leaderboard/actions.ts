@@ -103,16 +103,12 @@ export async function fetchClimberSheetData(
     return { error: "Set not found" };
   }
 
-  // Verify the target climber is a member of the caller's gym
-  const { data: membership } = await supabase
-    .from("gym_memberships")
-    .select("user_id")
-    .eq("user_id", climberUserId)
-    .eq("gym_id", gymId)
-    .maybeSingle();
-  if (!membership) {
-    return { error: "Climber not found in this gym" };
-  }
+  // Note: the set-belongs-to-gym check above pins the context to the
+  // caller's gym. We deliberately don't query `gym_memberships` here —
+  // its RLS only allows a user to read their own membership row, so a
+  // direct lookup for another climber returns null even when they
+  // legitimately belong to the gym. The logs query below is already
+  // scoped to the set, so there's no cross-gym leak risk.
 
   const [profile, routes, rawLogs] = await Promise.all([
     getProfile(supabase, climberUserId),

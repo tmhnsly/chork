@@ -9,6 +9,7 @@ import {
   FaUser,
   FaRightToBracket,
   FaUserGroup,
+  FaMountainSun,
 } from "react-icons/fa6";
 import { ChorkMark } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
@@ -57,14 +58,23 @@ export function NavBar() {
 
   if (pathname === "/login" || pathname === "/onboarding") return null;
 
-  // Unauthenticated: brand + sign in only
+  // Unauthenticated: brand + Gyms (for-gym marketing) + Sign in
   if (!isLoading && !profile) {
+    const gymsActive = pathname.startsWith("/gyms");
     return (
       <nav className={styles.bar}>
         <div className={styles.barInner}>
           <Link href="/" className={styles.brandLinkVisible} aria-label="Home">
             <ChorkMark size={18} />
             <span className={styles.brandTextVisible}>Chork</span>
+          </Link>
+          <Link
+            href="/gyms"
+            className={`${styles.tab} ${gymsActive ? styles.tabActive : ""}`}
+            aria-current={gymsActive ? "page" : undefined}
+          >
+            <FaMountainSun className={styles.tabIcon} />
+            <span className={styles.tabLabel}>Gyms</span>
           </Link>
           <Link href="/login" className={styles.tab}>
             <FaRightToBracket className={styles.tabIcon} />

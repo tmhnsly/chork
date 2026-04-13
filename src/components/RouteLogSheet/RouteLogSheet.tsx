@@ -19,6 +19,7 @@ import {
   FaArrowRight,
 } from "react-icons/fa6";
 import type { ReactNode } from "react";
+import { pickSendMessage } from "@/lib/send-messages";
 import { RollingNumber } from "@/components/RollingNumber/RollingNumber";
 import { ZoneHoldRow } from "./ZoneHoldRow";
 import { GradeSlider } from "./GradeSlider";
@@ -291,7 +292,7 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
 
     setCurrentLog(optimisticLog);
     onLogUpdate(route.id, optimisticLog);
-    showToast(attempts === 1 ? "Flash!" : "Route completed");
+    showToast(pickSendMessage(attempts === 1));
 
     const result = await completeRoute(route.id, attempts, gradeVote, zoneValue, currentLog?.id);
     if ("error" in result) {
@@ -308,9 +309,28 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
   }
 
   async function handleUncomplete() {
-    const result = await uncompleteRoute(route.id, currentLog?.id);
+    const previousLog = currentLog;
+    const previousAttempts = attempts;
+    const previousGradeVote = gradeVote;
+
+    // Optimistic: flip to incomplete immediately so the UI feels instant.
+    const optimisticLog = previousLog
+      ? { ...previousLog, completed: false, grade_vote: null }
+      : previousLog;
+    if (optimisticLog) {
+      setCurrentLog(optimisticLog);
+      onLogUpdate(route.id, optimisticLog);
+    }
+    setGradeVote(null);
+    showToast("Completion removed");
+
+    const result = await uncompleteRoute(route.id, previousLog?.id);
     if ("error" in result) {
       showToast(result.error, "error");
+      setCurrentLog(previousLog);
+      setAttempts(previousAttempts);
+      setGradeVote(previousGradeVote);
+      if (previousLog) onLogUpdate(route.id, previousLog);
       return;
     }
     if (result.log) {
@@ -318,8 +338,6 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
       setAttempts(result.log.attempts);
       onLogUpdate(route.id, result.log);
     }
-    setGradeVote(null);
-    showToast("Completion removed");
   }
 
   // ── Zone toggle ──
@@ -447,11 +465,13 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
             <span className={styles.counterLabel}>Attempts</span>
             <div className={styles.counterControls}>
               <button
-                className={styles.counterBtn}
+                className={`${styles.counterBtn} ${isCompleted ? styles.counterBtnHidden : ""}`}
                 onClick={() => changeAttempts(-1)}
                 disabled={isCompleted || !set.active || attempts <= 0}
                 type="button"
                 aria-label="Decrease attempts"
+                aria-hidden={isCompleted}
+                tabIndex={isCompleted ? -1 : 0}
               >
                 <FaMinus />
               </button>
@@ -459,11 +479,13 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
                 <RollingNumber value={attempts} />
               </span>
               <button
-                className={styles.counterBtn}
+                className={`${styles.counterBtn} ${isCompleted ? styles.counterBtnHidden : ""}`}
                 onClick={() => changeAttempts(1)}
                 disabled={isCompleted || !set.active}
                 type="button"
                 aria-label="Increase attempts"
+                aria-hidden={isCompleted}
+                tabIndex={isCompleted ? -1 : 0}
               >
                 <FaPlus />
               </button>
@@ -536,30 +558,41 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
           </div>
 
           {/* ── Beta spray (collapsible) ──
-              Trigger is disabled when there is nothing to do — no existing
-              comments AND the user hasn't completed the route (so they
-              can't post either). Prevents a useless open/empty/close
-              interaction from the tile. */}
+              When there are no comments, the chevron is replaced by a
+              "No comments" label and the toggle is disabled. The post
+              form lives outside the drawer (below) so sharing beta
+              doesn't compete with reading it for vertical space. */}
           {(() => {
-            const betaDisabled = !isCompleted && totalComments === 0;
+            const hasOwnComment = !!user && comments.some((c) => c.user_id === user.id);
+            const noComments = totalComments === 0;
+            const showPostForm = isCompleted && set.active && !hasOwnComment && !betaExpanded;
             return (
+          <>
           <div className={styles.betaSection}>
             <button
               type="button"
               className={styles.betaToggleBtn}
               onClick={handleExpandBeta}
               aria-expanded={betaExpanded}
-              disabled={betaDisabled}
-              aria-disabled={betaDisabled}
+              disabled={noComments}
+              aria-disabled={noComments}
             >
               <span className={styles.sectionLabel}>
                 BETA SPRAY
                 {totalComments > 0 && ` (${totalComments})`}
               </span>
-              <FaChevronDown className={`${styles.betaChevron} ${betaExpanded ? styles.betaChevronOpen : ""}`} />
+              {noComments ? (
+                <span className={styles.betaEmptyLabel}>No comments</span>
+              ) : (
+                <FaChevronDown className={`${styles.betaChevron} ${betaExpanded ? styles.betaChevronOpen : ""}`} />
+              )}
             </button>
 
-            {betaExpanded && (
+            <div
+              className={`${styles.betaDrawer} ${betaExpanded ? styles.betaDrawerOpen : ""}`}
+              aria-hidden={!betaExpanded}
+            >
+              <div className={styles.betaDrawerInner}>
               <div className={styles.betaContent}>
                 {loadingComments ? (
                   <div className={styles.commentList} role="status" aria-busy="true" aria-label="Loading beta spray">
@@ -659,29 +692,40 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
                   </div>
                 )}
 
-                {isCompleted && set.active && (
-                  <form className={styles.commentForm} onSubmit={(e) => { e.preventDefault(); handlePostComment(); }}>
-                    <input
-                      type="text"
-                      className={styles.commentInput}
-                      placeholder="Share beta..."
-                      aria-label="Share beta"
-                      value={commentBody}
-                      onChange={(e) => setCommentBody(e.target.value)}
-                      disabled={posting}
-                    />
-                    <button type="submit" className={styles.commentSubmit} disabled={posting || !commentBody.trim()} aria-label="Post comment">
-                      <FaPaperPlane />
-                    </button>
-                  </form>
-                )}
-
-                {!isCompleted && (
-                  <p className={styles.betaPostHint}>Complete this route to post beta.</p>
-                )}
               </div>
-            )}
+              </div>
+            </div>
           </div>
+
+          <div
+            className={`${styles.postFormWrap} ${showPostForm ? styles.postFormVisible : ""}`}
+            aria-hidden={!showPostForm}
+          >
+            <div className={styles.postFormInner}>
+              <form className={styles.commentForm} onSubmit={(e) => { e.preventDefault(); handlePostComment(); }}>
+                <input
+                  type="text"
+                  className={styles.commentInput}
+                  placeholder="Share beta..."
+                  aria-label="Share beta"
+                  value={commentBody}
+                  onChange={(e) => setCommentBody(e.target.value)}
+                  disabled={posting || !showPostForm}
+                  tabIndex={showPostForm ? 0 : -1}
+                />
+                <button
+                  type="submit"
+                  className={styles.commentSubmit}
+                  disabled={posting || !commentBody.trim() || !showPostForm}
+                  aria-label="Post comment"
+                  tabIndex={showPostForm ? 0 : -1}
+                >
+                  <FaPaperPlane />
+                </button>
+              </form>
+            </div>
+          </div>
+          </>
             );
           })()}
     </BottomSheet>

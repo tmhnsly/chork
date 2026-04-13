@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FaPlus, FaXmark } from "react-icons/fa6";
+import { FaLayerGroup, FaPlus, FaXmark } from "react-icons/fa6";
 import { Button, showToast } from "@/components/ui";
+import { SectionCard } from "@/components/ui/SectionCard";
 import {
   addCompetitionCategory,
   removeCompetitionCategory,
@@ -53,15 +54,11 @@ export function CompetitionCategoriesPanel({ competitionId, categories }: Props)
   }
 
   return (
-    <section className={styles.panel} aria-labelledby="comp-categories-heading">
-      <header className={styles.header}>
-        <h2 id="comp-categories-heading" className={styles.heading}>Categories</h2>
-        <p className={styles.hint}>
-          Optional — climbers self-select a category when they join. Leave
-          this empty for a single open-category competition.
-        </p>
-      </header>
-
+    <SectionCard
+      title="Categories"
+      icon={<FaLayerGroup />}
+      subtitle="Optional — climbers self-select a category when they join. Leave this empty for a single open-category competition."
+    >
       {categories.length > 0 && (
         <ul className={styles.list}>
           {categories.map((c) => (
@@ -94,6 +91,6 @@ export function CompetitionCategoriesPanel({ competitionId, categories }: Props)
           <FaPlus aria-hidden /> Add
         </Button>
       </form>
-    </section>
+    </SectionCard>
   );
 }

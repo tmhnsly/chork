@@ -150,7 +150,6 @@ describe("inviteToCrew", () => {
     const supabase = mockSupabase({
       "rpc:bump_invite_rate_limit": { data: true, error: null },
       "table:profiles": { data: { allow_crew_invites: false }, error: null },
-      "table:blocked_users": { data: [], error: null },
     });
     vi.mocked(requireSignedIn).mockResolvedValue({
       supabase: supabase as never,
@@ -161,22 +160,6 @@ describe("inviteToCrew", () => {
     expect(result).toEqual({ error: expect.stringContaining("isn't taking invites") });
   });
 
-  it("rejects when either side has a block in place", async () => {
-    const { requireSignedIn } = await import("@/lib/auth");
-    const supabase = mockSupabase({
-      "rpc:bump_invite_rate_limit": { data: true, error: null },
-      "table:profiles": { data: { allow_crew_invites: true }, error: null },
-      "table:blocked_users": { data: [{ id: "x" }], error: null },
-    });
-    vi.mocked(requireSignedIn).mockResolvedValue({
-      supabase: supabase as never,
-      userId: USER_A,
-    });
-    const { inviteToCrew } = await import("./actions");
-    const result = await inviteToCrew(CREW_1, USER_B);
-    expect(result).toEqual({ error: expect.stringContaining("can't invite") });
-  });
-
   it("surfaces a friendly error on duplicate-invite unique violation", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     // Prime the insert-attempt sequence: pass pre-checks, fail on
@@ -185,9 +168,6 @@ describe("inviteToCrew", () => {
       from: (table: string) => {
         if (table === "profiles") {
           return makeChain(() => ({ data: { allow_crew_invites: true }, error: null }));
-        }
-        if (table === "blocked_users") {
-          return makeChain(() => ({ data: [], error: null }));
         }
         if (table === "crew_members") {
           return makeChain(() => ({ data: null, error: { code: "23505" } }));
@@ -218,9 +198,6 @@ describe("inviteToCrew", () => {
             data: { allow_crew_invites: true, username: "alice" },
             error: null,
           }));
-        }
-        if (table === "blocked_users") {
-          return makeChain(() => ({ data: [], error: null }));
         }
         if (table === "crew_members") {
           return makeChain(() => ({ data: null, error: null }));
@@ -348,39 +325,6 @@ describe("leaveCrew", () => {
     });
     const { leaveCrew } = await import("./actions");
     expect(await leaveCrew(CREW_1)).toEqual({ success: true });
-  });
-});
-
-// ────────────────────────────────────────────────────────────────
-// blockUser / unblockUser
-// ────────────────────────────────────────────────────────────────
-describe("blockUser", () => {
-  it("rejects self-block", async () => {
-    const { requireSignedIn } = await import("@/lib/auth");
-    vi.mocked(requireSignedIn).mockResolvedValue({
-      supabase: mockSupabase() as never,
-      userId: USER_A,
-    });
-    const { blockUser } = await import("./actions");
-    const result = await blockUser(USER_A);
-    expect(result).toEqual({ error: expect.stringContaining("can't block yourself") });
-  });
-
-  it("rejects malformed UUID", async () => {
-    const { blockUser } = await import("./actions");
-    expect(await blockUser("nope")).toEqual({ error: "Invalid user." });
-  });
-
-  it("returns success on upsert", async () => {
-    const { requireSignedIn } = await import("@/lib/auth");
-    vi.mocked(requireSignedIn).mockResolvedValue({
-      supabase: mockSupabase({
-        "table:blocked_users": { data: null, error: null },
-      }) as never,
-      userId: USER_A,
-    });
-    const { blockUser } = await import("./actions");
-    expect(await blockUser(USER_B)).toEqual({ success: true });
   });
 });
 

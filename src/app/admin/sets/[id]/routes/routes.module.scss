@@ -11,7 +11,7 @@
 
 .title {
   @include type.typography(display);
-  color: var(--mono-text);
+  color: var(--accent-text);
 }
 
 .subtitle {

@@ -6,7 +6,21 @@
   grid-template-columns: 1fr 1.2fr 1fr;
   align-items: end;
   gap: var(--space-2);
-  padding: var(--space-4) 0 0;
+  // Reserve headroom equal to the hover lift. When 1st place is
+  // hovered its plinth grows upward by `--space-3`; the :has() rule
+  // below shrinks the padding by the same amount so the container's
+  // total height stays constant and content below the podium doesn't
+  // jump.
+  padding: calc(var(--space-4) + var(--space-3)) 0 0;
+  // Animate padding in lock-step with the plinth's height so the
+  // container's total height stays constant throughout the transition
+  // (row grows by space-3, padding shrinks by space-3 — net zero).
+  transition: padding-top var(--duration-fast) var(--ease-out);
+
+  &:has(button.slot.place1:hover),
+  &:has(button.slot.place1:focus-visible) {
+    padding-top: var(--space-4);
+  }
   list-style: none;
   margin: 0;
 
@@ -32,19 +46,10 @@
   color: inherit;
   @include focus.ring;
   -webkit-tap-highlight-color: transparent;
-  transition: transform var(--duration-fast) var(--ease-out);
-
-  &:hover {
-    transform: translateY(-2px);
-  }
 }
 
 div.slot {
   cursor: default;
-
-  &:hover {
-    transform: none;
-  }
 }
 
 // ── Avatar wrapper: lets us layer a medal badge + crown cleanly ──
@@ -74,14 +79,15 @@ div.slot {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: var(--space-6);
-  min-height: var(--space-6);
-  padding: 0 var(--space-1);
+  width: var(--space-6);
+  height: var(--space-6);
+  padding: 0;
   border-radius: var(--radius-full);
   border: 2px solid var(--mono-app-bg);
   @include type.typography(number);
   font-size: var(--text-xs);
   font-weight: var(--weight-bold);
+  line-height: 1;
   box-shadow: var(--shadow-sm);
 }
 
@@ -105,10 +111,20 @@ div.slot {
   align-items: flex-start;
   justify-content: center;
   width: 100%;
+  height: var(--plinth-h);
   padding-top: var(--space-2);
   border-radius: var(--radius-2) var(--radius-2) 0 0;
   border: 1px solid var(--mono-border-subtle);
   border-bottom: none;
+  transition: height var(--duration-fast) var(--ease-out);
+}
+
+// Hover grows the plinth upward — the bottom is anchored by the
+// parent grid's `align-items: end`, so the athlete rises on a
+// taller pedestal instead of the whole slot translating up.
+button.slot:hover .plinth,
+button.slot:focus-visible .plinth {
+  height: calc(var(--plinth-h) + var(--space-3));
 }
 
 .placeLabel {
@@ -123,8 +139,10 @@ div.slot {
 // bronze read immediately without needing to read the numbers.
 
 // 1st — gold (amber). Tallest plinth, largest avatar, crown.
+.place1 {
+  --plinth-h: var(--space-20);
+}
 .place1 .plinth {
-  height: var(--space-20);
   background: linear-gradient(180deg, var(--flash-bg) 0%, var(--mono-subtle-bg) 100%);
   border-color: var(--flash-border);
 }
@@ -143,8 +161,10 @@ div.slot {
 }
 
 // 2nd — silver (mono). Mid plinth.
+.place2 {
+  --plinth-h: var(--space-14);
+}
 .place2 .plinth {
-  height: var(--space-14);
   background: var(--mono-subtle-bg);
 }
 .place2 .medal {
@@ -153,8 +173,10 @@ div.slot {
 }
 
 // 3rd — bronze (warm). Lowest plinth.
+.place3 {
+  --plinth-h: var(--space-10);
+}
 .place3 .plinth {
-  height: var(--space-10);
   background: var(--mono-subtle-bg);
 }
 .place3 .medal {

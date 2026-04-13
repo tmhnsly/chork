@@ -89,20 +89,41 @@ export function BottomSheet({
 
     const shouldClose = dy > DRAG_CLOSE_THRESHOLD || velocity > DRAG_VELOCITY_THRESHOLD;
 
-    // Remove the dragging class (restores animation/transition from stylesheet)
-    contentRef.current.classList.remove(styles.dragging);
-    contentRef.current.style.removeProperty("--drag-y");
-
     if (shouldClose) {
-      // Kick off the close flow — the slideDown animation is applied via
-      // .contentClosing class. Do NOT set inline `animation: none` here —
-      // that would override the stylesheet and the animation wouldn't run,
-      // meaning onAnimationEnd never fires and the sheet stays open.
-      startClose();
+      // Animate the sheet the rest of the way down from its current
+      // drag position. Previously we removed the `--drag-y` var first
+      // and then ran the `.contentClosing` keyframe animation — which
+      // snaps the element to translateY(0) before starting the close
+      // slide, producing a "jumps up then down" flicker on slow drags.
+      // Here we transition transform from wherever the finger left it
+      // straight to fully-offscreen, then fire the close once it lands.
+      const el = contentRef.current;
+      const height = el.getBoundingClientRect().height || window.innerHeight;
+      // Sync the overlay fade-out by flagging closing state now (the
+      // overlay uses `.overlayClosing` which is fade-only, no slide,
+      // so it animates cleanly regardless of the content's position).
+      setClosing(true);
+      el.style.transform = `translateY(${dy}px)`;
+      void el.offsetHeight;
+      el.classList.remove(styles.dragging);
+      el.style.removeProperty("--drag-y");
+      el.style.transition = "transform var(--duration-normal) var(--ease-out)";
+      el.style.transform = `translateY(${Math.ceil(height + 16)}px)`;
+      el.addEventListener(
+        "transitionend",
+        () => {
+          el.style.transition = "";
+          el.style.transform = "";
+          onClose();
+        },
+        { once: true },
+      );
     } else {
-      // Snap back to rest position with a transition
+      // Snap back to rest position with a transition. Remove the
+      // dragging class first so the stylesheet transition applies.
+      contentRef.current.classList.remove(styles.dragging);
+      contentRef.current.style.removeProperty("--drag-y");
       contentRef.current.style.transform = `translateY(${dy}px)`;
-      // Force reflow so the transition sees the starting position
       void contentRef.current.offsetHeight;
       contentRef.current.style.transition = "transform var(--duration-normal) var(--ease-out)";
       contentRef.current.style.transform = "translateY(0)";

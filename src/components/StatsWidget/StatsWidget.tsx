@@ -1,7 +1,10 @@
+import { Fragment } from "react";
+import { FaLayerGroup } from "react-icons/fa6";
 import { RingStatsRow } from "@/components/RingStatsRow/RingStatsRow";
 import { RouteChart } from "@/components/RouteChart/RouteChart";
+import { SectionCard } from "@/components/ui/SectionCard";
+import { BrandDivider } from "@/components/ui/BrandDivider";
 import type { RouteLog } from "@/lib/data";
-import { computeMaxPoints } from "@/lib/data";
 import styles from "./statsWidget.module.scss";
 
 interface Props {
@@ -12,7 +15,10 @@ interface Props {
   logs: Map<string, RouteLog>;
   routeIds: string[];
   routeHasZone: boolean[];
+  /** Route numbers for the chart axis (same order/length as routeIds). */
+  routeNumbers?: number[];
   resetDate?: string;
+  gymName?: string | null;
 }
 
 export function StatsWidget({
@@ -23,19 +29,51 @@ export function StatsWidget({
   logs,
   routeIds,
   routeHasZone,
+  routeNumbers,
   resetDate,
+  gymName,
 }: Props) {
-  const zoneRouteCount = routeHasZone.filter(Boolean).length;
-  const maxPoints = computeMaxPoints(total, zoneRouteCount);
+  // Zones hit + zone-capable completed routes — both derived from the
+  // current route/log set since they are the only places that know
+  // which routes have zones.
+  let zones = 0;
+  let zoneCompletions = 0;
+  routeIds.forEach((id, i) => {
+    const log = logs.get(id);
+    if (!log?.completed) return;
+    if (routeHasZone[i]) {
+      zoneCompletions += 1;
+      if (log.zone) zones += 1;
+    }
+  });
+
+  // Meta slot shows gym name and reset date side-by-side, separated
+  // by the shared BrandDivider. Either can be absent; the other still
+  // reads cleanly.
+  const metaParts = [gymName, resetDate ? `Resets ${resetDate}` : null].filter(
+    (p): p is string => Boolean(p),
+  );
+  const meta =
+    metaParts.length > 0 ? (
+      <span className={styles.metaRow}>
+        {metaParts.map((part, i) => (
+          <Fragment key={part}>
+            {i > 0 && <BrandDivider />}
+            <span>{part}</span>
+          </Fragment>
+        ))}
+      </span>
+    ) : undefined;
 
   return (
-    <div className={styles.widget}>
+    <SectionCard title="Current Set" icon={<FaLayerGroup />} meta={meta}>
       <RingStatsRow
         completions={completions}
         flashes={flashes}
+        zones={zones}
         points={points}
         totalRoutes={total}
-        maxPoints={maxPoints}
+        zoneCompletions={zoneCompletions}
         size={72}
       />
 
@@ -44,15 +82,9 @@ export function StatsWidget({
           logs={logs}
           routeIds={routeIds}
           routeHasZone={routeHasZone}
+          routeNumbers={routeNumbers}
         />
       </div>
-
-      <div className={styles.footerRow}>
-        <span className={styles.footerLabel}>ZONE</span>
-        {resetDate && (
-          <span className={styles.footerLabel}>RESETS {resetDate.toUpperCase()}</span>
-        )}
-      </div>
-    </div>
+    </SectionCard>
   );
 }

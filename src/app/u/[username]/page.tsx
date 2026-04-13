@@ -12,7 +12,7 @@ import {
   getGym,
   getLeaderboardUserRow,
 } from "@/lib/data/queries";
-import { getCrewCountForUser } from "@/lib/data/crew-queries";
+import { getCrewCountForUser, getPendingCrewInvites } from "@/lib/data/crew-queries";
 import type { UserLogInGym } from "@/lib/data/queries";
 import { computeMaxPoints } from "@/lib/data";
 import type { Route, RouteLog } from "@/lib/data";
@@ -102,15 +102,19 @@ export default async function UserProfilePage({ params }: Props) {
 
   for (const log of routeData.logs) {
     const existing = statsBySet.get(log.set_id) ?? { completions: 0, flashes: 0, points: 0, zones: 0 };
+    // Zone is independent of completion — partial sends that touched
+    // the zone still score +1 and count toward the zone total.
+    if (log.zone) {
+      existing.zones++;
+      existing.points += 1;
+    }
     if (log.completed) {
       existing.completions++;
       if (log.attempts === 1) existing.flashes++;
-      if (log.zone) existing.zones++;
       if (log.attempts === 1) existing.points += 4;
       else if (log.attempts === 2) existing.points += 3;
       else if (log.attempts === 3) existing.points += 2;
       else existing.points += 1;
-      if (log.zone) existing.points += 1;
     }
     statsBySet.set(log.set_id, existing);
   }
@@ -176,12 +180,9 @@ export default async function UserProfilePage({ params }: Props) {
   // ── Current set card data ────────────────────────
   const currentSetStats = activeSet
     ? {
-        ...(statsBySet.get(activeSet.id) ?? { completions: 0, flashes: 0, points: 0 }),
+        ...(statsBySet.get(activeSet.id) ?? { completions: 0, flashes: 0, points: 0, zones: 0 }),
         totalRoutes: miniRoutes.length,
-        maxPoints: computeMaxPoints(
-          miniRoutes.length,
-          miniRoutes.filter((r) => r.has_zone).length
-        ),
+        resetDate: format(parseISO(activeSet.ends_at), "MMM d"),
       }
     : null;
 
@@ -243,13 +244,20 @@ export default async function UserProfilePage({ params }: Props) {
   // climber's profile. Replaces the old follower/following count
   // pills — each segment drops out gracefully when its data is
   // missing (e.g. no active set, no rank, zero crews).
+  // Gym is needed for the current-set card on both own and other
+  // profiles; rank + crew count only power the non-own context line.
+  const [gym, rankRow, crewCount, pendingInvites] = await Promise.all([
+    getGym(supabase, gymId),
+    !isOwnProfile && activeSet
+      ? getLeaderboardUserRow(supabase, gymId, profileUser.id, activeSet.id)
+      : Promise.resolve(null),
+    !isOwnProfile ? getCrewCountForUser(supabase, profileUser.id) : Promise.resolve(0),
+    // Own-profile only — drives the Inbox badge + notifications sheet.
+    isOwnProfile ? getPendingCrewInvites(supabase, profileUser.id) : Promise.resolve([]),
+  ]);
+
   let contextLine: string | null = null;
   if (!isOwnProfile) {
-    const [gym, rankRow, crewCount] = await Promise.all([
-      getGym(supabase, gymId),
-      activeSet ? getLeaderboardUserRow(supabase, gymId, profileUser.id, activeSet.id) : Promise.resolve(null),
-      getCrewCountForUser(supabase, profileUser.id),
-    ]);
     const parts: string[] = [];
     if (gym?.name) parts.push(gym.name);
     if (rankRow?.rank != null) parts.push(`#${rankRow.rank} this set`);
@@ -263,6 +271,7 @@ export default async function UserProfilePage({ params }: Props) {
         user={profileUser}
         isOwnProfile={isOwnProfile}
         contextLine={contextLine}
+        pendingInvites={pendingInvites}
       />
 
       <ClimberStats
@@ -271,8 +280,10 @@ export default async function UserProfilePage({ params }: Props) {
         allTimeFlashes={aggregates.flashes}
         allTimePoints={aggregates.points}
         allTimeExtras={allTimeExtras}
+        gymName={gym?.name}
         routeIds={miniRoutes.length > 0 ? miniRoutes.map((r) => r.id) : undefined}
         routeHasZone={miniRoutes.length > 0 ? miniRoutes.map((r) => r.has_zone) : undefined}
+        routeNumbers={miniRoutes.length > 0 ? miniRoutes.map((r) => r.number) : undefined}
         logs={miniRoutes.length > 0 ? logByRoute : undefined}
       />
 

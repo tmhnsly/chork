@@ -1,28 +1,6 @@
 @use "mixins/layout" as layout;
 @use "mixins/typography" as type;
-@use "mixins/surfaces" as surface;
 @use "mixins/input" as input;
-
-.panel {
-  @include surface.card;
-  @include layout.stack(var(--space-3));
-  padding: var(--space-4);
-  border-radius: var(--radius-3);
-}
-
-.header {
-  @include layout.stack(var(--space-1));
-}
-
-.heading {
-  @include type.typography(card-title);
-  color: var(--mono-text);
-}
-
-.hint {
-  @include type.typography(meta);
-  color: var(--mono-text-low-contrast);
-}
 
 .list {
   @include layout.stack(var(--space-2));

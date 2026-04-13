@@ -1,32 +1,13 @@
-@use "mixins/typography" as type;
-@use "mixins/surfaces" as surface;
-
-.widget {
-  @include surface.card;
-  border-radius: var(--radius-3);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  padding: var(--space-4);
-  container-type: inline-size;
-}
-
-// ── Chart area ─────────────────────────────────────
 .chartBlock {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
 }
 
-// ── Footer row (ZONES left, resets right) ──────────
-.footerRow {
-  display: flex;
-  justify-content: space-between;
+// Flex row so the BrandDivider sits on the visual midline of the text
+// instead of the text-baseline that inline-block + vertical-align give.
+.metaRow {
+  display: inline-flex;
   align-items: center;
 }
 
-.footerLabel {
-  @include type.typography(label);
-  font-size: var(--text-xs);
-  color: var(--mono-text-low-contrast);
-}

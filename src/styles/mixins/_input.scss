@@ -21,6 +21,17 @@
     border-color: var(--accent-solid);
   }
 
+  // Validation error — red border until the user fixes the field. Set
+  // aria-invalid on the input (FormField does this automatically when
+  // `error` is passed) and this styling follows for free.
+  &[aria-invalid="true"] {
+    border-color: var(--error-border);
+
+    &:focus-visible {
+      border-color: var(--error-solid);
+    }
+  }
+
   &::placeholder {
     color: var(--mono-text-low-contrast);
   }

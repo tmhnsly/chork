@@ -1,22 +1,25 @@
 @use "mixins/layout" as layout;
-@use "mixins/surfaces" as surface;
-@use "mixins/typography" as type;
 
+// Matches the real profile page's page layout + section spacing so
+// the skeleton cards land in the same vertical positions as the real
+// content below them.
 .page {
   @include layout.page;
-  @include layout.stack(var(--space-7));
+  @include layout.stack(var(--space-5));
 }
 
-// ── Profile header ───────────────────────────────
+// Profile header (non-card). Mirrors `ProfileHeader`'s row so its
+// height is reserved.
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
+  min-height: var(--space-16);
 }
 
 .headerText {
-  @include layout.stack(var(--space-2));
+  @include layout.stack(var(--space-1));
   flex: 1;
 }
 
@@ -32,165 +35,9 @@
   border-radius: var(--radius-1);
 }
 
-.lineCounts {
-  height: var(--text-sm);
-  width: 45%;
-  border-radius: var(--radius-1);
-}
-
 .avatar {
   width: var(--space-16);
   height: var(--space-16);
   border-radius: var(--radius-full);
   flex-shrink: 0;
-}
-
-// ── Stats wrapper — mirrors ClimberStats.wrapper ─
-.statsWrapper {
-  @include layout.stack(var(--space-6));
-}
-
-// Tight grouping: section label above its card.
-.labelledSection {
-  @include layout.stack(var(--space-2));
-}
-
-// ── All Time card ────────────────────────────────
-.allTimeCard {
-  @include surface.card;
-  border-radius: var(--radius-3);
-  padding: var(--space-4);
-  @include layout.stack(var(--space-3));
-}
-
-.extrasGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-2);
-}
-
-.extraCell {
-  height: var(--space-12);
-  border-radius: var(--radius-2);
-}
-
-.allTimeRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-}
-
-.ringPlaceholder {
-  width: var(--space-14);
-  height: var(--space-14);
-  border-radius: var(--radius-full);
-  flex-shrink: 0;
-}
-
-.statsRow {
-  display: flex;
-  gap: var(--space-4);
-  flex: 1;
-}
-
-.statBlock {
-  @include layout.stack(var(--space-1));
-}
-
-.statValue {
-  height: var(--text-lg);
-  width: var(--space-10);
-  border-radius: var(--radius-1);
-}
-
-.statLabel {
-  height: var(--text-xs);
-  width: var(--space-12);
-  border-radius: var(--radius-1);
-}
-
-// ── Section label (matches ClimberStats.sectionLabel) ──
-.sectionLabel {
-  @include type.typography(label);
-  color: var(--mono-text-low-contrast);
-}
-
-.currentSetCard {
-  @include surface.card;
-  border-radius: var(--radius-3);
-  padding: var(--space-4);
-  @include layout.stack(var(--space-4));
-}
-
-.currentSetRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-}
-
-.currentSetRing {
-  width: var(--space-18);
-  height: var(--space-18);
-  border-radius: var(--radius-full);
-  flex-shrink: 0;
-}
-
-.chartPlaceholder {
-  height: var(--space-16);
-  border-radius: var(--radius-1);
-}
-
-.chartFooter {
-  height: var(--text-xs);
-  width: var(--space-10);
-  border-radius: var(--radius-1);
-}
-
-// ── Badges ───────────────────────────────────────
-.badgeSection {
-  @include layout.stack(var(--space-3));
-}
-
-.badgeRow {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.badge {
-  @include surface.card;
-  border-radius: var(--radius-2);
-  width: 5.5rem;
-  height: 5.5rem;
-  flex-shrink: 0;
-}
-
-// ── Sets grid ────────────────────────────────────
-.setsSection {
-  @include layout.stack(var(--space-3));
-}
-
-.setsGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-3);
-}
-
-.setTile {
-  @include surface.card;
-  @include layout.stack(var(--space-2));
-  align-items: center;
-  padding: var(--space-3);
-  border-radius: var(--radius-3);
-}
-
-.setRing {
-  width: 72px;
-  height: 72px;
-  border-radius: var(--radius-full);
-}
-
-.setLabel {
-  height: var(--text-xs);
-  width: 70%;
-  border-radius: var(--radius-1);
 }
