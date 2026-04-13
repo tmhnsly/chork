@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { evaluateBadges, evaluateBadgesForSet, type BadgeContext } from "./badges";
+import {
+  evaluateBadges,
+  evaluateBadgesForSet,
+  type BadgeContext,
+} from "./badges";
 
 function makeCtx(overrides: Partial<BadgeContext> = {}): BadgeContext {
   return {
@@ -34,7 +38,10 @@ describe("evaluateBadges", () => {
     });
 
     it("unlocks Thundershock at 1 flash", () => {
-      const b = findBadge(evaluateBadges(makeCtx({ totalFlashes: 1 })), "flash-thundershock");
+      const b = findBadge(
+        evaluateBadges(makeCtx({ totalFlashes: 1 })),
+        "flash-thundershock",
+      );
       expect(b.earned).toBe(true);
     });
 
@@ -49,24 +56,43 @@ describe("evaluateBadges", () => {
       }
     });
 
-    it("God of Thunder stays locked until 1000 flashes", () => {
-      expect(findBadge(evaluateBadges(makeCtx({ totalFlashes: 999 })), "flash-god-of-thunder").earned).toBe(false);
-      expect(findBadge(evaluateBadges(makeCtx({ totalFlashes: 1000 })), "flash-god-of-thunder").earned).toBe(true);
+    it("Saviour of the Universe stays locked until 1000 flashes", () => {
+      expect(
+        findBadge(
+          evaluateBadges(makeCtx({ totalFlashes: 999 })),
+          "flash-saviour-of-the-universe",
+        ).earned,
+      ).toBe(false);
+      expect(
+        findBadge(
+          evaluateBadges(makeCtx({ totalFlashes: 1000 })),
+          "flash-saviour-of-the-universe",
+        ).earned,
+      ).toBe(true);
     });
   });
 
   // ── Sends ──────────────────────────────────────────
   describe("First (A)send", () => {
     it("earns on the first completed route", () => {
-      const b = findBadge(evaluateBadges(makeCtx({ totalSends: 1 })), "first-ascend");
+      const b = findBadge(
+        evaluateBadges(makeCtx({ totalSends: 1 })),
+        "first-ascend",
+      );
       expect(b.earned).toBe(true);
     });
   });
 
   describe("Century (100 points)", () => {
     it("locked at 99, earned at 100", () => {
-      expect(findBadge(evaluateBadges(makeCtx({ totalPoints: 99 })), "century").earned).toBe(false);
-      expect(findBadge(evaluateBadges(makeCtx({ totalPoints: 100 })), "century").earned).toBe(true);
+      expect(
+        findBadge(evaluateBadges(makeCtx({ totalPoints: 99 })), "century")
+          .earned,
+      ).toBe(false);
+      expect(
+        findBadge(evaluateBadges(makeCtx({ totalPoints: 100 })), "century")
+          .earned,
+      ).toBe(true);
     });
   });
 
@@ -81,20 +107,30 @@ describe("evaluateBadges", () => {
     ] as const)(
       "%s earns when both numbers are completed in the same set",
       (id, nums) => {
-        const b = findBadge(evaluateBadges(makeCtx({
-          completedRoutesBySet: new Map([["s1", new Set(nums)]]),
-        })), id);
+        const b = findBadge(
+          evaluateBadges(
+            makeCtx({
+              completedRoutesBySet: new Map([["s1", new Set(nums)]]),
+            }),
+          ),
+          id,
+        );
         expect(b.earned).toBe(true);
       },
     );
 
     it("does NOT earn when the numbers are split across sets", () => {
-      const b = findBadge(evaluateBadges(makeCtx({
-        completedRoutesBySet: new Map([
-          ["s1", new Set([1])],
-          ["s2", new Set([2])],
-        ]),
-      })), "tie-your-shoe");
+      const b = findBadge(
+        evaluateBadges(
+          makeCtx({
+            completedRoutesBySet: new Map([
+              ["s1", new Set([1])],
+              ["s2", new Set([2])],
+            ]),
+          }),
+        ),
+        "tie-your-shoe",
+      );
       expect(b.earned).toBe(false);
     });
   });
@@ -102,19 +138,29 @@ describe("evaluateBadges", () => {
   // ── Set-mastery conditions ─────────────────────────
   describe("Saviour of the Universe", () => {
     it("locked when not every route in a set is flashed", () => {
-      const b = findBadge(evaluateBadges(makeCtx({
-        flashedRoutesBySet: new Map([["s1", new Set([1, 2])]]),
-        totalRoutesBySet: new Map([["s1", 3]]),
-      })), "saviour-of-the-universe");
+      const b = findBadge(
+        evaluateBadges(
+          makeCtx({
+            flashedRoutesBySet: new Map([["s1", new Set([1, 2])]]),
+            totalRoutesBySet: new Map([["s1", 3]]),
+          }),
+        ),
+        "saviour-of-the-universe",
+      );
       expect(b.earned).toBe(false);
     });
 
     it("earned when every route in a set is flashed", () => {
       const all = new Set([1, 2, 3]);
-      const b = findBadge(evaluateBadges(makeCtx({
-        flashedRoutesBySet: new Map([["s1", all]]),
-        totalRoutesBySet: new Map([["s1", 3]]),
-      })), "saviour-of-the-universe");
+      const b = findBadge(
+        evaluateBadges(
+          makeCtx({
+            flashedRoutesBySet: new Map([["s1", all]]),
+            totalRoutesBySet: new Map([["s1", 3]]),
+          }),
+        ),
+        "saviour-of-the-universe",
+      );
       expect(b.earned).toBe(true);
     });
   });
@@ -122,47 +168,72 @@ describe("evaluateBadges", () => {
   describe("It's Not Easy Being Green", () => {
     it("locked when any route in the set was flashed", () => {
       const all = new Set([1, 2, 3]);
-      const b = findBadge(evaluateBadges(makeCtx({
-        completedRoutesBySet: new Map([["s1", all]]),
-        flashedRoutesBySet: new Map([["s1", new Set([1])]]),
-        totalRoutesBySet: new Map([["s1", 3]]),
-      })), "not-easy-being-green");
+      const b = findBadge(
+        evaluateBadges(
+          makeCtx({
+            completedRoutesBySet: new Map([["s1", all]]),
+            flashedRoutesBySet: new Map([["s1", new Set([1])]]),
+            totalRoutesBySet: new Map([["s1", 3]]),
+          }),
+        ),
+        "not-easy-being-green",
+      );
       expect(b.earned).toBe(false);
     });
 
     it("earned when every route is completed and NONE were flashed", () => {
       const all = new Set([1, 2, 3]);
-      const b = findBadge(evaluateBadges(makeCtx({
-        completedRoutesBySet: new Map([["s1", all]]),
-        flashedRoutesBySet: new Map([["s1", new Set()]]),
-        totalRoutesBySet: new Map([["s1", 3]]),
-      })), "not-easy-being-green");
+      const b = findBadge(
+        evaluateBadges(
+          makeCtx({
+            completedRoutesBySet: new Map([["s1", all]]),
+            flashedRoutesBySet: new Map([["s1", new Set()]]),
+            totalRoutesBySet: new Map([["s1", 3]]),
+          }),
+        ),
+        "not-easy-being-green",
+      );
       expect(b.earned).toBe(true);
     });
   });
 
   describe("In the Zone", () => {
     it("locked when a zone hasn't been claimed", () => {
-      const b = findBadge(evaluateBadges(makeCtx({
-        zoneAvailableBySet: new Map([["s1", new Set([2, 5, 9])]]),
-        zoneClaimedBySet: new Map([["s1", new Set([2, 5])]]),
-      })), "in-the-zone");
+      const b = findBadge(
+        evaluateBadges(
+          makeCtx({
+            zoneAvailableBySet: new Map([["s1", new Set([2, 5, 9])]]),
+            zoneClaimedBySet: new Map([["s1", new Set([2, 5])]]),
+          }),
+        ),
+        "in-the-zone",
+      );
       expect(b.earned).toBe(false);
     });
 
     it("earned when every zone in a set has been claimed", () => {
-      const b = findBadge(evaluateBadges(makeCtx({
-        zoneAvailableBySet: new Map([["s1", new Set([2, 5, 9])]]),
-        zoneClaimedBySet: new Map([["s1", new Set([2, 5, 9])]]),
-      })), "in-the-zone");
+      const b = findBadge(
+        evaluateBadges(
+          makeCtx({
+            zoneAvailableBySet: new Map([["s1", new Set([2, 5, 9])]]),
+            zoneClaimedBySet: new Map([["s1", new Set([2, 5, 9])]]),
+          }),
+        ),
+        "in-the-zone",
+      );
       expect(b.earned).toBe(true);
     });
 
     it("ignores sets with zero zone-capable routes", () => {
-      const b = findBadge(evaluateBadges(makeCtx({
-        zoneAvailableBySet: new Map([["s1", new Set()]]),
-        zoneClaimedBySet: new Map([["s1", new Set()]]),
-      })), "in-the-zone");
+      const b = findBadge(
+        evaluateBadges(
+          makeCtx({
+            zoneAvailableBySet: new Map([["s1", new Set()]]),
+            zoneClaimedBySet: new Map([["s1", new Set()]]),
+          }),
+        ),
+        "in-the-zone",
+      );
       expect(b.earned).toBe(false);
     });
   });

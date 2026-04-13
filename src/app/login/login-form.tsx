@@ -75,17 +75,45 @@ export function LoginForm() {
           Track your sends. Compete with your crew.
         </p>
 
-        <form className={styles.form} onSubmit={handleSubmit} noValidate>
+        {/*
+          The form is keyed by `mode` so toggling between sign-in and
+          sign-up remounts a fresh DOM tree. Safari snapshots a form's
+          autocomplete semantics on first paint; in-place autocomplete
+          changes (`current-password` ↔ `new-password`) are often
+          ignored, which is what was suppressing the strong-password
+          suggestion + save prompt on sign-up.
+
+          `method="post"` and `action="#"` are hints to the password
+          manager that this form submits credentials — even though we
+          intercept with `preventDefault`, Safari + 1Password use
+          these attributes to decide whether to show the save dialog.
+         */}
+        <form
+          key={mode}
+          className={styles.form}
+          onSubmit={handleSubmit}
+          method="post"
+          action="#"
+          noValidate
+        >
           <div className={styles.field}>
             <label className={styles.fieldLabel} htmlFor="email">Email</label>
             <input
               id="email"
+              name="email"
               type="email"
+              inputMode="email"
               className={`${styles.input} ${errors.email ? styles.inputError : ""}`}
               value={email}
               onChange={(e) => { setEmail(e.target.value); setErrors((prev) => ({ ...prev, email: undefined })); }}
               required
-              autoComplete="email"
+              // Safari pairs the password with the field carrying
+              // `autocomplete="username"`. Listing `email` second
+              // keeps the autofill suggestions email-aware too.
+              autoComplete="username email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               aria-describedby={errors.email ? "email-error" : undefined}
             />
             {errors.email && <p id="email-error" className={styles.error}>{errors.email}</p>}
@@ -95,11 +123,13 @@ export function LoginForm() {
             <label className={styles.fieldLabel} htmlFor="password">Password</label>
             <input
               id="password"
+              name="password"
               type="password"
               className={`${styles.input} ${errors.password ? styles.inputError : ""}`}
               value={password}
               onChange={(e) => { setPassword(e.target.value); setErrors((prev) => ({ ...prev, password: undefined })); }}
               required
+              minLength={mode === "sign-up" ? MIN_PASSWORD_LENGTH : undefined}
               autoComplete={mode === "sign-in" ? "current-password" : "new-password"}
               aria-describedby={errors.password ? "password-error" : undefined}
             />
@@ -129,11 +159,13 @@ export function LoginForm() {
               <label className={styles.fieldLabel} htmlFor="confirmPassword">Confirm password</label>
               <input
                 id="confirmPassword"
+                name="confirmPassword"
                 type="password"
                 className={`${styles.input} ${errors.confirm ? styles.inputError : ""}`}
                 value={confirmPassword}
                 onChange={(e) => { setConfirmPassword(e.target.value); setErrors((prev) => ({ ...prev, confirm: undefined })); }}
                 required
+                minLength={MIN_PASSWORD_LENGTH}
                 autoComplete="new-password"
                 aria-describedby={errors.confirm ? "confirm-error" : undefined}
               />
