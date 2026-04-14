@@ -39,7 +39,10 @@ export default async function CrewDetailPage({ params }: Props) {
     getCrewMembers(supabase, id),
     getAllLiveSets(supabase),
     getServerProfile(),
-    getCrewActivityFeed(supabase, INITIAL_FEED_PAGE),
+    // Server-scoped to this crew via migration 029's p_crew_id
+    // param. The RPC gates access on active membership so callers
+    // who hit a URL they aren't in get an empty feed, not a leak.
+    getCrewActivityFeed(supabase, INITIAL_FEED_PAGE, null, id),
   ]);
 
   const crew = myCrews.find((c) => c.id === id);

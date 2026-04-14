@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { UserAvatar } from "@/components/ui";
 import { CrewActivityFeed } from "./CrewActivityFeed";
@@ -45,11 +45,6 @@ export function CrewDetailView({
   initialFeedExhausted,
 }: Props) {
   const [tab, setTab] = useState<Tab>("activity");
-
-  const memberIds = useMemo(
-    () => new Set(members.map((m) => m.user_id)),
-    [members],
-  );
 
   // Avatar stack for the detail header — up to 5 avatars.
   const stackPreview = members.slice(0, 5);
@@ -101,7 +96,7 @@ export function CrewDetailView({
           hasCrew
           initialEvents={initialFeed}
           initialExhausted={initialFeedExhausted}
-          filterUserIds={memberIds}
+          crewId={crew.id}
         />
       )}
 

@@ -154,6 +154,18 @@ export async function acceptCrewInvite(crewMemberId: string): Promise<ActionResu
   const { supabase, userId } = auth;
 
   try {
+    // Fetch the invite row alongside the update so we have the
+    // inviter id + crew name to push back on success. Running both
+    // queries before the update keeps the happy path to two
+    // round-trips without adding a new RPC.
+    const { data: invite } = await supabase
+      .from("crew_members")
+      .select("invited_by, crew:crew_id (name)")
+      .eq("id", crewMemberId)
+      .eq("user_id", userId)
+      .eq("status", "pending")
+      .maybeSingle();
+
     const { error } = await supabase
       .from("crew_members")
       .update({ status: "active" })
@@ -161,6 +173,29 @@ export async function acceptCrewInvite(crewMemberId: string): Promise<ActionResu
       .eq("user_id", userId)
       .eq("status", "pending");
     if (error) return { error: formatError(error) };
+
+    // Best-effort push to the inviter so they see the confirmation
+    // without needing to reopen the app. sendPushToUsers is a noop
+    // when VAPID isn't configured; failures never block the accept.
+    if (invite?.invited_by && invite.invited_by !== userId) {
+      try {
+        const { data: accepterRow } = await supabase
+          .from("profiles")
+          .select("username")
+          .eq("id", userId)
+          .maybeSingle();
+        const crewName = Array.isArray(invite.crew)
+          ? invite.crew[0]?.name
+          : invite.crew?.name;
+        await sendPushToUsers([invite.invited_by], {
+          title: "Invite accepted",
+          body: `@${accepterRow?.username ?? "someone"} joined ${crewName ?? "your crew"}.`,
+          url: "/crew",
+        });
+      } catch (err) {
+        console.warn("[chork] crew-accept push dispatch failed:", err);
+      }
+    }
 
     revalidatePath("/crew", "layout");
     return { success: true };
@@ -192,7 +227,19 @@ export async function declineCrewInvite(crewMemberId: string): Promise<ActionRes
   }
 }
 
-/** Leave an active crew. Safe to call from a pending state too. */
+/**
+ * Leave an active crew. Safe to call from a pending state too.
+ *
+ * Edge cases enforced server-side (the UI mirrors these but never
+ * trusts the client):
+ *   • Creator is the last active member → the crew is deleted
+ *     entirely. `on delete cascade` on crew_members / pending
+ *     invites tidies the rest.
+ *   • Creator trying to leave with members present → refused.
+ *     Ownership transfer isn't implemented yet; letting creators
+ *     walk away would leave the crew orphaned.
+ *   • Everyone else → plain leave.
+ */
 export async function leaveCrew(crewId: string): Promise<ActionResult> {
   if (!UUID_RE.test(crewId)) return { error: "Invalid crew." };
 
@@ -201,6 +248,36 @@ export async function leaveCrew(crewId: string): Promise<ActionResult> {
   const { supabase, userId } = auth;
 
   try {
+    const [{ data: crew }, { count: activeCount }] = await Promise.all([
+      supabase.from("crews").select("created_by").eq("id", crewId).maybeSingle(),
+      supabase
+        .from("crew_members")
+        .select("id", { count: "exact", head: true })
+        .eq("crew_id", crewId)
+        .eq("status", "active"),
+    ]);
+
+    if (!crew) return { error: "Crew not found." };
+
+    const isCreator = crew.created_by === userId;
+    const otherActive = Math.max(0, (activeCount ?? 0) - 1);
+
+    if (isCreator && otherActive > 0) {
+      return {
+        error:
+          "You created this crew — transfer it or remove the other members first.",
+      };
+    }
+
+    if (isCreator && otherActive === 0) {
+      // Solo creator leaving → delete the crew; FK cascades handle
+      // the membership + pending invite rows.
+      const { error } = await supabase.from("crews").delete().eq("id", crewId);
+      if (error) return { error: formatError(error) };
+      revalidatePath("/crew", "layout");
+      return { success: true };
+    }
+
     const { error } = await supabase
       .from("crew_members")
       .delete()

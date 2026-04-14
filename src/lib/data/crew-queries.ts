@@ -243,19 +243,29 @@ export async function getCrewLeaderboard(
 }
 
 /**
- * Activity feed across all the caller's crews. `before` is a cursor —
- * pass the oldest `happened_at` you already have to load the next
- * page. Returns newest-first.
+ * Activity feed. Two flavours:
+ *   - No `crewId` → union feed across every crew the caller is in.
+ *   - With `crewId` → restricted to mates sharing *that* crew.
+ *
+ * `before` is a cursor — pass the oldest `happened_at` you already
+ * have to load the next page. Returns newest-first.
  */
 export async function getCrewActivityFeed(
   supabase: Supabase,
   limit = 30,
-  before: string | null = null
+  before: string | null = null,
+  crewId: string | null = null,
 ): Promise<CrewActivityEvent[]> {
-  const { data, error } = await supabase.rpc("get_crew_activity_feed", {
-    p_limit: limit,
-    p_before: before ?? undefined,
-  });
+  const { data, error } = crewId
+    ? await supabase.rpc("get_crew_activity_feed", {
+        p_crew_id: crewId,
+        p_limit: limit,
+        p_before: before ?? undefined,
+      })
+    : await supabase.rpc("get_crew_activity_feed", {
+        p_limit: limit,
+        p_before: before ?? undefined,
+      });
   if (error) {
     console.warn("[chork] getCrewActivityFeed failed:", error);
     return [];

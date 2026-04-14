@@ -334,16 +334,57 @@ describe("leaveCrew", () => {
     expect(await leaveCrew("notuuid")).toEqual({ error: "Invalid crew." });
   });
 
-  it("deletes the caller's own membership regardless of status", async () => {
+  it("deletes a non-creator member row", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
       supabase: mockSupabase({
-        "table:crew_members": { data: null, error: null },
+        "table:crews": { data: { created_by: USER_B }, error: null },
+        "table:crew_members": { data: null, error: null, count: 3 },
       }) as never,
       userId: USER_A,
     });
     const { leaveCrew } = await import("./actions");
     expect(await leaveCrew(CREW_1)).toEqual({ success: true });
+  });
+
+  it("refuses when the creator tries to leave with other members present", async () => {
+    const { requireSignedIn } = await import("@/lib/auth");
+    vi.mocked(requireSignedIn).mockResolvedValue({
+      supabase: mockSupabase({
+        "table:crews": { data: { created_by: USER_A }, error: null },
+        "table:crew_members": { data: null, error: null, count: 3 },
+      }) as never,
+      userId: USER_A,
+    });
+    const { leaveCrew } = await import("./actions");
+    const res = await leaveCrew(CREW_1);
+    expect("error" in res).toBe(true);
+  });
+
+  it("deletes the crew entirely when the solo creator leaves", async () => {
+    const { requireSignedIn } = await import("@/lib/auth");
+    vi.mocked(requireSignedIn).mockResolvedValue({
+      supabase: mockSupabase({
+        "table:crews": { data: { created_by: USER_A }, error: null },
+        "table:crew_members": { data: null, error: null, count: 1 },
+      }) as never,
+      userId: USER_A,
+    });
+    const { leaveCrew } = await import("./actions");
+    expect(await leaveCrew(CREW_1)).toEqual({ success: true });
+  });
+
+  it("errors cleanly when the crew can't be found", async () => {
+    const { requireSignedIn } = await import("@/lib/auth");
+    vi.mocked(requireSignedIn).mockResolvedValue({
+      supabase: mockSupabase({
+        "table:crews": { data: null, error: null },
+        "table:crew_members": { data: null, error: null, count: 0 },
+      }) as never,
+      userId: USER_A,
+    });
+    const { leaveCrew } = await import("./actions");
+    expect(await leaveCrew(CREW_1)).toEqual({ error: "Crew not found." });
   });
 });
 

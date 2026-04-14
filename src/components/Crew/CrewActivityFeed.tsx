@@ -21,13 +21,11 @@ interface Props {
   /** True when the first page returned fewer than PAGE_SIZE rows. */
   initialExhausted: boolean;
   /**
-   * Optional per-crew scope. When provided, the feed shows only
-   * events whose `user_id` is in the set — used on the crew detail
-   * page to scope the feed to that crew's members. The feed RPC
-   * returns cross-crew events by design, so filtering happens
-   * client-side; subsequent pages are filtered the same way.
+   * Optional crew scope. When provided, pagination requests include
+   * `p_crew_id` so the RPC restricts results to mates sharing that
+   * crew — pagination stays correct even when the feed is sparse.
    */
-  filterUserIds?: Set<string> | null;
+  crewId?: string | null;
 }
 
 /**
@@ -42,12 +40,9 @@ export function CrewActivityFeed({
   hasCrew,
   initialEvents,
   initialExhausted,
-  filterUserIds,
+  crewId = null,
 }: Props) {
-  const filtered = filterUserIds
-    ? initialEvents.filter((e) => filterUserIds.has(e.user_id))
-    : initialEvents;
-  const [events, setEvents] = useState<CrewActivityEvent[]>(filtered);
+  const [events, setEvents] = useState<CrewActivityEvent[]>(initialEvents);
   const [cursor, setCursor] = useState<string | null>(
     initialEvents.length > 0 ? initialEvents[initialEvents.length - 1].happened_at : null
   );
@@ -58,13 +53,10 @@ export function CrewActivityFeed({
     if (!cursor || loadingMore || exhausted) return;
     setLoadingMore(true);
     const supabase = createBrowserSupabase();
-    const rawPage = await getCrewActivityFeed(supabase, PAGE_SIZE, cursor);
-    const page = filterUserIds
-      ? rawPage.filter((e) => filterUserIds.has(e.user_id))
-      : rawPage;
+    const page = await getCrewActivityFeed(supabase, PAGE_SIZE, cursor, crewId);
     setEvents((prev) => [...prev, ...page]);
-    if (rawPage.length < PAGE_SIZE) setExhausted(true);
-    else setCursor(rawPage[rawPage.length - 1].happened_at);
+    if (page.length < PAGE_SIZE) setExhausted(true);
+    else setCursor(page[page.length - 1].happened_at);
     setLoadingMore(false);
   }
 
