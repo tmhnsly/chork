@@ -3,54 +3,50 @@ import { requireSignedIn } from "@/lib/auth";
 import {
   getMyCrews,
   getPendingCrewInvites,
-  getAllLiveSets,
-  getCrewActivityFeed,
+  getCrewMembers,
+  type CrewMember,
 } from "@/lib/data/crew-queries";
-import { getServerProfile } from "@/lib/supabase/server";
-import { CrewHome } from "@/components/Crew/CrewHome";
+import { CrewPicker } from "@/components/Crew/CrewPicker";
 import { PageHeader } from "@/components/motion";
-// RevealText no longer needed directly — PageHeader wraps it and
-// applies the canonical page-title typography.
 import styles from "./crew.module.scss";
 
 export const metadata = {
   title: "Crew - Chork",
 };
 
-// Matches the PAGE_SIZE constant in CrewActivityFeed — must stay in
-// sync so the "show more" cursor lands on the exact right boundary.
-const INITIAL_FEED_PAGE = 30;
-
 export default async function CrewPage() {
   const auth = await requireSignedIn();
   if ("error" in auth) redirect("/login");
   const { supabase, userId } = auth;
 
-  // Single parallel fan-out. The activity feed's first page is
-  // included so /crew paints fully populated — no client-side spinner
-  // on the primary section when you open the tab. Subsequent feed
-  // pages are lazy-loaded from the cursor passed to CrewHome.
-  const [myCrews, invites, liveSets, profile, initialFeed] = await Promise.all([
+  const [myCrews, invites] = await Promise.all([
     getMyCrews(supabase, userId),
     getPendingCrewInvites(supabase, userId),
-    getAllLiveSets(supabase),
-    getServerProfile(),
-    getCrewActivityFeed(supabase, INITIAL_FEED_PAGE),
   ]);
+
+  // Member previews for the avatar stack on each crew card — up to 4
+  // per crew. N small queries is acceptable here: `getCrewMembers`
+  // is RLS-gated and only the caller's crews are fetched (typically
+  // < 10), so total round-trips stay bounded. A batched RPC would
+  // tighten this if we ever see users in dozens of crews.
+  const previewEntries = await Promise.all(
+    myCrews.map(async (crew) => {
+      const members = await getCrewMembers(supabase, crew.id);
+      return [crew.id, members.slice(0, 4)] as const;
+    }),
+  );
+  const previews = Object.fromEntries(previewEntries) as Record<
+    string,
+    Pick<CrewMember, "user_id" | "username" | "name" | "avatar_url">[]
+  >;
 
   return (
     <main className={styles.page}>
-      <PageHeader title="Crew" subtitle="Your climbing group, your private leaderboard." />
-
-      <CrewHome
-        myCrews={myCrews}
-        invites={invites}
-        liveSets={liveSets}
-        currentUserId={userId}
-        activeGymId={profile?.active_gym_id ?? null}
-        initialFeed={initialFeed}
-        initialFeedExhausted={initialFeed.length < INITIAL_FEED_PAGE}
+      <PageHeader
+        title="Crew"
+        subtitle="Your climbing group, your private leaderboard."
       />
+      <CrewPicker myCrews={myCrews} invites={invites} previews={previews} />
     </main>
   );
 }

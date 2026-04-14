@@ -1,0 +1,29 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+@use "mixins/focus";
+
+.page {
+  @include layout.page;
+  @include layout.stack(var(--space-4));
+}
+
+// Back-link pill sits above the crew title — small, unobtrusive,
+// icon + label so the destination is explicit.
+.back {
+  @include type.typography(label);
+  @include focus.ring;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--mono-text-low-contrast);
+  text-decoration: none;
+  min-height: var(--size-touch-target);
+  align-self: flex-start;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    color: var(--mono-text);
+  }
+}

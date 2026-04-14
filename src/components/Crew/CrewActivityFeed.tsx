@@ -20,6 +20,14 @@ interface Props {
   initialEvents: CrewActivityEvent[];
   /** True when the first page returned fewer than PAGE_SIZE rows. */
   initialExhausted: boolean;
+  /**
+   * Optional per-crew scope. When provided, the feed shows only
+   * events whose `user_id` is in the set — used on the crew detail
+   * page to scope the feed to that crew's members. The feed RPC
+   * returns cross-crew events by design, so filtering happens
+   * client-side; subsequent pages are filtered the same way.
+   */
+  filterUserIds?: Set<string> | null;
 }
 
 /**
@@ -34,8 +42,12 @@ export function CrewActivityFeed({
   hasCrew,
   initialEvents,
   initialExhausted,
+  filterUserIds,
 }: Props) {
-  const [events, setEvents] = useState<CrewActivityEvent[]>(initialEvents);
+  const filtered = filterUserIds
+    ? initialEvents.filter((e) => filterUserIds.has(e.user_id))
+    : initialEvents;
+  const [events, setEvents] = useState<CrewActivityEvent[]>(filtered);
   const [cursor, setCursor] = useState<string | null>(
     initialEvents.length > 0 ? initialEvents[initialEvents.length - 1].happened_at : null
   );
@@ -46,10 +58,13 @@ export function CrewActivityFeed({
     if (!cursor || loadingMore || exhausted) return;
     setLoadingMore(true);
     const supabase = createBrowserSupabase();
-    const page = await getCrewActivityFeed(supabase, PAGE_SIZE, cursor);
+    const rawPage = await getCrewActivityFeed(supabase, PAGE_SIZE, cursor);
+    const page = filterUserIds
+      ? rawPage.filter((e) => filterUserIds.has(e.user_id))
+      : rawPage;
     setEvents((prev) => [...prev, ...page]);
-    if (page.length < PAGE_SIZE) setExhausted(true);
-    else setCursor(page[page.length - 1].happened_at);
+    if (rawPage.length < PAGE_SIZE) setExhausted(true);
+    else setCursor(rawPage[rawPage.length - 1].happened_at);
     setLoadingMore(false);
   }
 

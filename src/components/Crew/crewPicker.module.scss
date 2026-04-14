@@ -1,0 +1,66 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+
+.wrapper {
+  @include layout.stack(var(--space-5));
+}
+
+// ── List head (heading + "+ new crew" action) ────────
+.listHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.listHeading {
+  @include type.typography(card-title);
+  color: var(--mono-text);
+  margin: 0;
+}
+
+.list {
+  @include layout.stack(var(--space-2));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+// ── Empty-state hero ─────────────────────────────────
+// First-run card: what IS a crew, and why should I make one. The
+// primary CTA is the card's own big button — no competing actions
+// above or below the fold.
+.hero {
+  @include surface.card;
+  @include layout.stack(var(--space-3));
+  padding: var(--space-5);
+  border-radius: var(--radius-3);
+  align-items: flex-start;
+}
+
+.heroIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: var(--radius-full);
+  background: var(--accent-bg);
+  color: var(--accent-text);
+  font-size: var(--text-lg);
+}
+
+.heroTitle {
+  @include type.typography(display);
+  font-size: var(--text-2xl);
+  color: var(--mono-text);
+  margin: 0;
+}
+
+.heroBody {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+  max-width: 40ch;
+  margin: 0;
+}

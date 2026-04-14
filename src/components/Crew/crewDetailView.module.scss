@@ -1,0 +1,55 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+
+.wrapper {
+  @include layout.stack(var(--space-4));
+}
+
+.header {
+  @include layout.stack(var(--space-2));
+}
+
+.name {
+  @include type.typography(display);
+  color: var(--accent-text);
+  font-size: clamp(var(--text-2xl), 6cqi, var(--text-4xl));
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  overflow-wrap: anywhere;
+  margin: 0;
+}
+
+.stack {
+  display: inline-flex;
+  align-items: center;
+}
+
+.stackSlot {
+  display: inline-flex;
+  position: relative;
+  border-radius: var(--radius-full);
+
+  &:not(:first-child) {
+    margin-left: -10px;
+  }
+
+  & > :global(img),
+  & > :global(span) {
+    border: 2px solid var(--mono-app-bg);
+    border-radius: var(--radius-full);
+  }
+}
+
+.stackMore {
+  @include type.typography(number);
+  font-size: var(--text-2xs);
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--mono-subtle-bg);
+  color: var(--mono-text-low-contrast);
+  border: 2px solid var(--mono-app-bg);
+  border-radius: var(--radius-full);
+}
