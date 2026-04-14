@@ -314,8 +314,18 @@ export default async function UserProfilePage({ params }: Props) {
     ? { ...currentSetBase, rank: rankRow?.rank ?? null }
     : null;
 
+  // Show another climber's profile in *their* chosen theme — the
+  // viewer's own theme restores when they leave the route. We scope
+  // the `data-theme` to the profile main only (not the global nav)
+  // so chrome stays in the viewer's palette while the visited
+  // profile sits in theirs.
+  const otherThemeAttr =
+    !isOwnProfile && profileUser.theme && profileUser.theme !== "default"
+      ? { "data-theme": profileUser.theme }
+      : {};
+
   return (
-    <main className={styles.page}>
+    <main className={styles.page} {...otherThemeAttr}>
       <ProfileHeader
         user={profileUser}
         isOwnProfile={isOwnProfile}

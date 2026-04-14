@@ -14,11 +14,11 @@ import { useAuth } from "@/lib/auth-context";
  * fast path that owns first paint; the auth profile rehydrates the
  * store once it loads and any divergence is reconciled there.
  *
- * TODO: when viewing another climber's profile (`/u/[username]`),
- * render the page in *their* chosen theme. The profile page server
- * component can read `profile.theme` and wrap its subtree in
- * `<div data-theme={profile.theme}>`; the viewer's own theme
- * restores when they leave the route.
+ * Visiting another climber's profile renders that route in *their*
+ * theme — the profile page server component sets `data-theme` on
+ * its `<main>` so the cascade swaps the palette for the visited
+ * subtree only. Chrome outside the main (nav, modals) stays in
+ * the viewer's palette, and leaving the route restores it.
  */
 export type ThemeName =
   | "default"
