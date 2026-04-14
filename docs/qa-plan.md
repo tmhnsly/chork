@@ -224,6 +224,9 @@ Each batch = one PR. Commit after each.
 | `9c71cb2` | test | admin + leaderboard server actions — auth, validation, cross-gym rejection, privacy contract on sanitised logs |
 | `6d03d1e` | test | profile action + admin-mutation rollback path coverage |
 | `ecba4e4` | test | crew + competition query helpers — flatten, tally, sort invariants |
+| `e6cfc77` | chore | dropped orphan NotificationsButton + renamed scss to match remaining sheet |
+| `dfc5a70` | feat | theme syncs across devices via `profiles.theme` (migration 028) |
+| `9dd69ea` | test | user-actions coverage — 225 tests total |
 
 **Needs your action (one command each):**
 - `npx supabase db push` — applies migrations 025 (attempts bound + crew index), 026 (community_grade denorm), 027 (fuzzy search)
