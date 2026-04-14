@@ -3,7 +3,7 @@
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { PendingInvitesCard } from "@/components/Crew/PendingInvitesCard";
 import type { PendingInvite } from "@/lib/data/crew-queries";
-import styles from "./notificationsButton.module.scss";
+import styles from "./notificationsSheet.module.scss";
 
 interface Props {
   invites: PendingInvite[];
@@ -12,9 +12,7 @@ interface Props {
 }
 
 /**
- * Notification sheet content, extracted so both the in-page
- * `NotificationsButton` and the nav `ProfileMenu` dropdown can
- * open the same sheet without duplicating markup.
+ * Notification sheet — opened from the nav ProfileMenu dropdown.
  *
  * Sections:
  *   • Crew invites — reuses the accept/decline card.

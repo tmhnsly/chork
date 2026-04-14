@@ -1,0 +1,21 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+
+// Sheet body — BottomSheet handles the outer padding.
+.sheet {
+  @include layout.stack(var(--space-5));
+}
+
+.section {
+  @include layout.stack(var(--space-2));
+}
+
+.sectionHeading {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.empty {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+}
