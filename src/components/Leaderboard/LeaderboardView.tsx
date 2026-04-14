@@ -9,7 +9,14 @@ import { PodiumSkeleton } from "./PodiumSkeleton";
 import { LeaderboardList } from "./LeaderboardList";
 import { NeighbourhoodSection } from "./NeighbourhoodSection";
 import { EmptyLeaderboard } from "./EmptyLeaderboard";
-import { ClimberSheet } from "./ClimberSheet";
+import dynamic from "next/dynamic";
+// Lazy-load the climber sheet — it's only mounted when a row is
+// tapped, and pulls in PunchTile / formatGrade / sanitisation
+// helpers we'd otherwise pay for on every leaderboard load.
+const ClimberSheet = dynamic(
+  () => import("./ClimberSheet").then((m) => m.ClimberSheet),
+  { ssr: false },
+);
 import { GymStatsStrip } from "./GymStatsStrip";
 import { ScoringBreakdown } from "./ScoringBreakdown";
 import { InviteCard } from "./InviteCard";

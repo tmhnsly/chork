@@ -7,11 +7,17 @@ import type {
   ActiveSetOption,
   CrewActivityEvent,
 } from "@/lib/data/crew-queries";
+import dynamic from "next/dynamic";
 import { ClimberSearch } from "./ClimberSearch";
 import { PendingInvitesCard } from "./PendingInvitesCard";
 import { CrewActivityFeed } from "./CrewActivityFeed";
 import { CrewLeaderboardSection } from "./CrewLeaderboardSection";
-import { CreateCrewSheet } from "./CreateCrewSheet";
+// Only mounts when the user taps "Create crew" — lazy-load to keep
+// the initial Crew tab payload smaller.
+const CreateCrewSheet = dynamic(
+  () => import("./CreateCrewSheet").then((m) => m.CreateCrewSheet),
+  { ssr: false },
+);
 import styles from "./crewHome.module.scss";
 
 interface Props {

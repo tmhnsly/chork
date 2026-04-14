@@ -1,9 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { BadgeShelf } from "@/components/BadgeShelf/BadgeShelf";
-import { AchievementsSheet } from "./AchievementsSheet";
 import type { BadgeStatus } from "@/lib/badges";
+
+// Lazy — sheet only opens when the user taps "See all".
+const AchievementsSheet = dynamic(
+  () => import("./AchievementsSheet").then((m) => m.AchievementsSheet),
+  { ssr: false },
+);
 
 interface Props {
   badges: BadgeStatus[];
