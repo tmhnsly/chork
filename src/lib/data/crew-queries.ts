@@ -175,6 +175,44 @@ export async function getPendingCrewInvites(
   });
 }
 
+/**
+ * Batch lookup of the first N active members per crew, used for the
+ * avatar stacks on the /crew picker cards. One round trip for N
+ * crews instead of N round trips — see migration 030.
+ *
+ * Returns a Map keyed by crew_id so callers can thread the preview
+ * onto their crew rows with zero bookkeeping.
+ */
+export async function getCrewMemberPreviews(
+  supabase: Supabase,
+  crewIds: string[],
+  limit = 4,
+): Promise<Map<string, Pick<CrewMember, "user_id" | "username" | "name" | "avatar_url">[]>> {
+  if (crewIds.length === 0) return new Map();
+
+  const { data, error } = await supabase.rpc("get_crew_member_previews", {
+    p_crew_ids: crewIds,
+    p_limit: limit,
+  });
+  if (error) {
+    console.warn("[chork] getCrewMemberPreviews failed:", error);
+    return new Map();
+  }
+
+  const byCrew = new Map<string, Pick<CrewMember, "user_id" | "username" | "name" | "avatar_url">[]>();
+  for (const row of data ?? []) {
+    const arr = byCrew.get(row.crew_id) ?? [];
+    arr.push({
+      user_id: row.user_id,
+      username: row.username,
+      name: row.name,
+      avatar_url: row.avatar_url,
+    });
+    byCrew.set(row.crew_id, arr);
+  }
+  return byCrew;
+}
+
 /** Active members of a crew, ranked in insertion order. */
 export async function getCrewMembers(
   supabase: Supabase,

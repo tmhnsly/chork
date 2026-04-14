@@ -1107,6 +1107,17 @@ export type Database = {
           zones: number
         }[]
       }
+      get_crew_member_previews: {
+        Args: { p_crew_ids: string[]; p_limit?: number }
+        Returns: {
+          avatar_url: string
+          crew_id: string
+          joined_at: string
+          name: string
+          user_id: string
+          username: string
+        }[]
+      }
       get_engagement_trend: {
         Args: { p_gym_id: string; p_limit?: number }
         Returns: {
