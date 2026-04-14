@@ -2,7 +2,10 @@
 
 // Admin shell shares the same page gutter + safe-area handling as the
 // climber side. Individual admin pages stack content inside this.
+// Match the climber-side spacing vocabulary (space-5 between
+// top-level page sections) so admin and climber pages read as one
+// consistent visual system.
 .shell {
   @include layout.page;
-  @include layout.stack(var(--space-6));
+  @include layout.stack(var(--space-5));
 }

@@ -1,24 +1,12 @@
-@use "mixins/layout" as layout;
 @use "mixins/typography" as type;
 
-.header {
-  @include layout.stack(var(--space-1));
-}
-
-.title {
-  @include type.typography(display);
-  color: var(--mono-text);
-}
+// AdminHeader now wraps PageHeader — only the inline subline / owner
+// badge styles live here. Title styles come from `PageHeader`.
 
 .subline {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-}
-
-.gym {
-  @include type.typography(body);
-  color: var(--mono-text-low-contrast);
 }
 
 .roleBadge {

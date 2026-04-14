@@ -1,4 +1,4 @@
-import { RevealText } from "@/components/motion";
+import { PageHeader } from "@/components/motion";
 import styles from "./adminHeader.module.scss";
 
 interface Props {
@@ -7,19 +7,20 @@ interface Props {
 }
 
 /**
- * Admin dashboard header — matches the climber-facing header pattern
- * used on the wall and Chorkboard pages (title + secondary gym text
- * below). Owner badge surfaces the role explicitly so it's clear who
- * can manage other admins / billing later on.
+ * Admin dashboard header — uses the shared `PageHeader` primitive so
+ * the admin title sits at the same scale/spacing as every other page
+ * title in the app. Owner badge sits inline on the subtitle.
  */
 export function AdminHeader({ gymName, isOwner }: Props) {
   return (
-    <header className={styles.header}>
-      <RevealText text="Admin" as="h1" className={styles.title} />
-      <div className={styles.subline}>
-        <span className={styles.gym}>{gymName}</span>
-        {isOwner && <span className={styles.roleBadge}>Owner</span>}
-      </div>
-    </header>
+    <PageHeader
+      title="Admin"
+      subtitle={
+        <span className={styles.subline}>
+          <span>{gymName}</span>
+          {isOwner && <span className={styles.roleBadge}>Owner</span>}
+        </span>
+      }
+    />
   );
 }
