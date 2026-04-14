@@ -1,6 +1,7 @@
 "use client";
 
-import { createContext, useContext, useEffect, useSyncExternalStore } from "react";
+import { createContext, useCallback, useContext, useEffect, useSyncExternalStore } from "react";
+import { useAuth } from "@/lib/auth-context";
 
 /**
  * User-selectable theme palettes. Adding a new theme means:
@@ -8,16 +9,16 @@ import { createContext, useContext, useEffect, useSyncExternalStore } from "reac
  *   2. Add the id here.
  *   3. Add the entry in `THEME_META` so the settings picker renders it.
  *
- * TODO: persist the selection on the user profile so it syncs across
- * devices. Right now the choice is per-tab only — restored from
- * `localStorage` on mount, with no DB column.
+ * Persistence: the climber's selection writes to `profiles.theme`
+ * (migration 028) so it syncs across devices. localStorage is the
+ * fast path that owns first paint; the auth profile rehydrates the
+ * store once it loads and any divergence is reconciled there.
  *
  * TODO: when viewing another climber's profile (`/u/[username]`),
- * render the page in *their* chosen theme. Once the column exists,
- * the profile page server component can read `profile.theme` and
- * wrap its subtree in `<div data-theme={profile.theme}>` (or push it
- * onto `<html>` for the duration of the route). The viewer's own
- * theme should restore when they leave the profile page.
+ * render the page in *their* chosen theme. The profile page server
+ * component can read `profile.theme` and wrap its subtree in
+ * `<div data-theme={profile.theme}>`; the viewer's own theme
+ * restores when they leave the route.
  */
 export type ThemeName =
   | "default"
@@ -133,6 +134,25 @@ function setThemeStore(next: ThemeName): void {
 }
 
 /**
+ * Bridge entry — fed by the auth profile once it loads. Updates
+ * the local store to match the persisted preference WITHOUT
+ * firing the server write-back that `setTheme()` does (we just
+ * read it from the DB, so writing back would be a no-op round
+ * trip). Safe to call repeatedly.
+ */
+export function syncThemeFromProfile(profileTheme: string | null | undefined): void {
+  if (!isValidTheme(profileTheme ?? null)) return;
+  if (profileTheme === currentTheme) return;
+  currentTheme = profileTheme as ThemeName;
+  try {
+    window.localStorage.setItem(STORAGE_KEY, currentTheme);
+  } catch {
+    // ignore
+  }
+  listeners.forEach((fn) => fn());
+}
+
+/**
  * Write the theme attribute to `<html>`. `default` clears the
  * attribute so the bare `:root` styles take over — no CSS selector
  * needs to match.
@@ -156,17 +176,38 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+  const { profile } = useAuth();
+
+  // Bridge: when the auth profile resolves (or a theme change syncs
+  // back from another device) push it into the local store so this
+  // tab matches the persisted preference.
+  useEffect(() => {
+    syncThemeFromProfile(profile?.theme);
+  }, [profile?.theme]);
 
   // Effect updates an external system (the DOM `<html>` attribute)
-  // in response to the store's value — allowed by `set-state-in-effect`
-  // because we're not calling `setState` here, just syncing React's
-  // view to the document.
+  // in response to the store's value.
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
 
+  // Public setter — local store + DB persistence (fire-and-forget;
+  // failures don't unwind the local change).
+  const setTheme = useCallback((next: ThemeName) => {
+    setThemeStore(next);
+    if (!profile?.id) return;
+    void (async () => {
+      try {
+        const { updateThemePreference } = await import("@/lib/user-actions");
+        await updateThemePreference(next);
+      } catch (err) {
+        console.warn("[chork] theme persist failed:", err);
+      }
+    })();
+  }, [profile?.id]);
+
   return (
-    <ThemeContext.Provider value={{ theme, setTheme: setThemeStore }}>
+    <ThemeContext.Provider value={{ theme, setTheme }}>
       {children}
     </ThemeContext.Provider>
   );

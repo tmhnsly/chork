@@ -14,6 +14,7 @@ const mockUser: Profile = {
   allow_crew_invites: true,
   invites_sent_today: 0,
   invites_sent_date: null,
+  theme: "default",
 };
 
 const meta = {

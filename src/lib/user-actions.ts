@@ -73,6 +73,36 @@ export async function updateProfile(
 }
 
 /**
+ * Persist the climber's theme palette so it follows them across
+ * devices. Validation is deliberately permissive — the column is a
+ * free-form string so adding a new theme to `THEME_META` doesn't
+ * require a migration. Invalid values fall back to "default" on
+ * read in `theme.tsx`.
+ */
+export async function updateThemePreference(
+  theme: string,
+): Promise<{ error: string } | { success: true }> {
+  if (typeof theme !== "string" || theme.length > 32) {
+    return { error: "Invalid theme" };
+  }
+
+  const auth = await requireAuth();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase, userId } = auth;
+
+  try {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ theme })
+      .eq("id", userId);
+    if (error) return { error: formatError(error) };
+    return { success: true };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
+
+/**
  * Upload an avatar image and update the user's profile.
  * Uses Supabase Storage (avatars bucket). Replaces any existing avatar.
  */
