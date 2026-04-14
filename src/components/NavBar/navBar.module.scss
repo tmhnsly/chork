@@ -95,10 +95,38 @@
 // between tabs via space-evenly. The active pill (::before) matches
 // the tab's intrinsic size since it uses inset:0.
 .tabs {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-evenly;
   flex: 1;
+}
+
+// Shared highlight pill — absolutely positioned inside `.tabs`,
+// transformed to the active tab's left + width on route change.
+// One element slides between tabs instead of each tab fading in
+// its own `::before` — reads as a single continuous highlight.
+.pill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  height: 100%;
+  background: var(--mono-bg);
+  border-radius: var(--radius-full);
+  pointer-events: none;
+  z-index: 0;
+  transition:
+    transform var(--duration-normal) var(--ease-out-expo),
+    width var(--duration-normal) var(--ease-out-expo),
+    opacity var(--duration-fast) var(--ease-out);
+  will-change: transform, width;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pill {
+    transition: none;
+  }
 }
 
 .tab {
@@ -125,18 +153,10 @@
 }
 
 .tabActive {
-  // Brand text (lime step 11) — readable on surfaces, unlike step 9
-  // which is a fill colour. Neutral pill keeps it legible in both themes.
+  // Brand text for the active tab. Highlight pill lives in `.pill`
+  // (sibling element in `.tabs`) — animates between tabs rather
+  // than each tab owning its own per-`::before` pill.
   color: var(--brand-text);
-
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    border-radius: inherit;
-    background: var(--mono-bg);
-  }
 
   @media (hover: hover) {
     &:hover {

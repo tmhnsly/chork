@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  useLayoutEffect,
+  useSyncExternalStore,
+} from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -159,6 +166,31 @@ function AuthenticatedNav({
 
   const badgeCount = Math.max(0, pendingCount - ackCount);
 
+  // ── Sliding pill highlight ─────────────────────────
+  // Measures the active tab's bounding rect and writes the result
+  // directly to the `.pill` element via a ref. This is one of the
+  // rare cases where touching the DOM in a layout effect is the
+  // right move — we're syncing to an external (visual) system, not
+  // setting React state, so `react-hooks/refs` and
+  // `set-state-in-effect` both stay out of the way.
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const pillRef = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const tabs = tabsRef.current;
+    const pill = pillRef.current;
+    if (!tabs || !pill) return;
+    const active = tabs.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!active) {
+      pill.style.opacity = "0";
+      return;
+    }
+    const parent = tabs.getBoundingClientRect();
+    const rect = active.getBoundingClientRect();
+    pill.style.opacity = "1";
+    pill.style.transform = `translateX(${rect.left - parent.left}px)`;
+    pill.style.width = `${rect.width}px`;
+  }, [pathname, badgeCount]);
+
   return (
     <nav className={styles.bar}>
       <div className={styles.barInner}>
@@ -167,7 +199,13 @@ function AuthenticatedNav({
           <span className={styles.brandText}>Chork</span>
         </Link>
 
-        <div className={styles.tabs}>
+        <div className={styles.tabs} ref={tabsRef}>
+          <span
+            className={styles.pill}
+            ref={pillRef}
+            style={{ opacity: 0 }}
+            aria-hidden
+          />
           <Link href="/" className={`${styles.tab} ${homeActive ? styles.tabActive : ""}`} aria-current={homeActive ? "page" : undefined}>
             <FaBorderAll className={styles.tabIcon} />
             <span className={styles.tabLabel}>Wall</span>
