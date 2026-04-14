@@ -33,6 +33,10 @@
   text-decoration: none;
   cursor: pointer;
   outline: none;
+  // Apple Pencil + browser synthetic-mouse delay fix — same as
+  // BottomSheet close button.
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 
   &[data-highlighted],
   &:hover {

@@ -131,6 +131,10 @@
   color: var(--mono-text);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  // `manipulation` opts out of double-tap-zoom + pen-hover delay
+  // — Apple Pencil taps register as a single immediate pointer
+  // event instead of being held by the synthetic-mouse heuristic.
+  touch-action: manipulation;
   transition:
     background var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out),

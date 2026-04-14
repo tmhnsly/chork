@@ -95,6 +95,10 @@
   cursor: pointer;
   @include focus.ring;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  // Animate `transform` only — `width`/`height`/border swaps were
+  // causing a brief reflow on selection that read as a pop-in
+  // when the new community grade landed and the row re-rendered.
   transition:
     background var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out),

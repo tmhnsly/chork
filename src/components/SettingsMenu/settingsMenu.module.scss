@@ -37,6 +37,9 @@
   color: var(--mono-text);
   cursor: pointer;
   text-decoration: none;
+  // Same Apple Pencil reliability fix applied across menus + sheets.
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   transition: background var(--duration-fast) var(--ease-out);
 
   // Radix manages focus programmatically when you move the pointer
