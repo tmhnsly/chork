@@ -12,7 +12,7 @@ interface Props {
 }
 
 /**
- * Notification sheet — opened from the nav ProfileMenu dropdown.
+ * Notification sheet — opened from the profile header's bell button.
  *
  * Sections:
  *   • Crew invites — reuses the accept/decline card.
