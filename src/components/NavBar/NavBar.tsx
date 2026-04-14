@@ -21,7 +21,6 @@ import {
 import { ChorkMark } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { createBrowserSupabase } from "@/lib/supabase/client";
-import { ProfileMenu } from "./ProfileMenu";
 import styles from "./navBar.module.scss";
 
 // Badge acknowledgement is client-side only: a user seeing the Crew tab
@@ -107,22 +106,20 @@ export function NavBar() {
     );
   }
 
-  return <AuthenticatedNav userId={profile!.id} username={profile!.username} pathname={pathname} />;
+  return <AuthenticatedNav userId={profile!.id} pathname={pathname} />;
 }
 
 function AuthenticatedNav({
   userId,
-  username,
   pathname,
 }: {
   userId: string;
-  username: string;
   pathname: string;
 }) {
   const homeActive = pathname === "/";
   const leaderboardActive = pathname.startsWith("/leaderboard");
   const crewActive = pathname.startsWith("/crew");
-  const profileActive = pathname.startsWith("/u/");
+  const profileActive = pathname.startsWith("/profile") || pathname.startsWith("/u/");
 
   // Acknowledged count is read from localStorage via an external
   // store — avoids setState-in-effect warnings and keeps multi-tab
@@ -229,17 +226,17 @@ function AuthenticatedNav({
             </span>
             <span className={styles.tabLabel}>Crew</span>
           </Link>
-          <ProfileMenu
-            userId={userId}
-            username={username}
-            profileActive={profileActive}
-            badgeCount={badgeCount}
-            tabClassName={`${styles.tab} ${profileActive ? styles.tabActive : ""}`}
-            tabIconWrapClassName={styles.tabIconWrap}
-            tabIconClassName={styles.tabIcon}
-            tabLabelClassName={styles.tabLabel}
-            tabDotClassName={styles.tabDot}
-          />
+          <Link
+            href="/profile"
+            className={`${styles.tab} ${profileActive ? styles.tabActive : ""}`}
+            aria-current={profileActive ? "page" : undefined}
+          >
+            <span className={styles.tabIconWrap}>
+              <FaUser className={styles.tabIcon} />
+              {badgeCount > 0 && <span className={styles.tabDot} aria-hidden />}
+            </span>
+            <span className={styles.tabLabel}>Profile</span>
+          </Link>
         </div>
 
         {/* Counterweight spacer — matches brandLink width to keep tabs centred */}

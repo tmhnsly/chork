@@ -12,7 +12,8 @@ import {
   getGym,
   getLeaderboardUserRow,
 } from "@/lib/data/queries";
-import { getCrewCountForUser } from "@/lib/data/crew-queries";
+import { getCrewCountForUser, getPendingCrewInvites } from "@/lib/data/crew-queries";
+import { getAdminGymsForUser } from "@/lib/data/admin-queries";
 import type { UserLogInGym } from "@/lib/data/queries";
 import { computeMaxPoints } from "@/lib/data";
 import type { Route, RouteLog } from "@/lib/data";
@@ -289,7 +290,7 @@ export default async function UserProfilePage({ params }: Props) {
   // used to live here too but now render inside the Current Set card
   // (gym in the header meta, rank next to the points total), so the
   // context line stays focused on social signals.
-  const [gym, rankRow, crewCount] = await Promise.all([
+  const [gym, rankRow, crewCount, invites, adminGyms] = await Promise.all([
     getGym(supabase, gymId),
     // Rank is fetched for everyone when an active set exists — it
     // drives the `#N` shown next to points in the Current Set card,
@@ -298,9 +299,14 @@ export default async function UserProfilePage({ params }: Props) {
       ? getLeaderboardUserRow(supabase, gymId, profileUser.id, activeSet.id)
       : Promise.resolve(null),
     !isOwnProfile ? getCrewCountForUser(supabase, profileUser.id) : Promise.resolve(0),
+    // Own-profile only: pending invites drive the notification bell
+    // badge on the profile header. Other climbers never see this.
+    isOwnProfile ? getPendingCrewInvites(supabase, profileUser.id) : Promise.resolve([]),
+    // Own-profile only: an admin surfaces an "Admin" link inside the
+    // settings sheet. Empty list = not an admin.
+    isOwnProfile ? getAdminGymsForUser(supabase, profileUser.id) : Promise.resolve([]),
   ]);
-  // Pending-invite fetching moved to the nav's ProfileMenu (client-
-  // side, once per userId) so we no longer pre-fetch them here.
+  const isAdmin = adminGyms.length > 0;
 
   let contextLine: string | null = null;
   if (!isOwnProfile && crewCount > 0) {
@@ -330,6 +336,8 @@ export default async function UserProfilePage({ params }: Props) {
         user={profileUser}
         isOwnProfile={isOwnProfile}
         contextLine={contextLine}
+        invites={invites}
+        isAdmin={isAdmin}
       />
 
       <ClimberStats

@@ -2,31 +2,28 @@
 @use "mixins/layout" as layout;
 @use "mixins/focus";
 
-// ── Layout — horizontal split ─────────────────────
+// ── Layout — avatar left, identity right ──────────────
 .header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
   gap: var(--space-4);
   container-type: inline-size;
 }
 
-// ── Left: identity ────────────────────────────────
+.avatar {
+  flex-shrink: 0;
+}
+
 .identity {
   @include layout.stack(var(--space-1));
   min-width: 0;
+  flex: 1;
 }
 
 .username {
   @include type.typography(display);
   color: var(--accent-text);
-  // Size tightened and line-height slightly relaxed so the name sits
-  // nicely in the header without the earlier aggressive clamp, which
-  // shrank recognisable names on narrow containers. `overflow-wrap`
-  // keeps 24-char usernames in-bounds without fighting the typography.
-  // Dialled down from 2xl→4xl. Usernames are short handles, not
-  // display titles — the PageHeader preset above them does the
-  // splash-scale heavy lifting.
+  // Handles are short — the PageHeader above carries splash scale.
   font-size: clamp(var(--text-xl), 5cqi, var(--text-2xl));
   line-height: 1.1;
   letter-spacing: -0.01em;
@@ -34,43 +31,56 @@
   padding-right: 0.1em;
 }
 
+// Row sitting under the username: display name on the left,
+// optional action buttons (notifications / settings) on the right
+// for the signed-in user's own profile. min-width: 0 keeps long
+// names ellipsizing gracefully.
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
 .displayName {
   @include type.typography(body);
   color: var(--mono-text-low-contrast);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin: 0;
 }
 
-// ── Context line (other-climber meta under the name) ──
-// Used to be follow-count pills; now carries gym + rank + crew count,
-// rendered as a single "·"-separated string composed in page.tsx.
 .contextLine {
   @include type.typography(meta);
   color: var(--mono-text-low-contrast);
 }
 
-// ── Right: avatar + settings ──────────────────────
-.rightGroup {
-  display: flex;
+// ── Own-profile action buttons ────────────────────
+.actions {
+  display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-1);
   flex-shrink: 0;
 }
 
-// Settings pill button — sits left of the avatar. Includes the icon +
-// "Settings" label so the affordance is discoverable, and reads as a
-// first-class control rather than a glyph-only tap target.
-.settingsTrigger {
-  @include type.typography(button);
+.actionBtn {
+  @include focus.ring;
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
-  min-height: var(--size-touch-target);
-  padding: 0 var(--space-3);
-  border: 1px solid var(--mono-border);
+  justify-content: center;
+  width: var(--size-touch-target);
+  height: var(--size-touch-target);
+  padding: 0;
   background: var(--mono-subtle-bg);
   color: var(--mono-text);
-  cursor: pointer;
+  border: 1px solid var(--mono-border);
   border-radius: var(--radius-full);
-  @include focus.ring;
+  cursor: pointer;
+  touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   transition:
     background var(--duration-fast) var(--ease-out),
@@ -80,4 +90,16 @@
     background: var(--mono-bg-hover);
     border-color: var(--mono-border-hover);
   }
+}
+
+// Unread indicator on the notifications bell.
+.actionDot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--flash-solid);
+  border: 2px solid var(--mono-app-bg);
 }
