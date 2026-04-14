@@ -132,8 +132,19 @@ Two supabase clients:
 
 Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
 
-- Both themes must work — never override OS preference
-- Accent: Radix `lime`. Text on accent uses `--accent-on-solid`
+- Both light + dark must work — never override OS preference
+- **Six user-selectable palettes** (Chork / Slate / Sand / Gray /
+  Mauve / Sage). Each is a `[data-theme="…"]` block in
+  `src/styles/theme/colors.scss` that re-maps `--mono-*` and
+  `--accent-*` to a different Radix scale via mixins. Flash and
+  zone are brand-fixed across every palette
+- Theme selection persists on `profiles.theme` (migration 028);
+  `theme.tsx` bridges the auth profile into a tiny external store
+  via `useSyncExternalStore`. Visiting another climber's profile
+  scopes their `data-theme` to `<main>` so the route renders in
+  their palette without affecting nav chrome
+- Accent: Radix `lime` on the default palette. Text on accent uses
+  `--accent-on-solid`
 - Surfaces: `@include surface.card` (panels), `surface.chrome`
   (sticky chrome), `surface.glass($opacity)` (sheets, modals)
 - Flash badge: **amber** (`--flash-*`), never lime
