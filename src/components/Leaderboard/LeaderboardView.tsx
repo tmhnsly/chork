@@ -9,11 +9,19 @@ import { PodiumSkeleton } from "./PodiumSkeleton";
 import { LeaderboardList } from "./LeaderboardList";
 import { NeighbourhoodSection } from "./NeighbourhoodSection";
 import { EmptyLeaderboard } from "./EmptyLeaderboard";
+import dynamic from "next/dynamic";
+// Lazy-load the climber sheet — it's only mounted when a row is
+// tapped, and pulls in PunchTile / formatGrade / sanitisation
+// helpers we'd otherwise pay for on every leaderboard load.
+const ClimberSheet = dynamic(
+  () => import("./ClimberSheet").then((m) => m.ClimberSheet),
+  { ssr: false },
+);
 import { GymStatsStrip } from "./GymStatsStrip";
 import { ScoringBreakdown } from "./ScoringBreakdown";
 import { InviteCard } from "./InviteCard";
 import { PageHeader } from "@/components/motion";
-import type { LeaderboardEntry } from "@/lib/data";
+import type { LeaderboardEntry, Route } from "@/lib/data";
 import type { GymStats } from "@/lib/data/queries";
 import {
   fetchLeaderboardTab,
@@ -41,6 +49,9 @@ interface Props {
   setStats: GymStats | null;
   /** All-time gym-wide aggregate numbers. */
   allTimeStats: GymStats;
+  /** Routes for the active set — passed down to ClimberSheet so it
+   *  can render the grid shape immediately while logs fetch. */
+  currentSetRoutes: Route[];
   /** Pre-formatted reset date for the active set (e.g. "Apr 20").
    *  Null when there is no active set. The gym-stats meta row shows
    *  it only while the "This set" tab is active. */
@@ -54,12 +65,14 @@ export function LeaderboardView({
   initialSetData,
   setStats,
   allTimeStats,
+  currentSetRoutes,
   currentSetResetDate,
 }: Props) {
   const [tab, setTab] = useState<Tab>(currentSetId ? "set" : "all");
   const [cache, setCache] = useState<Partial<Record<Tab, TabData>>>(() =>
     initialSetData ? { set: initialSetData } : {}
   );
+  const [sheetEntry, setSheetEntry] = useState<LeaderboardEntry | null>(null);
   const [isPending, startTransition] = useTransition();
 
   // "See all" lazy pagination
@@ -96,6 +109,10 @@ export function LeaderboardView({
       }
     });
   }, [cache, currentSetId]);
+
+  const openSheet = useCallback((entry: LeaderboardEntry) => {
+    setSheetEntry(entry);
+  }, []);
 
   const loadMore = useCallback(async () => {
     setSeeAllLoading(true);
@@ -206,13 +223,19 @@ export function LeaderboardView({
       ) : (
         <>
           {podiumEntries.length > 0 && (
-            <Podium top={podiumEntries} currentUserId={currentUserId} />
+            <Podium
+              top={podiumEntries}
+              currentUserId={currentUserId}
+              onPress={openSheet}
+              activeUserId={sheetEntry?.user_id ?? null}
+            />
           )}
 
           {mainListEntries.length > 0 && (
             <LeaderboardList
               rows={mainListEntries}
               currentUserId={currentUserId}
+              onPress={openSheet}
               ariaLabel="Top climbers"
             />
           )}
@@ -221,6 +244,7 @@ export function LeaderboardView({
             <NeighbourhoodSection
               rows={neighbourhoodDeduped}
               currentUserId={currentUserId}
+              onPress={openSheet}
             />
           )}
 
@@ -230,6 +254,7 @@ export function LeaderboardView({
               <LeaderboardList
                 rows={[userRow]}
                 currentUserId={currentUserId}
+                onPress={openSheet}
                 ariaLabel="Your row"
               />
             </section>
@@ -246,6 +271,7 @@ export function LeaderboardView({
               <LeaderboardList
                 rows={seeAllDeduped}
                 currentUserId={currentUserId}
+                onPress={openSheet}
                 ariaLabel="All climbers"
               />
               {!seeAllExhausted && (
@@ -264,6 +290,15 @@ export function LeaderboardView({
           <ScoringBreakdown />
           <InviteCard gymName={gymName} />
         </>
+      )}
+
+      {sheetEntry && (
+        <ClimberSheet
+          entry={sheetEntry}
+          setId={activeSetIdForTab}
+          routes={currentSetRoutes}
+          onClose={() => setSheetEntry(null)}
+        />
       )}
     </div>
   );

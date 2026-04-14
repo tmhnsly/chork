@@ -5,7 +5,6 @@ import Link from "next/link";
 import {
   FaBell,
   FaBellSlash,
-  FaGear,
   FaPen,
   FaRightLeft,
   FaUsers,
@@ -303,6 +302,3 @@ export function SettingsSheet({ open, onClose, isAdmin }: Props) {
   );
 }
 
-// Type-check quieter for the unused FaGear import while keeping the
-// action available for call sites that still want the primary icon.
-void FaGear;

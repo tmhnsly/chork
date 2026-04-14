@@ -1,4 +1,5 @@
-import Link from "next/link";
+"use client";
+
 import { FaBolt } from "react-icons/fa6";
 import { UserAvatar } from "@/components/ui";
 import type { LeaderboardEntry } from "@/lib/data";
@@ -8,17 +9,12 @@ import styles from "./leaderboardRow.module.scss";
 interface Props {
   entry: LeaderboardEntry;
   highlighted?: boolean;
-  /** When false, renders as a div (no navigation) — used for the current user's own row. */
+  onPress?: (entry: LeaderboardEntry) => void;
+  /** When true, renders as a div (not clickable) — used for the current user */
   interactive?: boolean;
 }
 
-/**
- * Chorkboard row. Tapping navigates to the climber's full profile
- * page rather than opening a peek sheet — a full profile view
- * (achievements, sets, activity) reads as a proper destination and
- * is more useful than a truncated summary.
- */
-export function LeaderboardRow({ entry, highlighted, interactive = true }: Props) {
+export function LeaderboardRow({ entry, highlighted, onPress, interactive = true }: Props) {
   const className = `${styles.row} ${highlighted ? styles.highlighted : ""}`;
   const rankLabel = entry.rank === null ? "—" : `${entry.rank}`;
   const content = (
@@ -40,7 +36,7 @@ export function LeaderboardRow({ entry, highlighted, interactive = true }: Props
     </>
   );
 
-  if (!interactive) {
+  if (!interactive || !onPress) {
     return (
       <div
         className={className}
@@ -52,12 +48,13 @@ export function LeaderboardRow({ entry, highlighted, interactive = true }: Props
   }
 
   return (
-    <Link
-      href={`/u/${entry.username}`}
+    <button
+      type="button"
       className={className}
-      aria-label={`Rank ${rankLabel}, @${entry.username}, ${entry.points} points. Open profile.`}
+      onClick={() => onPress(entry)}
+      aria-label={`Rank ${rankLabel}, @${entry.username}, ${entry.points} points. Open profile sheet.`}
     >
       {content}
-    </Link>
+    </button>
   );
 }
