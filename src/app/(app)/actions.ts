@@ -433,15 +433,31 @@ export async function joinCompetition(
     return { error: "Invalid category" };
   }
 
-  const auth = await requireSignedIn();
+  // requireAuth (not just signed-in) — joining a competition makes
+  // the climber visible on gym-scoped leaderboards, so they must
+  // have an active gym context and be a member of a gym that's
+  // actually linked to this competition.
+  const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
+  const { supabase, userId, gymId } = auth;
 
   try {
+    // Gate: the caller's active gym must be linked to this
+    // competition via `competition_gyms`. Without this check a
+    // climber at one gym could join a competition they have no
+    // business in by fiddling the URL — RLS alone only enforces
+    // user_id=self on the participant row.
+    const { data: gymLink } = await supabase
+      .from("competition_gyms")
+      .select("competition_id")
+      .eq("competition_id", competitionId)
+      .eq("gym_id", gymId)
+      .maybeSingle();
+    if (!gymLink) {
+      return { error: "This competition isn't running at your gym." };
+    }
+
     // If a category is supplied, confirm it belongs to the competition.
-    // Stops a client from attaching an unrelated category id via URL
-    // tampering — the RLS rule on INSERT only enforces user_id=self,
-    // not inter-row ownership.
     if (categoryId) {
       const { data: cat } = await supabase
         .from("competition_categories")

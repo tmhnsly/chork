@@ -523,9 +523,25 @@ export async function updateCompetitionAction(
   return { success: true };
 }
 
-// Linking a gym is allowed for either the comp organiser OR an admin
-// of that gym. RLS enforces both paths; the server action only checks
-// signed-in + valid UUIDs and lets Postgres reject unauthorised writes.
+// Linking/unlinking a gym is allowed for either the comp organiser
+// OR an admin of that gym. Server-side we require at least one of
+// the two to match before touching the DB — RLS is the ultimate
+// backstop but we never want to lean on it alone (the policy can
+// change, bugs happen, and defence in depth is cheap here).
+async function ensureOrganiserOrGymAdmin(
+  competitionId: string,
+  gymId: string,
+): Promise<ActionResult> {
+  const asOrganiser = await verifyCompetitionOrganiser(competitionId);
+  if ("error" in asOrganiser) {
+    const asAdmin = await requireGymAdmin(gymId);
+    if ("error" in asAdmin) {
+      return { error: "Not authorised to manage this competition/gym." };
+    }
+  }
+  return { success: true };
+}
+
 export async function linkCompetitionGym(form: {
   competitionId: string;
   gymId: string;
@@ -535,6 +551,9 @@ export async function linkCompetitionGym(form: {
 
   const auth = await requireSignedIn();
   if ("error" in auth) return { error: auth.error };
+
+  const gate = await ensureOrganiserOrGymAdmin(form.competitionId, form.gymId);
+  if ("error" in gate) return { error: gate.error };
 
   const result = await linkGymToCompetition(auth.supabase, form.competitionId, form.gymId);
   if ("error" in result) return { error: result.error };
@@ -552,6 +571,9 @@ export async function unlinkCompetitionGym(form: {
 
   const auth = await requireSignedIn();
   if ("error" in auth) return { error: auth.error };
+
+  const gate = await ensureOrganiserOrGymAdmin(form.competitionId, form.gymId);
+  if ("error" in gate) return { error: gate.error };
 
   const result = await unlinkGymFromCompetition(auth.supabase, form.competitionId, form.gymId);
   if ("error" in result) return { error: result.error };
