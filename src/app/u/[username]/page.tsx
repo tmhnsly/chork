@@ -14,6 +14,7 @@ import {
 } from "@/lib/data/queries";
 import { getCrewCountForUser, getPendingCrewInvites } from "@/lib/data/crew-queries";
 import { getAdminGymsForUser } from "@/lib/data/admin-queries";
+import { getNotifications } from "@/lib/data/notifications";
 import type { UserLogInGym } from "@/lib/data/queries";
 import { computeMaxPoints } from "@/lib/data";
 import type { Route, RouteLog } from "@/lib/data";
@@ -290,7 +291,7 @@ export default async function UserProfilePage({ params }: Props) {
   // used to live here too but now render inside the Current Set card
   // (gym in the header meta, rank next to the points total), so the
   // context line stays focused on social signals.
-  const [gym, rankRow, crewCount, invites, adminGyms] = await Promise.all([
+  const [gym, rankRow, crewCount, invites, adminGyms, notifications] = await Promise.all([
     getGym(supabase, gymId),
     // Rank is fetched for everyone when an active set exists — it
     // drives the `#N` shown next to points in the Current Set card,
@@ -305,6 +306,10 @@ export default async function UserProfilePage({ params }: Props) {
     // Own-profile only: an admin surfaces an "Admin" link inside the
     // settings sheet. Empty list = not an admin.
     isOwnProfile ? getAdminGymsForUser(supabase, profileUser.id) : Promise.resolve([]),
+    // Own-profile only: persistent notification log (migration 033).
+    // The bell badge counts unread rows; opening the sheet marks
+    // them read server-side.
+    isOwnProfile ? getNotifications(supabase, 50) : Promise.resolve([]),
   ]);
   const isAdmin = adminGyms.length > 0;
 
@@ -337,6 +342,7 @@ export default async function UserProfilePage({ params }: Props) {
         isOwnProfile={isOwnProfile}
         contextLine={contextLine}
         invites={invites}
+        notifications={notifications}
         isAdmin={isAdmin}
       />
 

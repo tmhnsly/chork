@@ -4,6 +4,7 @@ import { useState } from "react";
 import { FaBell, FaGear } from "react-icons/fa6";
 import type { Profile } from "@/lib/data";
 import type { PendingInvite } from "@/lib/data/crew-queries";
+import type { NotificationRow } from "@/lib/data/notifications";
 import { UserAvatar } from "@/components/ui";
 import { RevealText } from "@/components/motion";
 import { NotificationsSheet } from "@/components/Notifications/NotificationsSheet";
@@ -23,6 +24,12 @@ interface Props {
    * the notification bell and hydrates the NotificationsSheet.
    */
   invites?: PendingInvite[];
+  /**
+   * Own-profile only: latest persisted notifications (invites +
+   * accepts + ownership changes). Badge counts unread rows; the
+   * NotificationsSheet marks-all-read on open.
+   */
+  notifications?: NotificationRow[];
   /** Own-profile only: surface the Admin link inside SettingsSheet. */
   isAdmin?: boolean;
 }
@@ -44,12 +51,14 @@ export function ProfileHeader({
   isOwnProfile,
   contextLine,
   invites = [],
+  notifications = [],
   isAdmin = false,
 }: Props) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const hasInvites = invites.length > 0;
+  const unreadCount = notifications.filter((n) => n.read_at === null).length;
+  const hasBadge = invites.length > 0 || unreadCount > 0;
 
   return (
     <>
@@ -67,13 +76,13 @@ export function ProfileHeader({
                   className={styles.actionBtn}
                   onClick={() => setNotificationsOpen(true)}
                   aria-label={
-                    hasInvites
-                      ? `Notifications (${invites.length} pending)`
+                    hasBadge
+                      ? `Notifications (${invites.length + unreadCount} new)`
                       : "Notifications"
                   }
                 >
                   <FaBell aria-hidden />
-                  {hasInvites && (
+                  {hasBadge && (
                     <span className={styles.actionDot} aria-hidden />
                   )}
                 </button>
@@ -98,6 +107,7 @@ export function ProfileHeader({
         <>
           <NotificationsSheet
             invites={invites}
+            notifications={notifications}
             open={notificationsOpen}
             onClose={() => setNotificationsOpen(false)}
           />

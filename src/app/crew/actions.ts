@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireSignedIn } from "@/lib/auth";
 import { formatError } from "@/lib/errors";
 import { sendPushToUsers } from "@/lib/push/server";
+import { notifyUser } from "@/lib/notify";
 
 type ActionResult<T = unknown> = { error: string } | ({ success: true } & T);
 
@@ -103,14 +104,16 @@ export async function inviteToCrew(
     if (!target) return { error: "User not found." };
     if (!target.allow_crew_invites) return { error: "That climber isn't taking invites." };
 
-    const { error } = await supabase
+    const { data: inserted, error } = await supabase
       .from("crew_members")
       .insert({
         crew_id: crewId,
         user_id: targetUserId,
         invited_by: userId,
         status: "pending",
-      });
+      })
+      .select("id")
+      .single();
 
     if (error) {
       // Unique violation = already a member or pending. Surface a
@@ -121,15 +124,23 @@ export async function inviteToCrew(
       return { error: formatError(error) };
     }
 
-    // Fire a push notification to the invitee. Best-effort — push
-    // failures never propagate to the user because the invite row is
-    // already written. `sendPushToUsers` is a noop when VAPID isn't
-    // configured, so this stays safe in dev without extra guards.
+    // Fire a push notification + log the event to the in-app log
+    // so the invitee catches up even if the push was dropped. Both
+    // are best-effort; the invite row is already written by now.
     try {
       const [{ data: crewRow }, { data: inviterRow }] = await Promise.all([
         supabase.from("crews").select("name").eq("id", crewId).maybeSingle(),
         supabase.from("profiles").select("username").eq("id", userId).maybeSingle(),
       ]);
+      await notifyUser(supabase, targetUserId, {
+        kind: "crew_invite_received",
+        payload: {
+          crew_id: crewId,
+          crew_name: crewRow?.name ?? "a crew",
+          invite_id: inserted?.id ?? "",
+          inviter_username: inviterRow?.username ?? "someone",
+        },
+      });
       await sendPushToUsers(
         [targetUserId],
         {
@@ -140,7 +151,7 @@ export async function inviteToCrew(
         { category: "invite_received" },
       );
     } catch (err) {
-      console.warn("[chork] crew-invite push dispatch failed:", err);
+      console.warn("[chork] crew-invite dispatch failed:", err);
     }
 
     revalidatePath("/crew", "layout");
@@ -164,7 +175,7 @@ export async function acceptCrewInvite(crewMemberId: string): Promise<ActionResu
     // round-trips without adding a new RPC.
     const { data: invite } = await supabase
       .from("crew_members")
-      .select("invited_by, crew:crew_id (name)")
+      .select("invited_by, crew_id, crew:crew_id (name)")
       .eq("id", crewMemberId)
       .eq("user_id", userId)
       .eq("status", "pending")
@@ -191,6 +202,14 @@ export async function acceptCrewInvite(crewMemberId: string): Promise<ActionResu
         const crewName = Array.isArray(invite.crew)
           ? invite.crew[0]?.name
           : invite.crew?.name;
+        await notifyUser(supabase, invite.invited_by, {
+          kind: "crew_invite_accepted",
+          payload: {
+            crew_id: invite.crew_id,
+            crew_name: crewName ?? "a crew",
+            accepter_username: accepterRow?.username ?? "someone",
+          },
+        });
         await sendPushToUsers(
           [invite.invited_by],
           {
@@ -367,6 +386,14 @@ export async function transferCrewOwnership(
         .select("name")
         .eq("id", crewId)
         .maybeSingle();
+      await notifyUser(supabase, newOwnerId, {
+        kind: "crew_ownership_transferred",
+        payload: {
+          crew_id: crewId,
+          crew_name: crewName?.name ?? "a crew",
+          from_username: fromRow?.username ?? "someone",
+        },
+      });
       await sendPushToUsers(
         [newOwnerId],
         {
