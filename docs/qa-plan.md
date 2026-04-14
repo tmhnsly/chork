@@ -221,12 +221,25 @@ Each batch = one PR. Commit after each.
 | `76ad891` | F pt3 | Settings moves into Profile dropdown as a nested submenu — Edit/Gym/Invites/Push/Theme/Privacy/SignOut/Delete all live in nav; ProfileHeader now identity-only |
 | `92f295c` | — | sliding pill highlight between nav tabs (useLayoutEffect + DOM ref, no setState) |
 | `2d3c503` | — | BottomSheet `size="tall"` variant; RouteLogSheet flips to tall when beta drawer expanded |
+| `9c71cb2` | test | admin + leaderboard server actions — auth, validation, cross-gym rejection, privacy contract on sanitised logs |
+| `6d03d1e` | test | profile action + admin-mutation rollback path coverage |
+| `ecba4e4` | test | crew + competition query helpers — flatten, tally, sort invariants |
 
 **Needs your action (one command each):**
 - `npx supabase db push` — applies migrations 025 (attempts bound + crew index), 026 (community_grade denorm), 027 (fuzzy search)
 - `npx supabase gen types typescript --project-id <id> > src/lib/database.types.ts` — refresh TS types after 026/027 so the `(any)` casts can be removed
 - `npx tsx scripts/seed-climbers.ts` — seed 20 parody climbers into live set
 - Replace `/public/icon-192.png` + `/public/icon-512.png` + maskable 512 with real brand PNGs (manifest currently points at the SVG fallback)
+
+**Test coverage after this round**
+- 218 tests across 22 files, all green locally and in CI
+- Every server action that can leak data has explicit rejection
+  coverage (admin, leaderboard, profile, crew)
+- Rollback/compensating-write paths tested where they exist
+  (`createGymWithOwner` gym-delete, invite accept flow)
+- Pure-logic helpers remain covered by their long-standing suites
+  (`badges`, `logs`, `grade-label`, `profile-stats`, `crew-time`,
+  `roles`, `mutations`)
 
 **Still pending — need input or repro:**
 - **F pt2** Profile nav dropdown reorg — View / Notifications / Settings (nested). Substantial refactor moving dialogs from ProfileHeader into NavBar; risk of unwinding auth-gated state. Own PR.
