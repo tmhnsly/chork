@@ -64,6 +64,76 @@
   justify-content: center;
 }
 
+// Right-aligned slot for secondary metadata (active theme name,
+// swatches, etc).
+.itemTrailing {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-2xs);
+}
+
+.chevron {
+  color: var(--mono-text-low-contrast);
+  margin-left: var(--space-1);
+  font-size: var(--text-md);
+  line-height: 1;
+}
+
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--mono-border-subtle);
+}
+
+.separator {
+  height: 1px;
+  margin: var(--space-1) 0;
+  background: var(--mono-border-subtle);
+}
+
+// Warning + danger variants — use the flash + error palettes the
+// same way the original profile settings menu did.
+.itemWarning {
+  color: var(--flash-text-low-contrast);
+
+  .itemIcon {
+    color: inherit;
+  }
+
+  &[data-highlighted],
+  &:hover {
+    background: var(--flash-solid);
+    color: var(--flash-on-solid);
+
+    .itemIcon {
+      color: var(--flash-on-solid);
+    }
+  }
+}
+
+.itemDanger {
+  color: var(--error-text-low-contrast);
+
+  .itemIcon {
+    color: inherit;
+  }
+
+  &[data-highlighted],
+  &:hover {
+    background: var(--error-solid);
+    color: var(--error-on-solid);
+
+    .itemIcon {
+      color: var(--error-on-solid);
+    }
+  }
+}
+
 // Active-tab tint — mirrors `.tabActive` in the nav so the
 // dropdown's trigger reads as the current section.
 .active {
