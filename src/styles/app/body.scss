@@ -16,14 +16,6 @@ body {
 
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  // Lock horizontal scroll. A couple of components (`bleed-x`
-  // mixin, BottomSheet slide-in) can produce sub-pixel overhang
-  // when combined with a scrollbar, letting the whole page drift
-  // left/right. `overflow-x: clip` caps this at the root without
-  // creating a new scroll container (which `overflow-x: hidden`
-  // would, breaking `position: sticky` and some fixed layouts).
-  overflow-x: clip;
 }
 
 a {
