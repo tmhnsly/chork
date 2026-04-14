@@ -149,6 +149,15 @@ async function main() {
       created += 1;
     }
 
+    // Random theme per seed climber so visiting their profile
+    // exercises the per-route theme switch added in migration 028.
+    // Defaults are weighted toward the brand palette so a fresh
+    // visit still feels familiar.
+    const themePool = [
+      "default", "default", "default",
+      "slate", "sand", "gray", "mauve", "sage",
+    ];
+
     // Update profile (created by trigger) with username + name +
     // active gym. Use upsert so the first run's auto-trigger and
     // subsequent runs converge to the same state.
@@ -159,6 +168,7 @@ async function main() {
         name: climber.name,
         onboarded: true,
         active_gym_id: gym.id,
+        theme: rand(themePool),
       })
       .eq("id", userId);
 
