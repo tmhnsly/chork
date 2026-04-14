@@ -235,7 +235,7 @@ Each batch = one PR. Commit after each.
 - Replace `/public/icon-192.png` + `/public/icon-512.png` + maskable 512 with real brand PNGs (manifest currently points at the SVG fallback)
 
 **Test coverage**
-- 225 tests across 23 files, all green locally and in CI
+- 237 tests across 26 files, all green locally and in CI
 - Every server action that can leak data has explicit rejection
   coverage (admin, leaderboard, profile, crew)
 - Rollback/compensating-write paths tested where they exist
