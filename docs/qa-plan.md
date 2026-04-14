@@ -234,8 +234,8 @@ Each batch = one PR. Commit after each.
 - `npx tsx scripts/seed-climbers.ts` — seed 20 parody climbers into live set
 - Replace `/public/icon-192.png` + `/public/icon-512.png` + maskable 512 with real brand PNGs (manifest currently points at the SVG fallback)
 
-**Test coverage after this round**
-- 218 tests across 22 files, all green locally and in CI
+**Test coverage**
+- 225 tests across 23 files, all green locally and in CI
 - Every server action that can leak data has explicit rejection
   coverage (admin, leaderboard, profile, crew)
 - Rollback/compensating-write paths tested where they exist
