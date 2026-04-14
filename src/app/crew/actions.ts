@@ -236,8 +236,8 @@ export async function declineCrewInvite(crewMemberId: string): Promise<ActionRes
  *     entirely. `on delete cascade` on crew_members / pending
  *     invites tidies the rest.
  *   • Creator trying to leave with members present → refused.
- *     Ownership transfer isn't implemented yet; letting creators
- *     walk away would leave the crew orphaned.
+ *     They must transfer ownership first (`transferCrewOwnership`);
+ *     letting creators walk away would leave the crew orphaned.
  *   • Everyone else → plain leave.
  */
 export async function leaveCrew(crewId: string): Promise<ActionResult> {
@@ -295,6 +295,85 @@ export async function leaveCrew(crewId: string): Promise<ActionResult> {
 // ────────────────────────────────────────────────────────────────
 // Privacy toggle — allow_crew_invites
 // ────────────────────────────────────────────────────────────────
+
+/**
+ * Transfer crew ownership from the current creator to another
+ * active member of the same crew. Guarded by migration 031's
+ * UPDATE policy — server enforces the "same crew active member"
+ * rule too in case the policy is ever relaxed.
+ */
+export async function transferCrewOwnership(
+  crewId: string,
+  newOwnerId: string,
+): Promise<ActionResult> {
+  if (!UUID_RE.test(crewId) || !UUID_RE.test(newOwnerId)) {
+    return { error: "Invalid request." };
+  }
+
+  const auth = await requireSignedIn();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase, userId } = auth;
+
+  if (newOwnerId === userId) {
+    return { error: "You're already the creator." };
+  }
+
+  try {
+    const { data: crew } = await supabase
+      .from("crews")
+      .select("created_by")
+      .eq("id", crewId)
+      .maybeSingle();
+    if (!crew) return { error: "Crew not found." };
+    if (crew.created_by !== userId) {
+      return { error: "Only the current creator can transfer a crew." };
+    }
+
+    const { data: target } = await supabase
+      .from("crew_members")
+      .select("id")
+      .eq("crew_id", crewId)
+      .eq("user_id", newOwnerId)
+      .eq("status", "active")
+      .maybeSingle();
+    if (!target) {
+      return { error: "That climber isn't an active member of this crew." };
+    }
+
+    const { error } = await supabase
+      .from("crews")
+      .update({ created_by: newOwnerId })
+      .eq("id", crewId);
+    if (error) return { error: formatError(error) };
+
+    // Notify the new creator best-effort — they just gained rights
+    // over the crew and may not be watching the app.
+    try {
+      const { data: fromRow } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", userId)
+        .maybeSingle();
+      const { data: crewName } = await supabase
+        .from("crews")
+        .select("name")
+        .eq("id", crewId)
+        .maybeSingle();
+      await sendPushToUsers([newOwnerId], {
+        title: "You're now the crew creator",
+        body: `@${fromRow?.username ?? "someone"} handed ${crewName?.name ?? "a crew"} over to you.`,
+        url: `/crew/${crewId}`,
+      });
+    } catch (err) {
+      console.warn("[chork] crew-transfer push dispatch failed:", err);
+    }
+
+    revalidatePath("/crew", "layout");
+    return { success: true };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
 
 export async function setAllowCrewInvites(allow: boolean): Promise<ActionResult> {
   const auth = await requireSignedIn();
