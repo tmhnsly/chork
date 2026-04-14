@@ -110,16 +110,16 @@ export async function getMyCrews(
   });
   if (crewRows.length === 0) return [];
 
-  // Batch member counts for each crew in one round trip.
-  const { data: counts } = await supabase
-    .from("crew_members")
-    .select("crew_id")
-    .in("crew_id", crewRows.map((c) => c.id))
-    .eq("status", "active");
+  // Server-side count per crew (migration 035). Previously this
+  // fetched every member row and tallied client-side — fine at 3
+  // crews, wasteful as the user joins more.
+  const { data: counts } = await supabase.rpc("get_crew_member_counts", {
+    p_crew_ids: crewRows.map((c) => c.id),
+  });
 
   const tally = new Map<string, number>();
   for (const row of counts ?? []) {
-    tally.set(row.crew_id, (tally.get(row.crew_id) ?? 0) + 1);
+    tally.set(row.crew_id, row.count);
   }
 
   return crewRows

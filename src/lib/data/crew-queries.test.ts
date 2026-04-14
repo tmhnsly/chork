@@ -71,13 +71,12 @@ describe("getMyCrews", () => {
           ],
         },
       },
-      // Member-count fetch — two members in CREW_1, one in CREW_2
+      // get_crew_member_counts RPC — one row per crew with count
       {
         result: {
           data: [
-            { crew_id: CREW_1 },
-            { crew_id: CREW_1 },
-            { crew_id: CREW_2 },
+            { crew_id: CREW_1, count: 2 },
+            { crew_id: CREW_2, count: 1 },
           ],
         },
       },
@@ -104,7 +103,7 @@ describe("getMyCrews", () => {
           ],
         },
       },
-      { result: { data: [{ crew_id: CREW_1 }] } },
+      { result: { data: [{ crew_id: CREW_1, count: 1 }] } },
     ]);
     const { getMyCrews } = await import("./crew-queries");
     const result = await getMyCrews(sb as never, USER_A);

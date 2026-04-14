@@ -1151,6 +1151,13 @@ export type Database = {
           zones: number
         }[]
       }
+      get_crew_member_counts: {
+        Args: { p_crew_ids: string[] }
+        Returns: {
+          count: number
+          crew_id: string
+        }[]
+      }
       get_crew_member_previews: {
         Args: { p_crew_ids: string[]; p_limit?: number }
         Returns: {

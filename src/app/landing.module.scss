@@ -45,12 +45,12 @@
 
 .footerTagline {
   @include type.typography(meta);
-  color: var(--mono-solid);
+  color: var(--mono-text-low-contrast);
 }
 
 .footerLink {
   @include type.typography(meta);
-  color: var(--mono-solid);
+  color: var(--mono-text-low-contrast);
   margin-top: var(--space-2);
   text-decoration: underline;
 

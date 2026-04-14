@@ -132,10 +132,13 @@ function AuthenticatedNav({
 
   const [pendingCount, setPendingCount] = useState<number>(0);
 
-  // Pull the live pending-invite count for the signed-in user from the
-  // DB. The effect runs once per userId; updates come through on route
-  // changes (revalidatePath in crew actions triggers a re-render of
-  // this component as part of the tree refresh).
+  // Pull the live pending-invite count. We re-fetch on initial mount
+  // and whenever the user lands on / leaves the /crew route — those
+  // are the only nav transitions where the count can realistically
+  // change (they either accept / decline, or a new invite has been
+  // queued while they were off-tab). Re-firing on every page nav
+  // (home → leaderboard → profile) was wasted Supabase bandwidth.
+  const isOnCrew = pathname.startsWith("/crew");
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -148,7 +151,7 @@ function AuthenticatedNav({
       if (!cancelled) setPendingCount(count ?? 0);
     })();
     return () => { cancelled = true; };
-  }, [userId, pathname]);
+  }, [userId, isOnCrew]);
 
   // When the user lands on /crew, flush the acknowledgement to match
   // the current pending count. Any new invites after this point will
