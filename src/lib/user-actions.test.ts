@@ -119,3 +119,62 @@ describe("updateThemePreference", () => {
     expect(await updateThemePreference("sand")).toEqual({ success: true });
   });
 });
+
+// ────────────────────────────────────────────────────────────────
+// updatePushCategory
+// ────────────────────────────────────────────────────────────────
+describe("updatePushCategory", () => {
+  it("rejects unknown categories", async () => {
+    const { updatePushCategory } = await import("./user-actions");
+    expect(await updatePushCategory("not_a_category", true)).toEqual({
+      error: "Unknown notification category",
+    });
+  });
+
+  it("rejects non-boolean values", async () => {
+    const { updatePushCategory } = await import("./user-actions");
+    expect(
+      await updatePushCategory("invite_received", "yes" as unknown as boolean),
+    ).toEqual({ error: "Invalid value" });
+  });
+
+  it("surfaces auth failure", async () => {
+    const { requireAuth } = await import("./auth");
+    vi.mocked(requireAuth).mockResolvedValue({ error: "Not signed in" });
+    const { updatePushCategory } = await import("./user-actions");
+    expect(await updatePushCategory("invite_received", true)).toEqual({
+      error: "Not signed in",
+    });
+  });
+
+  it("writes the flag on success for every known category", async () => {
+    const { requireAuth } = await import("./auth");
+    vi.mocked(requireAuth).mockResolvedValue({
+      supabase: mockSupabase({
+        "table:profiles": { data: null, error: null },
+      }) as never,
+      userId: USER_A,
+      gymId: "g1",
+    });
+    const { updatePushCategory } = await import("./user-actions");
+    for (const category of ["invite_received", "invite_accepted", "ownership_changed"]) {
+      expect(await updatePushCategory(category, false)).toEqual({ success: true });
+      expect(await updatePushCategory(category, true)).toEqual({ success: true });
+    }
+  });
+
+  it("propagates DB errors", async () => {
+    const { requireAuth } = await import("./auth");
+    vi.mocked(requireAuth).mockResolvedValue({
+      supabase: mockSupabase({
+        "table:profiles": { data: null, error: { code: "42501", message: "nope" } },
+      }) as never,
+      userId: USER_A,
+      gymId: "g1",
+    });
+    const { updatePushCategory } = await import("./user-actions");
+    expect(await updatePushCategory("invite_received", true)).toEqual({
+      error: "nope",
+    });
+  });
+});

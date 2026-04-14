@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/auth", () => ({ requireSignedIn: vi.fn() }));
 vi.mock("@/lib/push/server", () => ({ sendPushToUsers: vi.fn() }));
+vi.mock("@/lib/notify", () => ({ notifyUser: vi.fn() }));
 
 // ────────────────────────────────────────────────────────────────
 // Supabase client mock
@@ -245,6 +246,12 @@ describe("inviteToCrew", () => {
       }),
       expect.objectContaining({ category: "invite_received" }),
     );
+    const { notifyUser } = await import("@/lib/notify");
+    expect(notifyUser).toHaveBeenCalledWith(
+      expect.anything(),
+      USER_B,
+      expect.objectContaining({ kind: "crew_invite_received" }),
+    );
   });
 
   it("still returns success when the push dispatch throws", async () => {
@@ -304,6 +311,67 @@ describe("acceptCrewInvite", () => {
     });
     const { acceptCrewInvite } = await import("./actions");
     expect(await acceptCrewInvite(INVITE_1)).toEqual({ error: "boom" });
+  });
+
+  it("pushes + notifies the inviter on success (category: invite_accepted)", async () => {
+    const { requireSignedIn } = await import("@/lib/auth");
+    const { sendPushToUsers } = await import("@/lib/push/server");
+    const { notifyUser } = await import("@/lib/notify");
+    const supabase = {
+      from: (table: string) => {
+        if (table === "crew_members") {
+          return makeChain(() => ({
+            // First read = the invite prefetch (invited_by + crew
+            // name via embedded join). Second call = the UPDATE.
+            data: {
+              invited_by: USER_B,
+              crew_id: CREW_1,
+              crew: { name: "Tuesday Crew" },
+            },
+            error: null,
+          }));
+        }
+        if (table === "profiles") {
+          return makeChain(() => ({ data: { username: "alice" }, error: null }));
+        }
+        return makeChain(() => ({ data: null }));
+      },
+    };
+    vi.mocked(requireSignedIn).mockResolvedValue({
+      supabase: supabase as never,
+      userId: USER_A,
+    });
+
+    const { acceptCrewInvite } = await import("./actions");
+    expect(await acceptCrewInvite(INVITE_1)).toEqual({ success: true });
+
+    expect(sendPushToUsers).toHaveBeenCalledWith(
+      [USER_B],
+      expect.objectContaining({ title: "Invite accepted" }),
+      expect.objectContaining({ category: "invite_accepted" }),
+    );
+    expect(notifyUser).toHaveBeenCalledWith(
+      expect.anything(),
+      USER_B,
+      expect.objectContaining({
+        kind: "crew_invite_accepted",
+        payload: expect.objectContaining({ crew_id: CREW_1 }),
+      }),
+    );
+  });
+
+  it("skips push when the invite prefetch couldn't find the inviter", async () => {
+    const { requireSignedIn } = await import("@/lib/auth");
+    const { sendPushToUsers } = await import("@/lib/push/server");
+    vi.mocked(requireSignedIn).mockResolvedValue({
+      supabase: mockSupabase({
+        "table:crew_members": { data: null, error: null },
+      }) as never,
+      userId: USER_A,
+    });
+    const { acceptCrewInvite } = await import("./actions");
+    expect(await acceptCrewInvite(INVITE_1)).toEqual({ success: true });
+    expect(sendPushToUsers).not.toHaveBeenCalled();
   });
 });
 
@@ -404,5 +472,112 @@ describe("setAllowCrewInvites", () => {
     const { setAllowCrewInvites } = await import("./actions");
     expect(await setAllowCrewInvites(false)).toEqual({ success: true });
     expect(await setAllowCrewInvites(true)).toEqual({ success: true });
+  });
+});
+
+// ────────────────────────────────────────────────────────────────
+// transferCrewOwnership
+// ────────────────────────────────────────────────────────────────
+describe("transferCrewOwnership", () => {
+  it("rejects malformed UUIDs", async () => {
+    const { transferCrewOwnership } = await import("./actions");
+    expect(await transferCrewOwnership("nope", USER_B)).toEqual({ error: "Invalid request." });
+    expect(await transferCrewOwnership(CREW_1, "nope")).toEqual({ error: "Invalid request." });
+  });
+
+  it("refuses self-transfer", async () => {
+    const { requireSignedIn } = await import("@/lib/auth");
+    vi.mocked(requireSignedIn).mockResolvedValue({
+      supabase: mockSupabase() as never,
+      userId: USER_A,
+    });
+    const { transferCrewOwnership } = await import("./actions");
+    expect(await transferCrewOwnership(CREW_1, USER_A)).toEqual({
+      error: "You're already the creator.",
+    });
+  });
+
+  it("refuses when the caller isn't the current creator", async () => {
+    const { requireSignedIn } = await import("@/lib/auth");
+    vi.mocked(requireSignedIn).mockResolvedValue({
+      supabase: mockSupabase({
+        "table:crews": { data: { created_by: USER_B }, error: null },
+      }) as never,
+      userId: USER_A,
+    });
+    const { transferCrewOwnership } = await import("./actions");
+    expect(await transferCrewOwnership(CREW_1, USER_B)).toEqual({
+      error: "Only the current creator can transfer a crew.",
+    });
+  });
+
+  it("refuses when the target isn't an active member", async () => {
+    const { requireSignedIn } = await import("@/lib/auth");
+    let call = 0;
+    const supabase = {
+      from: (table: string) => {
+        if (table === "crews") {
+          return makeChain(() => ({ data: { created_by: USER_A }, error: null }));
+        }
+        if (table === "crew_members") {
+          call++;
+          // First call = target-active lookup; return null to fail.
+          return makeChain(() => ({ data: null, error: null }));
+        }
+        return makeChain(() => ({ data: null }));
+      },
+    };
+    vi.mocked(requireSignedIn).mockResolvedValue({
+      supabase: supabase as never,
+      userId: USER_A,
+    });
+    const { transferCrewOwnership } = await import("./actions");
+    expect(await transferCrewOwnership(CREW_1, USER_B)).toEqual({
+      error: "That climber isn't an active member of this crew.",
+    });
+    expect(call).toBeGreaterThan(0);
+  });
+
+  it("succeeds on the happy path + pushes + notifies", async () => {
+    const { requireSignedIn } = await import("@/lib/auth");
+    const { sendPushToUsers } = await import("@/lib/push/server");
+    const { notifyUser } = await import("@/lib/notify");
+    const supabase = {
+      from: (table: string) => {
+        if (table === "crews") {
+          return makeChain(() => ({
+            // Two reads against `crews` — creator check + name lookup
+            // for the push body. Both can return the same shape.
+            data: { created_by: USER_A, name: "Tuesday Crew" },
+            error: null,
+          }));
+        }
+        if (table === "crew_members") {
+          return makeChain(() => ({ data: { id: "row1" }, error: null }));
+        }
+        if (table === "profiles") {
+          return makeChain(() => ({ data: { username: "alice" }, error: null }));
+        }
+        return makeChain(() => ({ data: null }));
+      },
+    };
+    vi.mocked(requireSignedIn).mockResolvedValue({
+      supabase: supabase as never,
+      userId: USER_A,
+    });
+
+    const { transferCrewOwnership } = await import("./actions");
+    expect(await transferCrewOwnership(CREW_1, USER_B)).toEqual({ success: true });
+
+    expect(sendPushToUsers).toHaveBeenCalledWith(
+      [USER_B],
+      expect.objectContaining({ title: "You're now the crew creator" }),
+      expect.objectContaining({ category: "ownership_changed" }),
+    );
+    expect(notifyUser).toHaveBeenCalledWith(
+      expect.anything(),
+      USER_B,
+      expect.objectContaining({ kind: "crew_ownership_transferred" }),
+    );
   });
 });
