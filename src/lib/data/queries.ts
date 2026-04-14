@@ -8,7 +8,6 @@ import type {
   RouteSet,
   Route,
   RouteLog,
-  RouteLogWithSetId,
   Comment,
   PaginatedComments,
   ActivityEventWithRoute,
@@ -211,22 +210,6 @@ export async function getLogsBySetForUser(
   return (data ?? []) as RouteLog[];
 }
 
-export async function getAllLogsForUser(
-  supabase: Supabase,
-  userId: string
-): Promise<RouteLogWithSetId[]> {
-  // Only select columns needed for all-time stats derivation.
-  // computePoints/isFlash use attempts + completed + zone; set grouping uses routes(id).
-  const { data, error } = await supabase
-    .from("route_logs")
-    .select("route_id, attempts, completed, zone, routes(id)")
-    .eq("user_id", userId);
-  if (error) {
-    console.warn("[chork] getAllLogsForUser failed:", error);
-    return [];
-  }
-  return (data ?? []) as unknown as RouteLogWithSetId[];
-}
 
 export interface UserLogInGym {
   route_id: string;

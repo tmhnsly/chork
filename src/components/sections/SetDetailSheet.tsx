@@ -6,7 +6,6 @@ import { RingStatsRow } from "@/components/RingStatsRow/RingStatsRow";
 import { RouteChart } from "@/components/RouteChart/RouteChart";
 import { ICON_MAP as BADGE_ICONS } from "@/components/BadgeShelf/BadgeShelf";
 import { pointsPerSend } from "@/lib/data/profile-stats";
-import type { RouteLog } from "@/lib/data";
 import { fetchSetPlacement } from "@/app/u/[username]/actions";
 import type { SetCell } from "./PreviousSetsGrid";
 import styles from "./setDetailSheet.module.scss";
@@ -94,7 +93,7 @@ export function SetDetailSheet({ set, userId, onClose }: Props) {
         {set.routes.length > 0 && (
           <div className={styles.chartBlock}>
             <RouteChart
-              logs={set.logs as unknown as Map<string, RouteLog>}
+              logs={set.logs}
               routeIds={set.routes.map((r) => r.id)}
               routeHasZone={set.routes.map((r) => r.has_zone)}
               routeNumbers={set.routes.map((r) => r.number)}

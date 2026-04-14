@@ -41,10 +41,6 @@ export type ActivityEventWithRoute = ActivityEvent & {
   routes?: Pick<Route, "number"> | null;
 };
 
-export type RouteLogWithSetId = RouteLog & {
-  routes?: Pick<RouteSet, "id"> | null;
-};
-
 // ── Mutation types ─────────────────────────────────
 
 export type RouteLogUpdate = Tables["route_logs"]["Update"];

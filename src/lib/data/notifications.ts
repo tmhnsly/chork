@@ -66,6 +66,9 @@ export async function getNotifications(
   return (data ?? []).map((r) => ({
     id: r.id,
     kind: r.kind as NotificationKind,
+    // `payload` is a jsonb column typed as Json in the generated
+    // Supabase types; narrow to the discriminated union. Each row's
+    // `kind` tells consumers which branch of the union to read.
     payload: r.payload as unknown as NotificationPayload,
     read_at: r.read_at,
     created_at: r.created_at,

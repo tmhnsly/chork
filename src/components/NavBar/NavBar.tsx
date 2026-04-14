@@ -92,8 +92,10 @@ export function NavBar() {
     );
   }
 
-  // Loading: brand only, no tabs (prevents flash)
-  if (isLoading) {
+  // Loading or momentarily profile-less (session resolving) — brand
+  // only, no tabs. Skips the authenticated branch's profile-not-null
+  // assertion below.
+  if (isLoading || !profile) {
     return (
       <nav className={styles.bar}>
         <div className={styles.barInner}>
@@ -106,7 +108,7 @@ export function NavBar() {
     );
   }
 
-  return <AuthenticatedNav userId={profile!.id} pathname={pathname} />;
+  return <AuthenticatedNav userId={profile.id} pathname={pathname} />;
 }
 
 function AuthenticatedNav({

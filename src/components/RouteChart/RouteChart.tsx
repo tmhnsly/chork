@@ -2,8 +2,15 @@ import type { RouteLog } from "@/lib/data";
 import { computePoints, isFlash } from "@/lib/data";
 import styles from "./routeChart.module.scss";
 
+/**
+ * Chart only needs `attempts`, `completed`, `zone` per log — matching
+ * what `computePoints` / `isFlash` read. Accept the narrow shape so
+ * callers carrying a richer or pruned log row don't have to cast.
+ */
+export type ChartLog = Pick<RouteLog, "attempts" | "completed" | "zone">;
+
 interface Props {
-  logs: Map<string, RouteLog>;
+  logs: Map<string, ChartLog>;
   routeIds: string[];
   /** Whether each route has a zone hold — used to compute per-route max points */
   routeHasZone: boolean[];
