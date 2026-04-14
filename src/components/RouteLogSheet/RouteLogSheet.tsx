@@ -443,6 +443,10 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
       onClose={onClose}
       title={`Route ${route.number}`}
       description={`Log details for route ${route.number}`}
+      // Grow toward the top of the viewport once the beta drawer is
+      // open so comment threads have room without pushing the rest
+      // of the sheet off screen.
+      size={betaExpanded ? "tall" : "default"}
     >
           {/* ── Header ── */}
           <header className={styles.header}>

@@ -18,6 +18,15 @@ interface Props {
   description?: string;
   /** Prevent closing when clicking outside (default: false). */
   disableOutsideClose?: boolean;
+  /**
+   * Vertical size variant:
+   *   • "default" caps at 90svh and shrinks to content below that.
+   *   • "tall"    caps just below the top safe-area inset so a
+   *                content-heavy sheet (RouteLogSheet with beta
+   *                expanded, AchievementsSheet's full list) can use
+   *                almost the full viewport.
+   */
+  size?: "default" | "tall";
   children: ReactNode;
 }
 
@@ -38,6 +47,7 @@ export function BottomSheet({
   title,
   description,
   disableOutsideClose = false,
+  size = "default",
   children,
 }: Props) {
   return (
@@ -50,7 +60,10 @@ export function BottomSheet({
       <Dialog.Portal>
         <Dialog.Overlay className={styles.overlay} />
         <Dialog.Content
-          className={styles.content}
+          className={[
+            styles.content,
+            size === "tall" ? styles.contentTall : "",
+          ].filter(Boolean).join(" ")}
           onOpenAutoFocus={(e) => {
             // Prevent Radix's default first-focusable grab — it
             // caused a phantom keyboard-focus ring on the close

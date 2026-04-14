@@ -39,6 +39,14 @@
   @include focus.ring-inset;
   outline: none;
 
+  // `tall` variant — near-full-viewport. Used by sheets that expect
+  // long scrollable content (RouteLogSheet with beta spray drawer
+  // open). Caps just under the top safe-area so the sheet never
+  // tucks behind the notch/island.
+  &.contentTall {
+    max-height: calc(100svh - env(safe-area-inset-top, 0px) - var(--space-3));
+  }
+
   // Hide the native scrollbar — panel has its own visual chrome.
   scrollbar-width: none;
   &::-webkit-scrollbar {
