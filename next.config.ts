@@ -23,7 +23,25 @@ const nextConfig: NextConfig = {
    * cache directive and re-validate on every page load.
    */
   async headers() {
+    // Baseline security headers applied to every response. CSP is
+    // deliberately omitted — Next's inline-script hashing + our
+    // Supabase + DiceBear origins would need a proper nonce-based
+    // CSP generated in middleware, which is a separate project.
+    const securityHeaders = [
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "X-Frame-Options", value: "DENY" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      {
+        key: "Permissions-Policy",
+        value: "camera=(), microphone=(), geolocation=(), browsing-topics=()",
+      },
+      {
+        key: "Strict-Transport-Security",
+        value: "max-age=63072000; includeSubDomains; preload",
+      },
+    ];
     return [
+      { source: "/:path*", headers: securityHeaders },
       {
         source: "/notification-icon.svg",
         headers: [
