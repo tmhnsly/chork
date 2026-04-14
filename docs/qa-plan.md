@@ -218,6 +218,9 @@ Each batch = one PR. Commit after each.
 | `672735a` | B pt4 | reveal-beta unblurred + postComment narrow revalidate |
 | `605d7f6` | — | migrations 025/026/027 applied to live DB, types regenerated, any-casts dropped, 20 climbers seeded |
 | `8a3eb14` | F pt2 | Profile nav dropdown (View + Notifications); notifications moved off profile page into nav |
+| `76ad891` | F pt3 | Settings moves into Profile dropdown as a nested submenu — Edit/Gym/Invites/Push/Theme/Privacy/SignOut/Delete all live in nav; ProfileHeader now identity-only |
+| `92f295c` | — | sliding pill highlight between nav tabs (useLayoutEffect + DOM ref, no setState) |
+| `2d3c503` | — | BottomSheet `size="tall"` variant; RouteLogSheet flips to tall when beta drawer expanded |
 
 **Needs your action (one command each):**
 - `npx supabase db push` — applies migrations 025 (attempts bound + crew index), 026 (community_grade denorm), 027 (fuzzy search)
