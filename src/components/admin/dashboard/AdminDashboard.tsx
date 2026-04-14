@@ -10,18 +10,18 @@ import type {
   FlashLeader,
   ZoneSendRow,
   AllTimeOverview,
-  GradeDistributionRow,
   SetterBreakdownRow,
 } from "@/lib/data/dashboard-queries";
 import type { AdminSetSummary } from "@/lib/data/admin-queries";
-import type { GradingScale } from "@/lib/data/grade-label";
 import { SetOverviewWidget } from "./SetOverviewWidget";
 import { TopRoutesWidget } from "./TopRoutesWidget";
 import { EngagementWidget } from "./EngagementWidget";
 import { FlashLeaderboardWidget } from "./FlashLeaderboardWidget";
 import { ZoneSendWidget } from "./ZoneSendWidget";
 import { AllTimeOverviewWidget } from "./AllTimeOverviewWidget";
-import { GradeDistributionWidget } from "./GradeDistributionWidget";
+import { SetPaceWidget } from "./SetPaceWidget";
+import { StaleRoutesWidget } from "./StaleRoutesWidget";
+import { FlashRateWidget } from "./FlashRateWidget";
 import { SetterBreakdownWidget } from "./SetterBreakdownWidget";
 import styles from "./adminDashboard.module.scss";
 
@@ -36,18 +36,17 @@ interface Props {
   flashes: FlashLeader[];
   zoneRows: ZoneSendRow[];
   allTime: AllTimeOverview | null;
-  gradeDistribution: GradeDistributionRow[];
   setterRows: SetterBreakdownRow[];
 }
 
 /**
- * Dashboard shell. Single-column on mobile, two-column grid on desktop;
- * wide widgets span full width. The "This set" / "All time" tabs
- * switch which widget cluster is visible — both tabs' data is fetched
- * up-front so switching is instant with no layout shift.
+ * Dashboard shell. Single-column on mobile, two-column grid on desktop.
+ * Widgets lead with the setter's most-useful reads — Set Pace (timeline
+ * vs sends), Flash Rate (how hot are we climbing), Stale Routes (what
+ * to refresh) — before drilling into per-route detail.
  *
- * Tab implementation uses the existing SegmentedControl primitive for
- * visual consistency with the climber-side Chorkboard header.
+ * Tab switches between per-set and all-time views. Both tabs' data is
+ * fetched up-front so switching is instant with no layout shift.
  */
 export function AdminDashboard({
   activeSet,
@@ -58,7 +57,6 @@ export function AdminDashboard({
   flashes,
   zoneRows,
   allTime,
-  gradeDistribution,
   setterRows,
 }: Props) {
   const [tab, setTab] = useState<Tab>("set");
@@ -69,8 +67,6 @@ export function AdminDashboard({
     ends_at: activeSet.ends_at,
   });
 
-  const scale = activeSet.grading_scale as GradingScale;
-  const showGradeDistribution = scale !== "points" && gradeDistribution.length > 0;
   const showSetters = setterRows.length > 0;
 
   return (
@@ -93,6 +89,13 @@ export function AdminDashboard({
             <SetOverviewWidget overview={overview} setLabel={label} />
           </div>
 
+          <div className={styles.wide}>
+            <SetPaceWidget activeSet={activeSet} overview={overview} />
+          </div>
+
+          <FlashRateWidget routes={topRoutes} />
+          <StaleRoutesWidget routes={topRoutes} />
+
           <EngagementWidget points={engagement} activeCount={activeCount} />
           <FlashLeaderboardWidget leaders={flashes} />
 
@@ -103,15 +106,6 @@ export function AdminDashboard({
           <div className={styles.wide}>
             <ZoneSendWidget rows={zoneRows} />
           </div>
-
-          {showGradeDistribution && (
-            <div className={styles.wide}>
-              <GradeDistributionWidget
-                distribution={gradeDistribution}
-                scale={scale}
-              />
-            </div>
-          )}
 
           {showSetters && (
             <div className={styles.wide}>

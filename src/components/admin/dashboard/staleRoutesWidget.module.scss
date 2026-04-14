@@ -1,0 +1,57 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+
+.list {
+  @include layout.stack(var(--space-2));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--mono-border-subtle);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.number {
+  @include type.typography(number);
+  font-size: var(--text-xl);
+  color: var(--mono-text);
+  min-width: 2ch;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.meta {
+  @include layout.stack(var(--space-1));
+  flex: 1;
+  min-width: 0;
+}
+
+.primary {
+  @include type.typography(label);
+  color: var(--mono-text);
+}
+
+.secondary {
+  @include type.typography(meta);
+  font-size: var(--text-2xs);
+  color: var(--mono-text-low-contrast);
+}
+
+.flag {
+  @include type.typography(label);
+  font-size: var(--text-2xs);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--error-bg);
+  color: var(--error-text);
+  flex-shrink: 0;
+}

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { requireGymAdmin } from "@/lib/auth";
 import { getGym } from "@/lib/data/queries";
@@ -10,33 +11,20 @@ import {
   getFlashLeaderboardSet,
   getZoneSendRatio,
   getAllTimeOverview,
-  getCommunityGradeDistribution,
   getSetterBreakdown,
 } from "@/lib/data/dashboard-queries";
 import { AdminDashboardEmpty } from "@/components/admin/AdminDashboardEmpty";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AdminDashboard } from "@/components/admin/dashboard/AdminDashboard";
+import { AdminDashboardSkeleton } from "@/components/admin/dashboard/AdminDashboardSkeleton";
+import { createServerSupabase } from "@/lib/supabase/server";
+import type { AdminSetSummary } from "@/lib/data/admin-queries";
 import styles from "./admin.module.scss";
 
 export const metadata = {
   title: "Admin - Chork",
 };
 
-/**
- * Admin dashboard landing page. Three render branches:
- *
- *   1. Caller isn't an admin of any gym → "start a gym" CTA + link to
- *      /admin/competitions (the organiser role lives here too).
- *   2. Caller admins a gym but there's no active set → empty-state
- *      card guiding them to create the first set.
- *   3. Caller admins a gym with an active set → full dashboard:
- *      overview, engagement, flash leaderboard, top routes,
- *      zone-vs-send ratio, all-time snapshot.
- *
- * All widget data is fetched via Supabase RPCs (migration 018) that
- * aggregate in SQL and guard with is_gym_admin — no client-side loops
- * over raw route_logs.
- */
 export default async function AdminHomePage() {
   const auth = await requireGymAdmin();
 
@@ -61,6 +49,7 @@ export default async function AdminHomePage() {
 
   const { supabase, gymId, isOwner } = auth;
 
+  // Light-weight header data — blocks the shell, but fast.
   const [gym, activeSet] = await Promise.all([
     getGym(supabase, gymId),
     getActiveSetForAdminGym(supabase, gymId),
@@ -76,7 +65,30 @@ export default async function AdminHomePage() {
     );
   }
 
-  // Populate every widget in parallel — one parallel fan-out per paint.
+  // Stream the dashboard — each widget RPC adds latency; streaming
+  // lets the header + nav paint immediately and the widgets arrive
+  // when ready. Shows a skeleton in the meantime so the page has
+  // shape rather than a blank.
+  return (
+    <main className={styles.page}>
+      <AdminHeader gymName={gym?.name ?? "Your gym"} isOwner={isOwner} />
+      <Suspense fallback={<AdminDashboardSkeleton />}>
+        <DashboardBody gymId={gymId} activeSetId={activeSet.id} activeSet={activeSet} />
+      </Suspense>
+    </main>
+  );
+}
+
+async function DashboardBody({
+  gymId,
+  activeSetId,
+  activeSet,
+}: {
+  gymId: string;
+  activeSetId: string;
+  activeSet: AdminSetSummary;
+}) {
+  const supabase = await createServerSupabase();
   const [
     overview,
     topRoutes,
@@ -85,35 +97,29 @@ export default async function AdminHomePage() {
     flashes,
     zoneRows,
     allTime,
-    gradeDistribution,
     setterRows,
   ] = await Promise.all([
-    getSetOverview(supabase, activeSet.id),
-    getTopRoutes(supabase, activeSet.id, 15),
+    getSetOverview(supabase, activeSetId),
+    getTopRoutes(supabase, activeSetId, 15),
     getEngagementTrend(supabase, gymId, 12),
-    getActiveClimberCount(supabase, activeSet.id),
-    getFlashLeaderboardSet(supabase, activeSet.id, 5),
-    getZoneSendRatio(supabase, activeSet.id),
+    getActiveClimberCount(supabase, activeSetId),
+    getFlashLeaderboardSet(supabase, activeSetId, 5),
+    getZoneSendRatio(supabase, activeSetId),
     getAllTimeOverview(supabase, gymId),
-    getCommunityGradeDistribution(supabase, activeSet.id),
-    getSetterBreakdown(supabase, activeSet.id),
+    getSetterBreakdown(supabase, activeSetId),
   ]);
 
   return (
-    <main className={styles.page}>
-      <AdminHeader gymName={gym?.name ?? "Your gym"} isOwner={isOwner} />
-      <AdminDashboard
-        activeSet={activeSet}
-        overview={overview}
-        topRoutes={topRoutes}
-        engagement={engagement}
-        activeCount={activeCount}
-        flashes={flashes}
-        zoneRows={zoneRows}
-        allTime={allTime}
-        gradeDistribution={gradeDistribution}
-        setterRows={setterRows}
-      />
-    </main>
+    <AdminDashboard
+      activeSet={activeSet}
+      overview={overview}
+      topRoutes={topRoutes}
+      engagement={engagement}
+      activeCount={activeCount}
+      flashes={flashes}
+      zoneRows={zoneRows}
+      allTime={allTime}
+      setterRows={setterRows}
+    />
   );
 }

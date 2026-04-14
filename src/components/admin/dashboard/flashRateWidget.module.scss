@@ -1,0 +1,59 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+
+.body {
+  @include layout.stack(var(--space-4));
+}
+
+.headline {
+  @include layout.stack(var(--space-1));
+}
+
+.number {
+  @include type.typography(number);
+  font-size: var(--text-4xl);
+  color: var(--flash-text);
+  line-height: 1.1;
+}
+
+.meta {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+.buckets {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(6rem, 1fr));
+  gap: var(--space-2);
+}
+
+.bucket {
+  @include layout.stack(var(--space-1));
+  padding: var(--space-3);
+  border-radius: var(--radius-2);
+  background: var(--mono-subtle-bg);
+  border: 1px solid var(--mono-border-subtle);
+}
+
+.bucketLabel {
+  @include type.typography(label);
+  font-size: var(--text-2xs);
+  color: var(--mono-text-low-contrast);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.bucketCount {
+  @include type.typography(meta);
+  font-size: var(--text-2xs);
+  color: var(--mono-text-low-contrast);
+}
+
+.bucketRate {
+  @include type.typography(number);
+  font-size: var(--text-lg);
+  color: var(--flash-text);
+}

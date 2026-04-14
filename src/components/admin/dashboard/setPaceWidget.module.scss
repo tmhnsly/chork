@@ -1,0 +1,78 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+
+.body {
+  @include layout.stack(var(--space-4));
+}
+
+// Dual progress bar — lime (sends) on top of mono (time).
+// Reads as a single stacked track with a fast visual comparison:
+// is the accent ahead of, matching, or behind the mono fill?
+.track {
+  position: relative;
+  width: 100%;
+  height: var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--mono-subtle-bg);
+  overflow: hidden;
+}
+
+.fillTime {
+  position: absolute;
+  inset: 0;
+  width: var(--pct, 0%);
+  background: var(--mono-solid);
+  transition: width var(--duration-normal) var(--ease-out);
+}
+
+.fillSends {
+  position: absolute;
+  inset: 0;
+  width: var(--pct, 0%);
+  background: var(--accent-solid);
+  transition: width var(--duration-normal) var(--ease-out);
+  // Slight inset so the sends fill reads as a separate layer
+  // sitting on top of the time fill rather than merging into it.
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  border-radius: var(--radius-full);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.stat {
+  @include layout.stack(var(--space-1));
+  min-width: 0;
+}
+
+.statLabel {
+  @include type.typography(label);
+  font-size: var(--text-2xs);
+  color: var(--mono-text-low-contrast);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.statValue {
+  @include type.typography(number);
+  font-size: var(--text-xl);
+  color: var(--mono-text);
+  margin: 0;
+}
+
+.statMeta {
+  @include type.typography(meta);
+  font-size: var(--text-2xs);
+  color: var(--mono-text-low-contrast);
+  margin: 0;
+}
+
+.verdictOnPace { color: var(--mono-text); }
+.verdictAhead  { color: var(--flash-text); }
+.verdictBehind { color: var(--error-text); }
