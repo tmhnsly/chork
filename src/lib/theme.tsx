@@ -2,170 +2,18 @@
 
 import { createContext, useCallback, useContext, useEffect, useSyncExternalStore } from "react";
 import { useAuth } from "@/lib/auth-context";
+import {
+  applyTheme,
+  getServerSnapshot,
+  getSnapshot,
+  setThemeStore,
+  subscribe,
+  syncThemeFromProfile,
+  type ThemeName,
+} from "@/lib/theme-store";
 
-/**
- * User-selectable theme palettes. Adding a new theme means:
- *   1. Add a `[data-theme="name"]` block in `src/styles/theme/colors.scss`.
- *   2. Add the id here.
- *   3. Add the entry in `THEME_META` so the settings picker renders it.
- *
- * Persistence: the climber's selection writes to `profiles.theme`
- * (migration 028) so it syncs across devices. localStorage is the
- * fast path that owns first paint; the auth profile rehydrates the
- * store once it loads and any divergence is reconciled there.
- *
- * Visiting another climber's profile renders that route in *their*
- * theme — the profile page server component sets `data-theme` on
- * its `<main>` so the cascade swaps the palette for the visited
- * subtree only. Chrome outside the main (nav, modals) stays in
- * the viewer's palette, and leaving the route restores it.
- */
-export type ThemeName =
-  | "default"
-  | "slate"
-  | "sand"
-  | "gray"
-  | "mauve"
-  | "sage";
-
-export interface ThemeMeta {
-  id: ThemeName;
-  label: string;
-  /** Short hint rendered under the label in the picker. */
-  hint: string;
-  /** Two swatch colours for the picker — step-9 of mono / accent. */
-  swatches: [string, string];
-}
-
-export const THEME_META: ThemeMeta[] = [
-  {
-    id: "default",
-    label: "Chork",
-    hint: "Olive · Lime",
-    swatches: ["var(--olive-9)", "var(--lime-9)"],
-  },
-  {
-    id: "slate",
-    label: "Slate",
-    hint: "Slate · Iris",
-    swatches: ["var(--slate-9)", "var(--iris-9)"],
-  },
-  {
-    id: "sand",
-    label: "Sand",
-    hint: "Sand · Tomato",
-    swatches: ["var(--sand-9)", "var(--tomato-9)"],
-  },
-  {
-    id: "gray",
-    label: "Gray",
-    hint: "Gray · Violet",
-    swatches: ["var(--gray-9)", "var(--violet-9)"],
-  },
-  {
-    id: "mauve",
-    label: "Mauve",
-    hint: "Mauve · Plum",
-    swatches: ["var(--mauve-9)", "var(--plum-9)"],
-  },
-  {
-    id: "sage",
-    label: "Sage",
-    hint: "Sage · Jade",
-    swatches: ["var(--sage-9)", "var(--jade-9)"],
-  },
-];
-
-const STORAGE_KEY = "chork-theme";
-const DEFAULT_THEME: ThemeName = "default";
-
-/*
- * Tiny external store. Lives outside React so the theme can be read
- * / written without going through an effect — `useSyncExternalStore`
- * handles SSR safely (falls back to `DEFAULT_THEME` on the server)
- * and re-subscribes browser-side for free. This sidesteps the
- * "setState in effect" lint error that the old useState +
- * useEffect-on-mount approach tripped.
- */
-type Listener = () => void;
-const listeners = new Set<Listener>();
-let currentTheme: ThemeName = DEFAULT_THEME;
-
-function isValidTheme(t: string | null): t is ThemeName {
-  return !!t && THEME_META.some((meta) => meta.id === t);
-}
-
-// Client-only bootstrap — runs once at module evaluation in the
-// browser so the first `getSnapshot()` already reflects the stored
-// value. On the server this branch is skipped entirely.
-if (typeof window !== "undefined") {
-  try {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (isValidTheme(stored)) currentTheme = stored;
-  } catch {
-    // Private browsing / storage disabled — stick with the default.
-  }
-}
-
-function subscribe(listener: Listener): () => void {
-  listeners.add(listener);
-  return () => {
-    listeners.delete(listener);
-  };
-}
-
-function getSnapshot(): ThemeName {
-  return currentTheme;
-}
-
-function getServerSnapshot(): ThemeName {
-  return DEFAULT_THEME;
-}
-
-function setThemeStore(next: ThemeName): void {
-  if (next === currentTheme) return;
-  currentTheme = next;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, next);
-  } catch {
-    // Same tolerance as the read path.
-  }
-  listeners.forEach((fn) => fn());
-}
-
-/**
- * Bridge entry — fed by the auth profile once it loads. Updates
- * the local store to match the persisted preference WITHOUT
- * firing the server write-back that `setTheme()` does (we just
- * read it from the DB, so writing back would be a no-op round
- * trip). Safe to call repeatedly.
- */
-export function syncThemeFromProfile(profileTheme: string | null | undefined): void {
-  if (!isValidTheme(profileTheme ?? null)) return;
-  if (profileTheme === currentTheme) return;
-  currentTheme = profileTheme as ThemeName;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, currentTheme);
-  } catch {
-    // ignore
-  }
-  listeners.forEach((fn) => fn());
-}
-
-/**
- * Write the theme attribute to `<html>`. `default` clears the
- * attribute so the bare `:root` styles take over — no CSS selector
- * needs to match.
- */
-function applyTheme(theme: ThemeName): void {
-  if (typeof document === "undefined") return;
-  const el = document.documentElement;
-  if (theme === DEFAULT_THEME) {
-    el.removeAttribute("data-theme");
-  } else {
-    el.setAttribute("data-theme", theme);
-  }
-}
+export { THEME_META, syncThemeFromProfile } from "@/lib/theme-store";
+export type { ThemeName, ThemeMeta } from "@/lib/theme-store";
 
 interface ThemeContextValue {
   theme: ThemeName;
