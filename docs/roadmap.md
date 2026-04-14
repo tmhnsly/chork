@@ -16,22 +16,30 @@ Core climber experience:
 
 Social + competitive:
 - [x] Chorkboard — gym-wide leaderboard with set / all-time tabs,
-      podium, neighbourhood rows
-- [x] Crew feature — mutual groups with private leaderboard and
+      podium, neighbourhood rows, peek sheet with send grid
+- [x] Crew feature — mutual groups with private leaderboard +
       activity feed. Replaces follows (migration 020)
-- [x] User search + invite flow with block list + rate limit
+- [x] Per-crew detail route (`/crew/[id]`) with Activity /
+      Leaderboard / Members tabs
+- [x] Fuzzy user search (pg_trgm) with block list + rate limit
+- [x] Crew ownership transfer (migration 031)
 - [x] Achievements + badges with persistent earned-at
 - [x] Competitions (multi-gym) with category filter + organiser role
-- [x] PWA push notifications (crew invite, set goes live)
+- [x] PWA push notifications — per-category opt-out (invite /
+      accept / ownership) + persistent in-app log that survives
+      dropped pushes (migrations 032 + 033)
 
 Admin / gym owner:
 - [x] Gym admin signup + separate admin role table (`gym_admins`)
 - [x] Sets CRUD with grading scale (V / Font / Points-only)
-- [x] Routes quick-setup + edit + tag picker
+- [x] Routes editor — per-row bottom sheet with zone toggle, setter
+      name, tag chips (replaces tucked-away 3-dot menu)
 - [x] `pg_cron`-scheduled auto draft → live on start date
-- [x] Admin dashboard with 9 widgets (set overview, top routes,
-      engagement, flash leaderboard, zone-vs-send, grade distribution,
-      setter breakdown, all-time, competition venue stats)
+- [x] Admin dashboard widgets: set overview, top routes,
+      engagement, flash leaderboard, zone-vs-send, setter breakdown,
+      all-time, competition venue stats, **set pace**, **flash
+      rate buckets**, **stale routes**
+- [x] Sticky admin sub-nav, streamed dashboard via Suspense
 - [x] This-set / all-time view toggle
 - [x] Admin invites with token + expiry + email-address gate
 
@@ -42,6 +50,16 @@ Platform hardening:
 - [x] FK indexes on every column used in RLS filters
 - [x] Middleware onboarded cookie — skips per-request Supabase check
 - [x] Cached `getServerUser` / `getServerProfile` React cache helpers
+- [x] Security headers (HSTS, X-Frame-Options SAMEORIGIN,
+      Permissions-Policy, Referrer-Policy)
+- [x] `global-error.tsx` last-resort boundary for root-layout crashes
+- [x] `gym_admins` SELECT tightened to self + fellow admins
+      (migration 034) — previously readable by any authed user
+- [x] `joinCompetition` gym-scope gate; `linkCompetitionGym` /
+      `unlinkCompetitionGym` organiser-or-admin explicit gate
+- [x] Per-user theme preference (migration 028) with
+      `theme-store.ts` split from the provider for testability
+- [x] robots.ts + sitemap.ts
 
 ---
 

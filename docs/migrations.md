@@ -34,6 +34,19 @@ Regenerate types after any apply: `npx supabase gen types typescript --project-i
 | 020 | `remove_follows.sql` | Drop the follows table + related trigger + function. Drop `profiles.follower_count` and `profiles.following_count`. Replaced by crews (021) |
 | 021 | `crews_foundation.sql` | `crews`, `crew_members`, `blocked_users` tables. Profile cols `allow_crew_invites`, `invites_sent_today`, `invites_sent_date`. Helpers `is_active_crew_member`, `crew_member_status`, `is_blocking`. Atomic rate-limit RPC `bump_invite_rate_limit` (10/day). Trigger `seat_crew_creator` |
 | 022 | `crew_leaderboard_rpc.sql` | `get_crew_leaderboard(crew_id, set_id, limit, offset)` (ranks active members on a gym set; unranked at bottom). `get_crew_activity_feed(limit, before)` cursor-paginated union feed across the caller's crews |
+| 023 | `grade_vote_clamp.sql` | CHECK (1 ≤ `route_logs.grade_vote` ≤ 30) — defence in depth against a malformed client payload storing garbage ratings |
+| 024 | `push_subscriptions_hardening.sql` | Tighten RLS on `push_subscriptions` to self-only + unique `(user_id, endpoint)` — prevents duplicate rows per device and cross-user reads |
+| 025 | `hardening.sql` | CHECK (`route_logs.attempts` 0..999); composite index `crew_members(user_id, status)` |
+| 026 | `denormalise_community_grade.sql` | `routes.community_grade` + `grade_vote_count` cols + trigger on `route_logs` that keeps them fresh. Admin dashboard reads these denorms instead of re-aggregating every render |
+| 027 | `fuzzy_climber_search.sql` | `pg_trgm` extension in `extensions` schema, GIN trigram indexes on `profiles.username` + `name`, `search_climbers_fuzzy(query, caller_id, limit)` RPC. Schema-qualified (`extensions.word_similarity()`) because SECURITY DEFINER sets `search_path = ''` |
+| 028 | `user_theme_preference.sql` | `profiles.theme text not null default 'default'`. No CHECK (the theme list is app-owned; adding a palette wouldn't require a migration) |
+| 029 | `crew_activity_feed_scope.sql` | Overload `get_crew_activity_feed(p_crew_id, limit, before)` — same signature with a leading crew id scopes the feed to one crew. Caller-membership gate so a stale URL can't leak another crew's feed |
+| 030 | `crew_member_previews.sql` | `get_crew_member_previews(p_crew_ids, p_limit)` — batch first-N members per crew for the /crew picker avatar stacks. Replaces N per-crew round-trips |
+| 031 | `crew_ownership_transfer.sql` | Tight UPDATE policy on `crews` — only the current creator can update the row, and only to an existing active member. Enables `transferCrewOwnership` |
+| 032 | `push_category_prefs.sql` | `profiles.push_invite_received`, `push_invite_accepted`, `push_ownership_changed` (bool, default true). `sendPushToUsers` filters recipients by the matching column when a category is supplied |
+| 033 | `notifications_log.sql` | `notifications(user_id, kind, payload jsonb, read_at, created_at)` + RLS (read/update/delete own only, no client insert). `notify_user(user_id, kind, payload)` SECURITY DEFINER helper — three kinds at launch: `crew_invite_received`, `crew_invite_accepted`, `crew_ownership_transferred` |
+| 034 | `gym_admins_tighten_select.sql` | Replace `gym_admins` open SELECT policy with scoped one (self OR fellow admin of the same gym). Previously any signed-in user could enumerate every gym's admin roster from the browser |
+| 035 | `crew_member_counts.sql` | `get_crew_member_counts(p_crew_ids)` — server-side `count(*) group by crew_id` for the /crew picker. Previously `getMyCrews` streamed every row and tallied client-side |
 
 ---
 

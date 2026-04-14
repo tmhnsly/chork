@@ -1,6 +1,6 @@
 # Supabase schema
 
-Current state as of migration 022. For the historical sequence, see
+Current state as of migration 035. For the historical sequence, see
 `docs/migrations.md`.
 
 Types regenerated via:
@@ -28,6 +28,10 @@ on signup.
 | `allow_crew_invites` | boolean      | Default true. Hides user from global search when false |
 | `invites_sent_today` | integer      | Daily invite counter (≥ 0) |
 | `invites_sent_date`  | date         | Date the counter applies to |
+| `theme`              | text         | One of the app-owned palette ids (`default` / `slate` / `sand` / `gray` / `mauve` / `sage`). No DB CHECK — adding palettes is an app-layer change |
+| `push_invite_received`   | boolean | Default true. Mute new-invite pushes |
+| `push_invite_accepted`   | boolean | Default true. Mute accept-confirmation pushes |
+| `push_ownership_changed` | boolean | Default true. Mute ownership-transfer pushes |
 
 ### gyms
 
@@ -258,7 +262,28 @@ Unique `(user_id, badge_id)`.
 | `user_agent` | text nullable | |
 
 Unique `(user_id, endpoint)`. User manages own rows; service role
-dispatches via `sendPushToUsers`.
+dispatches via `sendPushToUsers`. Category opt-out lives on
+`profiles.push_*` (migration 032) — dispatcher filters recipients
+before firing.
+
+### notifications
+
+Persistent in-app log of every push-worthy event (migration 033).
+Push is best-effort; the log survives OS dropouts, un-subscribed
+devices, and missed focus.
+
+| Field        | Type        | Notes |
+|---|---|---|
+| `user_id`    | uuid FK     | Owner |
+| `kind`       | text        | Closed set: `crew_invite_received`, `crew_invite_accepted`, `crew_ownership_transferred`. DB check constraint + TS union kept in sync |
+| `payload`    | jsonb       | Typed per-kind in `src/lib/data/notifications.ts`. Denormalised (crew name, counterpart username) for zero-join reads |
+| `read_at`    | timestamptz | Null = unread; set by `markAllNotificationsRead` |
+| `created_at` | timestamptz | |
+
+Indexed `(user_id)`, partial `(user_id, created_at desc) where
+read_at is null`, and `(created_at desc)`. RLS: users read / update
+/ delete their own rows only. No INSERT policy — writes via the
+`notify_user(p_user_id, p_kind, p_payload)` SECURITY DEFINER helper.
 
 ---
 
@@ -299,8 +324,26 @@ anon, public`. Access is gated inside each function (typically
   members appear at the bottom with rank = null
 - `get_crew_activity_feed(limit, before)` — cursor-paginated union
   across the caller's active crews; excludes caller's own events
+- `get_crew_activity_feed(crew_id, limit, before)` — same, scoped
+  to one crew; RPC gates on active membership (migration 029)
+- `get_crew_member_previews(crew_ids[], limit)` — first-N active
+  members per crew for the picker avatar stacks (migration 030)
+- `get_crew_member_counts(crew_ids[])` — server-side member counts
+  for the picker cards (migration 035)
 - `bump_invite_rate_limit()` — atomic daily-cap bump (10/day);
   auto-resets on new UTC date
+
+### Notifications
+
+- `notify_user(user_id, kind, payload)` — SECURITY DEFINER insert
+  helper used by server actions. Validates `kind` against the same
+  closed set as the table check constraint (migration 033)
+
+### Search
+
+- `search_climbers_fuzzy(query, caller_id, limit)` — pg_trgm
+  word-similarity search over `profiles.username` + `name`, pre-filtered
+  against block + opt-out + shared-crew exclusions (migration 027)
 
 ### Admin operations
 

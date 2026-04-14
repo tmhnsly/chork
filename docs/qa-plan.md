@@ -228,34 +228,36 @@ Each batch = one PR. Commit after each.
 | `dfc5a70` | feat | theme syncs across devices via `profiles.theme` (migration 028) |
 | `9dd69ea` | test | user-actions coverage — 225 tests total |
 
-**Needs your action (one command each):**
-- `npx supabase db push` — applies migrations 025 (attempts bound + crew index), 026 (community_grade denorm), 027 (fuzzy search)
-- `npx supabase gen types typescript --project-id <id> > src/lib/database.types.ts` — refresh TS types after 026/027 so the `(any)` casts can be removed
-- `npx tsx scripts/seed-climbers.ts` — seed 20 parody climbers into live set
-- Replace `/public/icon-192.png` + `/public/icon-512.png` + maskable 512 with real brand PNGs (manifest currently points at the SVG fallback)
+---
 
-**Test coverage**
-- 237 tests across 26 files, all green locally and in CI
-- Every server action that can leak data has explicit rejection
-  coverage (admin, leaderboard, profile, crew)
-- Rollback/compensating-write paths tested where they exist
-  (`createGymWithOwner` gym-delete, invite accept flow)
-- Pure-logic helpers remain covered by their long-standing suites
-  (`badges`, `logs`, `grade-label`, `profile-stats`, `crew-time`,
-  `roles`, `mutations`)
+## Current state (2026-04-14)
 
-**Still pending — need input or repro:**
-- **F pt2** Profile nav dropdown reorg — View / Notifications / Settings (nested). Substantial refactor moving dialogs from ProfileHeader into NavBar; risk of unwinding auth-gated state. Own PR.
-- **Push-disable toggle** — already in Settings dropdown on profile; moves with the dropdown reorg above.
-- **Apple Pencil close button on iPhone 11 Pro** — needs device repro. Best guess is a `touch-action` or pointer-event-trap somewhere in the sheet chrome.
-- **Grade save pop-in** — can't repro cleanly; likely related to the RouteLogSheet state flush on `setCurrentLog` after the debounced grade save.
-- **Supabase `@gotrue-js` lock warning** — informational, Radix Strict Mode interaction with AuthProvider. Not user-visible. Low priority.
-- **Gym-stats tab-switch visual bug** (image 3) — needs fresh repro; the earlier CollapseFade changes may already have fixed it.
-- **Nav pill slide-between animation** — pure polish, not blocking.
-- **Beta spray drawer full-viewport when open** — pending; current sheet is content-sized up to 90svh.
+Migrations 023-035 applied to live DB; types regenerated. 20 seed
+climbers in the active set. Brand PNGs wired into the manifest.
 
-This session shipped **16 commits**. ~85% of the QA list is addressed. The remainder either needs device repro or is a big enough refactor to deserve its own scoped PR.
-- **B pt3** Remaining sheet bugs: beta spray unresponsive-after-submit, Apple Pencil close, reveal-beta behind blur, grade-save pop-in
-- **I pt3** Supabase lock warning investigation, nav pill slide animation
+**Test coverage:** 268 tests across 28 files, all green. Every
+data-leaking server action has rejection coverage; category-gated
+push paths + ownership-transfer + leave-crew edge cases covered.
 
-Let me know which batch to tackle next.
+**Outstanding items needing device repro:**
+- Apple Pencil close button on iPhone 11 Pro (`touch-action:
+  manipulation` defensive fix shipped, not verified on device)
+- Grade save pop-in on RouteLogSheet (can't repro alone)
+- Gym-stats tab-switch visual bug (may already be fixed by SetMeta
+  simplification — worth a fresh look)
+
+**Known low-priority nits (not blocking):**
+- `@gotrue-js` lock warning in the console — informational.
+- `color-mix()` usage in glass surfaces — CLAUDE.md bans it but
+  fixing requires a design-token expansion to cover 30/50/70%
+  opacity tiers across every theme. Defer.
+- `as unknown as RouteLogWithSetId[]` cast in `queries.ts` — flagged
+  during the deep audit; not exploitable, just type hygiene.
+
+**Recent audit fixes (post `ef43a6d`):**
+- Security: `gym_admins` SELECT scoped; `joinCompetition` gym-gated;
+  `linkCompetitionGym` / `unlinkCompetitionGym` organiser-or-admin.
+- Perf: server-side crew-count RPC; NavBar invite fetch narrowed to
+  crew-route transitions.
+- Layout: podium column overflow fix re-applied after a revert
+  wiped it.

@@ -146,21 +146,42 @@ Trigger `seat_crew_creator` inserts the creator as `active` in the
 same transaction as the crew insert, so the creator is never
 momentarily outside their own crew.
 
+### Surfaces
+
+- `/crew` — picker. Avatar-stack cards for every crew the caller is
+  in, pending invites pinned to the top, zero-crew hero with the
+  primary Create CTA. No activity / leaderboard at this level.
+- `/crew/[id]` — detail. Header with name + member avatar stack,
+  SegmentedControl tabs for **Activity** · **Leaderboard** ·
+  **Members**. Each tab loads independently; the shared components
+  (CrewActivityFeed, CrewLeaderboardPanel, CrewMembersList) live in
+  `src/components/Crew/`.
+
 ### Invite lifecycle
 
 ```
-              sendAdminInvite() ────► row inserted status='pending'
-                    │
-           (invite push fires, best-effort)
-                    │
-       ┌────────────┴────────────┐
-       │                         │
- acceptCrewInvite()        declineCrewInvite()
- UPDATE status='active'      DELETE row
+            inviteToCrew() ────► row inserted status='pending'
+                  │
+                  ├── notifyUser(kind=crew_invite_received)
+                  └── sendPushToUsers(..., category=invite_received)
+                              │
+              ┌───────────────┴───────────────┐
+              │                               │
+      acceptCrewInvite()             declineCrewInvite()
+      UPDATE status='active'          DELETE row
+              │
+              ├── notifyUser(kind=crew_invite_accepted)  → inviter
+              └── sendPushToUsers(..., category=invite_accepted) → inviter
 ```
 
-Leaving: `leaveCrew()` deletes the caller's own row regardless of
-status. Creator leaving does NOT cascade-delete the crew — by design.
+Leaving: `leaveCrew()` has three branches:
+- Non-creator → plain delete of own row.
+- Creator alone → crew is deleted; FK cascades take care of pending
+  invites + member rows.
+- Creator with other members → refused. They must transfer ownership
+  first (`transferCrewOwnership(crewId, newOwnerId)` — creator-only,
+  target must be an active member) which also fires a `notifyUser
+  (kind=crew_ownership_transferred)` + category-gated push.
 
 ### Rate limit
 
@@ -189,7 +210,9 @@ Every aggregate is a Postgres RPC, not a JS reduce:
   `get_setter_breakdown`, `get_all_time_overview`
 - Cross-gym: `get_competition_leaderboard`,
   `get_competition_venue_stats`
-- Crew: `get_crew_leaderboard`, `get_crew_activity_feed`
+- Crew: `get_crew_leaderboard`, `get_crew_activity_feed(...)` (two
+  signatures — cross-crew and per-crew, see migration 029),
+  `get_crew_member_previews`, `get_crew_member_counts`
 
 All have `SECURITY DEFINER` with the appropriate is-member /
 is-admin / is-organiser gate inside. Calling them without permission
@@ -232,8 +255,28 @@ unwind the user-visible mutation.
 - **Set goes live**: `updateSet` in `src/app/admin/actions.ts`
   detects `draft → live` and notifies `getGymClimberUserIds(gym_id)`
   — everyone with activity at that gym
-- **Crew invite received**: `inviteToCrew` in
-  `src/app/crew/actions.ts` notifies the recipient
+- **Crew invite received**: `inviteToCrew` — push to recipient
+  (`category=invite_received`)
+- **Crew invite accepted**: `acceptCrewInvite` — push to the
+  original inviter (`category=invite_accepted`)
+- **Crew ownership transferred**: `transferCrewOwnership` — push
+  to the new creator (`category=ownership_changed`)
+
+### Per-category opt-out
+
+Three boolean columns on `profiles` (migration 032) —
+`push_invite_received`, `push_invite_accepted`,
+`push_ownership_changed`. `sendPushToUsers(..., { category })`
+filters recipients by the matching column before dispatching;
+`null`/undefined bypasses (internal/admin calls).
+
+### Persistent in-app log
+
+Every category-tagged push is mirrored as a row in `notifications`
+via `notifyUser()` (migration 033). Push is transient; the log
+survives OS drops, un-subscribed devices, and missed focus. The
+profile header's bell surfaces unread rows and opens the
+NotificationsSheet — which marks all unread as read server-side.
 
 ---
 
@@ -253,9 +296,15 @@ Root group:
 
 - `/` — wall (logged in) / landing (logged out)
 - `/login`, `/onboarding`, `/auth/callback`, `/privacy`
-- `/leaderboard` — Chorkboard
-- `/u/[username]` — climber profile
-- `/crew` — crew tab
+- `/leaderboard` — Chorkboard (tapping a climber opens a peek sheet
+  with send grid + "View full profile" button)
+- `/u/[username]` — climber profile. Own profile surfaces the
+  notifications bell + settings gear on the header; other climbers
+  show only identity + context line
+- `/profile` — redirects to `/u/<own-username>`
+- `/crew` — picker (avatar-stack cards for your crews + pending
+  invites)
+- `/crew/[id]` — detail (tabs for Activity · Leaderboard · Members)
 - `/competitions/[id]` — climber-facing comp view
 
 Admin group (`/admin/*`): gated by a signed-in check in the layout;

@@ -250,6 +250,22 @@ relationship in the app — every social link is a mutual `crew_members`
 row that both sides agreed to. If you see `follower_count` or
 `getFollowers` anywhere, it's a stale reference and should be deleted.
 
+**Surfaces:** `/crew` is a picker (avatar-stack cards + pending
+invites + zero-state hero), `/crew/[id]` is the detail view with
+Activity / Leaderboard / Members tabs. Creator can transfer
+ownership to an active member (migration 031); if they try to
+leave with others present the server refuses.
+
+### Notifications
+
+Two layers: push (best-effort, transient) + persistent log
+(`notifications` table, migration 033). Every push-worthy event is
+tagged with a category (`invite_received` / `invite_accepted` /
+`ownership_changed`) — `sendPushToUsers(..., { category })` filters
+recipients by the opt-in bool on `profiles` (migration 032). The
+`notifyUser(userId, kind, payload)` helper writes a log row
+alongside so missed pushes are caught up in the NotificationsSheet.
+
 ### Admin vs climber vs organiser
 
 Three distinct roles, never conflate:
