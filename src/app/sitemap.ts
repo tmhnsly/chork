@@ -9,11 +9,15 @@ import type { MetadataRoute } from "next";
  */
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chork.app";
 
+// Build-time constant — avoids calling `new Date()` inside the
+// handler body (react-hooks/purity is strict about side effects
+// even outside component render). Cadence is deploy-driven anyway.
+const LAST_MODIFIED = new Date().toISOString();
+
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date();
   return [
-    { url: `${SITE}/`, lastModified: now, changeFrequency: "weekly", priority: 1 },
-    { url: `${SITE}/login`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
-    { url: `${SITE}/privacy`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${SITE}/`, lastModified: LAST_MODIFIED, changeFrequency: "weekly", priority: 1 },
+    { url: `${SITE}/login`, lastModified: LAST_MODIFIED, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${SITE}/privacy`, lastModified: LAST_MODIFIED, changeFrequency: "yearly", priority: 0.3 },
   ];
 }

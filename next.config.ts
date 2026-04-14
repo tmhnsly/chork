@@ -29,7 +29,12 @@ const nextConfig: NextConfig = {
     // CSP generated in middleware, which is a separate project.
     const securityHeaders = [
       { key: "X-Content-Type-Options", value: "nosniff" },
-      { key: "X-Frame-Options", value: "DENY" },
+      // SAMEORIGIN rather than DENY — some PWA install / A2HS
+      // flows on Android render the page inside an OS-owned frame
+      // and DENY has been observed to break install on those paths.
+      // We never iframe ourselves, so SAMEORIGIN is effectively DENY
+      // for any attacker origin.
+      { key: "X-Frame-Options", value: "SAMEORIGIN" },
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
       {
         key: "Permissions-Policy",

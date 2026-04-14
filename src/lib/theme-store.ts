@@ -3,7 +3,14 @@
  * so tests can import it under vitest's unit project (which has no
  * React/JSX transform configured). The `ThemeProvider` + `useTheme`
  * hook live in `theme.tsx` and re-export these symbols.
+ *
+ * Module-level mutable singletons (`listeners`, `currentTheme`) make
+ * this intentionally client-only — on the server they'd be shared
+ * across concurrent requests and one climber's theme would bleed
+ * into another's render. The `"client-only"` import enforces that
+ * boundary at build time: any accidental server import will fail.
  */
+import "client-only";
 
 export type ThemeName =
   | "default"

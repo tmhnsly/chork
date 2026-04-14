@@ -14,6 +14,11 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.join(dirname, 'src'),
+      // Stub Next's server/client-only boundary packages so modules
+      // that use them for build-time safety stay importable under
+      // vitest's node env (which has no webpack to resolve them).
+      'client-only': path.join(dirname, 'src/test/empty.ts'),
+      'server-only': path.join(dirname, 'src/test/empty.ts'),
     },
   },
   test: {
