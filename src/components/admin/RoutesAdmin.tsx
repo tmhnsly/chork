@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FaEllipsisVertical, FaPlus, FaTag, FaFlag } from "react-icons/fa6";
-import * as Primitive from "@radix-ui/react-dropdown-menu";
+import { FaPlus, FaTag, FaFlag, FaChevronRight } from "react-icons/fa6";
+import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button, showToast } from "@/components/ui";
 import {
   quickSetupSetRoutes,
@@ -20,11 +20,13 @@ interface Props {
 }
 
 /**
- * Admin-side route manager for a single set. Two modes in one surface:
+ * Admin-side route manager for a single set. Two modes:
  *
  *   Empty set → quick-setup form (number of routes + zone multi-select).
- *   Populated → per-route rows with a context menu (Radix DropdownMenu)
- *   for row-level actions (edit setter, toggle zone, set tags).
+ *   Populated → per-route rows that open an edit sheet with every
+ *     attribute (zone, setter, tags) visible in one place. Tapping the
+ *     whole row rather than a tucked-away 3-dot is the primary UX
+ *     choice — the row IS the button.
  *
  * All mutations route through server actions that re-verify admin
  * membership of the set's gym server-side — never trust the setId or
@@ -34,11 +36,10 @@ export function RoutesAdmin({ setId, initialRoutes, tags }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [routes, setRoutes] = useState(initialRoutes);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   if (routes.length === 0) {
     return <QuickSetupForm setId={setId} onCreated={(created) => {
-      // Optimistic — server actions revalidate, but filling state here
-      // avoids an empty flash while the RSC refetch flies.
       const next: AdminRouteRow[] = Array.from({ length: created }, (_, i) => ({
         id: `pending-${i + 1}`,
         number: i + 1,
@@ -59,7 +60,6 @@ export function RoutesAdmin({ setId, initialRoutes, tags }: Props) {
     startTransition(async () => {
       const res = await updateRoute(route.id, { hasZone: next });
       if ("error" in res) {
-        // Roll back optimistic flip on error.
         setRoutes((prev) =>
           prev.map((r) => (r.id === route.id ? { ...r, has_zone: !next } : r))
         );
@@ -68,13 +68,7 @@ export function RoutesAdmin({ setId, initialRoutes, tags }: Props) {
     });
   }
 
-  function handleSetterName(route: AdminRouteRow) {
-    const entered = window.prompt(
-      "Setter name (internal only — never shown to climbers)",
-      route.setter_name ?? ""
-    );
-    if (entered === null) return;
-    const next = entered.trim() || null;
+  function handleSetterName(route: AdminRouteRow, next: string | null) {
     setRoutes((prev) =>
       prev.map((r) => (r.id === route.id ? { ...r, setter_name: next } : r))
     );
@@ -106,39 +100,141 @@ export function RoutesAdmin({ setId, initialRoutes, tags }: Props) {
     });
   }
 
+  const editingRoute = routes.find((r) => r.id === editingId) ?? null;
+
   return (
     <section className={styles.section}>
       <ul className={styles.list} aria-label="Routes">
         {routes.map((route) => (
-          <li key={route.id} className={styles.row}>
-            <span className={styles.number}>{route.number}</span>
-            <div className={styles.meta}>
-              {route.has_zone && (
-                <span className={styles.zone}>
-                  <FaFlag aria-hidden /> Zone
-                </span>
-              )}
-              {route.tag_ids.length > 0 && (
-                <span className={styles.tagCount}>
-                  <FaTag aria-hidden /> {route.tag_ids.length}
-                </span>
-              )}
-              {route.setter_name && (
-                <span className={styles.setter}>{route.setter_name}</span>
-              )}
-            </div>
-
-            <RouteMenu
-              route={route}
-              tags={tags}
-              onToggleZone={() => handleToggleZone(route)}
-              onEditSetter={() => handleSetterName(route)}
-              onToggleTag={(tagId) => handleToggleTag(route, tagId)}
-            />
+          <li key={route.id}>
+            <button
+              type="button"
+              className={styles.row}
+              onClick={() => setEditingId(route.id)}
+              aria-label={`Edit route ${route.number}`}
+            >
+              <span className={styles.number}>{route.number}</span>
+              <span className={styles.meta}>
+                {route.has_zone && (
+                  <span className={styles.badgeZone}>
+                    <FaFlag aria-hidden /> Zone
+                  </span>
+                )}
+                {route.tag_ids.length > 0 && (
+                  <span className={styles.badgeTags}>
+                    <FaTag aria-hidden /> {route.tag_ids.length}
+                  </span>
+                )}
+                {route.setter_name && (
+                  <span className={styles.setter}>{route.setter_name}</span>
+                )}
+              </span>
+              <FaChevronRight className={styles.chevron} aria-hidden />
+            </button>
           </li>
         ))}
       </ul>
+
+      {editingRoute && (
+        <RouteEditSheet
+          route={editingRoute}
+          tags={tags}
+          onClose={() => setEditingId(null)}
+          onToggleZone={() => handleToggleZone(editingRoute)}
+          onSetterName={(next) => handleSetterName(editingRoute, next)}
+          onToggleTag={(tagId) => handleToggleTag(editingRoute, tagId)}
+        />
+      )}
     </section>
+  );
+}
+
+// ── Edit sheet — every route attribute in one place ────────────
+function RouteEditSheet({
+  route,
+  tags,
+  onClose,
+  onToggleZone,
+  onSetterName,
+  onToggleTag,
+}: {
+  route: AdminRouteRow;
+  tags: RouteTagRow[];
+  onClose: () => void;
+  onToggleZone: () => void;
+  onSetterName: (next: string | null) => void;
+  onToggleTag: (tagId: string) => void;
+}) {
+  const [setterDraft, setSetterDraft] = useState(route.setter_name ?? "");
+
+  function commitSetter() {
+    const trimmed = setterDraft.trim();
+    const next = trimmed.length > 0 ? trimmed : null;
+    if (next === (route.setter_name ?? null)) return;
+    onSetterName(next);
+  }
+
+  return (
+    <BottomSheet
+      open
+      onClose={onClose}
+      title={`Route ${route.number}`}
+      description="Edit zone, setter, and tags"
+    >
+      <div className={styles.sheetBody}>
+        <label className={styles.toggleRow}>
+          <span className={styles.toggleLabel}>
+            <FaFlag aria-hidden className={styles.toggleIcon} /> Zone hold
+          </span>
+          <input
+            type="checkbox"
+            className={styles.switch}
+            checked={route.has_zone}
+            onChange={onToggleZone}
+          />
+        </label>
+
+        <label className={styles.fieldRow}>
+          <span className={styles.fieldLabel}>Setter</span>
+          <input
+            type="text"
+            className={styles.fieldInput}
+            value={setterDraft}
+            onChange={(e) => setSetterDraft(e.target.value)}
+            onBlur={commitSetter}
+            placeholder="Internal only"
+            maxLength={40}
+          />
+        </label>
+
+        <div className={styles.tagsBlock}>
+          <span className={styles.fieldLabel}>Tags</span>
+          {tags.length === 0 ? (
+            <p className={styles.emptyTags}>No tags defined for this gym yet.</p>
+          ) : (
+            <div className={styles.tagGrid}>
+              {tags.map((tag) => {
+                const selected = route.tag_ids.includes(tag.id);
+                return (
+                  <label
+                    key={tag.id}
+                    className={`${styles.tagChip} ${selected ? styles.tagChipActive : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      onChange={() => onToggleTag(tag.id)}
+                      className={styles.visuallyHidden}
+                    />
+                    {tag.name}
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </BottomSheet>
   );
 }
 
@@ -221,71 +317,5 @@ function QuickSetupForm({
         {pending ? "Creating…" : <><FaPlus aria-hidden /> Create {count} routes</>}
       </Button>
     </form>
-  );
-}
-
-// ── Per-row context menu ────────────────────────────────────────
-function RouteMenu({
-  route,
-  tags,
-  onToggleZone,
-  onEditSetter,
-  onToggleTag,
-}: {
-  route: AdminRouteRow;
-  tags: RouteTagRow[];
-  onToggleZone: () => void;
-  onEditSetter: () => void;
-  onToggleTag: (tagId: string) => void;
-}) {
-  return (
-    <Primitive.Root>
-      <Primitive.Trigger asChild>
-        <button type="button" className={styles.menuTrigger} aria-label={`Actions for route ${route.number}`}>
-          <FaEllipsisVertical />
-        </button>
-      </Primitive.Trigger>
-      <Primitive.Portal>
-        <Primitive.Content className={styles.menuContent} align="end" sideOffset={8}>
-          <Primitive.Item className={styles.menuItem} onSelect={onToggleZone}>
-            <FaFlag aria-hidden /> {route.has_zone ? "Remove zone hold" : "Mark zone hold"}
-          </Primitive.Item>
-
-          <Primitive.Item className={styles.menuItem} onSelect={onEditSetter}>
-            Edit setter name
-          </Primitive.Item>
-
-          <Primitive.Separator className={styles.menuSeparator} />
-
-          <Primitive.Sub>
-            <Primitive.SubTrigger className={styles.menuItem}>
-              <FaTag aria-hidden /> Tags ({route.tag_ids.length})
-            </Primitive.SubTrigger>
-            <Primitive.Portal>
-              <Primitive.SubContent className={styles.menuContent} sideOffset={4}>
-                {tags.map((tag) => {
-                  const selected = route.tag_ids.includes(tag.id);
-                  return (
-                    <Primitive.CheckboxItem
-                      key={tag.id}
-                      className={styles.menuItem}
-                      checked={selected}
-                      onSelect={(e) => {
-                        // Keep the menu open across multiple tag toggles.
-                        e.preventDefault();
-                        onToggleTag(tag.id);
-                      }}
-                    >
-                      {tag.name}
-                      {selected && <span className={styles.menuCheck}>✓</span>}
-                    </Primitive.CheckboxItem>
-                  );
-                })}
-              </Primitive.SubContent>
-            </Primitive.Portal>
-          </Primitive.Sub>
-        </Primitive.Content>
-      </Primitive.Portal>
-    </Primitive.Root>
   );
 }

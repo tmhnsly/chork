@@ -2,6 +2,7 @@
 @use "mixins/typography" as type;
 @use "mixins/surfaces" as surface;
 @use "mixins/input" as input;
+@use "mixins/focus";
 
 .section {
   @include layout.stack(var(--space-3));
@@ -15,14 +16,31 @@
   margin: 0;
 }
 
+// The row IS the button — full-width tap target, chevron on the
+// right to signal "opens details". Replaces the old 3-dot context
+// menu which was fiddly and hid the attribute surface area.
 .row {
   @include surface.card;
+  @include focus.ring-inset;
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  width: 100%;
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-2);
   min-height: var(--size-touch-target);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    background: var(--mono-bg-hover);
+    border-color: var(--mono-border-hover);
+  }
 }
 
 .number {
@@ -31,6 +49,7 @@
   color: var(--mono-text);
   min-width: 2ch;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .meta {
@@ -39,9 +58,10 @@
   gap: var(--space-2);
   flex-wrap: wrap;
   align-items: center;
+  min-width: 0;
 }
 
-.zone {
+.badgeZone {
   @include type.typography(label);
   display: inline-flex;
   align-items: center;
@@ -53,7 +73,7 @@
   border-radius: var(--radius-full);
 }
 
-.tagCount {
+.badgeTags {
   @include type.typography(label);
   display: inline-flex;
   align-items: center;
@@ -68,65 +88,142 @@
 .setter {
   @include type.typography(meta);
   color: var(--mono-text-low-contrast);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
-// ── Context menu trigger ──────────────────────────
-.menuTrigger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: var(--size-touch-target);
-  min-height: var(--size-touch-target);
-  padding: 0;
-  background: transparent;
-  border: none;
+.chevron {
   color: var(--mono-text-low-contrast);
-  cursor: pointer;
-  border-radius: var(--radius-full);
-
-  &:hover {
-    color: var(--mono-text);
-    background: var(--mono-bg);
-  }
+  flex-shrink: 0;
+  font-size: var(--text-sm);
 }
 
-.menuContent {
-  @include layout.stack(var(--space-1));
-  min-width: 12rem;
-  padding: var(--space-1);
-  background: var(--mono-app-bg);
-  border: 1px solid var(--mono-border);
-  border-radius: var(--radius-2);
-  box-shadow: var(--shadow-md);
-  z-index: 9999;
+// ── Edit sheet ─────────────────────────────────────
+.sheetBody {
+  @include layout.stack(var(--space-5));
 }
 
-.menuItem {
-  @include type.typography(body);
+// Zone toggle — single row with a native checkbox styled as a
+// switch. Keeps accessibility (labelled input) while reading as
+// a modern OS-level switch.
+.toggleRow {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  min-height: var(--size-touch-target);
-  color: var(--mono-text);
-  border-radius: var(--radius-1);
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--mono-subtle-bg);
+  border-radius: var(--radius-2);
   cursor: pointer;
-  outline: none;
+}
 
-  &[data-highlighted] {
-    background: var(--mono-bg);
+.toggleLabel {
+  @include type.typography(label);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--mono-text);
+}
+
+.toggleIcon {
+  color: var(--success-text);
+}
+
+// CSS-only iOS-style switch from a checkbox.
+.switch {
+  appearance: none;
+  width: 44px;
+  height: 26px;
+  border-radius: var(--radius-full);
+  background: var(--mono-solid);
+  position: relative;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+  flex-shrink: 0;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 22px;
+    height: 22px;
+    border-radius: var(--radius-full);
+    background: var(--mono-app-bg);
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--duration-fast) var(--ease-out);
+  }
+
+  &:checked {
+    background: var(--accent-solid);
+  }
+
+  &:checked::before {
+    transform: translateX(18px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-border);
+    outline-offset: 2px;
   }
 }
 
-.menuSeparator {
-  height: 1px;
-  background: var(--mono-border-subtle);
-  margin: var(--space-1) 0;
+.fieldRow {
+  @include layout.stack(var(--space-1));
 }
 
-.menuCheck {
-  margin-left: auto;
-  color: var(--accent-text);
+.fieldLabel {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-xs);
+}
+
+.fieldInput {
+  @include input.field;
+}
+
+.tagsBlock {
+  @include layout.stack(var(--space-2));
+}
+
+.emptyTags {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+.tagGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.tagChip {
+  @include type.typography(label);
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-touch-target);
+  padding: 0 var(--space-3);
+  background: var(--mono-subtle-bg);
+  color: var(--mono-text);
+  border: 1px solid var(--mono-border);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    border-color: var(--mono-border-hover);
+  }
+}
+
+.tagChipActive {
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
+  color: var(--accent-on-solid);
 }
 
 // ── Quick-setup form (empty state) ────────────────

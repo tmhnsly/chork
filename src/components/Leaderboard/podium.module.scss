@@ -17,9 +17,8 @@
   // (row grows by space-3, padding shrinks by space-3 — net zero).
   transition: padding-top var(--duration-fast) var(--ease-out);
 
-  &:has(button.slot.place1:hover),
-  &:has(button.slot.place1:focus-visible),
-  &:has(.slot.place1.slotActive) {
+  &:has(a.slot.place1:hover),
+  &:has(a.slot.place1:focus-visible) {
     padding-top: var(--space-4);
   }
   list-style: none;
@@ -134,12 +133,9 @@ div.slot {
 
 // Hover grows the plinth upward — the bottom is anchored by the
 // parent grid's `align-items: end`, so the athlete rises on a
-// taller pedestal instead of the whole slot translating up. The
-// `.slotActive` variant locks the grown state while the climber's
-// profile sheet is open; snaps back down when the sheet closes.
-button.slot:hover .plinth,
-button.slot:focus-visible .plinth,
-.slotActive .plinth {
+// taller pedestal instead of the whole slot translating up.
+a.slot:hover .plinth,
+a.slot:focus-visible .plinth {
   height: calc(var(--plinth-h) + var(--space-3));
 }
 

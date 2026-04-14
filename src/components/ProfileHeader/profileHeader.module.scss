@@ -24,8 +24,11 @@
   // nicely in the header without the earlier aggressive clamp, which
   // shrank recognisable names on narrow containers. `overflow-wrap`
   // keeps 24-char usernames in-bounds without fighting the typography.
-  font-size: clamp(var(--text-2xl), 7cqi, var(--text-4xl));
-  line-height: 1.05;
+  // Dialled down from 2xl→4xl. Usernames are short handles, not
+  // display titles — the PageHeader preset above them does the
+  // splash-scale heavy lifting.
+  font-size: clamp(var(--text-xl), 5cqi, var(--text-2xl));
+  line-height: 1.1;
   letter-spacing: -0.01em;
   overflow-wrap: anywhere;
   padding-right: 0.1em;
