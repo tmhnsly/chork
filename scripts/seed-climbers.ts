@@ -211,6 +211,83 @@ async function main() {
     process.stdout.write(".");
   }
   console.log(`\nDone. created=${created} skipped=${skipped}`);
+
+  // ── Crew seeding ──────────────────────────────────
+  // Make sure the crew tab has something to look at:
+  //   • One "Seed Squad" crew with the first ~half of the seeded
+  //     climbers as active members. Idempotent — re-runs upsert.
+  //   • A pending invite from one seeded climber → the OWNER of
+  //     the gym so notifications/inbox have a real row to show.
+  await seedCrew(gym.id);
+  console.log("Seeded crew + pending invite.");
+}
+
+async function seedCrew(gymId: string) {
+  const { data: seedUsers } = await (supabase.auth.admin as any).listUsers();
+  const seedRows = seedUsers.users.filter((u: any) =>
+    u.email?.endsWith(`@${SEED_DOMAIN}`),
+  );
+  if (seedRows.length === 0) return;
+
+  // Find or create the demo crew.
+  const seedSquadName = "Seed Squad";
+  const founderId = seedRows[0].id;
+  const { data: existingCrew } = await supabase
+    .from("crews")
+    .select("id")
+    .eq("name", seedSquadName)
+    .maybeSingle();
+
+  let crewId = existingCrew?.id ?? null;
+  if (!crewId) {
+    const { data: created } = await supabase
+      .from("crews")
+      .insert({ name: seedSquadName, created_by: founderId })
+      .select("id")
+      .single();
+    crewId = created?.id ?? null;
+  }
+  if (!crewId) return;
+
+  // Active membership for half of the seed roster — the trigger
+  // already seated the founder; everyone else needs an upsert.
+  const activeIds = seedRows.slice(0, Math.ceil(seedRows.length / 2)).map((u: any) => u.id);
+  for (const userId of activeIds) {
+    await supabase
+      .from("crew_members")
+      .upsert(
+        {
+          crew_id: crewId,
+          user_id: userId,
+          invited_by: founderId,
+          status: "active",
+        },
+        { onConflict: "crew_id,user_id" },
+      );
+  }
+
+  // Pending invite to the gym's owner so the notifications surface
+  // has something on first open. Skip if no admins / already pending.
+  const { data: gymAdmins } = await supabase
+    .from("gym_admins")
+    .select("user_id")
+    .eq("gym_id", gymId)
+    .eq("role", "owner")
+    .limit(1);
+  const ownerId = gymAdmins?.[0]?.user_id;
+  if (!ownerId) return;
+
+  await supabase
+    .from("crew_members")
+    .upsert(
+      {
+        crew_id: crewId,
+        user_id: ownerId,
+        invited_by: founderId,
+        status: "pending",
+      },
+      { onConflict: "crew_id,user_id" },
+    );
 }
 
 main().catch((err) => {
