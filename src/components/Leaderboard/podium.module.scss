@@ -30,6 +30,11 @@
     align-items: flex-end;
     justify-content: center;
     width: 100%;
+    // Grid items default to min-width: auto (min-content). Without
+    // this override, a long nowrap username ("@SEAN_MYBABY") forces
+    // its 1fr track wider than the share it's supposed to get,
+    // pushing the third column past the page's right edge.
+    min-width: 0;
   }
 }
 
@@ -40,6 +45,7 @@
   align-items: center;
   gap: var(--space-2);
   width: 100%;
+  min-width: 0;
   padding: 0;
   background: transparent;
   border: none;
@@ -96,9 +102,15 @@ div.slot {
   @include type.typography(label);
   font-size: var(--text-xs);
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  // Long usernames like "@DANIEL_WOODSTOCK" get to wrap so the
+  // whole handle reads rather than being ellipsized. `break-word`
+  // prefers wrapping at soft break points (including `_`), and
+  // `anywhere` is the fallback for pathological cases where a
+  // run has no break opportunities at all.
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  text-align: center;
+  line-height: 1.2;
 }
 
 .points {
