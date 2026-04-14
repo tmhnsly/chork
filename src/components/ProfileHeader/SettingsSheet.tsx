@@ -26,6 +26,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useTheme, THEME_META, type ThemeName } from "@/lib/theme";
 import { savePushSubscription, removePushSubscription } from "@/app/(app)/actions";
 import { setAllowCrewInvites } from "@/app/crew/actions";
+import { updatePushCategory, type PushCategoryKey } from "@/lib/user-actions";
 import {
   isStandalonePwa,
   pushSupported,
@@ -59,6 +60,29 @@ export function SettingsSheet({ open, onClose, isAdmin }: Props) {
   const [gymSwitcherOpen, setGymSwitcherOpen] = useState(false);
   const [installSheetOpen, setInstallSheetOpen] = useState(false);
   const [themeOpen, setThemeOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+
+  // Per-category opt-in flags. Seed from profile + mirror optimistic
+  // toggles locally so taps respond instantly.
+  const [notifFlags, setNotifFlags] = useState<Record<PushCategoryKey, boolean>>({
+    invite_received: profile?.push_invite_received ?? true,
+    invite_accepted: profile?.push_invite_accepted ?? true,
+    ownership_changed: profile?.push_ownership_changed ?? true,
+  });
+  const [lastNotifProfile, setLastNotifProfile] = useState<string | null>(
+    profile ? notifSignature(profile) : null,
+  );
+  if (profile) {
+    const sig = notifSignature(profile);
+    if (sig !== lastNotifProfile) {
+      setLastNotifProfile(sig);
+      setNotifFlags({
+        invite_received: profile.push_invite_received,
+        invite_accepted: profile.push_invite_accepted,
+        ownership_changed: profile.push_ownership_changed,
+      });
+    }
+  }
 
   const [allowInvites, setAllowInvites] = useState<boolean>(
     profile?.allow_crew_invites ?? true,
@@ -123,6 +147,19 @@ export function SettingsSheet({ open, onClose, isAdmin }: Props) {
     setPushStatus("subscribed");
     showToast("Notifications on", "success");
   }, [pushStatus]);
+
+  const handleToggleNotif = useCallback(
+    async (category: PushCategoryKey) => {
+      const next = !notifFlags[category];
+      setNotifFlags((prev) => ({ ...prev, [category]: next }));
+      const res = await updatePushCategory(category, next);
+      if ("error" in res) {
+        setNotifFlags((prev) => ({ ...prev, [category]: !next }));
+        showToast(res.error, "error");
+      }
+    },
+    [notifFlags],
+  );
 
   const pushMenuVisible =
     pushSupported() &&
@@ -196,6 +233,18 @@ export function SettingsSheet({ open, onClose, isAdmin }: Props) {
             </button>
           )}
 
+          {pushStatus === "subscribed" && (
+            <button
+              type="button"
+              className={styles.item}
+              onClick={() => setNotifOpen(true)}
+            >
+              <FaBell aria-hidden className={styles.icon} />
+              <span className={styles.label}>Notifications</span>
+              <FaChevronRight className={styles.chevron} aria-hidden />
+            </button>
+          )}
+
           <button
             type="button"
             className={styles.item}
@@ -237,6 +286,30 @@ export function SettingsSheet({ open, onClose, isAdmin }: Props) {
             <FaTrash aria-hidden className={styles.icon} />
             <span className={styles.label}>Delete account</span>
           </button>
+        </div>
+      </BottomSheet>
+
+      <BottomSheet
+        open={notifOpen}
+        onClose={() => setNotifOpen(false)}
+        title="Notifications"
+        description="Pick which pushes you'd like to receive"
+      >
+        <div className={styles.list}>
+          {NOTIF_ROWS.map((row) => (
+            <button
+              key={row.category}
+              type="button"
+              className={styles.item}
+              onClick={() => handleToggleNotif(row.category)}
+            >
+              <FaBell aria-hidden className={styles.icon} />
+              <span className={styles.label}>{row.label}</span>
+              <span className={styles.trailing}>
+                {notifFlags[row.category] ? "On" : "Off"}
+              </span>
+            </button>
+          ))}
         </div>
       </BottomSheet>
 
@@ -301,4 +374,27 @@ export function SettingsSheet({ open, onClose, isAdmin }: Props) {
     </>
   );
 }
+
+// ── Local helpers ──────────────────────────────────────
+// Three-bool signature of the current profile's notification prefs
+// — used to detect when a profile refresh should reseed the local
+// optimistic flags without reaching for a useEffect.
+interface NotifProfile {
+  push_invite_received: boolean;
+  push_invite_accepted: boolean;
+  push_ownership_changed: boolean;
+}
+function notifSignature(p: NotifProfile): string {
+  return [
+    p.push_invite_received,
+    p.push_invite_accepted,
+    p.push_ownership_changed,
+  ].join("|");
+}
+
+const NOTIF_ROWS: { category: PushCategoryKey; label: string }[] = [
+  { category: "invite_received", label: "New crew invite" },
+  { category: "invite_accepted", label: "Invite accepted" },
+  { category: "ownership_changed", label: "Made crew creator" },
+];
 

@@ -586,6 +586,9 @@ export type Database = {
           invites_sent_today: number
           name: string
           onboarded: boolean
+          push_invite_accepted: boolean
+          push_invite_received: boolean
+          push_ownership_changed: boolean
           theme: string
           updated_at: string
           username: string
@@ -600,6 +603,9 @@ export type Database = {
           invites_sent_today?: number
           name?: string
           onboarded?: boolean
+          push_invite_accepted?: boolean
+          push_invite_received?: boolean
+          push_ownership_changed?: boolean
           theme?: string
           updated_at?: string
           username: string
@@ -614,6 +620,9 @@ export type Database = {
           invites_sent_today?: number
           name?: string
           onboarded?: boolean
+          push_invite_accepted?: boolean
+          push_invite_received?: boolean
+          push_ownership_changed?: boolean
           theme?: string
           updated_at?: string
           username?: string

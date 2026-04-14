@@ -47,9 +47,34 @@ export interface PushPayload {
 }
 
 /**
+ * Push categories map to discrete bools on `profiles` (migration
+ * 032). Callers should tag notifications so per-category opt-outs
+ * are honoured; `null`/undefined skips filtering (kept for internal
+ * / admin pushes where per-category muting makes no sense).
+ */
+export type PushCategory =
+  | "invite_received"
+  | "invite_accepted"
+  | "ownership_changed";
+
+const CATEGORY_COLUMN: Record<PushCategory, string> = {
+  invite_received: "push_invite_received",
+  invite_accepted: "push_invite_accepted",
+  ownership_changed: "push_ownership_changed",
+};
+
+interface SendOptions {
+  category?: PushCategory | null;
+}
+
+/**
  * Dispatch a push payload to every subscription owned by the given user
  * ids. Reads push_subscriptions via the service role — the caller is
  * always trusted server-side code (server action or scheduled job).
+ *
+ * When `options.category` is provided, recipients are filtered to only
+ * those whose matching opt-in column on `profiles` is true. Untagged
+ * calls bypass that filter (internal/admin use).
  *
  * Invalid endpoints (404 / 410 from the push service) are garbage-
  * collected from the DB as we discover them so the next dispatch isn't
@@ -60,16 +85,39 @@ export interface PushPayload {
  */
 export async function sendPushToUsers(
   userIds: string[],
-  payload: PushPayload
+  payload: PushPayload,
+  options: SendOptions = {},
 ): Promise<{ sent: number; removed: number } | { skipped: true }> {
   if (userIds.length === 0) return { sent: 0, removed: 0 };
   if (!configure()) return { skipped: true };
 
   const service = createServiceClient();
+
+  // Honour per-category opt-out: look up the bool column and keep
+  // only users who have it set to true. Ungated (null/undefined)
+  // calls skip this step.
+  let effectiveIds = userIds;
+  if (options.category) {
+    const column = CATEGORY_COLUMN[options.category];
+    // Dynamic column name — bypass the generated row type for the
+    // select + filter. The values come from a non-user-controlled
+    // constant map so there's no injection surface here.
+    const { data: profiles } = (await service
+      .from("profiles")
+      .select(`id, ${column}`)
+      .in("id", userIds)) as unknown as {
+      data: { id: string; [key: string]: boolean | string }[] | null;
+    };
+    effectiveIds = (profiles ?? [])
+      .filter((p) => p[column] === true)
+      .map((p) => p.id);
+    if (effectiveIds.length === 0) return { sent: 0, removed: 0 };
+  }
+
   const { data: subscriptions, error } = await service
     .from("push_subscriptions")
     .select("id, endpoint, p256dh, auth")
-    .in("user_id", userIds);
+    .in("user_id", effectiveIds);
 
   if (error || !subscriptions || subscriptions.length === 0) {
     return { sent: 0, removed: 0 };
@@ -124,11 +172,15 @@ export async function sendPushToUsers(
  * Prefer this for user-facing mutations (completeRoute, inviteToCrew,
  * etc.). Swallows errors internally — push is best-effort.
  */
-export function sendPushInBackground(userIds: string[], payload: PushPayload): void {
+export function sendPushInBackground(
+  userIds: string[],
+  payload: PushPayload,
+  options: SendOptions = {},
+): void {
   if (userIds.length === 0) return;
   after(async () => {
     try {
-      await sendPushToUsers(userIds, payload);
+      await sendPushToUsers(userIds, payload, options);
     } catch (err) {
       console.warn("[chork] background push dispatch failed:", err);
     }

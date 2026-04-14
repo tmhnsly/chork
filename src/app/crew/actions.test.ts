@@ -242,7 +242,8 @@ describe("inviteToCrew", () => {
       expect.objectContaining({
         title: "New crew invite",
         url: "/crew",
-      })
+      }),
+      expect.objectContaining({ category: "invite_received" }),
     );
   });
 

@@ -130,11 +130,15 @@ export async function inviteToCrew(
         supabase.from("crews").select("name").eq("id", crewId).maybeSingle(),
         supabase.from("profiles").select("username").eq("id", userId).maybeSingle(),
       ]);
-      await sendPushToUsers([targetUserId], {
-        title: "New crew invite",
-        body: `@${inviterRow?.username ?? "someone"} invited you to ${crewRow?.name ?? "a crew"}.`,
-        url: "/crew",
-      });
+      await sendPushToUsers(
+        [targetUserId],
+        {
+          title: "New crew invite",
+          body: `@${inviterRow?.username ?? "someone"} invited you to ${crewRow?.name ?? "a crew"}.`,
+          url: "/crew",
+        },
+        { category: "invite_received" },
+      );
     } catch (err) {
       console.warn("[chork] crew-invite push dispatch failed:", err);
     }
@@ -187,11 +191,15 @@ export async function acceptCrewInvite(crewMemberId: string): Promise<ActionResu
         const crewName = Array.isArray(invite.crew)
           ? invite.crew[0]?.name
           : invite.crew?.name;
-        await sendPushToUsers([invite.invited_by], {
-          title: "Invite accepted",
-          body: `@${accepterRow?.username ?? "someone"} joined ${crewName ?? "your crew"}.`,
-          url: "/crew",
-        });
+        await sendPushToUsers(
+          [invite.invited_by],
+          {
+            title: "Invite accepted",
+            body: `@${accepterRow?.username ?? "someone"} joined ${crewName ?? "your crew"}.`,
+            url: "/crew",
+          },
+          { category: "invite_accepted" },
+        );
       } catch (err) {
         console.warn("[chork] crew-accept push dispatch failed:", err);
       }
@@ -359,11 +367,15 @@ export async function transferCrewOwnership(
         .select("name")
         .eq("id", crewId)
         .maybeSingle();
-      await sendPushToUsers([newOwnerId], {
-        title: "You're now the crew creator",
-        body: `@${fromRow?.username ?? "someone"} handed ${crewName?.name ?? "a crew"} over to you.`,
-        url: `/crew/${crewId}`,
-      });
+      await sendPushToUsers(
+        [newOwnerId],
+        {
+          title: "You're now the crew creator",
+          body: `@${fromRow?.username ?? "someone"} handed ${crewName?.name ?? "a crew"} over to you.`,
+          url: `/crew/${crewId}`,
+        },
+        { category: "ownership_changed" },
+      );
     } catch (err) {
       console.warn("[chork] crew-transfer push dispatch failed:", err);
     }

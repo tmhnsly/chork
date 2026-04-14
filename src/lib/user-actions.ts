@@ -103,6 +103,50 @@ export async function updateThemePreference(
 }
 
 /**
+ * Per-category push opt-in flags. Maps to the discrete bools added
+ * in migration 032; the push dispatcher filters recipients on the
+ * matching column before firing. Unknown categories are rejected.
+ */
+const PUSH_CATEGORY_COLUMN = {
+  invite_received: "push_invite_received",
+  invite_accepted: "push_invite_accepted",
+  ownership_changed: "push_ownership_changed",
+} as const;
+export type PushCategoryKey = keyof typeof PUSH_CATEGORY_COLUMN;
+
+export async function updatePushCategory(
+  category: string,
+  enabled: boolean,
+): Promise<{ error: string } | { success: true }> {
+  if (!(category in PUSH_CATEGORY_COLUMN)) {
+    return { error: "Unknown notification category" };
+  }
+  if (typeof enabled !== "boolean") {
+    return { error: "Invalid value" };
+  }
+
+  const auth = await requireAuth();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase, userId } = auth;
+
+  const column = PUSH_CATEGORY_COLUMN[category as PushCategoryKey];
+
+  try {
+    // `column` is keyed off a non-user-controlled constant map —
+    // the cast here is for Supabase's generated update type, not a
+    // security bypass.
+    const { error } = await supabase
+      .from("profiles")
+      .update({ [column]: enabled } as never)
+      .eq("id", userId);
+    if (error) return { error: formatError(error) };
+    return { success: true };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
+
+/**
  * Upload an avatar image and update the user's profile.
  * Uses Supabase Storage (avatars bucket). Replaces any existing avatar.
  */

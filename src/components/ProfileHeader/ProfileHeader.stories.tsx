@@ -15,6 +15,9 @@ const mockUser: Profile = {
   invites_sent_today: 0,
   invites_sent_date: null,
   theme: "default",
+  push_invite_received: true,
+  push_invite_accepted: true,
+  push_ownership_changed: true,
 };
 
 const meta = {
