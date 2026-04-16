@@ -47,20 +47,27 @@ export const metadata: Metadata = {
   creator: "Chork",
   publisher: "Chork",
   manifest: "/manifest.json",
-  // Explicit PNG icons in `/public` — each size gets its own entry so
-  // browsers + iOS pick the right bitmap without downscaling SVG.
+  // Icon strategy:
+  //   1. /favicon.ico is a multi-resolution ICO (16/32/48) of the
+  //      lime brand variant. Always served, ignored only by
+  //      browsers that pick a media-queried PNG below. This is the
+  //      bulletproof fallback — covers browsers that don't honour
+  //      the `media` attribute on <link rel="icon">, the Next
+  //      metadata-stream load gap, and the cached-favicon-from-
+  //      previous-deploy case.
+  //   2. PNG variants with media queries layer on top for browsers
+  //      that DO honour them (modern Chrome / Safari / Firefox).
   //
   // File-name convention (target colour scheme, NOT graphic colour):
   //   `-light` = the icon designed for LIGHT mode (dark-olive graphic
   //              that's visible against light backgrounds)
   //   `-dark`  = the icon designed for DARK mode (lime-green graphic
   //              that's visible against dark backgrounds)
-  //
-  // So `(prefers-color-scheme: dark)` pairs with the `-dark` file —
-  // the lime variant pops on the dark system chrome. Inverted from
-  // the older convention; current pairings below are correct.
   icons: {
     icon: [
+      // Bulletproof fallback first — see header comment.
+      { url: "/favicon.ico", sizes: "any" },
+      // Media-queried PNG variants — modern browsers prefer these.
       { url: "/icon-favicon-16-dark.png",  sizes: "16x16", type: "image/png", media: "(prefers-color-scheme: dark)" },
       { url: "/icon-favicon-16-light.png", sizes: "16x16", type: "image/png", media: "(prefers-color-scheme: light)" },
       { url: "/icon-favicon-32-dark.png",  sizes: "32x32", type: "image/png", media: "(prefers-color-scheme: dark)" },
