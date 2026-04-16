@@ -7,6 +7,7 @@ import {
   getLeaderboardUserRow,
   getLogsBySetForUser,
 } from "@/lib/data/queries";
+import { UUID_RE } from "@/lib/validation";
 import type { LeaderboardEntry } from "@/lib/data";
 
 const TOP_LIMIT = 5;
@@ -79,8 +80,6 @@ export interface SanitisedLog {
   zone: boolean;
   grade_vote: number | null;
 }
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Fetch a climber's sanitised logs for the given set. Routes are

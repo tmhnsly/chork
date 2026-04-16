@@ -6,12 +6,11 @@ import { formatError } from "@/lib/errors";
 import { sendPushToUsers } from "@/lib/push/server";
 import { notifyUser } from "@/lib/notify";
 import { revalidateUserProfile } from "@/lib/cache/revalidate";
+import { UUID_RE } from "@/lib/validation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
 type ActionResult<T = unknown> = { error: string } | ({ success: true } & T);
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Fan-out tag invalidation: bust crew:{id} + every active member's

@@ -24,6 +24,7 @@ import type {
   ActivityEventType,
 } from "@/lib/data";
 import { formatError } from "@/lib/errors";
+import { UUID_RE } from "@/lib/validation";
 import { buildBadgeContext } from "@/lib/achievements/context";
 import { evaluateAndPersistAchievements } from "@/lib/achievements/evaluate";
 
@@ -440,8 +441,6 @@ export async function removePushSubscription(
 // Competitions — climber participation
 // ────────────────────────────────────────────────────────────────
 
-const UUID_RE_COMP = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 /**
  * Climber joins a competition, optionally self-selecting a category.
  * Upsert on the composite key keeps it idempotent and also lets the
@@ -451,10 +450,10 @@ export async function joinCompetition(
   competitionId: string,
   categoryId: string | null = null
 ): Promise<ActionResult> {
-  if (typeof competitionId !== "string" || !UUID_RE_COMP.test(competitionId)) {
+  if (typeof competitionId !== "string" || !UUID_RE.test(competitionId)) {
     return { error: "Invalid competition" };
   }
-  if (categoryId !== null && (typeof categoryId !== "string" || !UUID_RE_COMP.test(categoryId))) {
+  if (categoryId !== null && (typeof categoryId !== "string" || !UUID_RE.test(categoryId))) {
     return { error: "Invalid category" };
   }
 
@@ -516,7 +515,7 @@ export async function joinCompetition(
 export async function leaveCompetition(
   competitionId: string
 ): Promise<ActionResult> {
-  if (typeof competitionId !== "string" || !UUID_RE_COMP.test(competitionId)) {
+  if (typeof competitionId !== "string" || !UUID_RE.test(competitionId)) {
     return { error: "Invalid competition" };
   }
 
@@ -554,7 +553,6 @@ export async function leaveCompetition(
 export async function switchActiveGym(
   gymId: string
 ): Promise<ActionResult<{ gymId: string }>> {
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   if (typeof gymId !== "string" || !UUID_RE.test(gymId)) {
     return { error: "Invalid gym" };
   }

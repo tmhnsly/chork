@@ -2,8 +2,7 @@
 
 import { requireAuth } from "@/lib/auth";
 import { getLeaderboardUserRow } from "@/lib/data/queries";
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+import { UUID_RE } from "@/lib/validation";
 
 /**
  * Fetch the leaderboard placement for the given user + set.

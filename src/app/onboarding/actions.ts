@@ -2,13 +2,12 @@
 
 import { revalidateTag } from "next/cache";
 import { requireSignedIn } from "@/lib/auth";
-import { validateUsername } from "@/lib/validation";
+import { validateUsername, UUID_RE } from "@/lib/validation";
 import { createGymMembership } from "@/lib/data/mutations";
 import { formatError } from "@/lib/errors";
 import { revalidateUserProfile } from "@/lib/cache/revalidate";
 import type { Gym } from "@/lib/data";
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const MAX_NAME_LENGTH = 80;
 
 /**

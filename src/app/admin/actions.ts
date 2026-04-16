@@ -20,6 +20,7 @@ import {
 } from "@/lib/data/admin-mutations";
 import { createServiceClient } from "@/lib/supabase/server";
 import { formatError } from "@/lib/errors";
+import { UUID_RE } from "@/lib/validation";
 import { getGym } from "@/lib/data/queries";
 import { formatSetLabel } from "@/lib/data/set-label";
 import { getGymClimberUserIds, sendPushInBackground } from "@/lib/push/server";
@@ -30,7 +31,6 @@ type ActionResult<T = unknown> = { error: string } | ({ success: true } & T);
 // Slugs: lowercase letters, digits, single hyphens. Matches the same
 // shape the app already uses for gym slugs (see migration 001).
 const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // ────────────────────────────────────────────────────────────────
