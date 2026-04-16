@@ -7,7 +7,7 @@ import type { MetadataRoute } from "next";
  * here so bots don't waste crawl budget and so we don't have to
  * rely on the 401 wall as our SEO boundary.
  */
-const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chork.app";
+const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chork.vercel.app";
 
 export default function robots(): MetadataRoute.Robots {
   return {

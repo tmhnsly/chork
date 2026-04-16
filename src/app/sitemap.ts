@@ -7,7 +7,7 @@ import type { MetadataRoute } from "next";
  * sitemap fetch. Add them later via a cached RSC fetch if we start
  * caring about crawler coverage of profiles.
  */
-const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chork.app";
+const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chork.vercel.app";
 
 // Build-time constant — avoids calling `new Date()` inside the
 // handler body (react-hooks/purity is strict about side effects
