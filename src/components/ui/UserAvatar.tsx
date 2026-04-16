@@ -29,11 +29,19 @@ export function UserAvatar({ user, size = 40, className, priority = false }: Pro
   const src = hasImage ? getAvatarUrl(user, { size: size * 2 }) : null;
   const isDicebear = src?.startsWith("https://api.dicebear.com/") ?? false;
 
+  // .empty flips the surface from the neutral mono pair to the
+  // active theme's accent pair — picked up automatically from CSS
+  // variables, no data plumbing required. The mono pair stays for
+  // the image branch so an uploaded photo sits on a neutral plate
+  // regardless of theme.
+  const rootClass = [
+    styles.root,
+    !src ? styles.empty : "",
+    className,
+  ].filter(Boolean).join(" ");
+
   return (
-    <div
-      className={[styles.root, className].filter(Boolean).join(" ")}
-      style={{ width: size, height: size }}
-    >
+    <div className={rootClass} style={{ width: size, height: size }}>
       {src ? (
         <Image
           src={src}

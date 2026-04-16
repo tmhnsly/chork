@@ -1,3 +1,17 @@
+// Avatar surface tokens default to the active theme's accent scale.
+// `--mono-fallback` is the legacy mono pair we use for the image
+// branch (so a real photo sits on a neutral plate, no clash with
+// any uploaded artwork that happens to overlap accent tones).
+//
+// The .empty modifier flips them to the accent pair, picking up the
+// current theme's `--accent-bg` + `--accent-text-low-contrast`
+// automatically. When the user is viewing another climber's profile
+// the `<main data-theme="…">` scope already remaps `--accent-*` to
+// THAT climber's palette, so the empty avatar painted inside that
+// main reads in their colours without per-call wiring. Avatars
+// rendered outside that scope (nav, leaderboard, crew lists) inherit
+// the viewer's theme — same rule as every other accent surface in
+// the app.
 .root {
   display: flex;
   align-items: center;
@@ -8,6 +22,11 @@
   container-type: inline-size;
   background: var(--mono-bg);
   color: var(--mono-text-low-contrast);
+}
+
+.empty {
+  background: var(--accent-bg);
+  color: var(--accent-text-low-contrast);
 }
 
 .image {
