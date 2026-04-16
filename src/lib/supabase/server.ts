@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../database.types";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -83,6 +83,21 @@ export function createServiceClient() {
 }
 
 /**
+ * Branded variant of the Supabase client returned exclusively from
+ * `createCachedContextClient`. The brand is purely a TypeScript
+ * marker (no runtime cost) — its job is to make accidentally passing
+ * a regular service client into a cached helper a compile error.
+ *
+ * Cached helper bodies should accept this type when they need to
+ * communicate "I require a client safe for shared-across-users
+ * cache entries". Pass-through wrappers can use SupabaseClient as
+ * usual.
+ */
+export type CachedContextClient = SupabaseClient<Database> & {
+  readonly __brand: "cached-context";
+};
+
+/**
  * Client for use INSIDE unstable_cache bodies. Cache entries are
  * shared across users, so they can't depend on the caller's auth
  * cookies. This client uses the service role key and bypasses RLS —
@@ -90,7 +105,11 @@ export function createServiceClient() {
  * cached call (requireAuth / requireGymAdmin). RPCs that internally
  * gate on auth.uid() via is_gym_member() are NOT safe to call from
  * here — they return empty because auth.uid() is null.
+ *
+ * Returns a branded type so a caller that accidentally hands the
+ * regular service client to a function annotated CachedContextClient
+ * gets a compile error.
  */
-export function createCachedContextClient() {
-  return createServiceClient();
+export function createCachedContextClient(): CachedContextClient {
+  return createServiceClient() as CachedContextClient;
 }
