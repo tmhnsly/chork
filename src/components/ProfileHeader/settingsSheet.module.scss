@@ -70,6 +70,10 @@
   height: 10px;
   border-radius: var(--radius-full);
   border: 1px solid var(--mono-border-subtle);
+  // `--swatch` carries the per-palette colour from THEME_META — set
+  // by the component as a CSS pass-through so the sheet's CSS module
+  // doesn't have to know about each theme's hex.
+  background: var(--swatch, transparent);
 }
 
 .divider {

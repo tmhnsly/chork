@@ -206,10 +206,12 @@ function AuthenticatedNav({
         </Link>
 
         <div className={styles.tabs} ref={tabsRef}>
+          {/* Initial opacity:0 lives on `.pill` in the SCSS so first
+              paint stays clean — useLayoutEffect above flips it to 1
+              once the active tab's rect has been measured. */}
           <span
             className={styles.pill}
             ref={pillRef}
-            style={{ opacity: 0 }}
             aria-hidden
           />
           <Link href="/" className={`${styles.tab} ${homeActive ? styles.tabActive : ""}`} aria-current={homeActive ? "page" : undefined}>

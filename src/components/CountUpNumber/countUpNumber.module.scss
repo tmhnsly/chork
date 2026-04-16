@@ -1,0 +1,12 @@
+.root {
+  display: inline-block;
+  // Reserve the final value's width from the very first paint so the
+  // surrounding layout doesn't reflow as digits appear. `tabular-nums`
+  // keeps every digit the same width; `--count-min-w` is set per-call
+  // so the booked width matches the eventual final number.
+  // `text-align: right` lands the rolling digits flush against any
+  // trailing suffix (e.g. "/14", " pts").
+  min-width: var(--count-min-w, 1ch);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}

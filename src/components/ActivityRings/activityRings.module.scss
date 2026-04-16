@@ -12,7 +12,12 @@
   // Expo out — the ring sweeps most of its arc early, then glides
   // into the resting value. Matches the count-up feel so cards with
   // both (rings + numbers) settle as one gesture.
+  //
+  // `--ring-delay` is set per-ring by the component so each arc
+  // staggers in (0ms, 150ms, 300ms…) without needing a CSS
+  // pseudo-class for each index. Defaults to 0 for one-ring callers.
   animation: ringDraw var(--duration-slow) var(--ease-out-expo) both;
+  animation-delay: var(--ring-delay, 0ms);
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;

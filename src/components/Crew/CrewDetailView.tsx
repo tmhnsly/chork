@@ -59,7 +59,7 @@ export function CrewDetailView({
             <span
               key={m.user_id}
               className={styles.stackSlot}
-              style={{ zIndex: stackPreview.length - i }}
+              style={{ "--stack-z": stackPreview.length - i } as React.CSSProperties}
             >
               <UserAvatar
                 user={{

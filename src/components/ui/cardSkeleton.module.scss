@@ -6,4 +6,8 @@
   @include surface.card;
   border-radius: var(--radius-3);
   width: 100%;
+  // `--skeleton-min-h` is set per-call so the skeleton reserves the
+  // expected height of the populated state. Falls back to 9rem so a
+  // bare CardSkeleton still has a visible footprint.
+  min-height: var(--skeleton-min-h, 9rem);
 }

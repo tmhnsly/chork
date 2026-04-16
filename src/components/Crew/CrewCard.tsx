@@ -27,7 +27,7 @@ export function CrewCard({ crew, memberPreview }: Props) {
           <span
             key={m.user_id}
             className={styles.avatarSlot}
-            style={{ zIndex: visible.length - i }}
+            style={{ "--stack-z": visible.length - i } as React.CSSProperties}
           >
             <UserAvatar
               user={{

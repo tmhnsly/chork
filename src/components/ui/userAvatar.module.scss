@@ -13,6 +13,11 @@
 // the viewer's theme — same rule as every other accent surface in
 // the app.
 .root {
+  // `--avatar-size` is set by the component as a CSS custom-property
+  // pass-through (the only dynamic value at the call site). Falls
+  // back to 40px so a stray render with no prop still has a circle.
+  width: var(--avatar-size, 40px);
+  height: var(--avatar-size, 40px);
   display: flex;
   align-items: center;
   justify-content: center;

@@ -112,6 +112,11 @@
   bottom: 0;
   left: 0;
   height: 100%;
+  // Hidden on first paint — useLayoutEffect in NavBar measures the
+  // active tab's rect and flips opacity to 1 (and writes transform
+  // + width) on the very next frame. Pre-measure paint would land
+  // a stray pill at the left edge of the bar.
+  opacity: 0;
   background: var(--mono-bg);
   border-radius: var(--radius-full);
   pointer-events: none;

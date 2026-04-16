@@ -265,7 +265,13 @@ navbar + home indicator), max-width, and centering.
 
 ## Code rules
 
-- SCSS modules only — no inline styles, no CSS-in-JS
+- SCSS modules only — no inline styles, no CSS-in-JS. The one
+  allowed use of `style={{...}}` is to **pass a CSS custom property
+  through to the SCSS rule** (e.g. `style={{ "--bar-w": pct }}` so
+  the `.bar` class can `width: var(--bar-w)`). The SCSS still owns
+  every rule; the inline attribute is just a value pipe for the one
+  thing that has to be dynamic. Never set `width`, `color`,
+  `background`, etc. directly via `style={{...}}`
 - Container queries for components, media queries for page layout only
 - Typography via `@include type.typography(preset)` — never set font
   properties manually

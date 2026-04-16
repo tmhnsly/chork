@@ -36,6 +36,10 @@
 .avatarSlot {
   display: inline-flex;
   position: relative;
+  // `--stack-z` is set per-slot so earlier members sit on top of
+  // later ones (descending). Ring overlap reads correctly without
+  // each slot having its own pseudo-class.
+  z-index: var(--stack-z, 0);
   border-radius: var(--radius-full);
 
   &:not(:first-child) {

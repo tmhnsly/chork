@@ -41,7 +41,10 @@ export function UserAvatar({ user, size = 40, className, priority = false }: Pro
   ].filter(Boolean).join(" ");
 
   return (
-    <div className={rootClass} style={{ width: size, height: size }}>
+    <div
+      className={rootClass}
+      style={{ "--avatar-size": `${size}px` } as React.CSSProperties}
+    >
       {src ? (
         <Image
           src={src}

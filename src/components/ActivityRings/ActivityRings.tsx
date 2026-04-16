@@ -71,7 +71,7 @@ export function ActivityRings({ rings, size = 72, className }: Props) {
               strokeDashoffset={offset}
               transform={`rotate(-90 ${center} ${center})`}
               className={styles.ring}
-              style={{ animationDelay: `${i * 150}ms` }}
+              style={{ "--ring-delay": `${i * 150}ms` } as React.CSSProperties}
             />
           </g>
         );

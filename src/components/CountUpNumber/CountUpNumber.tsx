@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import styles from "./countUpNumber.module.scss";
 
 interface Props {
   value: number;
@@ -65,21 +66,15 @@ export function CountUpNumber({ value, duration = DEFAULT_DURATION, className }:
   }, [value, duration]);
 
   // Reserve the final value's width from the very first paint so the
-  // surrounding layout doesn't reflow as digits appear. `tabular-nums`
-  // keeps every digit the same width; `min-width: <target-length>ch`
-  // books that width up front. `text-align: right` lands the rolling
-  // digits flush against any trailing suffix (e.g. "/14", " pts").
+  // surrounding layout doesn't reflow as digits appear. The actual
+  // rules (display, tabular-nums, text-align) live in the SCSS
+  // module; only the dynamic min-width passes through as a CSS var.
   const width = Math.max(String(value).length, 1);
 
   return (
     <span
-      className={className}
-      style={{
-        display: "inline-block",
-        minWidth: `${width}ch`,
-        fontVariantNumeric: "tabular-nums",
-        textAlign: "right",
-      }}
+      className={[styles.root, className].filter(Boolean).join(" ")}
+      style={{ "--count-min-w": `${width}ch` } as React.CSSProperties}
     >
       {display}
     </span>

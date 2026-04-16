@@ -24,7 +24,7 @@ export function CardSkeleton({ height = "9rem", ariaLabel = "Loading", className
   return (
     <div
       className={`${styles.card} ${shimmerStyles.skeleton} ${className ?? ""}`}
-      style={{ minHeight: height }}
+      style={{ "--skeleton-min-h": height } as React.CSSProperties}
       role="status"
       aria-busy="true"
       aria-label={ariaLabel}

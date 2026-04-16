@@ -327,7 +327,7 @@ export function SettingsSheet({ open, onClose }: Props) {
                   <span
                     key={i}
                     className={styles.swatch}
-                    style={{ background: c }}
+                    style={{ "--swatch": c } as React.CSSProperties}
                     aria-hidden
                   />
                 ))}
