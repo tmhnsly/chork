@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { format, parseISO } from "date-fns";
 import type { RouteSet, Route, RouteLog } from "@/lib/data";
 import { isFlash, computePoints, deriveTileState } from "@/lib/data";
@@ -25,39 +25,62 @@ interface Props {
   gymName?: string | null;
 }
 
+/**
+ * Local-overlay state shape:
+ *   - `key` is `set.id` so the overlay clears when the active set
+ *     changes (admin publishes a new one). Within the same set's
+ *     lifetime the overlay persists across server revalidations.
+ *   - `map` holds optimistic + post-action updates by route id;
+ *     server-truth from `initialLogs` is the base.
+ *
+ * Derived in render — no useEffect needed, satisfies
+ * react-hooks/set-state-in-effect.
+ */
+interface OverlayState {
+  key: string;
+  map: Map<string, RouteLog>;
+}
+
 export function SendsGrid({ set, routes, initialLogs, gymName }: Props) {
-  const [logs, setLogs] = useState<RouteLog[]>(initialLogs);
+  const [overlayState, setOverlayState] = useState<OverlayState>({
+    key: set.id,
+    map: new Map(),
+  });
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
   const [routeDataCache, setRouteDataCache] = useState<Map<string, CachedRouteData>>(new Map());
 
-  // Sync when server re-fetches (e.g. revalidation, navigation)
-  useEffect(() => {
-    setLogs(initialLogs);
-  }, [initialLogs]);
+  // Merge server logs with the local overlay (overlay wins per route).
+  // Stale-overlay guard inlined: when set.id changes (admin published
+  // a new set), the previous overlay is discarded for this render.
+  // Keyed-cache pattern from CLAUDE.md — no useEffect setState.
+  const logByRoute = useMemo(() => {
+    const m = new Map(initialLogs.map((l) => [l.route_id, l]));
+    if (overlayState.key === set.id) {
+      for (const [routeId, log] of overlayState.map) m.set(routeId, log);
+    }
+    return m;
+  }, [initialLogs, overlayState, set.id]);
 
   const handleCacheRouteData = useCallback((routeId: string, data: CachedRouteData) => {
     setRouteDataCache((prev) => new Map(prev).set(routeId, data));
   }, []);
 
-  const logByRoute = new Map(logs.map((l) => [l.route_id, l]));
+  const handleLogUpdate = useCallback((routeId: string, updatedLog: RouteLog) => {
+    setOverlayState((prev) => {
+      // If the set changed since prev was written, start fresh.
+      const base = prev.key === set.id ? prev.map : new Map<string, RouteLog>();
+      return { key: set.id, map: new Map(base).set(routeId, updatedLog) };
+    });
+  }, [set.id]);
 
-  const completedCount = logs.filter((l) => l.completed).length;
-  const flashCount = logs.filter((l) => isFlash(l)).length;
-  const totalScore = logs.reduce((sum, l) => sum + computePoints(l), 0);
+  // Aggregate stats are derived from the merged logs so optimistic
+  // updates feed the rings + score immediately.
+  const mergedLogs = Array.from(logByRoute.values());
+  const completedCount = mergedLogs.filter((l) => l.completed).length;
+  const flashCount = mergedLogs.filter((l) => isFlash(l)).length;
+  const totalScore = mergedLogs.reduce((sum, l) => sum + computePoints(l), 0);
 
   const endsAt = format(parseISO(set.ends_at), "MMM d");
-
-  const handleLogUpdate = useCallback((routeId: string, updatedLog: RouteLog) => {
-    setLogs((prev) => {
-      const idx = prev.findIndex((l) => l.route_id === routeId);
-      if (idx >= 0) {
-        const next = [...prev];
-        next[idx] = updatedLog;
-        return next;
-      }
-      return [...prev, updatedLog];
-    });
-  }, []);
 
   return (
     <>
@@ -78,7 +101,7 @@ export function SendsGrid({ set, routes, initialLogs, gymName }: Props) {
         <Legend />
 
         <div className={styles.tileGrid}>
-          {routes.map((route, i) => {
+          {routes.map((route) => {
             const log = logByRoute.get(route.id);
             return (
               <PunchTile
