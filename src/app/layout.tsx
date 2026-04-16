@@ -48,37 +48,34 @@ export const metadata: Metadata = {
   publisher: "Chork",
   manifest: "/manifest.json",
   // Icon strategy:
-  //   1. /favicon.ico is a multi-resolution ICO (16/32/48) of the
-  //      lime brand variant. Always served, ignored only by
-  //      browsers that pick a media-queried PNG below. This is the
-  //      bulletproof fallback — covers browsers that don't honour
-  //      the `media` attribute on <link rel="icon">, the Next
-  //      metadata-stream load gap, and the cached-favicon-from-
-  //      previous-deploy case.
-  //   2. PNG variants with media queries layer on top for browsers
-  //      that DO honour them (modern Chrome / Safari / Firefox).
+  //   1. /icon.svg is the primary favicon. It carries an internal
+  //      `@media (prefers-color-scheme: dark)` rule that swaps the
+  //      glyph stroke colour — so the one file is correct in both
+  //      light AND dark OS themes, reactively, with no help from
+  //      the server. All evergreen browsers (Firefox 88+, Chrome
+  //      108+, Safari 16+, Edge Chromium) honour the media query
+  //      inside the SVG and re-paint when the user flips their
+  //      system theme.
+  //   2. /favicon.ico is the bulletproof fallback for browsers that
+  //      don't render SVG favicons — rendered in the lime brand
+  //      variant, which is high-contrast against both light and
+  //      dark chrome so one file serves both modes.
   //
-  // File-name convention (target colour scheme, NOT graphic colour):
-  //   `-light` = the icon designed for LIGHT mode (dark-olive graphic
-  //              that's visible against light backgrounds)
-  //   `-dark`  = the icon designed for DARK mode (lime-green graphic
-  //              that's visible against dark backgrounds)
+  // Listed in this order because browsers walk the list and take
+  // the first entry they can handle. Media-queried PNG variants
+  // were dropped because (a) they never actually worked in Firefox
+  // — Gecko ignores `media` on <link rel="icon"> — and (b) the SVG
+  // path above renders perfectly in every browser we support.
   icons: {
     icon: [
-      // Bulletproof fallback first — see header comment.
+      { url: "/icon.svg", type: "image/svg+xml" },
       { url: "/favicon.ico", sizes: "any" },
-      // Media-queried PNG variants — modern browsers prefer these.
-      { url: "/icon-favicon-16-dark.png",  sizes: "16x16", type: "image/png", media: "(prefers-color-scheme: dark)" },
-      { url: "/icon-favicon-16-light.png", sizes: "16x16", type: "image/png", media: "(prefers-color-scheme: light)" },
-      { url: "/icon-favicon-32-dark.png",  sizes: "32x32", type: "image/png", media: "(prefers-color-scheme: dark)" },
-      { url: "/icon-favicon-32-light.png", sizes: "32x32", type: "image/png", media: "(prefers-color-scheme: light)" },
-      { url: "/icon-favicon-48-dark.png",  sizes: "48x48", type: "image/png", media: "(prefers-color-scheme: dark)" },
-      { url: "/icon-favicon-48-light.png", sizes: "48x48", type: "image/png", media: "(prefers-color-scheme: light)" },
     ],
-    apple: [
-      { url: "/icon-apple-touch-icon-dark.png",  media: "(prefers-color-scheme: dark)" },
-      { url: "/icon-apple-touch-icon-light.png", media: "(prefers-color-scheme: light)" },
-    ],
+    // Apple ignores `media` on apple-touch-icon too, so a single
+    // non-adaptive asset (designed to read on both the iOS home-
+    // screen dark chrome and the occasional light wallpaper) is
+    // the correct choice here.
+    apple: [{ url: "/apple-touch-icon.png" }],
   },
   appleWebApp: {
     capable: true,

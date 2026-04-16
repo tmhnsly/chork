@@ -12,6 +12,3 @@ export type { TabPillOption } from "./TabPills";
 export { shimmerStyles } from "./Shimmer";
 export { ToastProvider, showToast, showAchievementToast } from "./Toast";
 export { UserAvatar } from "./UserAvatar";
-
-// Available but not exported from barrel (import directly if needed):
-// AvatarPicker, Banner, BentoGrid/BentoCell/BentoStat
