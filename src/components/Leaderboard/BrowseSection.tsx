@@ -6,10 +6,15 @@ import { Button, showToast } from "@/components/ui";
 import { LeaderboardList } from "./LeaderboardList";
 import { fetchLeaderboardPage } from "@/app/leaderboard/actions";
 import type { LeaderboardEntry } from "@/lib/data";
+import {
+  TOP_LIMIT,
+  BROWSE_WINDOW,
+  computeInitialOffset,
+  computePrevOffset,
+  computeNextOffset,
+  computeReturnOffset,
+} from "./browseSection.helpers";
 import styles from "./browseSection.module.scss";
-
-const TOP_LIMIT = 5;
-const BROWSE_WINDOW = 5;
 
 interface Props {
   /** Initial rows from server-side neighbourhood fetch. */
@@ -35,19 +40,13 @@ interface Props {
  * upwards, which by design starts at offset 5 (clamped) so the top-5
  * never repeats here.
  *
+ * Pure offset arithmetic (initial / prev / next / return-to-you)
+ * lives in `browseSection.helpers.ts` so it's testable in isolation.
+ *
  * Tab / setId resets are handled by the parent passing a `key` that
  * remounts this component fresh, so we don't need an effect to sync
  * external prop changes into state.
  */
-function computeInitialOffset(initialRows: LeaderboardEntry[], userRank: number): number {
-  if (initialRows.length === 0) {
-    return Math.max(TOP_LIMIT, userRank - Math.floor(BROWSE_WINDOW / 2) - 1);
-  }
-  const first = initialRows[0]?.rank;
-  if (typeof first === "number") return Math.max(TOP_LIMIT, first - 1);
-  return TOP_LIMIT;
-}
-
 export function BrowseSection({
   initialRows,
   userRank,
@@ -81,20 +80,17 @@ export function BrowseSection({
   }, [setId]);
 
   const goUp = useCallback(() => {
-    const next = Math.max(TOP_LIMIT, offset - BROWSE_WINDOW);
+    const next = computePrevOffset(offset);
     if (next === offset) return;
     void loadAt(next);
   }, [offset, loadAt]);
 
   const goDown = useCallback(() => {
-    void loadAt(offset + BROWSE_WINDOW);
+    void loadAt(computeNextOffset(offset));
   }, [offset, loadAt]);
 
   const returnToYou = useCallback(() => {
-    const target = Math.max(
-      TOP_LIMIT,
-      userRank - Math.floor(BROWSE_WINDOW / 2) - 1,
-    );
+    const target = computeReturnOffset(userRank);
     if (target === offset) return;
     void loadAt(target);
   }, [userRank, offset, loadAt]);
