@@ -7,7 +7,7 @@ import {
   getLeaderboard,
   getLeaderboardNeighbourhood,
   getLeaderboardUserRow,
-  getGymStats,
+  getGymStatsV2,
   getRoutesBySet,
 } from "@/lib/data/queries";
 import { LeaderboardView } from "@/components/Leaderboard/LeaderboardView";
@@ -24,21 +24,25 @@ export default async function LeaderboardPage() {
   if ("error" in auth) redirect("/login");
   const { supabase, userId, gymId } = auth;
 
-  const [gym, currentSet, allTimeStats] = await Promise.all([
+  const [gym, currentSet] = await Promise.all([
     getGym(gymId),
     getCurrentSet(gymId),
-    getGymStats(supabase, gymId),
   ]);
 
   // Determine initial tab's setId — prefer active set, fall back to all-time
   const initialSetId = currentSet?.id ?? null;
 
-  const [top, userRow, setStats, currentSetRoutes] = await Promise.all([
+  // One RPC returns both all-time + set-scoped stats; replaces the
+  // prior two-call pattern that fired 8 Supabase queries per paint.
+  const [top, userRow, stats, currentSetRoutes] = await Promise.all([
     getLeaderboard(supabase, gymId, initialSetId, TOP_LIMIT, 0),
     getLeaderboardUserRow(supabase, gymId, userId, initialSetId),
-    initialSetId ? getGymStats(supabase, gymId, initialSetId) : Promise.resolve(null),
+    getGymStatsV2(supabase, gymId, initialSetId),
     initialSetId ? getRoutesBySet(initialSetId) : Promise.resolve([]),
   ]);
+
+  const allTimeStats = stats.all_time;
+  const setStats = stats.set;
 
   const needsNeighbourhood =
     userRow !== null && userRow.rank !== null && userRow.rank > TOP_LIMIT;
