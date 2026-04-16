@@ -198,7 +198,7 @@ export async function updateGradeVote(
     // routes.community_grade is updated via trigger (migration 026).
     // Bust the per-route grade cache entry so the route sheet shows
     // fresh average within the next request.
-    revalidateTag(`set:route-${routeId}:routes`);
+    revalidateTag(`route:${routeId}:grade`);
     return { success: true, log };
   } catch (err) {
     return { error: formatError(err) };

@@ -414,7 +414,7 @@ export async function updateRoute(
   if ("error" in result) return { error: result.error };
 
   revalidateTag(`set:${gate.routeRow.set_id}:routes`);
-  revalidateTag(`set:route-${routeId}:routes`);
+  revalidateTag(`route:${routeId}:grade`);
   return { success: true };
 }
 

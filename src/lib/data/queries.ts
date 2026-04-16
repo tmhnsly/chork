@@ -366,7 +366,7 @@ export function getRouteGrade(routeId: string): Promise<number | null> {
       }
       return data?.community_grade ?? null;
     },
-    { tags: [`set:route-${routeId}:routes`], revalidate: 300 },
+    { tags: [`route:${routeId}:grade`], revalidate: 300 },
   );
   return fn(routeId);
 }

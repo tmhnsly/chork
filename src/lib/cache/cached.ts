@@ -23,7 +23,9 @@ export type Tag =
   | `gym:${string}:active-set`
   | `set:${string}:routes`
   | `set:${string}:leaderboard`
+  | `route:${string}:grade`
   | `user:${string}:profile`
+  | `user:username-${string}:profile`
   | `user:${string}:stats`
   | `user:${string}:crews`
   | `user:${string}:notifications`
