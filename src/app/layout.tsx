@@ -154,13 +154,14 @@ export const viewport: Viewport = {
   themeColor: "#bdee63",
   width: "device-width",
   initialScale: 1,
-  // Prevent iOS Safari from zooming the viewport on input focus.
-  // Primary fix is ≥16px on every text input (see input typography),
-  // the scale lock is belt-and-braces for inputs that momentarily
-  // render smaller during transitions.
-  maximumScale: 1,
-  userScalable: false,
   viewportFit: "cover",
+  // NOTE: deliberately NOT setting maximumScale or userScalable=false.
+  // Both block pinch-zoom which is a WCAG-blocker for low-vision
+  // users (lighthouse a11y → meta-viewport audit fails). The
+  // iOS-Safari-zooms-on-input-focus problem is solved by every text
+  // input rendering at ≥16px (see input typography preset). If an
+  // input ever drops below 16px during a transition, fix it at the
+  // typography layer rather than locking the viewport.
 };
 
 /**

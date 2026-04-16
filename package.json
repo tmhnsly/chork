@@ -14,7 +14,10 @@
     "check": "pnpm typecheck && pnpm lint && pnpm test",
     "typegen": "npx supabase gen types typescript --project-id cfyagiwtzrgfjtwaevlh > src/lib/database.types.ts",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "lhci": "lhci autorun --config=./lighthouserc.json",
+    "lhci:collect": "lhci collect --config=./lighthouserc.json",
+    "lhci:assert": "lhci assert --config=./lighthouserc.json"
   },
   "dependencies": {
     "@radix-ui/colors": "^3.0.0",
@@ -49,6 +52,7 @@
   "devDependencies": {
     "@chromatic-com/storybook": "^5.0.2",
     "@eslint/eslintrc": "^3.3.0",
+    "@lhci/cli": "^0.15.1",
     "@next/eslint-plugin-next": "^16.2.0",
     "@storybook/addon-a11y": "^10.3.1",
     "@storybook/addon-docs": "^10.3.1",
