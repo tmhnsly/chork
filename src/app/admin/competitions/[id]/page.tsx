@@ -1,11 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import { requireSignedIn } from "@/lib/auth";
+import { getCompetitionVenueStats } from "@/lib/data/competition-queries";
 import {
-  getCompetitionGyms,
-  getCompetitionCategories,
-  getCompetitionVenueStats,
-} from "@/lib/data/competition-queries";
-import { getCompetitionById } from "@/lib/data/competition-by-id";
+  getCompetitionById,
+  getCompetitionGymsCached,
+  getCompetitionCategoriesCached,
+} from "@/lib/data/competition-by-id";
 import { getAdminGymsForUser } from "@/lib/data/admin-queries";
 import { CompetitionForm } from "@/components/admin/CompetitionForm";
 import { CompetitionGymsPanel } from "@/components/admin/CompetitionGymsPanel";
@@ -33,8 +33,8 @@ export default async function EditCompetitionPage({ params }: Props) {
   if (competition.organiser_id !== userId) redirect("/admin/competitions");
 
   const [linkedGyms, categories, myGyms, venueStats] = await Promise.all([
-    getCompetitionGyms(supabase, id),
-    getCompetitionCategories(supabase, id),
+    getCompetitionGymsCached(id),
+    getCompetitionCategoriesCached(id),
     getAdminGymsForUser(supabase, userId),
     getCompetitionVenueStats(supabase, id),
   ]);

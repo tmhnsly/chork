@@ -1,12 +1,12 @@
 import { notFound, redirect } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { createServerSupabase, getServerUser } from "@/lib/supabase/server";
+import { getMyCompetitionParticipation } from "@/lib/data/competition-queries";
 import {
-  getCompetitionCategories,
-  getCompetitionGyms,
-  getMyCompetitionParticipation,
-} from "@/lib/data/competition-queries";
-import { getCompetitionById } from "@/lib/data/competition-by-id";
+  getCompetitionById,
+  getCompetitionGymsCached,
+  getCompetitionCategoriesCached,
+} from "@/lib/data/competition-by-id";
 import { CompetitionLeaderboard } from "@/components/Competitions/CompetitionLeaderboard";
 import { CompetitionJoinBar } from "@/components/Competitions/CompetitionJoinBar";
 import { PageHeader } from "@/components/motion";
@@ -40,8 +40,8 @@ export default async function CompetitionDetailPage({ params }: Props) {
   }
 
   const [categories, gyms, participation] = await Promise.all([
-    getCompetitionCategories(supabase, id),
-    getCompetitionGyms(supabase, id),
+    getCompetitionCategoriesCached(id),
+    getCompetitionGymsCached(id),
     getMyCompetitionParticipation(supabase, id, user.id),
   ]);
 
