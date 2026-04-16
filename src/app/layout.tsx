@@ -71,11 +71,22 @@ export const metadata: Metadata = {
       { url: "/icon.svg", type: "image/svg+xml" },
       { url: "/favicon.ico", sizes: "any" },
     ],
-    // Apple ignores `media` on apple-touch-icon too, so a single
-    // non-adaptive asset (designed to read on both the iOS home-
-    // screen dark chrome and the occasional light wallpaper) is
-    // the correct choice here.
-    apple: [{ url: "/apple-touch-icon.png" }],
+    // iOS 16.4+ respects `media` on apple-touch-icon: the system
+    // picks the matching variant at PWA install time. Post-install
+    // theme flips don't update the home-screen icon — iOS caches
+    // whatever it chose on install — which is an iOS limitation we
+    // can't work around. But a user installing while in dark mode
+    // gets the dark icon, and vice versa, which is what the user
+    // actually sees day-to-day.
+    //
+    // File naming: `-light` is the design FOR light mode (lime
+    // plate, dark mark). `-dark` is the design FOR dark mode
+    // (dark plate, pale mark + lime dot). Same convention as the
+    // rest of the icon set — target OS theme, not graphic colour.
+    apple: [
+      { url: "/apple-touch-icon-light.png", media: "(prefers-color-scheme: light)" },
+      { url: "/apple-touch-icon-dark.png", media: "(prefers-color-scheme: dark)" },
+    ],
   },
   appleWebApp: {
     capable: true,

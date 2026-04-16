@@ -155,6 +155,14 @@ release:
 - **iOS PWA splash screens** — test on a real iPhone / iPad via
   the Tailscale preview; desktop emulation doesn't trigger the
   `apple-touch-startup-image` path
+- **Adaptive icons** — run `pnpm exec node scripts/gen-apple-icons.mjs`
+  after any brand-mark change to regenerate
+  `apple-touch-icon-{light,dark}.png`. Verify both variants look
+  correct in their target mode, then add the device to home screen
+  in each OS theme to confirm iOS picks up the right one at install
+  time. `/icon.svg` handles browser-tab adaptivity runtime via
+  internal `@media (prefers-color-scheme)` — open in Firefox +
+  Chrome + Safari and flip OS theme to verify the repaint
 - **Cross-browser visual regression** — only Chromium runs in CI;
   eyeball the Safari + Firefox renders on `/` + `/profile` before
   any UI-heavy release
