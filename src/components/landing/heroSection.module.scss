@@ -52,7 +52,12 @@
 
 .subheadline {
   @include type.typography(body);
-  color: var(--mono-text-low-contrast);
+  // Radix step 11 (--mono-text-low-contrast) is designed for
+  // *small* secondary text — paired with body-sized 16px copy in
+  // light mode it falls below 4.5:1 WCAG AA. Step 12
+  // (--mono-text) keeps the visual hierarchy quiet vs the
+  // headline weight while clearing contrast on every theme.
+  color: var(--mono-text);
   animation: heroIn var(--duration-hero) var(--ease-out) 200ms both;
 }
 

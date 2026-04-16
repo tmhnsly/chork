@@ -53,6 +53,7 @@
     ]
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
     "@chromatic-com/storybook": "^5.0.2",
     "@eslint/eslintrc": "^3.3.0",
     "@lhci/cli": "^0.15.1",

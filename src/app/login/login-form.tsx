@@ -121,7 +121,7 @@ export function LoginForm() {
               value={email}
               onChange={(e) => { setEmail(e.target.value); setErrors((prev) => ({ ...prev, email: undefined })); }}
               required
-              autoComplete="username email"
+              autoComplete="username"
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
