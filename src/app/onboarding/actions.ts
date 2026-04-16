@@ -1,10 +1,11 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { requireSignedIn } from "@/lib/auth";
 import { validateUsername } from "@/lib/validation";
 import { createGymMembership } from "@/lib/data/mutations";
 import { formatError } from "@/lib/errors";
+import { revalidateUserProfile } from "@/lib/cache/revalidate";
 import type { Gym } from "@/lib/data";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -72,7 +73,14 @@ export async function completeOnboarding(
       return { error: formatError(profileError) };
     }
 
-    revalidatePath("/", "layout");
+    // Onboarding sets username, name, active_gym_id and the onboarded
+    // flag — all profile-row fields. revalidateUserProfile busts both
+    // user:{uid}:profile and user:username-{u}:profile so the next
+    // /u/{username} render picks up the freshly-set name + theme.
+    // Active-set tag is busted too so the home page wall renders the
+    // climber's new gym's set without waiting for TTL.
+    await revalidateUserProfile(supabase, userId);
+    revalidateTag(`gym:${gymId}:active-set`);
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
