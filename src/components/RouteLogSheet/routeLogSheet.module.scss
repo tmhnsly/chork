@@ -440,24 +440,13 @@
   padding-top: var(--space-1);
 }
 
+// Loading-state shimmer for the comment avatar slot. The populated
+// state now renders a `<UserAvatar size={32}>` (which owns its own
+// dimensions); this class only paints the skeleton placeholder.
 .commentAvatar {
   width: var(--space-8);
   height: var(--space-8);
   border-radius: var(--radius-full);
-  object-fit: cover;
-}
-
-.commentAvatarFallback {
-  @include type.typography(meta);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--space-8);
-  height: var(--space-8);
-  border-radius: var(--radius-full);
-  background: var(--mono-subtle-bg);
-  color: var(--mono-text-low-contrast);
-  font-weight: var(--weight-semibold);
 }
 
 .commentContent {

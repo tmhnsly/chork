@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import {
   FaMinus,
@@ -29,7 +28,6 @@ import type { RouteSet, Route, RouteLog, Comment, PaginatedComments } from "@/li
 import { createOptimisticLog } from "@/lib/data";
 import { isFlash, computePoints } from "@/lib/data";
 import { useAuth } from "@/lib/auth-context";
-import { getAvatarUrl } from "@/lib/avatar";
 import {
   offlineUpdateAttempts as updateAttempts,
   offlineCompleteRoute as completeRoute,
@@ -44,7 +42,7 @@ import {
   editComment,
   likeComment,
 } from "@/app/(app)/actions";
-import { Button, shimmerStyles, showToast, showAchievementToast } from "@/components/ui";
+import { Button, shimmerStyles, showToast, showAchievementToast, UserAvatar } from "@/components/ui";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { BrandDivider } from "@/components/ui/BrandDivider";
 import styles from "./routeLogSheet.module.scss";
@@ -694,21 +692,22 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
                     <ul className={styles.commentList}>
                       {(expanded ? comments : comments.slice(0, 2)).map((c) => {
                         const author = c.profiles;
-                        const avatarUrl = author ? getAvatarUrl(author, { size: 64 }) : undefined;
                         const username = author?.username ?? "unknown";
-                        const displayName = author?.name ?? "";
-                        const initial = displayName.charAt(0) || username.charAt(0) || "?";
                         const isOwn = user?.id === c.user_id;
 
                         return (
                           <li key={c.id} className={styles.commentItem}>
                             <div className={styles.commentRow}>
                               <Link href={`/u/${username}`} className={styles.avatarLink}>
-                                {avatarUrl ? (
-                                  <Image src={avatarUrl} alt={`@${username}`} width={32} height={32} className={styles.commentAvatar} unoptimized />
-                                ) : (
-                                  <span className={styles.commentAvatarFallback}>{initial.toUpperCase()}</span>
-                                )}
+                                <UserAvatar
+                                  user={{
+                                    id: c.user_id,
+                                    username,
+                                    name: author?.name ?? "",
+                                    avatar_url: author?.avatar_url ?? "",
+                                  }}
+                                  size={32}
+                                />
                               </Link>
                               <div className={styles.commentContent}>
                                 {/* Render the author line in BOTH modes so the

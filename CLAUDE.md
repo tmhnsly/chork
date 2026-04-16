@@ -166,10 +166,11 @@ Quick reference:
   icon tree-shakes properly — keep using `import { FaFoo } from
   "react-icons/fa6"` rather than per-icon subpaths
 - **Image optimisation** is on by default for uploaded JPEGs (Next
-  resizes via the CDN). `UserAvatar` only opts out for dicebear
-  SVGs. `next.config.ts` `images.remotePatterns` accepts
-  `*.supabase.co/storage/v1/object/public/**` — add new hostnames
-  there before passing them to `<Image>`
+  resizes via the CDN). `next.config.ts` `images.remotePatterns`
+  accepts `*.supabase.co/storage/v1/object/public/**` — add new
+  hostnames there before passing them to `<Image>`. The no-image
+  branch of `UserAvatar` renders an outlined glyph on the active
+  theme's accent surface — no third-party fallback service
 
 ---
 

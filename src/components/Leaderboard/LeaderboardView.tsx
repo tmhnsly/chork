@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition, useCallback, useRef, useEffect } from "react";
-import { getAvatarUrl } from "@/lib/avatar";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { showToast } from "@/components/ui";
 import { Podium } from "./Podium";
@@ -111,19 +110,8 @@ export function LeaderboardView({
     for (const tabData of Object.values(cache)) {
       for (const entry of tabData?.top.slice(0, 3) ?? []) {
         if (!entry.avatar_url) continue;
-        const url = getAvatarUrl(
-          {
-            id: entry.user_id,
-            avatar_url: entry.avatar_url,
-            name: entry.name,
-            username: entry.username,
-          },
-          { size: 176 },
-        );
-        if (url) {
-          const img = new window.Image();
-          img.src = url;
-        }
+        const img = new window.Image();
+        img.src = entry.avatar_url;
       }
     }
   }, [cache]);

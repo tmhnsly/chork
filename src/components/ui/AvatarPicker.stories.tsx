@@ -27,7 +27,10 @@ export const Empty: Story = {
 
 export const WithImage: Story = {
   args: {
-    currentUrl: "https://api.dicebear.com/9.x/initials/svg?seed=Tom&size=128&backgroundColor=6366f1",
+    // Generic placeholder portrait — picsum is a stable demo source
+    // (no auth, deterministic via the seed). Doesn't represent a real
+    // upload; just stands in for "user has a photo set".
+    currentUrl: "https://picsum.photos/seed/chork-avatar/128",
     fallbackText: "Tom",
     label: "Change photo",
   },

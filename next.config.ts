@@ -94,10 +94,6 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       {
-        protocol: "https",
-        hostname: "api.dicebear.com",
-      },
-      {
         // Uploaded climber avatars (Supabase Storage). Without this
         // entry the optimizer would refuse the URL and Next would
         // fall back to unoptimized — defeating the size shrink.

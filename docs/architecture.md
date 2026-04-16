@@ -557,9 +557,10 @@ contributors having to think about it per-file:
 - **`images.remotePatterns`** allows Next's image optimiser to handle
   uploaded JPEGs from Supabase Storage. New CDN hosts must be added
   here before passing them to `<Image>`.
-- **`UserAvatar`** sets `unoptimized` only when the URL is a dicebear
-  SVG (already tiny). Uploaded JPEGs go through the optimiser so the
-  CDN serves a width-appropriate variant.
+- **`UserAvatar`** routes uploaded JPEGs through the optimiser so
+  the CDN serves a width-appropriate variant. The no-image branch
+  renders an outlined glyph on the active theme's accent surface
+  (no third-party fallback service).
 - **`ClimberSheet`** + `RouteLogSheet` are dynamically imported via
   `next/dynamic({ ssr: false })` — they pull `PunchTile` /
   `formatGrade` / sanitisers that we don't want in the cold leaderboard
