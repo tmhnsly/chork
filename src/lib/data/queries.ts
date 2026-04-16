@@ -688,27 +688,39 @@ export interface ProfileSummary {
     zone: boolean;
   }>;
   total_routes_in_gym: number;
+  total_attempts: number;
+  unique_routes_attempted: number;
 }
 
-export async function getProfileSummary(
-  supabase: Supabase,
-  userId: string,
-  gymId: string,
-): Promise<ProfileSummary> {
-  const { data, error } = await supabase.rpc("get_profile_summary", {
-    p_user_id: userId,
-    p_gym_id: gymId,
-  });
-  if (error) {
-    console.warn("[chork] getProfileSummary failed:", error);
-    return { per_set: [], active_set_detail: [], total_routes_in_gym: 0 };
-  }
-  return (data as ProfileSummary | null) ?? {
-    per_set: [],
-    active_set_detail: [],
-    total_routes_in_gym: 0,
-  };
-}
+export const getProfileSummary = cache(
+  async (
+    supabase: Supabase,
+    userId: string,
+    gymId: string,
+  ): Promise<ProfileSummary> => {
+    const { data, error } = await supabase.rpc("get_profile_summary", {
+      p_user_id: userId,
+      p_gym_id: gymId,
+    });
+    if (error) {
+      console.warn("[chork] getProfileSummary failed:", error);
+      return {
+        per_set: [],
+        active_set_detail: [],
+        total_routes_in_gym: 0,
+        total_attempts: 0,
+        unique_routes_attempted: 0,
+      };
+    }
+    return (data as ProfileSummary | null) ?? {
+      per_set: [],
+      active_set_detail: [],
+      total_routes_in_gym: 0,
+      total_attempts: 0,
+      unique_routes_attempted: 0,
+    };
+  },
+);
 
 // ── Gym stats v2 (migration 037) ───────────────────
 
