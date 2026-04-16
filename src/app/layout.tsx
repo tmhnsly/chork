@@ -49,22 +49,28 @@ export const metadata: Metadata = {
   manifest: "/manifest.json",
   // Explicit PNG icons in `/public` — each size gets its own entry so
   // browsers + iOS pick the right bitmap without downscaling SVG.
-  // Dark/light variants let the OS match the user's colour scheme
-  // (HTML `<link rel="icon">` properly respects the `media` hint;
-  // the manifest's `media` extension is non-standard and most installers
-  // ignore it — the manifest now ships single neutral entries).
+  //
+  // File-name convention (target colour scheme, NOT graphic colour):
+  //   `-light` = the icon designed for LIGHT mode (dark-olive graphic
+  //              that's visible against light backgrounds)
+  //   `-dark`  = the icon designed for DARK mode (lime-green graphic
+  //              that's visible against dark backgrounds)
+  //
+  // So `(prefers-color-scheme: dark)` pairs with the `-dark` file —
+  // the lime variant pops on the dark system chrome. Inverted from
+  // the older convention; current pairings below are correct.
   icons: {
     icon: [
-      { url: "/icon-favicon-16-light.png", sizes: "16x16", type: "image/png", media: "(prefers-color-scheme: dark)" },
-      { url: "/icon-favicon-16-dark.png",  sizes: "16x16", type: "image/png", media: "(prefers-color-scheme: light)" },
-      { url: "/icon-favicon-32-light.png", sizes: "32x32", type: "image/png", media: "(prefers-color-scheme: dark)" },
-      { url: "/icon-favicon-32-dark.png",  sizes: "32x32", type: "image/png", media: "(prefers-color-scheme: light)" },
-      { url: "/icon-favicon-48-light.png", sizes: "48x48", type: "image/png", media: "(prefers-color-scheme: dark)" },
-      { url: "/icon-favicon-48-dark.png",  sizes: "48x48", type: "image/png", media: "(prefers-color-scheme: light)" },
+      { url: "/icon-favicon-16-dark.png",  sizes: "16x16", type: "image/png", media: "(prefers-color-scheme: dark)" },
+      { url: "/icon-favicon-16-light.png", sizes: "16x16", type: "image/png", media: "(prefers-color-scheme: light)" },
+      { url: "/icon-favicon-32-dark.png",  sizes: "32x32", type: "image/png", media: "(prefers-color-scheme: dark)" },
+      { url: "/icon-favicon-32-light.png", sizes: "32x32", type: "image/png", media: "(prefers-color-scheme: light)" },
+      { url: "/icon-favicon-48-dark.png",  sizes: "48x48", type: "image/png", media: "(prefers-color-scheme: dark)" },
+      { url: "/icon-favicon-48-light.png", sizes: "48x48", type: "image/png", media: "(prefers-color-scheme: light)" },
     ],
     apple: [
-      { url: "/icon-apple-touch-icon-light.png", media: "(prefers-color-scheme: dark)" },
-      { url: "/icon-apple-touch-icon-dark.png",  media: "(prefers-color-scheme: light)" },
+      { url: "/icon-apple-touch-icon-dark.png",  media: "(prefers-color-scheme: dark)" },
+      { url: "/icon-apple-touch-icon-light.png", media: "(prefers-color-scheme: light)" },
     ],
   },
   appleWebApp: {
