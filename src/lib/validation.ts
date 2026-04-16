@@ -15,6 +15,21 @@ export function isUuid(value: unknown): value is string {
   return typeof value === "string" && UUID_RE.test(value);
 }
 
+/**
+ * Escape Postgres LIKE / ILIKE pattern metacharacters in a user-supplied
+ * search input. Without this, a climber typing "50%" turns into a
+ * wildcard scan; "_a" matches every two-letter combo starting with "a".
+ *
+ * Backslash itself escapes (default Postgres behaviour) so we double it
+ * first, then escape the wildcards.
+ */
+export function escapeLikePattern(input: string): string {
+  return input
+    .replace(/\\/g, "\\\\")
+    .replace(/%/g, "\\%")
+    .replace(/_/g, "\\_");
+}
+
 export function validateUsername(username: string): { error?: string } {
   if (!username) return { error: "Username is required" };
   if (username.length < 3) return { error: "Username must be at least 3 characters" };

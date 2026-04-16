@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../database.types";
 import { cachedQuery } from "@/lib/cache/cached";
 import { createCachedContextClient } from "@/lib/supabase/server";
+import { escapeLikePattern } from "@/lib/validation";
 import type {
   Profile,
   Gym,
@@ -109,21 +110,6 @@ export const getProfileByUsername = cache(
 );
 
 // ── Gyms ───────────────────────────────────────────
-
-/**
- * Escape Postgres LIKE / ILIKE pattern metacharacters in a user-supplied
- * search input. Without this, a climber typing "50%" turns into a
- * wildcard scan; "_a" matches every two-letter combo starting with "a".
- *
- * Backslash itself escapes (default Postgres behaviour) so we double it
- * first, then escape the wildcards.
- */
-function escapeLikePattern(input: string): string {
-  return input
-    .replace(/\\/g, "\\\\")
-    .replace(/%/g, "\\%")
-    .replace(/_/g, "\\_");
-}
 
 export async function searchGyms(supabase: Supabase, query: string): Promise<Gym[]> {
   const safe = escapeLikePattern(query.trim());
