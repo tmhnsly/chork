@@ -593,7 +593,7 @@ export async function switchActiveGym(
       .eq("id", userId);
     if (profErr) return { error: formatError(profErr) };
 
-    revalidatePath("/", "layout");
+    revalidateTag(`user:${userId}:profile`);
     return { success: true, gymId };
   } catch (err) {
     return { error: formatError(err) };
