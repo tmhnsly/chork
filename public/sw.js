@@ -1,6 +1,9 @@
 /// <reference lib="webworker" />
 
-const CACHE_NAME = "chork-v1";
+// Bumping this name evicts the old cache on activate. Bump whenever
+// the SW logic or pre-cache shape changes so users get the new
+// behaviour on next visit.
+const CACHE_NAME = "chork-v2";
 
 // App shell — cached on install for instant loads
 const SHELL_URLS = ["/", "/login", "/onboarding", "/leaderboard", "/privacy"];
@@ -76,24 +79,44 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   if (url.hostname !== self.location.hostname) return;
 
-  // Network-first for HTML pages (always get fresh RSC data)
+  // Stale-while-revalidate for HTML pages: paint cached shell
+  // *immediately* on cold open + refresh the cache in the background.
+  // The user sees an instant first paint, then the layout streams
+  // fresher RSC data when the network catches up. Falls back to
+  // network-first when no cached entry exists.
   if (request.headers.get("accept")?.includes("text/html")) {
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
-          return response;
-        })
-        .catch(() => caches.match(request))
+      caches.open(CACHE_NAME).then(async (cache) => {
+        const cached = await cache.match(request);
+        const networkPromise = fetch(request)
+          .then((response) => {
+            // Only cache successful, non-opaque responses to avoid
+            // poisoning the shell cache with 404s or auth redirects.
+            if (response.ok) {
+              cache.put(request, response.clone()).catch(() => {});
+            }
+            return response;
+          })
+          .catch(() => null);
+        if (cached) {
+          // Kick off background refresh but don't wait on it.
+          event.waitUntil(networkPromise);
+          return cached;
+        }
+        const network = await networkPromise;
+        return network ?? cached ?? new Response("Offline", { status: 503 });
+      })
     );
     return;
   }
 
-  // Cache-first for static assets (JS, CSS, images, fonts)
+  // Cache-first for static assets (JS, CSS, images, fonts).
+  // Hashed filenames mean the cache entry is content-addressed —
+  // revalidation isn't needed.
   if (
     url.pathname.startsWith("/_next/static/") ||
     url.pathname.startsWith("/icon-") ||
+    url.pathname.startsWith("/apple-splash-") ||
     url.pathname.endsWith(".woff2")
   ) {
     event.respondWith(
