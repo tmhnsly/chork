@@ -17,6 +17,13 @@ type Supabase = SupabaseClient<Database>;
 
 // ── Route logs ─────────────────────────────────────
 
+/**
+ * Returned shape includes the route's set_id (joined) so callers
+ * can target precise revalidateTag invalidations on
+ * `set:{setId}:leaderboard` without firing a second query.
+ */
+export type UpsertedRouteLog = RouteLog & { set_id: string | null };
+
 export async function upsertRouteLog(
   supabase: Supabase,
   userId: string,
@@ -24,7 +31,7 @@ export async function upsertRouteLog(
   data: RouteLogUpdate,
   existingLogId?: string,
   gymId?: string | null
-): Promise<RouteLog> {
+): Promise<UpsertedRouteLog> {
   if (existingLogId) {
     if (!gymId) throw new Error("gym_id is required to update a route log");
     // Scope by gym_id too — a user in multiple gyms can't accidentally
@@ -35,10 +42,10 @@ export async function upsertRouteLog(
       .eq("id", existingLogId)
       .eq("user_id", userId)
       .eq("gym_id", gymId)
-      .select()
+      .select("*, routes!inner(set_id)")
       .single();
     if (error) throw error;
-    return log;
+    return flattenSetId(log);
   }
 
   if (!gymId) throw new Error("gym_id is required when creating a route log");
@@ -49,10 +56,30 @@ export async function upsertRouteLog(
       { user_id: userId, route_id: routeId, gym_id: gymId, ...data },
       { onConflict: "user_id,route_id" }
     )
-    .select()
+    .select("*, routes!inner(set_id)")
     .single();
   if (error) throw error;
-  return log;
+  return flattenSetId(log);
+}
+
+/**
+ * The supabase client returns the joined `routes` either as an object
+ * or a single-element array depending on the relationship arity it
+ * infers — flatten to a top-level set_id string so call sites don't
+ * branch.
+ */
+function flattenSetId(row: RouteLog & { routes?: { set_id: string } | { set_id: string }[] | null }): UpsertedRouteLog {
+  const routes = row.routes;
+  const setId = routes
+    ? Array.isArray(routes)
+      ? routes[0]?.set_id ?? null
+      : routes.set_id ?? null
+    : null;
+  // Strip the join column from the returned shape so callers see a
+  // flat RouteLog + set_id.
+  const { routes: _drop, ...rest } = row;
+  void _drop;
+  return { ...rest, set_id: setId };
 }
 
 // ── Comments ───────────────────────────────────────

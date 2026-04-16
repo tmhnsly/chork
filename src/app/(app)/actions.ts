@@ -94,14 +94,9 @@ export async function completeRoute(
       }),
     ]);
 
-    // Resolve setId from routeId for set-scoped leaderboard tag.
-    const { data: routeRow } = await supabase
-      .from("routes")
-      .select("set_id")
-      .eq("id", routeId)
-      .maybeSingle();
-    if (routeRow?.set_id) {
-      revalidateTag(`set:${routeRow.set_id}:leaderboard`);
+    // upsertRouteLog joined routes for us — no extra round trip needed.
+    if (log.set_id) {
+      revalidateTag(`set:${log.set_id}:leaderboard`);
     }
     revalidateTag(`user:${userId}:stats`);
     // No profile-row bust: a send doesn't change profiles.* fields.
@@ -148,13 +143,8 @@ export async function uncompleteRoute(
       deleteCompletionEvents(supabase, userId, routeId),
     ]);
 
-    const { data: routeRow } = await supabase
-      .from("routes")
-      .select("set_id")
-      .eq("id", routeId)
-      .maybeSingle();
-    if (routeRow?.set_id) {
-      revalidateTag(`set:${routeRow.set_id}:leaderboard`);
+    if (log.set_id) {
+      revalidateTag(`set:${log.set_id}:leaderboard`);
     }
     revalidateTag(`user:${userId}:stats`);
     // No profile-row bust — see completeRoute note.
