@@ -3,7 +3,7 @@
 // Bumping this name evicts the old cache on activate. Bump whenever
 // the SW logic or pre-cache shape changes so users get the new
 // behaviour on next visit.
-const CACHE_NAME = "chork-v2";
+const CACHE_NAME = "chork-v3";
 
 // App shell — cached on install for instant loads
 const SHELL_URLS = ["/", "/login", "/onboarding", "/leaderboard", "/privacy"];
@@ -28,8 +28,21 @@ self.addEventListener("activate", (event) => {
 });
 
 // ── Push notifications ──────────────────────────────────────────
-// Server dispatches JSON payloads shaped `{ title, body, url? }`.
-// `url` is the path we open when the climber taps the notification.
+// Server dispatches JSON payloads shaped `{ title, body, url?, tag? }`.
+// `url` is the same-origin path we open when the climber taps the
+// notification. Validated here to reject anything that isn't a
+// leading-slash path — defense-in-depth against open-redirect /
+// javascript:-URI shenanigans if the push channel is ever abused.
+function safeTargetUrl(url) {
+  if (typeof url !== "string") return "/";
+  // Reject protocol-relative (//host/...) and anything not starting
+  // with a single slash. Reject trailing backslash tricks too.
+  if (!url.startsWith("/") || url.startsWith("//") || url.includes("\\")) {
+    return "/";
+  }
+  return url;
+}
+
 self.addEventListener("push", (event) => {
   if (!event.data) return;
   let payload;
@@ -38,19 +51,29 @@ self.addEventListener("push", (event) => {
   } catch {
     payload = { title: "Chork", body: event.data.text() };
   }
-  const title = payload.title || "Chork";
+  const title = typeof payload.title === "string" && payload.title
+    ? payload.title
+    : "Chork";
+  const url = safeTargetUrl(payload.url);
+  // `tag` coalesces related notifications so a burst of invites
+  // doesn't stack up in the tray. Fall back to a generic tag when
+  // the server doesn't set one.
+  const tag = typeof payload.tag === "string" && payload.tag
+    ? payload.tag
+    : "chork-notification";
   const options = {
-    body: payload.body || "",
+    body: typeof payload.body === "string" ? payload.body : "",
     icon: "/notification-icon.svg",
     badge: "/notification-icon.svg",
-    data: { url: payload.url || "/" },
+    tag,
+    data: { url },
   };
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const targetUrl = event.notification.data?.url || "/";
+  const targetUrl = safeTargetUrl(event.notification.data?.url);
   event.waitUntil(
     (async () => {
       const all = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
