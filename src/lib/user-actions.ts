@@ -1,5 +1,6 @@
 "use server";
 
+import { createHash } from "node:crypto";
 import { revalidateTag } from "next/cache";
 import { createServiceClient } from "./supabase/server";
 import { revalidateUserProfile } from "./cache/revalidate";
@@ -192,21 +193,29 @@ export async function uploadAvatar(
   const path = `${userId}/avatar.jpg`;
 
   try {
+    // Hash the actual file bytes — stable per-content, not per-upload
+    // attempt. Re-uploading the same image yields the same URL so
+    // browser + CDN caches don't churn. A genuine new image flips the
+    // hash and forces a fetch. Truncated to 8 hex chars: enough
+    // entropy for cache-busting, short enough not to bloat URLs.
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const contentHash = createHash("sha1").update(buffer).digest("hex").slice(0, 8);
+
     // Use service client for storage — RLS on storage buckets requires
     // separate policies. Service client bypasses this safely since we
     // already verified auth and scope the path to the user's own folder.
     const service = createServiceClient();
     const { error: uploadError } = await service.storage
       .from("avatars")
-      .upload(path, file, { upsert: true });
+      .upload(path, buffer, { upsert: true, contentType: "image/jpeg" });
     if (uploadError) return { error: formatError(uploadError) };
 
     const { data: urlData } = supabase.storage
       .from("avatars")
       .getPublicUrl(path);
 
-    // Append timestamp to bust browser cache
-    const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+    // Content-hash query param — see comment above.
+    const publicUrl = `${urlData.publicUrl}?v=${contentHash}`;
 
     const { error: profileError } = await supabase
       .from("profiles")
