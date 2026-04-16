@@ -202,6 +202,10 @@ export async function updateGradeVote(
 
   try {
     const log = await upsertRouteLog(supabase, userId, routeId, { grade_vote: gradeVote }, logId, gymId);
+    // routes.community_grade is updated via trigger (migration 026).
+    // Bust the per-route grade cache entry so the route sheet shows
+    // fresh average within the next request.
+    revalidateTag(`set:route-${routeId}:routes`);
     return { success: true, log };
   } catch (err) {
     return { error: formatError(err) };
