@@ -4,7 +4,6 @@ import { useState } from "react";
 import { FaBell, FaGear } from "react-icons/fa6";
 import type { Profile } from "@/lib/data";
 import type { PendingInvite } from "@/lib/data/crew-queries";
-import type { NotificationRow } from "@/lib/data/notifications";
 import { UserAvatar } from "@/components/ui";
 import { RevealText } from "@/components/motion";
 import { NotificationsSheet } from "@/components/Notifications/NotificationsSheet";
@@ -25,11 +24,11 @@ interface Props {
    */
   invites?: PendingInvite[];
   /**
-   * Own-profile only: latest persisted notifications (invites +
-   * accepts + ownership changes). Badge counts unread rows; the
-   * NotificationsSheet marks-all-read on open.
+   * Own-profile only: count of unread notification rows. Badge dot
+   * lights up when invites or unreadCount > 0; the NotificationsSheet
+   * lazy-loads its full list when first opened.
    */
-  notifications?: NotificationRow[];
+  unreadCount?: number;
   /** Own-profile only: surface the Admin link inside SettingsSheet. */
   isAdmin?: boolean;
 }
@@ -51,13 +50,12 @@ export function ProfileHeader({
   isOwnProfile,
   contextLine,
   invites = [],
-  notifications = [],
+  unreadCount = 0,
   isAdmin = false,
 }: Props) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const unreadCount = notifications.filter((n) => n.read_at === null).length;
   const hasBadge = invites.length > 0 || unreadCount > 0;
 
   return (
@@ -107,7 +105,7 @@ export function ProfileHeader({
         <>
           <NotificationsSheet
             invites={invites}
-            notifications={notifications}
+            unreadCount={unreadCount}
             open={notificationsOpen}
             onClose={() => setNotificationsOpen(false)}
           />

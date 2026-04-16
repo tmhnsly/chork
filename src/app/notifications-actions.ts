@@ -3,6 +3,23 @@
 import { revalidateTag } from "next/cache";
 import { requireSignedIn } from "@/lib/auth";
 import { formatError } from "@/lib/errors";
+import { getNotifications } from "@/lib/data/notifications";
+import type { NotificationRow } from "@/lib/data/notifications";
+
+/**
+ * Fetch the caller's recent notifications. Called by the NotificationsSheet
+ * the first time it opens — keeps the 50-row payload off the profile
+ * page's critical path so the shell can paint with just an unread count.
+ */
+export async function fetchNotifications(
+  limit: number = 50,
+): Promise<{ rows: NotificationRow[] } | { error: string }> {
+  const auth = await requireSignedIn();
+  if ("error" in auth) return { error: auth.error };
+  const safeLimit = Math.max(1, Math.min(100, Math.floor(limit)));
+  const rows = await getNotifications(auth.supabase, safeLimit);
+  return { rows };
+}
 
 /**
  * Mark every unread notification belonging to the caller as read.

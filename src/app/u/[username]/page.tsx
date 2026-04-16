@@ -4,7 +4,7 @@ import { createServerSupabase, getServerUser } from "@/lib/supabase/server";
 import { getProfileByUsername } from "@/lib/data/queries";
 import { getCrewCountForUser, getPendingCrewInvites } from "@/lib/data/crew-queries";
 import { getAdminGymsForUser } from "@/lib/data/admin-queries";
-import { getNotifications } from "@/lib/data/notifications";
+import { getUnreadNotificationCount } from "@/lib/data/notifications";
 import { ProfileHeader } from "@/components/ProfileHeader/ProfileHeader";
 import { ProfileStats } from "./_components/ProfileStats";
 import { ProfileStatsSkeleton } from "./_components/ProfileStats.skeleton";
@@ -46,12 +46,14 @@ export default async function UserProfilePage({ params }: Props) {
 
   // Header chrome data — small queries, fetched sync so the header
   // renders fully on shell paint (bell badge + admin link don't pop in
-  // late). Own-profile-only data resolves to empty arrays for visitors.
-  const [crewCount, invites, adminGyms, notifications] = await Promise.all([
+  // late). Own-profile-only data resolves to empty/zero for visitors.
+  // Notification list itself lazy-loads inside the sheet on open;
+  // the shell only needs the unread count for the badge.
+  const [crewCount, invites, adminGyms, unreadCount] = await Promise.all([
     !isOwnProfile ? getCrewCountForUser(supabase, profileUser.id) : Promise.resolve(0),
     isOwnProfile ? getPendingCrewInvites(supabase, profileUser.id) : Promise.resolve([]),
     isOwnProfile ? getAdminGymsForUser(supabase, profileUser.id) : Promise.resolve([]),
-    isOwnProfile ? getNotifications(supabase, 50) : Promise.resolve([]),
+    isOwnProfile ? getUnreadNotificationCount(supabase, profileUser.id) : Promise.resolve(0),
   ]);
   const isAdmin = adminGyms.length > 0;
 
@@ -75,7 +77,7 @@ export default async function UserProfilePage({ params }: Props) {
         isOwnProfile={isOwnProfile}
         contextLine={contextLine}
         invites={invites}
-        notifications={notifications}
+        unreadCount={unreadCount}
         isAdmin={isAdmin}
       />
 

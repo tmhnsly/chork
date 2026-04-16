@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   FaUserPlus,
@@ -21,12 +21,18 @@ import type {
 import {
   markAllNotificationsRead,
   dismissNotification,
+  fetchNotifications,
 } from "@/app/notifications-actions";
 import styles from "./notificationsSheet.module.scss";
 
 interface Props {
   invites: PendingInvite[];
-  notifications?: NotificationRow[];
+  /**
+   * Server-derived unread count. Drives the bell-badge upstream and
+   * tells us whether to fire markAllNotificationsRead on open without
+   * a list payload in scope.
+   */
+  unreadCount: number;
   open: boolean;
   onClose: () => void;
 }
@@ -39,28 +45,47 @@ interface Props {
  *     `crew_members.status = pending`; notification rows are logs).
  *   • Activity log — every past push-worthy event, deep-linked.
  *
- * Opening the sheet fires a server action that marks every unread
- * notification as read. The bell's dot clears on the next
- * revalidation — climbers always return to a tidy bell.
+ * The activity list lazy-loads on first open via the
+ * `fetchNotifications` server action — keeps the 50-row payload off
+ * the profile page's shell paint. Marking unread happens in the same
+ * transition so the bell badge clears once the next render runs.
  */
 export function NotificationsSheet({
   invites,
-  notifications = [],
+  unreadCount,
   open,
   onClose,
 }: Props) {
   const [, startTransition] = useTransition();
+  const [notifications, setNotifications] = useState<NotificationRow[]>([]);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (!open) return;
-    const hasUnread = notifications.some((n) => n.read_at === null);
-    if (!hasUnread) return;
+    if (!open || loaded) return;
+    let cancelled = false;
+    fetchNotifications().then((result) => {
+      if (cancelled) return;
+      if ("error" in result) return;
+      setNotifications(result.rows);
+      setLoaded(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, loaded]);
+
+  useEffect(() => {
+    if (!open || unreadCount === 0) return;
     startTransition(() => {
       // Fire-and-forget — errors surface as console warnings, bell
       // just stays lit until the next successful open.
       void markAllNotificationsRead();
     });
-  }, [open, notifications]);
+  }, [open, unreadCount]);
+
+  // Loading state derived from open + load status — no setState dance,
+  // satisfies react-hooks/set-state-in-effect.
+  const showLoading = open && !loaded;
 
   if (!open) return null;
 
@@ -83,14 +108,22 @@ export function NotificationsSheet({
 
         <section className={styles.section} aria-label="Recent activity">
           <h2 className={styles.sectionHeading}>Activity</h2>
-          {notifications.length === 0 ? (
+          {showLoading ? (
+            <p className={styles.empty}>Loading…</p>
+          ) : notifications.length === 0 ? (
             <p className={styles.empty}>
               Nothing to catch up on — you&apos;re all square.
             </p>
           ) : (
             <ul className={styles.list}>
               {notifications.map((n) => (
-                <NotificationRowView key={n.id} row={n} />
+                <NotificationRowView
+                  key={n.id}
+                  row={n}
+                  onDismissed={(id) =>
+                    setNotifications((prev) => prev.filter((r) => r.id !== id))
+                  }
+                />
               ))}
             </ul>
           )}
@@ -101,7 +134,13 @@ export function NotificationsSheet({
 }
 
 // ── Per-row rendering ─────────────────────────────────
-function NotificationRowView({ row }: { row: NotificationRow }) {
+function NotificationRowView({
+  row,
+  onDismissed,
+}: {
+  row: NotificationRow;
+  onDismissed: (id: string) => void;
+}) {
   const when = relative(row.created_at);
 
   switch (row.kind) {
@@ -123,6 +162,7 @@ function NotificationRowView({ row }: { row: NotificationRow }) {
             </>
           }
           when={when}
+          onDismissed={onDismissed}
         />
       );
     case "crew_invite_accepted":
@@ -143,6 +183,7 @@ function NotificationRowView({ row }: { row: NotificationRow }) {
             </>
           }
           when={when}
+          onDismissed={onDismissed}
         />
       );
     case "crew_ownership_transferred":
@@ -163,6 +204,7 @@ function NotificationRowView({ row }: { row: NotificationRow }) {
             </>
           }
           when={when}
+          onDismissed={onDismissed}
         />
       );
   }
@@ -174,18 +216,23 @@ function Row({
   href,
   title,
   when,
+  onDismissed,
 }: {
   row: NotificationRow;
   icon: React.ReactNode;
   href: string;
   title: React.ReactNode;
   when: string;
+  onDismissed: (id: string) => void;
 }) {
   const [, startTransition] = useTransition();
 
   function handleDismiss(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
+    // Optimistic removal so the row vanishes immediately; the server
+    // action confirms in the background.
+    onDismissed(row.id);
     startTransition(() => {
       void dismissNotification(row.id);
     });
