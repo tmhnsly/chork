@@ -44,7 +44,7 @@ import {
   editComment,
   likeComment,
 } from "@/app/(app)/actions";
-import { Button, shimmerStyles, showToast } from "@/components/ui";
+import { Button, shimmerStyles, showToast, showAchievementToast } from "@/components/ui";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { BrandDivider } from "@/components/ui/BrandDivider";
 import styles from "./routeLogSheet.module.scss";
@@ -306,6 +306,16 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
     } else if (result.log) {
       setCurrentLog(result.log);
       onLogUpdate(route.id, result.log);
+      // Each newly-earned achievement gets its own rich toast.
+      // Stagger the dispatch so multiple awards stack visibly
+      // instead of collapsing onto the same `tag` slot — react-hot-
+      // toast's queue still serialises them but the staggered call
+      // keeps the slide-in feeling intentional rather than batched.
+      if (result.earnedBadges) {
+        result.earnedBadges.forEach((badge, i) => {
+          setTimeout(() => showAchievementToast(badge), i * 250);
+        });
+      }
     }
     setCompleting(false);
   }

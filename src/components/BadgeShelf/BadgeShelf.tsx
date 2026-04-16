@@ -1,57 +1,18 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  FaBolt,
-  FaFire,
-  FaMountainSun,
-  FaTrophy,
-  FaStar,
-  FaBroom,
-  FaMoon,
-  FaUsers,
-  FaUserPlus,
-  FaCrown,
-  FaFrog,
-  FaFlag,
-  FaLock,
-} from "react-icons/fa6";
+import { FaLock } from "react-icons/fa6";
 import type { BadgeStatus, BadgeCategory, BadgeIcon } from "@/lib/badges";
+import { ICON_MAP } from "@/lib/badge-icons";
 import { AchievementDetailSheet } from "@/components/Achievements/AchievementDetailSheet";
 import { BrandDivider } from "@/components/ui/BrandDivider";
 import styles from "./badgeShelf.module.scss";
 
-// Text-icon factory for the nursery-rhyme pair achievements.
-// Renders the number pair (e.g. "1,2") as tight mono text in the
-// badge's icon slot — more legible than cramming two glyphs in.
-function makePairIcon(text: string): React.ComponentType {
-  const Icon = () => <span className={styles.iconText}>{text}</span>;
-  Icon.displayName = `PairIcon(${text})`;
-  return Icon;
-}
-
-// Map serialisable icon IDs → actual React icon components.
-// New icons go here AND into `BadgeIcon` in `src/lib/badges.ts`.
-export const ICON_MAP: Record<BadgeIcon, React.ComponentType> = {
-  bolt: FaBolt,
-  fire: FaFire,
-  mountain: FaMountainSun,
-  trophy: FaTrophy,
-  star: FaStar,
-  broom: FaBroom,
-  moon: FaMoon,
-  "fire-streak": FaFire,
-  users: FaUsers,
-  "user-plus": FaUserPlus,
-  crown: FaCrown,
-  frog: FaFrog,
-  flag: FaFlag,
-  "num-1-2": makePairIcon("1,2"),
-  "num-3-4": makePairIcon("3,4"),
-  "num-5-6": makePairIcon("5,6"),
-  "num-7-8": makePairIcon("7,8"),
-  "num-9-10": makePairIcon("9,10"),
-};
+// ICON_MAP re-exported so existing imports from BadgeShelf keep
+// working. The map itself lives in src/lib/badge-icons.tsx so
+// lightweight surfaces (toasts) can render icons without pulling
+// in the shelf's full sheet/animation tree.
+export { ICON_MAP };
 
 /**
  * Badge → colour family for the *earned* circle. Flash achievements

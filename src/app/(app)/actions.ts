@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath, revalidateTag } from "next/cache";
-import { after } from "next/server";
 import { revalidateUserProfile } from "@/lib/cache/revalidate";
 import { requireAuth, requireSignedIn } from "@/lib/auth";
 import {
@@ -27,9 +26,10 @@ import { formatError } from "@/lib/errors";
 import { UUID_RE } from "@/lib/validation";
 import { buildBadgeContext } from "@/lib/achievements/context";
 import { evaluateAndPersistAchievements } from "@/lib/achievements/evaluate";
+import type { BadgeDefinition } from "@/lib/badges";
 
 type ActionResult<T = unknown> = { error: string } | ({ success: true } & T);
-type LogResult = ActionResult<{ log: RouteLog }>;
+type LogResult = ActionResult<{ log: RouteLog; earnedBadges?: BadgeDefinition[] }>;
 type CommentResult = { error: string } | { comment: Comment };
 
 export async function updateAttempts(
@@ -104,22 +104,32 @@ export async function completeRoute(
     // user_set_stats does change (via trigger) but that's read by
     // getProfileSummary which isn't server-cached.
 
-    // Post-response: badge eval can be expensive and must never break
-    // the logging flow. after() runs this work after the response ships,
-    // so the action returns as soon as the log + activity event are
-    // written. Badge state catches up within milliseconds.
-    after(async () => {
-      try {
-        const ctx = await buildBadgeContext(supabase, userId, gymId);
-        if (ctx) {
-          await evaluateAndPersistAchievements(supabase, userId, ctx);
-        }
-      } catch (err) {
-        console.error("[achievements] post-send evaluation failed", err);
+    // Inline badge evaluation so the result can carry any newly-earned
+    // achievements straight to the client toast. Buying ~150-250ms of
+    // additional response time vs. a deferred after() pass is worth it
+    // — without the diff in the same response, the celebratory toast
+    // would either never fire or arrive on the next page load,
+    // disconnected from the send that earned it.
+    //
+    // evaluateAndPersistAchievements catches every error path
+    // internally and returns [] on failure, so a flaky badge query
+    // can never propagate up and turn a successful send into an
+    // error response.
+    let earnedBadges: BadgeDefinition[] = [];
+    try {
+      const ctx = await buildBadgeContext(supabase, userId, gymId);
+      if (ctx) {
+        earnedBadges = await evaluateAndPersistAchievements(supabase, userId, ctx);
       }
-    });
+    } catch (err) {
+      console.error("[achievements] post-send evaluation failed", err);
+    }
 
-    return { success: true, log };
+    return {
+      success: true,
+      log,
+      ...(earnedBadges.length > 0 ? { earnedBadges } : {}),
+    };
   } catch (err) {
     return { error: formatError(err) };
   }

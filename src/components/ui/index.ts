@@ -10,7 +10,7 @@ export { SetMeta } from "./SetMeta";
 export { TabPills } from "./TabPills";
 export type { TabPillOption } from "./TabPills";
 export { shimmerStyles } from "./Shimmer";
-export { ToastProvider, showToast } from "./Toast";
+export { ToastProvider, showToast, showAchievementToast } from "./Toast";
 export { UserAvatar } from "./UserAvatar";
 
 // Available but not exported from barrel (import directly if needed):

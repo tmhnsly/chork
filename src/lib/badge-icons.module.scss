@@ -1,0 +1,11 @@
+@use "mixins/typography" as type;
+
+// Number-pair icon text ("1,2" etc.) — display typography so it
+// reads as a badge mark rather than body text.
+.iconText {
+  @include type.typography(display);
+  font-size: var(--text-md);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}

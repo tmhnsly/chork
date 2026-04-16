@@ -43,6 +43,92 @@
   .icon { color: var(--error-text-low-contrast); }
 }
 
+// ── Achievement ─────────────────────────────────────
+// Richer variant for newly-earned badges. Bigger footprint, icon
+// medallion on the left, eyebrow + name + criteria stacked on the
+// right. Family classes (.achievement--accent | --flash | --success)
+// tint the medallion + name to match how the badge reads in
+// BadgeShelf — flash earns amber, zone earns teal, everything else
+// the lime accent.
+.achievement {
+  align-items: stretch;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-3);
+  max-width: min(92vw, 420px);
+  border-radius: var(--radius-4);
+}
+
+.achievementMedallion {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xl);
+  line-height: 1;
+  background: var(--mono-bg);
+  border: 1px solid var(--mono-border);
+  color: var(--mono-text);
+  align-self: center;
+}
+
+.achievementBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.achievementEyebrow {
+  @include type.typography(label);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-wide);
+  color: var(--mono-text-low-contrast);
+  text-transform: uppercase;
+}
+
+.achievementName {
+  @include type.typography(display);
+  font-size: var(--text-md);
+  line-height: var(--leading-tight);
+  color: var(--mono-text);
+}
+
+.achievementCriteria {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  text-wrap: balance;
+}
+
+.achievement--accent {
+  .achievementMedallion {
+    background: var(--accent-bg);
+    border-color: var(--accent-border);
+    color: var(--accent-text);
+  }
+  .achievementName { color: var(--accent-text); }
+}
+
+.achievement--flash {
+  .achievementMedallion {
+    background: var(--flash-bg);
+    border-color: var(--flash-border);
+    color: var(--flash-text);
+  }
+  .achievementName { color: var(--flash-text); }
+}
+
+.achievement--success {
+  .achievementMedallion {
+    background: var(--success-bg);
+    border-color: var(--success-border);
+    color: var(--success-text);
+  }
+  .achievementName { color: var(--success-text); }
+}
+
 // ── Animation ───────────────────────────────────────
 .enter {
   animation: slideIn var(--duration-normal) var(--ease-out);
