@@ -1,0 +1,26 @@
+@use "mixins/layout" as layout;
+
+.section {
+  @include layout.stack(var(--space-3));
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--mono-border-subtle);
+}
+
+// Three-column row: Up | Back-to-you | Down.
+// When "Back to you" isn't visible, the up + down buttons sit at the
+// outer edges (the empty middle slot keeps the spread).
+.controls {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-2);
+
+  // Up button stays left-aligned; down button right-aligned;
+  // back-to-you fills the centre.
+  > :first-child {
+    justify-self: start;
+  }
+  > :last-child {
+    justify-self: end;
+  }
+}

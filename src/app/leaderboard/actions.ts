@@ -42,17 +42,28 @@ export async function fetchLeaderboardTab(
   return { data: { top, userRow, neighbourhood } };
 }
 
-/** Lazy-load a page of the full leaderboard. */
+/**
+ * Lazy-load a page of the full leaderboard.
+ *
+ * @param limit Optional override of PAGE_LIMIT — the browse-board UI
+ *              uses smaller windows (5) so up/down moves a manageable
+ *              chunk at a time. Defaults to PAGE_LIMIT for callers
+ *              that haven't been updated.
+ */
 export async function fetchLeaderboardPage(
   setId: string | null,
-  offset: number
+  offset: number,
+  limit: number = PAGE_LIMIT,
 ): Promise<{ rows: LeaderboardEntry[]; limit: number } | { error: string }> {
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
   const { supabase, gymId } = auth;
 
-  const rows = await getLeaderboard(supabase, gymId, setId, PAGE_LIMIT, offset);
-  return { rows, limit: PAGE_LIMIT };
+  // Clamp limit to sensible bounds so a malformed client value can't
+  // request the entire board or zero rows.
+  const safeLimit = Math.max(1, Math.min(50, Math.floor(limit)));
+  const rows = await getLeaderboard(supabase, gymId, setId, safeLimit, offset);
+  return { rows, limit: safeLimit };
 }
 
 /**

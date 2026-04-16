@@ -3,11 +3,11 @@
 import { useState, useTransition, useCallback, useRef, useEffect } from "react";
 import { getAvatarUrl } from "@/lib/avatar";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
-import { Button, showToast } from "@/components/ui";
+import { showToast } from "@/components/ui";
 import { Podium } from "./Podium";
 import { PodiumSkeleton } from "./PodiumSkeleton";
 import { LeaderboardList } from "./LeaderboardList";
-import { NeighbourhoodSection } from "./NeighbourhoodSection";
+import { BrowseSection } from "./BrowseSection";
 import { EmptyLeaderboard } from "./EmptyLeaderboard";
 import dynamic from "next/dynamic";
 // Lazy-load the climber sheet — it's only mounted when a row is
@@ -23,10 +23,7 @@ import { InviteCard } from "./InviteCard";
 import { PageHeader } from "@/components/motion";
 import type { LeaderboardEntry, Route } from "@/lib/data";
 import type { GymStats } from "@/lib/data/queries";
-import {
-  fetchLeaderboardTab,
-  fetchLeaderboardPage,
-} from "@/app/leaderboard/actions";
+import { fetchLeaderboardTab } from "@/app/leaderboard/actions";
 import styles from "./leaderboardView.module.scss";
 
 export interface TabData {
@@ -75,12 +72,6 @@ export function LeaderboardView({
   const [sheetEntry, setSheetEntry] = useState<LeaderboardEntry | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  // "See all" lazy pagination
-  const [seeAllOpen, setSeeAllOpen] = useState(false);
-  const [seeAllRows, setSeeAllRows] = useState<LeaderboardEntry[]>([]);
-  const [seeAllExhausted, setSeeAllExhausted] = useState(false);
-  const [seeAllLoading, setSeeAllLoading] = useState(false);
-
   const activeSetIdForTab = tab === "set" ? currentSetId : null;
 
   // Track which tabs have an in-flight fetch to prevent duplicate requests
@@ -88,11 +79,6 @@ export function LeaderboardView({
 
   const handleTabChange = useCallback((next: Tab) => {
     setTab(next);
-    // Reset see-all when switching tabs
-    setSeeAllOpen(false);
-    setSeeAllRows([]);
-    setSeeAllExhausted(false);
-
     if (cache[next] || inFlightTabs.current.has(next)) return;
     inFlightTabs.current.add(next);
     const fetchSetId = next === "set" ? currentSetId : null;
@@ -113,25 +99,6 @@ export function LeaderboardView({
   const openSheet = useCallback((entry: LeaderboardEntry) => {
     setSheetEntry(entry);
   }, []);
-
-  const loadMore = useCallback(async () => {
-    setSeeAllLoading(true);
-    // Offset skips the top 5 already rendered in podium + main list.
-    const offset = TOP_LIMIT + seeAllRows.length;
-    const result = await fetchLeaderboardPage(activeSetIdForTab, offset);
-    setSeeAllLoading(false);
-    if ("error" in result) {
-      showToast(result.error, "error");
-      return;
-    }
-    setSeeAllRows((prev) => [...prev, ...result.rows]);
-    if (result.rows.length < result.limit) setSeeAllExhausted(true);
-  }, [activeSetIdForTab, seeAllRows.length]);
-
-  const openSeeAll = useCallback(async () => {
-    setSeeAllOpen(true);
-    await loadMore();
-  }, [loadMore]);
 
   // Warm the browser image cache for every cached tab's top-3
   // avatars. Without this, flipping from "This set" to "All time"
@@ -181,13 +148,12 @@ export function LeaderboardView({
   const podiumEntries = top.slice(0, 3);
   const mainListEntries = top.slice(3, 5);
 
-  // Dedup: neighbourhood excludes top 5, see-all excludes both top 5 and neighbourhood
+  // Dedup neighbourhood vs top so the BrowseSection's initial window
+  // doesn't repeat top-5 entries already shown in the podium / main list.
   const topIds = new Set(top.map((e) => e.user_id));
   const neighbourhoodDeduped = neighbourhood.filter((e) => !topIds.has(e.user_id));
-  const visibleIds = new Set([...topIds, ...neighbourhoodDeduped.map((e) => e.user_id)]);
-  const seeAllDeduped = seeAllRows.filter((e) => !visibleIds.has(e.user_id));
 
-  const showNeighbourhood = !userInTop && userRow?.rank != null && neighbourhoodDeduped.length > 0;
+  const showBrowse = !userInTop && userRow?.rank != null;
   const showUnrankedUser = userRow && userRow.rank === null && !isEmpty;
 
   return (
@@ -240,9 +206,24 @@ export function LeaderboardView({
             />
           )}
 
-          {showNeighbourhood && (
-            <NeighbourhoodSection
-              rows={neighbourhoodDeduped}
+          {showBrowse && userRow?.rank != null && (
+            <BrowseSection
+              key={`browse:${tab}:${activeSetIdForTab ?? "all"}`}
+              initialRows={neighbourhoodDeduped}
+              userRank={userRow.rank}
+              setId={activeSetIdForTab}
+              currentUserId={currentUserId}
+              onPress={openSheet}
+            />
+          )}
+
+          {/* Top-5 climbers can also page the rest of the board. */}
+          {userInTop && top.length >= TOP_LIMIT && (
+            <BrowseSection
+              key={`browse-top:${tab}:${activeSetIdForTab ?? "all"}`}
+              initialRows={[]}
+              userRank={userRow?.rank ?? 0}
+              setId={activeSetIdForTab}
               currentUserId={currentUserId}
               onPress={openSheet}
             />
@@ -257,33 +238,6 @@ export function LeaderboardView({
                 onPress={openSheet}
                 ariaLabel="Your row"
               />
-            </section>
-          )}
-
-          {!seeAllOpen && top.length >= 5 && (
-            <Button variant="secondary" onClick={openSeeAll} fullWidth>
-              See all
-            </Button>
-          )}
-
-          {seeAllOpen && (
-            <section className={styles.seeAll} aria-label="All climbers">
-              <LeaderboardList
-                rows={seeAllDeduped}
-                currentUserId={currentUserId}
-                onPress={openSheet}
-                ariaLabel="All climbers"
-              />
-              {!seeAllExhausted && (
-                <Button
-                  variant="secondary"
-                  onClick={loadMore}
-                  disabled={seeAllLoading}
-                  fullWidth
-                >
-                  {seeAllLoading ? "Loading…" : "Load more"}
-                </Button>
-              )}
             </section>
           )}
 

@@ -30,6 +30,3 @@
   text-align: center;
 }
 
-.seeAll {
-  @include layout.stack(var(--space-2));
-}
