@@ -46,6 +46,17 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "Chork",
+    // iOS shows the splash image while the PWA boots — without these
+    // it shows a white blank from launch until first paint. Image is
+    // a centred icon on the manifest's #111210 background. Only a
+    // handful of sizes — iOS scales the closest match. Without media
+    // queries iOS picks any.
+    startupImage: [
+      "/apple-splash-2048-2732.png",
+      "/apple-splash-1290-2796.png",
+      "/apple-splash-1170-2532.png",
+      "/apple-splash-750-1334.png",
+    ],
   },
 };
 
