@@ -321,6 +321,115 @@ RLS is the second layer.
 
 ---
 
+## Caching architecture (6 layers)
+
+Each piece of data caches at exactly one layer. Find the layer, use
+its tool; don't invent a new one.
+
+| Layer | Tool | Lives for | Shared across users? | File |
+|-------|------|-----------|----------------------|------|
+| 1. DB | Postgres + triggers | forever | yes | `supabase/migrations/*.sql` |
+| 2. Server cache | `unstable_cache` via `cachedQuery()` | TTL or tag bust | **yes** | `src/lib/cache/cached.ts` |
+| 3. Per-render | `React.cache()` | 1 render | no | `src/lib/supabase/server.ts` etc |
+| 4. Streaming | `<Suspense>` boundaries | 1 request | no | page files |
+| 5. Post-response | `after()` from `next/server` | after return | no | action files |
+| 6. Client hints | `<Link prefetch>`, `<Image priority>`, module Maps | session | no | component files |
+
+### Tag taxonomy (Layer 2)
+
+All `cachedQuery` wraps use tags from the `Tag` union in
+`src/lib/cache/cached.ts`. Every mutation revalidates tags, not paths.
+
+| Tag | Busted by |
+|-----|-----------|
+| `gym:{id}` | gym row edits, is_listed toggles |
+| `gym:{id}:active-set` | set goes live / ends / is created |
+| `set:{id}:routes` | route add / edit / delete within the set |
+| `set:{id}:leaderboard` | any route_log change affecting rank in the set |
+| `user:{id}:profile` | profile row edits (username, theme, active_gym_id) |
+| `user:{id}:stats` | this user's user_set_stats row updated (via route_log trigger) |
+| `user:{id}:crews` | this user's crew_members status changed |
+| `user:{id}:notifications` | notifications inserted / marked read |
+| `crew:{id}` | crew row / member set edits |
+| `gyms:listed` | any gym's is_listed flag changed |
+| `competition:{id}` | competition row or relations changed |
+
+### Factory-per-call pattern (Layer 2)
+
+`unstable_cache` stringifies every argument when keying, so a
+Supabase client can't be passed in — it's not serialisable. Pattern:
+
+```ts
+export function getGym(gymId: string): Promise<Gym | null> {
+  const fn = cachedQuery(
+    ["gym", gymId],
+    async (id: string) => {
+      const supabase = createCachedContextClient(); // service role
+      // ...
+    },
+    { tags: [`gym:${gymId}`], revalidate: 3600 },
+  );
+  return fn(gymId);
+}
+```
+
+Key insight: the cached body uses a service-role client (bypasses RLS)
+because cache entries are shared across users. **Authorisation
+happens at the page level** before the cached call —
+`requireAuth` / `requireGymAdmin` in the page / layout.
+
+When a cached helper needs server-only imports (e.g.
+`createCachedContextClient`), keep it out of modules that are also
+imported by `"use client"` components. Example: `getCompetitionById`
+lives in `src/lib/data/competition-by-id.ts` (server-only) rather
+than `competition-queries.ts`, because the latter is imported by
+`CompetitionLeaderboard.tsx` (a client component) for its types +
+`getCompetitionLeaderboard` helper.
+
+### What can't go in Layer 2 (yet)
+
+**RPCs that internally gate via `auth.uid()`** (leaderboard RPCs,
+`get_gym_stats_v2`, `get_profile_summary`) cannot be wrapped with the
+current pattern. `is_gym_member()` reads `auth.uid()`, which is null
+when called from a service-role client, so the gate evaluates false
+and the RPC returns empty. Verified empirically: calling
+`get_leaderboard_all_time` with the service role key returns `[]`
+even for gyms with active members.
+
+Future fix: new RPC variants that take an explicit caller id + are
+granted only to service_role, with the membership check moved into
+the cached wrapper before the call.
+
+For now these helpers still take `supabase` and run uncached per viewer.
+The Phase 0 Chorkboard win (8 → 1 round trips via `get_gym_stats_v2`)
+is orthogonal to caching and lands without it.
+
+### When to cache and when not to
+
+Cache with `unstable_cache` (Layer 2) when:
+- Data is shared across users (gym metadata, routes, competitions)
+- Read rate » write rate
+- Staleness up to the TTL is acceptable
+
+Cache with React `cache()` (Layer 3) when:
+- A single render has multiple callers fetching the same thing
+- The data varies per-user (auth, session state)
+
+Don't cache when:
+- The data varies per-request in a way no tag can express
+- Writes happen more often than reads
+- The helper needs the caller's auth context (see previous section)
+
+### Mutations → revalidateTag
+
+When touching a mutation: list every tag the DB change can affect, and
+call `revalidateTag(tag)` for each. Prefer over-busting to under-busting
+if in doubt — a spurious cache miss is cheap, a missed bust is stale UI.
+**Never** use `revalidatePath("/", "layout")` except on onboarding
+completion — that's the one legit full-tree revalidation.
+
+---
+
 ## Storybook
 
 Every reusable component has `ComponentName.stories.tsx` next to it.

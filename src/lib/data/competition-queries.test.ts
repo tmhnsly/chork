@@ -53,7 +53,7 @@ describe("getCompetitionById", () => {
       createCachedContextClient: () => sb,
     }));
     vi.resetModules();
-    const { getCompetitionById } = await import("./competition-queries");
+    const { getCompetitionById } = await import("./competition-by-id");
     expect(await getCompetitionById(COMP_1)).toBeNull();
   });
 
@@ -72,7 +72,7 @@ describe("getCompetitionById", () => {
       createCachedContextClient: () => sb,
     }));
     vi.resetModules();
-    const { getCompetitionById } = await import("./competition-queries");
+    const { getCompetitionById } = await import("./competition-by-id");
     expect(await getCompetitionById(COMP_1)).toEqual(row);
   });
 });

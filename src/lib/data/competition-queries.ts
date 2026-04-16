@@ -1,8 +1,5 @@
-import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
-import { cachedQuery } from "@/lib/cache/cached";
-import { createCachedContextClient } from "@/lib/supabase/server";
 
 type Supabase = SupabaseClient<Database>;
 
@@ -49,34 +46,6 @@ export interface CompetitionLeaderboardRow {
   zones: number;
   points: number;
 }
-
-/**
- * Single competition by id. Null when the row doesn't exist or when
- * RLS hides it (competitions are publicly readable today, but keeping
- * the null-safe return shape future-proofs access changes).
- */
-export const getCompetitionById = cache(
-  async (competitionId: string): Promise<CompetitionSummary | null> => {
-    const fn = cachedQuery(
-      ["competition", competitionId],
-      async (id: string): Promise<CompetitionSummary | null> => {
-        const supabase = createCachedContextClient();
-        const { data, error } = await supabase
-          .from("competitions")
-          .select("id, name, description, starts_at, ends_at, status, organiser_id")
-          .eq("id", id)
-          .maybeSingle();
-        if (error) {
-          console.warn("[chork] getCompetitionById failed:", error);
-          return null;
-        }
-        return (data as CompetitionSummary | null) ?? null;
-      },
-      { tags: [`competition:${competitionId}`], revalidate: 300 },
-    );
-    return fn(competitionId);
-  },
-);
 
 /** Every competition the caller organises — newest first. */
 export async function getCompetitionsForOrganiser(

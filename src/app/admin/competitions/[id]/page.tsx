@@ -1,11 +1,11 @@
 import { notFound, redirect } from "next/navigation";
 import { requireSignedIn } from "@/lib/auth";
 import {
-  getCompetitionById,
   getCompetitionGyms,
   getCompetitionCategories,
   getCompetitionVenueStats,
 } from "@/lib/data/competition-queries";
+import { getCompetitionById } from "@/lib/data/competition-by-id";
 import { getAdminGymsForUser } from "@/lib/data/admin-queries";
 import { CompetitionForm } from "@/components/admin/CompetitionForm";
 import { CompetitionGymsPanel } from "@/components/admin/CompetitionGymsPanel";
@@ -28,7 +28,7 @@ export default async function EditCompetitionPage({ params }: Props) {
   if ("error" in auth) redirect("/login");
   const { supabase, userId } = auth;
 
-  const competition = await getCompetitionById(supabase, id);
+  const competition = await getCompetitionById(id);
   if (!competition) notFound();
   if (competition.organiser_id !== userId) redirect("/admin/competitions");
 

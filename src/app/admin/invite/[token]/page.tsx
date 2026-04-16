@@ -58,7 +58,7 @@ export default async function InviteAcceptPage({ params }: Props) {
 
   const wrongEmail = callerEmail.toLowerCase() !== resolved.email.toLowerCase();
 
-  const gym = await getGym(service, resolved.gym_id);
+  const gym = await getGym(resolved.gym_id);
 
   return (
     <main className={styles.page}>

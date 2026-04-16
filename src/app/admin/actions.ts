@@ -286,7 +286,7 @@ export async function updateSet(
     try {
       const [userIds, gym] = await Promise.all([
         getGymClimberUserIds(setRow.gym_id),
-        getGym(service, setRow.gym_id),
+        getGym(setRow.gym_id),
       ]);
       if (userIds.length > 0) {
         sendPushInBackground(userIds, {

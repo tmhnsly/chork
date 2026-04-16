@@ -2,11 +2,11 @@ import { notFound, redirect } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { createServerSupabase, getServerUser } from "@/lib/supabase/server";
 import {
-  getCompetitionById,
   getCompetitionCategories,
   getCompetitionGyms,
   getMyCompetitionParticipation,
 } from "@/lib/data/competition-queries";
+import { getCompetitionById } from "@/lib/data/competition-by-id";
 import { CompetitionLeaderboard } from "@/components/Competitions/CompetitionLeaderboard";
 import { CompetitionJoinBar } from "@/components/Competitions/CompetitionJoinBar";
 import { PageHeader } from "@/components/motion";
