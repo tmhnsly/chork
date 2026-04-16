@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { requireAuth, requireSignedIn } from "@/lib/auth";
 import {
   upsertRouteLog,
@@ -92,17 +93,23 @@ export async function completeRoute(
       }),
     ]);
 
-    // Evaluate badges in the background — must never break the logging flow.
-    try {
-      const ctx = await buildBadgeContext(supabase, userId, gymId);
-      if (ctx) {
-        await evaluateAndPersistAchievements(supabase, userId, ctx);
-      }
-    } catch (err) {
-      console.error("[achievements] post-send evaluation failed", err);
-    }
-
     revalidatePath("/", "layout");
+
+    // Post-response: badge eval can be expensive and must never break
+    // the logging flow. after() runs this work after the response ships,
+    // so the action returns as soon as the log + activity event are
+    // written. Badge state catches up within milliseconds.
+    after(async () => {
+      try {
+        const ctx = await buildBadgeContext(supabase, userId, gymId);
+        if (ctx) {
+          await evaluateAndPersistAchievements(supabase, userId, ctx);
+        }
+      } catch (err) {
+        console.error("[achievements] post-send evaluation failed", err);
+      }
+    });
+
     return { success: true, log };
   } catch (err) {
     return { error: formatError(err) };
