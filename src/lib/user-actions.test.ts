@@ -174,7 +174,7 @@ describe("updatePushCategory", () => {
     });
     const { updatePushCategory } = await import("./user-actions");
     expect(await updatePushCategory("invite_received", true)).toEqual({
-      error: "nope",
+      error: "You don't have permission to do that.",
     });
   });
 });

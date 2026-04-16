@@ -57,7 +57,7 @@ describe("markAllNotificationsRead", () => {
     expect(await markAllNotificationsRead()).toEqual({ success: true });
   });
 
-  it("propagates DB errors", async () => {
+  it("surfaces a friendly message on permission denial", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
       supabase: mockSupabase({
@@ -66,7 +66,11 @@ describe("markAllNotificationsRead", () => {
       userId: USER_A,
     });
     const { markAllNotificationsRead } = await import("./notifications-actions");
-    expect(await markAllNotificationsRead()).toEqual({ error: "blocked" });
+    // 42501 = permission denied; formatError maps to friendly text so
+    // raw Postgres "blocked" / details / hint never hit the client.
+    expect(await markAllNotificationsRead()).toEqual({
+      error: "You don't have permission to do that.",
+    });
   });
 });
 
@@ -97,7 +101,7 @@ describe("dismissNotification", () => {
     expect(await dismissNotification(NOTIF_1)).toEqual({ success: true });
   });
 
-  it("propagates DB errors", async () => {
+  it("surfaces a friendly message on permission denial", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
       supabase: mockSupabase({
@@ -106,6 +110,8 @@ describe("dismissNotification", () => {
       userId: USER_A,
     });
     const { dismissNotification } = await import("./notifications-actions");
-    expect(await dismissNotification(NOTIF_1)).toEqual({ error: "blocked" });
+    expect(await dismissNotification(NOTIF_1)).toEqual({
+      error: "You don't have permission to do that.",
+    });
   });
 });

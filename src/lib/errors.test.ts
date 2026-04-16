@@ -2,16 +2,28 @@ import { describe, it, expect } from "vitest";
 import { formatError } from "./errors";
 
 describe("formatError", () => {
-  it("formats a Supabase PostgrestError", () => {
+  it("maps a known PostgrestError code to a friendly message", () => {
     const err = {
       code: "23505",
       message: "duplicate key value",
-      details: "Key already exists",
-      hint: "debug hint",
+      details: "Key (username)=(alice) already exists",
+      hint: "secret hint",
+    };
+    // 23505 → "That already exists." — never leaks the column / value.
+    expect(formatError(err)).toBe("That already exists.");
+  });
+
+  it("falls back to message-only on unknown codes", () => {
+    const err = {
+      code: "99999",
+      message: "some db error",
+      details: "private detail",
+      hint: "private hint",
     };
     const result = formatError(err);
-    expect(result).toContain("duplicate key value");
-    expect(result).toContain("Key already exists");
+    // No leak of details or hint in production-shaped output.
+    expect(result).not.toContain("private detail");
+    expect(result).not.toContain("private hint");
   });
 
   it("formats a standard Error", () => {

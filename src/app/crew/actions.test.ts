@@ -310,7 +310,9 @@ describe("acceptCrewInvite", () => {
       userId: USER_A,
     });
     const { acceptCrewInvite } = await import("./actions");
-    expect(await acceptCrewInvite(INVITE_1)).toEqual({ error: "boom" });
+    expect(await acceptCrewInvite(INVITE_1)).toEqual({
+      error: "You don't have permission to do that.",
+    });
   });
 
   it("pushes + notifies the inviter on success (category: invite_accepted)", async () => {
