@@ -17,9 +17,11 @@ const inter = Inter({
 });
 
 // Public site URL for absolute share-link image / canonical resolution.
-// Set NEXT_PUBLIC_SITE_URL in env (Vercel project setting) — local dev
-// fallback keeps social previews predictable when testing.
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chork.app";
+// Set NEXT_PUBLIC_SITE_URL in env (Vercel project setting) — fallback
+// is the current Vercel preview domain. When chork.app is provisioned,
+// flip the env var; the fallback stays as the deploy domain so
+// previews always resolve.
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chork.vercel.app";
 
 const APP_DESCRIPTION =
   "Bouldering competition tracker for gyms. Log every send on numbered routes in your gym's active set, climb the public Chorkboard, and compete with crews.";
