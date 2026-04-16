@@ -1,17 +1,24 @@
 # Verification
 
-How to run each test layer locally + what they cover.
+How to run each test layer locally + what they cover. This file is
+the single source of truth for "what's verified, what isn't" —
+update it in the same PR as any test-infra change.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  Layer            Where                  Runs in            │
-├─────────────────────────────────────────────────────────────┤
-│  Unit tests       src/**/*.test.ts       node (vitest)      │
-│  Component tests  *.stories.tsx          chromium (vitest)  │
-│  Lighthouse CI    lighthouserc.json      chromium (lhci)    │
-│  E2E flows        (TBD — Playwright)     chromium           │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│  Layer            Where                      Runs in         │
+├──────────────────────────────────────────────────────────────┤
+│  Unit tests       src/**/*.test.ts           node (vitest)   │
+│  Component tests  *.stories.tsx              chromium        │
+│  Lighthouse CI    lighthouserc.json          chromium (lhci) │
+│  E2E smoke        e2e/smoke.spec.ts          chromium        │
+│  E2E auth         e2e/auth.spec.ts           chromium        │
+│  E2E a11y         e2e/a11y.spec.ts           chromium + axe  │
+└──────────────────────────────────────────────────────────────┘
 ```
+
+Every layer runs against a production build so what we test matches
+what ships (no dev-only short-circuits).
 
 ## Unit tests
 
@@ -20,28 +27,40 @@ pnpm test            # one-shot run
 pnpm test:watch      # interactive
 ```
 
-Pure functions, helpers, server actions with mocks. Fast (~2s for
-the full suite). Should stay green on every commit.
+301 tests across 32 files; full suite runs in ~3s. Should stay
+green on every commit.
 
 Pattern:
 - `vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }))`
   at the top of any test that touches mutations
 - Server actions test: input validation + auth failure + each
   user-visible error path + the friendly-error mapping
+- Privacy contracts get anti-regression tests (e.g. `relativeDay`
+  asserts no clock-time output)
+- `formatError` fixtures must be realistic — Postgres errors need
+  a `code` field, not just `message` (friendly-error mapping is
+  keyed on code)
 
-## Component tests
+## Component tests (Storybook)
 
 Storybook stories double as test fixtures via
 `@storybook/addon-vitest`. Run via:
 
 ```bash
-pnpm storybook       # interactive at :6006
-pnpm test --project storybook   # headless run
+pnpm storybook                     # interactive at :6006
+pnpm test --project storybook      # headless run
 ```
 
 Real Chromium via Playwright. Catches render regressions, prop
 shape changes, and (with `@storybook/addon-a11y`) accessibility
-violations.
+violations surfaced interactively.
+
+**Known gap (pnpm hoisting bug):** `test --project storybook`
+currently errors with "Failed to fetch dynamically imported
+module: setup-file-with-project-annotations.js" on this repo. The
+systematic a11y gate moved to `e2e/a11y.spec.ts` (see below) to
+route around it. Storybook autodocs still render in the interactive
+dev server — only the headless vitest-project run is affected.
 
 ## Lighthouse CI
 
@@ -53,11 +72,10 @@ pnpm lhci:assert     # assert against existing collected runs
 
 Configured in `lighthouserc.json`. Spawns `pnpm next start --port 4123`
 in the background, runs Lighthouse against `/` and `/privacy`,
-asserts on the configured score thresholds, uploads the report to
+asserts on configured score thresholds, uploads the report to
 temporary public storage (URL printed in stdout).
 
-The first time you run, install Chromium via Playwright if not
-already present:
+First-time setup:
 
 ```bash
 npx playwright install chromium
@@ -74,7 +92,8 @@ Current assertions:
 
 Performance is intentionally not asserted yet — the cold-cache
 score is dominated by the auth bootstrap, so the warm number is
-what matters and lhci can't measure that directly.
+what matters and lhci can't measure that directly. Current live
+scores: 1.00 across every asserted category on `/` and `/privacy`.
 
 ## End-to-end (Playwright)
 
@@ -88,14 +107,17 @@ pnpm e2e:debug       # one-step Playwright Inspector
 the background. Per-test contexts default-isolate cookies + storage
 so sign-in flows don't bleed between specs.
 
-`e2e/smoke.spec.ts` — production-build contracts (no auth needed):
+### `e2e/smoke.spec.ts` — production-build contracts
+
+No auth needed:
 
 - Home / login / privacy render with correct status + no console
   errors
-- /manifest.json shape (PWA fields, ≥192px icon, maskable entry)
-- /favicon.ico, /og-image.png, /sw.js all serve
+- `/manifest.json` shape (PWA fields, ≥192px icon, maskable entry)
+- `/favicon.ico`, `/og-image.png`, `/sw.js` all serve
 
-`e2e/auth.spec.ts` — sign-in flow against the live Supabase project.
+### `e2e/auth.spec.ts` — sign-in flow against live Supabase
+
 Requires:
 
 ```bash
@@ -105,14 +127,82 @@ export E2E_TEST_PASSWORD=…
 
 Without these env vars the suite skips. The test user must already
 exist (we don't sign up new accounts in tests — that pollutes
-production with throwaways). Cover sign-in success + ?next=
+production with throwaways). Covers sign-in success + `?next=`
 deep-link redirect + wrong-password error toast.
 
-## What's not covered yet
+### `e2e/a11y.spec.ts` — axe-core systematic gate
 
-- **Log-a-send flow** (touches mutations, needs cleanup)
-- **Push notification dispatch** test against a real subscription
-- **Cross-browser visual regression** — only chromium runs locally
+Runs axe-core against `/`, `/login`, `/privacy` in both light +
+dark color schemes (6 tests total). `page.emulateMedia({ colorScheme })`
+forces the scheme per test so results are deterministic regardless
+of Playwright's default.
 
-These are tracked in the rolling backlog (F3 critical-path,
-G2 axe-core, etc.).
+Gate: zero violations. Matches the same standard our manual
+Lighthouse pass hit after G1-G4.
+
+## Manual verification — where E2E can't reach
+
+Some invariants are hard to assert in Playwright without a
+disposable test database. Run these by hand before shipping a
+release:
+
+- **Log-a-send flow** (touches mutations in a way that pollutes
+  the shared Supabase project — needs a cleanup step we haven't
+  wired up yet)
+- **Push notification dispatch** against a real browser
+  subscription (requires VAPID env + a subscribed test device —
+  OS-level permission flow isn't browser-automatable)
+- **iOS PWA splash screens** — test on a real iPhone / iPad via
+  the Tailscale preview; desktop emulation doesn't trigger the
+  `apple-touch-startup-image` path
+- **Cross-browser visual regression** — only Chromium runs in CI;
+  eyeball the Safari + Firefox renders on `/` + `/profile` before
+  any UI-heavy release
+
+## Known verification gaps (ordered)
+
+These are tracked here rather than buried in commit messages — the
+list is intentionally short so it stays usable.
+
+1. **`pushsubscriptionchange` in the service worker.** Push
+   services (Apple especially) occasionally rotate a subscription's
+   endpoint. Without an SW listener we miss the rotation and the
+   device silently stops receiving pushes; current mitigation is
+   the 404/410 eviction path in `sendPushToUsers`, so the DB
+   eventually catches up but the user experiences a dead channel
+   in the meantime. Fix needs a small REST endpoint (service
+   workers can't call server actions) — deferred until VAPID is
+   wired on prod and we actually see rotation in the wild.
+2. **Crew-action push latency.** `src/app/crew/actions.ts` awaits
+   `sendPushToUsers` inline on invite / accept / transfer; the
+   responses wait for push dispatch. `sendPushInBackground` (via
+   `after()`) already exists for the set-live flow in
+   `src/app/admin/actions.ts` — swap the crew calls over when we
+   see the latency in telemetry. Small change, but requires
+   moving the test spies from `sendPushToUsers` to
+   `sendPushInBackground` (3 assertions in `crew/actions.test.ts`).
+3. **`getGymClimberUserIds` dedups in JS.** `src/lib/push/server.ts`
+   selects every `route_logs.user_id` for a gym and `new Set()`s
+   client-side. Fine for early gyms, potentially noisy at scale —
+   swap to a `SELECT DISTINCT` RPC once any gym crosses ~50k logs.
+4. **Storybook headless vitest-project run** (pnpm hoisting bug,
+   see above). Workaround in place via `e2e/a11y.spec.ts`, but the
+   proper fix is to stop hoisting `setup-file-with-project-annotations.js`.
+
+## Security verification
+
+- **`notify_user` is service-role-only** since migration 040. Any
+  change to the notification RPC signature must re-verify the grant
+  (the `authenticated` role should never regain execute).
+- **Leaderboard cached RPCs are service-role-only** since migration
+  039. Page-level membership check must stay upstream of
+  `getLeaderboardCached` / `getGymStatsV2Cached`.
+- **`formatError` never leaks Postgres `details` / `hint` in prod**
+  (asserted in `src/lib/errors.test.ts`). Friendly-code mapping
+  (23505, 23503, 23514, 23502, 42501, PGRST116, PGRST301) must
+  stay in sync with the strings the app surfaces.
+- **Service-role client is import-guarded** with `import "server-only"`
+  at the top of `src/lib/supabase/server.ts`. Any module that pulls
+  it into a `"use client"` bundle will trip a build error — if you
+  see one, split the helper so the cached-context chain stays on
+  the server.

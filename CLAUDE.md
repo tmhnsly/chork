@@ -328,8 +328,18 @@ Two layers: push (best-effort, transient) + persistent log
 tagged with a category (`invite_received` / `invite_accepted` /
 `ownership_changed`) — `sendPushToUsers(..., { category })` filters
 recipients by the opt-in bool on `profiles` (migration 032). The
-`notifyUser(userId, kind, payload)` helper writes a log row
-alongside so missed pushes are caught up in the NotificationsSheet.
+`notifyUser(userId, args)` helper writes a log row alongside so
+missed pushes are caught up in the NotificationsSheet.
+
+`notify_user` RPC is service-role-only (migration 040) — prior to
+that, any signed-in user could call it with an arbitrary target
+uid. The `notifyUser` helper uses `createServiceClient()`
+internally; don't pass a supabase client to it.
+
+The service worker (`public/sw.js`) only opens same-origin paths
+on tap — any notification `url` that isn't a single-leading-slash
+path falls back to `/`. Pushes also carry a `tag` for tray
+coalescing (default `chork-notification`).
 
 ### Admin vs climber vs organiser
 

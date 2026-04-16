@@ -295,6 +295,24 @@ survives OS drops, un-subscribed devices, and missed focus. The
 profile header's bell surfaces unread rows and opens the
 NotificationsSheet — which marks all unread as read server-side.
 
+`notifyUser()` uses the service-role client internally (migration
+040 revoked `authenticated` execute on the `notify_user` RPC —
+previously any signed-in user could call it with an arbitrary
+target uid + payload, a spoofing surface). The helper takes
+`(userId, args)` — no supabase parameter.
+
+### Service worker push-handler guard
+
+`public/sw.js` validates the `url` field on every incoming push
+before handing it to `client.navigate` / `openWindow`:
+leading-single-slash same-origin paths only, no `//host/…` or
+backslash tricks. Belt-and-braces against a future bug (or abuse
+of the push channel) that might ship a user-controlled URL.
+
+Pushes also carry a `tag` so a burst of related notifications
+coalesces in the tray instead of stacking. Server can override
+per-push; default tag groups all Chork notifications.
+
 ---
 
 ## Offline mutation queue

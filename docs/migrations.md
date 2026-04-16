@@ -51,6 +51,7 @@ Regenerate types after any apply: `npx supabase gen types typescript --project-i
 | 037 | `gym_stats_rpc.sql` | `get_gym_stats_v2(p_gym_id, p_set_id default null)` — single RPC returning both all-time + set-scoped `{climbers, sends, flashes, routes}`. Replaces the two-call `getGymStats` pattern that fired 8 round trips per `/leaderboard` paint |
 | 038 | `profile_summary_extended.sql` | Extends `get_profile_summary` payload with `total_attempts` + `unique_routes_attempted` (gym-scoped, indexed scans of `route_logs`). Lets `ProfileStats` derive every `allTimeExtras` field from one RPC instead of falling back to `getAllRouteDataForUserInGym` |
 | 039 | `leaderboard_cached_rpcs.sql` | `get_leaderboard_set_cached`, `get_leaderboard_all_time_cached`, `get_gym_stats_v2_cached`. Drops the `is_gym_member` auth gate (which blocks the `unstable_cache` pattern under service-role), granted to `service_role` only. Page-level membership check moves into the cached wrapper. Set-belongs-to-gym cross-ownership stays inside the RPC as belt-and-braces. Enables the `getLeaderboardCached` / `getGymStatsV2Cached` Layer-2 wraps for cross-viewer cache sharing |
+| 040 | `notify_user_service_role_only.sql` | Revoke execute on `notify_user(uuid, text, jsonb)` from `authenticated`; grant to `service_role` only. Previously any signed-in user could call the SECURITY DEFINER RPC with an arbitrary target uid + payload — a spoofing surface. `notifyUser` helper in `src/lib/notify.ts` now uses the service client internally |
 
 ---
 
