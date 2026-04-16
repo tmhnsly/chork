@@ -47,6 +47,9 @@ Regenerate types after any apply: `npx supabase gen types typescript --project-i
 | 033 | `notifications_log.sql` | `notifications(user_id, kind, payload jsonb, read_at, created_at)` + RLS (read/update/delete own only, no client insert). `notify_user(user_id, kind, payload)` SECURITY DEFINER helper — three kinds at launch: `crew_invite_received`, `crew_invite_accepted`, `crew_ownership_transferred` |
 | 034 | `gym_admins_tighten_select.sql` | Replace `gym_admins` open SELECT policy with scoped one (self OR fellow admin of the same gym). Previously any signed-in user could enumerate every gym's admin roster from the browser |
 | 035 | `crew_member_counts.sql` | `get_crew_member_counts(p_crew_ids)` — server-side `count(*) group by crew_id` for the /crew picker. Previously `getMyCrews` streamed every row and tallied client-side |
+| 036 | `profile_summary_rpc.sql` | `get_profile_summary(p_user_id, p_gym_id)` — one-call RPC returning per-set aggregates (from `user_set_stats`), active-set raw logs, and gym route count. Replaces the `getAllRouteDataForUserInGym` raw-log fetch + JS aggregation on `/u/[username]`. `is_gym_member(p_gym_id)` gate, `STABLE`, `SECURITY DEFINER`, `search_path = ''` |
+| 037 | `gym_stats_rpc.sql` | `get_gym_stats_v2(p_gym_id, p_set_id default null)` — single RPC returning both all-time + set-scoped `{climbers, sends, flashes, routes}`. Replaces the two-call `getGymStats` pattern that fired 8 round trips per `/leaderboard` paint |
+| 038 | `profile_summary_extended.sql` | Extends `get_profile_summary` payload with `total_attempts` + `unique_routes_attempted` (gym-scoped, indexed scans of `route_logs`). Lets `ProfileStats` derive every `allTimeExtras` field from one RPC instead of falling back to `getAllRouteDataForUserInGym` |
 
 ---
 

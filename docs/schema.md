@@ -296,6 +296,15 @@ anon, public`. Access is gated inside each function (typically
 
 ### Climber-facing
 
+- `get_profile_summary(user_id, gym_id)` — one-call profile RPC
+  (migration 036, extended in 038). Payload:
+  `{ per_set: [{set_id, sends, flashes, zones, points}], active_set_detail: [{route_id, attempts, completed, zone}], total_routes_in_gym, total_attempts, unique_routes_attempted }`.
+  Replaces the raw-log fetch + JS aggregation that used to drive
+  `/u/[username]`
+- `get_gym_stats_v2(gym_id, set_id default null)` — single RPC
+  returning both `all_time` and `set` blocks of `{climbers, sends,
+  flashes, routes}` (migration 037). Replaces the two `getGymStats`
+  calls that fired 8 round trips per `/leaderboard` paint
 - `get_route_grade(route_id)` — community grade average
 - `get_user_set_stats(user_id, gym_id)` — per-set climber aggregates
 - `get_leaderboard_set(gym_id, set_id, limit, offset)`

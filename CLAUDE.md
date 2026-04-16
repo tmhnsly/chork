@@ -103,14 +103,33 @@ Two supabase clients:
 
 ### Caching + revalidation
 
-- `next.config.ts`: `experimental.staleTimes.dynamic = 300` (5-min
-  client RSC cache)
-- Mutations call `revalidatePath("/", "layout")` (and `/admin`,
-  `/crew` where relevant) to bust immediately
-- `SendsGrid` caches route-sheet data in a `routeDataCache` Map so
-  re-opening a tile is instant
-- `getServerProfile` / `getServerUser` wrapped in `cache()` — root
-  layout + page + auth helpers share the same data within one render
+Six concentric layers — see `docs/architecture.md` for the full table.
+Quick reference:
+
+- **Layer 2 — server cache** via `cachedQuery()` in
+  `src/lib/cache/cached.ts`. Wraps `getGym`, `getCurrentSet`,
+  `getAllSets`, `getRoutesBySet`, `getRouteGrade`, `getListedGyms`,
+  `getProfileByUsername`, `getCompetitionById` (the last in
+  `src/lib/data/competition-by-id.ts` so server-only doesn't leak to
+  client bundles). Service-role client inside the cached body —
+  authorisation happens at the page level **before** the call
+- **Layer 3 — per-render dedupe** via React `cache()` on
+  `getServerUser` / `getServerProfile` / `getProfileSummary` etc.
+- **Mutations** revalidate **tags**, not paths.
+  `revalidatePath("/", "layout")` is forbidden everywhere except
+  inside `revalidateUserProfile` indirection (which still uses tags).
+  Tag union lives in `src/lib/cache/cached.ts`; mutation→tag table
+  in `docs/architecture.md`
+- **`revalidateUserProfile(supabase, userId)`** in
+  `src/lib/cache/revalidate.ts` looks up username + busts both
+  `user:{uid}:profile` and `user:username-{u}:profile` so callers
+  that only know uid don't leave the by-username cache stale
+- `next.config.ts`: `experimental.staleTimes.dynamic = 60` (60s
+  client RSC cache; lowered from 300 once tag busts replaced layout
+  scorch)
+- `SendsGrid` keeps a `routeDataCache` Map for instant tile re-opens
+- `completeRoute` defers badge eval via `after()` from `next/server`
+  — action returns as soon as the log + activity event are written
 
 ### Performance invariants (learned the hard way)
 
@@ -271,9 +290,14 @@ alongside so missed pushes are caught up in the NotificationsSheet.
 Three distinct roles, never conflate:
 
 - Climber membership: `gym_memberships(user_id, gym_id, role)` —
-  role column exists but is largely cosmetic now
+  role column exists but is largely cosmetic now. **NEVER gate UI on
+  `gym_memberships.role`** — use the `gym_admins`-backed helpers
+  (`isGymAdminOf`, `requireGymAdmin`) instead. The home page shipped
+  the wrong gate once; don't repeat
 - Admin rights: `gym_admins(user_id, gym_id, role in ('admin','owner'))`
-  — separate table. `is_gym_admin(gym_id)` reads from here
+  — separate table. `is_gym_admin(gym_id)` reads from here.
+  `isGymAdminOf(supabase, userId, gymId)` is the cheapest app-side
+  check (single indexed lookup)
 - Competition organiser: `competitions.organiser_id` —
   `is_competition_organiser(comp_id)` gates organiser-only actions.
   Distinct from gym admin
@@ -289,9 +313,13 @@ Vitest-based. See `docs/testing.md` for patterns. Key rules:
 - Privacy contracts get explicit anti-regression tests (e.g.
   `relativeDay` has tests asserting no clock-time output)
 - Server actions get tests for: input validation, auth failure, each
-  distinct user-visible error path, DB error propagation
+  distinct user-visible error path, friendly-error mapping
 - Fixtures must be realistic — Postgres errors need a `code` field,
-  not just `message`, or `formatError` falls through to its generic
+  not just `message`. `formatError` maps known codes (23505 / 23503 /
+  23514 / 23502 / 42501 / PGRST116 / PGRST301) to friendly user-facing
+  strings; unknown codes return the raw `message` only in production
+  (no `details` / `hint` leak). `formatErrorForLog` keeps full context
+  for server logs
 
 ---
 

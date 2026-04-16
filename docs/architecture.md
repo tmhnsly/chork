@@ -460,8 +460,32 @@ Don't cache when:
 When touching a mutation: list every tag the DB change can affect, and
 call `revalidateTag(tag)` for each. Prefer over-busting to under-busting
 if in doubt — a spurious cache miss is cheap, a missed bust is stale UI.
-**Never** use `revalidatePath("/", "layout")` except on onboarding
-completion — that's the one legit full-tree revalidation.
+
+**Never use `revalidatePath("/", "layout")`.** The whole codebase has
+zero call sites of that pattern; the lone earlier holdout (onboarding)
+now uses `revalidateUserProfile` + `revalidateTag(gym:{id}:active-set)`.
+Acceptance check: `grep -rn 'revalidatePath.*"/".*"layout"' src/app`
+returns no real call sites.
+
+For mutations that change the profile row but only know the user's
+uid (most of them), use `revalidateUserProfile(supabase, userId)` from
+`src/lib/cache/revalidate.ts` — it does the username lookup and busts
+both `user:{uid}:profile` and `user:username-{u}:profile`. Without
+that helper, the by-username cache stays warm for up to 300s after
+mutations like `switchActiveGym` / `updateThemePreference`.
+
+### Error sanitisation
+
+Server actions surface errors via `formatError(err)` from
+`src/lib/errors.ts`. Postgres `code`s map to friendly user-facing
+strings (e.g. `23505` → "That already exists.") so no constraint
+name / column value / row fragment leaks to a toast. Unknown codes
+return `err.message` only in production; development keeps
+`details` + `hint` for debugging.
+
+For server-side logs — full context required — use
+`formatErrorForLog(err)` instead. Never pass that string back to the
+client.
 
 ---
 
