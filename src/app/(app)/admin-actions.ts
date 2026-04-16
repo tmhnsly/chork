@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { requireAuth } from "@/lib/auth";
 import { getUserGymRole, isGymAdmin } from "@/lib/data/queries";
 import { formatError } from "@/lib/errors";
@@ -72,7 +72,8 @@ export async function createSet(
 
     if (routesError) return { error: formatError(routesError) };
 
-    revalidatePath("/", "layout");
+    revalidateTag(`gym:${gymId}:active-set`);
+    revalidateTag(`set:${set.id}:routes`);
     return { success: true, set };
   } catch (err) {
     return { error: formatError(err) };
@@ -108,7 +109,8 @@ export async function endSet(
 
     if (error) return { error: formatError(error) };
 
-    revalidatePath("/", "layout");
+    revalidateTag(`gym:${gymId}:active-set`);
+    revalidateTag(`set:${setId}:leaderboard`);
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };

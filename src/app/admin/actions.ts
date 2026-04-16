@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireGymAdmin, requireSignedIn } from "@/lib/auth";
 import {
@@ -74,7 +74,8 @@ export async function signupGym(form: {
 
   if ("error" in result) return { error: result.error };
 
-  revalidatePath("/admin", "layout");
+  // New gym + admin row affects this user's profile view (admin nav).
+  revalidateTag(`user:${auth.userId}:profile`);
   return { success: true, gymId: result.gymId };
 }
 
@@ -122,7 +123,9 @@ export async function sendAdminInvite(form: {
 
   if (error) return { error: formatError(error) };
 
-  revalidatePath("/admin", "layout");
+  // gym_invites isn't in the cache layer; the admin invites list
+  // re-fetches automatically via the server action's response cycle.
+  // No revalidateTag needed.
 
   // The server action returns the URL so the caller (admin UI) can show
   // a copy-link button. Email delivery wiring lands with the push /
@@ -149,7 +152,7 @@ export async function cancelAdminInvite(inviteId: string): Promise<ActionResult>
   const { error } = await auth.supabase.from("gym_invites").delete().eq("id", inviteId);
   if (error) return { error: formatError(error) };
 
-  revalidatePath("/admin", "layout");
+  // gym_invites uncached — see sendAdminInvite note.
   return { success: true };
 }
 
@@ -172,7 +175,9 @@ export async function acceptAdminInvite(token: string): Promise<ActionResult<{ g
   });
   if ("error" in result) return { error: result.error };
 
-  revalidatePath("/admin", "layout");
+  // Admin row added to gym_admins; affects the user's profile view
+  // (admin nav surfaces). gym_admins isn't in the cache layer itself.
+  revalidateTag(`user:${auth.userId}:profile`);
   return { success: true, gymId: result.gymId };
 }
 
@@ -240,8 +245,7 @@ export async function createSet(
   });
   if ("error" in result) return { error: result.error };
 
-  revalidatePath("/admin", "layout");
-  revalidatePath("/", "layout"); // climber pages see the new set if it went live
+  revalidateTag(`gym:${form.gymId}:active-set`);
   return { success: true, setId: result.setId };
 }
 
@@ -300,8 +304,9 @@ export async function updateSet(
     }
   }
 
-  revalidatePath("/admin", "layout");
-  revalidatePath("/", "layout");
+  revalidateTag(`gym:${setRow.gym_id}:active-set`);
+  // Status transitions affect leaderboard semantics for the set.
+  revalidateTag(`set:${setId}:leaderboard`);
   return { success: true };
 }
 
