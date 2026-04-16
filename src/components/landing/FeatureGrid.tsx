@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
+import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import styles from "./featureGrid.module.scss";
 
 export interface FeatureItem {
@@ -34,7 +35,14 @@ export function FeatureGrid({ items }: Props) {
   }, []);
 
   return (
-    <section className={styles.section}>
+    <section className={styles.section} aria-labelledby="feature-grid-heading">
+      {/* Visually-hidden h2 makes the heading order land
+          h1 (Hero) → h2 (Features) → h3 (each card) instead of jumping
+          h1 → h3, which Lighthouse a11y flags as heading-order. The
+          screen-reader landmark name comes from this heading. */}
+      <VisuallyHidden.Root asChild>
+        <h2 id="feature-grid-heading">Features</h2>
+      </VisuallyHidden.Root>
       <div
         ref={ref}
         className={`${styles.grid} ${visible ? styles.gridVisible : ""}`}

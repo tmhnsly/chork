@@ -72,7 +72,7 @@ export function NavBar() {
     return (
       <nav className={styles.bar}>
         <div className={styles.barInner}>
-          <Link href="/" className={styles.brandLinkVisible} aria-label="Home">
+          <Link href="/" className={styles.brandLinkVisible} aria-label="Chork — home">
             <ChorkMark size={18} />
             <span className={styles.brandTextVisible}>Chork</span>
           </Link>
@@ -100,7 +100,7 @@ export function NavBar() {
     return (
       <nav className={styles.bar}>
         <div className={styles.barInner}>
-          <Link href="/" className={styles.brandLinkVisible} aria-label="Home">
+          <Link href="/" className={styles.brandLinkVisible} aria-label="Chork — home">
             <ChorkMark size={18} />
             <span className={styles.brandTextVisible}>Chork</span>
           </Link>
@@ -200,7 +200,7 @@ function AuthenticatedNav({
   return (
     <nav className={styles.bar}>
       <div className={styles.barInner}>
-        <Link href="/" className={styles.brandLink} aria-label="Home">
+        <Link href="/" className={styles.brandLink} aria-label="Chork — home">
           <ChorkMark size={18} />
           <span className={styles.brandText}>Chork</span>
         </Link>
