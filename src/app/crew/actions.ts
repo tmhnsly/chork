@@ -1,14 +1,49 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { requireSignedIn } from "@/lib/auth";
 import { formatError } from "@/lib/errors";
 import { sendPushToUsers } from "@/lib/push/server";
 import { notifyUser } from "@/lib/notify";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/database.types";
 
 type ActionResult<T = unknown> = { error: string } | ({ success: true } & T);
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Fan-out tag invalidation: bust crew:{id} + every active member's
+ * user:{uid}:crews tag. Pass extra ids (e.g. just-removed leaver)
+ * via `extraUserIds` since they no longer appear in crew_members.
+ */
+async function revalidateCrewMembers(
+  supabase: SupabaseClient<Database>,
+  crewId: string,
+  extraUserIds: string[] = [],
+) {
+  revalidateTag(`crew:${crewId}`);
+  const { data: members } = await supabase
+    .from("crew_members")
+    .select("user_id")
+    .eq("crew_id", crewId)
+    .eq("status", "active");
+  const seen = new Set<string>();
+  if (Array.isArray(members)) {
+    for (const m of members) {
+      if (m.user_id && !seen.has(m.user_id)) {
+        revalidateTag(`user:${m.user_id}:crews`);
+        seen.add(m.user_id);
+      }
+    }
+  }
+  for (const uid of extraUserIds) {
+    if (!seen.has(uid)) {
+      revalidateTag(`user:${uid}:crews`);
+      seen.add(uid);
+    }
+  }
+}
 
 // ────────────────────────────────────────────────────────────────
 // Create / manage crews
@@ -57,7 +92,7 @@ export async function createCrew(name: string): Promise<ActionResult<{ crewId: s
 
     // The seat_crew_creator trigger has already inserted our active
     // membership row in the same transaction — no follow-up writes.
-    revalidatePath("/crew", "layout");
+    await revalidateCrewMembers(supabase, data.id);
     return { success: true, crewId: data.id };
   } catch (err) {
     return { error: formatError(err) };
@@ -154,7 +189,9 @@ export async function inviteToCrew(
       console.warn("[chork] crew-invite dispatch failed:", err);
     }
 
-    revalidatePath("/crew", "layout");
+    revalidateTag(`crew:${crewId}`);
+    revalidateTag(`user:${userId}:crews`);
+    revalidateTag(`user:${targetUserId}:notifications`);
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
@@ -224,7 +261,14 @@ export async function acceptCrewInvite(crewMemberId: string): Promise<ActionResu
       }
     }
 
-    revalidatePath("/crew", "layout");
+    if (invite?.crew_id) {
+      // crew_id from the prior fetch + accepter is now active in the
+      // members list, so the fan-out catches them too.
+      await revalidateCrewMembers(supabase, invite.crew_id);
+      if (invite.invited_by && invite.invited_by !== userId) {
+        revalidateTag(`user:${invite.invited_by}:notifications`);
+      }
+    }
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
@@ -239,6 +283,16 @@ export async function declineCrewInvite(crewMemberId: string): Promise<ActionRes
   const { supabase, userId } = auth;
 
   try {
+    // Capture invite metadata before delete so we know who to notify +
+    // which crew tag to bust.
+    const { data: invite } = await supabase
+      .from("crew_members")
+      .select("invited_by, crew_id")
+      .eq("id", crewMemberId)
+      .eq("user_id", userId)
+      .eq("status", "pending")
+      .maybeSingle();
+
     const { error } = await supabase
       .from("crew_members")
       .delete()
@@ -247,7 +301,13 @@ export async function declineCrewInvite(crewMemberId: string): Promise<ActionRes
       .eq("status", "pending");
     if (error) return { error: formatError(error) };
 
-    revalidatePath("/crew", "layout");
+    if (invite?.crew_id) {
+      revalidateTag(`crew:${invite.crew_id}`);
+      revalidateTag(`user:${userId}:crews`);
+      if (invite.invited_by && invite.invited_by !== userId) {
+        revalidateTag(`user:${invite.invited_by}:notifications`);
+      }
+    }
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
@@ -301,7 +361,8 @@ export async function leaveCrew(crewId: string): Promise<ActionResult> {
       // the membership + pending invite rows.
       const { error } = await supabase.from("crews").delete().eq("id", crewId);
       if (error) return { error: formatError(error) };
-      revalidatePath("/crew", "layout");
+      revalidateTag(`crew:${crewId}`);
+      revalidateTag(`user:${userId}:crews`);
       return { success: true };
     }
 
@@ -312,7 +373,9 @@ export async function leaveCrew(crewId: string): Promise<ActionResult> {
       .eq("user_id", userId);
     if (error) return { error: formatError(error) };
 
-    revalidatePath("/crew", "layout");
+    // Leaver no longer in crew_members; pass them via extraUserIds so
+    // their crews tag busts alongside the remaining active set.
+    await revalidateCrewMembers(supabase, crewId, [userId]);
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
@@ -407,7 +470,8 @@ export async function transferCrewOwnership(
       console.warn("[chork] crew-transfer push dispatch failed:", err);
     }
 
-    revalidatePath("/crew", "layout");
+    await revalidateCrewMembers(supabase, crewId);
+    revalidateTag(`user:${newOwnerId}:notifications`);
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
@@ -426,7 +490,8 @@ export async function setAllowCrewInvites(allow: boolean): Promise<ActionResult>
       .eq("id", userId);
     if (error) return { error: formatError(error) };
 
-    revalidatePath("/crew", "layout");
+    // allow_crew_invites is a profile column; bust the user's profile tag.
+    revalidateTag(`user:${userId}:profile`);
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
