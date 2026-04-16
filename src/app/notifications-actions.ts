@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { requireSignedIn } from "@/lib/auth";
 import { formatError } from "@/lib/errors";
 
@@ -23,7 +23,7 @@ export async function markAllNotificationsRead(): Promise<{ error: string } | { 
       .is("read_at", null);
     if (error) return { error: formatError(error) };
 
-    revalidatePath("/", "layout");
+    revalidateTag(`user:${userId}:notifications`);
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
@@ -52,7 +52,7 @@ export async function dismissNotification(
       .eq("user_id", userId);
     if (error) return { error: formatError(error) };
 
-    revalidatePath("/", "layout");
+    revalidateTag(`user:${userId}:notifications`);
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
