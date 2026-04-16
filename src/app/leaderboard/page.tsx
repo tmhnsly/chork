@@ -26,7 +26,7 @@ export default async function LeaderboardPage() {
 
   const [gym, currentSet, allTimeStats] = await Promise.all([
     getGym(gymId),
-    getCurrentSet(supabase, gymId),
+    getCurrentSet(gymId),
     getGymStats(supabase, gymId),
   ]);
 

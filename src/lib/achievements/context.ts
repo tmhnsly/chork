@@ -20,7 +20,7 @@ export async function buildBadgeContext(
   userId: string,
   gymId: string
 ): Promise<BadgeContext | null> {
-  const allSets = await getAllSets(supabase, gymId);
+  const allSets = await getAllSets(gymId);
   if (allSets.length === 0) return null;
 
   const [routeData, ...setRoutes] = await Promise.all([

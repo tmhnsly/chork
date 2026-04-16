@@ -113,19 +113,27 @@ export function getGym(gymId: string): Promise<Gym | null> {
 
 // ── Sets ───────────────────────────────────────────
 
-export async function getCurrentSet(supabase: Supabase, gymId: string): Promise<RouteSet | null> {
-  const { data, error } = await supabase
-    .from("sets")
-    .select("*")
-    .eq("gym_id", gymId)
-    .eq("active", true)
-    .limit(1)
-    .maybeSingle();
-  if (error) {
-    console.warn("[chork] getCurrentSet failed:", error);
-    return null;
-  }
-  return data;
+export function getCurrentSet(gymId: string): Promise<RouteSet | null> {
+  const fn = cachedQuery(
+    ["set-active", gymId],
+    async (id: string): Promise<RouteSet | null> => {
+      const supabase = createCachedContextClient();
+      const { data, error } = await supabase
+        .from("sets")
+        .select("*")
+        .eq("gym_id", id)
+        .eq("active", true)
+        .limit(1)
+        .maybeSingle();
+      if (error) {
+        console.warn("[chork] getCurrentSet failed:", error);
+        return null;
+      }
+      return data;
+    },
+    { tags: [`gym:${gymId}:active-set`], revalidate: 60 },
+  );
+  return fn(gymId);
 }
 
 /**
@@ -134,27 +142,27 @@ export async function getCurrentSet(supabase: Supabase, gymId: string): Promise<
  *   to hide sets that finished before the user joined the app.
  *   Filter runs in the query (SQL) so it stays O(matching rows).
  */
-export async function getAllSets(
-  supabase: Supabase,
-  gymId: string,
-  sinceIso?: string
-): Promise<RouteSet[]> {
-  let query = supabase
-    .from("sets")
-    .select("*")
-    .eq("gym_id", gymId)
-    .order("starts_at", { ascending: false });
-
-  if (sinceIso) {
-    query = query.gte("ends_at", sinceIso);
-  }
-
-  const { data, error } = await query;
-  if (error) {
-    console.warn("[chork] getAllSets failed:", error);
-    return [];
-  }
-  return data ?? [];
+export function getAllSets(gymId: string, sinceIso?: string): Promise<RouteSet[]> {
+  const fn = cachedQuery(
+    ["sets", gymId, sinceIso ?? "*"],
+    async (id: string, since: string | undefined): Promise<RouteSet[]> => {
+      const supabase = createCachedContextClient();
+      let query = supabase
+        .from("sets")
+        .select("*")
+        .eq("gym_id", id)
+        .order("starts_at", { ascending: false });
+      if (since) query = query.gte("ends_at", since);
+      const { data, error } = await query;
+      if (error) {
+        console.warn("[chork] getAllSets failed:", error);
+        return [];
+      }
+      return data ?? [];
+    },
+    { tags: [`gym:${gymId}:active-set`], revalidate: 300 },
+  );
+  return fn(gymId, sinceIso);
 }
 
 // ── Routes ─────────────────────────────────────────

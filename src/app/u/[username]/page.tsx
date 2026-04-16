@@ -82,7 +82,7 @@ export default async function UserProfilePage({ params }: Props) {
   // Only show sets that were still active when the user joined — sets that
   // finished before their account existed are not meaningful to them.
   // Filter runs in SQL via `ends_at >= created_at`.
-  const allSets = await getAllSets(supabase, gymId, profileUser.created_at);
+  const allSets = await getAllSets(gymId, profileUser.created_at);
   const activeSet = allSets.find((s) => s.active) ?? null;
   const previousSetRecords = allSets.filter((s) => !s.active);
 

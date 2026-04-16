@@ -50,7 +50,7 @@ async function AuthenticatedHome({ userId, gymId }: { userId: string; gymId: str
   const supabase = await createServerSupabase();
 
   const [set, role, gym] = await Promise.all([
-    getCurrentSet(supabase, gymId),
+    getCurrentSet(gymId),
     getUserGymRole(supabase, userId, gymId),
     getGym(gymId),
   ]);
