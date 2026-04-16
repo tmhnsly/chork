@@ -89,7 +89,7 @@ export default async function UserProfilePage({ params }: Props) {
   // One batched routes query for all previous sets (was N round-trips,
   // one per previous set — hot spot for climbers with long histories).
   const [miniRoutes, miniLogs, routeData, previousSetRoutesById, earnedAchievements] = await Promise.all([
-    activeSet ? getRoutesBySet(supabase, activeSet.id) : Promise.resolve<Route[]>([]),
+    activeSet ? getRoutesBySet(activeSet.id) : Promise.resolve<Route[]>([]),
     activeSet ? getLogsBySetForUser(supabase, activeSet.id, profileUser.id) : Promise.resolve<RouteLog[]>([]),
     getAllRouteDataForUserInGym(supabase, gymId, profileUser.id, allSets.map((s) => s.id)),
     getRoutesBySetIds(supabase, previousSetRecords.map((s) => s.id)),

@@ -167,17 +167,25 @@ export function getAllSets(gymId: string, sinceIso?: string): Promise<RouteSet[]
 
 // ── Routes ─────────────────────────────────────────
 
-export async function getRoutesBySet(supabase: Supabase, setId: string): Promise<Route[]> {
-  const { data, error } = await supabase
-    .from("routes")
-    .select("*")
-    .eq("set_id", setId)
-    .order("number");
-  if (error) {
-    console.warn("[chork] getRoutesBySet failed:", error);
-    return [];
-  }
-  return data ?? [];
+export function getRoutesBySet(setId: string): Promise<Route[]> {
+  const fn = cachedQuery(
+    ["routes-by-set", setId],
+    async (id: string): Promise<Route[]> => {
+      const supabase = createCachedContextClient();
+      const { data, error } = await supabase
+        .from("routes")
+        .select("*")
+        .eq("set_id", id)
+        .order("number");
+      if (error) {
+        console.warn("[chork] getRoutesBySet failed:", error);
+        return [];
+      }
+      return data ?? [];
+    },
+    { tags: [`set:${setId}:routes`], revalidate: 300 },
+  );
+  return fn(setId);
 }
 
 /**
@@ -328,20 +336,25 @@ export async function getUserSetStats(
  * row in hand can read `route.community_grade` directly and skip
  * this call entirely.
  */
-export async function getRouteGrade(
-  supabase: Supabase,
-  routeId: string,
-): Promise<number | null> {
-  const { data, error } = await supabase
-    .from("routes")
-    .select("community_grade")
-    .eq("id", routeId)
-    .maybeSingle();
-  if (error) {
-    console.warn("[chork] getRouteGrade failed:", error);
-    return null;
-  }
-  return data?.community_grade ?? null;
+export function getRouteGrade(routeId: string): Promise<number | null> {
+  const fn = cachedQuery(
+    ["route-grade", routeId],
+    async (id: string): Promise<number | null> => {
+      const supabase = createCachedContextClient();
+      const { data, error } = await supabase
+        .from("routes")
+        .select("community_grade")
+        .eq("id", id)
+        .maybeSingle();
+      if (error) {
+        console.warn("[chork] getRouteGrade failed:", error);
+        return null;
+      }
+      return data?.community_grade ?? null;
+    },
+    { tags: [`set:route-${routeId}:routes`], revalidate: 300 },
+  );
+  return fn(routeId);
 }
 
 // ── Activity events ────────────────────────────────

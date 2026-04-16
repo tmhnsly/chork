@@ -37,7 +37,7 @@ export default async function LeaderboardPage() {
     getLeaderboard(supabase, gymId, initialSetId, TOP_LIMIT, 0),
     getLeaderboardUserRow(supabase, gymId, userId, initialSetId),
     initialSetId ? getGymStats(supabase, gymId, initialSetId) : Promise.resolve(null),
-    initialSetId ? getRoutesBySet(supabase, initialSetId) : Promise.resolve([]),
+    initialSetId ? getRoutesBySet(initialSetId) : Promise.resolve([]),
   ]);
 
   const needsNeighbourhood =

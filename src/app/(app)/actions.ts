@@ -264,7 +264,7 @@ export async function fetchRouteData(routeId: string): Promise<{
   const { supabase, userId } = auth;
 
   const [grade, comments, likedSet] = await Promise.all([
-    getRouteGrade(supabase, routeId).catch((err) => {
+    getRouteGrade(routeId).catch((err) => {
       console.warn("[chork] fetchRouteData grade failed:", err);
       return null;
     }),

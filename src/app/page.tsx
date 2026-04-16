@@ -64,7 +64,7 @@ async function AuthenticatedHome({ userId, gymId }: { userId: string; gymId: str
   }
 
   const [routes, logs] = await Promise.all([
-    getRoutesBySet(supabase, set.id),
+    getRoutesBySet(set.id),
     getLogsBySetForUser(supabase, set.id, userId),
   ]);
 

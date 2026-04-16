@@ -25,7 +25,7 @@ export async function buildBadgeContext(
 
   const [routeData, ...setRoutes] = await Promise.all([
     getAllRouteDataForUserInGym(supabase, gymId, userId, allSets.map((s) => s.id)),
-    ...allSets.map((s) => getRoutesBySet(supabase, s.id)),
+    ...allSets.map((s) => getRoutesBySet(s.id)),
   ]);
 
   const aggregates = computeAllTimeAggregates(routeData.logs);
