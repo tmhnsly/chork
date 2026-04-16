@@ -59,17 +59,31 @@ export async function getProfile(supabase: Supabase, userId: string): Promise<Pr
 }
 
 export const getProfileByUsername = cache(
-  async (supabase: Supabase, username: string): Promise<Profile | null> => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("username", username)
-      .single();
-    if (error) {
-      console.warn("[chork] getProfileByUsername failed:", error);
-      return null;
-    }
-    return data;
+  async (username: string): Promise<Profile | null> => {
+    const fn = cachedQuery(
+      ["profile-by-username", username],
+      async (u: string): Promise<Profile | null> => {
+        const supabase = createCachedContextClient();
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("username", u)
+          .single();
+        if (error) {
+          console.warn("[chork] getProfileByUsername failed:", error);
+          return null;
+        }
+        return data;
+      },
+      {
+        // Tag must be known at wrap time; username is the only keyable
+        // thing we have until the fetch resolves. On rename, updateProfile
+        // revalidates both old and new username tags (Phase 3).
+        tags: [`user:username-${username}:profile`],
+        revalidate: 300,
+      },
+    );
+    return fn(username);
   },
 );
 

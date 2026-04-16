@@ -62,7 +62,7 @@ export default async function UserProfilePage({ params }: Props) {
   const supabase = await createServerSupabase();
   const authUser = await getServerUser();
 
-  const profileUser = await getProfileByUsername(supabase, username);
+  const profileUser = await getProfileByUsername(username);
   if (!profileUser) notFound();
 
   const isOwnProfile = authUser?.id === profileUser.id;
