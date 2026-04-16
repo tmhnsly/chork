@@ -8,7 +8,7 @@ import type { Database } from "@/lib/database.types";
 import type { BadgeContext } from "@/lib/badges";
 import {
   getAllSets,
-  getRoutesBySet,
+  getRoutesBySetIds,
   getAllRouteDataForUserInGym,
 } from "@/lib/data/queries";
 import { computeAllTimeAggregates } from "@/lib/data/profile-stats";
@@ -23,9 +23,14 @@ export async function buildBadgeContext(
   const allSets = await getAllSets(gymId);
   if (allSets.length === 0) return null;
 
-  const [routeData, ...setRoutes] = await Promise.all([
-    getAllRouteDataForUserInGym(supabase, gymId, userId, allSets.map((s) => s.id)),
-    ...allSets.map((s) => getRoutesBySet(s.id)),
+  // One batched routes query for all sets instead of N parallel
+  // getRoutesBySet calls. The .in("set_id", ids) shape this RPC uses
+  // matches the pattern getAllRouteDataForUserInGym was written to
+  // replace elsewhere — same fix here.
+  const setIds = allSets.map((s) => s.id);
+  const [routeData, routesBySetId] = await Promise.all([
+    getAllRouteDataForUserInGym(supabase, gymId, userId, setIds),
+    getRoutesBySetIds(supabase, setIds),
   ]);
 
   const aggregates = computeAllTimeAggregates(routeData.logs);
@@ -36,8 +41,8 @@ export async function buildBadgeContext(
   const zoneAvailableBySet = new Map<string, Set<number>>();
   const zoneClaimedBySet = new Map<string, Set<number>>();
 
-  allSets.forEach((set, i) => {
-    const routes = setRoutes[i] ?? [];
+  allSets.forEach((set) => {
+    const routes = routesBySetId.get(set.id) ?? [];
     totalRoutesBySet.set(set.id, routes.length);
     const routeNumberById = new Map(routes.map((r) => [r.id, r.number]));
 
