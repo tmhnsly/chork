@@ -89,12 +89,29 @@ export const getProfileByUsername = cache(
 
 // ── Gyms ───────────────────────────────────────────
 
+/**
+ * Escape Postgres LIKE / ILIKE pattern metacharacters in a user-supplied
+ * search input. Without this, a climber typing "50%" turns into a
+ * wildcard scan; "_a" matches every two-letter combo starting with "a".
+ *
+ * Backslash itself escapes (default Postgres behaviour) so we double it
+ * first, then escape the wildcards.
+ */
+function escapeLikePattern(input: string): string {
+  return input
+    .replace(/\\/g, "\\\\")
+    .replace(/%/g, "\\%")
+    .replace(/_/g, "\\_");
+}
+
 export async function searchGyms(supabase: Supabase, query: string): Promise<Gym[]> {
+  const safe = escapeLikePattern(query.trim());
+  if (!safe) return [];
   const { data, error } = await supabase
     .from("gyms")
     .select("*")
     .eq("is_listed", true)
-    .ilike("name", `%${query}%`)
+    .ilike("name", `%${safe}%`)
     .order("name")
     .limit(20);
   if (error) {
