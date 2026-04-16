@@ -1193,6 +1193,10 @@ export type Database = {
         Args: { p_gym_id: string }
         Returns: number
       }
+      get_gym_stats_v2: {
+        Args: { p_gym_id: string; p_set_id?: string }
+        Returns: Json
+      }
       get_leaderboard_all_time: {
         Args: { p_gym_id: string; p_limit?: number; p_offset?: number }
         Returns: {
@@ -1253,6 +1257,10 @@ export type Database = {
           username: string
           zones: number
         }[]
+      }
+      get_profile_summary: {
+        Args: { p_gym_id: string; p_user_id: string }
+        Returns: Json
       }
       get_route_grade: {
         Args: { p_route_id: string }

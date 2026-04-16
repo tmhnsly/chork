@@ -615,3 +615,81 @@ export async function getGymStats(
     totalRoutes: routes.count ?? 0,
   };
 }
+
+// ── Profile summary (migration 036) ────────────────
+
+export interface ProfileSummary {
+  per_set: Array<{
+    set_id: string;
+    sends: number;
+    flashes: number;
+    zones: number;
+    points: number;
+  }>;
+  active_set_detail: Array<{
+    route_id: string;
+    attempts: number;
+    completed: boolean;
+    zone: boolean;
+  }>;
+  total_routes_in_gym: number;
+}
+
+export async function getProfileSummary(
+  supabase: Supabase,
+  userId: string,
+  gymId: string,
+): Promise<ProfileSummary> {
+  const { data, error } = await supabase.rpc("get_profile_summary", {
+    p_user_id: userId,
+    p_gym_id: gymId,
+  });
+  if (error) {
+    console.warn("[chork] getProfileSummary failed:", error);
+    return { per_set: [], active_set_detail: [], total_routes_in_gym: 0 };
+  }
+  return (data as ProfileSummary | null) ?? {
+    per_set: [],
+    active_set_detail: [],
+    total_routes_in_gym: 0,
+  };
+}
+
+// ── Gym stats v2 (migration 037) ───────────────────
+
+export interface GymStatsBuckets {
+  all_time: GymStats;
+  set: GymStats | null;
+}
+
+export async function getGymStatsV2(
+  supabase: Supabase,
+  gymId: string,
+  setId: string | null = null,
+): Promise<GymStatsBuckets> {
+  const { data, error } = await supabase.rpc("get_gym_stats_v2", {
+    p_gym_id: gymId,
+    p_set_id: setId ?? undefined,
+  });
+  if (error) {
+    console.warn("[chork] getGymStatsV2 failed:", error);
+    return {
+      all_time: { climberCount: 0, totalSends: 0, totalFlashes: 0, totalRoutes: 0 },
+      set: null,
+    };
+  }
+  type Raw = { climbers: number; sends: number; flashes: number; routes: number };
+  const raw = data as { all_time: Raw; set: Raw | null } | null;
+  const toStats = (r: Raw): GymStats => ({
+    climberCount: r.climbers,
+    totalSends: r.sends,
+    totalFlashes: r.flashes,
+    totalRoutes: r.routes,
+  });
+  return {
+    all_time: raw ? toStats(raw.all_time) : {
+      climberCount: 0, totalSends: 0, totalFlashes: 0, totalRoutes: 0,
+    },
+    set: raw?.set ? toStats(raw.set) : null,
+  };
+}
