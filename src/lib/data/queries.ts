@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../database.types";
 import type {
@@ -55,18 +56,20 @@ export async function getProfile(supabase: Supabase, userId: string): Promise<Pr
   return data;
 }
 
-export async function getProfileByUsername(supabase: Supabase, username: string): Promise<Profile | null> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("username", username)
-    .single();
-  if (error) {
-    console.warn("[chork] getProfileByUsername failed:", error);
-    return null;
-  }
-  return data;
-}
+export const getProfileByUsername = cache(
+  async (supabase: Supabase, username: string): Promise<Profile | null> => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("username", username)
+      .single();
+    if (error) {
+      console.warn("[chork] getProfileByUsername failed:", error);
+      return null;
+    }
+    return data;
+  },
+);
 
 // ── Gyms ───────────────────────────────────────────
 

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
@@ -52,21 +53,23 @@ export interface CompetitionLeaderboardRow {
  * RLS hides it (competitions are publicly readable today, but keeping
  * the null-safe return shape future-proofs access changes).
  */
-export async function getCompetitionById(
-  supabase: Supabase,
-  competitionId: string
-): Promise<CompetitionSummary | null> {
-  const { data, error } = await supabase
-    .from("competitions")
-    .select("id, name, description, starts_at, ends_at, status, organiser_id")
-    .eq("id", competitionId)
-    .maybeSingle();
-  if (error) {
-    console.warn("[chork] getCompetitionById failed:", error);
-    return null;
-  }
-  return (data as CompetitionSummary | null) ?? null;
-}
+export const getCompetitionById = cache(
+  async (
+    supabase: Supabase,
+    competitionId: string,
+  ): Promise<CompetitionSummary | null> => {
+    const { data, error } = await supabase
+      .from("competitions")
+      .select("id, name, description, starts_at, ends_at, status, organiser_id")
+      .eq("id", competitionId)
+      .maybeSingle();
+    if (error) {
+      console.warn("[chork] getCompetitionById failed:", error);
+      return null;
+    }
+    return (data as CompetitionSummary | null) ?? null;
+  },
+);
 
 /** Every competition the caller organises — newest first. */
 export async function getCompetitionsForOrganiser(
