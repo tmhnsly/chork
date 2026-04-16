@@ -1197,7 +1197,25 @@ export type Database = {
         Args: { p_gym_id: string; p_set_id?: string }
         Returns: Json
       }
+      get_gym_stats_v2_cached: {
+        Args: { p_gym_id: string; p_set_id?: string }
+        Returns: Json
+      }
       get_leaderboard_all_time: {
+        Args: { p_gym_id: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          avatar_url: string
+          flashes: number
+          name: string
+          points: number
+          rank: number
+          sends: number
+          user_id: string
+          username: string
+          zones: number
+        }[]
+      }
+      get_leaderboard_all_time_cached: {
         Args: { p_gym_id: string; p_limit?: number; p_offset?: number }
         Returns: {
           avatar_url: string
@@ -1226,6 +1244,25 @@ export type Database = {
         }[]
       }
       get_leaderboard_set: {
+        Args: {
+          p_gym_id: string
+          p_limit?: number
+          p_offset?: number
+          p_set_id: string
+        }
+        Returns: {
+          avatar_url: string
+          flashes: number
+          name: string
+          points: number
+          rank: number
+          sends: number
+          user_id: string
+          username: string
+          zones: number
+        }[]
+      }
+      get_leaderboard_set_cached: {
         Args: {
           p_gym_id: string
           p_limit?: number

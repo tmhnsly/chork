@@ -791,3 +791,102 @@ export async function getGymStatsV2(
     set: raw?.set ? toStats(raw.set) : null,
   };
 }
+
+// ── Cached leaderboard helpers (migration 039) ──────
+//
+// Server-cached variants of the leaderboard top + gym stats RPCs.
+// Cache entries are shared across every viewer of the same gym/set
+// — N concurrent viewers cost 1 DB compute per mutation instead of
+// N per refresh.
+//
+// Security: the underlying RPCs (get_leaderboard_*_cached,
+// get_gym_stats_v2_cached) drop the is_gym_member gate that blocked
+// service-role callers. They're granted ONLY to service_role; PostgREST
+// won't expose them to the browser. Callers MUST verify gym membership
+// at the page level before invoking — typically by going through
+// requireAuth() which already enforces gymId === profile.active_gym_id.
+
+export function getLeaderboardCached(
+  gymId: string,
+  setId: string | null,
+  limit: number = 10,
+  offset: number = 0,
+): Promise<LeaderboardEntry[]> {
+  const fn = cachedQuery(
+    ["leaderboard", gymId, setId ?? "all", String(limit), String(offset)],
+    async (): Promise<LeaderboardEntry[]> => {
+      const supabase = createCachedContextClient();
+      const { data, error } = setId
+        ? await supabase.rpc("get_leaderboard_set_cached", {
+            p_gym_id: gymId,
+            p_set_id: setId,
+            p_limit: limit,
+            p_offset: offset,
+          })
+        : await supabase.rpc("get_leaderboard_all_time_cached", {
+            p_gym_id: gymId,
+            p_limit: limit,
+            p_offset: offset,
+          });
+      if (error) {
+        console.warn("[chork] getLeaderboardCached failed:", error);
+        return [];
+      }
+      return normaliseLeaderboardRows(data ?? []);
+    },
+    {
+      tags: setId
+        ? [`set:${setId}:leaderboard`, `gym:${gymId}`]
+        : [`gym:${gymId}`],
+      // 60s — short enough that climbers see new sends within a minute
+      // even without a precise tag bust hitting their cache; long enough
+      // that 100 simultaneous viewers cost 1 RPC, not 100.
+      revalidate: 60,
+    },
+  );
+  return fn();
+}
+
+export function getGymStatsV2Cached(
+  gymId: string,
+  setId: string | null = null,
+): Promise<GymStatsBuckets> {
+  const fn = cachedQuery(
+    ["gym-stats-v2", gymId, setId ?? "all"],
+    async (): Promise<GymStatsBuckets> => {
+      const supabase = createCachedContextClient();
+      const { data, error } = await supabase.rpc("get_gym_stats_v2_cached", {
+        p_gym_id: gymId,
+        p_set_id: setId ?? undefined,
+      });
+      if (error) {
+        console.warn("[chork] getGymStatsV2Cached failed:", error);
+        return {
+          all_time: { climberCount: 0, totalSends: 0, totalFlashes: 0, totalRoutes: 0 },
+          set: null,
+        };
+      }
+      type Raw = { climbers: number; sends: number; flashes: number; routes: number };
+      const raw = data as { all_time: Raw; set: Raw | null } | null;
+      const toStats = (r: Raw): GymStats => ({
+        climberCount: r.climbers,
+        totalSends: r.sends,
+        totalFlashes: r.flashes,
+        totalRoutes: r.routes,
+      });
+      return {
+        all_time: raw ? toStats(raw.all_time) : {
+          climberCount: 0, totalSends: 0, totalFlashes: 0, totalRoutes: 0,
+        },
+        set: raw?.set ? toStats(raw.set) : null,
+      };
+    },
+    {
+      tags: setId
+        ? [`set:${setId}:leaderboard`, `gym:${gymId}`]
+        : [`gym:${gymId}`],
+      revalidate: 60,
+    },
+  );
+  return fn();
+}

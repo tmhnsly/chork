@@ -4,10 +4,10 @@ import { requireAuth } from "@/lib/auth";
 import {
   getGym,
   getCurrentSet,
-  getLeaderboard,
+  getLeaderboardCached,
   getLeaderboardNeighbourhood,
   getLeaderboardUserRow,
-  getGymStatsV2,
+  getGymStatsV2Cached,
   getRoutesBySet,
 } from "@/lib/data/queries";
 import { LeaderboardView } from "@/components/Leaderboard/LeaderboardView";
@@ -32,12 +32,18 @@ export default async function LeaderboardPage() {
   // Determine initial tab's setId — prefer active set, fall back to all-time
   const initialSetId = currentSet?.id ?? null;
 
-  // One RPC returns both all-time + set-scoped stats; replaces the
-  // prior two-call pattern that fired 8 Supabase queries per paint.
+  // Cached helpers serve from unstable_cache (shared across viewers
+  // — N concurrent users cost 1 DB compute per mutation, not N).
+  // Page-level membership is enforced by requireAuth above:
+  // gymId == profile.active_gym_id, which is set during onboarding +
+  // every gym switch. The cached RPCs are granted to service_role
+  // only (mig 039) — they can't be hit directly from the browser.
+  // userRow / neighbourhood stay per-user (uncached) since they
+  // depend on the caller's identity.
   const [top, userRow, stats, currentSetRoutes] = await Promise.all([
-    getLeaderboard(supabase, gymId, initialSetId, TOP_LIMIT, 0),
+    getLeaderboardCached(gymId, initialSetId, TOP_LIMIT, 0),
     getLeaderboardUserRow(supabase, gymId, userId, initialSetId),
-    getGymStatsV2(supabase, gymId, initialSetId),
+    getGymStatsV2Cached(gymId, initialSetId),
     initialSetId ? getRoutesBySet(initialSetId) : Promise.resolve([]),
   ]);
 

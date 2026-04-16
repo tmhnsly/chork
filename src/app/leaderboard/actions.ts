@@ -2,7 +2,7 @@
 
 import { requireAuth } from "@/lib/auth";
 import {
-  getLeaderboard,
+  getLeaderboardCached,
   getLeaderboardNeighbourhood,
   getLeaderboardUserRow,
   getLogsBySetForUser,
@@ -27,8 +27,11 @@ export async function fetchLeaderboardTab(
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId, gymId } = auth;
 
+  // requireAuth above guarantees gymId === profile.active_gym_id —
+  // the user is implicitly a member, so the cached helpers (which
+  // skip the per-call membership check) are safe here.
   const [top, userRow] = await Promise.all([
-    getLeaderboard(supabase, gymId, setId, TOP_LIMIT, 0),
+    getLeaderboardCached(gymId, setId, TOP_LIMIT, 0),
     getLeaderboardUserRow(supabase, gymId, userId, setId),
   ]);
 
@@ -58,12 +61,12 @@ export async function fetchLeaderboardPage(
 ): Promise<{ rows: LeaderboardEntry[]; limit: number } | { error: string }> {
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
-  const { supabase, gymId } = auth;
+  const { gymId } = auth;
 
   // Clamp limit to sensible bounds so a malformed client value can't
   // request the entire board or zero rows.
   const safeLimit = Math.max(1, Math.min(50, Math.floor(limit)));
-  const rows = await getLeaderboard(supabase, gymId, setId, safeLimit, offset);
+  const rows = await getLeaderboardCached(gymId, setId, safeLimit, offset);
   return { rows, limit: safeLimit };
 }
 
