@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { createServiceClient } from "./supabase/server";
 import { requireAuth, requireSignedIn } from "./auth";
 import { validateUsername } from "./validation";
@@ -58,6 +58,18 @@ export async function updateProfile(
 
   if (Object.keys(payload).length === 0) return { error: "Nothing to update" };
 
+  // Capture old username pre-update so we can bust both old and new
+  // username-keyed cache entries on rename.
+  let oldUsername: string | null = null;
+  if (payload.username !== undefined) {
+    const { data } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", userId)
+      .single();
+    oldUsername = data?.username ?? null;
+  }
+
   try {
     const { error } = await supabase
       .from("profiles")
@@ -65,7 +77,13 @@ export async function updateProfile(
       .eq("id", userId);
 
     if (error) return { error: formatError(error) };
-    revalidatePath("/", "layout");
+    revalidateTag(`user:${userId}:profile`);
+    if (payload.username && oldUsername && oldUsername !== payload.username) {
+      revalidateTag(`user:username-${oldUsername}:profile`);
+      revalidateTag(`user:username-${payload.username}:profile`);
+    } else if (payload.username) {
+      revalidateTag(`user:username-${payload.username}:profile`);
+    }
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
@@ -96,6 +114,7 @@ export async function updateThemePreference(
       .update({ theme })
       .eq("id", userId);
     if (error) return { error: formatError(error) };
+    revalidateTag(`user:${userId}:profile`);
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
