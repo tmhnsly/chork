@@ -1,4 +1,5 @@
 import { CardSkeleton, shimmerStyles } from "@/components/ui";
+import { PROFILE_SECTION_HEIGHTS } from "./_components/sectionHeights";
 import styles from "./loading.module.scss";
 
 /**
@@ -21,10 +22,22 @@ export default function ProfileLoading() {
         <div className={`${styles.avatar} ${shimmerStyles.skeleton}`} />
       </header>
 
-      <CardSkeleton height="21rem" ariaLabel="Loading all-time stats" />
-      <CardSkeleton height="18rem" ariaLabel="Loading current set" />
-      <CardSkeleton height="8rem" ariaLabel="Loading achievements" />
-      <CardSkeleton height="16rem" ariaLabel="Loading sets" />
+      <CardSkeleton
+        height={PROFILE_SECTION_HEIGHTS.allTime}
+        ariaLabel="Loading all-time stats"
+      />
+      <CardSkeleton
+        height={PROFILE_SECTION_HEIGHTS.currentSet}
+        ariaLabel="Loading current set"
+      />
+      <CardSkeleton
+        height={PROFILE_SECTION_HEIGHTS.achievements}
+        ariaLabel="Loading achievements"
+      />
+      <CardSkeleton
+        height={PROFILE_SECTION_HEIGHTS.previousSets}
+        ariaLabel="Loading sets"
+      />
     </main>
   );
 }

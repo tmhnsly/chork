@@ -10,6 +10,7 @@ import { ProfileStats } from "./_components/ProfileStats";
 import { ProfileStatsSkeleton } from "./_components/ProfileStats.skeleton";
 import { ProfileAchievementsSection } from "./_components/ProfileAchievementsSection";
 import { PreviousSetsSection } from "./_components/PreviousSetsSection";
+import { PROFILE_SECTION_HEIGHTS } from "./_components/sectionHeights";
 import { CardSkeleton } from "@/components/ui";
 import styles from "./user.module.scss";
 
@@ -91,10 +92,18 @@ export default async function UserProfilePage({ params }: Props) {
         />
       </Suspense>
 
-      {/* Heights match src/app/u/[username]/loading.tsx so the
-          Suspense fallback shape mirrors the route-level skeleton —
-          no jump as the loading.tsx hands off to the streamed page. */}
-      <Suspense fallback={<CardSkeleton height="8rem" ariaLabel="Loading achievements" />}>
+      {/* Heights pulled from sectionHeights.ts — same const used by
+          src/app/u/[username]/loading.tsx so the Suspense fallback
+          shape mirrors the route-level skeleton. No jump as
+          loading.tsx hands off to the streamed page. */}
+      <Suspense
+        fallback={
+          <CardSkeleton
+            height={PROFILE_SECTION_HEIGHTS.achievements}
+            ariaLabel="Loading achievements"
+          />
+        }
+      >
         <ProfileAchievementsSection
           userId={profileUser.id}
           gymId={gymId}
@@ -102,7 +111,14 @@ export default async function UserProfilePage({ params }: Props) {
         />
       </Suspense>
 
-      <Suspense fallback={<CardSkeleton height="16rem" ariaLabel="Loading previous sets" />}>
+      <Suspense
+        fallback={
+          <CardSkeleton
+            height={PROFILE_SECTION_HEIGHTS.previousSets}
+            ariaLabel="Loading previous sets"
+          />
+        }
+      >
         <PreviousSetsSection
           userId={profileUser.id}
           gymId={gymId}
