@@ -8,13 +8,26 @@ const AUTH_ROUTES = ["/login"];
 // freshly-signed-up users see the homepage before completing the
 // onboarding form and trapped anyone who refreshed mid-flow.
 const PUBLIC_ROUTES = ["/", "/privacy"];
+// Routes whose render does NOT depend on auth state — middleware can
+// skip the getUser() round-trip entirely. /privacy looks identical
+// for signed-in and signed-out users, so there's no value in firing
+// the Supabase auth call on every visit.
+const AUTH_AGNOSTIC_ROUTES = ["/privacy"];
 const ONBOARDING_ROUTE = "/onboarding";
 const ONBOARDED_COOKIE = "chork-onboarded";
 
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // Fast-path: pages whose output doesn't depend on who's looking
+  // at them skip auth entirely. Saves one Supabase round-trip per
+  // cold visit (matters for /privacy crawl + share-link previews).
+  if (AUTH_AGNOSTIC_ROUTES.some((r) => pathname === r || pathname.startsWith(`${r}/`))) {
+    return NextResponse.next();
+  }
+
   const { supabase, response } = createMiddlewareSupabase(request);
   const { data: { user } } = await supabase.auth.getUser();
-  const { pathname } = request.nextUrl;
   const isAuthenticated = !!user;
   const isAuthRoute = AUTH_ROUTES.some((r) => pathname.startsWith(r));
   const isPublic = PUBLIC_ROUTES.includes(pathname);
