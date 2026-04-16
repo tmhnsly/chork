@@ -77,6 +77,13 @@ const nextConfig: NextConfig = {
       // without a hard refresh.
       dynamic: 60,
     },
+    // react-icons/fa6 is a barrel re-exporting hundreds of components.
+    // Default tree-shaking still pulls the barrel module's runtime
+    // overhead into client bundles even when only one icon is used.
+    // optimizePackageImports tells Next to rewrite imports as if each
+    // icon came from its own subpath at build time. ~50 files import
+    // from this barrel; this is the supported low-touch fix.
+    optimizePackageImports: ["react-icons/fa6"],
   },
   sassOptions: {
     includePaths: [
