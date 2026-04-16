@@ -340,19 +340,54 @@ its tool; don't invent a new one.
 All `cachedQuery` wraps use tags from the `Tag` union in
 `src/lib/cache/cached.ts`. Every mutation revalidates tags, not paths.
 
-| Tag | Busted by |
-|-----|-----------|
-| `gym:{id}` | gym row edits, is_listed toggles |
-| `gym:{id}:active-set` | set goes live / ends / is created |
-| `set:{id}:routes` | route add / edit / delete within the set |
-| `set:{id}:leaderboard` | any route_log change affecting rank in the set |
-| `user:{id}:profile` | profile row edits (username, theme, active_gym_id) |
-| `user:{id}:stats` | this user's user_set_stats row updated (via route_log trigger) |
-| `user:{id}:crews` | this user's crew_members status changed |
-| `user:{id}:notifications` | notifications inserted / marked read |
-| `crew:{id}` | crew row / member set edits |
-| `gyms:listed` | any gym's is_listed flag changed |
-| `competition:{id}` | competition row or relations changed |
+| Tag | Busted by | Cached helper(s) |
+|-----|-----------|------------------|
+| `gym:{id}` | gym row edits, is_listed toggles | `getGym` |
+| `gym:{id}:active-set` | set goes live / ends / is created | `getCurrentSet`, `getAllSets` |
+| `set:{id}:routes` | route add / edit / delete within the set | `getRoutesBySet` |
+| `set:route-{id}:routes` | per-route grade vote changes | `getRouteGrade` |
+| `set:{id}:leaderboard` | any route_log change affecting rank | (no cached helper yet) |
+| `user:{id}:profile` | profile row edits (uid known)  | (no cached helper — bust target only) |
+| `user:username-{u}:profile` | profile row edits (username known) | `getProfileByUsername` |
+| `user:{id}:stats` | route_log change → user_set_stats trigger | (no cached helper yet) |
+| `user:{id}:crews` | crew_members status changed | (no cached helper yet) |
+| `user:{id}:notifications` | notifications inserted / marked read | (no cached helper yet) |
+| `crew:{id}` | crew row / member set edits | (no cached helper yet) |
+| `gyms:listed` | any gym's is_listed flag changed | `getListedGyms` |
+| `competition:{id}` | competition row or relations changed | `getCompetitionById` |
+
+### Tags without cache targets
+
+Several tags above (`set:{id}:leaderboard`, `user:{id}:stats`,
+`user:{id}:crews`, `user:{id}:notifications`, `crew:{id}`) are busted
+by mutations but no helper currently uses them as cache tags. They're
+in place for a future revisit:
+
+- **leaderboard / gym-stats** — cannot be wrapped today because the
+  RPC's `is_gym_member()` gate uses `auth.uid()`, which returns null
+  under the service-role client used inside `unstable_cache` bodies.
+  Fix would be new RPC variants taking an explicit caller_id +
+  page-level membership check.
+- **crews / notifications / stats** — none have a `cachedQuery` wrap
+  yet. Mutations bust the tag pre-emptively so adding the cache wrap
+  later doesn't require rewriting every mutation site.
+
+This is intentional defensive work. Untagged busts cost nothing
+(`revalidateTag` is a no-op when no entry carries the tag), but
+would matter the moment the corresponding helper gets cached.
+
+### `user:{id}:profile` vs `user:username-{u}:profile`
+
+`getProfileByUsername` is keyed by the only input it has at wrap
+time — the username. The tag mirrors that. Mutations that know only
+the userId (most of them) need to look up the current username before
+busting; helper `revalidateUserProfile(supabase, userId)` in
+`src/lib/cache/revalidate.ts` does this. The `user:{id}:profile` tag
+is also busted as a forward-compatibility hook for future caches
+keyed by uid (e.g. a `getProfileById` server cache).
+
+`updateProfile` itself doesn't use the helper because it already has
+both old + new username in scope from its rename-aware logic.
 
 ### Factory-per-call pattern (Layer 2)
 
