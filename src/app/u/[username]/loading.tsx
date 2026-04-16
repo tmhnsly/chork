@@ -6,20 +6,24 @@ import styles from "./loading.module.scss";
  * Profile skeleton. Each section collapses to a single card-shaped
  * block instead of reconstructing the inner layout of the real card.
  * Fewer moving parts means less visible "pop" when real data hydrates.
- * Card heights target the tallest expected state so the surrounding
- * layout stays put.
+ *
+ * Header is the one place where we DO mirror the real layout exactly
+ * (avatar 72px on the left, identity stack on the right, meta row
+ * reserved to the touch-target minimum height) — any divergence
+ * causes a vertical reflow on stream-in, which iOS users see as the
+ * bottom nav briefly jumping up then dropping back into place.
  */
 export default function ProfileLoading() {
   return (
     <main className={styles.page} role="status" aria-busy="true" aria-label="Loading profile">
-      {/* Profile header — not a card, but matches the real header's
-          row layout + min-height so the skeleton doesn't ride up. */}
       <header className={styles.header}>
-        <div className={styles.headerText}>
-          <div className={`${styles.lineUsername} ${shimmerStyles.skeleton}`} />
-          <div className={`${styles.lineName} ${shimmerStyles.skeleton}`} />
-        </div>
         <div className={`${styles.avatar} ${shimmerStyles.skeleton}`} />
+        <div className={styles.identity}>
+          <div className={`${styles.lineUsername} ${shimmerStyles.skeleton}`} />
+          <div className={styles.metaRow}>
+            <div className={`${styles.lineName} ${shimmerStyles.skeleton}`} />
+          </div>
+        </div>
       </header>
 
       <CardSkeleton

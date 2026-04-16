@@ -8,36 +8,55 @@
   @include layout.stack(var(--space-7));
 }
 
-// Profile header (non-card). Mirrors `ProfileHeader`'s row so its
-// height is reserved.
+// Profile header skeleton mirrors `ProfileHeader` exactly:
+// avatar LEFT (72px), identity column on the RIGHT with username +
+// meta row. Any divergence here is a layout shift on hand-off — the
+// real header's height + flow has to land in the same pixel
+// positions as this skeleton or the page jumps when content streams
+// in (which the bottom nav reads as a brief "nav up then down"
+// because the viewport content height changes).
 .header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
   gap: var(--space-4);
-  min-height: var(--space-16);
 }
 
-.headerText {
+.avatar {
+  width: 4.5rem;  // matches `<UserAvatar size={72}>`
+  height: 4.5rem;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.identity {
   @include layout.stack(var(--space-1));
   flex: 1;
+  min-width: 0;
 }
 
+// Username placeholder — matches the real `.username`'s clamp() font
+// size at the desktop ceiling so vertical space stays reserved.
 .lineUsername {
-  height: var(--text-3xl);
-  width: 55%;
+  height: var(--text-2xl);
+  width: 60%;
   border-radius: var(--radius-1);
+}
+
+// Meta row stand-in — height matches `--size-touch-target` (44px)
+// because the real meta row carries the notifications + settings
+// action buttons on own profile, which set that minimum height.
+// Reserving the same row height on every skeleton render avoids a
+// shift when the real header swaps in for the signed-in user.
+.metaRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--size-touch-target);
 }
 
 .lineName {
   height: var(--text-md);
   width: 35%;
   border-radius: var(--radius-1);
-}
-
-.avatar {
-  width: var(--space-16);
-  height: var(--space-16);
-  border-radius: var(--radius-full);
-  flex-shrink: 0;
+  flex: 1;
 }

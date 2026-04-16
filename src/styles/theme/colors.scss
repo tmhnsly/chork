@@ -83,6 +83,8 @@
 @use "@radix-ui/colors/red-dark.css";
 @use "@radix-ui/colors/orange.css";
 @use "@radix-ui/colors/orange-dark.css";
+@use "@radix-ui/colors/bronze.css";
+@use "@radix-ui/colors/bronze-dark.css";
 
 /*
  * ── Scale mixins ─────────────────────────────────────────────
@@ -197,6 +199,17 @@
   --warning-on-solid: #21201c;
   --flash-on-solid: #21201c; /* amber step 9 is light — dark text */
   --success-on-solid: #fff;   /* teal / jade step 9 → white fg */
+
+  /* Bronze — used for the 3rd-place podium medal + plinth so it
+     reads as a tier alongside the gold (amber/flash) 1st place and
+     silver (mono) 2nd. Brand-fixed across every theme so the medal
+     hierarchy stays the same regardless of the user's palette. */
+  --bronze-bg: var(--bronze-3);
+  --bronze-border: var(--bronze-7);
+  --bronze-solid: var(--bronze-9);
+  --bronze-text: var(--bronze-12);
+  --bronze-text-low-contrast: var(--bronze-11);
+  --bronze-on-solid: #fff; /* bronze step 9 is dark — white fg reads cleanly */
 
   --toggle-thumb: #fff;
 }
