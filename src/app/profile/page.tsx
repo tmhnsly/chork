@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { createServerSupabase, getServerUser } from "@/lib/supabase/server";
 
 export const metadata = {
   title: "Profile - Chork",
@@ -7,7 +7,7 @@ export const metadata = {
 
 export default async function ProfilePage() {
   const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getServerUser();
 
   if (!user) {
     redirect("/login");

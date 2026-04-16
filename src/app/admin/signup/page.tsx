@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { createServerSupabase, getServerUser } from "@/lib/supabase/server";
 import { GymSignupForm } from "@/components/admin/GymSignupForm";
 import styles from "./signup.module.scss";
 
@@ -15,7 +15,7 @@ export const metadata = {
  */
 export default async function AdminSignupPage() {
   const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getServerUser();
   if (!user) redirect("/login?next=/admin/signup");
 
   // If they already admin a gym, skip the signup.

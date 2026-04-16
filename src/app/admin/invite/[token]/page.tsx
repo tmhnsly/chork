@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createServerSupabase, createServiceClient } from "@/lib/supabase/server";
+import { createServerSupabase, createServiceClient, getServerUser } from "@/lib/supabase/server";
 import { InviteAcceptCard } from "@/components/admin/InviteAcceptCard";
 import { getGym } from "@/lib/data/queries";
 import styles from "./invite.module.scss";
@@ -30,7 +30,7 @@ export default async function InviteAcceptPage({ params }: Props) {
 
   // Bounce signed-out users through login, preserving the invite URL.
   const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getServerUser();
   if (!user) redirect(`/login?next=/admin/invite/${token}`);
 
   // Resolve the invite via the SECURITY DEFINER RPC so we read rows

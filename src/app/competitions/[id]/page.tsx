@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { format, parseISO } from "date-fns";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { createServerSupabase, getServerUser } from "@/lib/supabase/server";
 import {
   getCompetitionById,
   getCompetitionCategories,
@@ -27,7 +27,7 @@ export default async function CompetitionDetailPage({ params }: Props) {
   const { id } = await params;
 
   const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getServerUser();
   if (!user) redirect(`/login?next=/competitions/${id}`);
 
   const competition = await getCompetitionById(supabase, id);

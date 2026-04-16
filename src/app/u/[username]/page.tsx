@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { format, parseISO } from "date-fns";
-import { createServerSupabase } from "@/lib/supabase/server";
+import { createServerSupabase, getServerUser } from "@/lib/supabase/server";
 import {
   getProfileByUsername,
   getAllSets,
@@ -60,7 +60,7 @@ export default async function UserProfilePage({ params }: Props) {
   const { username } = await params;
 
   const supabase = await createServerSupabase();
-  const { data: { user: authUser } } = await supabase.auth.getUser();
+  const authUser = await getServerUser();
 
   const profileUser = await getProfileByUsername(supabase, username);
   if (!profileUser) notFound();
