@@ -89,7 +89,10 @@ export default async function UserProfilePage({ params }: Props) {
         />
       </Suspense>
 
-      <Suspense fallback={<CardSkeleton height="9rem" ariaLabel="Loading achievements" />}>
+      {/* Heights match src/app/u/[username]/loading.tsx so the
+          Suspense fallback shape mirrors the route-level skeleton —
+          no jump as the loading.tsx hands off to the streamed page. */}
+      <Suspense fallback={<CardSkeleton height="8rem" ariaLabel="Loading achievements" />}>
         <ProfileAchievementsSection
           userId={profileUser.id}
           gymId={gymId}
@@ -97,7 +100,7 @@ export default async function UserProfilePage({ params }: Props) {
         />
       </Suspense>
 
-      <Suspense fallback={<CardSkeleton height="24rem" ariaLabel="Loading previous sets" />}>
+      <Suspense fallback={<CardSkeleton height="16rem" ariaLabel="Loading previous sets" />}>
         <PreviousSetsSection
           userId={profileUser.id}
           gymId={gymId}

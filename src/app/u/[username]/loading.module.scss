@@ -2,10 +2,10 @@
 
 // Matches the real profile page's page layout + section spacing so
 // the skeleton cards land in the same vertical positions as the real
-// content below them.
+// content below them. Keep in sync with user.module.scss .page.
 .page {
   @include layout.page;
-  @include layout.stack(var(--space-5));
+  @include layout.stack(var(--space-7));
 }
 
 // Profile header (non-card). Mirrors `ProfileHeader`'s row so its
