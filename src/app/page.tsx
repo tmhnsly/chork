@@ -52,7 +52,7 @@ async function AuthenticatedHome({ userId, gymId }: { userId: string; gymId: str
   const [set, role, gym] = await Promise.all([
     getCurrentSet(supabase, gymId),
     getUserGymRole(supabase, userId, gymId),
-    getGym(supabase, gymId),
+    getGym(gymId),
   ]);
 
   const admin = isGymAdmin(role);

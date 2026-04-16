@@ -25,7 +25,7 @@ export default async function LeaderboardPage() {
   const { supabase, userId, gymId } = auth;
 
   const [gym, currentSet, allTimeStats] = await Promise.all([
-    getGym(supabase, gymId),
+    getGym(gymId),
     getCurrentSet(supabase, gymId),
     getGymStats(supabase, gymId),
   ]);

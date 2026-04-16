@@ -81,3 +81,16 @@ export function createServiceClient() {
     auth: { persistSession: false },
   });
 }
+
+/**
+ * Client for use INSIDE unstable_cache bodies. Cache entries are
+ * shared across users, so they can't depend on the caller's auth
+ * cookies. This client uses the service role key and bypasses RLS —
+ * cached helpers must authorise via page-level checks BEFORE the
+ * cached call (requireAuth / requireGymAdmin). RPCs that internally
+ * gate on auth.uid() via is_gym_member() are NOT safe to call from
+ * here — they return empty because auth.uid() is null.
+ */
+export function createCachedContextClient() {
+  return createServiceClient();
+}

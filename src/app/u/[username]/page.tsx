@@ -292,7 +292,7 @@ export default async function UserProfilePage({ params }: Props) {
   // (gym in the header meta, rank next to the points total), so the
   // context line stays focused on social signals.
   const [gym, rankRow, crewCount, invites, adminGyms, notifications] = await Promise.all([
-    getGym(supabase, gymId),
+    getGym(gymId),
     // Rank is fetched for everyone when an active set exists — it
     // drives the `#N` shown next to points in the Current Set card,
     // regardless of whose profile we're viewing.

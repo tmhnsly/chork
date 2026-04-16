@@ -19,7 +19,7 @@ export default async function AdminSetsPage() {
   const { supabase, gymId, isOwner } = auth;
 
   const [gym, sets] = await Promise.all([
-    getGym(supabase, gymId),
+    getGym(gymId),
     getAllSetsForAdminGym(supabase, gymId),
   ]);
 

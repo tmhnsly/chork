@@ -3,6 +3,8 @@ import "server-only";
 import { cache } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../database.types";
+import { cachedQuery } from "@/lib/cache/cached";
+import { createCachedContextClient } from "@/lib/supabase/server";
 import type {
   Profile,
   Gym,
@@ -88,17 +90,25 @@ export async function searchGyms(supabase: Supabase, query: string): Promise<Gym
   return data ?? [];
 }
 
-export async function getGym(supabase: Supabase, gymId: string): Promise<Gym | null> {
-  const { data, error } = await supabase
-    .from("gyms")
-    .select("*")
-    .eq("id", gymId)
-    .single();
-  if (error) {
-    console.warn("[chork] getGym failed:", error);
-    return null;
-  }
-  return data;
+export function getGym(gymId: string): Promise<Gym | null> {
+  const fn = cachedQuery(
+    ["gym", gymId],
+    async (id: string): Promise<Gym | null> => {
+      const supabase = createCachedContextClient();
+      const { data, error } = await supabase
+        .from("gyms")
+        .select("*")
+        .eq("id", id)
+        .single();
+      if (error) {
+        console.warn("[chork] getGym failed:", error);
+        return null;
+      }
+      return data;
+    },
+    { tags: [`gym:${gymId}`], revalidate: 3600 },
+  );
+  return fn(gymId);
 }
 
 // ── Sets ───────────────────────────────────────────
@@ -524,18 +534,25 @@ export interface GymListing {
  * only gyms the gym admin has opted to list keeps private / staging
  * gyms out of the search.
  */
-export async function getListedGyms(supabase: Supabase): Promise<GymListing[]> {
-  const { data, error } = await supabase
-    .from("gyms")
-    .select("id, name, slug, city, country")
-    .eq("is_listed", true)
-    .order("name");
-
-  if (error) {
-    console.warn("[chork] getListedGyms failed:", error);
-    return [];
-  }
-  return data ?? [];
+export function getListedGyms(): Promise<GymListing[]> {
+  const fn = cachedQuery(
+    ["gyms-listed"],
+    async (): Promise<GymListing[]> => {
+      const supabase = createCachedContextClient();
+      const { data, error } = await supabase
+        .from("gyms")
+        .select("id, name, slug, city, country")
+        .eq("is_listed", true)
+        .order("name");
+      if (error) {
+        console.warn("[chork] getListedGyms failed:", error);
+        return [];
+      }
+      return data ?? [];
+    },
+    { tags: ["gyms:listed"], revalidate: 3600 },
+  );
+  return fn();
 }
 
 // ── Gym-wide aggregates ───────────────────────────

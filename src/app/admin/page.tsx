@@ -51,7 +51,7 @@ export default async function AdminHomePage() {
 
   // Light-weight header data — blocks the shell, but fast.
   const [gym, activeSet] = await Promise.all([
-    getGym(supabase, gymId),
+    getGym(gymId),
     getActiveSetForAdminGym(supabase, gymId),
   ]);
 
