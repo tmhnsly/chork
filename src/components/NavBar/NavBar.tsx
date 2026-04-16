@@ -81,11 +81,11 @@ export function NavBar() {
             className={`${styles.tab} ${gymsActive ? styles.tabActive : ""}`}
             aria-current={gymsActive ? "page" : undefined}
           >
-            <FaMountainSun className={styles.tabIcon} />
+            <FaMountainSun className={styles.tabIcon} aria-hidden />
             <span className={styles.tabLabel}>Gyms</span>
           </Link>
           <Link href="/login" className={styles.tab}>
-            <FaRightToBracket className={styles.tabIcon} />
+            <FaRightToBracket className={styles.tabIcon} aria-hidden />
             <span className={styles.tabLabel}>Sign in</span>
           </Link>
         </div>
@@ -213,11 +213,11 @@ function AuthenticatedNav({
             aria-hidden
           />
           <Link href="/" className={`${styles.tab} ${homeActive ? styles.tabActive : ""}`} aria-current={homeActive ? "page" : undefined}>
-            <FaBorderAll className={styles.tabIcon} />
+            <FaBorderAll className={styles.tabIcon} aria-hidden />
             <span className={styles.tabLabel}>Wall</span>
           </Link>
           <Link href="/leaderboard" className={`${styles.tab} ${leaderboardActive ? styles.tabActive : ""}`} aria-current={leaderboardActive ? "page" : undefined}>
-            <FaTrophy className={styles.tabIcon} />
+            <FaTrophy className={styles.tabIcon} aria-hidden />
             <span className={styles.tabLabel}>Board</span>
           </Link>
           <Link
@@ -226,7 +226,7 @@ function AuthenticatedNav({
             aria-current={crewActive ? "page" : undefined}
           >
             <span className={styles.tabIconWrap}>
-              <FaUserGroup className={styles.tabIcon} />
+              <FaUserGroup className={styles.tabIcon} aria-hidden />
               {badgeCount > 0 && (
                 <span className={styles.tabBadge} aria-label={`${badgeCount} pending invite${badgeCount === 1 ? "" : "s"}`}>
                   {badgeCount > 9 ? "9+" : badgeCount}
@@ -241,7 +241,7 @@ function AuthenticatedNav({
               className={`${styles.tab} ${adminActive ? styles.tabActive : ""}`}
               aria-current={adminActive ? "page" : undefined}
             >
-              <FaScrewdriverWrench className={styles.tabIcon} />
+              <FaScrewdriverWrench className={styles.tabIcon} aria-hidden />
               <span className={styles.tabLabel}>Admin</span>
             </Link>
           )}
@@ -251,7 +251,7 @@ function AuthenticatedNav({
             aria-current={profileActive ? "page" : undefined}
           >
             <span className={styles.tabIconWrap}>
-              <FaUser className={styles.tabIcon} />
+              <FaUser className={styles.tabIcon} aria-hidden />
               {badgeCount > 0 && <span className={styles.tabDot} aria-hidden />}
             </span>
             <span className={styles.tabLabel}>Profile</span>

@@ -41,8 +41,8 @@ function Row({ row }: { row: ScoreRow }) {
   return (
     <div ref={ref} className={rowClass}>
       <span className={styles.label}>
-        {row.accent === "flash" && <FaBolt className={styles.icon} />}
-        {row.accent === "zone" && <FaFlag className={styles.icon} />}
+        {row.accent === "flash" && <FaBolt className={styles.icon} aria-hidden />}
+        {row.accent === "zone" && <FaFlag className={styles.icon} aria-hidden />}
         {row.label}
       </span>
       <div className={styles.barTrack}>
