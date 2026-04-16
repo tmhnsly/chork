@@ -90,6 +90,14 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "api.dicebear.com",
       },
+      {
+        // Uploaded climber avatars (Supabase Storage). Without this
+        // entry the optimizer would refuse the URL and Next would
+        // fall back to unoptimized — defeating the size shrink.
+        protocol: "https",
+        hostname: "*.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
     ],
   },
 };
