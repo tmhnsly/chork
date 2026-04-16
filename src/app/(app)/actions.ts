@@ -2,6 +2,7 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { after } from "next/server";
+import { revalidateUserProfile } from "@/lib/cache/revalidate";
 import { requireAuth, requireSignedIn } from "@/lib/auth";
 import {
   upsertRouteLog,
@@ -103,7 +104,9 @@ export async function completeRoute(
       revalidateTag(`set:${routeRow.set_id}:leaderboard`);
     }
     revalidateTag(`user:${userId}:stats`);
-    revalidateTag(`user:${userId}:profile`);
+    // No profile-row bust: a send doesn't change profiles.* fields.
+    // user_set_stats does change (via trigger) but that's read by
+    // getProfileSummary which isn't server-cached.
 
     // Post-response: badge eval can be expensive and must never break
     // the logging flow. after() runs this work after the response ships,
@@ -154,7 +157,7 @@ export async function uncompleteRoute(
       revalidateTag(`set:${routeRow.set_id}:leaderboard`);
     }
     revalidateTag(`user:${userId}:stats`);
-    revalidateTag(`user:${userId}:profile`);
+    // No profile-row bust — see completeRoute note.
 
     return { success: true, log };
   } catch (err) {
@@ -593,7 +596,7 @@ export async function switchActiveGym(
       .eq("id", userId);
     if (profErr) return { error: formatError(profErr) };
 
-    revalidateTag(`user:${userId}:profile`);
+    await revalidateUserProfile(supabase, userId);
     return { success: true, gymId };
   } catch (err) {
     return { error: formatError(err) };

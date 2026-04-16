@@ -23,7 +23,7 @@ type SbResult = { data?: unknown; error?: unknown };
 function makeChain(resolve: () => SbResult) {
   const builder: Record<string, unknown> = {};
   const chain: (...args: unknown[]) => typeof builder = () => builder;
-  const methods = ["select", "update", "eq", "neq", "limit"];
+  const methods = ["select", "update", "eq", "neq", "limit", "single", "maybeSingle"];
   for (const m of methods) (builder[m] as unknown) = chain;
   builder.then = (onFulfilled: (v: SbResult) => unknown) =>
     Promise.resolve(resolve()).then(onFulfilled);

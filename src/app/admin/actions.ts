@@ -74,8 +74,9 @@ export async function signupGym(form: {
 
   if ("error" in result) return { error: result.error };
 
-  // New gym + admin row affects this user's profile view (admin nav).
-  revalidateTag(`user:${auth.userId}:profile`);
+  // signupGym writes a new gyms row + an admin seat, but doesn't touch
+  // profiles.* — getAdminGymsForUser is uncached and re-fetches via the
+  // server action's response cycle, so no profile-tag bust required.
   return { success: true, gymId: result.gymId };
 }
 
@@ -175,9 +176,8 @@ export async function acceptAdminInvite(token: string): Promise<ActionResult<{ g
   });
   if ("error" in result) return { error: result.error };
 
-  // Admin row added to gym_admins; affects the user's profile view
-  // (admin nav surfaces). gym_admins isn't in the cache layer itself.
-  revalidateTag(`user:${auth.userId}:profile`);
+  // Same reasoning as signupGym — gym_admins isn't cached and adminGyms
+  // re-fetches via the action response. Profile row unchanged.
   return { success: true, gymId: result.gymId };
 }
 

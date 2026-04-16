@@ -5,6 +5,7 @@ import { requireSignedIn } from "@/lib/auth";
 import { formatError } from "@/lib/errors";
 import { sendPushToUsers } from "@/lib/push/server";
 import { notifyUser } from "@/lib/notify";
+import { revalidateUserProfile } from "@/lib/cache/revalidate";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
@@ -490,8 +491,9 @@ export async function setAllowCrewInvites(allow: boolean): Promise<ActionResult>
       .eq("id", userId);
     if (error) return { error: formatError(error) };
 
-    // allow_crew_invites is a profile column; bust the user's profile tag.
-    revalidateTag(`user:${userId}:profile`);
+    // allow_crew_invites is a profile column; bust both uid + by-username
+    // tags so getProfileByUsername's cache entry actually invalidates.
+    await revalidateUserProfile(supabase, userId);
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };

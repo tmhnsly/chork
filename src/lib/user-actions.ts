@@ -2,6 +2,7 @@
 
 import { revalidateTag } from "next/cache";
 import { createServiceClient } from "./supabase/server";
+import { revalidateUserProfile } from "./cache/revalidate";
 import { requireAuth, requireSignedIn } from "./auth";
 import { validateUsername } from "./validation";
 import { formatError } from "./errors";
@@ -78,11 +79,16 @@ export async function updateProfile(
 
     if (error) return { error: formatError(error) };
     revalidateTag(`user:${userId}:profile`);
-    if (payload.username && oldUsername && oldUsername !== payload.username) {
+    // The new username's by-username cache entry busts directly; the
+    // old one needs an explicit bust on rename. revalidateUserProfile
+    // would re-look-up but we already have both names in scope.
+    if (payload.username) {
+      revalidateTag(`user:username-${payload.username}:profile`);
+      if (oldUsername && oldUsername !== payload.username) {
+        revalidateTag(`user:username-${oldUsername}:profile`);
+      }
+    } else if (oldUsername) {
       revalidateTag(`user:username-${oldUsername}:profile`);
-      revalidateTag(`user:username-${payload.username}:profile`);
-    } else if (payload.username) {
-      revalidateTag(`user:username-${payload.username}:profile`);
     }
     return { success: true };
   } catch (err) {
@@ -114,7 +120,7 @@ export async function updateThemePreference(
       .update({ theme })
       .eq("id", userId);
     if (error) return { error: formatError(error) };
-    revalidateTag(`user:${userId}:profile`);
+    await revalidateUserProfile(supabase, userId);
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
