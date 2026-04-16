@@ -16,18 +16,41 @@ const inter = Inter({
   preload: false,
 });
 
+// Public site URL for absolute share-link image / canonical resolution.
+// Set NEXT_PUBLIC_SITE_URL in env (Vercel project setting) — local dev
+// fallback keeps social previews predictable when testing.
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chork.app";
+
+const APP_DESCRIPTION =
+  "Bouldering competition tracker for gyms. Log every send on numbered routes in your gym's active set, climb the public Chorkboard, and compete with crews.";
+
 export const metadata: Metadata = {
-  title: "Chork",
-  description: "Bouldering comp tracker - send it, log it, prove it.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Chork — Bouldering competition tracker",
+    template: "%s · Chork",
+  },
+  description: APP_DESCRIPTION,
+  applicationName: "Chork",
+  keywords: [
+    "bouldering",
+    "climbing",
+    "leaderboard",
+    "climbing gym",
+    "competition",
+    "PWA",
+    "send tracker",
+  ],
+  authors: [{ name: "Chork" }],
+  creator: "Chork",
+  publisher: "Chork",
   manifest: "/manifest.json",
   // Explicit PNG icons in `/public` — each size gets its own entry so
   // browsers + iOS pick the right bitmap without downscaling SVG.
   // Dark/light variants let the OS match the user's colour scheme
-  // (PWA installer + Safari respect the `media` hint).
-  // File naming: `-light` is a light-coloured icon (shown on dark
-  // backgrounds — i.e. dark mode); `-dark` is dark-coloured (shown
-  // on light backgrounds — light mode). So we pair scheme → the
-  // contrasting variant that'll actually be visible.
+  // (HTML `<link rel="icon">` properly respects the `media` hint;
+  // the manifest's `media` extension is non-standard and most installers
+  // ignore it — the manifest now ships single neutral entries).
   icons: {
     icon: [
       { url: "/icon-favicon-16-light.png", sizes: "16x16", type: "image/png", media: "(prefers-color-scheme: dark)" },
@@ -57,6 +80,58 @@ export const metadata: Metadata = {
       "/apple-splash-1170-2532.png",
       "/apple-splash-750-1334.png",
     ],
+  },
+  // OpenGraph for Facebook / LinkedIn / iMessage / Slack / Discord etc.
+  openGraph: {
+    type: "website",
+    siteName: "Chork",
+    title: "Chork — Bouldering competition tracker",
+    description: APP_DESCRIPTION,
+    url: SITE_URL,
+    locale: "en_GB",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Chork — Send it. Log it. Prove it.",
+        type: "image/png",
+      },
+    ],
+  },
+  // Twitter / X cards. summary_large_image gives the full 1200×630 hero
+  // — the same OG image is reused since the platforms render identically.
+  twitter: {
+    card: "summary_large_image",
+    title: "Chork — Bouldering competition tracker",
+    description: APP_DESCRIPTION,
+    images: ["/og-image.png"],
+  },
+  // Search-engine hints. robots auto-derives sensible defaults; tighten
+  // here only if a future page needs noindex (handled per-page via its
+  // own `metadata` export, not here).
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  // Canonical for the root. Per-page metadata exports add their own
+  // canonicals as needed.
+  alternates: {
+    canonical: "/",
+  },
+  // Format detection: don't auto-link plain text that looks like a
+  // phone number / email / address inside the app. Otherwise iOS will
+  // try to format climber stats as phone numbers (yes, really).
+  formatDetection: {
+    telephone: false,
+    email: false,
+    address: false,
   },
 };
 
