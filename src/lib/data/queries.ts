@@ -180,28 +180,35 @@ export function getCurrentSet(gymId: string): Promise<RouteSet | null> {
  *   to hide sets that finished before the user joined the app.
  *   Filter runs in the query (SQL) so it stays O(matching rows).
  */
-export function getAllSets(gymId: string, sinceIso?: string): Promise<RouteSet[]> {
-  const fn = cachedQuery(
-    ["sets", gymId, sinceIso ?? "*"],
-    async (id: string, since: string | undefined): Promise<RouteSet[]> => {
-      const supabase = createCachedContextClient();
-      let query = supabase
-        .from("sets")
-        .select("*")
-        .eq("gym_id", id)
-        .order("starts_at", { ascending: false });
-      if (since) query = query.gte("ends_at", since);
-      const { data, error } = await query;
-      if (error) {
-        console.warn("[chork] getAllSets failed:", error);
-        return [];
-      }
-      return data ?? [];
-    },
-    { tags: [`gym:${gymId}:active-set`], revalidate: 300 },
-  );
-  return fn(gymId, sinceIso);
-}
+// Wrapped in React.cache() so the three streamed profile sections
+// (ProfileStats, ProfileAchievementsSection, PreviousSetsSection)
+// share one promise within the render. unstable_cache dedupes at the
+// data layer; React.cache adds the per-render dedupe so the call
+// resolves once even if multiple siblings await it concurrently.
+export const getAllSets = cache(
+  async (gymId: string, sinceIso?: string): Promise<RouteSet[]> => {
+    const fn = cachedQuery(
+      ["sets", gymId, sinceIso ?? "*"],
+      async (id: string, since: string | undefined): Promise<RouteSet[]> => {
+        const supabase = createCachedContextClient();
+        let query = supabase
+          .from("sets")
+          .select("*")
+          .eq("gym_id", id)
+          .order("starts_at", { ascending: false });
+        if (since) query = query.gte("ends_at", since);
+        const { data, error } = await query;
+        if (error) {
+          console.warn("[chork] getAllSets failed:", error);
+          return [];
+        }
+        return data ?? [];
+      },
+      { tags: [`gym:${gymId}:active-set`], revalidate: 300 },
+    );
+    return fn(gymId, sinceIso);
+  },
+);
 
 // ── Routes ─────────────────────────────────────────
 
