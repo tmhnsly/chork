@@ -70,12 +70,12 @@ const nextConfig: NextConfig = {
 
   experimental: {
     staleTimes: {
-      // Cache server component output for 5 minutes on client navigation.
-      // The user's own mutations (complete, uncomplete) call revalidatePath
-      // which busts this cache immediately — so their data is always fresh.
-      // This only affects how quickly *other users'* changes appear, which
-      // isn't time-critical. Reduces Supabase load significantly.
-      dynamic: 300,
+      // Client router cache TTL. With Phase 3 mutations now revalidating
+      // precise tags instead of scorching the whole layout, 60s is a
+      // better balance — covers normal "tap-back" navigation within an
+      // active session, short enough that other users' updates appear
+      // without a hard refresh.
+      dynamic: 60,
     },
   },
   sassOptions: {
