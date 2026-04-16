@@ -167,7 +167,7 @@ export async function inviteToCrew(
         supabase.from("crews").select("name").eq("id", crewId).maybeSingle(),
         supabase.from("profiles").select("username").eq("id", userId).maybeSingle(),
       ]);
-      await notifyUser(supabase, targetUserId, {
+      await notifyUser(targetUserId, {
         kind: "crew_invite_received",
         payload: {
           crew_id: crewId,
@@ -239,7 +239,7 @@ export async function acceptCrewInvite(crewMemberId: string): Promise<ActionResu
         const crewName = Array.isArray(invite.crew)
           ? invite.crew[0]?.name
           : invite.crew?.name;
-        await notifyUser(supabase, invite.invited_by, {
+        await notifyUser(invite.invited_by, {
           kind: "crew_invite_accepted",
           payload: {
             crew_id: invite.crew_id,
@@ -449,7 +449,7 @@ export async function transferCrewOwnership(
         .select("name")
         .eq("id", crewId)
         .maybeSingle();
-      await notifyUser(supabase, newOwnerId, {
+      await notifyUser(newOwnerId, {
         kind: "crew_ownership_transferred",
         payload: {
           crew_id: crewId,

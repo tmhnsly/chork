@@ -1,14 +1,11 @@
 import "server-only";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import { createServiceClient } from "@/lib/supabase/server";
 import type {
-  NotificationKind,
   CrewInviteReceivedPayload,
   CrewInviteAcceptedPayload,
   CrewOwnershipTransferredPayload,
 } from "@/lib/data/notifications";
-
-type Supabase = SupabaseClient<Database>;
 
 /**
  * Discriminated-union helper. Each kind's payload is typed so a
@@ -21,20 +18,24 @@ export type NotifyArgs =
   | { kind: "crew_ownership_transferred"; payload: CrewOwnershipTransferredPayload };
 
 /**
- * Insert a notification row via the `notify_user` SQL helper. Uses
- * the caller's supabase client (RLS-authenticated) — the helper is
- * SECURITY DEFINER so it can write past the table's insert-blocking
- * policies. Swallows errors so a notification log failure can never
- * break the primary mutation (e.g. an invite succeeds even if the
- * log insert fails).
+ * Insert a notification row via the `notify_user` SQL helper.
+ *
+ * Uses the service-role client because migration 040 revoked execute
+ * from `authenticated` — any authed user could previously call the
+ * RPC with an arbitrary `p_user_id`, which was a spoofing surface.
+ * Server code is trusted, so we hit it via the service role.
+ *
+ * Swallows errors so a notification log failure can never break the
+ * primary mutation (e.g. an invite still succeeds even if the log
+ * insert fails).
  */
 export async function notifyUser(
-  supabase: Supabase,
   userId: string,
   args: NotifyArgs,
 ): Promise<void> {
   try {
-    const { error } = await supabase.rpc("notify_user", {
+    const service = createServiceClient();
+    const { error } = await service.rpc("notify_user", {
       p_user_id: userId,
       p_kind: args.kind,
       p_payload: args.payload as unknown as Database["public"]["Functions"]["notify_user"]["Args"]["p_payload"],

@@ -5,6 +5,7 @@ import { requireSignedIn } from "@/lib/auth";
 import { formatError } from "@/lib/errors";
 import { getNotifications } from "@/lib/data/notifications";
 import type { NotificationRow } from "@/lib/data/notifications";
+import { isUuid } from "@/lib/validation";
 
 /**
  * Fetch the caller's recent notifications. Called by the NotificationsSheet
@@ -16,7 +17,11 @@ export async function fetchNotifications(
 ): Promise<{ rows: NotificationRow[] } | { error: string }> {
   const auth = await requireSignedIn();
   if ("error" in auth) return { error: auth.error };
-  const safeLimit = Math.max(1, Math.min(100, Math.floor(limit)));
+  // Clamp to [1, 100]; non-finite inputs fall back to the default.
+  // Without the Number.isFinite gate, `NaN` / `Infinity` would slip
+  // through Math.floor and poison the underlying .limit(NaN).
+  const raw = Number.isFinite(limit) ? Math.floor(limit) : 50;
+  const safeLimit = Math.max(1, Math.min(100, raw));
   const rows = await getNotifications(auth.supabase, safeLimit);
   return { rows };
 }
@@ -54,8 +59,7 @@ export async function markAllNotificationsRead(): Promise<{ error: string } | { 
 export async function dismissNotification(
   id: string,
 ): Promise<{ error: string } | { success: true }> {
-  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!uuid.test(id)) return { error: "Invalid notification" };
+  if (!isUuid(id)) return { error: "Invalid notification" };
 
   const auth = await requireSignedIn();
   if ("error" in auth) return { error: auth.error };

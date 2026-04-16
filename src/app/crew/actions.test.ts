@@ -248,7 +248,6 @@ describe("inviteToCrew", () => {
     );
     const { notifyUser } = await import("@/lib/notify");
     expect(notifyUser).toHaveBeenCalledWith(
-      expect.anything(),
       USER_B,
       expect.objectContaining({ kind: "crew_invite_received" }),
     );
@@ -353,7 +352,6 @@ describe("acceptCrewInvite", () => {
       expect.objectContaining({ category: "invite_accepted" }),
     );
     expect(notifyUser).toHaveBeenCalledWith(
-      expect.anything(),
       USER_B,
       expect.objectContaining({
         kind: "crew_invite_accepted",
@@ -577,7 +575,6 @@ describe("transferCrewOwnership", () => {
       expect.objectContaining({ category: "ownership_changed" }),
     );
     expect(notifyUser).toHaveBeenCalledWith(
-      expect.anything(),
       USER_B,
       expect.objectContaining({ kind: "crew_ownership_transferred" }),
     );
