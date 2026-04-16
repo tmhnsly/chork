@@ -305,6 +305,14 @@ anon, public`. Access is gated inside each function (typically
   returning both `all_time` and `set` blocks of `{climbers, sends,
   flashes, routes}` (migration 037). Replaces the two `getGymStats`
   calls that fired 8 round trips per `/leaderboard` paint
+- `get_leaderboard_set_cached` / `get_leaderboard_all_time_cached` /
+  `get_gym_stats_v2_cached` — service-role variants (migration 039)
+  with the `is_gym_member` gate dropped. Granted to `service_role`
+  only; revoked from `authenticated`, `anon`, `public`. Called
+  inside `unstable_cache` bodies via `createCachedContextClient`.
+  Membership check shifts to the page level (`requireAuth` enforces
+  `gymId === profile.active_gym_id`). Set-belongs-to-gym
+  cross-ownership stays inside the RPC as belt-and-braces
 - `get_route_grade(route_id)` — community grade average
 - `get_user_set_stats(user_id, gym_id)` — per-set climber aggregates
 - `get_leaderboard_set(gym_id, set_id, limit, offset)`

@@ -438,23 +438,43 @@ than `competition-queries.ts`, because the latter is imported by
 `CompetitionLeaderboard.tsx` (a client component) for its types +
 `getCompetitionLeaderboard` helper.
 
-### What can't go in Layer 2 (yet)
+### Page-level gate + service-role cached RPC pattern
 
-**RPCs that internally gate via `auth.uid()`** (leaderboard RPCs,
-`get_gym_stats_v2`, `get_profile_summary`) cannot be wrapped with the
-current pattern. `is_gym_member()` reads `auth.uid()`, which is null
-when called from a service-role client, so the gate evaluates false
-and the RPC returns empty. Verified empirically: calling
-`get_leaderboard_all_time` with the service role key returns `[]`
-even for gyms with active members.
+**`auth.uid()`-gated RPCs cannot be called directly from inside a
+cached body** — `auth.uid()` returns null under the service-role
+client, the gate evaluates false, the RPC returns empty, and the
+cache fills with empties.
 
-Future fix: new RPC variants that take an explicit caller id + are
-granted only to service_role, with the membership check moved into
-the cached wrapper before the call.
+The leaderboard hot path solves this with **paired RPC variants**
+(see migration 039):
 
-For now these helpers still take `supabase` and run uncached per viewer.
-The Phase 0 Chorkboard win (8 → 1 round trips via `get_gym_stats_v2`)
-is orthogonal to caching and lands without it.
+  - `get_leaderboard_set` / `_all_time` / `get_gym_stats_v2`:
+    gated, granted to `authenticated`, called by the per-request
+    Supabase client. Used by anything outside the cache layer.
+  - `get_leaderboard_set_cached` / `_all_time_cached` /
+    `get_gym_stats_v2_cached`: gate dropped, granted to
+    `service_role` only (revoked from authenticated, anon, public).
+    Called inside `unstable_cache` bodies via
+    `createCachedContextClient`.
+
+The membership check shifts to **page level**, before the cached
+call. For `/leaderboard` it's implicit — `requireAuth()` already
+enforces `gymId === profile.active_gym_id`, so the user is by
+definition a member of the gym they're viewing. Cached helpers
+trust this contract: a service-role caller wouldn't reach the cached
+RPC without the page-level gate firing first.
+
+Cross-ownership (set must belong to gym) stays inside each cached
+RPC as belt-and-braces: a forged cache key with mismatched ids
+returns nothing rather than leaking another gym's data.
+
+Per-user RPCs (`get_leaderboard_user_row`,
+`get_leaderboard_neighbourhood`) **stay uncached** — their output
+varies by caller identity, so a shared cache entry isn't possible.
+
+`get_profile_summary` also stays uncached at Layer 2 (only React
+`cache()` for per-render dedupe). It's user-scoped — a per-user
+cache key would defeat sharing.
 
 ### When to cache and when not to
 

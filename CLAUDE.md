@@ -112,7 +112,12 @@ Quick reference:
   `getProfileByUsername`, `getCompetitionById` (the last in
   `src/lib/data/competition-by-id.ts` so server-only doesn't leak to
   client bundles). Service-role client inside the cached body —
-  authorisation happens at the page level **before** the call
+  authorisation happens at the page level **before** the call.
+  `getLeaderboardCached` / `getGymStatsV2Cached` use the paired
+  `*_cached` RPC variants from migration 039 (gate dropped, granted
+  to service_role only) so leaderboard top-N + gym stats are now
+  shared across every viewer. Per-user RPCs (userRow, neighbourhood)
+  stay uncached
 - **Layer 3 — per-render dedupe** via React `cache()` on
   `getServerUser` / `getServerProfile` / `getProfileSummary` etc.
 - **Mutations** revalidate **tags**, not paths.
@@ -130,6 +135,10 @@ Quick reference:
 - `SendsGrid` keeps a `routeDataCache` Map for instant tile re-opens
 - `completeRoute` defers badge eval via `after()` from `next/server`
   — action returns as soon as the log + activity event are written
+- `AuthProvider` reads a localStorage profile cache on mount (1h TTL,
+  key `chork-profile-cache-v1`). NavBar paints in its full state on
+  the first hydration cycle when warm — no brand-only-then-personalised
+  flash. Background validates with Supabase + updates if changed
 
 ### Performance invariants (learned the hard way)
 
@@ -222,6 +231,26 @@ Every page title uses `@include type.typography(display)` +
 - `--duration-fast` (0.2s) for state changes
 - `--duration-normal` (0.4s) for position / height / bar growth
 - Navbar uses `transition: none` for instant tab response
+
+### Animation library policy
+
+**No JS animation library.** `motion` / `framer-motion` are not in
+package.json and shouldn't be added. The `src/components/motion/`
+folder is decorative CSS animations (RevealText, PageHeader,
+CollapseFade) — pure clip-path + keyframes that run on the
+compositor.
+
+`animation-timeline` and View Transitions API are Chromium-only
+today (no Safari, no Firefox baseline). They can layer on as
+progressive enhancement via `@supports`, but never as a baseline
+animation primitive — Chork's iOS PWA users would see broken or
+missing animations otherwise.
+
+For interactive gestures (drag, swipe) we use native pointer events
++ CSS `transition`. If a future feature genuinely needs spring
+physics or layout animations, evaluate carefully against this
+policy first — the bundle cost of motion libraries is significant
+(~30-50KB gz) and our existing CSS is fast and stable.
 
 ### Page layout mixins (`src/styles/mixins/_layout.scss`)
 
