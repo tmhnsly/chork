@@ -173,19 +173,11 @@ list is intentionally short so it stays usable.
    in the meantime. Fix needs a small REST endpoint (service
    workers can't call server actions) — deferred until VAPID is
    wired on prod and we actually see rotation in the wild.
-2. **Crew-action push latency.** `src/app/crew/actions.ts` awaits
-   `sendPushToUsers` inline on invite / accept / transfer; the
-   responses wait for push dispatch. `sendPushInBackground` (via
-   `after()`) already exists for the set-live flow in
-   `src/app/admin/actions.ts` — swap the crew calls over when we
-   see the latency in telemetry. Small change, but requires
-   moving the test spies from `sendPushToUsers` to
-   `sendPushInBackground` (3 assertions in `crew/actions.test.ts`).
-3. **`getGymClimberUserIds` dedups in JS.** `src/lib/push/server.ts`
+2. **`getGymClimberUserIds` dedups in JS.** `src/lib/push/server.ts`
    selects every `route_logs.user_id` for a gym and `new Set()`s
    client-side. Fine for early gyms, potentially noisy at scale —
    swap to a `SELECT DISTINCT` RPC once any gym crosses ~50k logs.
-4. **Storybook headless vitest-project run** (pnpm hoisting bug,
+3. **Storybook headless vitest-project run** (pnpm hoisting bug,
    see above). Workaround in place via `e2e/a11y.spec.ts`, but the
    proper fix is to stop hoisting `setup-file-with-project-annotations.js`.
 

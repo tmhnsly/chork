@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 vi.mock("@/lib/auth", () => ({ requireSignedIn: vi.fn() }));
-vi.mock("@/lib/push/server", () => ({ sendPushToUsers: vi.fn() }));
+vi.mock("@/lib/push/server", () => ({ sendPushInBackground: vi.fn() }));
 vi.mock("@/lib/notify", () => ({ notifyUser: vi.fn() }));
 
 // ────────────────────────────────────────────────────────────────
@@ -207,7 +207,7 @@ describe("inviteToCrew", () => {
 
   it("fires a push notification after a successful invite (best effort)", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
-    const { sendPushToUsers } = await import("@/lib/push/server");
+    const { sendPushInBackground } = await import("@/lib/push/server");
 
     const supabase = {
       from: (table: string) => {
@@ -233,12 +233,10 @@ describe("inviteToCrew", () => {
       supabase: supabase as never,
       userId: USER_A,
     });
-    vi.mocked(sendPushToUsers).mockResolvedValue({ sent: 1, removed: 0 });
-
     const { inviteToCrew } = await import("./actions");
     await inviteToCrew(CREW_1, USER_B);
 
-    expect(sendPushToUsers).toHaveBeenCalledWith(
+    expect(sendPushInBackground).toHaveBeenCalledWith(
       [USER_B],
       expect.objectContaining({
         title: "New crew invite",
@@ -255,7 +253,7 @@ describe("inviteToCrew", () => {
 
   it("still returns success when the push dispatch throws", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
-    const { sendPushToUsers } = await import("@/lib/push/server");
+    const { sendPushInBackground } = await import("@/lib/push/server");
 
     const supabase = {
       from: (table: string) => {
@@ -271,7 +269,13 @@ describe("inviteToCrew", () => {
       supabase: supabase as never,
       userId: USER_A,
     });
-    vi.mocked(sendPushToUsers).mockRejectedValue(new Error("push service down"));
+    // Background dispatch is fire-and-forget; even if it throws
+    // synchronously (e.g. after() called outside a request scope),
+    // the surrounding try/catch in inviteToCrew swallows it so the
+    // user-visible response stays { success: true }.
+    vi.mocked(sendPushInBackground).mockImplementation(() => {
+      throw new Error("after() outside request scope");
+    });
 
     const { inviteToCrew } = await import("./actions");
     const result = await inviteToCrew(CREW_1, USER_B);
@@ -316,7 +320,7 @@ describe("acceptCrewInvite", () => {
 
   it("pushes + notifies the inviter on success (category: invite_accepted)", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
-    const { sendPushToUsers } = await import("@/lib/push/server");
+    const { sendPushInBackground } = await import("@/lib/push/server");
     const { notifyUser } = await import("@/lib/notify");
     const supabase = {
       from: (table: string) => {
@@ -346,7 +350,7 @@ describe("acceptCrewInvite", () => {
     const { acceptCrewInvite } = await import("./actions");
     expect(await acceptCrewInvite(INVITE_1)).toEqual({ success: true });
 
-    expect(sendPushToUsers).toHaveBeenCalledWith(
+    expect(sendPushInBackground).toHaveBeenCalledWith(
       [USER_B],
       expect.objectContaining({ title: "Invite accepted" }),
       expect.objectContaining({ category: "invite_accepted" }),
@@ -362,7 +366,7 @@ describe("acceptCrewInvite", () => {
 
   it("skips push when the invite prefetch couldn't find the inviter", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
-    const { sendPushToUsers } = await import("@/lib/push/server");
+    const { sendPushInBackground } = await import("@/lib/push/server");
     vi.mocked(requireSignedIn).mockResolvedValue({
       supabase: mockSupabase({
         "table:crew_members": { data: null, error: null },
@@ -371,7 +375,7 @@ describe("acceptCrewInvite", () => {
     });
     const { acceptCrewInvite } = await import("./actions");
     expect(await acceptCrewInvite(INVITE_1)).toEqual({ success: true });
-    expect(sendPushToUsers).not.toHaveBeenCalled();
+    expect(sendPushInBackground).not.toHaveBeenCalled();
   });
 });
 
@@ -540,7 +544,7 @@ describe("transferCrewOwnership", () => {
 
   it("succeeds on the happy path + pushes + notifies", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
-    const { sendPushToUsers } = await import("@/lib/push/server");
+    const { sendPushInBackground } = await import("@/lib/push/server");
     const { notifyUser } = await import("@/lib/notify");
     const supabase = {
       from: (table: string) => {
@@ -569,7 +573,7 @@ describe("transferCrewOwnership", () => {
     const { transferCrewOwnership } = await import("./actions");
     expect(await transferCrewOwnership(CREW_1, USER_B)).toEqual({ success: true });
 
-    expect(sendPushToUsers).toHaveBeenCalledWith(
+    expect(sendPushInBackground).toHaveBeenCalledWith(
       [USER_B],
       expect.objectContaining({ title: "You're now the crew creator" }),
       expect.objectContaining({ category: "ownership_changed" }),

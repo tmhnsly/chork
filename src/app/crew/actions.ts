@@ -3,7 +3,7 @@
 import { revalidateTag } from "next/cache";
 import { requireSignedIn } from "@/lib/auth";
 import { formatError } from "@/lib/errors";
-import { sendPushToUsers } from "@/lib/push/server";
+import { sendPushInBackground } from "@/lib/push/server";
 import { notifyUser } from "@/lib/notify";
 import { revalidateUserProfile } from "@/lib/cache/revalidate";
 import { UUID_RE } from "@/lib/validation";
@@ -176,7 +176,7 @@ export async function inviteToCrew(
           inviter_username: inviterRow?.username ?? "someone",
         },
       });
-      await sendPushToUsers(
+      sendPushInBackground(
         [targetUserId],
         {
           title: "New crew invite",
@@ -227,8 +227,10 @@ export async function acceptCrewInvite(crewMemberId: string): Promise<ActionResu
     if (error) return { error: formatError(error) };
 
     // Best-effort push to the inviter so they see the confirmation
-    // without needing to reopen the app. sendPushToUsers is a noop
-    // when VAPID isn't configured; failures never block the accept.
+    // without needing to reopen the app. sendPushInBackground defers
+    // the dispatch via after() so the action returns as soon as the
+    // notify_user log row is written; push latency stays off the
+    // user-visible response.
     if (invite?.invited_by && invite.invited_by !== userId) {
       try {
         const { data: accepterRow } = await supabase
@@ -247,7 +249,7 @@ export async function acceptCrewInvite(crewMemberId: string): Promise<ActionResu
             accepter_username: accepterRow?.username ?? "someone",
           },
         });
-        await sendPushToUsers(
+        sendPushInBackground(
           [invite.invited_by],
           {
             title: "Invite accepted",
@@ -457,7 +459,7 @@ export async function transferCrewOwnership(
           from_username: fromRow?.username ?? "someone",
         },
       });
-      await sendPushToUsers(
+      sendPushInBackground(
         [newOwnerId],
         {
           title: "You're now the crew creator",
