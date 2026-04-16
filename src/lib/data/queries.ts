@@ -18,6 +18,27 @@ import type {
   LeaderboardEntry,
 } from "./types";
 
+/**
+ * ── Error contract ────────────────────────────────────────────────
+ *
+ * Reads in this file (and every `*-queries.ts` sibling) follow one
+ * shape: **swallow the Postgres error, log to console, return a
+ * neutral fallback** (`null` / `[]` / a zero-shaped object). Render
+ * paths shouldn't have to wrap every fetch in try/catch — a missing
+ * row is treated the same as "absent" and the page degrades to its
+ * empty state.
+ *
+ * Mutations in `mutations.ts` and `*-mutations.ts` follow the
+ * opposite shape: **throw** on error so the caller (server action)
+ * can format and surface the message via `formatError`. Mutations
+ * touching shared state need an explicit failure mode; reads can
+ * coast through one.
+ *
+ * If a read genuinely needs to surface "this failed for a reason
+ * other than absence", expose it via a richer result type
+ * (`{ data, error }` discriminated union) rather than throwing —
+ * keep callers free of try/catch.
+ */
 type Supabase = SupabaseClient<Database>;
 
 // ── Gym membership ─────────────────────────────────

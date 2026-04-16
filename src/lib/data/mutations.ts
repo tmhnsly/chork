@@ -13,6 +13,20 @@ import {
   type GymRole,
 } from "./types";
 
+/**
+ * ── Error contract ────────────────────────────────────────────────
+ *
+ * Mutations in this file (and every `*-mutations.ts` sibling)
+ * **throw** on Postgres error. The calling server action wraps the
+ * mutation in try/catch and forwards via `formatError(err)` — that's
+ * where the friendly mapping happens.
+ *
+ * Why throw? Mutations alter shared state; "silently swallow + return
+ * null" would let the caller think the write succeeded and skip its
+ * post-write tag busts / push dispatch / activity log. Reads in
+ * `queries.ts` use the opposite contract (swallow + return neutral
+ * fallback) since render paths handle absence the same as failure.
+ */
 type Supabase = SupabaseClient<Database>;
 
 // ── Route logs ─────────────────────────────────────
