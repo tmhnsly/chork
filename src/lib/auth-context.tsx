@@ -25,11 +25,19 @@ import type { Profile } from "./data/types";
  * on another device shows up reasonably quickly even without an
  * intervening server validate.
  */
-const PROFILE_CACHE_KEY = "chork-profile-cache-v1";
+// Bumped to v2 when isAdmin was added to the cached payload. Old v1
+// entries are silently ignored (cache miss → standard bootstrap).
+const PROFILE_CACHE_KEY = "chork-profile-cache-v2";
 const PROFILE_CACHE_TTL_MS = 60 * 60 * 1000; // 1h
 
 interface ProfileCacheEntry {
   profile: Profile;
+  /**
+   * Cached admin flag — true when the user has at least one
+   * gym_admins row. Drives the conditional Admin tab in NavBar.
+   * Re-fetched alongside the profile during background validation.
+   */
+  isAdmin: boolean;
   cachedAt: number;
 }
 
@@ -47,14 +55,14 @@ function readProfileCache(): ProfileCacheEntry | null {
   }
 }
 
-function writeProfileCache(profile: Profile | null): void {
+function writeProfileCache(profile: Profile | null, isAdmin: boolean): void {
   if (typeof window === "undefined") return;
   try {
     if (!profile) {
       window.localStorage.removeItem(PROFILE_CACHE_KEY);
       return;
     }
-    const entry: ProfileCacheEntry = { profile, cachedAt: Date.now() };
+    const entry: ProfileCacheEntry = { profile, isAdmin, cachedAt: Date.now() };
     window.localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(entry));
   } catch {
     // localStorage can throw under quota / private mode — silently
@@ -64,6 +72,12 @@ function writeProfileCache(profile: Profile | null): void {
 
 interface AuthContextValue {
   profile: Profile | null;
+  /**
+   * True when the climber is an admin / owner of at least one gym.
+   * Drives the Admin tab in NavBar. Sourced from `gym_admins`, NOT
+   * the cosmetic `gym_memberships.role` column.
+   */
+  isAdmin: boolean;
   isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
@@ -83,6 +97,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(() => {
     return readProfileCache()?.profile ?? null;
   });
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    return readProfileCache()?.isAdmin ?? false;
+  });
   const [isLoading, setIsLoading] = useState(() => {
     // If we have a cached profile, we're not "loading" from the
     // user's perspective — the UI is already populated. Background
@@ -93,6 +110,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const supabase = useMemo(() => createBrowserSupabase(), []);
   const profileRef = useRef(profile);
   useEffect(() => { profileRef.current = profile; }, [profile]);
+  const isAdminRef = useRef(isAdmin);
+  useEffect(() => { isAdminRef.current = isAdmin; }, [isAdmin]);
   const routerRef = useRef(router);
   useEffect(() => { routerRef.current = router; }, [router]);
 
@@ -108,11 +127,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data;
   }, [supabase]);
 
-  // Persist the canonical profile on every change so the next cold
-  // open can fast-path. Clears on sign-out (profile=null).
+  // Cheap admin probe — single indexed lookup on gym_admins. Null user
+  // returns false rather than firing an unauthenticated query.
+  const fetchIsAdmin = useCallback(async (userId: string): Promise<boolean> => {
+    const { data, error } = await supabase
+      .from("gym_admins")
+      .select("user_id")
+      .eq("user_id", userId)
+      .limit(1)
+      .maybeSingle();
+    if (error) {
+      console.warn("[chork] fetchIsAdmin failed:", error);
+      return false;
+    }
+    return data !== null;
+  }, [supabase]);
+
+  // Persist the canonical profile + admin flag on every change so the
+  // next cold open can fast-path. Clears on sign-out (profile=null).
   useEffect(() => {
-    writeProfileCache(profile);
-  }, [profile]);
+    writeProfileCache(profile, isAdmin);
+  }, [profile, isAdmin]);
 
   // Bootstrap: two-phase auth check.
   // Phase 1: getSession() reads from local storage — instant, no network.
@@ -126,9 +161,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Phase 1 — instant local session
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        const fresh = await fetchProfile(session.user.id);
-        // Avoid re-render churn when the cached profile already
-        // matched — equality by id + updated_at is enough.
+        // Profile + admin probe in parallel — both are cheap
+        // single-row indexed lookups.
+        const [fresh, freshIsAdmin] = await Promise.all([
+          fetchProfile(session.user.id),
+          fetchIsAdmin(session.user.id),
+        ]);
+        // Avoid re-render churn when nothing changed.
         if (
           fresh &&
           (!profileRef.current ||
@@ -137,9 +176,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ) {
           setProfile(fresh);
         }
+        if (freshIsAdmin !== isAdminRef.current) {
+          setIsAdmin(freshIsAdmin);
+        }
       } else if (profileRef.current) {
         // Cache was stale (signed out elsewhere) — clear.
         setProfile(null);
+        setIsAdmin(false);
       }
       setIsLoading(false);
 
@@ -148,10 +191,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!user && session?.user) {
         // Session was stale — clear it
         setProfile(null);
+        setIsAdmin(false);
       } else if (user && !profileRef.current) {
         // Edge case: getSession had no session but getUser found one
-        const p = await fetchProfile(user.id);
+        const [p, admin] = await Promise.all([
+          fetchProfile(user.id),
+          fetchIsAdmin(user.id),
+        ]);
         setProfile(p);
+        setIsAdmin(admin);
       }
 
       initialCheckDone = true;
@@ -165,23 +213,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!initialCheckDone) return;
 
         if (event === "SIGNED_IN" && session?.user) {
-          const p = await fetchProfile(session.user.id);
+          const [p, admin] = await Promise.all([
+            fetchProfile(session.user.id),
+            fetchIsAdmin(session.user.id),
+          ]);
           setProfile(p);
+          setIsAdmin(admin);
           routerRef.current.refresh();
         } else if (event === "TOKEN_REFRESHED" && session?.user) {
           if (!profileRef.current) {
-            const p = await fetchProfile(session.user.id);
+            const [p, admin] = await Promise.all([
+              fetchProfile(session.user.id),
+              fetchIsAdmin(session.user.id),
+            ]);
             setProfile(p);
+            setIsAdmin(admin);
           }
         } else if (event === "SIGNED_OUT") {
           setProfile(null);
+          setIsAdmin(false);
           routerRef.current.refresh();
         }
       }
     );
 
     return () => subscription.unsubscribe();
-  }, [supabase, fetchProfile]);
+  }, [supabase, fetchProfile, fetchIsAdmin]);
 
   // Onboarding redirect is handled by middleware server-side.
   // No client-side redirect needed — avoids double-redirect issues.
@@ -241,14 +298,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshProfile = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      const p = await fetchProfile(user.id);
+      const [p, admin] = await Promise.all([
+        fetchProfile(user.id),
+        fetchIsAdmin(user.id),
+      ]);
       setProfile(p);
+      setIsAdmin(admin);
     }
-  }, [supabase, fetchProfile]);
+  }, [supabase, fetchProfile, fetchIsAdmin]);
 
   const value = useMemo(
-    () => ({ profile, isLoading, signIn, signUp, signOut, resetPassword, refreshProfile }),
-    [profile, isLoading, signIn, signUp, signOut, resetPassword, refreshProfile]
+    () => ({ profile, isAdmin, isLoading, signIn, signUp, signOut, resetPassword, refreshProfile }),
+    [profile, isAdmin, isLoading, signIn, signUp, signOut, resetPassword, refreshProfile]
   );
 
   return (

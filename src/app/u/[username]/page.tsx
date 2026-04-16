@@ -3,7 +3,6 @@ import { notFound } from "next/navigation";
 import { createServerSupabase, getServerUser } from "@/lib/supabase/server";
 import { getProfileByUsername } from "@/lib/data/queries";
 import { getCrewCountForUser, getPendingCrewInvites } from "@/lib/data/crew-queries";
-import { getAdminGymsForUser } from "@/lib/data/admin-queries";
 import { getUnreadNotificationCount } from "@/lib/data/notifications";
 import { ProfileHeader } from "@/components/ProfileHeader/ProfileHeader";
 import { ProfileStats } from "./_components/ProfileStats";
@@ -46,17 +45,16 @@ export default async function UserProfilePage({ params }: Props) {
   }
 
   // Header chrome data — small queries, fetched sync so the header
-  // renders fully on shell paint (bell badge + admin link don't pop in
+  // renders fully on shell paint (bell badge + meta line don't pop in
   // late). Own-profile-only data resolves to empty/zero for visitors.
   // Notification list itself lazy-loads inside the sheet on open;
   // the shell only needs the unread count for the badge.
-  const [crewCount, invites, adminGyms, unreadCount] = await Promise.all([
+  // Admin entry moved into NavBar — no admin lookup needed here.
+  const [crewCount, invites, unreadCount] = await Promise.all([
     !isOwnProfile ? getCrewCountForUser(supabase, profileUser.id) : Promise.resolve(0),
     isOwnProfile ? getPendingCrewInvites(supabase, profileUser.id) : Promise.resolve([]),
-    isOwnProfile ? getAdminGymsForUser(supabase, profileUser.id) : Promise.resolve([]),
     isOwnProfile ? getUnreadNotificationCount(supabase, profileUser.id) : Promise.resolve(0),
   ]);
-  const isAdmin = adminGyms.length > 0;
 
   let contextLine: string | null = null;
   if (!isOwnProfile && crewCount > 0) {
@@ -79,7 +77,6 @@ export default async function UserProfilePage({ params }: Props) {
         contextLine={contextLine}
         invites={invites}
         unreadCount={unreadCount}
-        isAdmin={isAdmin}
       />
 
       {/* All-time + current set card — relies on get_profile_summary

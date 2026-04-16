@@ -15,7 +15,6 @@ import {
   FaRightFromBracket,
   FaTrash,
   FaChevronRight,
-  FaScrewdriverWrench,
 } from "react-icons/fa6";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { EditProfileDialog } from "@/components/SettingsMenu/EditProfileDialog";
@@ -41,8 +40,6 @@ import styles from "./settingsSheet.module.scss";
 interface Props {
   open: boolean;
   onClose: () => void;
-  /** When true, an "Admin" link is rendered — routes to /admin. */
-  isAdmin: boolean;
 }
 
 /**
@@ -50,8 +47,11 @@ interface Props {
  * Replaces the old nav-level Radix dropdown so settings live close
  * to the climber's identity on the profile page rather than being
  * tucked inside a nav submenu.
+ *
+ * Admin entry moved out: admins see an Admin tab in the bottom nav
+ * (NavBar) instead of a row buried in this sheet.
  */
-export function SettingsSheet({ open, onClose, isAdmin }: Props) {
+export function SettingsSheet({ open, onClose }: Props) {
   const { profile, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
 
@@ -171,18 +171,6 @@ export function SettingsSheet({ open, onClose, isAdmin }: Props) {
     <>
       <BottomSheet open={open} onClose={onClose} title="Settings">
         <div className={styles.list}>
-          {isAdmin && (
-            <Link
-              href="/admin"
-              className={styles.item}
-              onClick={onClose}
-            >
-              <FaScrewdriverWrench aria-hidden className={styles.icon} />
-              <span className={styles.label}>Admin dashboard</span>
-              <FaChevronRight className={styles.chevron} aria-hidden />
-            </Link>
-          )}
-
           <button
             type="button"
             className={styles.item}

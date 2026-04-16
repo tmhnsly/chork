@@ -11,7 +11,6 @@ import { SendsGrid } from "@/components/SendsGrid/SendsGrid";
 import { SendsGridSkeleton } from "@/components/SendsGrid/SendsGridSkeleton";
 import { PageHeader } from "@/components/motion";
 import { CreateSetForm } from "@/components/AdminControls/CreateSetForm";
-import { ManageSetBar } from "@/components/AdminControls/ManageSetBar";
 import { LandingPage } from "./landing";
 import styles from "./page.module.scss";
 
@@ -68,10 +67,10 @@ async function AuthenticatedHome({ userId, gymId }: { userId: string; gymId: str
     getLogsBySetForUser(supabase, set.id, userId),
   ]);
 
+  // Admin set-management actions (end set, edit, etc.) live on
+  // /admin — climbers + admins both see the same Wall here. The Admin
+  // tab in NavBar is the entry point for the admin dashboard.
   return (
-    <>
-      {admin && <ManageSetBar set={set} gymId={gymId} routeCount={routes.length} />}
-      <SendsGrid set={set} routes={routes} initialLogs={logs} gymName={gymName} />
-    </>
+    <SendsGrid set={set} routes={routes} initialLogs={logs} gymName={gymName} />
   );
 }

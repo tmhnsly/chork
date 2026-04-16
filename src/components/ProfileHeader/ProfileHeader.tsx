@@ -29,8 +29,6 @@ interface Props {
    * lazy-loads its full list when first opened.
    */
   unreadCount?: number;
-  /** Own-profile only: surface the Admin link inside SettingsSheet. */
-  isAdmin?: boolean;
 }
 
 /**
@@ -51,7 +49,6 @@ export function ProfileHeader({
   contextLine,
   invites = [],
   unreadCount = 0,
-  isAdmin = false,
 }: Props) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -112,7 +109,6 @@ export function ProfileHeader({
           <SettingsSheet
             open={settingsOpen}
             onClose={() => setSettingsOpen(false)}
-            isAdmin={isAdmin}
           />
         </>
       )}

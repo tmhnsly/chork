@@ -17,6 +17,7 @@ import {
   FaRightToBracket,
   FaUserGroup,
   FaMountainSun,
+  FaScrewdriverWrench,
 } from "react-icons/fa6";
 import { ChorkMark } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
@@ -60,7 +61,7 @@ function readAckCount(userId: string): number {
 }
 
 export function NavBar() {
-  const { profile, isLoading } = useAuth();
+  const { profile, isAdmin, isLoading } = useAuth();
   const pathname = usePathname();
 
   if (pathname === "/login" || pathname === "/onboarding") return null;
@@ -108,19 +109,22 @@ export function NavBar() {
     );
   }
 
-  return <AuthenticatedNav userId={profile.id} pathname={pathname} />;
+  return <AuthenticatedNav userId={profile.id} pathname={pathname} isAdmin={isAdmin} />;
 }
 
 function AuthenticatedNav({
   userId,
   pathname,
+  isAdmin,
 }: {
   userId: string;
   pathname: string;
+  isAdmin: boolean;
 }) {
   const homeActive = pathname === "/";
   const leaderboardActive = pathname.startsWith("/leaderboard");
   const crewActive = pathname.startsWith("/crew");
+  const adminActive = pathname.startsWith("/admin");
   const profileActive = pathname.startsWith("/profile") || pathname.startsWith("/u/");
 
   // Acknowledged count is read from localStorage via an external
@@ -231,6 +235,16 @@ function AuthenticatedNav({
             </span>
             <span className={styles.tabLabel}>Crew</span>
           </Link>
+          {isAdmin && (
+            <Link
+              href="/admin"
+              className={`${styles.tab} ${adminActive ? styles.tabActive : ""}`}
+              aria-current={adminActive ? "page" : undefined}
+            >
+              <FaScrewdriverWrench className={styles.tabIcon} />
+              <span className={styles.tabLabel}>Admin</span>
+            </Link>
+          )}
           <Link
             href="/profile"
             className={`${styles.tab} ${profileActive ? styles.tabActive : ""}`}
