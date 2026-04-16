@@ -63,7 +63,7 @@ export function ProfileHeader({
   return (
     <>
       <header className={styles.header}>
-        <UserAvatar user={user} size={72} className={styles.avatar} />
+        <UserAvatar user={user} size={72} className={styles.avatar} priority />
 
         <div className={styles.identity}>
           <RevealText text={`@${user.username}`} className={styles.username} />
