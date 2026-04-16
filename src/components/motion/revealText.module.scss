@@ -1,55 +1,61 @@
-// Reveal text — word-by-word mask reveal.
+// Reveal text — word-by-word vertical mask reveal.
 //
-// Each segment is wrapped in a .wordClip with overflow:hidden. The inner
-// .word starts translated down by 100% (hidden below the mask) and
-// animates up to its natural position.
+// History: this file has been the source of repeated "letters
+// getting clipped" bugs. The previous attempt used
+// `clip-path: inset(… -0.5em … -0.5em)` — a fixed 0.5em horizontal
+// breathing room. Outfit Bold italic at hero/display sizes overhangs
+// its line box by more than that on letters like K / k / T / Y, so
+// the right-hand strokes were getting shaved.
 //
-// CSS limitation: setting overflow-y:hidden forces overflow-x to auto
-// (not visible). That would clip italic overhang on the right side
-// during the animation. To work around: add horizontal padding to the
-// clip container (giving italic glyphs room) with matching negative
-// margin so layout stays flush with adjacent text.
+// Layered defence in this version:
 //
-// After the animation completes, the wrapper's overflow releases via a
-// delayed keyframe so nothing is clipped in the final resting state.
+//   1. `.wordClip` uses `overflow: clip` (NOT hidden — `hidden` would
+//      establish a containing block and force the other axis's
+//      overflow to auto, which is the original bug). `overflow-clip-
+//      margin: 1em` extends the visible region 1em past each edge of
+//      the box so resting glyph overhang draws in full at any size.
+//
+//   2. `.word` carries a clip-path that animates the vertical reveal,
+//      with the horizontal insets locked at `-100%` (the clip
+//      rectangle extends a full element-width past each side). That
+//      means even mid-animation, glyph overhang has nowhere to be
+//      shaved.
+//
+// Either layer alone would protect against the most common case —
+// keeping both because external constraints (a parent with
+// overflow:hidden, a future text-overflow:ellipsis somewhere up the
+// tree) would re-introduce clipping if we relied on just `.word`'s
+// clip-path. Belt + braces.
 
-// ── Reveal mechanism ─────────────────────────────
-// Each word is clipped by a `clip-path: inset()` that starts as a
-// full top-to-bottom mask (100% bottom inset = everything hidden)
-// and animates down to zero inset. The `.word` itself also
-// translates up so the letters appear to rise INTO the reveal
-// window rather than fading in place.
-//
-// We deliberately DO NOT use `overflow: hidden` on the clip
-// wrapper: italic bold display glyphs on Outfit overhang their line
-// box by a pixel or two at the top (visible as a notch on letters
-// like T / H / E at certain sizes). `clip-path` with negative
-// insets post-animation means the final rendered state has NO clip
-// active — the glyph is drawn in full regardless of size.
 .wordClip {
   display: inline-block;
   vertical-align: bottom;
-  // Start fully masked from the bottom. `inset(0 0 100% 0)` hides
-  // everything by pulling the bottom edge all the way up.
-  clip-path: inset(0 -0.5em 100% -0.5em);
-  animation: revealClip 0.7s var(--ease-out-expo) forwards;
-  animation-delay: calc(var(--delay, 0s) + var(--i, 0) * 0.05s);
+  overflow: clip;
+  // 1em is comfortably more than any italic display font's overhang
+  // at any practical size. Scales with font-size automatically.
+  overflow-clip-margin: 1em;
 }
 
 .word {
   display: inline-block;
+  // Vertical reveal: starts fully masked from below (bottom inset
+  // 100%), animates to fully shown (bottom inset -100% so the clip
+  // is effectively disabled). Horizontal insets at -100% throughout
+  // so the clip rectangle is two element-widths wide on each side
+  // — italic overhang has nowhere to clip, ever.
+  clip-path: inset(0 -100% 100% -100%);
   // Small vertical lift so letters rise into the clip window as it
   // opens — subtle, paired with the clip to read as a real reveal
   // rather than a bottom-up wipe.
   transform: translateY(30%);
-  animation: revealLift 0.7s var(--ease-out-expo) forwards;
+  animation:
+    revealClip 0.7s var(--ease-out-expo) forwards,
+    revealLift 0.7s var(--ease-out-expo) forwards;
   animation-delay: calc(var(--delay, 0s) + var(--i, 0) * 0.05s);
 }
 
 @keyframes revealClip {
-  // Final state has large negative insets so the clip is effectively
-  // disabled — no glyph overhang ever gets shaved once revealed.
-  to { clip-path: inset(-50% -0.5em -50% -0.5em); }
+  to { clip-path: inset(-100% -100% -100% -100%); }
 }
 
 @keyframes revealLift {
@@ -57,14 +63,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .word,
-  .wordClip {
-    animation: none;
-  }
   .word {
+    animation: none;
     transform: none;
-  }
-  .wordClip {
     clip-path: none;
   }
 }
