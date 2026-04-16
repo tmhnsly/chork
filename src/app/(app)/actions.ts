@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { after } from "next/server";
 import { requireAuth, requireSignedIn } from "@/lib/auth";
 import {
@@ -93,7 +93,17 @@ export async function completeRoute(
       }),
     ]);
 
-    revalidatePath("/", "layout");
+    // Resolve setId from routeId for set-scoped leaderboard tag.
+    const { data: routeRow } = await supabase
+      .from("routes")
+      .select("set_id")
+      .eq("id", routeId)
+      .maybeSingle();
+    if (routeRow?.set_id) {
+      revalidateTag(`set:${routeRow.set_id}:leaderboard`);
+    }
+    revalidateTag(`user:${userId}:stats`);
+    revalidateTag(`user:${userId}:profile`);
 
     // Post-response: badge eval can be expensive and must never break
     // the logging flow. after() runs this work after the response ships,
@@ -134,7 +144,18 @@ export async function uncompleteRoute(
       }, logId, gymId),
       deleteCompletionEvents(supabase, userId, routeId),
     ]);
-    revalidatePath("/", "layout");
+
+    const { data: routeRow } = await supabase
+      .from("routes")
+      .select("set_id")
+      .eq("id", routeId)
+      .maybeSingle();
+    if (routeRow?.set_id) {
+      revalidateTag(`set:${routeRow.set_id}:leaderboard`);
+    }
+    revalidateTag(`user:${userId}:stats`);
+    revalidateTag(`user:${userId}:profile`);
+
     return { success: true, log };
   } catch (err) {
     return { error: formatError(err) };
