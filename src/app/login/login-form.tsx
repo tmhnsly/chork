@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useActionState, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { RevealText } from "@/components/motion";
 import { Button, ChorkMark, showToast } from "@/components/ui";
+import { signInAction, signUpAction } from "./actions";
 import styles from "./login.module.scss";
 
 type Mode = "sign-in" | "sign-up";
@@ -11,57 +13,70 @@ type Mode = "sign-in" | "sign-up";
 const MIN_PASSWORD_LENGTH = 8;
 
 export function LoginForm() {
-  const { signIn, signUp, resetPassword, isLoading } = useAuth();
+  const { resetPassword } = useAuth();
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") ?? "/";
+
   const [mode, setMode] = useState<Mode>("sign-in");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string; confirm?: string }>({});
 
+  const [signInState, signInFormAction, signInPending] = useActionState(signInAction, undefined);
+  const [signUpState, signUpFormAction, signUpPending] = useActionState(signUpAction, undefined);
+  const submitting = signInPending || signUpPending;
+
+  // Surface server-action errors via toast — keeps the field-level
+  // validation UI for client-side checks, the toast for server-side
+  // failures (wrong password, account already exists, etc.).
+  useEffect(() => {
+    if (signInState?.error) showToast(signInState.error, "error");
+  }, [signInState]);
+  useEffect(() => {
+    if (signUpState?.error) showToast(signUpState.error, "error");
+    if (signUpState?.success) {
+      showToast("Account created — check your email to confirm", "info");
+    }
+  }, [signUpState]);
+
   function validate(): boolean {
-    const next: typeof errors = {};
+    const nextErrors: typeof errors = {};
 
     if (!email.trim()) {
-      next.email = "Email is required";
+      nextErrors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      next.email = "Enter a valid email address";
+      nextErrors.email = "Enter a valid email address";
     }
 
     if (!password) {
-      next.password = "Password is required";
+      nextErrors.password = "Password is required";
     } else if (mode === "sign-up" && password.length < MIN_PASSWORD_LENGTH) {
-      next.password = `Password must be at least ${MIN_PASSWORD_LENGTH} characters`;
+      nextErrors.password = `Password must be at least ${MIN_PASSWORD_LENGTH} characters`;
     }
 
     if (mode === "sign-up" && password !== confirmPassword) {
-      next.confirm = "Passwords don't match";
+      nextErrors.confirm = "Passwords don't match";
     }
 
-    setErrors(next);
-    return Object.keys(next).length === 0;
-  }
-
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (!validate()) return;
-
-    setSubmitting(true);
-    try {
-      if (mode === "sign-in") {
-        await signIn(email, password);
-      } else {
-        await signUp(email, password);
-      }
-    } finally {
-      setSubmitting(false);
-    }
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   }
 
   function switchMode() {
     setMode((m) => (m === "sign-in" ? "sign-up" : "sign-in"));
     setErrors({});
     setConfirmPassword("");
+  }
+
+  // The form submits directly to the server action — Next handles the
+  // redirect on success, so the client never has to chase auth-state
+  // commits or hard-navigate. Client-side validation runs in onSubmit
+  // before the action fires; bail with preventDefault if invalid.
+  function handleClientValidate(e: React.FormEvent<HTMLFormElement>) {
+    if (!validate()) {
+      e.preventDefault();
+    }
   }
 
   return (
@@ -82,20 +97,19 @@ export function LoginForm() {
           changes (`current-password` ↔ `new-password`) are often
           ignored, which is what was suppressing the strong-password
           suggestion + save prompt on sign-up.
-
-          `method="post"` and `action="#"` are hints to the password
-          manager that this form submits credentials — even though we
-          intercept with `preventDefault`, Safari + 1Password use
-          these attributes to decide whether to show the save dialog.
          */}
         <form
           key={mode}
           className={styles.form}
-          onSubmit={handleSubmit}
+          action={mode === "sign-in" ? signInFormAction : signUpFormAction}
+          onSubmit={handleClientValidate}
           method="post"
-          action="#"
           noValidate
         >
+          {/* Hidden field passes the post-login redirect target through
+              to the server action without exposing it in the visible UI. */}
+          {mode === "sign-in" && <input type="hidden" name="next" value={next} />}
+
           <div className={styles.field}>
             <label className={styles.fieldLabel} htmlFor="email">Email</label>
             <input
@@ -107,9 +121,6 @@ export function LoginForm() {
               value={email}
               onChange={(e) => { setEmail(e.target.value); setErrors((prev) => ({ ...prev, email: undefined })); }}
               required
-              // Safari pairs the password with the field carrying
-              // `autocomplete="username"`. Listing `email` second
-              // keeps the autofill suggestions email-aware too.
               autoComplete="username email"
               autoCapitalize="none"
               autoCorrect="off"
@@ -173,7 +184,7 @@ export function LoginForm() {
             </div>
           )}
 
-          <Button type="submit" disabled={submitting || isLoading} fullWidth>
+          <Button type="submit" disabled={submitting} fullWidth>
             {submitting
               ? "Loading..."
               : mode === "sign-in"
