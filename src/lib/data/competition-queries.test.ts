@@ -6,6 +6,13 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
+// next/cache: run the wrapped function directly so unstable_cache
+// doesn't serialise or short-circuit in test.
+vi.mock("next/cache", () => ({
+  unstable_cache: (fn: (...args: unknown[]) => unknown) => fn,
+  revalidateTag: vi.fn(),
+}));
+
 type SbResult = { data?: unknown; error?: unknown };
 
 function makeChain(resolve: () => SbResult) {
@@ -42,8 +49,12 @@ beforeEach(() => {
 describe("getCompetitionById", () => {
   it("returns null on error — never throws upstream", async () => {
     const sb = scriptedSupabase([{ data: null, error: { message: "rls" } }]);
+    vi.doMock("@/lib/supabase/server", () => ({
+      createCachedContextClient: () => sb,
+    }));
+    vi.resetModules();
     const { getCompetitionById } = await import("./competition-queries");
-    expect(await getCompetitionById(sb as never, COMP_1)).toBeNull();
+    expect(await getCompetitionById(COMP_1)).toBeNull();
   });
 
   it("returns the raw row on success", async () => {
@@ -57,8 +68,12 @@ describe("getCompetitionById", () => {
       organiser_id: USER_A,
     };
     const sb = scriptedSupabase([{ data: row }]);
+    vi.doMock("@/lib/supabase/server", () => ({
+      createCachedContextClient: () => sb,
+    }));
+    vi.resetModules();
     const { getCompetitionById } = await import("./competition-queries");
-    expect(await getCompetitionById(sb as never, COMP_1)).toEqual(row);
+    expect(await getCompetitionById(COMP_1)).toEqual(row);
   });
 });
 

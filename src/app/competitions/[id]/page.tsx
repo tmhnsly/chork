@@ -19,7 +19,7 @@ interface Props {
 export async function generateMetadata({ params }: Props) {
   const { id } = await params;
   const supabase = await createServerSupabase();
-  const competition = await getCompetitionById(supabase, id);
+  const competition = await getCompetitionById(id);
   return { title: `${competition?.name ?? "Competition"} - Chork` };
 }
 
@@ -30,7 +30,7 @@ export default async function CompetitionDetailPage({ params }: Props) {
   const user = await getServerUser();
   if (!user) redirect(`/login?next=/competitions/${id}`);
 
-  const competition = await getCompetitionById(supabase, id);
+  const competition = await getCompetitionById(id);
   if (!competition) notFound();
 
   // Draft comps are hidden from everyone except the organiser — keeps
