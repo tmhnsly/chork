@@ -15,6 +15,53 @@ import { createBrowserSupabase } from "./supabase/client";
 import { showToast } from "@/components/ui";
 import type { Profile } from "./data/types";
 
+/**
+ * Local cache of the climber's profile. Lets the bootstrap skip the
+ * Supabase profile-fetch round-trip on warm cache — NavBar paints in
+ * its full state immediately instead of brand-only-then-personalised.
+ *
+ * Stamped with a version + an `id` so a sign-out / different-user
+ * load doesn't show stale data. TTL is short (1h) so a profile rename
+ * on another device shows up reasonably quickly even without an
+ * intervening server validate.
+ */
+const PROFILE_CACHE_KEY = "chork-profile-cache-v1";
+const PROFILE_CACHE_TTL_MS = 60 * 60 * 1000; // 1h
+
+interface ProfileCacheEntry {
+  profile: Profile;
+  cachedAt: number;
+}
+
+function readProfileCache(): ProfileCacheEntry | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(PROFILE_CACHE_KEY);
+    if (!raw) return null;
+    const entry = JSON.parse(raw) as ProfileCacheEntry;
+    if (!entry?.profile?.id) return null;
+    if (Date.now() - entry.cachedAt > PROFILE_CACHE_TTL_MS) return null;
+    return entry;
+  } catch {
+    return null;
+  }
+}
+
+function writeProfileCache(profile: Profile | null): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (!profile) {
+      window.localStorage.removeItem(PROFILE_CACHE_KEY);
+      return;
+    }
+    const entry: ProfileCacheEntry = { profile, cachedAt: Date.now() };
+    window.localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(entry));
+  } catch {
+    // localStorage can throw under quota / private mode — silently
+    // skip; bootstrap falls back to the network path.
+  }
+}
+
 interface AuthContextValue {
   profile: Profile | null;
   isLoading: boolean;
@@ -28,14 +75,20 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Start in the "loading" state. The two-phase bootstrap below reads
-  // the session from localStorage (instant, no network) and populates
-  // profile ~50-100ms after hydration. NavBar's isLoading branch
-  // renders a brand-only nav during this window — much better trade
-  // than blocking the root layout on a Supabase round-trip to avoid
-  // that tiny flash.
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Lazy initial state pulls a recent profile cache from localStorage
+  // synchronously on mount. If we hit, NavBar paints in its
+  // logged-in state on the very first hydration cycle — no
+  // brand-only-then-personalised flash. The three-phase bootstrap
+  // below validates the cache against Supabase in the background.
+  const [profile, setProfile] = useState<Profile | null>(() => {
+    return readProfileCache()?.profile ?? null;
+  });
+  const [isLoading, setIsLoading] = useState(() => {
+    // If we have a cached profile, we're not "loading" from the
+    // user's perspective — the UI is already populated. Background
+    // validation refines it but doesn't gate render.
+    return readProfileCache() === null;
+  });
   const router = useRouter();
   const supabase = useMemo(() => createBrowserSupabase(), []);
   const profileRef = useRef(profile);
@@ -55,9 +108,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return data;
   }, [supabase]);
 
+  // Persist the canonical profile on every change so the next cold
+  // open can fast-path. Clears on sign-out (profile=null).
+  useEffect(() => {
+    writeProfileCache(profile);
+  }, [profile]);
+
   // Bootstrap: two-phase auth check.
   // Phase 1: getSession() reads from local storage — instant, no network.
-  //          Sets profile immediately so PWA resumes without a flash.
+  //          Sets profile only if it changed vs the cached version.
   // Phase 2: getUser() validates with the server — catches expired tokens.
   //          If the session was invalid, clears the profile.
   useEffect(() => {
@@ -67,8 +126,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Phase 1 — instant local session
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
-        const p = await fetchProfile(session.user.id);
-        setProfile(p);
+        const fresh = await fetchProfile(session.user.id);
+        // Avoid re-render churn when the cached profile already
+        // matched — equality by id + updated_at is enough.
+        if (
+          fresh &&
+          (!profileRef.current ||
+            profileRef.current.id !== fresh.id ||
+            profileRef.current.updated_at !== fresh.updated_at)
+        ) {
+          setProfile(fresh);
+        }
+      } else if (profileRef.current) {
+        // Cache was stale (signed out elsewhere) — clear.
+        setProfile(null);
       }
       setIsLoading(false);
 
