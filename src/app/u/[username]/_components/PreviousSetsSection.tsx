@@ -93,14 +93,20 @@ export async function PreviousSetsSection({ userId, gymId, createdAt }: Props) {
     const flashed = new Set<number>();
     const zoneClaimed = new Set<number>();
     const zoneAvailable = new Set<number>();
-    for (const r of routes) if (r.has_zone) zoneAvailable.add(r.number);
+    // Build a route_id → number map once so the per-log loop below is
+    // O(logs) instead of O(logs × routes).
+    const routeNumberById = new Map<string, number>();
+    for (const r of routes) {
+      routeNumberById.set(r.id, r.number);
+      if (r.has_zone) zoneAvailable.add(r.number);
+    }
     for (const log of setLogs) {
-      const route = routes.find((r) => r.id === log.route_id);
-      if (!route) continue;
-      if (log.zone) zoneClaimed.add(route.number);
+      const num = routeNumberById.get(log.route_id);
+      if (num === undefined) continue;
+      if (log.zone) zoneClaimed.add(num);
       if (!log.completed) continue;
-      completed.add(route.number);
-      if (log.attempts === 1) flashed.add(route.number);
+      completed.add(num);
+      if (log.attempts === 1) flashed.add(num);
     }
     const badgesForSet = evaluateBadgesForSet({
       completed,
