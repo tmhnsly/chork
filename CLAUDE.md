@@ -139,11 +139,28 @@ Quick reference:
 - **Never `setState(null)` synchronously inside `useEffect`** —
   `react-hooks/set-state-in-effect` flags it. Use the keyed-cache
   pattern: `{ key, data }` tagged with inputs, derive
-  `loading = cache?.key !== key`
+  `loading = cache?.key !== key`. Canonical example:
+  `src/components/SendsGrid/SendsGrid.tsx` — overlay state keyed on
+  `set.id` is reset render-time when the active set flips, no effect
+  needed
 - **Batch multi-row lookups** — `.in(ids)` pattern, not
   `Promise.all(ids.map(...))` N+1 fan-outs against the same table
 - **Middleware runs on every page nav** — avoid adding Supabase
   queries there; prefer cookies for repeat checks
+- **Validate ids at the action boundary** with `UUID_RE` /
+  `isUuid()` from `src/lib/validation.ts` (single source of truth —
+  do NOT inline a fresh regex literal). Same file holds
+  `validateUsername`. Server actions reject malformed ids before any
+  DB call so RLS isn't the only gate
+- **`react-icons/fa6` is barrel-imported across ~55 client files.**
+  `next.config.ts` registers `optimizePackageImports` for it so each
+  icon tree-shakes properly — keep using `import { FaFoo } from
+  "react-icons/fa6"` rather than per-icon subpaths
+- **Image optimisation** is on by default for uploaded JPEGs (Next
+  resizes via the CDN). `UserAvatar` only opts out for dicebear
+  SVGs. `next.config.ts` `images.remotePatterns` accepts
+  `*.supabase.co/storage/v1/object/public/**` — add new hostnames
+  there before passing them to `<Image>`
 
 ---
 

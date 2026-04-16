@@ -49,6 +49,23 @@ rather than calling `createServerSupabase()` internally. Two reasons:
   query in the client component rather than importing a server-only
   helper
 
+### Read vs mutation error contract
+
+Codified at the top of `src/lib/data/queries.ts` and
+`src/lib/data/mutations.ts`:
+
+- **Reads** (`*-queries.ts`) swallow Postgres errors, log to console,
+  return a neutral fallback (`null` / `[]`). Render paths handle
+  "absent" the same as "failed", so callers don't need try/catch.
+- **Mutations** (`*-mutations.ts`) throw on error. The server-action
+  caller wraps in try/catch and forwards via `formatError(err)` —
+  that's where the friendly mapping ([src/lib/errors.ts]) sanitises
+  the message before it leaves the server.
+
+Don't blur the line: a silent-swallow on a mutation lets the caller
+think the write succeeded and skip its post-write tag busts / push
+dispatch / activity log.
+
 ---
 
 ## Auth flow
@@ -488,6 +505,45 @@ For server-side logs — full context required — use
 client.
 
 ---
+
+## Bundle hygiene
+
+A few infrastructural calls keep the client bundle small without
+contributors having to think about it per-file:
+
+- **`experimental.optimizePackageImports`** in `next.config.ts`
+  registers `react-icons/fa6` so its barrel re-exports tree-shake.
+  About 55 client files import from this package; without the hint,
+  Next would pull the whole barrel module's runtime overhead even
+  for one icon. Add new heavy barrels here as needed.
+- **`images.remotePatterns`** allows Next's image optimiser to handle
+  uploaded JPEGs from Supabase Storage. New CDN hosts must be added
+  here before passing them to `<Image>`.
+- **`UserAvatar`** sets `unoptimized` only when the URL is a dicebear
+  SVG (already tiny). Uploaded JPEGs go through the optimiser so the
+  CDN serves a width-appropriate variant.
+- **`ClimberSheet`** + `RouteLogSheet` are dynamically imported via
+  `next/dynamic({ ssr: false })` — they pull `PunchTile` /
+  `formatGrade` / sanitisers that we don't want in the cold leaderboard
+  paint.
+- **Avatar URLs use a content-hash buster** (`?v={sha1[:8]}`), not
+  `Date.now()` — re-uploading the same image gives the same URL so
+  browser + CDN caches don't churn.
+
+## Validation
+
+`src/lib/validation.ts` is the single source of truth for shared
+validators:
+
+- `UUID_RE` + `isUuid()` — RFC-4122 UUID matcher used by every server
+  action that takes an id from a form payload (gates the value before
+  it touches Postgres / RLS).
+- `USERNAME_RE` + `validateUsername()` — lowercase alphanumeric +
+  underscore, 3–24 chars.
+
+Server actions: validate at the boundary. Don't inline a fresh
+regex literal — keep the union of accepted shapes in one file so a
+future loosening (e.g. ULIDs) is one edit.
 
 ## Storybook
 
