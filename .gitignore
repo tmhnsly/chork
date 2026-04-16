@@ -42,3 +42,9 @@ supabase/.temp
 # Lighthouse CI output
 /.lighthouseci/
 
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
+

@@ -17,7 +17,10 @@
     "build-storybook": "storybook build",
     "lhci": "lhci autorun --config=./lighthouserc.json",
     "lhci:collect": "lhci collect --config=./lighthouserc.json",
-    "lhci:assert": "lhci assert --config=./lighthouserc.json"
+    "lhci:assert": "lhci assert --config=./lighthouserc.json",
+    "e2e": "playwright test",
+    "e2e:headed": "playwright test --headed",
+    "e2e:debug": "playwright test --debug"
   },
   "dependencies": {
     "@radix-ui/colors": "^3.0.0",
@@ -54,6 +57,7 @@
     "@eslint/eslintrc": "^3.3.0",
     "@lhci/cli": "^0.15.1",
     "@next/eslint-plugin-next": "^16.2.0",
+    "@playwright/test": "^1.59.1",
     "@storybook/addon-a11y": "^10.3.1",
     "@storybook/addon-docs": "^10.3.1",
     "@storybook/addon-vitest": "^10.3.1",
@@ -70,7 +74,7 @@
     "eslint-config-next": "^16.2.0",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-storybook": "^10.3.1",
-    "playwright": "^1.58.2",
+    "playwright": "^1.59.1",
     "storybook": "^10.3.1",
     "tsx": "^4.21.0",
     "typescript": "^5",
