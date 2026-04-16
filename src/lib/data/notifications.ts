@@ -78,13 +78,20 @@ export async function getNotifications(
 /**
  * Unread-only count — cheaper than `getNotifications` and used to
  * drive the profile bell's badge dot without pulling payloads.
+ *
+ * Defense-in-depth: takes an explicit `userId` and filters by it on
+ * the wire. RLS already restricts notifications to the caller, but a
+ * future cache wrap that uses the service-role client would bypass
+ * RLS — the explicit filter keeps the contract correct in both modes.
  */
 export async function getUnreadNotificationCount(
   supabase: Supabase,
+  userId: string,
 ): Promise<number> {
   const { count, error } = await supabase
     .from("notifications")
     .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
     .is("read_at", null);
   if (error) {
     console.warn("[chork] getUnreadNotificationCount failed:", error);

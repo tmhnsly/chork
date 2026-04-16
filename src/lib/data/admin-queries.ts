@@ -21,6 +21,29 @@ export interface AdminGymSummary {
 }
 
 /**
+ * Quick gate: is the caller an admin (or owner) of this specific gym?
+ * Reads gym_admins (the authoritative source per `is_gym_admin()` RLS),
+ * NOT gym_memberships.role — that column is cosmetic.
+ */
+export async function isGymAdminOf(
+  supabase: Supabase,
+  userId: string,
+  gymId: string,
+): Promise<boolean> {
+  const { data, error } = await supabase
+    .from("gym_admins")
+    .select("user_id")
+    .eq("user_id", userId)
+    .eq("gym_id", gymId)
+    .maybeSingle();
+  if (error) {
+    console.warn("[chork] isGymAdminOf failed:", error);
+    return false;
+  }
+  return data !== null;
+}
+
+/**
  * Every gym the caller is an admin or owner of. Returned sorted by the
  * time they joined the admin team — stable ordering for the gym
  * picker in the admin shell.

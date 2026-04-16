@@ -4,10 +4,9 @@ import {
   getCurrentSet,
   getRoutesBySet,
   getLogsBySetForUser,
-  getUserGymRole,
-  isGymAdmin,
   getGym,
 } from "@/lib/data/queries";
+import { isGymAdminOf } from "@/lib/data/admin-queries";
 import { SendsGrid } from "@/components/SendsGrid/SendsGrid";
 import { SendsGridSkeleton } from "@/components/SendsGrid/SendsGridSkeleton";
 import { PageHeader } from "@/components/motion";
@@ -49,13 +48,14 @@ export default async function Home() {
 async function AuthenticatedHome({ userId, gymId }: { userId: string; gymId: string }) {
   const supabase = await createServerSupabase();
 
-  const [set, role, gym] = await Promise.all([
+  const [set, admin, gym] = await Promise.all([
     getCurrentSet(gymId),
-    getUserGymRole(supabase, userId, gymId),
+    // gym_admins is the authoritative source — gym_memberships.role
+    // is cosmetic per CLAUDE.md and doesn't gate any RLS check.
+    isGymAdminOf(supabase, userId, gymId),
     getGym(gymId),
   ]);
 
-  const admin = isGymAdmin(role);
   const gymName = gym?.name ?? null;
 
   if (!set) {
