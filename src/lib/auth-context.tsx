@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "./supabase/client";
 import { showToast } from "@/components/ui";
 import { signOutAction } from "@/app/login/actions";
+import { DEFAULT_THEME, setThemeStore } from "./theme-store";
 import type { Profile } from "./data/types";
 
 /**
@@ -80,8 +81,12 @@ interface AuthContextValue {
    */
   isAdmin: boolean;
   isLoading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  // signIn / signUp previously lived here but had a cookie race
+  // (browser auth call + window.location.href). They're now server
+  // actions — `signInAction` / `signUpAction` in
+  // src/app/login/actions.ts — invoked directly from login-form.tsx
+  // via useActionState. Nothing on the context so nobody accidentally
+  // reaches for the racy version.
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -244,32 +249,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Onboarding redirect is handled by middleware server-side.
   // No client-side redirect needed — avoids double-redirect issues.
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      showToast(error.message, "error");
-      return;
-    }
-    // Hard navigation ensures middleware runs with fresh session cookies.
-    // router.push + refresh doesn't reliably bust the RSC cache.
-    window.location.href = "/";
-  }, [supabase]);
-
-  const signUp = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
-      },
-    });
-    if (error) {
-      showToast(error.message, "error");
-      return;
-    }
-    showToast("Account created - check your email to confirm");
-  }, [supabase]);
-
   const resetPassword = useCallback(async (email: string) => {
     // Prefer the configured site URL over `window.location.origin` —
     // the latter resolves to `http://localhost:3000` during local
@@ -309,6 +288,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Drop the localStorage profile cache immediately so a quick back-
     // nav before the next page load can't re-hydrate the signed-in UI.
     writeProfileCache(null, false);
+    // Reset the palette too — on a shared device, leaving the previous
+    // user's theme in localStorage would carry their palette into the
+    // login screen and any subsequent sign-in bootstrap before the new
+    // profile loads. DEFAULT_THEME clears `<html data-theme>` and the
+    // `chork-theme` localStorage entry.
+    setThemeStore(DEFAULT_THEME);
     showToast("Signed out", "info");
     // Hard navigation — same as signIn. router.push + refresh
     // doesn't reliably bust the RSC cache or update middleware state.
@@ -328,8 +313,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [supabase, fetchProfile, fetchIsAdmin]);
 
   const value = useMemo(
-    () => ({ profile, isAdmin, isLoading, signIn, signUp, signOut, resetPassword, refreshProfile }),
-    [profile, isAdmin, isLoading, signIn, signUp, signOut, resetPassword, refreshProfile]
+    () => ({ profile, isAdmin, isLoading, signOut, resetPassword, refreshProfile }),
+    [profile, isAdmin, isLoading, signOut, resetPassword, refreshProfile]
   );
 
   return (
