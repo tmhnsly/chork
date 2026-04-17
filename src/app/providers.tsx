@@ -1,15 +1,27 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { ThemeProvider } from "next-themes";
 import { ThemeProvider as PaletteProvider } from "@/lib/theme";
 import { AuthProvider } from "@/lib/auth-context";
-import { NavBar } from "@/components/NavBar/NavBar";
 import { OfflineBanner } from "@/components/OfflineBanner/OfflineBanner";
 import { ScrollRestore } from "@/components/ScrollRestore/ScrollRestore";
 import { ServiceWorker } from "@/components/ServiceWorker";
 import { ToastProvider } from "@/components/ui";
 
-export function Providers({ children }: { children: React.ReactNode }) {
+interface Props {
+  children: ReactNode;
+  /**
+   * Pre-rendered server NavBar (`<NavBarShell />`). Passed in as a
+   * prop instead of imported here so a server component (which
+   * cannot be imported into a "use client" module) can still be
+   * embedded in the provider tree — composition via children, not
+   * module imports.
+   */
+  navBar: ReactNode;
+}
+
+export function Providers({ children, navBar }: Props) {
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <AuthProvider>
@@ -19,7 +31,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <PaletteProvider>
           <ScrollRestore />
           <OfflineBanner />
-          <NavBar />
+          {navBar}
           <div id="main-content">{children}</div>
           <ToastProvider />
           <ServiceWorker />

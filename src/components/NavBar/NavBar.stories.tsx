@@ -14,4 +14,11 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /** Logged-out state (no auth cookie). */
-export const LoggedOut: Story = {};
+export const LoggedOut: Story = {
+  args: { initialShell: "unauthed" },
+};
+
+/** Logged-in skeleton — tabs visible before `AuthProvider` bootstraps. */
+export const AuthedSkeleton: Story = {
+  args: { initialShell: "authed" },
+};

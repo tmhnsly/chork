@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { RevealText } from "@/components/motion";
+import { ChorkMark } from "@/components/ui";
 import styles from "./heroSection.module.scss";
 
 interface Props {
@@ -20,23 +21,34 @@ export function HeroSection({ headline, subheadline, cta, visual }: Props) {
   // simply isn't rendered). RevealText splits each half into its
   // own word-clip stagger independently.
   const sentences = splitSentences(headline);
+  const first = sentences[0] ?? headline;
+  const second = sentences[1];
+  // Strip the trailing period on the final sentence — it's replaced
+  // by the brand dot (`.dot`) so the headline closes on the same
+  // signature mark that opens the hero. Non-final sentences keep
+  // their period intact.
+  const firstForRender = second ? first : first.replace(/\.\s*$/, "");
+  const secondForRender = second?.replace(/\.\s*$/, "");
 
   return (
     <section className={styles.hero}>
       <div className={styles.inner}>
+        <ChorkMark className={styles.mark} mode="auto" />
         <h1 className={styles.headline}>
           <span className={styles.headlinePrimary}>
-            <RevealText text={sentences[0] ?? headline} as="span" />
+            <RevealText text={firstForRender} as="span" />
+            {!second && <span className={styles.dot} aria-hidden="true" />}
           </span>
-          {sentences[1] && (
+          {secondForRender && (
             <>
               {" "}
               <span className={styles.headlineSecondary}>
                 <RevealText
-                  text={sentences[1]}
+                  text={secondForRender}
                   as="span"
                   delay={0.2}
                 />
+                <span className={styles.dot} aria-hidden="true" />
               </span>
             </>
           )}

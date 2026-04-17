@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Outfit, Inter } from "next/font/google";
 import { Providers } from "./providers";
+import { NavBarShell } from "@/components/NavBar/NavBarShell";
 import "@/styles/globals.scss";
 
 const outfit = Outfit({
@@ -201,7 +202,13 @@ export default function RootLayout({
     >
       <body>
         <a href="#main-content" className="skip-link">Skip to main content</a>
-        <Providers>{children}</Providers>
+        {/* NavBar is rendered server-side (reads the auth-shell cookie)
+            and threaded into the client Providers tree as a prop — a
+            server component can't be imported inside a "use client"
+            file, so composition via children avoids the boundary
+            violation while still letting the server shell pick the
+            correct nav variant before hydration. */}
+        <Providers navBar={<NavBarShell />}>{children}</Providers>
       </body>
     </html>
   );

@@ -1,6 +1,6 @@
 import styles from "./chorkMark.module.scss";
 
-type Mode = "duotone-dark" | "duotone-light" | "mono-dark" | "mono-light" | "auto";
+type Mode = "duotone-dark" | "duotone-light" | "mono-dark" | "mono-light" | "accent" | "auto";
 
 interface Props {
   /** Explicit colour for the C arc stroke */

@@ -5,12 +5,26 @@ import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { RevealText } from "@/components/motion";
 import { Button, ChorkMark, showToast } from "@/components/ui";
-import { signInAction, signUpAction } from "./actions";
+import { signInAction, signUpAction, type AuthActionState } from "./actions";
 import styles from "./login.module.scss";
 
 type Mode = "sign-in" | "sign-up";
 
 const MIN_PASSWORD_LENGTH = 8;
+
+// Pull a server-returned field error out of whichever action state
+// carries it. Only one of signIn/signUp is ever populated at a time
+// (the form key-switches on mode), but the helper handles both so
+// the render code doesn't have to care which flow is active.
+function serverFieldError(
+  signIn: AuthActionState | undefined,
+  signUp: AuthActionState | undefined,
+  field: "email" | "password",
+): string | undefined {
+  if (signIn?.error && signIn.field === field) return signIn.error;
+  if (signUp?.error && signUp.field === field) return signUp.error;
+  return undefined;
+}
 
 export function LoginForm() {
   const { resetPassword } = useAuth();
@@ -22,19 +36,52 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [errors, setErrors] = useState<{ email?: string; password?: string; confirm?: string }>({});
+  // Tracks whether the user has typed into a field since the last
+  // submission. Server errors render inline on a field only while
+  // that field stays clean — the moment the user starts correcting,
+  // the old error disappears so they aren't corrected mid-fix.
+  const [dirty, setDirty] = useState({ email: false, password: false, confirm: false });
 
   const [signInState, signInFormAction, signInPending] = useActionState(signInAction, undefined);
   const [signUpState, signUpFormAction, signUpPending] = useActionState(signUpAction, undefined);
   const submitting = signInPending || signUpPending;
 
-  // Surface server-action errors via toast — keeps the field-level
-  // validation UI for client-side checks, the toast for server-side
-  // failures (wrong password, account already exists, etc.).
+  // Server-returned field errors — derived at render so state stays
+  // out of the loop (no useEffect + setState sync to the server
+  // response, which the `react-hooks/set-state-in-effect` rule
+  // flags). Displayed error per field: local validation (from
+  // `errors`) wins, otherwise fall through to the server response if
+  // the user hasn't started correcting that field yet.
+  const serverEmailError = serverFieldError(signInState, signUpState, "email");
+  const serverPasswordError = serverFieldError(signInState, signUpState, "password");
+
+  const emailError = errors.email ?? (dirty.email ? undefined : serverEmailError);
+  const passwordError = errors.password ?? (dirty.password ? undefined : serverPasswordError);
+
+  // General (non-field) server errors + success signals toast. These
+  // effects only call showToast — no setState, so the lint rule
+  // above doesn't fire on them.
   useEffect(() => {
-    if (signInState?.error) showToast(signInState.error, "error");
+    if (signInState?.success && signInState.next) {
+      // Hard nav — remounts AuthProvider so the fresh auth cookies
+      // land in its bootstrap effect and the nav flips to the
+      // authed shell without a manual reload. See signInAction for
+      // the full rationale.
+      window.location.href = signInState.next;
+      return;
+    }
+    if (!signInState?.error) return;
+    if (!signInState.field || signInState.field === "general") {
+      showToast(signInState.error, "error");
+    }
   }, [signInState]);
+
   useEffect(() => {
-    if (signUpState?.error) showToast(signUpState.error, "error");
+    if (signUpState?.error) {
+      if (!signUpState.field || signUpState.field === "general") {
+        showToast(signUpState.error, "error");
+      }
+    }
     if (signUpState?.success) {
       showToast("Account created — check your email to confirm", "info");
     }
@@ -66,6 +113,7 @@ export function LoginForm() {
   function switchMode() {
     setMode((m) => (m === "sign-in" ? "sign-up" : "sign-in"));
     setErrors({});
+    setDirty({ email: false, password: false, confirm: false });
     setConfirmPassword("");
   }
 
@@ -73,7 +121,10 @@ export function LoginForm() {
   // redirect on success, so the client never has to chase auth-state
   // commits or hard-navigate. Client-side validation runs in onSubmit
   // before the action fires; bail with preventDefault if invalid.
+  // Reset `dirty` so server errors from the new submission surface
+  // immediately under the relevant field once the response lands.
   function handleClientValidate(e: React.FormEvent<HTMLFormElement>) {
+    setDirty({ email: false, password: false, confirm: false });
     if (!validate()) {
       e.preventDefault();
     }
@@ -103,7 +154,6 @@ export function LoginForm() {
           className={styles.form}
           action={mode === "sign-in" ? signInFormAction : signUpFormAction}
           onSubmit={handleClientValidate}
-          method="post"
           noValidate
         >
           {/* Hidden field passes the post-login redirect target through
@@ -117,17 +167,21 @@ export function LoginForm() {
               name="email"
               type="email"
               inputMode="email"
-              className={`${styles.input} ${errors.email ? styles.inputError : ""}`}
+              className={`${styles.input} ${emailError ? styles.inputError : ""}`}
               value={email}
-              onChange={(e) => { setEmail(e.target.value); setErrors((prev) => ({ ...prev, email: undefined })); }}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setDirty((d) => ({ ...d, email: true }));
+                setErrors((prev) => ({ ...prev, email: undefined }));
+              }}
               required
               autoComplete="username"
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
-              aria-describedby={errors.email ? "email-error" : undefined}
+              aria-describedby={emailError ? "email-error" : undefined}
             />
-            {errors.email && <p id="email-error" className={styles.error}>{errors.email}</p>}
+            {emailError && <p id="email-error" className={styles.error}>{emailError}</p>}
           </div>
 
           <div className={styles.field}>
@@ -136,16 +190,20 @@ export function LoginForm() {
               id="password"
               name="password"
               type="password"
-              className={`${styles.input} ${errors.password ? styles.inputError : ""}`}
+              className={`${styles.input} ${passwordError ? styles.inputError : ""}`}
               value={password}
-              onChange={(e) => { setPassword(e.target.value); setErrors((prev) => ({ ...prev, password: undefined })); }}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setDirty((d) => ({ ...d, password: true }));
+                setErrors((prev) => ({ ...prev, password: undefined }));
+              }}
               required
               minLength={mode === "sign-up" ? MIN_PASSWORD_LENGTH : undefined}
               autoComplete={mode === "sign-in" ? "current-password" : "new-password"}
-              aria-describedby={errors.password ? "password-error" : undefined}
+              aria-describedby={passwordError ? "password-error" : undefined}
             />
-            {errors.password && <p id="password-error" className={styles.error}>{errors.password}</p>}
-            {mode === "sign-up" && !errors.password && (
+            {passwordError && <p id="password-error" className={styles.error}>{passwordError}</p>}
+            {mode === "sign-up" && !passwordError && (
               <p className={styles.hint}>At least {MIN_PASSWORD_LENGTH} characters</p>
             )}
             {mode === "sign-in" && (
@@ -155,6 +213,7 @@ export function LoginForm() {
                 onClick={async () => {
                   if (!email.trim()) {
                     setErrors({ email: "Enter your email first" });
+                    setDirty((d) => ({ ...d, email: false }));
                     return;
                   }
                   await resetPassword(email);
@@ -174,7 +233,11 @@ export function LoginForm() {
                 type="password"
                 className={`${styles.input} ${errors.confirm ? styles.inputError : ""}`}
                 value={confirmPassword}
-                onChange={(e) => { setConfirmPassword(e.target.value); setErrors((prev) => ({ ...prev, confirm: undefined })); }}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  setDirty((d) => ({ ...d, confirm: true }));
+                  setErrors((prev) => ({ ...prev, confirm: undefined }));
+                }}
                 required
                 minLength={MIN_PASSWORD_LENGTH}
                 autoComplete="new-password"

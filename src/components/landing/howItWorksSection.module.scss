@@ -36,7 +36,7 @@
 .number {
   @include type.typography(card-title);
   font-style: italic;
-  color: var(--accent-text-low-contrast);
+  color: var(--accent-solid);
   flex-shrink: 0;
 }
 

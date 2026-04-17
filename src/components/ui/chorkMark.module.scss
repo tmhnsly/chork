@@ -46,3 +46,16 @@
 .mono-light .dot {
   fill: var(--mono-text-low-contrast);
 }
+
+// ── Accent preset ─────────────────────────────────
+// Full lime — both arc and dot in --accent-solid. Used when the
+// mark sits inside an active-state chrome element (e.g. the nav
+// brand link when on the homepage) to mirror the accent-coloured
+// text + pill it's paired with.
+.accent .arc {
+  stroke: var(--accent-solid);
+}
+
+.accent .dot {
+  fill: var(--accent-solid);
+}

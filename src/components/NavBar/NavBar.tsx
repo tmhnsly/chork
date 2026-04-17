@@ -94,7 +94,18 @@ function useSlidingPill(...deps: unknown[]): {
   return { tabsRef, pillRef };
 }
 
-export function NavBar() {
+interface NavBarProps {
+  /**
+   * Which shell to paint on first byte. Set by `NavBarShell` (server
+   * component) based on the `chork-auth-shell` cookie that middleware
+   * stamps on every response. Prevents the "unauthed nav → authed
+   * nav" flash on refresh by ensuring the server-rendered HTML
+   * already matches the final authed shape.
+   */
+  initialShell: "authed" | "unauthed";
+}
+
+export function NavBar({ initialShell }: NavBarProps) {
   const { profile, isAdmin, isLoading } = useAuth();
   const pathname = usePathname();
 
@@ -104,30 +115,70 @@ export function NavBar() {
   // always get back out to a gym marketing page or cancel a sign-in.
   if (pathname === "/onboarding") return null;
 
-  // Unauthenticated: brand + Gyms (for-gym marketing) + Sign in.
-  // Same `.tabs` + sliding-pill setup as AuthenticatedNav so the
-  // active-tab highlight behaves identically in both states.
-  if (!isLoading && !profile) {
+  // Profile resolved — render the real nav.
+  if (profile) {
+    return <AuthenticatedNav userId={profile.id} pathname={pathname} isAdmin={isAdmin} />;
+  }
+  if (!isLoading) {
+    // Done loading, no profile — genuinely unauthed.
     return <UnauthenticatedNav pathname={pathname} />;
   }
 
-  // Loading or momentarily profile-less (session resolving) — brand
-  // only, no tabs. Skips the authenticated branch's profile-not-null
-  // assertion below.
-  if (isLoading || !profile) {
-    return (
-      <nav className={styles.bar}>
-        <div className={styles.barInner}>
-          <Link href="/" className={styles.brandLinkVisible} aria-label="Chork — home">
-            <ChorkMark size={18} />
-            <span className={styles.brandTextVisible}>Chork</span>
+  // Still loading — paint the shell the server cookie told us to
+  // expect so SSR and client-initial render match exactly. The
+  // authed skeleton carries the same tab structure as the real
+  // authenticated nav (minus badges + admin tab), so the eventual
+  // swap to the full component is a no-op visually for most users.
+  return initialShell === "authed"
+    ? <AuthedNavSkeleton pathname={pathname} />
+    : <UnauthenticatedNav pathname={pathname} />;
+}
+
+// Minimal authed shell — rendered on first paint when the server
+// cookie indicates the user is signed in but `AuthProvider` hasn't
+// finished its bootstrap yet. Drops the badge counts and the Admin
+// tab (neither is knowable without the profile). The full
+// `AuthenticatedNav` takes over as soon as bootstrap completes.
+function AuthedNavSkeleton({ pathname }: { pathname: string }) {
+  const homeActive = pathname === "/";
+  const leaderboardActive = pathname.startsWith("/leaderboard");
+  const crewActive = pathname.startsWith("/crew");
+  const profileActive = pathname.startsWith("/profile") || pathname.startsWith("/u/");
+
+  const { tabsRef, pillRef } = useSlidingPill(pathname);
+
+  return (
+    <nav className={styles.bar}>
+      <div className={styles.barInner}>
+        <Link href="/" className={styles.brandLink} aria-label="Chork — home">
+          <ChorkMark size={18} />
+          <span className={styles.brandText}>Chork</span>
+        </Link>
+
+        <div className={styles.tabs} ref={tabsRef}>
+          <span className={styles.pill} ref={pillRef} aria-hidden />
+          <Link href="/" className={`${styles.tab} ${homeActive ? styles.tabActive : ""}`} aria-current={homeActive ? "page" : undefined}>
+            <FaBorderAll className={styles.tabIcon} aria-hidden />
+            <span className={styles.tabLabel}>Wall</span>
+          </Link>
+          <Link href="/leaderboard" className={`${styles.tab} ${leaderboardActive ? styles.tabActive : ""}`} aria-current={leaderboardActive ? "page" : undefined}>
+            <FaTrophy className={styles.tabIcon} aria-hidden />
+            <span className={styles.tabLabel}>Board</span>
+          </Link>
+          <Link href="/crew" className={`${styles.tab} ${crewActive ? styles.tabActive : ""}`} aria-current={crewActive ? "page" : undefined}>
+            <FaUserGroup className={styles.tabIcon} aria-hidden />
+            <span className={styles.tabLabel}>Crew</span>
+          </Link>
+          <Link href="/profile" className={`${styles.tab} ${profileActive ? styles.tabActive : ""}`} aria-current={profileActive ? "page" : undefined}>
+            <FaUser className={styles.tabIcon} aria-hidden />
+            <span className={styles.tabLabel}>Profile</span>
           </Link>
         </div>
-      </nav>
-    );
-  }
 
-  return <AuthenticatedNav userId={profile.id} pathname={pathname} isAdmin={isAdmin} />;
+        <div className={styles.brandSpacer} aria-hidden="true" />
+      </div>
+    </nav>
+  );
 }
 
 function AuthenticatedNav({
@@ -271,6 +322,7 @@ function AuthenticatedNav({
 // matches the signed-in branch's semantics: `/gyms*` → Gyms tab;
 // `/login*` → Sign in tab.
 function UnauthenticatedNav({ pathname }: { pathname: string }) {
+  const homeActive = pathname === "/";
   const gymsActive = pathname.startsWith("/gyms");
   const loginActive = pathname.startsWith("/login");
   const { tabsRef, pillRef } = useSlidingPill(pathname);
@@ -280,10 +332,11 @@ function UnauthenticatedNav({ pathname }: { pathname: string }) {
       <div className={styles.barInner}>
         <Link
           href="/"
-          className={styles.brandLinkVisible}
+          className={`${styles.brandLinkVisible} ${homeActive ? styles.brandLinkActive : ""}`}
           aria-label="Chork — home"
+          aria-current={homeActive ? "page" : undefined}
         >
-          <ChorkMark size={18} />
+          <ChorkMark size={18} mode={homeActive ? "accent" : "auto"} />
           <span className={styles.brandTextVisible}>Chork</span>
         </Link>
 

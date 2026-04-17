@@ -10,6 +10,7 @@ import {
 } from "react-icons/fa6";
 import Link from "next/link";
 import { Button } from "@/components/ui";
+import { SiteFooter } from "@/components/landing/SiteFooter";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { HeroGrid } from "@/components/landing/HeroGrid";
 import { FeatureGrid } from "@/components/landing/FeatureGrid";
@@ -128,11 +129,7 @@ export function LandingPage() {
         </section>
       </FadeIn>
 
-      <footer className={styles.footer}>
-        <span className={styles.footerName}>Chork</span>
-        <span className={styles.footerTagline}>Send it. Log it. Prove it.</span>
-        <Link href="/privacy" className={styles.footerLink}>Privacy Policy</Link>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

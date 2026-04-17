@@ -1,65 +1,98 @@
 import Link from "next/link";
-import {
-  FaArrowRight,
-  FaClipboardList,
-  FaChartColumn,
-  FaUsers,
-  FaBell,
-  FaCircleNodes,
-  FaGear,
-} from "react-icons/fa6";
+import { FaArrowRight } from "react-icons/fa6";
 import { RevealText } from "@/components/motion";
 import { FadeIn } from "@/components/landing/FadeIn";
+import { SiteFooter } from "@/components/landing/SiteFooter";
 import styles from "./gyms.module.scss";
 
 export const metadata = {
   title: "Chork for gyms",
   description:
-    "Bring Chork to your gym — set management, climber analytics, and multi-gym competitions. In active development.",
+    "The bouldering comp tracker built for gyms — publish sets in two minutes, run comps across venues, keep your regulars showing up for a live leaderboard.",
 };
 
-interface FeatureRow {
-  icon: React.ReactNode;
+interface Benefit {
+  number: string;
   title: string;
-  description: string;
+  body: string;
 }
 
-const FEATURES: FeatureRow[] = [
+const BENEFITS: Benefit[] = [
   {
-    icon: <FaClipboardList />,
-    title: "Set management",
-    description:
-      "Create, publish, and archive comp sets in a couple of taps. Pick V-scale, Font, or points-only scoring per set. Schedule sets to go live on a date; we handle the flip.",
+    number: "01",
+    title: "Your regulars come back for the board.",
+    body: "Every send earns points. Flashes earn bonus. Zone holds earn bonus. Your gym-wide leaderboard refreshes on every send and resets with every new set, so the same climbers never sit on top all year. Casual members turn into regulars when Wednesday night feels like a mini comp.",
   },
   {
-    icon: <FaChartColumn />,
-    title: "Climber engagement analytics",
-    description:
-      "See the active-climber count, top routes, zone-vs-send ratios, flash leaders, and community grade distribution across every set. Every stat computed server-side — no waiting on dashboards.",
+    number: "02",
+    title: "Publish a set in two minutes.",
+    body: "Draft, schedule, publish. Each set picks its own grading scale: V, Font, or raw points. Route grades settle themselves as climbers vote after sending. Archived sets stay searchable, so every problem you've put on the wall is there when you want to look back.",
   },
   {
-    icon: <FaGear />,
-    title: "Route authoring insights",
-    description:
-      "Attach setter names (internal only) to see whose routes your climbers are engaging with most. Perfect for rotating setters or understanding which styles land with your wall.",
+    number: "03",
+    title: "Run comps people turn up for.",
+    body: "Single gym, multi-gym, category-filtered. Chork handles the scoreboard and the live scoring. You handle the event. Visiting comp organisers get their own role so they can run an event at your gym without admin access.",
+  },
+];
+
+interface Value {
+  title: string;
+  body: string;
+}
+
+const VALUES: Value[] = [
+  {
+    title: "Nothing to install.",
+    body: "Chork lives on the web. Climbers open the URL and start logging sends right away. If they want an icon on their home screen, Android prompts them after a few visits and iOS takes a couple of taps from the share sheet. Either way, it's the same app.",
   },
   {
-    icon: <FaCircleNodes />,
-    title: "Multi-gym competitions",
-    description:
-      "Run a comp across multiple venues. Unified leaderboard with category filters aggregates across all participating gyms automatically.",
+    title: "Climbers don't pay a cent.",
+    body: "Every member, drop-in and first-timer gets the full Chork experience after a quick email signup. No subscription, no trial, no upsell. Their wallet stays in the changing room.",
   },
   {
-    icon: <FaUsers />,
-    title: "Admin + organiser roles",
-    description:
-      "Invite co-admins to manage the wall. Competition organisers get a separate role so they can run comps across gyms they don't own. Climbers never see internal route or setter data.",
+    title: "Setting that fits how your setters work.",
+    body: "Pick V-scale, Font, or a points system for each set. Draft the routes ahead of time, schedule the live date, then hit publish. The admin editor was built for setters, not spreadsheets.",
   },
   {
-    icon: <FaBell />,
-    title: "Push notifications",
-    description:
-      "When a new set drops, your regulars get a push on their phone. Opt-in only, built on Web Push standards — no app store required.",
+    title: "Real numbers on your wall.",
+    body: "See which routes are getting flashed, which ones nobody touches, and how your setters' grades land versus what climbers vote. Useful signals about your wall, not charts for the sake of charts.",
+  },
+  {
+    title: "Competitions built in.",
+    body: "Run weekly sprints, seasonal ladders, or multi-gym events. Chork handles the scoreboard and the live scoring. You handle the event. Visiting organisers get their own role so they can run a comp at your gym without admin access.",
+  },
+  {
+    title: "Crews that keep regulars coming back.",
+    body: "Climbers form small private groups with shared leaderboards. Mates chase each other up the board all week, and your regulars show up more often because their crew has been posting sends.",
+  },
+];
+
+interface Step {
+  number: string;
+  title: string;
+  body: string;
+}
+
+const STEPS: Step[] = [
+  {
+    number: "01",
+    title: "Talk to us.",
+    body: "Drop a line. We chat about your wall, your community, your comp schedule. Half an hour, tops.",
+  },
+  {
+    number: "02",
+    title: "Claim your gym.",
+    body: "We list you in the gym picker. Your climbers find you. Your admins get the dashboard, set editor, and analytics.",
+  },
+  {
+    number: "03",
+    title: "Publish your first set.",
+    body: "Pick a grading scale. Draft the routes. Hit publish. Climbers start logging sends the same day.",
+  },
+  {
+    number: "04",
+    title: "Read the room.",
+    body: "Dashboards light up as climbers move on the wall. See flash leaders, community grades, which routes are getting loved.",
   },
 ];
 
@@ -68,21 +101,27 @@ export default function GymsMarketingPage() {
     <main className={styles.page}>
       <FadeIn>
         <header className={styles.hero}>
-          <span className={styles.statusPill} role="status">
-            <span className={styles.statusDot} aria-hidden /> In active development
-          </span>
-          <RevealText text="Chork for gyms" as="h1" className={styles.title} />
+          <span className={styles.eyebrow}>Chork for gyms</span>
+          <h1 className={styles.title}>
+            <span className={styles.titlePrimary}>
+              <RevealText text="A live board." as="span" />
+            </span>{" "}
+            <span className={styles.titleAccent}>
+              <RevealText text="Every session" as="span" delay={0.2} />
+              <span className={styles.dot} aria-hidden="true" />
+            </span>
+          </h1>
           <p className={styles.lede}>
-            A purpose-built competition tracker for bouldering gyms. Manage
-            sets, understand your climbers, and run comps across venues —
-            without stitching a tool out of spreadsheets and Discord.
+            Chork is the bouldering comp tracker built for gyms. Publish a set
+            in two minutes. Run comps across venues. Keep your regulars
+            showing up for a leaderboard that refreshes on every send.
           </p>
           <div className={styles.ctaRow}>
             <a
               className={styles.ctaPrimary}
               href="mailto:hi@chork.app?subject=Chork for gyms"
             >
-              Get in touch <FaArrowRight aria-hidden />
+              Bring Chork to your gym <FaArrowRight aria-hidden />
             </a>
             <Link href="/" className={styles.secondaryLink}>
               See the climber app
@@ -92,47 +131,111 @@ export default function GymsMarketingPage() {
       </FadeIn>
 
       <FadeIn>
-        <section className={styles.featureSection} aria-labelledby="features-heading">
-          <header className={styles.sectionHeader}>
-            <h2 id="features-heading" className={styles.sectionHeading}>What&apos;s shipping</h2>
-            <p className={styles.sectionSub}>
-              The admin dashboard is live today. Everything below is either
-              shipping now or on the roadmap — drop us a line if there&apos;s a
-              feature you&apos;d want to shape.
-            </p>
-          </header>
-
-          <ul className={styles.featureList}>
-            {FEATURES.map((f) => (
-              <li key={f.title} className={styles.featureRow}>
-                <span className={styles.featureIcon} aria-hidden>{f.icon}</span>
-                <div className={styles.featureText}>
-                  <h3 className={styles.featureTitle}>{f.title}</h3>
-                  <p className={styles.featureBody}>{f.description}</p>
+        <section
+          className={styles.benefits}
+          aria-labelledby="benefits-heading"
+        >
+          <h2 id="benefits-heading" className={styles.sectionEyebrow}>
+            Why gyms use Chork
+          </h2>
+          <ol className={styles.benefitsList}>
+            {BENEFITS.map((b) => (
+              <li key={b.number} className={styles.benefitRow}>
+                <span className={styles.benefitNumber} aria-hidden>
+                  {b.number}
+                </span>
+                <div className={styles.benefitText}>
+                  <h3 className={styles.benefitTitle}>{b.title}</h3>
+                  <p className={styles.benefitBody}>{b.body}</p>
                 </div>
               </li>
             ))}
-          </ul>
+          </ol>
         </section>
       </FadeIn>
 
       <FadeIn>
-        <section className={styles.outroCard}>
-          <h2 className={styles.outroHeading}>Want in while we build?</h2>
-          <p className={styles.outroBody}>
-            We&apos;re onboarding gyms one at a time while the admin surface
-            matures. If your gym runs comps — weekly, monthly, seasonal — and
-            you&apos;d like early access and direct input into the roadmap,
-            say hello.
+        <section className={styles.manifesto} aria-label="How Chork is different">
+          <p className={styles.manifestoText}>
+            <span className={styles.manifestoLine}>No app store.</span>
+            <span className={styles.manifestoLine}>No per-climber fees.</span>
+            <span className={styles.manifestoLine}>No spreadsheets.</span>
+            <span className={`${styles.manifestoLine} ${styles.manifestoLineAccent}`}>
+              No lock-in.
+            </span>
           </p>
-          <a
-            className={styles.ctaPrimary}
-            href="mailto:hi@chork.app?subject=Early access"
-          >
-            hi@chork.app <FaArrowRight aria-hidden />
-          </a>
         </section>
       </FadeIn>
+
+      <FadeIn>
+        <section
+          className={styles.values}
+          aria-labelledby="values-heading"
+        >
+          <header className={styles.valuesHead}>
+            <h2 id="values-heading" className={styles.sectionEyebrow}>
+              What gym owners get
+            </h2>
+            <p className={styles.valuesLede}>
+              Every surface, climber and admin, designed by people who climb
+              at the gyms they&apos;re building for.
+            </p>
+          </header>
+
+          <div className={styles.valuesGrid}>
+            {VALUES.map((v) => (
+              <article key={v.title} className={styles.valueCard}>
+                <h3 className={styles.valueTitle}>{v.title}</h3>
+                <p className={styles.valueBody}>{v.body}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+      </FadeIn>
+
+      <FadeIn>
+        <section
+          className={styles.process}
+          aria-labelledby="process-heading"
+        >
+          <header className={styles.processHead}>
+            <h2 id="process-heading" className={styles.sectionEyebrow}>
+              Setup in four steps
+            </h2>
+            <p className={styles.processLede}>
+              Most gyms are live with their first set inside a week.
+            </p>
+          </header>
+          <ol className={styles.processList}>
+            {STEPS.map((s) => (
+              <li key={s.number} className={styles.processStep}>
+                <span className={styles.processNumber} aria-hidden>
+                  {s.number}
+                </span>
+                <h3 className={styles.processTitle}>{s.title}</h3>
+                <p className={styles.processBody}>{s.body}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+      </FadeIn>
+
+      <section className={styles.finalCta} aria-labelledby="final-cta-heading">
+        <h2 id="final-cta-heading" className={styles.finalCtaHeading}>
+          Ready to put your wall on the board?
+        </h2>
+        <p className={styles.finalCtaBody}>
+          Get in touch. We&apos;ll set you up this week.
+        </p>
+        <a
+          className={styles.finalCtaButton}
+          href="mailto:hi@chork.app?subject=Chork for gyms"
+        >
+          hi@chork.app <FaArrowRight aria-hidden />
+        </a>
+      </section>
+
+      <SiteFooter />
     </main>
   );
 }

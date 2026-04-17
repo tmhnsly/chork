@@ -27,11 +27,6 @@
   gap: var(--space-3);
 }
 
-.logo {
-  font-size: var(--text-5xl);
-  color: var(--brand);
-}
-
 .title {
   @include type.typography(display);
   color: var(--accent-text);

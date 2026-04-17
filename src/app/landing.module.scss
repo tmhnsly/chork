@@ -3,7 +3,9 @@
 
 .page {
   padding-top: env(safe-area-inset-top, 0px);
-  padding-bottom: calc(var(--navbar-height) + env(safe-area-inset-bottom, 0px) + var(--space-8));
+  // Bottom safe-area clearance lives on `SiteFooter` so the footer
+  // owns the full gap above the nav pill. Page itself just runs its
+  // sections to the footer and stops.
 }
 
 // ── CTA section ───────────────────────────────────
@@ -27,34 +29,4 @@
 .ctaSub {
   @include type.typography(body);
   color: var(--accent-on-solid);
-}
-
-// ── Footer ─────────────────────────────────────────
-.footer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-8) var(--gutter-x);
-}
-
-.footerName {
-  @include type.typography(label);
-  color: var(--mono-text-low-contrast);
-}
-
-.footerTagline {
-  @include type.typography(meta);
-  color: var(--mono-text-low-contrast);
-}
-
-.footerLink {
-  @include type.typography(meta);
-  color: var(--mono-text-low-contrast);
-  margin-top: var(--space-2);
-  text-decoration: underline;
-
-  &:hover {
-    color: var(--mono-text-low-contrast);
-  }
 }

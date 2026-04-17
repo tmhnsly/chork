@@ -1,65 +1,120 @@
-@use "mixins/layout" as layout;
 @use "mixins/typography" as type;
-@use "mixins/surfaces" as surface;
+@use "mixins/layout" as layout;
+@use "mixins/breakpoints" as bp;
 
+// Editorial sport-magazine layout — oversized lime numerics, hairline
+// dividers between sections, and two full-bleed bands (manifesto +
+// final CTA) that punctuate the scroll. Typography hierarchy echoes
+// the climbing-magazine feel: display-italic for headlines, label
+// (Outfit semibold uppercase wide) for eyebrows, Inter for body. No
+// cards or soft containers — borders do the structural work.
 .page {
   @include layout.page;
-  @include layout.stack(var(--space-7));
+  @include layout.stack(var(--space-12));
+  padding-top: var(--space-10);
+  // No bottom padding — the final CTA is a full-bleed band that
+  // handles its own padding and reaches the page's bottom edge.
+  padding-bottom: 0;
+
+  @include bp.tablet {
+    gap: var(--space-16);
+    padding-top: var(--space-16);
+  }
 }
 
-// ── Hero ───────────────────────────────────────────
-.hero {
-  @include layout.stack(var(--space-3));
-}
-
-.statusPill {
+// ── Shared eyebrow label ──────────────────────────
+// Small uppercase label that heads every section. Same treatment as
+// the hero eyebrow so the page reads as a single magazine spread
+// rather than stitched-together components.
+.sectionEyebrow {
   @include type.typography(label);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  align-self: flex-start;
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-full);
-  background: var(--accent-bg);
   color: var(--accent-text);
-  font-size: var(--text-2xs);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: var(--text-xs);
+  letter-spacing: 0.12em;
+  margin: 0 0 var(--space-6);
 }
 
-.statusDot {
-  width: 6px;
-  height: 6px;
-  border-radius: var(--radius-full);
-  background: var(--accent-solid);
-  animation: pulse 1.6s ease-in-out infinite;
+// ── Hero ──────────────────────────────────────────
+.hero {
+  @include layout.stack(var(--space-5));
+  padding-bottom: var(--space-6);
+
+  @include bp.tablet {
+    padding-bottom: var(--space-8);
+  }
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%      { opacity: 0.55; transform: scale(1.6); }
+.eyebrow {
+  @include type.typography(label);
+  color: var(--accent-text);
+  font-size: var(--text-xs);
+  letter-spacing: 0.12em;
 }
 
+// Display italic hero headline — splits across two colour tiers so
+// the second half ("Make it count.") pulls accent attention without
+// the reader needing a separate sub-head. Line-height tight to let
+// two lines stack as one dense visual block on mobile.
 .title {
   @include type.typography(display);
+  color: var(--mono-text);
+  font-size: clamp(var(--text-4xl), 9vw, var(--text-5xl));
+  line-height: 0.98;
+  max-width: 18ch;
+  margin: 0;
+}
+
+.titlePrimary {
+  color: var(--mono-text);
+}
+
+.titleAccent {
   color: var(--accent-text);
-  font-size: clamp(var(--text-3xl), 9cqi, var(--text-5xl));
-  line-height: 1;
+}
+
+// Brand dot — same signature treatment as the landing hero. Replaces
+// the trailing period on the final headline sentence with the lime
+// brand dot so the page top reads as the same visual family across
+// surfaces. Sized in `em` so it tracks the clamped display size;
+// pops in once the reveal finishes (delay matches heroSection).
+.dot {
+  display: inline-block;
+  width: 0.3em;
+  height: 0.3em;
+  margin-left: 0.1em;
+  vertical-align: baseline;
+  border-radius: 50%;
+  background: var(--brand);
+  transform: scale(0);
+  animation: dotPop 0.35s var(--ease-out-expo) 1.15s forwards;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transform: scale(1);
+  }
+}
+
+@keyframes dotPop {
+  to {
+    transform: scale(1);
+  }
 }
 
 .lede {
   @include type.typography(body);
   color: var(--mono-text-low-contrast);
-  max-width: 56ch;
-  font-size: var(--text-md);
+  font-size: var(--text-lg);
+  max-width: 54ch;
+  line-height: 1.55;
+  margin: 0;
 }
 
 .ctaRow {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3);
+  gap: var(--space-4);
   align-items: center;
-  margin-top: var(--space-2);
+  margin-top: var(--space-3);
 }
 
 .ctaPrimary {
@@ -68,14 +123,19 @@
   align-items: center;
   gap: var(--space-2);
   min-height: var(--size-touch-target);
-  padding: 0 var(--space-4);
+  padding: 0 var(--space-5);
   background: var(--accent-solid);
   color: var(--accent-on-solid);
   border-radius: var(--radius-full);
   text-decoration: none;
-  transition: filter var(--duration-fast) var(--ease-out);
+  transition:
+    filter var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
 
-  &:hover { filter: brightness(0.95); }
+  &:hover {
+    filter: brightness(0.95);
+    transform: translateY(-1px);
+  }
 }
 
 .secondaryLink {
@@ -85,94 +145,403 @@
   min-height: var(--size-touch-target);
   display: inline-flex;
   align-items: center;
+  transition: color var(--duration-fast) var(--ease-out);
 
   &:hover {
     color: var(--mono-text);
   }
 }
 
-// ── Features ───────────────────────────────────────
-.featureSection {
-  @include layout.stack(var(--space-4));
+// ── Benefits ──────────────────────────────────────
+// Asymmetric editorial stack — each row is a big lime numeral next
+// to a headline + body column. Desktop uses a 2-col grid (numeral /
+// text); mobile stacks. Hairline borders separate each row so the
+// list reads like a magazine table of contents, not a card grid.
+.benefits {
+  padding-top: var(--space-10);
+  border-top: 1px solid var(--mono-border-subtle);
+
+  @include bp.tablet {
+    padding-top: var(--space-12);
+  }
 }
 
-.sectionHeader {
-  @include layout.stack(var(--space-2));
-}
-
-.sectionHeading {
-  @include type.typography(card-title);
-  color: var(--mono-text);
-}
-
-.sectionSub {
-  @include type.typography(body);
-  color: var(--mono-text-low-contrast);
-  max-width: 56ch;
-}
-
-.featureList {
-  @include layout.stack(var(--space-2));
+.benefitsList {
   list-style: none;
   padding: 0;
   margin: 0;
-}
-
-.featureRow {
-  @include surface.card;
   display: flex;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border-radius: var(--radius-3);
-  align-items: flex-start;
+  flex-direction: column;
 }
 
-.featureIcon {
-  flex-shrink: 0;
+.benefitRow {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  column-gap: var(--space-5);
+  row-gap: var(--space-2);
+  padding: var(--space-6) 0;
+  border-top: 1px solid var(--mono-border-subtle);
+  align-items: start;
+
+  &:first-child {
+    border-top: 0;
+    padding-top: 0;
+  }
+
+  @include bp.tablet {
+    grid-template-columns: minmax(6rem, 9rem) 1fr;
+    column-gap: var(--space-8);
+    padding: var(--space-8) 0;
+  }
+}
+
+.benefitNumber {
+  @include type.typography(number);
+  color: var(--accent-solid);
+  font-style: italic;
+  font-size: clamp(var(--text-4xl), 7vw, var(--text-5xl));
+  line-height: 0.9;
+  letter-spacing: var(--tracking-tight);
+}
+
+.benefitText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: 60ch;
+  grid-column: 2 / -1;
+
+  @media (max-width: 47.99rem) {
+    grid-column: 1 / -1;
+  }
+}
+
+.benefitTitle {
+  @include type.typography(card-title);
+  color: var(--mono-text);
+  font-size: clamp(var(--text-xl), 4vw, var(--text-3xl));
+  line-height: 1.1;
+  max-width: 22ch;
+  margin: 0;
+}
+
+.benefitBody {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-md);
+  line-height: 1.6;
+  margin: 0;
+}
+
+// ── Manifesto / pull quote ────────────────────────
+// Full-bleed subtle-bg band with four stacked display-italic lines.
+// The final line flips to accent-text — that's the one thing a gym
+// owner remembers after closing the tab. Stretching edge-to-edge
+// breaks the page's narrow column and lets this section punch.
+.manifesto {
+  @include layout.bleed-x;
+  padding: var(--space-14) var(--gutter-x);
+  background: var(--mono-subtle-bg);
+  border-top: 1px solid var(--mono-border-subtle);
+  border-bottom: 1px solid var(--mono-border-subtle);
+
+  @include bp.tablet {
+    padding: var(--space-20) var(--gutter-x);
+  }
+}
+
+.manifestoText {
+  @include type.typography(display);
+  color: var(--mono-text);
+  font-size: clamp(var(--text-3xl), 8vw, var(--text-5xl));
+  line-height: 0.95;
+  max-width: var(--content-app);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.manifestoLine {
+  display: block;
+}
+
+.manifestoLineAccent {
+  color: var(--accent-text);
+}
+
+// ── Value cards (what gym owners get) ─────────────
+// Six benefit-framed cards — icon + title + body each — replacing
+// the earlier dense feature-list spec sheet. Hairline borders still
+// form the structural matrix (1 col mobile / 2 tablet / 3 desktop),
+// so the editorial magazine feel stays intact while the cells read
+// as short benefit statements instead of bullet soup.
+.values {
+  padding-top: var(--space-10);
+
+  @include bp.tablet {
+    padding-top: var(--space-12);
+  }
+}
+
+.valuesHead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-8);
+}
+
+.valuesLede {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-md);
+  max-width: 58ch;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.valuesGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  border-top: 1px solid var(--mono-border-subtle);
+
+  @include bp.tablet {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include bp.desktop {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.valueCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-6) 0;
+  border-bottom: 1px solid var(--mono-border-subtle);
+  // Small lime tick on top of every card — echoes the 2px lime bar
+  // used on the process steps and the feature-bullet markers, so
+  // the page's accent language stays consistent across sections.
+  position: relative;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: -1px;
+    left: 0;
+    width: 1.5rem;
+    height: 2px;
+    background: var(--accent-solid);
+  }
+
+  @include bp.tablet {
+    padding: var(--space-7) var(--space-5);
+    border-left: 1px solid var(--mono-border-subtle);
+
+    &::before {
+      left: var(--space-5);
+    }
+
+    // First column in each tablet row has no left border — the grid
+    // edge handles it.
+    &:nth-child(2n + 1) {
+      border-left: 0;
+      padding-left: 0;
+
+      &::before {
+        left: 0;
+      }
+    }
+  }
+
+  @include bp.desktop {
+    // Reset the every-2nd rule and re-strip every-3rd — desktop is a
+    // 3-col grid, so items 1, 4, 7… are the column starts.
+    &:nth-child(2n + 1) {
+      border-left: 1px solid var(--mono-border-subtle);
+      padding-left: var(--space-5);
+
+      &::before {
+        left: var(--space-5);
+      }
+    }
+    &:nth-child(3n + 1) {
+      border-left: 0;
+      padding-left: 0;
+
+      &::before {
+        left: 0;
+      }
+    }
+  }
+}
+
+.valueTitle {
+  @include type.typography(card-title);
+  color: var(--mono-text);
+  font-size: var(--text-lg);
+  line-height: 1.2;
+  margin: 0;
+  max-width: 20ch;
+}
+
+.valueBody {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  margin: 0;
+  max-width: 36ch;
+}
+
+// ── Setup process ─────────────────────────────────
+// Four steps in a grid — desktop = 4 cols for an even band; mobile
+// stacks. Each step opens with a lime tick-border on top (the same
+// accent bar motif as the feature bullets, scaled up) then the
+// number, title, body.
+.process {
+  padding-top: var(--space-10);
+  border-top: 1px solid var(--mono-border-subtle);
+
+  @include bp.tablet {
+    padding-top: var(--space-12);
+  }
+}
+
+.processHead {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-bottom: var(--space-8);
+}
+
+.processLede {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-md);
+  max-width: 58ch;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.processList {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-8);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  @include bp.tablet {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-10) var(--space-6);
+  }
+
+  @include bp.desktop {
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--space-5);
+  }
+}
+
+.processStep {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-4);
+  border-top: 2px solid var(--accent-solid);
+}
+
+.processNumber {
+  @include type.typography(number);
+  color: var(--accent-solid);
+  font-style: italic;
+  font-size: var(--text-3xl);
+  line-height: 1;
+  letter-spacing: var(--tracking-tight);
+}
+
+.processTitle {
+  @include type.typography(card-title);
+  color: var(--mono-text);
+  font-size: var(--text-lg);
+  margin: 0;
+}
+
+.processBody {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  max-width: 32ch;
+  margin: 0;
+}
+
+// ── Final CTA band ────────────────────────────────
+// Full-bleed accent-solid (lime-9) band. Dark text via
+// --accent-on-solid — Radix calibrates this per palette so the
+// button contrast holds on every theme. The "reverse" button uses
+// the mono scale's text colour on the subtle-bg for a strong
+// inverse pairing that doesn't rely on a fixed black/white.
+.finalCta {
+  @include layout.bleed-x;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-4);
+  padding: var(--space-14) var(--gutter-x);
+  background: var(--accent-solid);
+  // Navbar + safe-area clearance now lives on `SiteFooter` below,
+  // so the band just needs symmetric interior padding.
+
+  @include bp.tablet {
+    padding: var(--space-20) var(--gutter-x);
+  }
+}
+
+.finalCtaHeading {
+  @include type.typography(display);
+  color: var(--accent-on-solid);
+  font-size: clamp(var(--text-3xl), 7vw, var(--text-5xl));
+  line-height: 1;
+  max-width: 20ch;
+  margin: 0;
+}
+
+.finalCtaBody {
+  @include type.typography(body);
+  color: var(--accent-on-solid);
+  font-size: var(--text-md);
+  max-width: 42ch;
+  margin: 0;
+}
+
+// CTA button sitting on the accent-solid (lime-9) band. Uses the
+// canvas (`--mono-app-bg`) as its fill with `--mono-text` as the
+// foreground — that's the same reverse pattern `btnSecondary` uses,
+// and it reads clean against lime on every theme (light and dark).
+// Using `--mono-text` as the background directly was too heavy on
+// lime in dark mode, and `--accent-on-solid` alone leaves the
+// button indistinguishable from the band.
+.finalCtaButton {
+  @include type.typography(label);
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: var(--space-10);
-  height: var(--space-10);
+  gap: var(--space-2);
+  min-height: var(--size-touch-target);
+  padding: 0 var(--space-5);
+  background: var(--mono-app-bg);
+  color: var(--mono-text);
   border-radius: var(--radius-full);
-  background: var(--accent-bg);
-  color: var(--accent-text-low-contrast);
-  font-size: var(--text-lg);
-}
+  text-decoration: none;
+  margin-top: var(--space-2);
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
 
-.featureText {
-  @include layout.stack(var(--space-1));
-  min-width: 0;
-}
-
-.featureTitle {
-  @include type.typography(card-title);
-  font-size: var(--text-md);
-  color: var(--mono-text);
-}
-
-.featureBody {
-  @include type.typography(body);
-  color: var(--mono-text-low-contrast);
-}
-
-// ── Outro card ─────────────────────────────────────
-.outroCard {
-  @include surface.card;
-  @include layout.stack(var(--space-3));
-  padding: var(--space-5);
-  border-radius: var(--radius-3);
-  background: var(--accent-subtle-bg);
-  border-color: var(--accent-border-subtle);
-}
-
-.outroHeading {
-  @include type.typography(card-title);
-  color: var(--mono-text);
-}
-
-.outroBody {
-  @include type.typography(body);
-  color: var(--mono-text-low-contrast);
-  max-width: 56ch;
+  &:hover {
+    background: var(--mono-bg-hover);
+    transform: translateY(-1px);
+  }
 }

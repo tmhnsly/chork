@@ -96,23 +96,18 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // Lazy initial state pulls a recent profile cache from localStorage
-  // synchronously on mount. If we hit, NavBar paints in its
-  // logged-in state on the very first hydration cycle — no
-  // brand-only-then-personalised flash. The three-phase bootstrap
-  // below validates the cache against Supabase in the background.
-  const [profile, setProfile] = useState<Profile | null>(() => {
-    return readProfileCache()?.profile ?? null;
-  });
-  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
-    return readProfileCache()?.isAdmin ?? false;
-  });
-  const [isLoading, setIsLoading] = useState(() => {
-    // If we have a cached profile, we're not "loading" from the
-    // user's perspective — the UI is already populated. Background
-    // validation refines it but doesn't gate render.
-    return readProfileCache() === null;
-  });
+  // SSR and the first client render MUST match or React throws a
+  // hydration error and tears down the whole subtree. That rules out
+  // reading `localStorage` in the `useState` initializer — server
+  // returns null, client returns the cached entry, React sees the
+  // mismatch, flash + warning. Instead we start with the "loading"
+  // shape on both sides and promote the cache inside the bootstrap
+  // effect below (first line), which lands in the same commit as the
+  // network bootstrap's async work and flips the nav into its loaded
+  // state before the user notices.
+  const [profile, setProfile] = useState<Profile | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const supabase = useMemo(() => createBrowserSupabase(), []);
   const profileRef = useRef(profile);
@@ -157,11 +152,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [profile, isAdmin]);
 
   // Bootstrap: two-phase auth check.
-  // Phase 1: getSession() reads from local storage — instant, no network.
-  //          Sets profile only if it changed vs the cached version.
-  // Phase 2: getUser() validates with the server — catches expired tokens.
-  //          If the session was invalid, clears the profile.
+  // Phase 0 (sync): hydrate from the localStorage cache if present.
+  //          Runs inside the effect rather than in useState to keep
+  //          server and client-initial render identical — no
+  //          hydration mismatch.
+  // Phase 1 (async): getSession() reads from local storage — instant,
+  //          no network. Sets profile only if it changed vs cache.
+  // Phase 2 (async): getUser() validates with the server — catches
+  //          expired tokens. If the session was invalid, clears the
+  //          profile.
   useEffect(() => {
+    // Sync with external state (localStorage) on mount. The
+    // `react-hooks/set-state-in-effect` rule flags this pattern as a
+    // code smell, but it's exactly the use case React docs call out
+    // as legitimate: hydrating local state from an external source.
+    // Moving it to `useState`'s initializer causes an SSR/client
+    // hydration mismatch (server has no `localStorage`), which is
+    // strictly worse than a lint exception.
+    /* eslint-disable react-hooks/set-state-in-effect */
+    const cached = readProfileCache();
+    if (cached) {
+      setProfile(cached.profile);
+      setIsAdmin(cached.isAdmin);
+      setIsLoading(false);
+    }
+    /* eslint-enable react-hooks/set-state-in-effect */
+
     let initialCheckDone = false;
 
     async function bootstrap() {

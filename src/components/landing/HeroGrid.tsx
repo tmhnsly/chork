@@ -55,15 +55,8 @@ export function HeroGrid() {
     // from focus. aria-hidden alone wasn't enough to silence Lighthouse's
     // color-contrast audit on the animated tile states.
     // role="presentation" reinforces "this is decoration" for older AT.
-    <div
-      className={styles.grid}
-      aria-hidden="true"
-      // React 19 supports `inert` as a boolean HTML attribute.
-      // Empty-string value above didn't serialize on render — using
-      // the truthy form so SSR emits the bare `inert` attribute.
-      inert
-      role="presentation"
-    >
+    <div className={styles.clipWrapper} aria-hidden="true" inert role="presentation">
+    <div className={styles.grid}>
       {Array.from({ length: TILE_COUNT }, (_, i) => {
         const state = session[i];
         const animate = state !== "empty";
@@ -89,6 +82,7 @@ export function HeroGrid() {
           </div>
         );
       })}
+    </div>
     </div>
   );
 }

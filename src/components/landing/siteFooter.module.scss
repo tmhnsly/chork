@@ -1,0 +1,77 @@
+@use "mixins/typography" as type;
+
+// Site-wide footer. Column-stack of social / legal-links / copyright.
+// Handles its own navbar + safe-area clearance so mounting pages can
+// run their content right up to the footer without double-padding.
+.footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-8) var(--gutter-x);
+  padding-bottom: calc(
+    var(--navbar-height) + env(safe-area-inset-bottom, 0px) + var(--space-6)
+  );
+}
+
+// ── Social row ────────────────────────────────────
+// Horizontal icon row. Mono low-contrast at rest, brightens to the
+// accent on hover — same pattern the rest of the interactive chrome
+// uses, so the footer reads as part of the cohesive visual language.
+.social {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.socialLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-touch-target);
+  height: var(--size-touch-target);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-lg);
+  border-radius: var(--radius-full);
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    color: var(--accent-text);
+    background: var(--mono-bg);
+  }
+}
+
+// ── Legal links ───────────────────────────────────
+// Privacy · Terms separated by BrandDivider (lime bullet) so the
+// inline separator matches the rest of the app's visual language
+// rather than a hand-rolled dot.
+.links {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-1);
+}
+
+.link {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  text-decoration: underline;
+  transition: color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    color: var(--mono-text);
+  }
+}
+
+// ── Copyright ─────────────────────────────────────
+// Label typography (Outfit semibold uppercase wide-tracking) —
+// matches the brand wordmark treatment used elsewhere so the legal
+// line reads as brand chrome, not a plain caption.
+.copyright {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-xs);
+  margin-top: var(--space-2);
+}

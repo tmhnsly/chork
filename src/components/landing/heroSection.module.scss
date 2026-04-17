@@ -12,20 +12,32 @@
   width: 100%;
   max-width: var(--content-app);
   margin: 0 auto;
-  padding: var(--space-8) var(--gutter-x);
+  padding: var(--space-8) var(--gutter-x) 0;
+}
+
+// ── Brand mark ─────────────────────────────────────
+// Poster-style opener — first visual beat of the hero. NavBar lives
+// at the bottom of the viewport so there's no brand anchor at the
+// top of the page; this mark fills that role. Sized with `clamp()`
+// so it scales down on narrow phones but doesn't balloon on desktop.
+// Negative margin-bottom pulls the headline tighter against the
+// mark than stack's default gap — they read as a lock-up, not two
+// unrelated items.
+.mark {
+  width: clamp(3.5rem, 10vw, 5rem);
+  height: auto;
+  margin-bottom: calc(var(--space-8) * -1 + var(--space-3));
+  animation: heroIn var(--duration-hero) var(--ease-out) both;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 }
 
 // ── Visual (grid) ─────────────────────────────────
-// Renders the full HeroGrid — 5 cols × 3 rows of animated tiles.
-// Breaks out of `.inner`'s max-width so it spans the full viewport
-// and reads as part of the hero band rather than a constrained
-// widget within it. Pulls hard upwards on its bottom margin so the
-// next section (FeatureGrid, subtle-bg band) eats the last row of
-// tiles — a deliberate "scroll for more" cue.
+// Stays inside `.inner` so the grid lines up with the headline and
+// CTA gutters. Clipping/crop behaviour lives on the grid itself.
 .visual {
-  width: 100vw;
-  margin-inline: calc(50% - 50vw);
-  margin-bottom: calc(var(--space-16) * -1);
   position: relative;
   z-index: 0;
 }
@@ -48,6 +60,38 @@
 // same heavy italic weight.
 .headlineSecondary {
   color: var(--mono-text-low-contrast);
+}
+
+// ── Signature dot ──────────────────────────────────
+// Replaces the trailing period of the final headline sentence with
+// the brand lime dot — echoes the ChorkMark above, making the copy
+// block open and close on the same mark. Sized in `em` so it tracks
+// the headline's responsive display size, not a fixed pixel value.
+// Baseline-aligned + a small left nudge so it reads as punctuation
+// rather than a free-floating bullet.
+.dot {
+  display: inline-block;
+  width: 0.3em;
+  height: 0.3em;
+  margin-left: 0.1em;
+  vertical-align: baseline;
+  border-radius: 50%;
+  background: var(--brand);
+  transform: scale(0);
+  // Fire after the headline words finish revealing — second sentence
+  // last word lands ~1.05s in, give it a beat then pop the dot.
+  animation: dotPop 0.35s var(--ease-out-expo) 1.15s forwards;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transform: scale(1);
+  }
+}
+
+@keyframes dotPop {
+  to {
+    transform: scale(1);
+  }
 }
 
 .subheadline {

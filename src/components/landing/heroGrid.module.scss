@@ -1,8 +1,19 @@
+// Clip wrapper hides the bottom half of row 3 — the "scroll for
+// more" cue. Percentage margin-bottom on .grid resolves against
+// the wrapper's width, which tracks tile size at every viewport.
+.clipWrapper {
+  overflow: hidden;
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--space-2);
   width: 100%;
+  // Collapse by half a tile height so overflow clips row 3 midway.
+  // Tiles are square in a 5-col grid → each ≈ 20% of width →
+  // half ≈ 10%.
+  margin-bottom: -10%;
 }
 
 .cell {

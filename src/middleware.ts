@@ -7,14 +7,24 @@ const AUTH_ROUTES = ["/login"];
 // like any other route — previously `/` short-circuited, which let
 // freshly-signed-up users see the homepage before completing the
 // onboarding form and trapped anyone who refreshed mid-flow.
-const PUBLIC_ROUTES = ["/", "/privacy"];
+const PUBLIC_ROUTES = ["/", "/privacy", "/terms", "/gyms"];
 // Routes whose render does NOT depend on auth state — middleware can
-// skip the getUser() round-trip entirely. /privacy looks identical
-// for signed-in and signed-out users, so there's no value in firing
-// the Supabase auth call on every visit.
-const AUTH_AGNOSTIC_ROUTES = ["/privacy"];
+// skip the getUser() round-trip entirely. /privacy + /terms look
+// identical for signed-in and signed-out users, so there's no value
+// in firing the Supabase auth call on every visit. The nav shell
+// cookie (see below) is already stamped from any prior authed page
+// view — missing means we default to the unauthed shell, which is
+// acceptable for the rare first-ever-visit case.
+const AUTH_AGNOSTIC_ROUTES = ["/privacy", "/terms"];
 const ONBOARDING_ROUTE = "/onboarding";
 const ONBOARDED_COOKIE = "chork-onboarded";
+// Tells the server-rendered `NavBarShell` which variant of the nav
+// to paint on first byte, so refreshing an authed page doesn't
+// flash the unauthed (or brand-only) shell before `AuthProvider`
+// bootstraps from localStorage. Non-critical — a stale or missing
+// value just means the nav may briefly show the wrong shape, same
+// as before this cookie existed.
+const AUTH_SHELL_COOKIE = "chork-auth-shell";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -30,7 +40,22 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   const isAuthenticated = !!user;
   const isAuthRoute = AUTH_ROUTES.some((r) => pathname.startsWith(r));
-  const isPublic = PUBLIC_ROUTES.includes(pathname);
+  const isPublic = PUBLIC_ROUTES.some((r) => pathname === r || pathname.startsWith(`${r}/`));
+
+  // Stamp the nav shell cookie so `NavBarShell` paints the correct
+  // variant on first byte. Only update when it's actually changing
+  // to keep the Set-Cookie header off unchanged responses.
+  const existingShell = request.cookies.get(AUTH_SHELL_COOKIE)?.value;
+  const nextShell = isAuthenticated ? "1" : "0";
+  if (existingShell !== nextShell) {
+    response.cookies.set(AUTH_SHELL_COOKIE, nextShell, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 365,
+      path: "/",
+    });
+  }
 
   // Signed-in users never need the login page.
   if (isAuthRoute && isAuthenticated) {
@@ -97,5 +122,7 @@ export const config = {
     "/competitions/:path*",
     "/admin/:path*",
     "/privacy/:path*",
+    "/terms/:path*",
+    "/gyms/:path*",
   ],
 };

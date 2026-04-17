@@ -1,8 +1,22 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { createServerSupabase } from "@/lib/supabase/server";
-import { formatError } from "@/lib/errors";
+import { formatAuthError, formatError, type AuthErrorField } from "@/lib/errors";
+
+export interface AuthActionState {
+  error?: string;
+  field?: AuthErrorField;
+  success?: boolean;
+  /**
+   * Post-login redirect target. Returned (not triggered via
+   * `redirect()`) so the client can hard-navigate — that remounts
+   * `AuthProvider` so the new session cookies get picked up. Soft
+   * redirects via `next/navigation`'s `redirect()` left the provider
+   * instance stale from the pre-sign-in render, which is why the nav
+   * stayed in its logged-out state until a manual page reload.
+   */
+  next?: string;
+}
 
 /**
  * Server-side sign-in. Doing this client-side caused a race: the
@@ -23,29 +37,33 @@ import { formatError } from "@/lib/errors";
  * via `redirect()` (Next-internal control flow).
  */
 export async function signInAction(
-  prevState: { error?: string } | undefined,
+  prevState: AuthActionState | undefined,
   formData: FormData,
-): Promise<{ error?: string }> {
+): Promise<AuthActionState> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const next = String(formData.get("next") ?? "/");
 
-  if (!email || !password) {
-    return { error: "Email and password are required" };
-  }
+  if (!email) return { error: "Email is required", field: "email" };
+  if (!password) return { error: "Password is required", field: "password" };
 
   const supabase = await createServerSupabase();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
-    return { error: formatError(error) };
+    const { message, field } = formatAuthError(error);
+    return { error: message, field };
   }
 
-  // Successful sign-in: cookies are committed to the response by the
-  // SSR client. Redirect via Next so the next render sees the session.
-  // Restrict the redirect target to same-origin paths — never honour
-  // a fully-qualified URL from the form payload.
+  // Cookies are committed to the response by the SSR client above.
+  // Return `next` to the client instead of calling Next's redirect()
+  // so the browser can hard-navigate — that remounts AuthProvider so
+  // its localStorage + supabase-session bootstrap re-runs with the
+  // new cookies. Soft redirects left the provider in its
+  // logged-out state and the nav didn't flip without a manual
+  // reload. Restrict to same-origin paths; never honour a
+  // fully-qualified URL from the form payload.
   const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/";
-  redirect(safeNext);
+  return { success: true, next: safeNext };
 }
 
 /**
@@ -71,6 +89,8 @@ export async function signOutAction(): Promise<{ error?: string }> {
   return {};
 }
 
+
+
 /**
  * Sign-up server action. Same cookie-commit motivation as signIn.
  * The verification email is sent by Supabase; redirect lands on the
@@ -78,15 +98,14 @@ export async function signOutAction(): Promise<{ error?: string }> {
  * the onboarding flow when they confirm.
  */
 export async function signUpAction(
-  prevState: { error?: string; success?: boolean } | undefined,
+  prevState: AuthActionState | undefined,
   formData: FormData,
-): Promise<{ error?: string; success?: boolean }> {
+): Promise<AuthActionState> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
 
-  if (!email || !password) {
-    return { error: "Email and password are required" };
-  }
+  if (!email) return { error: "Email is required", field: "email" };
+  if (!password) return { error: "Password is required", field: "password" };
 
   const supabase = await createServerSupabase();
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chork.vercel.app";
@@ -98,7 +117,8 @@ export async function signUpAction(
     },
   });
   if (error) {
-    return { error: formatError(error) };
+    const { message, field } = formatAuthError(error);
+    return { error: message, field };
   }
   return { success: true };
 }
