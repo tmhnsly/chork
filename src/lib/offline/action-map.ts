@@ -5,6 +5,7 @@ import {
   toggleZone,
   updateGradeVote,
 } from "@/app/(app)/actions";
+import { createBrowserSupabase } from "@/lib/supabase/client";
 import type { OfflineAction } from "./types";
 import { mutationQueue } from "./mutation-queue";
 
@@ -18,10 +19,22 @@ const ACTION_MAP: Record<OfflineAction, ActionFn> = {
   updateGradeVote: updateGradeVote as ActionFn,
 };
 
-/** Wire the queue to the real server actions. Call once at app init. */
+/**
+ * Wire the queue to the real server actions + the current-user
+ * resolver it uses to tag + filter queued mutations. Call once at
+ * app init.
+ *
+ * `getSession()` reads local storage (no network), so the resolver
+ * stays cheap enough to call on every enqueue / flush.
+ */
 export function registerActionRunner(): void {
   mutationQueue.setActionRunner(async (action, args) => {
     const fn = ACTION_MAP[action];
     return fn(...args);
+  });
+  mutationQueue.setCurrentUserResolver(async () => {
+    const supabase = createBrowserSupabase();
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.user?.id ?? null;
   });
 }

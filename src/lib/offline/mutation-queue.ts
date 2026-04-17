@@ -30,6 +30,7 @@ class MutationQueue {
   private flushing = false;
   private listeners = new Set<Listener>();
   private actionRunner: ((action: OfflineAction, args: unknown[]) => Promise<unknown>) | null = null;
+  private currentUserResolver: (() => Promise<string | null>) | null = null;
 
   private getDB(): Promise<OfflineDB> {
     if (!this.dbPromise) {
@@ -43,26 +44,67 @@ class MutationQueue {
     this.actionRunner = runner;
   }
 
-  async enqueue(mutation: Omit<QueuedMutation, "id" | "createdAt" | "retries">): Promise<void> {
+  /**
+   * Register a resolver the queue calls (pre-enqueue, pre-flush) to
+   * learn who's currently signed in. Injected from a client-only
+   * bootstrap so the queue module itself stays auth-agnostic + tree-
+   * shakes cleanly in server builds.
+   */
+  setCurrentUserResolver(resolver: () => Promise<string | null>): void {
+    this.currentUserResolver = resolver;
+  }
+
+  /**
+   * Enqueue skips when no user is resolved — queuing anonymous
+   * mutations would just fail on flush anyway, and the extra
+   * IndexedDB write keeps growing the user's storage quota for no
+   * reason. Returns false so callers can fall through to a sync
+   * error path if needed.
+   */
+  async enqueue(
+    mutation: Omit<QueuedMutation, "id" | "userId" | "createdAt" | "retries">,
+  ): Promise<boolean> {
+    const userId = await this.currentUserResolver?.();
+    if (!userId) return false;
+
     const db = await this.getDB();
 
     // Compact before writing
-    await this.compact(db, mutation.routeId, mutation.action);
+    await this.compact(db, mutation.routeId, mutation.action, userId);
 
     const entry: QueuedMutation = {
       ...mutation,
       id: crypto.randomUUID(),
+      userId,
       createdAt: Date.now(),
       retries: 0,
     };
 
     await db.put(STORE_NAME, entry);
     this.notify();
+    return true;
   }
 
   async count(): Promise<number> {
     const db = await this.getDB();
     return db.count(STORE_NAME);
+  }
+
+  /**
+   * Wipe every queued mutation belonging to `userId`. Called from
+   * the signout flow so a shared device doesn't carry User A's
+   * queued writes into User B's session.
+   */
+  async clearForUser(userId: string): Promise<void> {
+    const db = await this.getDB();
+    const entries = await db.getAllFromIndex(STORE_NAME, "userId", userId);
+    if (entries.length === 0) return;
+    const tx = db.transaction(STORE_NAME, "readwrite");
+    for (const entry of entries) {
+      tx.store.delete(entry.id);
+    }
+    await tx.done;
+    this.notify();
   }
 
   async flush(): Promise<void> {
@@ -72,8 +114,18 @@ class MutationQueue {
     try {
       const db = await this.getDB();
       const entries = await db.getAllFromIndex(STORE_NAME, "createdAt");
+      // Belt-and-braces: filter out entries that don't belong to the
+      // currently-signed-in user. Normally signOut already cleared
+      // those, but an anonymous flush window or a user-change via a
+      // different tab could leave stragglers. Running them would post
+      // User A's writes under User B's auth cookies — exactly what
+      // this whole tagging pass exists to prevent.
+      const currentUserId = await this.currentUserResolver?.();
+      const runnable = currentUserId
+        ? entries.filter((e) => e.userId === currentUserId)
+        : [];
 
-      for (const entry of entries) {
+      for (const entry of runnable) {
         if (!navigator.onLine) break;
 
         try {
@@ -137,33 +189,31 @@ class MutationQueue {
   /**
    * Remove entries that would be superseded by the new mutation.
    * Keeps the queue compact — e.g., 20 attempt changes offline
-   * become 1 server call on reconnect.
+   * become 1 server call on reconnect. Scoped to the enqueueing
+   * user so User A's in-flight queue can't be pruned by a pending
+   * User B compaction (shared device, quick user switch).
    */
-  private async compact(db: OfflineDB, routeId: string, action: OfflineAction): Promise<void> {
+  private async compact(
+    db: OfflineDB,
+    routeId: string,
+    action: OfflineAction,
+    userId: string,
+  ): Promise<void> {
     const existing = await db.getAllFromIndex(STORE_NAME, "routeId", routeId);
 
     const toDelete: string[] = [];
 
-    if (LAST_WRITE_WINS.includes(action)) {
-      // Only keep the latest — delete older entries of the same action
-      for (const entry of existing) {
-        if (entry.action === action) {
-          toDelete.push(entry.id);
-        }
-      }
-    } else if (action === "completeRoute") {
-      // Completion carries attempts, zone, and grade — supersede those
-      for (const entry of existing) {
-        if (SUPERSEDED_BY_COMPLETE.includes(entry.action)) {
-          toDelete.push(entry.id);
-        }
-      }
-    } else if (action === "uncompleteRoute") {
-      // Uncompletion cancels out completions and grade votes
-      for (const entry of existing) {
-        if (SUPERSEDED_BY_UNCOMPLETE.includes(entry.action)) {
-          toDelete.push(entry.id);
-        }
+    for (const entry of existing) {
+      if (entry.userId !== userId) continue;
+
+      if (LAST_WRITE_WINS.includes(action) && entry.action === action) {
+        toDelete.push(entry.id);
+      } else if (action === "completeRoute" && SUPERSEDED_BY_COMPLETE.includes(entry.action)) {
+        // Completion carries attempts, zone, and grade — supersede those.
+        toDelete.push(entry.id);
+      } else if (action === "uncompleteRoute" && SUPERSEDED_BY_UNCOMPLETE.includes(entry.action)) {
+        // Uncompletion cancels out completions and grade votes.
+        toDelete.push(entry.id);
       }
     }
 

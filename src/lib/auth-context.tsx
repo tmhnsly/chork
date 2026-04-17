@@ -15,6 +15,7 @@ import { createBrowserSupabase } from "./supabase/client";
 import { showToast } from "@/components/ui";
 import { signOutAction } from "@/app/login/actions";
 import { DEFAULT_THEME, setThemeStore } from "./theme-store";
+import { mutationQueue } from "./offline/mutation-queue";
 import type { Profile } from "./data/types";
 
 /**
@@ -267,6 +268,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [supabase]);
 
   const signOut = useCallback(async () => {
+    // Capture the outgoing user's id BEFORE the signOut clears state
+    // so we can wipe their queued offline mutations as part of the
+    // teardown. Ignore failures — the queue's per-flush userId check
+    // is the authoritative gate; this is just the housekeeping pass.
+    const outgoingUserId = profileRef.current?.id;
     // Server action clears the Supabase cookies via Set-Cookie on its
     // response — by the time we navigate, the browser's cookie jar is
     // already empty so the next request hits the server as anon.
@@ -278,6 +284,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (result.error) {
       showToast(result.error, "error");
       return;
+    }
+    if (outgoingUserId) {
+      // Fire-and-forget — blocking the signout UX on an IndexedDB
+      // transaction isn't worth it, and the flush-time filter catches
+      // anything that slips through.
+      void mutationQueue.clearForUser(outgoingUserId).catch(() => {});
     }
     // Also run the browser client's signOut so its local session
     // storage is cleared in the same tick — the server action handles
