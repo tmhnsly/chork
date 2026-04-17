@@ -49,6 +49,29 @@ export async function signInAction(
 }
 
 /**
+ * Server-side sign-out. Same cookie-race rationale as signIn — the
+ * browser client's `auth.signOut()` writes cookie-clearing headers
+ * asynchronously, so `window.location.href = "/"` fired from the
+ * client raced the cookie commit: the subsequent request often
+ * landed on the server still-authed, middleware passed it through,
+ * the page rendered in signed-in mode, and the user had to hard-
+ * refresh to actually log out.
+ *
+ * Running through the SSR client means the Set-Cookie headers that
+ * clear the session land on this action's response. By the time
+ * the caller navigates, the browser has already applied them —
+ * middleware sees anon, renders the logged-out shell.
+ */
+export async function signOutAction(): Promise<{ error?: string }> {
+  const supabase = await createServerSupabase();
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    return { error: formatError(error) };
+  }
+  return {};
+}
+
+/**
  * Sign-up server action. Same cookie-commit motivation as signIn.
  * The verification email is sent by Supabase; redirect lands on the
  * /auth/callback page with `?next=/onboarding` so the climber starts

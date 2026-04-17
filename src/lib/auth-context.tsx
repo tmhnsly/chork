@@ -13,6 +13,7 @@ import {
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "./supabase/client";
 import { showToast } from "@/components/ui";
+import { signOutAction } from "@/app/login/actions";
 import type { Profile } from "./data/types";
 
 /**
@@ -287,8 +288,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [supabase]);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    // Server action clears the Supabase cookies via Set-Cookie on its
+    // response — by the time we navigate, the browser's cookie jar is
+    // already empty so the next request hits the server as anon.
+    // Doing this client-side raced the cookie clear: the navigation
+    // sometimes reached the server with stale auth cookies, middleware
+    // passed the user through, and the page rendered signed-in (the
+    // "had to hard refresh to log out" bug).
+    const result = await signOutAction();
+    if (result.error) {
+      showToast(result.error, "error");
+      return;
+    }
+    // Also run the browser client's signOut so its local session
+    // storage is cleared in the same tick — the server action handles
+    // cookies, but the browser SDK keeps its own in-memory session.
+    await supabase.auth.signOut({ scope: "local" });
     setProfile(null);
+    setIsAdmin(false);
+    // Drop the localStorage profile cache immediately so a quick back-
+    // nav before the next page load can't re-hydrate the signed-in UI.
+    writeProfileCache(null, false);
     showToast("Signed out", "info");
     // Hard navigation — same as signIn. router.push + refresh
     // doesn't reliably bust the RSC cache or update middleware state.

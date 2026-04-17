@@ -64,7 +64,11 @@ export function NavBar() {
   const { profile, isAdmin, isLoading } = useAuth();
   const pathname = usePathname();
 
-  if (pathname === "/login" || pathname === "/onboarding") return null;
+  // Onboarding is a focus-locked flow (profile-setup wizard) — hiding
+  // the nav there keeps the user on the happy path. Every other
+  // route, including /login, keeps the nav visible so the user can
+  // always get back out to a gym marketing page or cancel a sign-in.
+  if (pathname === "/onboarding") return null;
 
   // Unauthenticated: brand + Gyms (for-gym marketing) + Sign in
   if (!isLoading && !profile) {
