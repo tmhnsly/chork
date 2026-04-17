@@ -1,0 +1,84 @@
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-radius: var(--radius-3);
+  background: var(--accent-subtle-bg);
+  border: 1px solid var(--accent-border);
+  color: var(--mono-text);
+  text-decoration: none;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    border-color: var(--accent-border-hover);
+    background: var(--accent-bg);
+    transform: translateY(-1px);
+  }
+}
+
+.iconWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-10);
+  height: var(--space-10);
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+  font-size: var(--text-lg);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  flex: 1;
+}
+
+.eyebrow {
+  @include type.typography(label);
+  color: var(--accent-text-low-contrast);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.08em;
+}
+
+.title {
+  @include type.typography(card-title);
+  color: var(--mono-text);
+  font-size: var(--text-md);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+  @include type.typography(label);
+  font-size: var(--text-xs);
+}

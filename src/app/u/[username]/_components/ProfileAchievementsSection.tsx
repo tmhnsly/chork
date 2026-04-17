@@ -6,23 +6,50 @@ import {
   getRoutesBySet,
   getRoutesBySetIds,
 } from "@/lib/data/queries";
+import { getJamAchievementContext } from "@/lib/data/jam-queries";
 import { evaluateBadges } from "@/lib/badges";
 import type { Route } from "@/lib/data";
 import { ProfileAchievements } from "@/components/Achievements/ProfileAchievements";
+import { BADGES } from "@/lib/badges";
 
 interface Props {
   userId: string;
-  gymId: string;
+  /**
+   * Null when the profile's owner hasn't set an active gym — gymless
+   * climbers earn achievements from jam activity only. In that mode
+   * the re-evaluation pipeline below is skipped and the shelf reads
+   * straight from `user_achievements` — the persisted earned_at is
+   * the source of truth regardless of whether the badge is currently
+   * re-derivable from context.
+   */
+  gymId: string | null;
   createdAt: string;
 }
 
 export async function ProfileAchievementsSection({ userId, gymId, createdAt }: Props) {
   const supabase = await createServerSupabase();
 
-  const [summary, earnedAchievements, allSets] = await Promise.all([
+  // Gymless path — just hydrate persisted earned_at values onto the
+  // badge catalogue. Re-evaluation needs gym-scoped set/route data;
+  // without a gym there's nothing new to discover at render time.
+  // Jam-end achievements are evaluated server-side when the jam
+  // ends, so they're in the table by the time the profile reads it.
+  if (!gymId) {
+    const earnedAchievements = await getEarnedAchievements(supabase, userId);
+    const badges = BADGES.map((badge) => {
+      const earnedAt = earnedAchievements.get(badge.id);
+      return earnedAt
+        ? { badge, earned: true as const, earnedAt }
+        : { badge, earned: false as const, progress: null, current: null };
+    });
+    return <ProfileAchievements badges={badges} />;
+  }
+
+  const [summary, earnedAchievements, allSets, jamAchievements] = await Promise.all([
     getProfileSummary(supabase, userId, gymId),
     getEarnedAchievements(supabase, userId),
     getAllSets(gymId, createdAt),
+    getJamAchievementContext(supabase, userId),
   ]);
 
   const activeSet = allSets.find((s) => s.active) ?? null;
@@ -95,14 +122,24 @@ export async function ProfileAchievementsSection({ userId, gymId, createdAt }: P
   );
 
   const badges = evaluateBadges({
-    totalFlashes: totals.flashes,
-    totalSends: totals.sends,
-    totalPoints: totals.points,
+    // Union gym + jam totals for progress ladders so gym climbers
+    // also see their jam activity feed into Thunder / First (A)send /
+    // Century. Per-set maps stay gym-only — rhyme pair / Saviour
+    // badges are anchored to the numbered-wall concept.
+    totalFlashes: totals.flashes + jamAchievements.jam_total_flashes,
+    totalSends: totals.sends + jamAchievements.jam_total_sends,
+    totalPoints: totals.points + jamAchievements.jam_total_points,
     completedRoutesBySet,
     totalRoutesBySet,
     flashedRoutesBySet,
     zoneAvailableBySet,
     zoneClaimedBySet,
+    jamsPlayed: jamAchievements.jams_played,
+    jamsWon: jamAchievements.jams_won,
+    jamsHosted: jamAchievements.jams_hosted,
+    maxPlayersInWonJam: jamAchievements.max_players_in_won_jam,
+    uniqueJamCoplayers: jamAchievements.unique_coplayers,
+    ironCrewMaxPairCount: jamAchievements.max_iron_crew_pair_count,
   }).map((b) => {
     if (b.earned) {
       const earnedAt = earnedAchievements.get(b.badge.id);

@@ -18,6 +18,7 @@ import {
   FaUserGroup,
   FaMountainSun,
   FaScrewdriverWrench,
+  FaFire,
 } from "react-icons/fa6";
 import { ChorkMark } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
@@ -94,15 +95,19 @@ function useSlidingPill(...deps: unknown[]): {
   return { tabsRef, pillRef };
 }
 
+export type InitialShell = "unauthed" | "authed-no-gym" | "authed-with-gym";
+
 interface NavBarProps {
   /**
    * Which shell to paint on first byte. Set by `NavBarShell` (server
    * component) based on the `chork-auth-shell` cookie that middleware
    * stamps on every response. Prevents the "unauthed nav → authed
    * nav" flash on refresh by ensuring the server-rendered HTML
-   * already matches the final authed shape.
+   * already matches the final authed shape. The 3-state value also
+   * lets the gymless variant (Crew / Jam / Profile only) paint
+   * correctly for users who've not yet added a gym.
    */
-  initialShell: "authed" | "unauthed";
+  initialShell: InitialShell;
 }
 
 export function NavBar({ initialShell }: NavBarProps) {
@@ -115,9 +120,17 @@ export function NavBar({ initialShell }: NavBarProps) {
   // always get back out to a gym marketing page or cancel a sign-in.
   if (pathname === "/onboarding") return null;
 
-  // Profile resolved — render the real nav.
+  // Profile resolved — render the real nav, picking the gym-aware
+  // variant.
   if (profile) {
-    return <AuthenticatedNav userId={profile.id} pathname={pathname} isAdmin={isAdmin} />;
+    return (
+      <AuthenticatedNav
+        userId={profile.id}
+        pathname={pathname}
+        isAdmin={isAdmin}
+        hasGym={!!profile.active_gym_id}
+      />
+    );
   }
   if (!isLoading) {
     // Done loading, no profile — genuinely unauthed.
@@ -129,9 +142,13 @@ export function NavBar({ initialShell }: NavBarProps) {
   // authed skeleton carries the same tab structure as the real
   // authenticated nav (minus badges + admin tab), so the eventual
   // swap to the full component is a no-op visually for most users.
-  return initialShell === "authed"
-    ? <AuthedNavSkeleton pathname={pathname} />
-    : <UnauthenticatedNav pathname={pathname} />;
+  if (initialShell === "authed-with-gym") {
+    return <AuthedNavSkeleton pathname={pathname} hasGym={true} />;
+  }
+  if (initialShell === "authed-no-gym") {
+    return <AuthedNavSkeleton pathname={pathname} hasGym={false} />;
+  }
+  return <UnauthenticatedNav pathname={pathname} />;
 }
 
 // Minimal authed shell — rendered on first paint when the server
@@ -139,13 +156,14 @@ export function NavBar({ initialShell }: NavBarProps) {
 // finished its bootstrap yet. Drops the badge counts and the Admin
 // tab (neither is knowable without the profile). The full
 // `AuthenticatedNav` takes over as soon as bootstrap completes.
-function AuthedNavSkeleton({ pathname }: { pathname: string }) {
+function AuthedNavSkeleton({ pathname, hasGym }: { pathname: string; hasGym: boolean }) {
   const homeActive = pathname === "/";
   const leaderboardActive = pathname.startsWith("/leaderboard");
   const crewActive = pathname.startsWith("/crew");
+  const jamActive = pathname.startsWith("/jam");
   const profileActive = pathname.startsWith("/profile") || pathname.startsWith("/u/");
 
-  const { tabsRef, pillRef } = useSlidingPill(pathname);
+  const { tabsRef, pillRef } = useSlidingPill(pathname, hasGym);
 
   return (
     <nav className={styles.bar}>
@@ -157,17 +175,25 @@ function AuthedNavSkeleton({ pathname }: { pathname: string }) {
 
         <div className={styles.tabs} ref={tabsRef}>
           <span className={styles.pill} ref={pillRef} aria-hidden />
-          <Link href="/" className={`${styles.tab} ${homeActive ? styles.tabActive : ""}`} aria-current={homeActive ? "page" : undefined}>
-            <FaBorderAll className={styles.tabIcon} aria-hidden />
-            <span className={styles.tabLabel}>Wall</span>
-          </Link>
-          <Link href="/leaderboard" className={`${styles.tab} ${leaderboardActive ? styles.tabActive : ""}`} aria-current={leaderboardActive ? "page" : undefined}>
-            <FaTrophy className={styles.tabIcon} aria-hidden />
-            <span className={styles.tabLabel}>Board</span>
-          </Link>
+          {hasGym && (
+            <Link href="/" className={`${styles.tab} ${homeActive ? styles.tabActive : ""}`} aria-current={homeActive ? "page" : undefined}>
+              <FaBorderAll className={styles.tabIcon} aria-hidden />
+              <span className={styles.tabLabel}>Wall</span>
+            </Link>
+          )}
+          {hasGym && (
+            <Link href="/leaderboard" className={`${styles.tab} ${leaderboardActive ? styles.tabActive : ""}`} aria-current={leaderboardActive ? "page" : undefined}>
+              <FaTrophy className={styles.tabIcon} aria-hidden />
+              <span className={styles.tabLabel}>Board</span>
+            </Link>
+          )}
           <Link href="/crew" className={`${styles.tab} ${crewActive ? styles.tabActive : ""}`} aria-current={crewActive ? "page" : undefined}>
             <FaUserGroup className={styles.tabIcon} aria-hidden />
             <span className={styles.tabLabel}>Crew</span>
+          </Link>
+          <Link href="/jam" className={`${styles.tab} ${jamActive ? styles.tabActive : ""}`} aria-current={jamActive ? "page" : undefined}>
+            <FaFire className={styles.tabIcon} aria-hidden />
+            <span className={styles.tabLabel}>Jam</span>
           </Link>
           <Link href="/profile" className={`${styles.tab} ${profileActive ? styles.tabActive : ""}`} aria-current={profileActive ? "page" : undefined}>
             <FaUser className={styles.tabIcon} aria-hidden />
@@ -185,14 +211,17 @@ function AuthenticatedNav({
   userId,
   pathname,
   isAdmin,
+  hasGym,
 }: {
   userId: string;
   pathname: string;
   isAdmin: boolean;
+  hasGym: boolean;
 }) {
   const homeActive = pathname === "/";
   const leaderboardActive = pathname.startsWith("/leaderboard");
   const crewActive = pathname.startsWith("/crew");
+  const jamActive = pathname.startsWith("/jam");
   const adminActive = pathname.startsWith("/admin");
   const profileActive = pathname.startsWith("/profile") || pathname.startsWith("/u/");
 
@@ -244,7 +273,7 @@ function AuthenticatedNav({
   // Pill re-measures on route change + whenever the Crew tab's
   // badge mounts/unmounts (badge changes the tab's width, which the
   // sliding highlight has to follow).
-  const { tabsRef, pillRef } = useSlidingPill(pathname, badgeCount);
+  const { tabsRef, pillRef } = useSlidingPill(pathname, badgeCount, hasGym, isAdmin);
 
   return (
     <nav className={styles.bar}>
@@ -263,14 +292,18 @@ function AuthenticatedNav({
             ref={pillRef}
             aria-hidden
           />
-          <Link href="/" className={`${styles.tab} ${homeActive ? styles.tabActive : ""}`} aria-current={homeActive ? "page" : undefined}>
-            <FaBorderAll className={styles.tabIcon} aria-hidden />
-            <span className={styles.tabLabel}>Wall</span>
-          </Link>
-          <Link href="/leaderboard" className={`${styles.tab} ${leaderboardActive ? styles.tabActive : ""}`} aria-current={leaderboardActive ? "page" : undefined}>
-            <FaTrophy className={styles.tabIcon} aria-hidden />
-            <span className={styles.tabLabel}>Board</span>
-          </Link>
+          {hasGym && (
+            <Link href="/" className={`${styles.tab} ${homeActive ? styles.tabActive : ""}`} aria-current={homeActive ? "page" : undefined}>
+              <FaBorderAll className={styles.tabIcon} aria-hidden />
+              <span className={styles.tabLabel}>Wall</span>
+            </Link>
+          )}
+          {hasGym && (
+            <Link href="/leaderboard" className={`${styles.tab} ${leaderboardActive ? styles.tabActive : ""}`} aria-current={leaderboardActive ? "page" : undefined}>
+              <FaTrophy className={styles.tabIcon} aria-hidden />
+              <span className={styles.tabLabel}>Board</span>
+            </Link>
+          )}
           <Link
             href="/crew"
             className={`${styles.tab} ${crewActive ? styles.tabActive : ""}`}
@@ -286,7 +319,15 @@ function AuthenticatedNav({
             </span>
             <span className={styles.tabLabel}>Crew</span>
           </Link>
-          {isAdmin && (
+          <Link
+            href="/jam"
+            className={`${styles.tab} ${jamActive ? styles.tabActive : ""}`}
+            aria-current={jamActive ? "page" : undefined}
+          >
+            <FaFire className={styles.tabIcon} aria-hidden />
+            <span className={styles.tabLabel}>Jam</span>
+          </Link>
+          {isAdmin && hasGym && (
             <Link
               href="/admin"
               className={`${styles.tab} ${adminActive ? styles.tabActive : ""}`}

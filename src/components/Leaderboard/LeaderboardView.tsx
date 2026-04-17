@@ -10,7 +10,7 @@ import { BrowseSection } from "./BrowseSection";
 import { EmptyLeaderboard } from "./EmptyLeaderboard";
 import dynamic from "next/dynamic";
 // Lazy-load the climber sheet — it's only mounted when a row is
-// tapped, and pulls in PunchTile / formatGrade / sanitisation
+// tapped, and pulls in SendGridTile / formatGrade / sanitisation
 // helpers we'd otherwise pay for on every leaderboard load.
 const ClimberSheet = dynamic(
   () => import("./ClimberSheet").then((m) => m.ClimberSheet),

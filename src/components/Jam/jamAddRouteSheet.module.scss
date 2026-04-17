@@ -1,0 +1,78 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+@use "mixins/input" as input;
+
+.body {
+  @include layout.stack(var(--space-4));
+  padding-bottom: var(--space-4);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.label {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.textarea {
+  @include input.field;
+  min-height: 4.5rem;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  padding: var(--space-1) 0;
+}
+
+.chip {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--mono-border);
+  background: var(--mono-app-bg);
+  color: var(--mono-text-low-contrast);
+  @include type.typography(label);
+  font-size: var(--text-xs);
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--accent-border);
+  }
+}
+
+.chipActive {
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+  border-color: var(--accent-solid);
+}
+
+.zoneRow {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-2);
+  background: var(--mono-subtle-bg);
+  cursor: pointer;
+}
+
+.zoneTitle {
+  display: block;
+  @include type.typography(body);
+  color: var(--mono-text);
+}
+
+.zoneDetail {
+  display: block;
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-xs);
+  margin-top: var(--space-1);
+}

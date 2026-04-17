@@ -11,6 +11,7 @@ import { completeOnboarding, fetchListedGyms } from "./actions";
 import type { Gym } from "@/lib/data";
 import styles from "./onboarding.module.scss";
 
+type GymChoice = "unchosen" | "has-chork" | "no-chork";
 type Step = "form" | "confirm";
 
 export function OnboardingForm() {
@@ -22,18 +23,26 @@ export function OnboardingForm() {
   const [displayName, setDisplayName] = useState(profile?.name ?? "");
   const [submitting, setSubmitting] = useState(false);
 
-  // Gym picker
+  // Gym branch — climbers whose gym has Chork proceed through the
+  // picker; climbers who don't can still sign up and start using
+  // jams + crews without a gym. They can add one later from settings.
+  const [gymChoice, setGymChoice] = useState<GymChoice>("unchosen");
   const [allGyms, setAllGyms] = useState<Gym[]>([]);
   const [gymQuery, setGymQuery] = useState("");
   const [selectedGym, setSelectedGym] = useState<Gym | null>(null);
-  const [loadingGyms, setLoadingGyms] = useState(true);
+  const [loadingGyms, setLoadingGyms] = useState(false);
 
+  // Only fetch the gym list when the user actually needs it. Saves
+  // the fetch entirely for the "no Chork at my gym" path.
   useEffect(() => {
+    if (gymChoice !== "has-chork") return;
+    if (allGyms.length > 0) return;
+    setLoadingGyms(true);
     fetchListedGyms().then((gyms) => {
       setAllGyms(gyms);
       setLoadingGyms(false);
     });
-  }, []);
+  }, [gymChoice, allGyms.length]);
 
   // Debounced live username validation. 400ms is long enough that a
   // climber typing a name doesn't fire a request per keystroke, short
@@ -60,9 +69,15 @@ export function OnboardingForm() {
       )
     : allGyms;
 
+  const canContinue =
+    !!username &&
+    !usernameValidation.error &&
+    usernameValidation.status !== "checking" &&
+    (gymChoice === "no-chork" || (gymChoice === "has-chork" && !!selectedGym));
+
   async function handleReview(e: FormEvent) {
     e.preventDefault();
-    if (!profile || !selectedGym) return;
+    if (!profile || !canContinue) return;
 
     const valid = await usernameValidation.validate(username, profile.id);
     if (!valid) return;
@@ -71,11 +86,12 @@ export function OnboardingForm() {
   }
 
   async function handleConfirm() {
-    if (!profile || !selectedGym) return;
+    if (!profile) return;
 
     setSubmitting(true);
     try {
-      const result = await completeOnboarding(username, displayName, selectedGym.id);
+      const gymIdForSubmit = gymChoice === "has-chork" ? selectedGym?.id ?? null : null;
+      const result = await completeOnboarding(username, displayName, gymIdForSubmit);
       if ("error" in result) {
         showToast(result.error, "error");
         setStep("form");
@@ -98,7 +114,7 @@ export function OnboardingForm() {
   }
 
   // ── Confirmation step ────────────────────────────
-  if (step === "confirm" && selectedGym) {
+  if (step === "confirm") {
     return (
       <main className={styles.page}>
         <div className={styles.card}>
@@ -119,9 +135,18 @@ export function OnboardingForm() {
             <div className={styles.confirmRow}>
               <span className={styles.confirmLabel}>Gym</span>
               <span className={styles.confirmValue}>
-                {selectedGym.name}
-                {selectedGym.city && (
-                  <span className={styles.confirmMeta}> · {selectedGym.city}</span>
+                {gymChoice === "has-chork" && selectedGym ? (
+                  <>
+                    {selectedGym.name}
+                    {selectedGym.city && (
+                      <span className={styles.confirmMeta}> · {selectedGym.city}</span>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    No gym for now
+                    <span className={styles.confirmMeta}> · you can add one later</span>
+                  </>
                 )}
               </span>
             </div>
@@ -145,7 +170,7 @@ export function OnboardingForm() {
     <main className={styles.page}>
       <form className={styles.card} onSubmit={handleReview}>
         <RevealText text="Set up your profile" as="h1" className={styles.title} />
-        <p className={styles.subtitle}>Choose a username and pick your gym</p>
+        <p className={styles.subtitle}>Choose a username and tell us about your gym</p>
 
         <div className={styles.usernameField}>
           <label className={styles.usernameLabel} htmlFor="username">
@@ -186,95 +211,122 @@ export function OnboardingForm() {
           placeholder="Your Name"
         />
 
-        {/* Gym picker */}
+        {/* Gym branch — climbers pick one of two paths before the
+            picker appears. Keeping the picker gated behind the
+            yes-path means gymless climbers never wait on the gym
+            list fetch. */}
         <div className={styles.gymSection}>
-          <label className={styles.gymLabel} htmlFor="gymSearch">
-            Your gym *
-          </label>
-          {selectedGym ? (
-            <div className={styles.gymSelected}>
-              <div className={styles.gymInfo}>
-                <span className={styles.gymName}>{selectedGym.name}</span>
-                <span className={styles.gymMeta}>
-                  {[selectedGym.city, selectedGym.country].filter(Boolean).join(", ")}
-                </span>
-              </div>
-              <button
-                type="button"
-                className={styles.gymChange}
-                onClick={() => setSelectedGym(null)}
-              >
-                Change
-              </button>
-            </div>
-          ) : (
-            <>
-              <input
-                id="gymSearch"
-                type="text"
-                className={styles.gymInput}
-                value={gymQuery}
-                onChange={(e) => setGymQuery(e.target.value)}
-                placeholder="Search for your gym..."
-              />
-              <ul className={styles.gymList} aria-busy={loadingGyms}>
-                {loadingGyms ? (
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <li key={`skel-${i}`} className={styles.gymSkeleton}>
-                      <div className={`${styles.gymSkeletonLogo} ${shimmerStyles.skeleton}`} />
-                      <div className={`${styles.gymSkeletonText} ${shimmerStyles.skeleton}`} />
-                    </li>
-                  ))
-                ) : filteredGyms.length === 0 ? (
-                  <li className={styles.gymStatus}>
-                    {gymQuery ? "No gyms found" : "No gyms available"}
-                  </li>
-                ) : (
-                  filteredGyms.map((gym) => (
-                    <li key={gym.id}>
-                      <button
-                        type="button"
-                        className={styles.gymOption}
-                        onClick={() => {
-                          setSelectedGym(gym);
-                          setGymQuery("");
-                        }}
-                      >
-                        {gym.logo_url && (
-                          <Image
-                            src={gym.logo_url}
-                            alt=""
-                            width={36}
-                            height={36}
-                            className={styles.gymLogo}
-                            unoptimized
-                          />
-                        )}
-                        <div className={styles.gymInfo}>
-                          <span className={styles.gymName}>{gym.name}</span>
-                          <span className={styles.gymMeta}>
-                            {[gym.city, gym.country].filter(Boolean).join(", ")}
-                          </span>
-                        </div>
-                      </button>
-                    </li>
-                  ))
-                )}
-              </ul>
-            </>
-          )}
+          <span className={styles.gymLabel}>Does your gym have Chork? *</span>
+          <div className={styles.gymChoiceRow}>
+            <button
+              type="button"
+              className={`${styles.gymChoiceOption} ${gymChoice === "has-chork" ? styles.gymChoiceOptionActive : ""}`}
+              onClick={() => setGymChoice("has-chork")}
+              aria-pressed={gymChoice === "has-chork"}
+            >
+              <span className={styles.gymChoiceTitle}>Yes, pick my gym</span>
+              <span className={styles.gymChoiceDetail}>
+                Log sends, climb the gym leaderboard, see set history.
+              </span>
+            </button>
+            <button
+              type="button"
+              className={`${styles.gymChoiceOption} ${gymChoice === "no-chork" ? styles.gymChoiceOptionActive : ""}`}
+              onClick={() => {
+                setGymChoice("no-chork");
+                setSelectedGym(null);
+              }}
+              aria-pressed={gymChoice === "no-chork"}
+            >
+              <span className={styles.gymChoiceTitle}>Not yet</span>
+              <span className={styles.gymChoiceDetail}>
+                Run jams with friends anywhere. Add a gym later from settings.
+              </span>
+            </button>
+          </div>
         </div>
 
-        <Button
-          type="submit"
-          disabled={
-            !username ||
-            !selectedGym ||
-            !!usernameValidation.error ||
-            usernameValidation.status === "checking"
-          }
-          fullWidth
-        >
+        {gymChoice === "has-chork" && (
+          <div className={styles.gymSection}>
+            <label className={styles.gymLabel} htmlFor="gymSearch">
+              Your gym *
+            </label>
+            {selectedGym ? (
+              <div className={styles.gymSelected}>
+                <div className={styles.gymInfo}>
+                  <span className={styles.gymName}>{selectedGym.name}</span>
+                  <span className={styles.gymMeta}>
+                    {[selectedGym.city, selectedGym.country].filter(Boolean).join(", ")}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className={styles.gymChange}
+                  onClick={() => setSelectedGym(null)}
+                >
+                  Change
+                </button>
+              </div>
+            ) : (
+              <>
+                <input
+                  id="gymSearch"
+                  type="text"
+                  className={styles.gymInput}
+                  value={gymQuery}
+                  onChange={(e) => setGymQuery(e.target.value)}
+                  placeholder="Search for your gym..."
+                />
+                <ul className={styles.gymList} aria-busy={loadingGyms}>
+                  {loadingGyms ? (
+                    Array.from({ length: 3 }).map((_, i) => (
+                      <li key={`skel-${i}`} className={styles.gymSkeleton}>
+                        <div className={`${styles.gymSkeletonLogo} ${shimmerStyles.skeleton}`} />
+                        <div className={`${styles.gymSkeletonText} ${shimmerStyles.skeleton}`} />
+                      </li>
+                    ))
+                  ) : filteredGyms.length === 0 ? (
+                    <li className={styles.gymStatus}>
+                      {gymQuery ? "No gyms found" : "No gyms available"}
+                    </li>
+                  ) : (
+                    filteredGyms.map((gym) => (
+                      <li key={gym.id}>
+                        <button
+                          type="button"
+                          className={styles.gymOption}
+                          onClick={() => {
+                            setSelectedGym(gym);
+                            setGymQuery("");
+                          }}
+                        >
+                          {gym.logo_url && (
+                            <Image
+                              src={gym.logo_url}
+                              alt=""
+                              width={36}
+                              height={36}
+                              className={styles.gymLogo}
+                              unoptimized
+                            />
+                          )}
+                          <div className={styles.gymInfo}>
+                            <span className={styles.gymName}>{gym.name}</span>
+                            <span className={styles.gymMeta}>
+                              {[gym.city, gym.country].filter(Boolean).join(", ")}
+                            </span>
+                          </div>
+                        </button>
+                      </li>
+                    ))
+                  )}
+                </ul>
+              </>
+            )}
+          </div>
+        )}
+
+        <Button type="submit" disabled={!canContinue} fullWidth>
           Continue
         </Button>
       </form>

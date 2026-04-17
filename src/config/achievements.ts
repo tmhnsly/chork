@@ -240,7 +240,94 @@ export const ACHIEVEMENTS: BadgeDefinition[] = [
     tier: "gold",
     category: "sends",
   },
+
+  // ── Jams ──────────────────────────────────────────
+  // Earned at jam end via evaluator + service-role write. Iron Crew
+  // uses the pair-max heuristic from the jams plan doc — cheap, no
+  // full triple enumeration, matches the intent for small circles.
+  {
+    kind: "progress",
+    id: "jam-first-jam",
+    name: "First jam",
+    description: "Play your first jam",
+    icon: "fire",
+    tier: "bronze",
+    category: "jams",
+    progressKey: "jams_played",
+    target: 1,
+  },
+  {
+    kind: "progress",
+    id: "jam-first-win",
+    name: "Jam winner",
+    description: "Win your first jam",
+    icon: "crown",
+    tier: "bronze",
+    category: "jams",
+    progressKey: "jams_won",
+    target: 1,
+  },
+  {
+    kind: "progress",
+    id: "jam-reigning-champ",
+    name: "Reigning Champ",
+    description: "Win 5 jams",
+    icon: "crown",
+    tier: "silver",
+    category: "jams",
+    progressKey: "jams_won",
+    target: 5,
+  },
+  {
+    kind: "progress",
+    id: "jam-legend",
+    name: "Jam Legend",
+    description: "Win 25 jams",
+    icon: "crown",
+    tier: "gold",
+    category: "jams",
+    progressKey: "jams_won",
+    target: 25,
+  },
+  {
+    kind: "progress",
+    id: "jam-host-with-the-most",
+    name: "Host with the most",
+    description: "Host 10 jams",
+    icon: "fire-streak",
+    tier: "silver",
+    category: "jams",
+    progressKey: "jams_hosted",
+    target: 10,
+  },
+  {
+    kind: "condition",
+    id: "jam-big-fish",
+    name: "Big Fish",
+    description: "Win a jam with six or more players",
+    icon: "trophy",
+    tier: "silver",
+    category: "jams",
+  },
+  {
+    kind: "condition",
+    id: "jam-social-climber",
+    name: "Social Climber",
+    description: "Play jams with twenty different climbers",
+    icon: "users",
+    tier: "silver",
+    category: "jams",
+  },
+  {
+    kind: "condition",
+    id: "jam-iron-crew",
+    name: "Iron Crew",
+    description: "Play ten jams with the same mates",
+    icon: "user-plus",
+    tier: "gold",
+    category: "jams",
+  },
 ];
 
 /** Category order for filter pills on the Achievements sheet. */
-export const ACHIEVEMENT_CATEGORIES = ["sends", "flashes"] as const;
+export const ACHIEVEMENT_CATEGORIES = ["sends", "flashes", "jams"] as const;

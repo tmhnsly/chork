@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { createServerSupabase, getServerProfile } from "@/lib/supabase/server";
 import {
   getCurrentSet,
@@ -27,8 +28,17 @@ import styles from "./page.module.scss";
 export default async function Home() {
   const profile = await getServerProfile();
 
-  if (!profile || !profile.onboarded || !profile.active_gym_id) {
+  // Unauthed or mid-onboarding → landing marketing page.
+  if (!profile || !profile.onboarded) {
     return <LandingPage />;
+  }
+
+  // Authed but gymless (onboarded without a gym, or added the app
+  // before claiming a gym) → /jam is the most useful destination.
+  // The Wall has no meaning without an active set, and /jam lets
+  // them start running jams with friends immediately.
+  if (!profile.active_gym_id) {
+    redirect("/jam");
   }
 
   const userId = profile.id;

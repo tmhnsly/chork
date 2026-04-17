@@ -1,0 +1,92 @@
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.row {
+  @include surface.card;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-3);
+  color: var(--mono-text);
+  text-decoration: none;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    border-color: var(--accent-border);
+    transform: translateY(-1px);
+  }
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  @include type.typography(card-title);
+  font-size: var(--text-md);
+  color: var(--mono-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.meta {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.result {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.rank {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  @include type.typography(label);
+  font-size: var(--text-xs);
+  color: var(--mono-text);
+}
+
+.winnerBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+  @include type.typography(label);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.05em;
+}
+
+.winnerHandle {
+  @include type.typography(meta);
+  font-size: var(--text-2xs);
+  color: var(--mono-text-low-contrast);
+}

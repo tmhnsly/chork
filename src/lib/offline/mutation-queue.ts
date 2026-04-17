@@ -23,6 +23,10 @@ const LAST_WRITE_WINS: OfflineAction[] = [
   "updateAttempts",
   "toggleZone",
   "updateGradeVote",
+  // Jam log upserts are idempotent on (user_id, jam_route_id)
+  // server-side — replaying an older one would stomp newer state,
+  // so compact to the most recent per jam route.
+  "upsertJamLog",
 ];
 
 class MutationQueue {

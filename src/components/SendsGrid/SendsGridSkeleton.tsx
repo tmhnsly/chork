@@ -3,7 +3,7 @@ import { shimmerStyles, Legend } from "@/components/ui";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { RingStatsRow } from "@/components/RingStatsRow/RingStatsRow";
 import { RouteChart } from "@/components/RouteChart/RouteChart";
-import { PunchTile } from "@/components/PunchTile/PunchTile";
+import { SendGridTile } from "@/components/SendGridTile/SendGridTile";
 import styles from "./sendsGrid.module.scss";
 
 const PLACEHOLDER_COUNT = 14;
@@ -26,7 +26,7 @@ const EMPTY_LOGS = new Map();
  * on every text/icon inside, hiding the placeholder numbers beneath
  * a single seamless shimmer surface.
  *
- * Tile grid: real `PunchTile` placeholders each get a shimmer class
+ * Tile grid: real `SendGridTile` placeholders each get a shimmer class
  * for the same height-matching reason.
  */
 export function SendsGridSkeleton() {
@@ -58,7 +58,7 @@ export function SendsGridSkeleton() {
 
       <div className={styles.tileGrid}>
         {Array.from({ length: PLACEHOLDER_COUNT }, (_, i) => (
-          <PunchTile key={i} number={i + 1} state="empty" className={shimmerStyles.skeleton} />
+          <SendGridTile key={i} number={i + 1} state="empty" className={shimmerStyles.skeleton} />
         ))}
       </div>
     </div>

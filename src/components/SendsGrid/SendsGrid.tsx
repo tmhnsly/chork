@@ -6,7 +6,7 @@ import type { RouteSet, Route, RouteLog } from "@/lib/data";
 import { isFlash, computePoints, deriveTileState } from "@/lib/data";
 import { formatGrade, type GradingScale } from "@/lib/data/grade-label";
 import { StatsWidget } from "@/components/StatsWidget/StatsWidget";
-import { PunchTile } from "@/components/PunchTile/PunchTile";
+import { SendGridTile } from "@/components/SendGridTile/SendGridTile";
 import { Legend } from "@/components/ui";
 import dynamic from "next/dynamic";
 import type { CachedRouteData } from "@/components/RouteLogSheet/RouteLogSheet";
@@ -104,7 +104,7 @@ export function SendsGrid({ set, routes, initialLogs, gymName }: Props) {
           {routes.map((route) => {
             const log = logByRoute.get(route.id);
             return (
-              <PunchTile
+              <SendGridTile
                 key={route.id}
                 number={route.number}
                 state={deriveTileState(log)}

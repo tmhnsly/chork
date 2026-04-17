@@ -1,0 +1,55 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+
+.body {
+  @include layout.stack(var(--space-4));
+  padding-bottom: var(--space-4);
+}
+
+.codeSection {
+  @include layout.stack(var(--space-2));
+  padding: var(--space-4);
+  border-radius: var(--radius-3);
+  background: var(--mono-subtle-bg);
+  align-items: center;
+  text-align: center;
+}
+
+.codeLabel {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+}
+
+.code {
+  // Outfit bold (non-italic) keeps a 6-character join code readable
+  // at a glance — italic + wide-tracking made ambiguous glyphs like
+  // G/C and K/X harder to distinguish.
+  font-family: var(--font-heading);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-5xl);
+  color: var(--accent-text);
+  letter-spacing: 0.15em;
+}
+
+.codeActions {
+  display: flex;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.endConfirm {
+  @include layout.stack(var(--space-3));
+}
+
+.confirmCopy {
+  @include type.typography(body);
+  color: var(--mono-text);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+.confirmActions {
+  @include layout.stack(var(--space-2));
+}

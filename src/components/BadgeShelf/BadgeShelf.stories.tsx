@@ -27,6 +27,12 @@ const emptyCtx: BadgeContext = {
   flashedRoutesBySet: new Map(),
   zoneAvailableBySet: new Map(),
   zoneClaimedBySet: new Map(),
+  jamsPlayed: 0,
+  jamsWon: 0,
+  jamsHosted: 0,
+  maxPlayersInWonJam: 0,
+  uniqueJamCoplayers: 0,
+  ironCrewMaxPairCount: 0,
 };
 
 /** No badges earned yet — all locked with zero progress. */
@@ -46,6 +52,12 @@ export const MixedProgress: Story = {
       flashedRoutesBySet: new Map([["set1", new Set([1])]]),
       zoneAvailableBySet: new Map([["set1", new Set([3, 7, 11])]]),
       zoneClaimedBySet: new Map([["set1", new Set([3])]]),
+      jamsPlayed: 2,
+      jamsWon: 1,
+      jamsHosted: 1,
+      maxPlayersInWonJam: 4,
+      uniqueJamCoplayers: 3,
+      ironCrewMaxPairCount: 2,
     }),
   },
 };
@@ -62,6 +74,12 @@ export const AllEarned: Story = {
       flashedRoutesBySet: new Map([["set1", new Set(Array.from({ length: 14 }, (_, i) => i + 1))]]),
       zoneAvailableBySet: new Map([["set1", new Set([3, 7, 11])]]),
       zoneClaimedBySet: new Map([["set1", new Set([3, 7, 11])]]),
+      jamsPlayed: 40,
+      jamsWon: 30,
+      jamsHosted: 15,
+      maxPlayersInWonJam: 12,
+      uniqueJamCoplayers: 25,
+      ironCrewMaxPairCount: 15,
     }),
   },
 };

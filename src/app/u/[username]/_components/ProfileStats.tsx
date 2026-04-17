@@ -102,9 +102,9 @@ export async function ProfileStats({ userId, gymId, createdAt }: Props) {
       }
     : null;
 
-  // PunchTile mini-grid wants a Map<route_id, log>. Build it from
+  // SendGridTile mini-grid wants a Map<route_id, log>. Build it from
   // active_set_detail; routes that the climber hasn't logged yield no
-  // entry so PunchTile renders the empty state.
+  // entry so SendGridTile renders the empty state.
   const logsByRoute = new Map(
     summary.active_set_detail.map((d) => [
       d.route_id,

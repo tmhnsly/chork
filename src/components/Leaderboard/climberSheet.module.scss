@@ -97,7 +97,7 @@
   gap: var(--space-2);
 }
 
-// Loading placeholder for each grid cell. The base PunchTile sits at
+// Loading placeholder for each grid cell. The base SendGridTile sits at
 // step-3, so the resting tile uses step-3 too and the shimmer's
 // highlight only steps up by one to step-4 (`bg-hover`). That keeps
 // the pulse on-brand — same restraint as a hover state, never the

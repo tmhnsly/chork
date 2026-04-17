@@ -3,7 +3,7 @@
 import { memo, type CSSProperties } from "react";
 import { FaBolt, FaFlag } from "react-icons/fa6";
 import type { TileState } from "@/lib/data";
-import styles from "./punchTile.module.scss";
+import styles from "./sendGridTile.module.scss";
 
 interface Props {
   number: number;
@@ -18,7 +18,7 @@ interface Props {
   style?: CSSProperties;
 }
 
-export const PunchTile = memo(function PunchTile({ number, state, zone, gradeLabel, onClick, className, compact, style }: Props) {
+export const SendGridTile = memo(function SendGridTile({ number, state, zone, gradeLabel, onClick, className, compact, style }: Props) {
   const cls = [
     styles.tile,
     styles[state],

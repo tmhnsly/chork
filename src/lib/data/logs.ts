@@ -34,8 +34,15 @@ export function computeMaxPoints(totalRoutes: number, zoneRouteCount: number): n
   return totalRoutes * POINTS_PER_FLASH + zoneRouteCount * POINTS_PER_ZONE;
 }
 
-/** Derive tile visual state from a route log. */
-export function deriveTileState(log: RouteLog | undefined): TileState {
+/**
+ * Derive tile visual state from a log row. Structural on
+ * `attempts` + `completed` so it works for both `route_logs` (gym)
+ * and `jam_logs` (ephemeral jams) — the tile visual language is
+ * shared.
+ */
+export function deriveTileState(
+  log: Pick<RouteLog, "attempts" | "completed"> | null | undefined
+): TileState {
   if (!log || log.attempts === 0) return "empty";
   if (!log.completed) return "attempted";
   if (isFlash(log)) return "flash";

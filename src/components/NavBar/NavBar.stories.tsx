@@ -18,7 +18,12 @@ export const LoggedOut: Story = {
   args: { initialShell: "unauthed" },
 };
 
-/** Logged-in skeleton — tabs visible before `AuthProvider` bootstraps. */
-export const AuthedSkeleton: Story = {
-  args: { initialShell: "authed" },
+/** Logged-in, no gym — Crew / Jam / Profile only. */
+export const AuthedNoGymSkeleton: Story = {
+  args: { initialShell: "authed-no-gym" },
+};
+
+/** Logged-in with a gym — full tab row. */
+export const AuthedWithGymSkeleton: Story = {
+  args: { initialShell: "authed-with-gym" },
 };

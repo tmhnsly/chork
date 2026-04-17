@@ -8,6 +8,7 @@ import {
   useCallback,
   useMemo,
   useRef,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
@@ -63,14 +64,59 @@ function writeProfileCache(profile: Profile | null, isAdmin: boolean): void {
   try {
     if (!profile) {
       window.localStorage.removeItem(PROFILE_CACHE_KEY);
-      return;
+    } else {
+      const entry: ProfileCacheEntry = { profile, isAdmin, cachedAt: Date.now() };
+      window.localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(entry));
     }
-    const entry: ProfileCacheEntry = { profile, isAdmin, cachedAt: Date.now() };
-    window.localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(entry));
   } catch {
     // localStorage can throw under quota / private mode — silently
     // skip; bootstrap falls back to the network path.
   }
+  // Cross-tab sync: notify in-tab subscribers (useSyncExternalStore's
+  // `subscribe` listens to this event). The native `storage` event
+  // fires for OTHER tabs only, not the one that wrote, so a
+  // hand-rolled event covers the same-tab case.
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("chork-profile-cache"));
+  }
+}
+
+// ── External store bridge for the localStorage cache ─────
+// Using `useSyncExternalStore` keeps SSR + client-initial render
+// identical (both see `null` via `getServerSnapshot`) while post-
+// mount client renders see the cached entry via `getSnapshot`.
+// No setState-in-effect required to hydrate from localStorage.
+
+function subscribeToProfileCache(callback: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener("storage", callback);
+  window.addEventListener("chork-profile-cache", callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener("chork-profile-cache", callback);
+  };
+}
+
+// `useSyncExternalStore` expects reference equality for no-op ticks.
+// Memoise the parsed result per raw string so a re-read of the same
+// storage value returns the same object reference.
+let cachedRaw: string | null = null;
+let cachedEntry: ProfileCacheEntry | null = null;
+function getProfileCacheSnapshot(): ProfileCacheEntry | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(PROFILE_CACHE_KEY);
+    if (raw === cachedRaw) return cachedEntry;
+    cachedRaw = raw;
+    cachedEntry = raw ? readProfileCache() : null;
+    return cachedEntry;
+  } catch {
+    return null;
+  }
+}
+
+function getProfileCacheServerSnapshot(): null {
+  return null;
 }
 
 interface AuthContextValue {
@@ -96,18 +142,44 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // SSR and the first client render MUST match or React throws a
-  // hydration error and tears down the whole subtree. That rules out
-  // reading `localStorage` in the `useState` initializer — server
-  // returns null, client returns the cached entry, React sees the
-  // mismatch, flash + warning. Instead we start with the "loading"
-  // shape on both sides and promote the cache inside the bootstrap
-  // effect below (first line), which lands in the same commit as the
-  // network bootstrap's async work and flips the nav into its loaded
-  // state before the user notices.
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState(true);
+  // Cache snapshot via `useSyncExternalStore` — SSR + client-initial
+  // render see `null` (server snapshot), post-mount sees whatever's
+  // in localStorage. No hydration mismatch, no setState-in-effect
+  // for hydration.
+  const cacheEntry = useSyncExternalStore(
+    subscribeToProfileCache,
+    getProfileCacheSnapshot,
+    getProfileCacheServerSnapshot,
+  );
+
+  // Local override state — holds values from the async bootstrap +
+  // auth events. `undefined` = no override yet, fall back to cache.
+  // `null` = explicit sign-out (or cache-miss after bootstrap
+  // resolved no user). Any `Profile` = explicit signed-in profile.
+  const [profileOverride, setProfileOverride] = useState<
+    Profile | null | undefined
+  >(undefined);
+  const [isAdminOverride, setIsAdminOverride] = useState<boolean | undefined>(
+    undefined,
+  );
+  const [bootstrapDone, setBootstrapDone] = useState(false);
+
+  // Effective values — explicit override wins, fall back to cache.
+  const profile =
+    profileOverride !== undefined ? profileOverride : cacheEntry?.profile ?? null;
+  const isAdmin =
+    isAdminOverride !== undefined ? isAdminOverride : cacheEntry?.isAdmin ?? false;
+  // Loading only when we have no cache AND no bootstrap result yet.
+  // A warm cache paints the loaded state on the first client render.
+  const isLoading = !bootstrapDone && !cacheEntry;
+
+  const setProfile = useCallback((next: Profile | null) => {
+    setProfileOverride(next);
+  }, []);
+  const setIsAdmin = useCallback((next: boolean) => {
+    setIsAdminOverride(next);
+  }, []);
+
   const router = useRouter();
   const supabase = useMemo(() => createBrowserSupabase(), []);
   const profileRef = useRef(profile);
@@ -152,32 +224,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [profile, isAdmin]);
 
   // Bootstrap: two-phase auth check.
-  // Phase 0 (sync): hydrate from the localStorage cache if present.
-  //          Runs inside the effect rather than in useState to keep
-  //          server and client-initial render identical — no
-  //          hydration mismatch.
   // Phase 1 (async): getSession() reads from local storage — instant,
   //          no network. Sets profile only if it changed vs cache.
   // Phase 2 (async): getUser() validates with the server — catches
   //          expired tokens. If the session was invalid, clears the
   //          profile.
+  //
+  // Cache hydration lives outside this effect — `useSyncExternalStore`
+  // above surfaces the localStorage entry at render time so the nav
+  // paints its logged-in shape on the very first client render.
   useEffect(() => {
-    // Sync with external state (localStorage) on mount. The
-    // `react-hooks/set-state-in-effect` rule flags this pattern as a
-    // code smell, but it's exactly the use case React docs call out
-    // as legitimate: hydrating local state from an external source.
-    // Moving it to `useState`'s initializer causes an SSR/client
-    // hydration mismatch (server has no `localStorage`), which is
-    // strictly worse than a lint exception.
-    /* eslint-disable react-hooks/set-state-in-effect */
-    const cached = readProfileCache();
-    if (cached) {
-      setProfile(cached.profile);
-      setIsAdmin(cached.isAdmin);
-      setIsLoading(false);
-    }
-    /* eslint-enable react-hooks/set-state-in-effect */
-
     let initialCheckDone = false;
 
     async function bootstrap() {
@@ -207,7 +263,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile(null);
         setIsAdmin(false);
       }
-      setIsLoading(false);
+      setBootstrapDone(true);
 
       // Phase 2 — server validation (catches expired/revoked tokens)
       const { data: { user } } = await supabase.auth.getUser();
@@ -261,7 +317,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     return () => subscription.unsubscribe();
-  }, [supabase, fetchProfile, fetchIsAdmin]);
+  }, [supabase, fetchProfile, fetchIsAdmin, setProfile, setIsAdmin]);
 
   // Onboarding redirect is handled by middleware server-side.
   // No client-side redirect needed — avoids double-redirect issues.
@@ -326,7 +382,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Hard navigation — same as signIn. router.push + refresh
     // doesn't reliably bust the RSC cache or update middleware state.
     window.location.href = "/";
-  }, [supabase]);
+  }, [supabase, setProfile, setIsAdmin]);
 
   const refreshProfile = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -338,7 +394,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setProfile(p);
       setIsAdmin(admin);
     }
-  }, [supabase, fetchProfile, fetchIsAdmin]);
+  }, [supabase, fetchProfile, fetchIsAdmin, setProfile, setIsAdmin]);
 
   const value = useMemo(
     () => ({ profile, isAdmin, isLoading, signOut, resetPassword, refreshProfile }),

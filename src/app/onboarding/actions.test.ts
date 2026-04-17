@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/cache", () => ({
+  revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
+}));
 vi.mock("@/lib/supabase/server", () => ({ createServerSupabase: vi.fn() }));
 vi.mock("@/lib/auth", () => ({ requireSignedIn: vi.fn() }));
 vi.mock("@/lib/data/mutations", () => ({ createGymMembership: vi.fn() }));
@@ -16,10 +19,31 @@ describe("completeOnboarding", () => {
     expect(result).toHaveProperty("error");
   });
 
-  it("rejects empty gymId", async () => {
+  it("rejects malformed gymId", async () => {
+    // Gym is optional now — null + empty string both mean gymless,
+    // but a non-null non-UUID still fails at the boundary so RLS
+    // has something real to gate on downstream.
     const { completeOnboarding } = await import("./actions");
-    const result = await completeOnboarding("validuser", "Tom", "");
-    expect(result).toHaveProperty("error", "Please select a gym");
+    const result = await completeOnboarding("validuser", "Tom", "not-a-uuid");
+    expect(result).toHaveProperty("error", "Invalid gym selection");
+  });
+
+  it("accepts null gymId for gymless onboarding", async () => {
+    const { requireSignedIn } = await import("@/lib/auth");
+    const mock = createMockSupabase();
+    mock._resolveWith({ data: null, error: null });
+    vi.mocked(requireSignedIn).mockResolvedValue({
+      supabase: mock as never,
+      userId: "u1",
+    });
+
+    const { completeOnboarding } = await import("./actions");
+    const result = await completeOnboarding("validuser", "Tom", null);
+    expect(result).toEqual({ success: true });
+
+    const { createGymMembership } = await import("@/lib/data/mutations");
+    // No gym → no membership insert.
+    expect(createGymMembership).not.toHaveBeenCalled();
   });
 
   it("returns error when not signed in", async () => {

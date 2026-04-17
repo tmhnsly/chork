@@ -6,7 +6,7 @@
  * Used by:
  *   — GradeSlider (climber-side rating UI)
  *   — RouteLogSheet header community-grade display
- *   — PunchTile / ClimberSheet (tile-level grade badges)
+ *   — SendGridTile / ClimberSheet (tile-level grade badges)
  *   — Admin dashboard grade-distribution widgets (future)
  */
 

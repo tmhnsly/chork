@@ -21,9 +21,15 @@ const ONBOARDED_COOKIE = "chork-onboarded";
 // Tells the server-rendered `NavBarShell` which variant of the nav
 // to paint on first byte, so refreshing an authed page doesn't
 // flash the unauthed (or brand-only) shell before `AuthProvider`
-// bootstraps from localStorage. Non-critical — a stale or missing
-// value just means the nav may briefly show the wrong shape, same
-// as before this cookie existed.
+// bootstraps from localStorage.
+//
+// Values:
+//   "u"    unauthed
+//   "ang"  authed, no gym   → Crew / Jam / Profile tabs
+//   "awg"  authed with gym  → Wall / Board / Crew / Jam / Profile tabs
+//
+// Non-critical — a stale or missing value just means the nav may
+// briefly show the wrong shape, same as before this cookie existed.
 const AUTH_SHELL_COOKIE = "chork-auth-shell";
 
 export async function middleware(request: NextRequest) {
@@ -43,19 +49,13 @@ export async function middleware(request: NextRequest) {
   const isPublic = PUBLIC_ROUTES.some((r) => pathname === r || pathname.startsWith(`${r}/`));
 
   // Stamp the nav shell cookie so `NavBarShell` paints the correct
-  // variant on first byte. Only update when it's actually changing
-  // to keep the Set-Cookie header off unchanged responses.
+  // variant on first byte. The gym-aware value lets the pre-hydration
+  // nav hide Wall + Board for gymless users (who still have access
+  // to Crew / Jam / Profile). We don't fire an extra SELECT just for
+  // this — the onboarded-check below runs on the same request anyway,
+  // and extending it to read `active_gym_id` is a single column.
   const existingShell = request.cookies.get(AUTH_SHELL_COOKIE)?.value;
-  const nextShell = isAuthenticated ? "1" : "0";
-  if (existingShell !== nextShell) {
-    response.cookies.set(AUTH_SHELL_COOKIE, nextShell, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24 * 365,
-      path: "/",
-    });
-  }
+  let nextShell: "u" | "ang" | "awg" = isAuthenticated ? "ang" : "u";
 
   // Signed-in users never need the login page.
   if (isAuthRoute && isAuthenticated) {
@@ -75,14 +75,16 @@ export async function middleware(request: NextRequest) {
   const cached = request.cookies.get(ONBOARDED_COOKIE)?.value;
   const expected = `${user.id}:1`;
   let isOnboarded = cached === expected;
+  let hasGym: boolean | null = null;
 
   if (!isOnboarded) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("onboarded")
+      .select("onboarded, active_gym_id")
       .eq("id", user.id)
       .single();
     isOnboarded = !!profile?.onboarded;
+    hasGym = !!profile?.active_gym_id;
 
     if (isOnboarded) {
       response.cookies.set(ONBOARDED_COOKIE, expected, {
@@ -93,6 +95,38 @@ export async function middleware(request: NextRequest) {
         path: "/",
       });
     }
+  }
+
+  // Shell-cookie refinement for authed users: if we don't know the
+  // gym state yet (warm onboarded-cookie path skipped the profile
+  // read), peek the existing shell cookie and only upgrade when it
+  // doesn't match. Avoids an extra SELECT on every page nav.
+  if (isAuthenticated) {
+    if (hasGym === null) {
+      // Warm path — trust the existing cookie's gym bit if present,
+      // otherwise query once to seed it.
+      if (existingShell === "awg" || existingShell === "ang") {
+        hasGym = existingShell === "awg";
+      } else {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("active_gym_id")
+          .eq("id", user.id)
+          .single();
+        hasGym = !!profile?.active_gym_id;
+      }
+    }
+    nextShell = hasGym ? "awg" : "ang";
+  }
+
+  if (existingShell !== nextShell) {
+    response.cookies.set(AUTH_SHELL_COOKIE, nextShell, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 365,
+      path: "/",
+    });
   }
 
   // Already onboarded users shouldn't be able to revisit /onboarding
@@ -124,5 +158,6 @@ export const config = {
     "/privacy/:path*",
     "/terms/:path*",
     "/gyms/:path*",
+    "/jam/:path*",
   ],
 };

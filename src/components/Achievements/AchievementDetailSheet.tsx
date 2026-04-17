@@ -134,8 +134,11 @@ function earnedFamily(badge: { category: BadgeCategory; icon: BadgeIcon }): "fla
 function progressUnit(key: ProgressKey, target: number): string {
   const plural = target !== 1;
   switch (key) {
-    case "flashes": return plural ? "flashes" : "flash";
-    case "sends":   return plural ? "sends" : "send";
-    case "points":  return plural ? "points" : "point";
+    case "flashes":     return plural ? "flashes" : "flash";
+    case "sends":       return plural ? "sends" : "send";
+    case "points":      return plural ? "points" : "point";
+    case "jams_played": return plural ? "jams" : "jam";
+    case "jams_won":    return plural ? "wins" : "win";
+    case "jams_hosted": return plural ? "jams hosted" : "jam hosted";
   }
 }

@@ -33,13 +33,21 @@ export async function fetchListedGyms(): Promise<Gym[]> {
 export async function completeOnboarding(
   username: string,
   name: string,
-  gymId: string
+  gymId: string | null
 ): Promise<{ error: string } | { success: true }> {
   // Input validation
   const { error: usernameError } = validateUsername(username);
   if (usernameError) return { error: usernameError };
   if (typeof name !== "string") return { error: "Invalid name" };
-  if (!UUID_RE.test(gymId)) return { error: "Please select a gym" };
+  // Normalise empty strings into null — some callers (older tests,
+  // form submissions with an unchecked field) pass "" for "no gym".
+  // Treat that as an intentional gymless signup rather than a
+  // malformed UUID.
+  const normalisedGymId = gymId && gymId.trim().length > 0 ? gymId : null;
+  // If a value remains after normalisation, it must be a valid UUID.
+  if (normalisedGymId !== null && !UUID_RE.test(normalisedGymId)) {
+    return { error: "Invalid gym selection" };
+  }
 
   const trimmedName = name.trim().slice(0, MAX_NAME_LENGTH);
 
@@ -48,27 +56,33 @@ export async function completeOnboarding(
   const { supabase, userId } = auth;
 
   try {
-    // Create gym membership first — if this fails, we haven't changed the profile
-    await createGymMembership(supabase, userId, gymId);
+    // Gym path: create membership first so if it fails we haven't
+    // touched the profile. Gymless path: skip the membership insert.
+    if (normalisedGymId) {
+      await createGymMembership(supabase, userId, normalisedGymId);
+    }
 
-    // Then update the profile
+    // Update the profile. `active_gym_id` stays null for gymless
+    // signups — schema already allows it.
     const { error: profileError } = await supabase
       .from("profiles")
       .update({
         username,
         name: trimmedName,
         onboarded: true,
-        active_gym_id: gymId,
+        active_gym_id: normalisedGymId,
       })
       .eq("id", userId);
 
     if (profileError) {
-      // Rollback: delete the membership we just created
-      await supabase
-        .from("gym_memberships")
-        .delete()
-        .eq("user_id", userId)
-        .eq("gym_id", gymId);
+      // Rollback the membership insert if we made one.
+      if (normalisedGymId) {
+        await supabase
+          .from("gym_memberships")
+          .delete()
+          .eq("user_id", userId)
+          .eq("gym_id", normalisedGymId);
+      }
       return { error: formatError(profileError) };
     }
 
@@ -79,7 +93,9 @@ export async function completeOnboarding(
     // Active-set tag is busted too so the home page wall renders the
     // climber's new gym's set without waiting for TTL.
     await revalidateUserProfile(supabase, userId);
-    revalidateTag(`gym:${gymId}:active-set`);
+    if (normalisedGymId) {
+      revalidateTag(`gym:${normalisedGymId}:active-set`);
+    }
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };

@@ -12,16 +12,62 @@ import {
   getAllRouteDataForUserInGym,
 } from "@/lib/data/queries";
 import { computeAllTimeAggregates } from "@/lib/data/profile-stats";
+import { getJamAchievementContext } from "@/lib/data/jam-queries";
 
 type Supabase = SupabaseClient<Database>;
+
+/**
+ * Empty gym-scoped shape — used when the caller has no active gym
+ * (jam-only users) so the rest of the evaluator can still run on
+ * jam data without a null-guard on every Map access.
+ */
+const EMPTY_GYM_MAPS = {
+  completedRoutesBySet: new Map<string, Set<number>>(),
+  totalRoutesBySet: new Map<string, number>(),
+  flashedRoutesBySet: new Map<string, Set<number>>(),
+  zoneAvailableBySet: new Map<string, Set<number>>(),
+  zoneClaimedBySet: new Map<string, Set<number>>(),
+};
 
 export async function buildBadgeContext(
   supabase: Supabase,
   userId: string,
-  gymId: string
+  gymId: string | null
 ): Promise<BadgeContext | null> {
+  // Pull jam context always — it feeds progress totals + condition
+  // badges regardless of whether the caller has a gym.
+  const jamAchievements = await getJamAchievementContext(supabase, userId);
+
+  if (!gymId) {
+    return {
+      totalFlashes: jamAchievements.jam_total_flashes,
+      totalSends: jamAchievements.jam_total_sends,
+      totalPoints: jamAchievements.jam_total_points,
+      ...EMPTY_GYM_MAPS,
+      jamsPlayed: jamAchievements.jams_played,
+      jamsWon: jamAchievements.jams_won,
+      jamsHosted: jamAchievements.jams_hosted,
+      maxPlayersInWonJam: jamAchievements.max_players_in_won_jam,
+      uniqueJamCoplayers: jamAchievements.unique_coplayers,
+      ironCrewMaxPairCount: jamAchievements.max_iron_crew_pair_count,
+    };
+  }
+
   const allSets = await getAllSets(gymId);
-  if (allSets.length === 0) return null;
+  if (allSets.length === 0) {
+    return {
+      totalFlashes: jamAchievements.jam_total_flashes,
+      totalSends: jamAchievements.jam_total_sends,
+      totalPoints: jamAchievements.jam_total_points,
+      ...EMPTY_GYM_MAPS,
+      jamsPlayed: jamAchievements.jams_played,
+      jamsWon: jamAchievements.jams_won,
+      jamsHosted: jamAchievements.jams_hosted,
+      maxPlayersInWonJam: jamAchievements.max_players_in_won_jam,
+      uniqueJamCoplayers: jamAchievements.unique_coplayers,
+      ironCrewMaxPairCount: jamAchievements.max_iron_crew_pair_count,
+    };
+  }
 
   // One batched routes query for all sets instead of N parallel
   // getRoutesBySet calls. The .in("set_id", ids) shape this RPC uses
@@ -73,13 +119,23 @@ export async function buildBadgeContext(
   });
 
   return {
-    totalFlashes: aggregates.flashes,
-    totalSends: aggregates.sends,
-    totalPoints: aggregates.points,
+    // Flash / send / points totals union the gym aggregate with the
+    // jam aggregate. A flash is a flash is a flash — Thunder
+    // progression, First (A)send, Century all count activity from
+    // both sources.
+    totalFlashes: aggregates.flashes + jamAchievements.jam_total_flashes,
+    totalSends: aggregates.sends + jamAchievements.jam_total_sends,
+    totalPoints: aggregates.points + jamAchievements.jam_total_points,
     completedRoutesBySet,
     totalRoutesBySet,
     flashedRoutesBySet,
     zoneAvailableBySet,
     zoneClaimedBySet,
+    jamsPlayed: jamAchievements.jams_played,
+    jamsWon: jamAchievements.jams_won,
+    jamsHosted: jamAchievements.jams_hosted,
+    maxPlayersInWonJam: jamAchievements.max_players_in_won_jam,
+    uniqueJamCoplayers: jamAchievements.unique_coplayers,
+    ironCrewMaxPairCount: jamAchievements.max_iron_crew_pair_count,
   };
 }

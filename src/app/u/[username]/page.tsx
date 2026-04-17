@@ -9,6 +9,7 @@ import { ProfileStats } from "./_components/ProfileStats";
 import { ProfileStatsSkeleton } from "./_components/ProfileStats.skeleton";
 import { ProfileAchievementsSection } from "./_components/ProfileAchievementsSection";
 import { PreviousSetsSection } from "./_components/PreviousSetsSection";
+import { ProfileJamsSection } from "./_components/ProfileJamsSection";
 import { PROFILE_SECTION_HEIGHTS } from "./_components/sectionHeights";
 import { CardSkeleton } from "@/components/ui";
 import styles from "./user.module.scss";
@@ -33,16 +34,6 @@ export default async function UserProfilePage({ params }: Props) {
 
   const isOwnProfile = authUser?.id === profileUser.id;
   const gymId = profileUser.active_gym_id;
-
-  // No gym selected: render the header alone. Same shape as before.
-  if (!gymId) {
-    return (
-      <main className={styles.page}>
-        <ProfileHeader user={profileUser} isOwnProfile={isOwnProfile} />
-        <p>No gym selected</p>
-      </main>
-    );
-  }
 
   // Header chrome data — small queries, fetched sync so the header
   // renders fully on shell paint (bell badge + meta line don't pop in
@@ -79,20 +70,21 @@ export default async function UserProfilePage({ params }: Props) {
         unreadCount={unreadCount}
       />
 
-      {/* All-time + current set card — relies on get_profile_summary
-          (cached cross-render) so siblings dedupe the RPC. */}
-      <Suspense fallback={<ProfileStatsSkeleton />}>
-        <ProfileStats
-          userId={profileUser.id}
-          gymId={gymId}
-          createdAt={profileUser.created_at}
-        />
-      </Suspense>
+      {/* Gym-scoped widgets (current set + previous sets) are only
+          meaningful when the profile's owner has an active gym.
+          Gymless profiles skip them. ProfileAchievementsSection is
+          rendered in both cases — achievements span gym + jam
+          activity once badges are gym-agnostic. */}
+      {gymId && (
+        <Suspense fallback={<ProfileStatsSkeleton />}>
+          <ProfileStats
+            userId={profileUser.id}
+            gymId={gymId}
+            createdAt={profileUser.created_at}
+          />
+        </Suspense>
+      )}
 
-      {/* Heights pulled from sectionHeights.ts — same const used by
-          src/app/u/[username]/loading.tsx so the Suspense fallback
-          shape mirrors the route-level skeleton. No jump as
-          loading.tsx hands off to the streamed page. */}
       <Suspense
         fallback={
           <CardSkeleton
@@ -108,19 +100,28 @@ export default async function UserProfilePage({ params }: Props) {
         />
       </Suspense>
 
-      <Suspense
-        fallback={
-          <CardSkeleton
-            height={PROFILE_SECTION_HEIGHTS.previousSets}
-            ariaLabel="Loading previous sets"
+      {gymId && (
+        <Suspense
+          fallback={
+            <CardSkeleton
+              height={PROFILE_SECTION_HEIGHTS.previousSets}
+              ariaLabel="Loading previous sets"
+            />
+          }
+        >
+          <PreviousSetsSection
+            userId={profileUser.id}
+            gymId={gymId}
+            createdAt={profileUser.created_at}
           />
-        }
-      >
-        <PreviousSetsSection
-          userId={profileUser.id}
-          gymId={gymId}
-          createdAt={profileUser.created_at}
-        />
+        </Suspense>
+      )}
+
+      {/* Jam history — public within the app. Self-hides when the
+          climber has no jams on record so first-time visitors see
+          a quiet profile. */}
+      <Suspense fallback={null}>
+        <ProfileJamsSection userId={profileUser.id} />
       </Suspense>
     </main>
   );

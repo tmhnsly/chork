@@ -5,6 +5,7 @@ import {
   toggleZone,
   updateGradeVote,
 } from "@/app/(app)/actions";
+import { upsertJamLogAction } from "@/app/jam/actions";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import type { OfflineAction } from "./types";
 import { mutationQueue } from "./mutation-queue";
@@ -17,6 +18,7 @@ const ACTION_MAP: Record<OfflineAction, ActionFn> = {
   uncompleteRoute: uncompleteRoute as ActionFn,
   toggleZone: toggleZone as ActionFn,
   updateGradeVote: updateGradeVote as ActionFn,
+  upsertJamLog: upsertJamLogAction as ActionFn,
 };
 
 /**

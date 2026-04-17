@@ -1,0 +1,104 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+@use "mixins/surfaces" as surface;
+
+.page {
+  @include layout.page;
+  @include layout.stack(var(--space-5));
+}
+
+// ── Start / Join CTAs ─────────────────────────────
+.actionsCard {
+  @include surface.card;
+  @include layout.stack(var(--space-4));
+  padding: var(--space-5);
+  border-radius: var(--radius-3);
+}
+
+.actionHeader {
+  @include layout.stack(var(--space-2));
+}
+
+.actionHeading {
+  @include type.typography(card-title);
+  color: var(--mono-text);
+  font-size: var(--text-xl);
+  line-height: 1.15;
+  margin: 0;
+}
+
+.actionLede {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.actionButtons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+// Link wrapper around a Button — needs no decoration of its own,
+// just carries the href. Button does all the visual work.
+.actionLink {
+  display: block;
+  text-decoration: none;
+}
+
+// ── Recent jams section ───────────────────────────
+.historySection {
+  @include layout.stack(var(--space-3));
+}
+
+.historyHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.historyHeading {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  margin: 0;
+}
+
+.historyLink {
+  @include type.typography(meta);
+  color: var(--accent-text-low-contrast);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--accent-text);
+  }
+}
+
+.emptyState {
+  @include surface.card;
+  @include layout.stack(var(--space-3));
+  padding: var(--space-6) var(--space-5);
+  border-radius: var(--radius-3);
+  text-align: center;
+  align-items: center;
+  border-style: dashed;
+}
+
+.emptyTitle {
+  @include type.typography(card-title);
+  font-size: var(--text-md);
+  color: var(--mono-text);
+  margin: 0;
+}
+
+.emptyLede {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-sm);
+  margin: 0;
+  max-width: 32ch;
+}

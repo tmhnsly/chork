@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
-import { PunchTile } from "./PunchTile";
+import { SendGridTile } from "./SendGridTile";
 import { TILE_STATES } from "@/lib/data";
 
 /**
@@ -7,8 +7,8 @@ import { TILE_STATES } from "@/lib/data";
  * Shows the route number and reflects the user's log state.
  */
 const meta = {
-  title: "Components/PunchTile",
-  component: PunchTile,
+  title: "Components/SendGridTile",
+  component: SendGridTile,
   argTypes: {
     number: { control: { type: "number", min: 1, max: 20 } },
     state: {
@@ -26,7 +26,7 @@ const meta = {
       </div>
     ),
   ],
-} satisfies Meta<typeof PunchTile>;
+} satisfies Meta<typeof SendGridTile>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

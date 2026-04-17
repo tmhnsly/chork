@@ -1,0 +1,129 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+@use "mixins/input" as input;
+@use "mixins/surfaces" as surface;
+
+.container {
+  @include layout.stack(var(--space-5));
+}
+
+.section {
+  @include layout.stack(var(--space-3));
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.label {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.codeInput {
+  @include input.field;
+  // Use heading Outfit + bold weight for the code; italic (number
+  // preset) makes 6-char codes like "JX3K8M" hard to read fast.
+  font-family: var(--font-heading);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-3xl);
+  letter-spacing: 0.2em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.codeActions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.error {
+  @include type.typography(meta);
+  color: var(--error-text);
+  margin: 0;
+  font-size: var(--text-sm);
+}
+
+// ── Preview card ──────────────────────────────────
+.previewCard {
+  @include surface.card;
+  @include layout.stack(var(--space-4));
+  padding: var(--space-5);
+  border-radius: var(--radius-3);
+  border-color: var(--accent-border);
+}
+
+.previewHeader {
+  @include layout.stack(var(--space-1));
+}
+
+.eyebrow {
+  @include type.typography(label);
+  color: var(--accent-text-low-contrast);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.08em;
+}
+
+.previewTitle {
+  @include type.typography(card-title);
+  font-size: var(--text-xl);
+  color: var(--mono-text);
+  margin: 0;
+}
+
+.previewMeta {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  margin: 0;
+}
+
+.previewGrid {
+  @include layout.stack(var(--space-2));
+  margin: 0;
+  padding: 0;
+}
+
+.previewRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-3);
+
+  dt {
+    @include type.typography(label);
+    color: var(--mono-text-low-contrast);
+    font-size: var(--text-xs);
+  }
+
+  dd {
+    @include type.typography(body);
+    color: var(--mono-text);
+    margin: 0;
+    font-size: var(--text-sm);
+  }
+}
+
+.mono {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-xs);
+}
+
+// ── QR scanner ────────────────────────────────────
+.scannerFrame {
+  @include layout.stack(var(--space-2));
+  width: 100%;
+  max-width: 20rem;
+  align-items: center;
+}
+
+.scannerVideo {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-3);
+  background: var(--mono-subtle-bg);
+  object-fit: cover;
+}

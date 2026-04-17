@@ -16,7 +16,7 @@
 }
 
 // Zone uses the teal success scale so the toggle matches the zone
-// badge on a PunchTile and the in-grid zone indicator — never lime,
+// badge on a SendGridTile and the in-grid zone indicator — never lime,
 // which would collide with "completed".
 .rowOn {
   background: var(--success-subtle-bg);

@@ -24,14 +24,20 @@ export type BadgeTier = "bronze" | "silver" | "gold";
  * used by the catalogue — extend here only when you add real badges
  * in a new group (and update `ACHIEVEMENT_CATEGORIES` to match).
  */
-export type BadgeCategory = "sends" | "flashes";
+export type BadgeCategory = "sends" | "flashes" | "jams";
 
 /**
  * Aggregates the evaluator knows how to count. Add a value here only
  * after you've taught `progressValue()` how to read it from
  * `BadgeContext` — the progress path is now exhaustive.
  */
-export type ProgressKey = "flashes" | "sends" | "points";
+export type ProgressKey =
+  | "flashes"
+  | "sends"
+  | "points"
+  | "jams_played"
+  | "jams_won"
+  | "jams_hosted";
 
 /**
  * IDs of every condition-based achievement. Typed as a string-
@@ -50,7 +56,10 @@ export type ConditionBadgeId =
   | "start-over-again"
   | "saviour-of-the-universe"
   | "not-easy-being-green"
-  | "in-the-zone";
+  | "in-the-zone"
+  | "jam-big-fish"
+  | "jam-social-climber"
+  | "jam-iron-crew";
 
 /**
  * Icon IDs — mapped to actual components in BadgeShelf's ICON_MAP.
@@ -145,6 +154,17 @@ export interface BadgeContext {
   zoneAvailableBySet: Map<string, Set<number>>;
   /** Route numbers where the climber claimed the zone, per set. */
   zoneClaimedBySet: Map<string, Set<number>>;
+  /**
+   * Jam activity aggregates. Sourced from `jam_summary_players` via
+   * `get_jam_achievement_context`. All default to 0 for climbers
+   * with no jam history — progress badges gracefully skip them.
+   */
+  jamsPlayed: number;
+  jamsWon: number;
+  jamsHosted: number;
+  maxPlayersInWonJam: number;
+  uniqueJamCoplayers: number;
+  ironCrewMaxPairCount: number;
 }
 
 // ── Evaluate all badges ───────────────────────────
@@ -170,6 +190,9 @@ function evaluateCondition(id: ConditionBadgeId, ctx: BadgeContext): boolean {
     case "saviour-of-the-universe":  return checkSaviour(ctx);
     case "not-easy-being-green":     return checkNotEasyBeingGreen(ctx);
     case "in-the-zone":              return checkInTheZone(ctx);
+    case "jam-big-fish":             return ctx.maxPlayersInWonJam >= 6;
+    case "jam-social-climber":       return ctx.uniqueJamCoplayers >= 20;
+    case "jam-iron-crew":            return ctx.ironCrewMaxPairCount >= 10;
   }
 }
 
@@ -177,9 +200,12 @@ function evaluateCondition(id: ConditionBadgeId, ctx: BadgeContext): boolean {
 
 function progressValue(key: ProgressKey, ctx: BadgeContext): number {
   switch (key) {
-    case "flashes": return ctx.totalFlashes;
-    case "sends":   return ctx.totalSends;
-    case "points":  return ctx.totalPoints;
+    case "flashes":      return ctx.totalFlashes;
+    case "sends":        return ctx.totalSends;
+    case "points":       return ctx.totalPoints;
+    case "jams_played":  return ctx.jamsPlayed;
+    case "jams_won":     return ctx.jamsWon;
+    case "jams_hosted":  return ctx.jamsHosted;
   }
 }
 
@@ -291,5 +317,12 @@ function evaluateSetCondition(id: ConditionBadgeId, ctx: SetBadgeContext): boole
       }
       return true;
     }
+    // Jam-specific conditions — their context comes from
+    // jam_summary_players, not a single set. A per-set evaluation
+    // can never earn them, so they always return false here.
+    case "jam-big-fish":
+    case "jam-social-climber":
+    case "jam-iron-crew":
+      return false;
   }
 }

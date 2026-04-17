@@ -1,0 +1,187 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+@use "mixins/surfaces" as surface;
+
+.page {
+  @include layout.page;
+  @include layout.stack(var(--space-5));
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.backLink {
+  @include type.typography(label);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--mono-text-low-contrast);
+  text-decoration: none;
+  font-size: var(--text-xs);
+
+  &:hover {
+    color: var(--mono-text);
+  }
+}
+
+.freshBadge {
+  @include type.typography(label);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.08em;
+}
+
+// ── Winner card ───────────────────────────────────
+.winnerCard {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-3);
+  background: var(--accent-subtle-bg);
+  border: 1px solid var(--accent-border);
+}
+
+.winnerIcon {
+  width: 3rem;
+  height: 3rem;
+  flex-shrink: 0;
+  color: var(--accent-solid);
+  font-size: var(--text-3xl);
+}
+
+.winnerBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+  min-width: 0;
+}
+
+.winnerEyebrow {
+  @include type.typography(label);
+  color: var(--accent-text-low-contrast);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.08em;
+}
+
+.winnerName {
+  @include type.typography(card-title);
+  font-size: var(--text-xl);
+  color: var(--mono-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.winnerHandle {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-xs);
+}
+
+.winnerStats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.winnerPoints {
+  @include type.typography(number);
+  font-style: italic;
+  color: var(--accent-text);
+  font-size: var(--text-4xl);
+  line-height: 1;
+}
+
+.winnerPointsLabel {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.08em;
+}
+
+// ── Board ─────────────────────────────────────────
+.boardSection {
+  @include layout.stack(var(--space-3));
+}
+
+.sectionHeading {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  margin: 0;
+}
+
+.playerList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.playerRow {
+  @include surface.card;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-3);
+}
+
+.playerRank {
+  @include type.typography(number);
+  font-style: italic;
+  color: var(--mono-text);
+  font-size: var(--text-xl);
+  min-width: 2rem;
+}
+
+.playerIdentity {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.playerName {
+  @include type.typography(body);
+  color: var(--mono-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: var(--weight-semibold);
+}
+
+.playerHandle {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-xs);
+}
+
+.playerStats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-xs);
+}
+
+.playerPoints {
+  @include type.typography(number);
+  font-style: italic;
+  color: var(--accent-text);
+  font-size: var(--text-lg);
+}

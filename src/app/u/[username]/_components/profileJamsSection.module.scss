@@ -1,0 +1,27 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+
+.section {
+  @include layout.stack(var(--space-3));
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.heading {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  margin: 0;
+}
+
+.count {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-xs);
+}

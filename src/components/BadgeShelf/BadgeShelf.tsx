@@ -17,7 +17,7 @@ export { ICON_MAP };
 /**
  * Badge → colour family for the *earned* circle. Flash achievements
  * use the amber flash scale so they read visually like the Flash
- * badge on a PunchTile; zone achievements use the teal success scale
+ * badge on a SendGridTile; zone achievements use the teal success scale
  * to match the zone badge; everything else uses the accent scale.
  *
  * In-progress slots render mono regardless of category so the shelf

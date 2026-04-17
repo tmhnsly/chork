@@ -51,7 +51,7 @@
   }
 
   .zoneRow & {
-    // Zone = teal (success) to match the zone badge on a PunchTile
+    // Zone = teal (success) to match the zone badge on a SendGridTile
     // and the zone chip in the RouteLogSheet header.
     background: var(--success-solid);
   }

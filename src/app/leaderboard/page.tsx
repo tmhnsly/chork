@@ -21,7 +21,13 @@ const TOP_LIMIT = 5;
 
 export default async function LeaderboardPage() {
   const auth = await requireAuth();
-  if ("error" in auth) redirect("/login");
+  // requireAuth fails if the user isn't signed in OR is signed in
+  // without an active gym. Gymless users land on /jam rather than
+  // being bounced to /login — the gym-scoped leaderboard has no
+  // meaning without a gym, and /jam is the useful home for them.
+  if ("error" in auth) {
+    redirect(auth.error === "No gym selected" ? "/jam" : "/login");
+  }
   const { supabase, userId, gymId } = auth;
 
   const [gym, currentSet] = await Promise.all([

@@ -575,6 +575,356 @@ export type Database = {
         }
         Relationships: []
       }
+      jam_grades: {
+        Row: {
+          jam_id: string
+          label: string
+          ordinal: number
+        }
+        Insert: {
+          jam_id: string
+          label: string
+          ordinal: number
+        }
+        Update: {
+          jam_id?: string
+          label?: string
+          ordinal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jam_grades_jam_id_fkey"
+            columns: ["jam_id"]
+            isOneToOne: false
+            referencedRelation: "jams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jam_logs: {
+        Row: {
+          attempts: number
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          id: string
+          jam_id: string
+          jam_route_id: string
+          updated_at: string
+          user_id: string
+          zone: boolean
+        }
+        Insert: {
+          attempts?: number
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          jam_id: string
+          jam_route_id: string
+          updated_at?: string
+          user_id: string
+          zone?: boolean
+        }
+        Update: {
+          attempts?: number
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          jam_id?: string
+          jam_route_id?: string
+          updated_at?: string
+          user_id?: string
+          zone?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jam_logs_jam_id_fkey"
+            columns: ["jam_id"]
+            isOneToOne: false
+            referencedRelation: "jams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jam_logs_jam_route_id_fkey"
+            columns: ["jam_route_id"]
+            isOneToOne: false
+            referencedRelation: "jam_routes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jam_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jam_players: {
+        Row: {
+          jam_id: string
+          joined_at: string
+          left_at: string | null
+          user_id: string
+        }
+        Insert: {
+          jam_id: string
+          joined_at?: string
+          left_at?: string | null
+          user_id: string
+        }
+        Update: {
+          jam_id?: string
+          joined_at?: string
+          left_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jam_players_jam_id_fkey"
+            columns: ["jam_id"]
+            isOneToOne: false
+            referencedRelation: "jams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jam_players_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jam_routes: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          description: string | null
+          grade: number | null
+          has_zone: boolean
+          id: string
+          jam_id: string
+          number: number
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          description?: string | null
+          grade?: number | null
+          has_zone?: boolean
+          id?: string
+          jam_id: string
+          number: number
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          description?: string | null
+          grade?: number | null
+          has_zone?: boolean
+          id?: string
+          jam_id?: string
+          number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jam_routes_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jam_routes_jam_id_fkey"
+            columns: ["jam_id"]
+            isOneToOne: false
+            referencedRelation: "jams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jam_summaries: {
+        Row: {
+          created_at: string
+          duration_seconds: number
+          ended_at: string
+          grading_scale: string
+          host_id: string | null
+          id: string
+          jam_id: string
+          location: string | null
+          name: string | null
+          payload: Json
+          player_count: number
+          started_at: string
+          winner_user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          duration_seconds: number
+          ended_at: string
+          grading_scale: string
+          host_id?: string | null
+          id?: string
+          jam_id: string
+          location?: string | null
+          name?: string | null
+          payload: Json
+          player_count: number
+          started_at: string
+          winner_user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          duration_seconds?: number
+          ended_at?: string
+          grading_scale?: string
+          host_id?: string | null
+          id?: string
+          jam_id?: string
+          location?: string | null
+          name?: string | null
+          payload?: Json
+          player_count?: number
+          started_at?: string
+          winner_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jam_summaries_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jam_summaries_winner_user_id_fkey"
+            columns: ["winner_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jam_summary_players: {
+        Row: {
+          attempts: number
+          display_name: string
+          flashes: number
+          id: string
+          is_winner: boolean
+          jam_summary_id: string
+          points: number
+          rank: number
+          sends: number
+          user_id: string
+          username: string
+          zones: number
+        }
+        Insert: {
+          attempts: number
+          display_name: string
+          flashes: number
+          id?: string
+          is_winner?: boolean
+          jam_summary_id: string
+          points: number
+          rank: number
+          sends: number
+          user_id: string
+          username: string
+          zones: number
+        }
+        Update: {
+          attempts?: number
+          display_name?: string
+          flashes?: number
+          id?: string
+          is_winner?: boolean
+          jam_summary_id?: string
+          points?: number
+          rank?: number
+          sends?: number
+          user_id?: string
+          username?: string
+          zones?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jam_summary_players_jam_summary_id_fkey"
+            columns: ["jam_summary_id"]
+            isOneToOne: false
+            referencedRelation: "jam_summaries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jam_summary_players_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jams: {
+        Row: {
+          code: string
+          created_at: string
+          ended_at: string | null
+          grading_scale: string
+          host_id: string
+          id: string
+          last_activity_at: string
+          location: string | null
+          max_grade: number | null
+          min_grade: number | null
+          name: string | null
+          started_at: string
+          status: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          ended_at?: string | null
+          grading_scale: string
+          host_id: string
+          id?: string
+          last_activity_at?: string
+          location?: string | null
+          max_grade?: number | null
+          min_grade?: number | null
+          name?: string | null
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          ended_at?: string | null
+          grading_scale?: string
+          host_id?: string
+          id?: string
+          last_activity_at?: string
+          location?: string | null
+          max_grade?: number | null
+          min_grade?: number | null
+          name?: string | null
+          started_at?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jams_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -974,6 +1324,61 @@ export type Database = {
           },
         ]
       }
+      user_custom_scale_grades: {
+        Row: {
+          label: string
+          ordinal: number
+          scale_id: string
+        }
+        Insert: {
+          label: string
+          ordinal: number
+          scale_id: string
+        }
+        Update: {
+          label?: string
+          ordinal?: number
+          scale_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_custom_scale_grades_scale_id_fkey"
+            columns: ["scale_id"]
+            isOneToOne: false
+            referencedRelation: "user_custom_scales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_custom_scales: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_custom_scales_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_set_stats: {
         Row: {
           flashes: number
@@ -1034,10 +1439,79 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_jam_player: {
+        Args: { p_jam_id: string }
+        Returns: {
+          jam_id: string
+          joined_at: string
+          left_at: string | null
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "jam_players"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      add_jam_route: {
+        Args: {
+          p_description?: string
+          p_grade?: number
+          p_has_zone?: boolean
+          p_jam_id: string
+        }
+        Returns: {
+          added_by: string | null
+          created_at: string
+          description: string | null
+          grade: number | null
+          has_zone: boolean
+          id: string
+          jam_id: string
+          number: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "jam_routes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       auto_publish_due_sets: { Args: never; Returns: number }
       bump_invite_rate_limit: { Args: never; Returns: boolean }
+      create_jam: {
+        Args: {
+          p_custom_grades?: string[]
+          p_grading_scale?: string
+          p_location?: string
+          p_max_grade?: number
+          p_min_grade?: number
+          p_name?: string
+          p_save_scale_name?: string
+        }
+        Returns: {
+          code: string
+          id: string
+        }[]
+      }
       crew_member_status: { Args: { p_crew_id: string }; Returns: string }
+      end_jam: { Args: { p_jam_id: string }; Returns: string }
+      end_jam_as_player: { Args: { p_jam_id: string }; Returns: string }
+      end_stale_jams: { Args: never; Returns: number }
+      generate_jam_code: { Args: never; Returns: string }
       get_active_climber_count: { Args: { p_set_id: string }; Returns: number }
+      get_active_jam_for_user: {
+        Args: never
+        Returns: {
+          code: string
+          jam_id: string
+          joined_at: string
+          location: string
+          name: string
+          player_count: number
+        }[]
+      }
       get_all_time_overview: {
         Args: { p_gym_id: string }
         Returns: {
@@ -1201,6 +1675,38 @@ export type Database = {
         Args: { p_gym_id: string; p_set_id?: string }
         Returns: Json
       }
+      get_jam_achievement_context: {
+        Args: { p_user_id: string }
+        Returns: {
+          jam_total_flashes: number
+          jam_total_points: number
+          jam_total_sends: number
+          jams_hosted: number
+          jams_played: number
+          jams_won: number
+          max_iron_crew_pair_count: number
+          max_players_in_won_jam: number
+          unique_coplayers: number
+        }[]
+      }
+      get_jam_leaderboard: {
+        Args: { p_jam_id: string }
+        Returns: {
+          attempts: number
+          avatar_url: string
+          display_name: string
+          flashes: number
+          last_send_at: string
+          points: number
+          rank: number
+          sends: number
+          user_id: string
+          username: string
+          zones: number
+        }[]
+      }
+      get_jam_state: { Args: { p_jam_id: string }; Returns: Json }
+      get_jam_summary: { Args: { p_summary_id: string }; Returns: Json }
       get_leaderboard_all_time: {
         Args: { p_gym_id: string; p_limit?: number; p_offset?: number }
         Returns: {
@@ -1340,6 +1846,49 @@ export type Database = {
           send_count: number
         }[]
       }
+      get_user_all_time_stats: {
+        Args: { p_user_id: string }
+        Returns: {
+          jams_played: number
+          jams_won: number
+          total_attempts: number
+          total_flashes: number
+          total_points: number
+          total_sends: number
+          total_zones: number
+          unique_routes_attempted: number
+        }[]
+      }
+      get_user_jams: {
+        Args: { p_before?: string; p_limit?: number; p_user_id: string }
+        Returns: {
+          duration_seconds: number
+          ended_at: string
+          jam_id: string
+          location: string
+          name: string
+          player_count: number
+          started_at: string
+          summary_id: string
+          user_flashes: number
+          user_is_winner: boolean
+          user_points: number
+          user_rank: number
+          user_sends: number
+          winner_display_name: string
+          winner_user_id: string
+          winner_username: string
+        }[]
+      }
+      get_user_saved_scales: {
+        Args: never
+        Returns: {
+          created_at: string
+          grades: Json
+          id: string
+          name: string
+        }[]
+      }
       get_user_set_stats: {
         Args: { p_gym_id: string; p_user_id: string }
         Returns: {
@@ -1376,6 +1925,37 @@ export type Database = {
       is_gym_admin: { Args: { p_gym_id: string }; Returns: boolean }
       is_gym_member: { Args: { p_gym_id: string }; Returns: boolean }
       is_gym_owner: { Args: { p_gym_id: string }; Returns: boolean }
+      is_jam_host: { Args: { p_jam_id: string }; Returns: boolean }
+      is_jam_player: { Args: { p_jam_id: string }; Returns: boolean }
+      join_jam_by_code: {
+        Args: { p_code: string }
+        Returns: {
+          at_cap: boolean
+          grading_scale: string
+          host_display_name: string
+          host_username: string
+          jam_id: string
+          location: string
+          name: string
+          player_count: number
+          status: string
+        }[]
+      }
+      leave_jam: {
+        Args: { p_jam_id: string }
+        Returns: {
+          jam_id: string
+          joined_at: string
+          left_at: string | null
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "jam_players"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       notify_user: {
         Args: { p_kind: string; p_payload?: Json; p_user_id: string }
         Returns: string
@@ -1407,6 +1987,56 @@ export type Database = {
           score: number
           username: string
         }[]
+      }
+      update_jam_route: {
+        Args: {
+          p_description?: string
+          p_grade?: number
+          p_has_zone?: boolean
+          p_route_id: string
+        }
+        Returns: {
+          added_by: string | null
+          created_at: string
+          description: string | null
+          grade: number | null
+          has_zone: boolean
+          id: string
+          jam_id: string
+          number: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "jam_routes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      upsert_jam_log: {
+        Args: {
+          p_attempts?: number
+          p_completed?: boolean
+          p_jam_route_id: string
+          p_zone?: boolean
+        }
+        Returns: {
+          attempts: number
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          id: string
+          jam_id: string
+          jam_route_id: string
+          updated_at: string
+          user_id: string
+          zone: boolean
+        }
+        SetofOptions: {
+          from: "*"
+          to: "jam_logs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
     }
     Enums: {

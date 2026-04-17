@@ -5,7 +5,7 @@ import Link from "next/link";
 import { FaBolt, FaFlag, FaUser } from "react-icons/fa6";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button, UserAvatar } from "@/components/ui";
-import { PunchTile } from "@/components/PunchTile/PunchTile";
+import { SendGridTile } from "@/components/SendGridTile/SendGridTile";
 import type { LeaderboardEntry, Route, TileState } from "@/lib/data";
 import { formatGrade } from "@/lib/data/grade-label";
 import { fetchClimberSheetLogs, type SanitisedLog } from "@/app/leaderboard/actions";
@@ -132,7 +132,7 @@ export function ClimberSheet({ entry, setId, routes, onClose }: Props) {
                 : routes.map((route) => {
                     const log = logByRoute?.get(route.id);
                     return (
-                      <PunchTile
+                      <SendGridTile
                         key={route.id}
                         number={route.number}
                         state={tileStateFromSanitised(log)}

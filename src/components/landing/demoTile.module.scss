@@ -18,7 +18,7 @@
   text-align: center;
 }
 
-// ── States — matches PunchTile palette ──────────────
+// ── States — matches SendGridTile palette ──────────────
 .empty {
   color: var(--mono-text-low-contrast);
 }
@@ -38,7 +38,7 @@
   color: var(--flash-on-solid);
 }
 
-// ── Flash badge — matches PunchTile ──────────────────
+// ── Flash badge — matches SendGridTile ──────────────────
 .flashBadge {
   position: absolute;
   top: 8cqi;

@@ -36,7 +36,7 @@
   background: var(--mono-bg) !important;
   border: 1px solid var(--mono-border-subtle) !important;
   // Border-radius intentionally NOT forced: the host's own radius
-  // wins. PunchTile is square (per CLAUDE.md), avatar skeletons are
+  // wins. SendGridTile is square (per CLAUDE.md), avatar skeletons are
   // circular, line skeletons are radius-1 — each surface keeps its
   // shape so the placeholder reads as "this thing, loading" rather
   // than "an unrelated rounded box".

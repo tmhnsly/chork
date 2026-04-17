@@ -9,7 +9,7 @@ interface Props {
 
 /**
  * Presentational-only punch tile for the landing page hero.
- * Same visual appearance as PunchTile but no interactivity —
+ * Same visual appearance as SendGridTile but no interactivity —
  * rendered as a div, no click handler, no hover, no cursor.
  */
 export function DemoTile({ number, state }: Props) {

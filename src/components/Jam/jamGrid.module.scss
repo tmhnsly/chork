@@ -1,0 +1,40 @@
+.grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: var(--space-2);
+  padding: var(--space-3) var(--gutter-x);
+  max-width: var(--content-app);
+  margin: 0 auto;
+  width: 100%;
+}
+
+.tileButton {
+  all: unset;
+  cursor: pointer;
+  aspect-ratio: 1;
+  border-radius: var(--radius-2);
+  display: block;
+}
+
+.addTile {
+  aspect-ratio: 1;
+  border: 1.5px dashed var(--mono-border);
+  border-radius: var(--radius-2);
+  background: transparent;
+  color: var(--mono-text-low-contrast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: var(--text-2xl);
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    border-color: var(--accent-border);
+    color: var(--accent-text);
+    background: var(--accent-subtle-bg);
+  }
+}
