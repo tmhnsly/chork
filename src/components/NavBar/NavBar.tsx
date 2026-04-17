@@ -60,6 +60,40 @@ function readAckCount(userId: string): number {
   }
 }
 
+// Sliding pill highlight: measures whichever tab carries
+// `aria-current="page"` and writes the result directly to the
+// `.pill` element via a ref. Touching the DOM in a layout effect is
+// the right move here — we're syncing to an external (visual) system,
+// not setting React state, so `react-hooks/refs` and
+// `set-state-in-effect` both stay out of the way. Shared by both the
+// signed-in and signed-out nav so the pill behaviour (and the
+// implicit "nav is active when you're on this route" visual) matches
+// in both states.
+function useSlidingPill(...deps: unknown[]): {
+  tabsRef: React.RefObject<HTMLDivElement | null>;
+  pillRef: React.RefObject<HTMLSpanElement | null>;
+} {
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const pillRef = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const tabs = tabsRef.current;
+    const pill = pillRef.current;
+    if (!tabs || !pill) return;
+    const active = tabs.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!active) {
+      pill.style.opacity = "0";
+      return;
+    }
+    const parent = tabs.getBoundingClientRect();
+    const rect = active.getBoundingClientRect();
+    pill.style.opacity = "1";
+    pill.style.transform = `translateX(${rect.left - parent.left}px)`;
+    pill.style.width = `${rect.width}px`;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+  return { tabsRef, pillRef };
+}
+
 export function NavBar() {
   const { profile, isAdmin, isLoading } = useAuth();
   const pathname = usePathname();
@@ -70,31 +104,11 @@ export function NavBar() {
   // always get back out to a gym marketing page or cancel a sign-in.
   if (pathname === "/onboarding") return null;
 
-  // Unauthenticated: brand + Gyms (for-gym marketing) + Sign in
+  // Unauthenticated: brand + Gyms (for-gym marketing) + Sign in.
+  // Same `.tabs` + sliding-pill setup as AuthenticatedNav so the
+  // active-tab highlight behaves identically in both states.
   if (!isLoading && !profile) {
-    const gymsActive = pathname.startsWith("/gyms");
-    return (
-      <nav className={styles.bar}>
-        <div className={styles.barInner}>
-          <Link href="/" className={styles.brandLinkVisible} aria-label="Chork — home">
-            <ChorkMark size={18} />
-            <span className={styles.brandTextVisible}>Chork</span>
-          </Link>
-          <Link
-            href="/gyms"
-            className={`${styles.tab} ${gymsActive ? styles.tabActive : ""}`}
-            aria-current={gymsActive ? "page" : undefined}
-          >
-            <FaMountainSun className={styles.tabIcon} aria-hidden />
-            <span className={styles.tabLabel}>Gyms</span>
-          </Link>
-          <Link href="/login" className={styles.tab}>
-            <FaRightToBracket className={styles.tabIcon} aria-hidden />
-            <span className={styles.tabLabel}>Sign in</span>
-          </Link>
-        </div>
-      </nav>
-    );
+    return <UnauthenticatedNav pathname={pathname} />;
   }
 
   // Loading or momentarily profile-less (session resolving) — brand
@@ -176,30 +190,10 @@ function AuthenticatedNav({
 
   const badgeCount = Math.max(0, pendingCount - ackCount);
 
-  // ── Sliding pill highlight ─────────────────────────
-  // Measures the active tab's bounding rect and writes the result
-  // directly to the `.pill` element via a ref. This is one of the
-  // rare cases where touching the DOM in a layout effect is the
-  // right move — we're syncing to an external (visual) system, not
-  // setting React state, so `react-hooks/refs` and
-  // `set-state-in-effect` both stay out of the way.
-  const tabsRef = useRef<HTMLDivElement>(null);
-  const pillRef = useRef<HTMLSpanElement>(null);
-  useLayoutEffect(() => {
-    const tabs = tabsRef.current;
-    const pill = pillRef.current;
-    if (!tabs || !pill) return;
-    const active = tabs.querySelector<HTMLElement>('[aria-current="page"]');
-    if (!active) {
-      pill.style.opacity = "0";
-      return;
-    }
-    const parent = tabs.getBoundingClientRect();
-    const rect = active.getBoundingClientRect();
-    pill.style.opacity = "1";
-    pill.style.transform = `translateX(${rect.left - parent.left}px)`;
-    pill.style.width = `${rect.width}px`;
-  }, [pathname, badgeCount]);
+  // Pill re-measures on route change + whenever the Crew tab's
+  // badge mounts/unmounts (badge changes the tab's width, which the
+  // sliding highlight has to follow).
+  const { tabsRef, pillRef } = useSlidingPill(pathname, badgeCount);
 
   return (
     <nav className={styles.bar}>
@@ -266,6 +260,52 @@ function AuthenticatedNav({
 
         {/* Counterweight spacer — matches brandLink width to keep tabs centred */}
         <div className={styles.brandSpacer} aria-hidden="true" />
+      </div>
+    </nav>
+  );
+}
+
+// Unauthenticated shell — brand + Gyms (for-gym marketing) + Sign in.
+// Shares the sliding-pill hook with AuthenticatedNav so the active-tab
+// highlight reads the same in both states. Active-route detection
+// matches the signed-in branch's semantics: `/gyms*` → Gyms tab;
+// `/login*` → Sign in tab.
+function UnauthenticatedNav({ pathname }: { pathname: string }) {
+  const gymsActive = pathname.startsWith("/gyms");
+  const loginActive = pathname.startsWith("/login");
+  const { tabsRef, pillRef } = useSlidingPill(pathname);
+
+  return (
+    <nav className={styles.bar}>
+      <div className={styles.barInner}>
+        <Link
+          href="/"
+          className={styles.brandLinkVisible}
+          aria-label="Chork — home"
+        >
+          <ChorkMark size={18} />
+          <span className={styles.brandTextVisible}>Chork</span>
+        </Link>
+
+        <div className={styles.tabs} ref={tabsRef}>
+          <span className={styles.pill} ref={pillRef} aria-hidden />
+          <Link
+            href="/gyms"
+            className={`${styles.tab} ${gymsActive ? styles.tabActive : ""}`}
+            aria-current={gymsActive ? "page" : undefined}
+          >
+            <FaMountainSun className={styles.tabIcon} aria-hidden />
+            <span className={styles.tabLabel}>Gyms</span>
+          </Link>
+          <Link
+            href="/login"
+            className={`${styles.tab} ${loginActive ? styles.tabActive : ""}`}
+            aria-current={loginActive ? "page" : undefined}
+          >
+            <FaRightToBracket className={styles.tabIcon} aria-hidden />
+            <span className={styles.tabLabel}>Sign in</span>
+          </Link>
+        </div>
       </div>
     </nav>
   );
