@@ -120,12 +120,13 @@
   width: 5rem;
   height: 5rem;
   border-radius: var(--radius-full);
-  // Brand lime (step 9 — `--accent-solid`). The checkmark is
-  // `--accent-on-solid` (the paired-for-contrast text colour Radix
-  // publishes alongside the solid fill) so contrast hits AA on
-  // the bright lime without a manual hex.
+  // Brand lime (step 9 — `--accent-solid`). The checkmark uses
+  // `--mono-text` so it flips with app theme (near-black on light,
+  // near-white on dark) instead of Radix's fixed paired contrast
+  // which reads dark on both. Lime-9 is saturated enough that the
+  // decorative icon reads cleanly either way.
   background: var(--accent-solid);
-  color: var(--accent-on-solid);
+  color: var(--mono-text);
   // Gentle entrance so the icon doesn't slam in after form submit —
   // respects `prefers-reduced-motion` via the no-animation media
   // override at the bottom of this block.
