@@ -6,6 +6,7 @@ import {
 } from "./supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
+import { AUTH_REQUIRED_ERROR } from "./auth-errors";
 
 type AuthSuccess = {
   supabase: SupabaseClient<Database>;
@@ -29,7 +30,7 @@ export async function requireSignedIn(): Promise<
     createServerSupabase(),
     getServerUser(),
   ]);
-  if (!user) return { error: "You need to be signed in to do that" };
+  if (!user) return { error: AUTH_REQUIRED_ERROR };
   return { supabase, userId: user.id };
 }
 
@@ -40,7 +41,7 @@ export async function requireAuth(): Promise<AuthSuccess | AuthFailure> {
   ]);
 
   if (!profile) {
-    return { error: "You need to be signed in to do that" };
+    return { error: AUTH_REQUIRED_ERROR };
   }
 
   if (!profile.active_gym_id) {
@@ -80,7 +81,7 @@ export async function requireGymAdmin(
     getServerUser(),
   ]);
   if (!user) {
-    return { error: "You need to be signed in to do that" };
+    return { error: AUTH_REQUIRED_ERROR };
   }
 
   // If no gym was passed, find one this user admins. Ordering is

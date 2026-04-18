@@ -38,11 +38,15 @@ export async function markAllNotificationsRead(): Promise<{ error: string } | { 
   const { supabase, userId } = auth;
 
   try {
-    const { error } = await supabase
-      .from("notifications")
-      .update({ read_at: new Date().toISOString() })
-      .eq("user_id", userId)
-      .is("read_at", null);
+    // Stamp via `now()` inside the RPC (migration 053) rather than
+    // `new Date().toISOString()` here — Node's wall clock shouldn't
+    // decide the canonical read timestamp when the `created_at`
+    // column next to it is Postgres-stamped. The fn also enforces
+    // `p_user_id = auth.uid()` so a stale JWT can't quietly read-
+    // flag someone else's unread row.
+    const { error } = await supabase.rpc("mark_all_notifications_read", {
+      p_user_id: userId,
+    });
     if (error) return { error: formatError(error) };
 
     revalidateTag(`user:${userId}:notifications`);

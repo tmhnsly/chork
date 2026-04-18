@@ -67,10 +67,22 @@ export function BrowseSection({
   const mountedRef = useRef(true);
   useEffect(() => () => { mountedRef.current = false; }, []);
 
+  // Mirror of maxKnownOffset as a ref so `fetchRange` can read the
+  // current bound without listing it as a dep — otherwise every
+  // `setMaxKnownOffset` would invalidate `fetchRange`'s identity,
+  // fire the window effect again, and potentially trigger fresh
+  // fetches for ranges we already know are past the end. The state
+  // still exists so atBottom can recompute for the disabled button.
+  const maxKnownOffsetRef = useRef<number | null>(null);
+  useEffect(() => {
+    maxKnownOffsetRef.current = maxKnownOffset;
+  }, [maxKnownOffset]);
+
   const fetchRange = useCallback(
     async (start: number, count: number, { silent = false } = {}) => {
       if (count <= 0) return;
-      if (maxKnownOffset !== null && start > maxKnownOffset) return;
+      const known = maxKnownOffsetRef.current;
+      if (known !== null && start > known) return;
       const key = `${start}:${count}`;
       if (inFlight.current.has(key)) return;
       inFlight.current.add(key);
@@ -100,7 +112,7 @@ export function BrowseSection({
         if (!silent && mountedRef.current) setLoading(false);
       }
     },
-    [setId, maxKnownOffset],
+    [setId],
   );
 
   // Ensure the visible window is loaded, then prefetch above + below

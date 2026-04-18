@@ -1,19 +1,20 @@
 @use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
 
 // Admin sub-nav. Sticks to the top of the admin page as the user
 // scrolls through long admin surfaces (routes editor, dashboards).
 // Uses `position: sticky` with a safe-area-aware offset so the bar
 // never tucks behind the iOS notch/status bar on PWA.
 .nav {
+  @include surface.glass(80%);
   position: sticky;
   top: calc(env(safe-area-inset-top, 0px) + var(--space-2));
   z-index: var(--z-navbar);
   display: flex;
   gap: var(--space-2);
   padding: var(--space-1);
-  background: color-mix(in srgb, var(--mono-subtle-bg) 80%, transparent);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  // glass() gives a subtle border; the admin nav wants a heavier ring
+  // to read as floating chrome against bright content.
   border: 1px solid var(--mono-border);
   border-radius: var(--radius-full);
   box-shadow: var(--shadow-sm);

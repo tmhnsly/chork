@@ -37,3 +37,15 @@
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   backdrop-filter: saturate(180%) blur(20px);
 }
+
+// ── Scrim ───────────────────────────────────────────
+// Modal / sheet dim layer. Unlike `glass`, no blur — the scrim's job
+// is to darken the content behind a focused surface, not to frost
+// over it. Single source of truth for the dim opacity so bottom-
+// sheet, dialog, and any future modal scrims stay in sync, and so
+// component SCSS files don't each open-code their own `color-mix`
+// against `--mono-app-bg` (CLAUDE.md bans ad-hoc color-mix at the
+// call site — centralising it here keeps the rule honest).
+@mixin scrim($opacity: 60%) {
+  background: color-mix(in srgb, var(--mono-app-bg) $opacity, transparent);
+}

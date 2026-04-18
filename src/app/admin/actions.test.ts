@@ -208,26 +208,26 @@ describe("cancelAdminInvite", () => {
     expect(await cancelAdminInvite("abc")).toEqual({ error: "Invalid invite." });
   });
 
-  it("returns 'Invite not found' when the row has been wiped", async () => {
-    const { createServiceClient } = await import("@/lib/supabase/server");
-    vi.mocked(createServiceClient).mockReturnValue(
-      mockSupabase({ "table:gym_invites": { data: null } }) as never,
-    );
+  it("returns 'Invite not found' when the delete affects zero rows", async () => {
+    // Post-refactor: cancelAdminInvite relies on gym_invites RLS to
+    // authorise the delete (admins only). An empty `data[]` back from
+    // `.delete().select("id")` means either the invite was already
+    // wiped OR the caller isn't a gym admin — we collapse the two so
+    // existence doesn't leak to non-admins.
+    const { requireSignedIn } = await import("@/lib/auth");
+    vi.mocked(requireSignedIn).mockResolvedValue({
+      supabase: mockSupabase({ "table:gym_invites": { data: [], error: null } }) as never,
+      userId: "u1",
+    });
     const { cancelAdminInvite } = await import("./actions");
     expect(await cancelAdminInvite(GYM_1)).toEqual({ error: "Invite not found." });
   });
 
-  it("surfaces auth failure from requireGymAdmin", async () => {
-    const { createServiceClient } = await import("@/lib/supabase/server");
-    vi.mocked(createServiceClient).mockReturnValue(
-      mockSupabase({ "table:gym_invites": { data: { gym_id: GYM_1 } } }) as never,
-    );
-    const { requireGymAdmin } = await import("@/lib/auth");
-    vi.mocked(requireGymAdmin).mockResolvedValue({
-      error: "Not a gym admin",
-    });
+  it("surfaces auth failure from requireSignedIn", async () => {
+    const { requireSignedIn } = await import("@/lib/auth");
+    vi.mocked(requireSignedIn).mockResolvedValue({ error: "Not signed in" });
     const { cancelAdminInvite } = await import("./actions");
-    expect(await cancelAdminInvite(GYM_1)).toEqual({ error: "Not a gym admin" });
+    expect(await cancelAdminInvite(GYM_1)).toEqual({ error: "Not signed in" });
   });
 });
 

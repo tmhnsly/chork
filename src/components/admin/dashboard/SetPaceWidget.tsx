@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { FaGaugeSimpleHigh } from "react-icons/fa6";
 import { WidgetCard } from "./WidgetCard";
 import type { SetOverview } from "@/lib/data/dashboard-queries";
@@ -22,7 +25,13 @@ interface Props {
  * dashboard isn't allowed to leak anyway.
  */
 export function SetPaceWidget({ activeSet, overview }: Props) {
-  const totals = computeTotals(activeSet, overview);
+  // `Date.now()` in a render body trips `react-hooks/purity` (the rule
+  // CLAUDE.md warns about). Pin a mount-time "now" via lazy state —
+  // the pace readout doesn't need sub-minute freshness, so capturing
+  // at first paint is fine. Not worth threading a server-computed
+  // timestamp down through AdminDashboard just for this one widget.
+  const [nowMs] = useState(() => Date.now());
+  const totals = computeTotals(activeSet, overview, nowMs);
 
   return (
     <WidgetCard
@@ -89,10 +98,13 @@ interface Totals {
   verdictHint: string;
 }
 
-function computeTotals(set: AdminSetSummary, overview: SetOverview | null): Totals {
+function computeTotals(
+  set: AdminSetSummary,
+  overview: SetOverview | null,
+  nowMs: number,
+): Totals {
   const startMs = Date.parse(set.starts_at);
   const endMs = Date.parse(set.ends_at);
-  const nowMs = Date.now();
   const span = Math.max(1, endMs - startMs);
   const timePct = Math.max(0, Math.min(100, ((nowMs - startMs) / span) * 100));
 

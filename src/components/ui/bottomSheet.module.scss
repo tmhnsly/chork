@@ -4,9 +4,9 @@
 
 // ── Overlay ────────────────────────────────────────
 .overlay {
+  @include surface.scrim;
   position: fixed;
   inset: 0;
-  background: color-mix(in srgb, var(--mono-app-bg) 60%, transparent);
   z-index: var(--z-overlay);
   animation: overlayIn var(--duration-normal) var(--ease-out-expo);
 

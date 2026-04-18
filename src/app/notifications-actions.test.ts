@@ -27,6 +27,15 @@ function mockSupabase(results: Record<string, SbResult> = {}) {
   return {
     from: (table: string) =>
       makeChain(() => results[`table:${table}`] ?? { data: null }),
+    // `markAllNotificationsRead` now routes through the
+    // `mark_all_notifications_read(uuid)` RPC added in migration 053
+    // (server-authoritative `now()` stamp). The stub keys by
+    // `rpc:<fn_name>` so tests can pin per-RPC results the same way
+    // they pin per-table ones.
+    rpc: (name: string) => {
+      const result = results[`rpc:${name}`] ?? { data: null };
+      return Promise.resolve(result);
+    },
   };
 }
 
@@ -49,7 +58,7 @@ describe("markAllNotificationsRead", () => {
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
       supabase: mockSupabase({
-        "table:notifications": { data: null, error: null },
+        "rpc:mark_all_notifications_read": { data: 1, error: null },
       }) as never,
       userId: USER_A,
     });
@@ -61,7 +70,10 @@ describe("markAllNotificationsRead", () => {
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
       supabase: mockSupabase({
-        "table:notifications": { data: null, error: { code: "42501", message: "blocked" } },
+        "rpc:mark_all_notifications_read": {
+          data: null,
+          error: { code: "42501", message: "blocked" },
+        },
       }) as never,
       userId: USER_A,
     });

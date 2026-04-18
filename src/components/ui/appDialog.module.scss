@@ -1,9 +1,10 @@
 @use "mixins/layout" as layout;
+@use "mixins/surfaces" as surface;
 
 .overlay {
+  @include surface.scrim;
   position: fixed;
   inset: 0;
-  background: color-mix(in srgb, var(--mono-app-bg) 60%, transparent);
   z-index: var(--z-overlay);
   animation: dialogFadeIn var(--duration-normal) var(--ease-out);
 }

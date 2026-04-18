@@ -206,25 +206,24 @@ export async function acceptCrewInvite(crewMemberId: string): Promise<ActionResu
   const { supabase, userId } = auth;
 
   try {
-    // Fetch the invite row alongside the update so we have the
-    // inviter id + crew name to push back on success. Running both
-    // queries before the update keeps the happy path to two
-    // round-trips without adding a new RPC.
-    const { data: invite } = await supabase
-      .from("crew_members")
-      .select("invited_by, crew_id, crew:crew_id (name)")
-      .eq("id", crewMemberId)
-      .eq("user_id", userId)
-      .eq("status", "pending")
-      .maybeSingle();
-
-    const { error } = await supabase
+    // Flip status first, returning the updated row — the conditional
+    // `.eq("status", "pending")` means the row comes back only if
+    // the invite was still pending at the exact moment of the update.
+    // If someone cancelled the invite (or it was never ours), the
+    // returning row is empty and we exit without firing phantom
+    // notifications. Previously we read, then wrote, leaving a TOCTOU
+    // window where a cancel landed in between and we'd still push
+    // "accepted" to the inviter.
+    const { data: invite, error } = await supabase
       .from("crew_members")
       .update({ status: "active" })
       .eq("id", crewMemberId)
       .eq("user_id", userId)
-      .eq("status", "pending");
+      .eq("status", "pending")
+      .select("invited_by, crew_id, crew:crew_id (name)")
+      .maybeSingle();
     if (error) return { error: formatError(error) };
+    if (!invite) return { error: "Invite not found." };
 
     // Best-effort push to the inviter so they see the confirmation
     // without needing to reopen the app. sendPushInBackground defers
@@ -337,32 +336,61 @@ export async function leaveCrew(crewId: string): Promise<ActionResult> {
   const { supabase, userId } = auth;
 
   try {
-    const [{ data: crew }, { count: activeCount }] = await Promise.all([
-      supabase.from("crews").select("created_by").eq("id", crewId).maybeSingle(),
-      supabase
-        .from("crew_members")
-        .select("id", { count: "exact", head: true })
-        .eq("crew_id", crewId)
-        .eq("status", "active"),
-    ]);
-
+    const { data: crew } = await supabase
+      .from("crews")
+      .select("created_by")
+      .eq("id", crewId)
+      .maybeSingle();
     if (!crew) return { error: "Crew not found." };
 
     const isCreator = crew.created_by === userId;
-    const otherActive = Math.max(0, (activeCount ?? 0) - 1);
 
-    if (isCreator && otherActive > 0) {
-      return {
-        error:
-          "You created this crew — transfer it or remove the other members first.",
-      };
-    }
+    if (isCreator) {
+      // Ordering matters. Previously we counted active members first,
+      // then branched on the old count to delete either self or the
+      // whole crew. That left a TOCTOU window where a new member
+      // could join between count and delete and get quietly cascaded
+      // out. Now we remove ourselves first, then re-check remaining
+      // active members against the post-delete state. Any concurrent
+      // join is reflected in that second count and keeps the crew
+      // alive. If others exist, refuse — creators must transfer
+      // ownership before leaving.
+      const { error: selfDeleteErr } = await supabase
+        .from("crew_members")
+        .delete()
+        .eq("crew_id", crewId)
+        .eq("user_id", userId);
+      if (selfDeleteErr) return { error: formatError(selfDeleteErr) };
 
-    if (isCreator && otherActive === 0) {
-      // Solo creator leaving → delete the crew; FK cascades handle
-      // the membership + pending invite rows.
-      const { error } = await supabase.from("crews").delete().eq("id", crewId);
-      if (error) return { error: formatError(error) };
+      const { count: remaining } = await supabase
+        .from("crew_members")
+        .select("id", { count: "exact", head: true })
+        .eq("crew_id", crewId)
+        .eq("status", "active");
+
+      if ((remaining ?? 0) > 0) {
+        // Roll back: re-insert the creator's membership so the crew
+        // isn't left orphaned. The original row had status=active
+        // (creators are bootstrapped active by migration 021).
+        await supabase.from("crew_members").insert({
+          crew_id: crewId,
+          user_id: userId,
+          status: "active",
+          invited_by: userId,
+        });
+        return {
+          error:
+            "You created this crew — transfer it or remove the other members first.",
+        };
+      }
+
+      // Solo creator: tear the crew down. FK cascades handle any
+      // pending invite rows left behind.
+      const { error: crewDeleteErr } = await supabase
+        .from("crews")
+        .delete()
+        .eq("id", crewId);
+      if (crewDeleteErr) return { error: formatError(crewDeleteErr) };
       revalidateTag(`crew:${crewId}`);
       revalidateTag(`user:${userId}:crews`);
       return { success: true };

@@ -74,11 +74,34 @@ export function SendsGrid({ set, routes, initialLogs, gymName }: Props) {
   }, [set.id]);
 
   // Aggregate stats are derived from the merged logs so optimistic
-  // updates feed the rings + score immediately.
-  const mergedLogs = Array.from(logByRoute.values());
-  const completedCount = mergedLogs.filter((l) => l.completed).length;
-  const flashCount = mergedLogs.filter((l) => isFlash(l)).length;
-  const totalScore = mergedLogs.reduce((sum, l) => sum + computePoints(l), 0);
+  // updates feed the rings + score immediately. Memoised to avoid
+  // re-walking the map three times (filter/filter/reduce) on every
+  // render — especially hot when the grid re-renders via a parent
+  // selection change without the logs themselves moving.
+  const { completedCount, flashCount, totalScore } = useMemo(() => {
+    let sends = 0;
+    let flashes = 0;
+    let points = 0;
+    for (const l of logByRoute.values()) {
+      if (l.completed) sends++;
+      if (isFlash(l)) flashes++;
+      points += computePoints(l);
+    }
+    return { completedCount: sends, flashCount: flashes, totalScore: points };
+  }, [logByRoute]);
+
+  // Per-route arrays feeding StatsWidget + the tile grid. Identity
+  // stability matters for downstream memoisation — without this each
+  // render handed StatsWidget a fresh reference for three props and
+  // busted every child memo.
+  const { routeIds, routeHasZone, routeNumbers } = useMemo(
+    () => ({
+      routeIds: routes.map((r) => r.id),
+      routeHasZone: routes.map((r) => r.has_zone),
+      routeNumbers: routes.map((r) => r.number),
+    }),
+    [routes],
+  );
 
   const endsAt = format(parseISO(set.ends_at), "MMM d");
 
@@ -91,9 +114,9 @@ export function SendsGrid({ set, routes, initialLogs, gymName }: Props) {
           flashes={flashCount}
           points={totalScore}
           logs={logByRoute}
-          routeIds={routes.map((r) => r.id)}
-          routeHasZone={routes.map((r) => r.has_zone)}
-          routeNumbers={routes.map((r) => r.number)}
+          routeIds={routeIds}
+          routeHasZone={routeHasZone}
+          routeNumbers={routeNumbers}
           resetDate={endsAt}
           gymName={gymName}
         />

@@ -37,7 +37,8 @@ export async function updateAttempts(
   attempts: number,
   logId?: string
 ): Promise<LogResult> {
-  if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
+  if (!UUID_RE.test(routeId)) return { error: "Invalid route" };
+  if (logId !== undefined && !UUID_RE.test(logId)) return { error: "Invalid log" };
   if (!Number.isInteger(attempts) || attempts < 0 || attempts > 999) return { error: "Invalid attempts" };
 
   const auth = await requireAuth();
@@ -61,7 +62,8 @@ export async function completeRoute(
   zone: boolean,
   logId?: string
 ): Promise<LogResult> {
-  if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
+  if (!UUID_RE.test(routeId)) return { error: "Invalid route" };
+  if (logId !== undefined && !UUID_RE.test(logId)) return { error: "Invalid log" };
   if (!Number.isInteger(attempts) || attempts < 1 || attempts > 999) return { error: "Invalid attempts" };
   // Grade bound matches the DB constraint relaxed in migration 014
   // (0..30 covers V/Font/points scales). The previous 0..10 clamp
@@ -139,7 +141,8 @@ export async function uncompleteRoute(
   routeId: string,
   logId?: string
 ): Promise<LogResult> {
-  if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
+  if (!UUID_RE.test(routeId)) return { error: "Invalid route" };
+  if (logId !== undefined && !UUID_RE.test(logId)) return { error: "Invalid log" };
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId, gymId } = auth;
@@ -171,7 +174,8 @@ export async function toggleZone(
   zone: boolean,
   logId?: string
 ): Promise<LogResult> {
-  if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
+  if (!UUID_RE.test(routeId)) return { error: "Invalid route" };
+  if (logId !== undefined && !UUID_RE.test(logId)) return { error: "Invalid log" };
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId, gymId } = auth;
@@ -190,8 +194,8 @@ export async function updateGradeVote(
   gradeVote: number | null,
   logId: string
 ): Promise<LogResult> {
-  if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
-  if (typeof logId !== "string" || !logId) return { error: "Invalid log" };
+  if (!UUID_RE.test(routeId)) return { error: "Invalid route" };
+  if (!UUID_RE.test(logId)) return { error: "Invalid log" };
   // Grade bound matches the DB constraint relaxed in migration 014
   // (0..30 covers V/Font/points scales). The previous 0..10 clamp
   // pre-dated that relaxation; raw votes 11..30 were rejected here
@@ -220,7 +224,7 @@ export async function postComment(
   routeId: string,
   body: string
 ): Promise<CommentResult> {
-  if (typeof routeId !== "string" || !routeId) return { error: "Invalid route" };
+  if (!UUID_RE.test(routeId)) return { error: "Invalid route" };
   const trimmed = typeof body === "string" ? body.trim() : "";
   if (!trimmed) return { error: "Comment can't be empty - write something first" };
   if (trimmed.length > 500) return { error: "Comments must be 500 characters or less" };
@@ -261,7 +265,7 @@ export async function fetchComments(
   routeId: string,
   page: number = 1
 ): Promise<PaginatedComments> {
-  if (typeof routeId !== "string" || !routeId) {
+  if (!UUID_RE.test(routeId)) {
     return { items: [], totalItems: 0, totalPages: 0, page: 1 };
   }
   const auth = await requireAuth();
@@ -286,7 +290,7 @@ export async function fetchRouteData(routeId: string): Promise<{
     comments: { items: [], totalItems: 0, totalPages: 0, page: 1 } as PaginatedComments,
     likedIds: [],
   };
-  if (typeof routeId !== "string" || !routeId) return empty;
+  if (!UUID_RE.test(routeId)) return empty;
 
   const auth = await requireAuth();
   if ("error" in auth) return empty;
@@ -313,7 +317,7 @@ export async function fetchRouteData(routeId: string): Promise<{
 export async function likeComment(
   commentId: string
 ): Promise<{ liked?: boolean; likes?: number; error?: string }> {
-  if (typeof commentId !== "string" || !commentId) return { error: "Invalid comment" };
+  if (!UUID_RE.test(commentId)) return { error: "Invalid comment" };
 
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
@@ -330,7 +334,7 @@ export async function editComment(
   commentId: string,
   body: string
 ): Promise<CommentResult> {
-  if (typeof commentId !== "string" || !commentId) return { error: "Invalid comment" };
+  if (!UUID_RE.test(commentId)) return { error: "Invalid comment" };
   const trimmed = typeof body === "string" ? body.trim() : "";
   if (!trimmed) return { error: "Comment can't be empty - write something first" };
   if (trimmed.length > 500) return { error: "Comments must be 500 characters or less" };

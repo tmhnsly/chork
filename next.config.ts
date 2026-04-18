@@ -83,7 +83,14 @@ const nextConfig: NextConfig = {
     // optimizePackageImports tells Next to rewrite imports as if each
     // icon came from its own subpath at build time. ~50 files import
     // from this barrel; this is the supported low-touch fix.
-    optimizePackageImports: ["react-icons/fa6"],
+    //
+    // date-fns is the same shape — `import { format, parseISO } from
+    // "date-fns"` drags the barrel. Every locale file is internally
+    // referenced by the barrel's default export too; without this
+    // hint the en-US locale bundle ships on every page that touches
+    // `format()`. The rewrite keeps bundle weight down to the two
+    // or three helpers we actually call.
+    optimizePackageImports: ["react-icons/fa6", "date-fns"],
   },
   sassOptions: {
     includePaths: [

@@ -48,15 +48,25 @@ export async function ProfileStats({ userId, gymId, createdAt }: Props) {
     { sends: 0, flashes: 0, points: 0 },
   );
 
-  // Streak needs a newest-first list of sets with hasSend booleans. Each
-  // user_set_stats row implies hasSend=true (rows are deleted when fully
-  // empty by the trigger in migration 013), so per_set membership ≈
-  // hasSend=true. We still need set ordering — only an active or recent
-  // set might be missing from per_set if the climber hasn't sent there
-  // yet. For streak purposes "current set with no sends" should count
-  // as a break, so we use createdAt-scoped allSets ordering instead.
-  // Cheap enough: getAllSets is server-cached (gym:{id}:active-set tag).
-  const orderedSets = await getAllSets(gymId, createdAt);
+  // Second wave — three independent fetches. Running these in parallel
+  // shaves one round trip off the profile render; previously each await
+  // blocked the next (orderedSets → routes → rankRow), turning a three-
+  // query fan-out into a three-step waterfall.
+  //
+  // `getAllSets` feeds the streak calculation: per_set membership ≈
+  // hasSend=true (migration 013's trigger deletes empty rows), but a
+  // newer set the climber hasn't touched still has to count as a
+  // break, so we reconcile the ordered set list against summary.per_set
+  // below. Cheap enough — getAllSets is server-cached via the
+  // `gym:{id}:active-set` tag.
+  const [orderedSets, routes, rankRow] = await Promise.all([
+    getAllSets(gymId, createdAt),
+    activeSet ? getRoutesBySet(activeSet.id) : Promise.resolve([]),
+    activeSet
+      ? getLeaderboardUserRow(supabase, gymId, userId, activeSet.id)
+      : Promise.resolve(null),
+  ]);
+
   const sentSetIds = new Set(summary.per_set.map((s) => s.set_id));
   const streak = computeSetStreak(
     orderedSets.map((s) => ({ hasSend: sentSetIds.has(s.id) })),
@@ -72,14 +82,6 @@ export async function ProfileStats({ userId, gymId, createdAt }: Props) {
     streakCurrent: streak.current,
     streakBest: streak.best,
   };
-
-  const routes = activeSet ? await getRoutesBySet(activeSet.id) : [];
-
-  // Active-set rank for the rank chip on the current-set card. Only
-  // worth fetching if there's an active set to rank against.
-  const rankRow = activeSet
-    ? await getLeaderboardUserRow(supabase, gymId, userId, activeSet.id)
-    : null;
 
   const activeSetStats = activeSet
     ? summary.per_set.find((s) => s.set_id === activeSet.id) ?? {

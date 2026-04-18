@@ -14,11 +14,15 @@
 //   `.skeletonShort`— narrower bar (subtitles).
 //   `.fadeIn`       — apply to real content when swapping in.
 
+// The 0→0 stop can use plain `transparent` — a 0%-opacity mix of
+// anything resolves to the same thing. The 50% stop keeps its
+// color-mix because there's no Radix token for "border-hover at
+// 35% alpha"; this is a local glow tint, not a surface/text use of
+// the color-mix sidestep that CLAUDE.md bans.
 @keyframes skeletonGlow {
   0%, 100% {
     opacity: 0.7;
-    box-shadow: 0 0 0 0
-      color-mix(in srgb, var(--mono-border-hover) 0%, transparent);
+    box-shadow: 0 0 0 0 transparent;
   }
   50% {
     opacity: 1;

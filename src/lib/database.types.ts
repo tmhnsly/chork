@@ -1721,7 +1721,10 @@ export type Database = {
         Args: { p_jam_id: string; p_user_id: string }
         Returns: Json
       }
-      get_jam_summary: { Args: { p_summary_id: string }; Returns: Json }
+      get_jam_summary_for_user: {
+        Args: { p_summary_id: string; p_user_id: string }
+        Returns: Json
+      }
       get_leaderboard_all_time: {
         Args: { p_gym_id: string; p_limit?: number; p_offset?: number }
         Returns: {
@@ -1970,6 +1973,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      mark_all_notifications_read: {
+        Args: { p_user_id: string }
+        Returns: number
       }
       notify_user: {
         Args: { p_kind: string; p_payload?: Json; p_user_id: string }

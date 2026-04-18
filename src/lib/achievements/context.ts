@@ -87,6 +87,18 @@ export async function buildBadgeContext(
   const zoneAvailableBySet = new Map<string, Set<number>>();
   const zoneClaimedBySet = new Map<string, Set<number>>();
 
+  // Pre-bucket logs by set_id so we don't re-scan the full log list
+  // inside the per-set loop below. Before: O(sets × logs) — a climber
+  // with, say, 40 sets and 600 lifetime logs was scanning 24k entries
+  // on every badge eval. After: O(sets + logs).
+  const logsBySet = new Map<string, typeof routeData.logs>();
+  for (const log of routeData.logs) {
+    if (!log.set_id) continue;
+    const bucket = logsBySet.get(log.set_id);
+    if (bucket) bucket.push(log);
+    else logsBySet.set(log.set_id, [log]);
+  }
+
   allSets.forEach((set) => {
     const routes = routesBySetId.get(set.id) ?? [];
     totalRoutesBySet.set(set.id, routes.length);
@@ -104,8 +116,7 @@ export async function buildBadgeContext(
     const completed = new Set<number>();
     const flashed = new Set<number>();
     const zoneClaimed = new Set<number>();
-    for (const log of routeData.logs) {
-      if (log.set_id !== set.id) continue;
+    for (const log of logsBySet.get(set.id) ?? []) {
       const num = routeNumberById.get(log.route_id);
       if (num === undefined) continue;
       if (log.zone) zoneClaimed.add(num);

@@ -108,6 +108,12 @@ export async function sendAdminInvite(form: {
   // Opaque, URL-safe, single-use token. 32 bytes → 43 chars base64url.
   const token = randomBytes(32).toString("base64url");
 
+  // `invited_at` and `expires_at` intentionally omitted — migration 014
+  // defaults them to `now()` and `now() + interval '14 days'` at the DB
+  // layer. Letting Postgres stamp them removes any Node-side clock
+  // drift from the expiry window, and on upsert a bare `invited_at` in
+  // the payload would overwrite the original invite's timestamp with
+  // a wall-clock value that could be skewed.
   const { error } = await auth.supabase.from("gym_invites").upsert(
     {
       gym_id: gymId,
@@ -115,8 +121,6 @@ export async function sendAdminInvite(form: {
       role: form.role,
       token,
       invited_by: userId,
-      invited_at: new Date().toISOString(),
-      expires_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
       accepted_at: null,
     },
     { onConflict: "gym_id,email" }
@@ -131,29 +135,38 @@ export async function sendAdminInvite(form: {
   // The server action returns the URL so the caller (admin UI) can show
   // a copy-link button. Email delivery wiring lands with the push /
   // notifications infrastructure in a subsequent phase.
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  //
+  // Fallback matches the other call sites (layout.tsx, robots.ts,
+  // sitemap.ts, login/actions.ts). An empty-string fallback here
+  // would produce a relative URL like `/admin/invite/<token>` that
+  // the admin would then try to paste into a chat — the other side
+  // has no way to resolve that. Use the canonical prod host so the
+  // link is always copy-pasteable even when `NEXT_PUBLIC_SITE_URL`
+  // is unset locally.
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chork.vercel.app";
   return { success: true, inviteUrl: `${baseUrl}/admin/invite/${token}` };
 }
 
 export async function cancelAdminInvite(inviteId: string): Promise<ActionResult> {
   if (!UUID_RE.test(inviteId)) return { error: "Invalid invite." };
 
-  // Ownership check: look up the invite's gym, verify caller admins it.
-  const service = createServiceClient();
-  const { data: invite } = await service
-    .from("gym_invites")
-    .select("gym_id")
-    .eq("id", inviteId)
-    .maybeSingle();
-  if (!invite) return { error: "Invite not found." };
-
-  const auth = await requireGymAdmin(invite.gym_id);
+  const auth = await requireSignedIn();
   if ("error" in auth) return { error: auth.error };
 
-  const { error } = await auth.supabase.from("gym_invites").delete().eq("id", inviteId);
+  // gym_invites DELETE is RLS-gated to `is_gym_admin(gym_id)` (migration
+  // 014), so one atomic delete + returning both authorises AND executes
+  // the action — no separate service-role lookup, no TOCTOU window
+  // between "check admin" and "delete". `.select("id")` tells the
+  // client to return affected rows; empty array == "not found OR not
+  // authorised" (we collapse the two so we don't leak invite existence).
+  const { data, error } = await auth.supabase
+    .from("gym_invites")
+    .delete()
+    .eq("id", inviteId)
+    .select("id");
   if (error) return { error: formatError(error) };
+  if (!data || data.length === 0) return { error: "Invite not found." };
 
-  // gym_invites uncached — see sendAdminInvite note.
   return { success: true };
 }
 

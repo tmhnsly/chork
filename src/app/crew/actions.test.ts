@@ -293,10 +293,16 @@ describe("acceptCrewInvite", () => {
   });
 
   it("returns success when the update lands (RLS enforces ownership + pending)", async () => {
+    // The conditional-update-with-returning pattern now means the
+    // action returns "Invite not found" when no row comes back.
+    // Mock the returning shape so the happy path keeps passing.
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
       supabase: mockSupabase({
-        "table:crew_members": { data: null, error: null },
+        "table:crew_members": {
+          data: { invited_by: null, crew_id: CREW_1, crew: null },
+          error: null,
+        },
       }) as never,
       userId: USER_A,
     });
@@ -364,12 +370,21 @@ describe("acceptCrewInvite", () => {
     );
   });
 
-  it("skips push when the invite prefetch couldn't find the inviter", async () => {
+  it("skips push when the update's returning row has no inviter", async () => {
+    // Invariant: when the inviter field is null (e.g. system-
+    // generated invite) or equals the accepter themselves, we skip
+    // the push dispatch — there's no one to notify. Post-refactor,
+    // the "update returned nothing at all" case now fails with
+    // "Invite not found", so this test exercises the other no-push
+    // branch: returning row exists but its `invited_by` is falsy.
     const { requireSignedIn } = await import("@/lib/auth");
     const { sendPushInBackground } = await import("@/lib/push/server");
     vi.mocked(requireSignedIn).mockResolvedValue({
       supabase: mockSupabase({
-        "table:crew_members": { data: null, error: null },
+        "table:crew_members": {
+          data: { invited_by: null, crew_id: CREW_1, crew: null },
+          error: null,
+        },
       }) as never,
       userId: USER_A,
     });
@@ -435,11 +450,16 @@ describe("leaveCrew", () => {
   });
 
   it("deletes the crew entirely when the solo creator leaves", async () => {
+    // The TOCTOU-safe flow now removes the creator's own membership
+    // BEFORE counting remaining actives, so for a solo creator the
+    // post-delete count should be zero. (Before the reorder it was
+    // one — "you plus nobody else" — which is why an older test
+    // set `count: 1` here.)
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
       supabase: mockSupabase({
         "table:crews": { data: { created_by: USER_A }, error: null },
-        "table:crew_members": { data: null, error: null, count: 1 },
+        "table:crew_members": { data: null, error: null, count: 0 },
       }) as never,
       userId: USER_A,
     });

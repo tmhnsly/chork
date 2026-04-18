@@ -197,7 +197,9 @@
 
 .benefitNumber {
   @include type.typography(number);
-  color: var(--accent-solid);
+  // Step 12 (text), not step 9 (solid) — CLAUDE.md: solid is for
+  // fills, not text. Bold numbers still read in the accent palette.
+  color: var(--accent-text);
   font-style: italic;
   font-size: clamp(var(--text-4xl), 7vw, var(--text-5xl));
   line-height: 0.9;
@@ -454,7 +456,7 @@
 
 .processNumber {
   @include type.typography(number);
-  color: var(--accent-solid);
+  color: var(--accent-text);
   font-style: italic;
   font-size: var(--text-3xl);
   line-height: 1;

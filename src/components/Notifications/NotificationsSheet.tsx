@@ -10,7 +10,7 @@ import {
 } from "react-icons/fa6";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { PendingInvitesCard } from "@/components/Crew/PendingInvitesCard";
-import { formatDistanceToNow, parseISO } from "date-fns";
+import { relativeDay } from "@/lib/data/crew-time";
 import type { PendingInvite } from "@/lib/data/crew-queries";
 import type {
   NotificationRow,
@@ -261,9 +261,14 @@ function Row({
   );
 }
 
+// Matches the crew feed's privacy-first timestamp contract — whole-day
+// resolution only, no clock time (see `crew-time.ts`). Notifications
+// previously leaked minute-accurate "in 3 hours" strings via date-fns'
+// `formatDistanceToNow`, which defeated the "can't tell when mates are
+// at the gym" invariant the activity feed is built around.
 function relative(iso: string): string {
   try {
-    return formatDistanceToNow(parseISO(iso), { addSuffix: true });
+    return relativeDay(iso);
   } catch {
     return "";
   }

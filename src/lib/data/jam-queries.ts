@@ -23,22 +23,12 @@ import type {
 
 type Client = SupabaseClient<Database>;
 
-export async function getJamState(
-  supabase: Client,
-  jamId: string,
-): Promise<JamState | null> {
-  const { data, error } = await supabase.rpc("get_jam_state", {
-    p_jam_id: jamId,
-  });
-  if (error) {
-    console.warn("[chork] getJamState failed:", formatErrorForLog(error));
-    return null;
-  }
-  // The RPC returns jsonb — cast through unknown so callers get the
-  // typed payload without pattern-matching the raw jsonb at every
-  // call site.
-  return (data ?? null) as unknown as JamState | null;
-}
+// NOTE: the legacy `getJamState` wrapper was removed — it relied on
+// `auth.uid()` inside a SECURITY DEFINER body, which flaked under
+// stale JWTs on SSR and silently returned null. Use
+// `getJamStateForUser` (service-role variant, see below) for any
+// SSR / background fetch; callers on the client can subscribe via
+// `useJamRealtime` and the initial SSR payload.
 
 // Fetch a jam row directly. Used by pages that need metadata before
 // dispatching an action (e.g. the /jam/[id] server component
@@ -160,15 +150,28 @@ export async function getUserJams(
   return (data ?? []) as JamHistoryRow[];
 }
 
-export async function getJamSummaryBundle(
-  supabase: Client,
+/**
+ * Service-role hydrator for `/jam/summary/[id]`. Takes an explicit
+ * user id rather than reading `auth.uid()` inside a SECURITY DEFINER
+ * function (the mask over private attempt counts would otherwise
+ * treat the caller as a stranger under a stale JWT and silently
+ * zero their OWN count — same class of bug as the earlier
+ * `getJamState` → `getJamStateForUser` migration).
+ *
+ * The RPC is revoked from anon + authenticated; the page must
+ * call it via `createServiceClient()` after `requireSignedIn`.
+ */
+export async function getJamSummaryForUser(
+  service: Client,
   summaryId: string,
+  userId: string,
 ): Promise<JamSummaryBundle | null> {
-  const { data, error } = await supabase.rpc("get_jam_summary", {
+  const { data, error } = await service.rpc("get_jam_summary_for_user", {
     p_summary_id: summaryId,
+    p_user_id: userId,
   });
   if (error) {
-    console.warn("[chork] getJamSummaryBundle failed:", formatErrorForLog(error));
+    console.warn("[chork] getJamSummaryForUser failed:", formatErrorForLog(error));
     return null;
   }
   return (data ?? null) as unknown as JamSummaryBundle | null;

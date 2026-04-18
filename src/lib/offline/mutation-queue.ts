@@ -1,5 +1,6 @@
 import { openOfflineDB, STORE_NAME, type OfflineDB } from "./db";
 import type { QueuedMutation, OfflineAction } from "./types";
+import { isAuthRequiredError } from "@/lib/auth-errors";
 
 type Listener = (count: number) => void;
 
@@ -139,8 +140,13 @@ class MutationQueue {
           if (result && typeof result === "object" && "error" in result) {
             const error = (result as { error: string }).error;
 
-            if (error.includes("signed in") || error.includes("authenticated")) {
-              // Auth error — stop flushing, user needs to re-authenticate
+            // Auth sentinel match — stop flushing so we don't retry
+            // every queued mutation under fresh unauth cookies. The
+            // previous substring match (`.includes("signed in")`)
+            // silently drifted every time wording changed in auth.ts;
+            // the shared `AUTH_REQUIRED_ERROR` constant is the source
+            // of truth on both sides now.
+            if (isAuthRequiredError(error)) {
               break;
             }
 

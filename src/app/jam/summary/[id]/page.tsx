@@ -3,7 +3,8 @@ import Link from "next/link";
 import { format, parseISO } from "date-fns";
 import { FaCrown, FaArrowLeft } from "react-icons/fa6";
 import { requireSignedIn } from "@/lib/auth";
-import { getJamSummaryBundle } from "@/lib/data/jam-queries";
+import { createServiceClient } from "@/lib/supabase/server";
+import { getJamSummaryForUser } from "@/lib/data/jam-queries";
 import { PageHeader } from "@/components/motion";
 import { UserAvatar } from "@/components/ui";
 import styles from "./summary.module.scss";
@@ -19,7 +20,12 @@ export default async function JamSummaryPage({ params, searchParams }: Props) {
   const auth = await requireSignedIn();
   if ("error" in auth) redirect("/login");
 
-  const bundle = await getJamSummaryBundle(auth.supabase, id);
+  // Service-role hydrator — takes the caller's user id explicitly
+  // so the attempts-privacy mask inside the RPC doesn't rely on
+  // `auth.uid()` (which flakes on SSR under a stale JWT and would
+  // otherwise silently zero the caller's OWN attempt count).
+  const service = createServiceClient();
+  const bundle = await getJamSummaryForUser(service, id, auth.userId);
   if (!bundle) notFound();
   const { summary, players } = bundle;
 

@@ -36,7 +36,10 @@
 .number {
   @include type.typography(card-title);
   font-style: italic;
-  color: var(--accent-solid);
+  // Step 12 (text), not step 9 (solid) — per CLAUDE.md, step 9 is
+  // for fills only. The decorative number still reads as accent-
+  // coloured but at display-text contrast instead of button-fill.
+  color: var(--accent-text);
   flex-shrink: 0;
 }
 

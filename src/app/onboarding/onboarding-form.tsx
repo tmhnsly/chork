@@ -216,13 +216,30 @@ export function OnboardingForm() {
             yes-path means gymless climbers never wait on the gym
             list fetch. */}
         <div className={styles.gymSection}>
-          <span className={styles.gymLabel}>Does your gym have Chork? *</span>
-          <div className={styles.gymChoiceRow}>
+          <span id="gym-choice-label" className={styles.gymLabel}>
+            Does your gym have Chork? *
+          </span>
+          {/*
+            Mutually-exclusive choice → `radiogroup` + `radio` is the
+            semantically correct shape. `aria-pressed` on buttons reads
+            as an independent toggle to screen readers, which this
+            isn't (selecting one deselects the other). `radiogroup`
+            gives the picker arrow-key navigation and announces the
+            selection state correctly in VoiceOver / NVDA / TalkBack.
+          */}
+          <div
+            className={styles.gymChoiceRow}
+            role="radiogroup"
+            aria-labelledby="gym-choice-label"
+            aria-required
+          >
             <button
               type="button"
+              role="radio"
+              aria-checked={gymChoice === "has-chork"}
+              tabIndex={gymChoice === "has-chork" || gymChoice === null ? 0 : -1}
               className={`${styles.gymChoiceOption} ${gymChoice === "has-chork" ? styles.gymChoiceOptionActive : ""}`}
               onClick={() => setGymChoice("has-chork")}
-              aria-pressed={gymChoice === "has-chork"}
             >
               <span className={styles.gymChoiceTitle}>Yes, pick my gym</span>
               <span className={styles.gymChoiceDetail}>
@@ -231,12 +248,14 @@ export function OnboardingForm() {
             </button>
             <button
               type="button"
+              role="radio"
+              aria-checked={gymChoice === "no-chork"}
+              tabIndex={gymChoice === "no-chork" ? 0 : -1}
               className={`${styles.gymChoiceOption} ${gymChoice === "no-chork" ? styles.gymChoiceOptionActive : ""}`}
               onClick={() => {
                 setGymChoice("no-chork");
                 setSelectedGym(null);
               }}
-              aria-pressed={gymChoice === "no-chork"}
             >
               <span className={styles.gymChoiceTitle}>Not yet</span>
               <span className={styles.gymChoiceDetail}>
