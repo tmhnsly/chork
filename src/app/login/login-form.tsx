@@ -63,6 +63,20 @@ export function LoginForm() {
   // above doesn't fire on them.
   useEffect(() => {
     if (signInState?.success && signInState.next) {
+      // Flush the service-worker cache before the hard-nav — mirror
+      // of the signOut flow in auth-context.tsx. Without this the
+      // SW's stale-while-revalidate on any auth-variant shell URL
+      // serves the previous (unauthed) HTML on the post-signin
+      // request, and the user sees the landing page for a beat
+      // even though the backend is authed. `/` was removed from
+      // SHELL_URLS in public/sw.js to fix the root cause; this
+      // flush is defence-in-depth against a future regression.
+      if (
+        typeof navigator !== "undefined" &&
+        navigator.serviceWorker?.controller
+      ) {
+        navigator.serviceWorker.controller.postMessage({ type: "clear-cache" });
+      }
       // Hard nav — remounts AuthProvider so the fresh auth cookies
       // land in its bootstrap effect and the nav flips to the
       // authed shell without a manual reload. See signInAction for

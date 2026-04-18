@@ -2,13 +2,22 @@
 
 // Bumping this name evicts the old cache on activate. Bump whenever
 // the SW logic or pre-cache shape changes so users get the new
-// behaviour on next visit.
-const CACHE_NAME = "chork-v4";
+// behaviour on next visit. v5 drops `/` from SHELL_URLS — see below.
+const CACHE_NAME = "chork-v5";
 
 // App shell — public pages that are safe to cache + serve to any
 // user. Explicitly DOES NOT include authed surfaces (profile, wall,
 // board, jam, crew, admin) — those render per-user HTML that must
 // never be replayed from cache after signout. See `fetch` below.
+//
+// `/` is also excluded. The root route serves radically different
+// HTML depending on session state — landing page for unauthed
+// visitors, the wall dashboard for authed climbers. Caching either
+// variant serves the wrong one to the other audience on the next
+// visit (classic bug: sign in → hard-nav to `/` → SW replays the
+// cached unauthed landing page from the stale-while-revalidate
+// path, user thinks signin failed). The stale-while-revalidate
+// pattern is only valid for auth-invariant content.
 //
 // `/login` is NOT on the shell. Caching it and serving stale HTML
 // to an authed user would render the login form for a split second
@@ -16,7 +25,7 @@ const CACHE_NAME = "chork-v4";
 // fetch — confusing UX and a subtle signal that the session cookie
 // hadn't actually cleared yet. Logging-in is rare enough that a
 // plain network fetch is fine.
-const SHELL_URLS = ["/", "/privacy", "/terms", "/gyms"];
+const SHELL_URLS = ["/privacy", "/terms", "/gyms"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
