@@ -22,11 +22,25 @@ import { z } from "zod";
  * Never reach into `process.env` directly — if it's not in this schema,
  * add it here first so the type surface stays documented.
  */
+// When this module loads in the browser, non-NEXT_PUBLIC_ env vars
+// are correctly `undefined` — Next only inlines NEXT_PUBLIC_* vars
+// into the client bundle for safety (SUPABASE_SERVICE_ROLE_KEY would
+// otherwise leak to every visitor). The schema must therefore
+// require those server-only keys *only* when running on the server,
+// otherwise the `env` module throws in a client component that just
+// wanted to read `env.SITE_URL`.
+const isServer = typeof window === "undefined";
+
 const schema = z.object({
   // Required — the app cannot start without these
   NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().min(1),
+  // Server-only secret. On the client it's legitimately absent (and
+  // any code that tries to read it from the client is a bug elsewhere
+  // — `createServiceClient` has its own `import "server-only"` guard).
+  SUPABASE_SERVICE_ROLE_KEY: isServer
+    ? z.string().min(1)
+    : z.string().optional(),
   NEXT_PUBLIC_SITE_URL: z.string().url(),
 
   // Optional — feature-gated. Each consumer checks for presence.
