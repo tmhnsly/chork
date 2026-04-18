@@ -108,12 +108,18 @@ export async function sendAdminInvite(form: {
   // Opaque, URL-safe, single-use token. 32 bytes → 43 chars base64url.
   const token = randomBytes(32).toString("base64url");
 
-  // `invited_at` and `expires_at` intentionally omitted — migration 014
-  // defaults them to `now()` and `now() + interval '14 days'` at the DB
-  // layer. Letting Postgres stamp them removes any Node-side clock
-  // drift from the expiry window, and on upsert a bare `invited_at` in
-  // the payload would overwrite the original invite's timestamp with
-  // a wall-clock value that could be skewed.
+  // Both timestamps are app-supplied rather than relying on column
+  // defaults. The column defaults (migration 014: `now()` and
+  // `now() + interval '14 days'`) only fire on INSERT, not UPDATE —
+  // and this is an upsert on (gym_id, email). The "admin re-invites
+  // the same email after expiry" flow has to refresh the window, so
+  // on the UPDATE path we need to overwrite `expires_at` explicitly;
+  // omitting it would leave the original (possibly expired) value
+  // in place and quietly make the re-invite useless.
+  //
+  // Node clock drift is minor on Vercel (NTP-synced fleet) and the
+  // regression-on-omission is worse than the drift risk.
+  const now = new Date();
   const { error } = await auth.supabase.from("gym_invites").upsert(
     {
       gym_id: gymId,
@@ -121,6 +127,8 @@ export async function sendAdminInvite(form: {
       role: form.role,
       token,
       invited_by: userId,
+      invited_at: now.toISOString(),
+      expires_at: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString(),
       accepted_at: null,
     },
     { onConflict: "gym_id,email" }

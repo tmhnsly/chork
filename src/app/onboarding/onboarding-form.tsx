@@ -223,21 +223,55 @@ export function OnboardingForm() {
             Mutually-exclusive choice → `radiogroup` + `radio` is the
             semantically correct shape. `aria-pressed` on buttons reads
             as an independent toggle to screen readers, which this
-            isn't (selecting one deselects the other). `radiogroup`
-            gives the picker arrow-key navigation and announces the
-            selection state correctly in VoiceOver / NVDA / TalkBack.
+            isn't (selecting one deselects the other).
+
+            Roving tabindex: only one radio is in the tab order at a
+            time. Before the user picks, that's the first option —
+            otherwise keyboard users land on nothing when they tab
+            into the section. Arrow keys (↑↓ and ←→) move focus AND
+            selection, matching the WAI-ARIA radiogroup pattern.
           */}
           <div
             className={styles.gymChoiceRow}
             role="radiogroup"
             aria-labelledby="gym-choice-label"
             aria-required
+            onKeyDown={(e) => {
+              if (
+                e.key !== "ArrowDown" &&
+                e.key !== "ArrowRight" &&
+                e.key !== "ArrowUp" &&
+                e.key !== "ArrowLeft"
+              ) {
+                return;
+              }
+              e.preventDefault();
+              const next = gymChoice === "has-chork" ? "no-chork" : "has-chork";
+              setGymChoice(next);
+              if (next === "no-chork") setSelectedGym(null);
+              // Move focus to whichever radio was just selected so
+              // the roving tabindex stays on the active option.
+              const group = e.currentTarget;
+              const target = group.querySelector<HTMLButtonElement>(
+                `button[aria-checked="true"]`,
+              );
+              // Next render will flip aria-checked; focus after
+              // paint so we land on the right button.
+              requestAnimationFrame(() => {
+                const updated = group.querySelector<HTMLButtonElement>(
+                  `button[aria-checked="true"]`,
+                );
+                (updated ?? target)?.focus();
+              });
+            }}
           >
             <button
               type="button"
               role="radio"
               aria-checked={gymChoice === "has-chork"}
-              tabIndex={gymChoice === "has-chork" || gymChoice === null ? 0 : -1}
+              tabIndex={
+                gymChoice === "has-chork" || gymChoice === "unchosen" ? 0 : -1
+              }
               className={`${styles.gymChoiceOption} ${gymChoice === "has-chork" ? styles.gymChoiceOptionActive : ""}`}
               onClick={() => setGymChoice("has-chork")}
             >

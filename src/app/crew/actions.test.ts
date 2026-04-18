@@ -450,16 +450,13 @@ describe("leaveCrew", () => {
   });
 
   it("deletes the crew entirely when the solo creator leaves", async () => {
-    // The TOCTOU-safe flow now removes the creator's own membership
-    // BEFORE counting remaining actives, so for a solo creator the
-    // post-delete count should be zero. (Before the reorder it was
-    // one — "you plus nobody else" — which is why an older test
-    // set `count: 1` here.)
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
       supabase: mockSupabase({
         "table:crews": { data: { created_by: USER_A }, error: null },
-        "table:crew_members": { data: null, error: null, count: 0 },
+        // count = 1 → the creator, alone. `otherActive = count - 1 = 0`
+        // triggers the solo-teardown branch.
+        "table:crew_members": { data: null, error: null, count: 1 },
       }) as never,
       userId: USER_A,
     });
