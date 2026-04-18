@@ -1,76 +1,71 @@
 // Reveal text — word-by-word vertical mask reveal.
 //
-// Uses `clip-path: inset(...)` on the outer `.wordClip` (not
-// `overflow`) so the mask is pixel-precise on iOS Safari, which has
-// a history of ignoring `overflow-clip-margin` and shaving italic
-// glyph overhang on letters like K / T / Y / y. `clip-path` is
-// well-supported on iOS 13+ and doesn't establish the horizontal
-// clipping that `overflow: hidden` would force on us.
+// Matches the canonical Framer Motion text-reveal pattern: a
+// `overflow: hidden` wrapper around an inner span that animates
+// from `translateY(100%) → 0`. No clip-path — on iOS Safari the
+// combination of `overflow: hidden` + `padding + negative margin`
+// is the most reliable way to keep italic overhang visible while
+// masking the vertical travel.
 //
-// Animation model mirrors Framer Motion's canonical text reveal:
-//
-//   1. `.wordClip` clips only the TOP and BOTTOM of its paint box.
-//      Horizontal insets are negative so italic overhang extends
-//      freely left + right at any font-size.
-//
-//   2. `.word` starts at `translateY(110%)` (a full line-height
-//      below the mask), animates to `translateY(0)` on the GPU
-//      via the shared `--ease-out-expo` curve. The 10% bonus
-//      beyond 100% hides sub-pixel fringes on some iOS devices
-//      where 100% leaves a hairline visible at the baseline.
+// The trick: pad the wrapper by a little on every side (so the
+// overflow box includes the italic slant's right-hand overhang +
+// descender tails), then negate the padding with an equal margin
+// so adjacent words keep their natural metric spacing. Net visual
+// size unchanged, but the overflow region now fully contains any
+// glyph overhang — nothing gets shaved.
 
 .wordClip {
   display: inline-block;
-  vertical-align: bottom;
+  overflow: hidden;
+  vertical-align: baseline;
 
-  // Mask only the vertical axis — horizontal insets are negative
-  // so the clip region extends past each side. Italic glyph
-  // overhang (Outfit Bold italic on Y / T / K) lives there and is
-  // never shaved.
-  //
-  // The `0.5em` horizontal negatives are expressed in em so the
-  // breathing room scales automatically with the wrapped font-size.
-  //
-  // The `0.15em` top/bottom negatives let descenders + ascenders
-  // breathe around their metrics box without ever reading as a
-  // visible "clip line" above or below the glyph while resting.
-  clip-path: inset(-0.15em -0.5em 0 -0.5em);
+  // Top 0.1em / bottom 0.15em cover ascenders + descenders during
+  // the slide. Right 0.2em covers Outfit Bold italic's Y / T / K
+  // forward overhang so the last character's stroke paints in full
+  // even when flush against the page gutter.
+  padding: 0.1em 0.2em 0.15em 0;
+  margin: -0.1em -0.2em -0.15em 0;
 }
 
 .word {
   display: inline-block;
 
-  // Start fully below the mask. 110% > 100% hides sub-pixel
-  // rendering fringes on iOS that occasionally show a 1px sliver
-  // of the glyph baseline at translateY(100%).
+  // Start fully below the mask; animate into place. `110%` clears
+  // the baseline with a safety margin — some iOS devices leave a
+  // 1px fringe at exactly `100%` because of how they round the
+  // pixel snapshot before compositing.
   transform: translateY(110%);
 
-  animation: revealSlideUp var(--duration-hero) var(--ease-out-expo) forwards;
-  animation-delay: calc(var(--delay, 0s) + var(--i, 0) * 0.055s);
+  // `cubic-bezier(0.22, 1, 0.36, 1)` — easeOutQuart, Framer
+  // Motion's canonical `motion.span` reveal curve. Slower than
+  // `--ease-out-expo` so the slide reads unhurried and letters
+  // settle with weight rather than snapping.
+  animation: revealSlideUp 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: calc(var(--delay, 0s) + var(--i, 0) * 0.07s);
 
-  // Hint the compositor so the whole reveal lives on the GPU —
-  // smoother on low-end mobile and removes the occasional jank
-  // that showed up when a new tab scheduled a layout bump
-  // mid-animation.
+  // GPU-composite the whole reveal so it stays smooth on low-end
+  // mobile during page-load contention (Next hydration, ChorkMark
+  // SVG animating alongside, etc).
   will-change: transform;
   backface-visibility: hidden;
-  transform-origin: bottom left;
 }
 
 @keyframes revealSlideUp {
+  from {
+    transform: translateY(110%);
+  }
   to {
     transform: translateY(0);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .wordClip {
+    overflow: visible;
+  }
   .word {
     animation: none;
     transform: none;
     will-change: auto;
-  }
-
-  .wordClip {
-    clip-path: none;
   }
 }
