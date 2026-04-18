@@ -352,18 +352,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Push subscription lives at the (device × browser) layer; the
     // row eviction server action needs A's cookies. Realtime
     // channels hold WebSockets authed against the JWT.
+    //
+    // Both teardowns are idempotent — `unsubscribeDevice` no-ops
+    // on retry (getSubscription returns null once cleared), and
+    // `removeAllChannels` has nothing left to remove. Trade-off:
+    // if signOutAction fails AND the user cancels the retry, push
+    // / realtime stay torn down until they toggle push back on in
+    // settings or refresh. Acceptable for a rare failure path.
     try {
       const { endpoint } = await unsubscribeDevice();
       if (endpoint) {
         await removePushSubscription(endpoint);
       }
-    } catch {
-      // Push cleanup is best-effort; failure doesn't block signout.
+    } catch (err) {
+      console.warn("[chork] signout: push teardown failed", err);
     }
     try {
       await supabase.removeAllChannels();
-    } catch {
-      // JWT invalidation below closes the socket regardless.
+    } catch (err) {
+      console.warn("[chork] signout: realtime teardown failed", err);
     }
 
     // ── Flip the server session. ──
@@ -372,7 +379,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // is still authed on the server — stay on the page + surface
     // the error so the user can retry, rather than navigating
     // away pretending we're signed out.
-    const result = await signOutAction();
+    //
+    // Wrap in try/catch: a thrown server action (network blip,
+    // unhandled 500) would otherwise reject the outer promise
+    // silently — the signOut onClick doesn't await, so the user
+    // would see nothing happen and navigation would never run.
+    let result: { error?: string };
+    try {
+      result = await signOutAction();
+    } catch (err) {
+      console.warn("[chork] signout: action threw", err);
+      showToast("Sign out failed. Try again.", "error");
+      return;
+    }
     if (result.error) {
       showToast(result.error, "error");
       return;
@@ -390,13 +409,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // the throw-path that skipped navigation when IndexedDB
       // glitched.
       if (outgoingUserId) {
-        void mutationQueue.clearForUser(outgoingUserId).catch(() => {});
+        void mutationQueue
+          .clearForUser(outgoingUserId)
+          .catch((err) => console.warn("[chork] signout: queue clear failed", err));
       }
 
       // Wipe the browser SDK's in-memory session. `scope: "local"`
       // skips a round-trip since the server-side cookies above
       // already cleared that side.
-      void supabase.auth.signOut({ scope: "local" }).catch(() => {});
+      void supabase.auth
+        .signOut({ scope: "local" })
+        .catch((err) => console.warn("[chork] signout: local SDK signout failed", err));
 
       // Drop the localStorage profile cache so a bfcache restore
       // can't re-hydrate a signed-in nav after navigation.

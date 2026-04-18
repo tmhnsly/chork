@@ -84,23 +84,24 @@ export async function signInAction(
 export async function signOutAction(): Promise<{ error?: string }> {
   const supabase = await createServerSupabase();
   const { error } = await supabase.auth.signOut();
-  if (error) {
-    return { error: formatError(error) };
-  }
-  // Belt-and-braces — clear the non-Supabase auth cookies too.
-  // `chork-onboarded` gates middleware's profile-read fast-path
-  // (skips the profile SELECT when the cookie stamp matches). If
-  // it's left behind, the NEXT signed-in user on this browser
-  // can briefly coast past the onboarding gate if they happen to
-  // have the same uid pattern — effectively impossible but the
-  // cookie is also just useless after signout.
+
+  // Belt-and-braces — clear the non-Supabase auth cookies regardless
+  // of whether auth.signOut() succeeded. Those cookies are always
+  // stale after any signout ATTEMPT; leaving them behind lets the
+  // previous session's shape leak into the next render (wrong nav
+  // variant on /login, a bogus onboarded fast-path stamp that
+  // bypasses the profile SELECT in middleware).
+  //
+  // `chork-onboarded` gates middleware's profile-read fast-path.
   // `chork-auth-shell` tells `NavBarShell` which variant to paint
   // on first byte (authed-with-gym / authed-no-gym / unauthed).
-  // Leaving it set to a previous user's shape would flash the
-  // wrong nav on the login page until hydration overwrites.
   const jar = await cookies();
   jar.delete("chork-onboarded");
   jar.delete("chork-auth-shell");
+
+  if (error) {
+    return { error: formatError(error) };
+  }
   return {};
 }
 

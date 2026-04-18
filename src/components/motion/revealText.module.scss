@@ -14,31 +14,31 @@
 // size unchanged, but the overflow region now fully contains any
 // glyph overhang — nothing gets shaved.
 
-// Baseline: overflow: hidden + padding/negative-margin on the right
-// widens the clip box by 0.2em without affecting layout, so Outfit
-// Bold italic's forward slant on W / Y / K / T isn't shaved. Works
-// on every browser since the dawn of CSS.
+// Modern path (Safari 16.4+, Chrome 90+, Firefox 102+): `overflow:
+// clip` + `overflow-clip-margin` extends the visible region 0.2em
+// past every edge WITHOUT touching layout. No padding/margin hack,
+// no asymmetric side-effects. Ascenders + descenders + horizontal
+// italic overhang all get the same breathing room, and the inline-
+// block keeps its natural box dimensions so headline line-height
+// stays stable.
 .wordClip {
   display: inline-block;
-  overflow: hidden;
   vertical-align: baseline;
-  padding-right: 0.2em;
-  margin-right: -0.2em;
+  overflow: clip;
+  overflow-clip-margin: 0.2em;
 }
 
-// Modern browsers (Safari 16.4+, Chrome 90+, Firefox 102+): swap to
-// `overflow: clip` + `overflow-clip-margin`. This extends the visible
-// region 0.2em past ALL edges WITHOUT touching layout — no padding
-// hack, no negative margin, no asymmetric side-effects. Descenders
-// and ascenders get the same breathing room as horizontal overhang,
-// and the inline-block's box retains its natural dimensions so
-// headline line-height stays stable.
-@supports (overflow-clip-margin: 0.2em) {
+// Fallback for browsers without `overflow-clip-margin` support.
+// `overflow: hidden` + padding/negative-margin on the right widens
+// the clip box by 0.2em in layout space — only the forward italic
+// overhang on W / Y / K / T is protected (vertical overhang may
+// still shave, but that's rare at display sizes with --leading-
+// tight line-heights).
+@supports not (overflow-clip-margin: 0.2em) {
   .wordClip {
-    overflow: clip;
-    overflow-clip-margin: 0.2em;
-    padding-right: 0;
-    margin-right: 0;
+    overflow: hidden;
+    padding-right: 0.2em;
+    margin-right: -0.2em;
   }
 }
 
