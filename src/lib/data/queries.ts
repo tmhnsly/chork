@@ -445,36 +445,61 @@ export async function getActivityEventsForUser(
 
 // ── Comments ───────────────────────────────────────
 
-export async function getCommentsByRoute(
-  supabase: Supabase,
+/**
+ * Comments attached to a route, paginated. Cached — comments are
+ * gym-scoped (route → set → gym) so every member of the gym that
+ * owns the route sees the same result; cross-user cache sharing is
+ * correct. Mutations (`postComment`, `editComment`) bust the
+ * `route:{id}:comments` tag in `src/app/(app)/actions.ts`, so the
+ * cache never serves stale content past a write.
+ *
+ * Dropped the `supabase` arg — cached reads run through the
+ * service-role-backed `createCachedContextClient` so the entry is
+ * shared across viewers. Authorisation already happens at the page
+ * level (caller can only reach this function via a route they're
+ * allowed to open), and the returned payload doesn't include any
+ * auth-variant fields.
+ */
+export function getCommentsByRoute(
   routeId: string,
   page: number = 1,
-  perPage: number = 20
+  perPage: number = 20,
 ): Promise<PaginatedComments> {
-  const from = (page - 1) * perPage;
-  const to = from + perPage - 1;
+  const fn = cachedQuery(
+    ["comments-by-route", routeId, String(page), String(perPage)],
+    async (
+      rId: string,
+      p: number,
+      per: number,
+    ): Promise<PaginatedComments> => {
+      const supabase = createCachedContextClient();
+      const from = (p - 1) * per;
+      const to = from + per - 1;
 
-  // Single query: fetch data + exact count in one round trip
-  const { data, count, error } = await supabase
-    .from("comments")
-    .select("*, profiles(id, username, name, avatar_url)", { count: "exact" })
-    .eq("route_id", routeId)
-    .order("likes", { ascending: false })
-    .order("created_at", { ascending: false })
-    .range(from, to);
+      // Single query: fetch data + exact count in one round trip.
+      const { data, count, error } = await supabase
+        .from("comments")
+        .select("*, profiles(id, username, name, avatar_url)", { count: "exact" })
+        .eq("route_id", rId)
+        .order("likes", { ascending: false })
+        .order("created_at", { ascending: false })
+        .range(from, to);
 
-  if (error) {
-    logger.warn("getcommentsbyroute_failed", { err: formatErrorForLog(error) });
-  }
+      if (error) {
+        logger.warn("getcommentsbyroute_failed", { err: formatErrorForLog(error) });
+      }
 
-  const totalItems = count ?? 0;
-
-  return {
-    items: (data ?? []) as Comment[],
-    totalItems,
-    totalPages: Math.ceil(totalItems / perPage),
-    page,
-  };
+      const totalItems = count ?? 0;
+      return {
+        items: (data ?? []) as Comment[],
+        totalItems,
+        totalPages: Math.ceil(totalItems / per),
+        page: p,
+      };
+    },
+    { tags: [tags.routeComments(routeId)], revalidate: 60 },
+  );
+  return fn(routeId, page, perPage);
 }
 
 // ── Comment likes ──────────────────────────────────

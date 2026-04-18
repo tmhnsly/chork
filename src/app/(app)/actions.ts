@@ -300,7 +300,7 @@ export async function fetchComments(
     return { items: [], totalItems: 0, totalPages: 0, page: 1 };
   }
   try {
-    return await getCommentsByRoute(auth.supabase, routeId, page, 20);
+    return await getCommentsByRoute(routeId, page, 20);
   } catch (err) {
     logger.warn("fetchcomments_failed", { err: formatErrorForLog(err) });
     return { items: [], totalItems: 0, totalPages: 0, page: 1 };
@@ -328,7 +328,7 @@ export async function fetchRouteData(routeId: string): Promise<{
       logger.warn("fetchroutedata_grade_failed", { err: formatErrorForLog(err) });
       return null;
     }),
-    getCommentsByRoute(supabase, routeId, 1, 2).catch((err) => {
+    getCommentsByRoute(routeId, 1, 2).catch((err) => {
       logger.warn("fetchroutedata_comments_failed", { err: formatErrorForLog(err) });
       return { items: [], totalItems: 0, totalPages: 0, page: 1 } as PaginatedComments;
     }),
