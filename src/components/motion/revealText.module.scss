@@ -37,11 +37,11 @@
   transform: translateY(110%);
 
   // `cubic-bezier(0.22, 1, 0.36, 1)` — easeOutQuart, Framer
-  // Motion's canonical `motion.span` reveal curve. Slower than
-  // `--ease-out-expo` so the slide reads unhurried and letters
-  // settle with weight rather than snapping.
-  animation: revealSlideUp 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-  animation-delay: calc(var(--delay, 0s) + var(--i, 0) * 0.07s);
+  // Motion's canonical `motion.span` reveal curve. 0.75s + 0.05s
+  // per-word stagger reads snappy but still lets letters settle
+  // with weight at the end of the curve's long tail.
+  animation: revealSlideUp 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: calc(var(--delay, 0s) + var(--i, 0) * 0.05s);
 
   // GPU-composite the whole reveal so it stays smooth on low-end
   // mobile during page-load contention (Next hydration, ChorkMark
