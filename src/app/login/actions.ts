@@ -1,5 +1,6 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { formatAuthError, formatError, type AuthErrorField } from "@/lib/errors";
 
@@ -86,6 +87,20 @@ export async function signOutAction(): Promise<{ error?: string }> {
   if (error) {
     return { error: formatError(error) };
   }
+  // Belt-and-braces — clear the non-Supabase auth cookies too.
+  // `chork-onboarded` gates middleware's profile-read fast-path
+  // (skips the profile SELECT when the cookie stamp matches). If
+  // it's left behind, the NEXT signed-in user on this browser
+  // can briefly coast past the onboarding gate if they happen to
+  // have the same uid pattern — effectively impossible but the
+  // cookie is also just useless after signout.
+  // `chork-auth-shell` tells `NavBarShell` which variant to paint
+  // on first byte (authed-with-gym / authed-no-gym / unauthed).
+  // Leaving it set to a previous user's shape would flash the
+  // wrong nav on the login page until hydration overwrites.
+  const jar = await cookies();
+  jar.delete("chork-onboarded");
+  jar.delete("chork-auth-shell");
   return {};
 }
 

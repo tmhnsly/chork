@@ -19,12 +19,16 @@
   overflow: hidden;
   vertical-align: baseline;
 
-  // Top 0.1em / bottom 0.15em cover ascenders + descenders during
-  // the slide. Right 0.2em covers Outfit Bold italic's Y / T / K
-  // forward overhang so the last character's stroke paints in full
-  // even when flush against the page gutter.
-  padding: 0.1em 0.2em 0.15em 0;
-  margin: -0.1em -0.2em -0.15em 0;
+  // Right-side only. Italic bold's forward slant on letters like
+  // W / Y / K / T extends the final glyph's right edge up to ~0.2em
+  // past the measured line-box end. Padding + negative margin widens
+  // the overflow region in that direction without affecting layout
+  // metrics around it. Vertical padding is deliberately 0 — the
+  // font's own line-height already includes ascender + descender
+  // room, and adding top/bottom padding inflated the inline box's
+  // height and pushed the `<h1>` downward on multi-line titles.
+  padding-right: 0.2em;
+  margin-right: -0.2em;
 }
 
 .word {

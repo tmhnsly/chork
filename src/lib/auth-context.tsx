@@ -342,104 +342,94 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [supabase]);
 
   const signOut = useCallback(async () => {
-    // Capture the outgoing user's id BEFORE the signOut clears state
-    // so we can wipe their queued offline mutations as part of the
-    // teardown.
+    // Capture the outgoing user's id BEFORE anything else runs —
+    // the offline-queue clear below needs it, and any subsequent
+    // step may mutate state or throw.
     const outgoingUserId = profileRef.current?.id;
 
-    // ── Push teardown FIRST (while we still have a valid session) ──
-    // Web-push subscription lives at the (device × browser) layer and
-    // will keep delivering A's notifications to this device if we
-    // don't unsubscribe + delete the DB row. Call the server action
-    // NOW — before `signOutAction` clears cookies — so the row
-    // eviction runs under A's auth. Both calls tolerate "no
-    // subscription" so fresh signups + unsupported browsers no-op.
+    // ── While the session is still valid: teardown server-side
+    //    state that needs it.
+    // Push subscription lives at the (device × browser) layer; the
+    // row eviction server action needs A's cookies. Realtime
+    // channels hold WebSockets authed against the JWT.
     try {
       const { endpoint } = await unsubscribeDevice();
       if (endpoint) {
         await removePushSubscription(endpoint);
       }
     } catch {
-      // Non-fatal — signout continues even if push cleanup blips.
+      // Push cleanup is best-effort; failure doesn't block signout.
     }
-
-    // ── Close any open realtime channels ──
-    // `useJamRealtime` (and any future subscribers) hold WebSocket
-    // channels authed against the current JWT. Leaving them open
-    // across signout leaks events to whatever component mounted them
-    // until React unmounts it — on shared devices that's a
-    // cross-user data bleed.
     try {
       await supabase.removeAllChannels();
     } catch {
-      // Best effort; the JWT invalidation below closes the socket
-      // regardless.
+      // JWT invalidation below closes the socket regardless.
     }
 
-    // ── Flip the server session ──
-    // Server action clears Supabase cookies via Set-Cookie on its
-    // response — by the time we navigate, the browser's cookie jar
-    // is empty so the next request hits the server as anon. Doing
-    // this client-side raced the cookie clear: the navigation
-    // sometimes reached the server with stale auth cookies, middleware
-    // passed the user through, and the page rendered signed-in (the
-    // "had to hard refresh to log out" bug).
+    // ── Flip the server session. ──
+    // Set-Cookie on the action response wipes the browser's jar.
+    // If THIS step fails the cookies are still valid + the user
+    // is still authed on the server — stay on the page + surface
+    // the error so the user can retry, rather than navigating
+    // away pretending we're signed out.
     const result = await signOutAction();
     if (result.error) {
       showToast(result.error, "error");
       return;
     }
 
-    // ── Offline queue — await, do NOT fire-and-forget ──
-    // Previously this was backgrounded; a fast re-signin could start
-    // user B's flush pass before A's queued mutations drained, and
-    // the queue's own per-flush userId filter would then replay
-    // nothing (safe) — but any edge case where the clear failed
-    // silently left mutations dangling. Awaiting it makes the
-    // signout flow deterministic.
-    if (outgoingUserId) {
-      try {
-        await mutationQueue.clearForUser(outgoingUserId);
-      } catch {
-        // Non-fatal; flush-time filter still gates replays.
+    // From here on we are committed to navigation. Everything
+    // below is best-effort housekeeping inside a try/finally so
+    // NOTHING can skip the hard redirect — the earlier "still on
+    // the profile page after logout" bug was caused by a
+    // setState-triggered consumer throwing on `profile.id` before
+    // the navigate line ran.
+    try {
+      // Offline queue — fire-and-forget. The queue's own per-flush
+      // userId filter gates replays; awaiting was what introduced
+      // the throw-path that skipped navigation when IndexedDB
+      // glitched.
+      if (outgoingUserId) {
+        void mutationQueue.clearForUser(outgoingUserId).catch(() => {});
       }
-    }
 
-    // Also run the browser client's signOut so its local session
-    // storage is cleared in the same tick — the server action handles
-    // cookies, but the browser SDK keeps its own in-memory session.
-    await supabase.auth.signOut({ scope: "local" });
-    setProfile(null);
-    setIsAdmin(false);
-    // Drop the localStorage profile cache immediately so a quick back-
-    // nav before the next page load can't re-hydrate the signed-in UI.
-    writeProfileCache(null, false);
-    // Reset the palette too — on a shared device, leaving the previous
-    // user's theme in localStorage would carry their palette into the
-    // login screen and any subsequent sign-in bootstrap before the new
-    // profile loads. DEFAULT_THEME clears `<html data-theme>` and the
-    // `chork-theme` localStorage entry.
-    setThemeStore(DEFAULT_THEME);
-    // Tell the Service Worker to flush every named cache. Without
-    // this, `sw.js` would serve the pre-signout app shell (and any
-    // other cached HTML that pre-dates the tightened cache-scope
-    // rules) after navigation. See `public/sw.js` — the message
-    // handler runs `caches.keys() → caches.delete(...)` on every
-    // entry. Fire-and-forget; the SW owns the completion.
-    if (
-      typeof navigator !== "undefined" &&
-      navigator.serviceWorker?.controller
-    ) {
-      navigator.serviceWorker.controller.postMessage({ type: "clear-cache" });
+      // Wipe the browser SDK's in-memory session. `scope: "local"`
+      // skips a round-trip since the server-side cookies above
+      // already cleared that side.
+      void supabase.auth.signOut({ scope: "local" }).catch(() => {});
+
+      // Drop the localStorage profile cache so a bfcache restore
+      // can't re-hydrate a signed-in nav after navigation.
+      writeProfileCache(null, false);
+
+      // Reset the palette on shared devices so the login screen
+      // doesn't carry the previous user's theme before the next
+      // bootstrap picks up the default.
+      setThemeStore(DEFAULT_THEME);
+
+      // Tell the Service Worker to flush every named cache so the
+      // post-signout shell fetches fresh HTML + static assets.
+      if (
+        typeof navigator !== "undefined" &&
+        navigator.serviceWorker?.controller
+      ) {
+        navigator.serviceWorker.controller.postMessage({ type: "clear-cache" });
+      }
+
+      showToast("Signed out", "info");
+    } finally {
+      // ALWAYS navigate. `location.replace` wipes the signed-in URL
+      // from history so an iOS back-gesture can't restore the
+      // authed DOM from the browser's back-forward cache. React
+      // setState calls (setProfile(null) etc) were deliberately
+      // removed from this flow — the hard navigation tears the
+      // whole tree down before any component can re-render against
+      // a null profile, which was throwing in consumers that
+      // expected `profile.id` to be defined and silently aborting
+      // the signout mid-flight.
+      window.location.replace("/login");
     }
-    showToast("Signed out", "info");
-    // Hard navigate to `/login` via `replace` so the signed-in URL
-    // vanishes from history — a back-gesture can't replay it from
-    // the browser's back-forward cache. `location.href = "/"` kept
-    // the previous page in the history stack, which on iOS Safari
-    // restored the authed DOM on swipe-back.
-    window.location.replace("/login");
-  }, [supabase, setProfile, setIsAdmin]);
+  }, [supabase]);
 
   const refreshProfile = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
