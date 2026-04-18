@@ -71,8 +71,8 @@ const raw = {
 const parsed = schema.safeParse(raw);
 
 if (!parsed.success) {
-  // Fail in a shape that's legible in Vercel build logs: one line per
-  // broken key with the validation message. Better than Zod's default
+  // Fail in a shape that's legible in build logs: one line per broken
+  // key with the validation message. Better than Zod's default
   // stringify which buries the signal in a nested tree.
   const issues = parsed.error.issues
     .map((i) => `  • ${i.path.join(".")}: ${i.message}`)
