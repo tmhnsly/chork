@@ -120,8 +120,12 @@
   width: 5rem;
   height: 5rem;
   border-radius: var(--radius-full);
-  background: var(--accent-subtle-bg);
-  color: var(--accent-text);
+  // Brand lime (step 9 — `--accent-solid`). The checkmark is
+  // `--accent-on-solid` (the paired-for-contrast text colour Radix
+  // publishes alongside the solid fill) so contrast hits AA on
+  // the bright lime without a manual hex.
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
   // Gentle entrance so the icon doesn't slam in after form submit —
   // respects `prefers-reduced-motion` via the no-animation media
   // override at the bottom of this block.
@@ -146,12 +150,19 @@
 }
 
 // Inline emphasis for the actual email address inside the body copy.
-// Stepping the contrast up so the address visually anchors the line
-// the user is scanning for.
+// `inline-block` keeps the address unbreakable — if it doesn't fit
+// on the current line it drops as a single unit to the next line,
+// instead of splitting mid-domain (`hello@` / `tomhinsley.com` on
+// narrow viewports was unreadable). `max-width: 100%` guards the
+// pathological case of an email longer than the column width;
+// `overflow-wrap: anywhere` then lets it soft-break as a last
+// resort so the layout can't be blown out horizontally.
 .confirmEmail {
+  display: inline-block;
+  max-width: 100%;
   color: var(--mono-text);
   font-weight: var(--weight-semibold);
-  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 // Primary action. Styled like the main submit button but as an

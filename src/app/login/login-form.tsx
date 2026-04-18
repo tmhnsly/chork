@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useEffect, useRef } from "react";
+import { useActionState, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { FaCircleCheck, FaArrowUpRightFromSquare } from "react-icons/fa6";
 import { useAuth } from "@/lib/auth-context";
@@ -82,17 +82,19 @@ export function LoginForm() {
 
   // Snapshot the email at submit-time so the "check your inbox"
   // screen shows the right address even if the user keeps typing
-  // into the input after the action resolves. Updating it in
-  // `handleClientValidate` avoids a useEffect-setState-from-props
-  // pattern (which the set-state-in-effect rule flags).
-  const submittedEmailRef = useRef("");
+  // into the input after the action resolves. Stored as state
+  // (not a ref) because the value is read during render and
+  // `react-hooks/refs` forbids reading `.current` there. Updating
+  // it inside the submit handler is a user-event setState, which
+  // is fine — no set-state-in-effect violation either.
+  const [submittedEmail, setSubmittedEmail] = useState("");
 
   // Derived: we're in the "waiting for email confirmation" state if
   // signUp succeeded AND didn't give us a `next` (auto-confirm path).
   // Derived, not stored, so there's nothing to invalidate when the
   // action state changes — the view flips naturally on the next render.
   const confirmPendingEmail =
-    signUpState?.success && !signUpState.next ? submittedEmailRef.current : null;
+    signUpState?.success && !signUpState.next ? submittedEmail : null;
 
   // Server-returned field errors — derived at render so state stays
   // out of the loop (no useEffect + setState sync to the server
@@ -214,7 +216,7 @@ export function LoginForm() {
     // Capture the email at submit-time so the confirmation view
     // shows the right address even if the user edits the input
     // field after the action resolves.
-    submittedEmailRef.current = email.trim();
+    setSubmittedEmail(email.trim());
   }
 
   // Render the "check your inbox" view whenever we're waiting on
