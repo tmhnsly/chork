@@ -112,6 +112,13 @@
   font-size: var(--text-xs);
 }
 
+// Trailing icon on the "Join jam" CTA — pushes to the right edge
+// of the button while the label keeps its natural flow width.
+.ctaIcon {
+  margin-left: auto;
+  display: inline-flex;
+}
+
 // ── QR scanner ────────────────────────────────────
 .scannerFrame {
   @include layout.stack(var(--space-2));

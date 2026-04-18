@@ -3,7 +3,7 @@ import { shimmerStyles, Legend } from "@/components/ui";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { RingStatsRow } from "@/components/RingStatsRow/RingStatsRow";
 import { RouteChart } from "@/components/RouteChart/RouteChart";
-import { SendGridTile } from "@/components/SendGridTile/SendGridTile";
+import { SendGridTile } from "@/components/ui/SendGridTile/SendGridTile";
 import styles from "./sendsGrid.module.scss";
 
 const PLACEHOLDER_COUNT = 14;

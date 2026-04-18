@@ -70,40 +70,49 @@
 }
 
 // ── Title bar ─────────────────────────────────────
-// Sticky inside the scrollable content. Backdrop blur on the
-// `::before` pseudo-element so Chromium's "sticky + backdrop-filter"
-// bug doesn't drop the blur.
+// Sticky inside the scrollable content. Plain semi-transparent
+// background — deliberately no backdrop-filter. Firefox repaints
+// the whole blur region on every scroll frame and that made the
+// sheet noticeably laggy when scrolling a long list under the bar;
+// a flat translucent fill gets us "clearly separate from the
+// content, slightly see-through" without any per-frame cost.
+//
+// Layout is a two-row stack:
+//   • `.titleRow`  — title + close button, always rendered.
+//   • `.subheader` — optional secondary row (filter pills, tabs)
+//                    rendered by the consumer via the `subheader`
+//                    prop. Stacks below the title row and rides the
+//                    same sticky chrome.
 .titleBar {
   position: sticky;
   top: 0;
   z-index: 1;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   gap: var(--space-3);
   padding: var(--space-4) var(--gutter-x);
   border-bottom: 1px solid var(--mono-border-subtle);
-  background: color-mix(in srgb, var(--mono-subtle-bg) 85%, transparent);
-
-  &::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: -1;
-    background: color-mix(in srgb, var(--mono-subtle-bg) 55%, transparent);
-    -webkit-backdrop-filter: saturate(180%) blur(20px);
-    backdrop-filter: saturate(180%) blur(20px);
-    border-bottom: 1px solid var(--mono-border-subtle);
-  }
+  // Opaque fill — content scrolling under the sticky bar is
+  // cleanly hidden, no per-frame repaint cost, no Firefox blur
+  // regression. The bar reads as a solid chrome strip above the
+  // scrolling body below.
+  background: var(--mono-subtle-bg);
 }
 
-@supports (
-  (-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))
-) {
-  .titleBar {
-    background: transparent;
-  }
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.subheader {
+  // The subheader row sits flush under the title row — no inset
+  // padding because the titleBar already pads the full chrome. The
+  // min-height keeps short content (e.g. a single tag) from looking
+  // stubbed; tall content (wrapped pills) grows naturally.
+  display: block;
+  min-width: 0;
 }
 
 .title {

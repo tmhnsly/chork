@@ -9,7 +9,7 @@
 // from the migrations, the compile errors land here, not scattered
 // across every call site.
 
-export type JamGradingScale = "v" | "font" | "custom";
+export type JamGradingScale = "v" | "font" | "custom" | "points";
 export type JamStatus = "live" | "ended";
 
 export interface Jam {

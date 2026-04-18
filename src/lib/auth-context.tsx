@@ -15,6 +15,8 @@ import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "./supabase/client";
 import { showToast } from "@/components/ui";
 import { signOutAction } from "@/app/login/actions";
+import { removePushSubscription } from "@/app/(app)/actions";
+import { unsubscribeDevice } from "./push/client";
 import { DEFAULT_THEME, setThemeStore } from "./theme-store";
 import { mutationQueue } from "./offline/mutation-queue";
 import type { Profile } from "./data/types";
@@ -342,13 +344,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     // Capture the outgoing user's id BEFORE the signOut clears state
     // so we can wipe their queued offline mutations as part of the
-    // teardown. Ignore failures — the queue's per-flush userId check
-    // is the authoritative gate; this is just the housekeeping pass.
+    // teardown.
     const outgoingUserId = profileRef.current?.id;
-    // Server action clears the Supabase cookies via Set-Cookie on its
-    // response — by the time we navigate, the browser's cookie jar is
-    // already empty so the next request hits the server as anon.
-    // Doing this client-side raced the cookie clear: the navigation
+
+    // ── Push teardown FIRST (while we still have a valid session) ──
+    // Web-push subscription lives at the (device × browser) layer and
+    // will keep delivering A's notifications to this device if we
+    // don't unsubscribe + delete the DB row. Call the server action
+    // NOW — before `signOutAction` clears cookies — so the row
+    // eviction runs under A's auth. Both calls tolerate "no
+    // subscription" so fresh signups + unsupported browsers no-op.
+    try {
+      const { endpoint } = await unsubscribeDevice();
+      if (endpoint) {
+        await removePushSubscription(endpoint);
+      }
+    } catch {
+      // Non-fatal — signout continues even if push cleanup blips.
+    }
+
+    // ── Close any open realtime channels ──
+    // `useJamRealtime` (and any future subscribers) hold WebSocket
+    // channels authed against the current JWT. Leaving them open
+    // across signout leaks events to whatever component mounted them
+    // until React unmounts it — on shared devices that's a
+    // cross-user data bleed.
+    try {
+      await supabase.removeAllChannels();
+    } catch {
+      // Best effort; the JWT invalidation below closes the socket
+      // regardless.
+    }
+
+    // ── Flip the server session ──
+    // Server action clears Supabase cookies via Set-Cookie on its
+    // response — by the time we navigate, the browser's cookie jar
+    // is empty so the next request hits the server as anon. Doing
+    // this client-side raced the cookie clear: the navigation
     // sometimes reached the server with stale auth cookies, middleware
     // passed the user through, and the page rendered signed-in (the
     // "had to hard refresh to log out" bug).
@@ -357,12 +389,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       showToast(result.error, "error");
       return;
     }
+
+    // ── Offline queue — await, do NOT fire-and-forget ──
+    // Previously this was backgrounded; a fast re-signin could start
+    // user B's flush pass before A's queued mutations drained, and
+    // the queue's own per-flush userId filter would then replay
+    // nothing (safe) — but any edge case where the clear failed
+    // silently left mutations dangling. Awaiting it makes the
+    // signout flow deterministic.
     if (outgoingUserId) {
-      // Fire-and-forget — blocking the signout UX on an IndexedDB
-      // transaction isn't worth it, and the flush-time filter catches
-      // anything that slips through.
-      void mutationQueue.clearForUser(outgoingUserId).catch(() => {});
+      try {
+        await mutationQueue.clearForUser(outgoingUserId);
+      } catch {
+        // Non-fatal; flush-time filter still gates replays.
+      }
     }
+
     // Also run the browser client's signOut so its local session
     // storage is cleared in the same tick — the server action handles
     // cookies, but the browser SDK keeps its own in-memory session.
@@ -378,10 +420,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // profile loads. DEFAULT_THEME clears `<html data-theme>` and the
     // `chork-theme` localStorage entry.
     setThemeStore(DEFAULT_THEME);
+    // Tell the Service Worker to flush every named cache. Without
+    // this, `sw.js` would serve the pre-signout app shell (and any
+    // other cached HTML that pre-dates the tightened cache-scope
+    // rules) after navigation. See `public/sw.js` — the message
+    // handler runs `caches.keys() → caches.delete(...)` on every
+    // entry. Fire-and-forget; the SW owns the completion.
+    if (
+      typeof navigator !== "undefined" &&
+      navigator.serviceWorker?.controller
+    ) {
+      navigator.serviceWorker.controller.postMessage({ type: "clear-cache" });
+    }
     showToast("Signed out", "info");
-    // Hard navigation — same as signIn. router.push + refresh
-    // doesn't reliably bust the RSC cache or update middleware state.
-    window.location.href = "/";
+    // Hard navigate to `/login` via `replace` so the signed-in URL
+    // vanishes from history — a back-gesture can't replay it from
+    // the browser's back-forward cache. `location.href = "/"` kept
+    // the previous page in the history stack, which on iOS Safari
+    // restored the authed DOM on swipe-back.
+    window.location.replace("/login");
   }, [supabase, setProfile, setIsAdmin]);
 
   const refreshProfile = useCallback(async () => {

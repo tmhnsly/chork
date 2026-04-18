@@ -4,7 +4,6 @@
 
 .page {
   @include layout.page;
-  @include layout.stack(var(--space-4));
 }
 
 // Back-link pill sits above the crew title — small, unobtrusive,

@@ -1,9 +1,7 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
 
-.body {
-  @include layout.stack(var(--space-5));
-}
+// Body rhythm comes from the `<SheetBody>` primitive.
 
 // ── Header ────────────────────────────────────────
 .header {

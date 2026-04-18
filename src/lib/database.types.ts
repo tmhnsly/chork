@@ -1512,6 +1512,17 @@ export type Database = {
           player_count: number
         }[]
       }
+      get_active_jam_for_user_by_id: {
+        Args: { p_user_id: string }
+        Returns: {
+          code: string
+          jam_id: string
+          joined_at: string
+          location: string
+          name: string
+          player_count: number
+        }[]
+      }
       get_all_time_overview: {
         Args: { p_gym_id: string }
         Returns: {
@@ -1706,6 +1717,10 @@ export type Database = {
         }[]
       }
       get_jam_state: { Args: { p_jam_id: string }; Returns: Json }
+      get_jam_state_for_user: {
+        Args: { p_jam_id: string; p_user_id: string }
+        Returns: Json
+      }
       get_jam_summary: { Args: { p_summary_id: string }; Returns: Json }
       get_leaderboard_all_time: {
         Args: { p_gym_id: string; p_limit?: number; p_offset?: number }

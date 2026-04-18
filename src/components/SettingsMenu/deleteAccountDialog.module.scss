@@ -25,6 +25,4 @@
   }
 }
 
-.actions {
-  @include layout.stack(var(--space-2));
-}
+// Button row now comes from the `<SheetActions>` primitive.

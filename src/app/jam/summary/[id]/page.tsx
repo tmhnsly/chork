@@ -73,8 +73,11 @@ export default async function JamSummaryPage({ params, searchParams }: Props) {
           Final board
         </h2>
         <ol className={styles.playerList}>
-          {players.map((p) => (
-            <li key={`${p.rank}-${p.username}`} className={styles.playerRow}>
+          {players.map((p, i) => (
+            <li
+              key={p.user_id ?? `deleted-${p.rank}-${i}`}
+              className={styles.playerRow}
+            >
               <span className={styles.playerRank}>#{p.rank}</span>
               <UserAvatar
                 user={{

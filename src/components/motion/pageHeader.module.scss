@@ -6,7 +6,7 @@
 // content width via `cqi` units, matching the profile header's
 // responsive username.
 .header {
-  @include layout.stack(var(--space-1));
+  @include layout.stack(var(--space-2));
   container-type: inline-size;
 }
 

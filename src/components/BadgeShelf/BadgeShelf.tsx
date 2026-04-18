@@ -2,10 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { FaLock } from "react-icons/fa6";
-import type { BadgeStatus, BadgeCategory, BadgeIcon } from "@/lib/badges";
+import type { BadgeStatus } from "@/lib/badges";
+import { badgeFamily } from "@/lib/badges";
 import { ICON_MAP } from "@/lib/badge-icons";
 import { AchievementDetailSheet } from "@/components/Achievements/AchievementDetailSheet";
 import { BrandDivider } from "@/components/ui/BrandDivider";
+import { HorizontalScroller } from "@/components/ui/HorizontalScroller";
 import styles from "./badgeShelf.module.scss";
 
 // ICON_MAP re-exported so existing imports from BadgeShelf keep
@@ -13,21 +15,6 @@ import styles from "./badgeShelf.module.scss";
 // lightweight surfaces (toasts) can render icons without pulling
 // in the shelf's full sheet/animation tree.
 export { ICON_MAP };
-
-/**
- * Badge → colour family for the *earned* circle. Flash achievements
- * use the amber flash scale so they read visually like the Flash
- * badge on a SendGridTile; zone achievements use the teal success scale
- * to match the zone badge; everything else uses the accent scale.
- *
- * In-progress slots render mono regardless of category so the shelf
- * doesn't falsely signal completion with a coloured (e.g. lime) ring.
- */
-function earnedFamily(badge: { category: BadgeCategory; icon: BadgeIcon }): "flash" | "success" | "accent" {
-  if (badge.category === "flashes") return "flash";
-  if (badge.icon === "flag") return "success";
-  return "accent";
-}
 
 interface Props {
   badges: BadgeStatus[];
@@ -120,7 +107,11 @@ export function BadgeShelf({ badges, onSeeAll }: Props) {
         )}
       </header>
 
-      <div className={styles.grid}>
+      <HorizontalScroller
+        ariaLabel="Achievements"
+        className={styles.grid}
+        edgeFade
+      >
         {visible.map((b) => {
           const isSecret = b.badge.isSecret && !b.earned;
           const Icon = isSecret ? FaLock : ICON_MAP[b.badge.icon];
@@ -137,13 +128,13 @@ export function BadgeShelf({ badges, onSeeAll }: Props) {
           let state: "earned" | "progress" | "muted" = "muted";
           if (b.earned) state = "earned";
           else if (!isSecret && b.badge.kind === "progress") state = "progress";
-          // Family drives both the earned tint and the in-progress
-          // ring colour, so a climber sees the same colour signal
-          // whether the badge is 60% earned or 100%.
-          const family =
-            state === "earned" || state === "progress"
-              ? earnedFamily(b.badge)
-              : null;
+          // Family drives the earned tint and the progress-ring
+          // colour only. In-progress slots keep a mono circle so
+          // they don't falsely signal completion — the coloured
+          // ring is the sole "you're working on this" hint.
+          const family = state === "earned" ? badgeFamily(b.badge) : null;
+          const ringFamily =
+            state === "progress" ? badgeFamily(b.badge) : null;
           const progress =
             state === "progress" && !b.earned && b.progress !== null
               ? b.progress
@@ -161,7 +152,7 @@ export function BadgeShelf({ badges, onSeeAll }: Props) {
                 {progress !== null && (
                   <ProgressRing
                     progress={progress}
-                    family={family ?? "accent"}
+                    family={ringFamily ?? "accent"}
                   />
                 )}
                 <Icon />
@@ -182,7 +173,7 @@ export function BadgeShelf({ badges, onSeeAll }: Props) {
             <span className={styles.name}>More</span>
           </button>
         )}
-      </div>
+      </HorizontalScroller>
 
       {openBadge && (
         <AchievementDetailSheet

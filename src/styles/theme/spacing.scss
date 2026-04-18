@@ -20,7 +20,8 @@
   --space-24: 6rem;
 
   // ── Component sizes ─────────────────────────────
-  --size-touch-target: 2.75rem;   // 44px
+  --size-touch-target: 2.75rem;   // 44px — WAI minimum
+  --size-fab: 3.5rem;             // 56px — floating action button (Material spec)
   --size-avatar-sm: 1.5rem;       // 24px
   --size-avatar-md: 2.25rem;      // 36px
   --size-avatar-lg: 6rem;         // 96px
@@ -45,6 +46,12 @@
   --navbar-height: 4rem;
   --stack-gap: var(--space-6);
   --cluster-gap: var(--space-3);
+
+  // Vertical rhythm between a page's top-level sections. Consumed
+  // via `layout.stack(var(--page-stack-gap))` so every in-app page
+  // — leaderboard, crew, jam, competitions — shares the same
+  // breathing room and doesn't individually pick a space step.
+  --page-stack-gap: var(--space-7);
 }
 
 // ── Tablet (≥768px) ───────────────────────────────

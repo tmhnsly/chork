@@ -16,6 +16,15 @@ interface Props {
   title: string;
   /** Accessible description — used for screen readers only. */
   description?: string;
+  /**
+   * Optional secondary row rendered directly under the title inside
+   * the sticky chrome — filter pills, segmented tabs, meta strips.
+   * Anything put here stays pinned at the top of the sheet as the
+   * body scrolls underneath, so the user can re-select filters
+   * without scrolling back up. Pair with `<TabPills layout="wrap">`
+   * so the row has a solid structure instead of a horizontal scroll.
+   */
+  subheader?: ReactNode;
   /** Prevent closing when clicking outside (default: false). */
   disableOutsideClose?: boolean;
   /**
@@ -46,6 +55,7 @@ export function BottomSheet({
   onClose,
   title,
   description,
+  subheader,
   disableOutsideClose = false,
   size = "default",
   children,
@@ -79,15 +89,18 @@ export function BottomSheet({
           </VisuallyHidden.Root>
 
           <header className={styles.titleBar}>
-            <Dialog.Title className={styles.title}>{title}</Dialog.Title>
-            <button
-              type="button"
-              className={styles.closeBtn}
-              onClick={onClose}
-              aria-label="Close"
-            >
-              <FaXmark />
-            </button>
+            <div className={styles.titleRow}>
+              <Dialog.Title className={styles.title}>{title}</Dialog.Title>
+              <button
+                type="button"
+                className={styles.closeBtn}
+                onClick={onClose}
+                aria-label="Close"
+              >
+                <FaXmark />
+              </button>
+            </div>
+            {subheader && <div className={styles.subheader}>{subheader}</div>}
           </header>
 
           <div className={styles.body}>{children}</div>

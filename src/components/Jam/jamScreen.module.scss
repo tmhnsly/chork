@@ -74,6 +74,10 @@
   }
 }
 
+// Leaderboard strip — 5 rows, each rendered by the shared
+// `<LeaderboardRow>` primitive (ui/LeaderboardRow). This file only
+// owns the list container + the optional "zone count" trailing
+// glyph slot the jam passes in via the primitive's `trailing` prop.
 .leaderboardStrip {
   @include layout.stack(var(--space-1));
   padding: var(--space-3) var(--gutter-x);
@@ -81,63 +85,26 @@
   max-width: var(--content-app);
   width: 100%;
   border-radius: var(--radius-3);
+  list-style: none;
 }
 
-.leaderRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-2);
-  background: var(--mono-subtle-bg);
-
-  &:first-child {
-    background: var(--accent-subtle-bg);
-    border: 1px solid var(--accent-border);
-  }
-}
-
-.rank {
-  @include type.typography(number);
-  font-style: italic;
-  font-size: var(--text-lg);
-  color: var(--mono-text);
-  min-width: 2rem;
-}
-
-.username {
-  @include type.typography(body);
-  flex: 1;
-  color: var(--mono-text);
-  font-size: var(--text-sm);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.points {
+// Trailing count (passed via `LeaderboardRow`'s `trailing` slot)
+// showing the zone bonuses a jam player has claimed. Mirrors the
+// flash count's visual treatment but in teal to signal zones.
+.zoneCount {
   display: inline-flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-1);
   @include type.typography(meta);
-  color: var(--mono-text-low-contrast);
-  font-size: var(--text-xs);
-
-  strong {
-    @include type.typography(number);
-    font-style: italic;
-    font-size: var(--text-lg);
-    color: var(--accent-text);
-    margin-left: var(--space-2);
-  }
+  color: var(--success-text-low-contrast);
 }
 
 .floatingAdd {
   position: fixed;
   right: var(--gutter-x);
   bottom: calc(var(--navbar-height) + env(safe-area-inset-bottom, 0px) + var(--space-4));
-  width: 3.5rem;
-  height: 3.5rem;
+  width: var(--size-fab);
+  height: var(--size-fab);
   border-radius: var(--radius-full);
   border: none;
   background: var(--accent-solid);

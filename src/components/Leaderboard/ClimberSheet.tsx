@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FaBolt, FaFlag, FaUser } from "react-icons/fa6";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { Button, UserAvatar } from "@/components/ui";
-import { SendGridTile } from "@/components/SendGridTile/SendGridTile";
+import { Button, SheetBody, UserAvatar } from "@/components/ui";
+import { SendGridTile } from "@/components/ui/SendGridTile/SendGridTile";
 import type { LeaderboardEntry, Route, TileState } from "@/lib/data";
 import { formatGrade } from "@/lib/data/grade-label";
 import { fetchClimberSheetLogs, type SanitisedLog } from "@/app/leaderboard/actions";
@@ -95,7 +95,7 @@ export function ClimberSheet({ entry, setId, routes, onClose }: Props) {
       title={setId ? "Current Set" : "All Time"}
       description={`Climber stats for @${entry.username}`}
     >
-      <div className={styles.body}>
+      <SheetBody gap={5}>
         {/* Identity */}
         <header className={styles.header}>
           <UserAvatar user={toAvatarUser(entry)} size={72} />
@@ -156,7 +156,7 @@ export function ClimberSheet({ entry, setId, routes, onClose }: Props) {
             <FaUser aria-hidden="true" /> View full profile
           </Button>
         </Link>
-      </div>
+      </SheetBody>
     </BottomSheet>
   );
 }

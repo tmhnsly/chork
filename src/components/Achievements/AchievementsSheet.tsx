@@ -4,9 +4,10 @@ import { useMemo, useState } from "react";
 import { FaCheck, FaLock } from "react-icons/fa6";
 import { format, parseISO } from "date-fns";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { TabPills, type TabPillOption } from "@/components/ui";
+import { SheetBody, TabPills, type TabPillOption } from "@/components/ui";
 import { ICON_MAP } from "@/components/BadgeShelf/BadgeShelf";
 import type { BadgeStatus, BadgeCategory } from "@/lib/badges";
+import { badgeFamily } from "@/lib/badges";
 import styles from "./achievementsSheet.module.scss";
 
 interface Props {
@@ -24,11 +25,17 @@ interface Props {
 // the pills in sync with the catalogue.
 type Filter = "earned" | "all" | BadgeCategory;
 
+// Ordered list of every filter pill. Every BadgeCategory in
+// `src/lib/badges.ts` needs a row here — the memoiser below
+// turns this into the visible tablist and leaves empty categories
+// disabled rather than hidden so the row's column count stays
+// stable across sessions.
 const ALL_FILTERS: { id: Filter; label: string }[] = [
   { id: "earned", label: "Earned" },
   { id: "all", label: "All" },
   { id: "sends", label: "Sends" },
   { id: "flashes", label: "Flashes" },
+  { id: "jams", label: "Jams" },
 ];
 
 export function AchievementsSheet({ badges, open, onClose }: Props) {
@@ -81,15 +88,17 @@ export function AchievementsSheet({ badges, open, onClose }: Props) {
       onClose={onClose}
       title="Achievements"
       description="All achievements and your progress"
-    >
-      <div className={styles.body}>
+      subheader={
         <TabPills
           options={filterOptions}
           value={filter}
           onChange={setFilter}
           ariaLabel="Filter achievements"
+          layout="wrap"
         />
-
+      }
+    >
+      <SheetBody>
         {/* Rows are informational only — no detail sheet. Earned
             date + tick on the right, name / description / progress
             inline on the left. */}
@@ -101,9 +110,23 @@ export function AchievementsSheet({ badges, open, onClose }: Props) {
             const description = hidden
               ? "Keep climbing to discover this one."
               : b.badge.description;
+            // Earned rows carry a family class (accent / flash /
+            // success) so the icon tint + tick background match the
+            // badge's category — flashes read amber, zones teal, etc.
+            // In-progress rows stay mono apart from the progress bar,
+            // which uses the family colour as its fill. Locked / secret
+            // rows have no family (neutral mono treatment).
+            const family =
+              b.earned || (!hidden && b.badge.kind === "progress")
+                ? badgeFamily(b.badge)
+                : null;
+            const familyClass = family ? styles[`row--${family}`] : "";
 
             return (
-              <li key={b.badge.id} className={styles.row}>
+              <li
+                key={b.badge.id}
+                className={`${styles.row} ${familyClass}`}
+              >
                 <span className={`${styles.rowIcon} ${b.earned ? styles.rowIconEarned : ""}`}>
                   <Icon />
                 </span>
@@ -142,7 +165,7 @@ export function AchievementsSheet({ badges, open, onClose }: Props) {
             );
           })}
         </ul>
-      </div>
+      </SheetBody>
     </BottomSheet>
   );
 }

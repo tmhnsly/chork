@@ -23,14 +23,35 @@ export default defineConfig({
   },
   test: {
     projects: [
-      // Unit + integration tests (Node environment, fast)
+      // Unit tests (Node environment, fast). Integration tests live
+      // in a separate project (below) so the default `pnpm test` run
+      // stays offline and doesn't require Supabase creds.
       {
         extends: true,
         test: {
           name: 'unit',
           include: ['src/**/*.test.ts'],
+          exclude: [
+            'node_modules/**',
+            'src/**/*.integration.test.ts',
+          ],
           environment: 'node',
           setupFiles: ['src/test/setup.ts'],
+        },
+      },
+      // Integration tests — hit the real Supabase instance. Each
+      // file self-skips when SUPABASE_SERVICE_ROLE_KEY isn't set, so
+      // running this project in a fork / CI without credentials is
+      // a silent no-op rather than a hard failure.
+      {
+        extends: true,
+        test: {
+          name: 'integration',
+          include: ['src/**/*.integration.test.ts'],
+          environment: 'node',
+          setupFiles: ['src/test/integration/env-setup.ts'],
+          testTimeout: 30_000,
+          hookTimeout: 30_000,
         },
       },
       // Storybook component tests (browser via Playwright)

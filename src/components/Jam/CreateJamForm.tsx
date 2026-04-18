@@ -7,6 +7,7 @@ import { Button, showToast } from "@/components/ui";
 import { gradeLabels } from "@/lib/data/grade-label";
 import type { JamGradingScale, SavedScale } from "@/lib/data/jam-types";
 import { createJamAction } from "@/app/jam/actions";
+import { JAM_SCALE_LABEL } from "./jam-scale-label";
 import styles from "./createJamForm.module.scss";
 
 interface Props {
@@ -40,8 +41,9 @@ export function CreateJamForm({ savedScales }: Props) {
 
   const canSubmit = useMemo(() => {
     if (pending) return false;
-    if (scale === "v" || scale === "font") return true;
-    return customGrades.length > 0;
+    if (scale === "custom") return customGrades.length > 0;
+    // v / font / points — no extra validation beyond the picker.
+    return true;
   }, [pending, scale, customGrades.length]);
 
   function addCustomGrade() {
@@ -131,7 +133,7 @@ export function CreateJamForm({ savedScales }: Props) {
       <fieldset className={styles.fieldset}>
         <legend className={styles.label}>Grading scale</legend>
         <div className={styles.scaleTabs} role="radiogroup">
-          {(["v", "font", "custom"] as const).map((tab) => (
+          {(["v", "font", "custom", "points"] as const).map((tab) => (
             <button
               key={tab}
               type="button"
@@ -140,10 +142,16 @@ export function CreateJamForm({ savedScales }: Props) {
               className={`${styles.scaleTab} ${scale === tab ? styles.scaleTabActive : ""}`}
               onClick={() => setScale(tab)}
             >
-              {tab === "v" ? "V-scale" : tab === "font" ? "Font" : "Custom"}
+              {JAM_SCALE_LABEL[tab]}
             </button>
           ))}
         </div>
+        {scale === "points" && (
+          <p className={styles.scaleHint}>
+            No grades — every route is ungraded and the leaderboard ranks
+            purely by points from attempts + zones.
+          </p>
+        )}
       </fieldset>
 
       {scale === "v" && (

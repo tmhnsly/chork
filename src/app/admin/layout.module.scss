@@ -7,5 +7,4 @@
 // consistent visual system.
 .shell {
   @include layout.page;
-  @include layout.stack(var(--space-5));
 }

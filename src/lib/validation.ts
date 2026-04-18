@@ -10,6 +10,13 @@ export const USERNAME_RE = /^[a-z0-9_]{3,24}$/;
  */
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * Jam code format — six chars from a Crockford-ish alphabet (no I, O,
+ * 0, 1) to avoid lookalike confusion on physical sign-in. Matches the
+ * `generate_jam_code` helper in migration 041.
+ */
+export const JAM_CODE_RE = /^[A-HJ-NP-Z2-9]{6}$/;
+
 /** Convenience: returns true if the input is a well-formed UUID. */
 export function isUuid(value: unknown): value is string {
   return typeof value === "string" && UUID_RE.test(value);

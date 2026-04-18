@@ -1,13 +1,32 @@
 # Testing
 
-Vitest-based. Tests live next to the code they cover:
-`src/lib/foo.test.ts`, `src/app/crew/actions.test.ts` etc. Run:
+Vitest-based. Two projects split by what they need:
+
+- **unit** (`src/**/*.test.ts`) — pure TS, mocked Supabase. Fast,
+  offline, no secrets. This is `pnpm test`. Every commit should be
+  green here.
+- **integration** (`src/**/*.integration.test.ts`) — hits the real
+  Supabase project configured in `.env.local`. Provisions test
+  users + fixtures, asserts the RPC contract round-trips, cleans up.
+  Opt-in via `pnpm test:integration`; silently no-ops in forks /
+  CI that don't have `SUPABASE_SERVICE_ROLE_KEY`.
+
+Run:
 
 ```bash
-pnpm test --run         # single run (CI)
-pnpm test               # watch mode
-pnpm test --run crew    # filter by filename substring
+pnpm test                 # unit project
+pnpm test:watch           # unit, watch mode
+pnpm test --run crew      # filter by filename substring
+pnpm test:integration     # integration project (hits real DB)
+pnpm test:all             # unit + integration in sequence
 ```
+
+The integration project exists specifically to catch the class of
+bug that mocked unit tests can't: SQL that compiles locally but
+errors at runtime (missing columns, `search_path` resolution, RLS
+under unexpected role contexts, jsonb shape drift). See
+`src/test/integration/` for the harness + the pattern for
+expanding it.
 
 ---
 

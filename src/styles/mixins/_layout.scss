@@ -21,13 +21,25 @@
 // bottom padding, max-width, and centering. Pick the one that matches
 // the page's content type.
 
-// Shared base — all pages get this
+// Shared base — all pages get this.
+// Top padding is generous enough to clear the notch + give the page
+// title room to breathe; bottom padding clears the nav bar + home
+// indicator and leaves a trailing gutter so the last section isn't
+// flush with the chrome.
+//
+// Also applies the canonical vertical rhythm between sections via
+// `--page-stack-gap`. Pages that want a different gap can still call
+// `@include layout.stack(...)` themselves — the explicit invocation
+// overrides the default, so existing pages keep their chosen value.
 @mixin _page-base {
   min-height: 100vh;
   min-height: 100dvh;
-  padding: calc(var(--space-8) + env(safe-area-inset-top, 0px)) var(--gutter-x);
-  padding-bottom: calc(var(--navbar-height) + env(safe-area-inset-bottom, 0px) + var(--space-8));
+  padding: calc(var(--space-10) + env(safe-area-inset-top, 0px)) var(--gutter-x);
+  padding-bottom: calc(var(--navbar-height) + env(safe-area-inset-bottom, 0px) + var(--space-10));
   margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--page-stack-gap);
 }
 
 // App pages — send grid, profile, leaderboard.

@@ -58,6 +58,13 @@
   box-shadow: var(--shadow-sm);
 }
 
+.scaleHint {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-xs);
+  margin: 0;
+}
+
 .rangePicker {
   display: flex;
   gap: var(--space-3);

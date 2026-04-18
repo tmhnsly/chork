@@ -2,9 +2,7 @@
 @use "mixins/typography" as type;
 @use "mixins/surfaces" as surface;
 
-.body {
-  @include layout.stack(var(--space-4));
-}
+// Body rhythm comes from the `<SheetBody>` primitive.
 
 // ── Results list ──────────────────────────────────
 .list {

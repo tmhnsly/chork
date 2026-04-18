@@ -1,0 +1,71 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+
+// ── SheetBody ─────────────────────────────────────
+// Inner stack for a BottomSheet's content area. Uses a custom
+// property so the consumer can override the gap without losing
+// the trailing padding-bottom.
+.body {
+  --sheet-body-gap: var(--space-4);
+  @include layout.stack(var(--sheet-body-gap));
+  padding-bottom: var(--space-4);
+}
+
+// Opt-out of the trailing padding for sheets where the last child
+// already owns its bottom space (e.g. a list ending in a clickable
+// row with its own padding, or a scrolling container).
+.bodyFlush {
+  padding-bottom: 0;
+}
+
+// ── SheetActions ──────────────────────────────────
+// Button-row footer. Vertical stack by default — it's the most
+// touch-forgiving layout on mobile and handles any label length
+// without wrapping. Horizontal layout available for segmented
+// yes/no cases.
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.actionsHorizontal {
+  flex-direction: row;
+
+  // Each action shares the row width equally — matches the feel
+  // of a segmented "Cancel | Confirm" pair without a separator.
+  > * {
+    flex: 1;
+  }
+}
+
+// ── ConfirmInline ─────────────────────────────────
+// Prompt + two-button row. Lives inside a sheet or dialog; the
+// containing surface owns padding + title bar, this primitive
+// just draws the confirm copy and the action stack below it.
+.confirm {
+  @include layout.stack(var(--space-3));
+}
+
+.confirmPrompt {
+  @include type.typography(body);
+  color: var(--mono-text);
+  font-size: var(--text-sm);
+
+  // Most consumers pass a `<p>` with the confirmation copy — apply
+  // the body typography to its rendered children so the prompt
+  // inherits the same size/colour without needing a wrapper class
+  // per sheet.
+  p {
+    margin: 0;
+  }
+
+  p + p {
+    margin-top: var(--space-2);
+  }
+
+  strong {
+    color: var(--mono-text);
+    font-weight: var(--weight-semibold);
+  }
+}

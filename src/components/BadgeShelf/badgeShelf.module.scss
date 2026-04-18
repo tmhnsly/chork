@@ -49,36 +49,30 @@
 }
 
 // ── Shelf track ───────────────────────────────────
-// Breaks out of the profile page's centred column via the shared
-// `bleed-x` layout mixin so the scroller can run the full viewport
-// width — items no longer clip at the page's inner gutter when the
-// user swipes. The first/last item still align with body copy
-// because `bleed-x` restores an equivalent leading padding.
+// Scroll + bleed-out behaviour now lives in the shared
+// `HorizontalScroller` primitive (`src/components/ui/HorizontalScroller`).
+// This class is just a stable hook for any shelf-specific layout
+// overrides — intentionally left empty.
 .grid {
-  display: flex;
-  gap: var(--space-3);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  // `overflow-x: auto` forces `overflow-y` to auto too, which clips
-  // the slot's hover `translateY(-1px)` at the top. A small vertical
-  // padding absorbs the lift inside the scroller's viewport so the
-  // circle doesn't get shaved by its parent.
-  padding-block: var(--space-1);
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
+  // Intentionally empty — see block comment above.
 }
 
 // ── Slot (icon circle + name below) ───────────────
 // Each shelf entry is a tap target — circle on top, name below.
-// Slot width matches the "name" under it so the column reads as
-// one block rather than an icon floating above a wider label.
+//
+// The slot's flex box is wider than the circle (4.5 vs 3.5rem) so
+// the slot between two slots has enough gap for the name to wrap
+// nicely on longer labels like "THUNDER SHOCK". Circle + name are
+// both pinned to the slot's left edge — NOT centre-aligned — so
+// the circle's left edge IS the slot's left edge, and that drops
+// cleanly onto the page gutter via the scroller's track padding.
+// The name below matches the circle's width and text-aligns its
+// content internally, keeping the label visually centred under
+// the circle even though its flex box is flush-left.
 .slot {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-2);
   flex-shrink: 0;
   width: 4.5rem;
@@ -124,7 +118,12 @@
   overflow-wrap: anywhere;
   hyphens: auto;
   text-wrap: balance;
-  max-width: 100%;
+  // Match the circle's width so the text's natural centre lines up
+  // with the circle's centre above it. The slot's extra 1rem on the
+  // right is kept as dead space — it gives the name a bit of room
+  // to wrap without letting the text extend past the circle and
+  // look off-centre from the icon.
+  width: 3.5rem;
 }
 
 // Number-pair icon text ("1,2" etc.) — use the display typography
@@ -169,28 +168,16 @@
 }
 
 // ── In-progress quantifiable ──────────────────────
-// Mono circle wrapped in an accent progress ring. The SVG replaces
-// the circle's own border so the ring track sits exactly where the
-// badge edge used to be — no visual jump when a progress badge
-// finally earns and flips to the solid-border earned state.
-.slot--progress {
-  .circle {
-    border-color: transparent;
-  }
-}
-
-// Family-tinted icon inside the circle for in-progress badges so the
-// glyph matches its ring colour. Matches the earned-state colour for
-// each family one step down (text-low-contrast, not text) so the
-// earned tier still reads as the brighter one.
-.slot--progress.slot--accent .circle {
-  color: var(--accent-text-low-contrast);
-}
-.slot--progress.slot--flash .circle {
-  color: var(--flash-text-low-contrast);
-}
-.slot--progress.slot--success .circle {
-  color: var(--success-text-low-contrast);
+// Mono circle wrapped in a family-coloured progress ring. The icon
+// inside stays in the default mono palette so the slot doesn't
+// falsely signal completion — the coloured ring (driven by the
+// family prop on `<ProgressRing>`) is the sole "you're working on
+// this" hint. The SVG replaces the circle's own border so the ring
+// track sits exactly where the badge edge used to be — no visual
+// jump when a progress badge finally earns and flips to the solid-
+// border earned state.
+.slot--progress .circle {
+  border-color: transparent;
 }
 
 .progressRing {

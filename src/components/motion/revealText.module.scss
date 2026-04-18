@@ -1,71 +1,76 @@
 // Reveal text — word-by-word vertical mask reveal.
 //
-// History: this file has been the source of repeated "letters
-// getting clipped" bugs. The previous attempt used
-// `clip-path: inset(… -0.5em … -0.5em)` — a fixed 0.5em horizontal
-// breathing room. Outfit Bold italic at hero/display sizes overhangs
-// its line box by more than that on letters like K / k / T / Y, so
-// the right-hand strokes were getting shaved.
+// Uses `clip-path: inset(...)` on the outer `.wordClip` (not
+// `overflow`) so the mask is pixel-precise on iOS Safari, which has
+// a history of ignoring `overflow-clip-margin` and shaving italic
+// glyph overhang on letters like K / T / Y / y. `clip-path` is
+// well-supported on iOS 13+ and doesn't establish the horizontal
+// clipping that `overflow: hidden` would force on us.
 //
-// Layered defence in this version:
+// Animation model mirrors Framer Motion's canonical text reveal:
 //
-//   1. `.wordClip` uses `overflow: clip` (NOT hidden — `hidden` would
-//      establish a containing block and force the other axis's
-//      overflow to auto, which is the original bug). `overflow-clip-
-//      margin: 1em` extends the visible region 1em past each edge of
-//      the box so resting glyph overhang draws in full at any size.
+//   1. `.wordClip` clips only the TOP and BOTTOM of its paint box.
+//      Horizontal insets are negative so italic overhang extends
+//      freely left + right at any font-size.
 //
-//   2. `.word` carries a clip-path that animates the vertical reveal,
-//      with the horizontal insets locked at `-100%` (the clip
-//      rectangle extends a full element-width past each side). That
-//      means even mid-animation, glyph overhang has nowhere to be
-//      shaved.
-//
-// Either layer alone would protect against the most common case —
-// keeping both because external constraints (a parent with
-// overflow:hidden, a future text-overflow:ellipsis somewhere up the
-// tree) would re-introduce clipping if we relied on just `.word`'s
-// clip-path. Belt + braces.
+//   2. `.word` starts at `translateY(110%)` (a full line-height
+//      below the mask), animates to `translateY(0)` on the GPU
+//      via the shared `--ease-out-expo` curve. The 10% bonus
+//      beyond 100% hides sub-pixel fringes on some iOS devices
+//      where 100% leaves a hairline visible at the baseline.
 
 .wordClip {
   display: inline-block;
   vertical-align: bottom;
-  overflow: clip;
-  // 1em is comfortably more than any italic display font's overhang
-  // at any practical size. Scales with font-size automatically.
-  overflow-clip-margin: 1em;
+
+  // Mask only the vertical axis — horizontal insets are negative
+  // so the clip region extends past each side. Italic glyph
+  // overhang (Outfit Bold italic on Y / T / K) lives there and is
+  // never shaved.
+  //
+  // The `0.5em` horizontal negatives are expressed in em so the
+  // breathing room scales automatically with the wrapped font-size.
+  //
+  // The `0.15em` top/bottom negatives let descenders + ascenders
+  // breathe around their metrics box without ever reading as a
+  // visible "clip line" above or below the glyph while resting.
+  clip-path: inset(-0.15em -0.5em 0 -0.5em);
 }
 
 .word {
   display: inline-block;
-  // Vertical reveal: starts fully masked from below (bottom inset
-  // 100%), animates to fully shown (bottom inset -100% so the clip
-  // is effectively disabled). Horizontal insets at -100% throughout
-  // so the clip rectangle is two element-widths wide on each side
-  // — italic overhang has nowhere to clip, ever.
-  clip-path: inset(0 -100% 100% -100%);
-  // Small vertical lift so letters rise into the clip window as it
-  // opens — subtle, paired with the clip to read as a real reveal
-  // rather than a bottom-up wipe.
-  transform: translateY(30%);
-  animation:
-    revealClip 0.7s var(--ease-out-expo) forwards,
-    revealLift 0.7s var(--ease-out-expo) forwards;
-  animation-delay: calc(var(--delay, 0s) + var(--i, 0) * 0.05s);
+
+  // Start fully below the mask. 110% > 100% hides sub-pixel
+  // rendering fringes on iOS that occasionally show a 1px sliver
+  // of the glyph baseline at translateY(100%).
+  transform: translateY(110%);
+
+  animation: revealSlideUp var(--duration-hero) var(--ease-out-expo) forwards;
+  animation-delay: calc(var(--delay, 0s) + var(--i, 0) * 0.055s);
+
+  // Hint the compositor so the whole reveal lives on the GPU —
+  // smoother on low-end mobile and removes the occasional jank
+  // that showed up when a new tab scheduled a layout bump
+  // mid-animation.
+  will-change: transform;
+  backface-visibility: hidden;
+  transform-origin: bottom left;
 }
 
-@keyframes revealClip {
-  to { clip-path: inset(-100% -100% -100% -100%); }
-}
-
-@keyframes revealLift {
-  to { transform: translateY(0); }
+@keyframes revealSlideUp {
+  to {
+    transform: translateY(0);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .word {
     animation: none;
     transform: none;
+    will-change: auto;
+  }
+
+  .wordClip {
     clip-path: none;
   }
 }

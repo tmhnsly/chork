@@ -3,10 +3,20 @@
 // Bumping this name evicts the old cache on activate. Bump whenever
 // the SW logic or pre-cache shape changes so users get the new
 // behaviour on next visit.
-const CACHE_NAME = "chork-v3";
+const CACHE_NAME = "chork-v4";
 
-// App shell — cached on install for instant loads
-const SHELL_URLS = ["/", "/login", "/onboarding", "/leaderboard", "/privacy"];
+// App shell — public pages that are safe to cache + serve to any
+// user. Explicitly DOES NOT include authed surfaces (profile, wall,
+// board, jam, crew, admin) — those render per-user HTML that must
+// never be replayed from cache after signout. See `fetch` below.
+//
+// `/login` is NOT on the shell. Caching it and serving stale HTML
+// to an authed user would render the login form for a split second
+// before middleware's redirect-to-`/` arrives from the revalidation
+// fetch — confusing UX and a subtle signal that the session cookie
+// hadn't actually cleared yet. Logging-in is rare enough that a
+// plain network fetch is fine.
+const SHELL_URLS = ["/", "/privacy", "/terms", "/gyms"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -25,6 +35,19 @@ self.addEventListener("activate", (event) => {
     )
   );
   self.clients.claim();
+});
+
+// Signout flush channel — the signOut flow posts `{ type: "clear-cache" }`
+// via the registration's active controller before navigating. Wipes
+// every named cache so the post-signout shell + static assets get
+// re-fetched from the network instead of being re-served with a
+// previous session's shape baked in (avatars, nav hints, etc).
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "clear-cache") {
+    event.waitUntil(
+      caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))),
+    );
+  }
 });
 
 // ── Push notifications ──────────────────────────────────────────
@@ -98,16 +121,26 @@ self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET requests and Supabase API calls
+  // Skip non-GET requests and cross-origin calls (Supabase, CDNs).
   if (request.method !== "GET") return;
   if (url.hostname !== self.location.hostname) return;
 
-  // Stale-while-revalidate for HTML pages: paint cached shell
-  // *immediately* on cold open + refresh the cache in the background.
-  // The user sees an instant first paint, then the layout streams
-  // fresher RSC data when the network catches up. Falls back to
-  // network-first when no cached entry exists.
+  // ── HTML caching — STRICTLY the public shell ─────────────
+  // Authed pages (profile, wall, board, jam, crew, admin, /u/*)
+  // render per-user HTML that MUST NOT be replayed after signout
+  // or served to a different user on the same browser. Only the
+  // explicit `SHELL_URLS` allowlist goes through the stale-while-
+  // revalidate path; everything else HTML falls straight through
+  // to `return` below so the browser performs a normal network
+  // request, middleware runs, and the cookieless response is what
+  // the user actually sees.
   if (request.headers.get("accept")?.includes("text/html")) {
+    // Normalise trailing slash so "/login/" hits the same entry
+    // as "/login".
+    const path = url.pathname.replace(/\/$/, "") || "/";
+    if (!SHELL_URLS.includes(path)) {
+      return;
+    }
     event.respondWith(
       caches.open(CACHE_NAME).then(async (cache) => {
         const cached = await cache.match(request);
@@ -122,7 +155,6 @@ self.addEventListener("fetch", (event) => {
           })
           .catch(() => null);
         if (cached) {
-          // Kick off background refresh but don't wait on it.
           event.waitUntil(networkPromise);
           return cached;
         }

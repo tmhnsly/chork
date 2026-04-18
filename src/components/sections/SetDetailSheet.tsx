@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { SheetBody } from "@/components/ui";
 import { RingStatsRow } from "@/components/RingStatsRow/RingStatsRow";
 import { RouteChart } from "@/components/RouteChart/RouteChart";
 import { ICON_MAP as BADGE_ICONS } from "@/components/BadgeShelf/BadgeShelf";
@@ -48,7 +49,7 @@ export function SetDetailSheet({ set, userId, onClose }: Props) {
       title={set.label}
       description={`Stats for ${set.label}`}
     >
-      <div className={styles.body}>
+      <SheetBody gap={5}>
         <header className={styles.header}>
           <div className={styles.headerText}>
             <span className={styles.label}>{set.label}</span>
@@ -123,7 +124,7 @@ export function SetDetailSheet({ set, userId, onClose }: Props) {
             </ul>
           </section>
         )}
-      </div>
+      </SheetBody>
     </BottomSheet>
   );
 }

@@ -2,10 +2,7 @@
 @use "mixins/layout" as layout;
 @use "mixins/input" as input;
 
-.body {
-  @include layout.stack(var(--space-4));
-  padding-bottom: var(--space-4);
-}
+// Body rhythm comes from the `<SheetBody>` primitive.
 
 .field {
   display: flex;

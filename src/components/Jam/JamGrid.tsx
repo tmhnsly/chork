@@ -2,9 +2,10 @@
 
 import { useMemo } from "react";
 import { FaPlus } from "react-icons/fa6";
-import { SendGridTile } from "@/components/SendGridTile/SendGridTile";
+import { SendGridTile } from "@/components/ui/SendGridTile/SendGridTile";
 import { deriveTileState } from "@/lib/data/logs";
 import { formatGrade } from "@/lib/data/grade-label";
+import { useLongPressTap } from "@/lib/hooks/useLongPressTap";
 import type { JamRoute, JamLog, JamGradingScale } from "@/lib/data/jam-types";
 import styles from "./jamGrid.module.scss";
 
@@ -22,7 +23,8 @@ interface Props {
  * Send grid for a live jam. Mirrors the wall `SendsGrid` visual
  * language via `SendGridTile`. Trailing `+` tile lets any player add
  * another route at any time — the group self-polices. Tapping a
- * numbered tile opens the log sheet.
+ * numbered tile opens the log sheet; long-pressing opens the edit
+ * sheet (where route metadata is fixable).
  */
 export function JamGrid({
   routes,
@@ -31,6 +33,7 @@ export function JamGrid({
   gradingScale,
   onTileTap,
   onAddTap,
+  onTileLongPress,
 }: Props) {
   const gradeLabelByOrdinal = useMemo(() => {
     const map = new Map<number, string>();
@@ -45,11 +48,12 @@ export function JamGrid({
         const state = deriveTileState(log);
         const gradeLabel = resolveGradeLabel(route.grade, gradingScale, gradeLabelByOrdinal);
         return (
-          <button
+          <JamTileButton
             key={route.id}
-            type="button"
-            className={styles.tileButton}
-            onClick={() => onTileTap(route)}
+            onTap={() => onTileTap(route)}
+            onLongPress={
+              onTileLongPress ? () => onTileLongPress(route) : undefined
+            }
           >
             <SendGridTile
               number={route.number}
@@ -57,7 +61,7 @@ export function JamGrid({
               gradeLabel={gradeLabel ?? undefined}
               zone={route.has_zone || !!log?.zone}
             />
-          </button>
+          </JamTileButton>
         );
       })}
       <button
@@ -69,6 +73,23 @@ export function JamGrid({
         <FaPlus aria-hidden />
       </button>
     </div>
+  );
+}
+
+function JamTileButton({
+  onTap,
+  onLongPress,
+  children,
+}: {
+  onTap: () => void;
+  onLongPress?: () => void;
+  children: React.ReactNode;
+}) {
+  const handlers = useLongPressTap({ onTap, onLongPress });
+  return (
+    <button type="button" className={styles.tileButton} {...handlers}>
+      {children}
+    </button>
   );
 }
 

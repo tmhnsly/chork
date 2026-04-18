@@ -2,15 +2,14 @@
 
 import { useCallback, useMemo, useReducer, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FaPlus, FaEllipsisVertical, FaCrown, FaBolt, FaFlag } from "react-icons/fa6";
-import { showToast } from "@/components/ui";
+import { FaPlus, FaEllipsisVertical, FaFlag } from "react-icons/fa6";
+import { LeaderboardRow, showToast } from "@/components/ui";
 import { useJamRealtime } from "@/hooks/use-jam-realtime";
+import { computeJamLeaderboard } from "@/lib/data/jam-leaderboard";
 import type {
   JamState,
   JamRoute,
   JamLog,
-  JamPlayerView,
-  JamLeaderboardRow,
 } from "@/lib/data/jam-types";
 import {
   addJamRouteAction,
@@ -22,6 +21,7 @@ import { JamGrid } from "./JamGrid";
 import { JamLogSheet } from "./JamLogSheet";
 import { JamAddRouteSheet } from "./JamAddRouteSheet";
 import { JamMenuSheet } from "./JamMenuSheet";
+import { jamReducer, logKey, type JamLocalState } from "./jamScreenReducer";
 import styles from "./jamScreen.module.scss";
 
 interface Props {
@@ -29,71 +29,19 @@ interface Props {
   userId: string;
 }
 
-// Local state model. Realtime events patch this in place so the
-// screen paints optimistic-fast without re-fetching get_jam_state
-// on every tick. Truth-of-record is still the server — any
-// mismatch resolves on the next realtime event or page refresh.
-interface LocalState {
-  routes: JamRoute[];
-  players: JamPlayerView[];
-  // Logs keyed by (user_id, jam_route_id) for O(1) upserts.
-  logs: Map<string, JamLog>;
-}
-
-type Action =
-  | { type: "set-routes"; routes: JamRoute[] }
-  | { type: "upsert-route"; route: JamRoute }
-  | { type: "set-players"; players: JamPlayerView[] }
-  | { type: "upsert-log"; log: JamLog }
-  | { type: "remove-log"; userId: string; routeId: string };
-
-function logKey(userId: string, routeId: string) {
-  return `${userId}:${routeId}`;
-}
-
-function reducer(state: LocalState, action: Action): LocalState {
-  switch (action.type) {
-    case "set-routes":
-      return { ...state, routes: action.routes };
-    case "upsert-route": {
-      const existingIdx = state.routes.findIndex((r) => r.id === action.route.id);
-      const next =
-        existingIdx >= 0
-          ? state.routes.map((r) => (r.id === action.route.id ? action.route : r))
-          : [...state.routes, action.route];
-      next.sort((a, b) => a.number - b.number);
-      return { ...state, routes: next };
-    }
-    case "set-players":
-      return { ...state, players: action.players };
-    case "upsert-log": {
-      const logs = new Map(state.logs);
-      logs.set(logKey(action.log.user_id, action.log.jam_route_id), action.log);
-      return { ...state, logs };
-    }
-    case "remove-log": {
-      const logs = new Map(state.logs);
-      logs.delete(logKey(action.userId, action.routeId));
-      return { ...state, logs };
-    }
-    default:
-      return state;
-  }
-}
-
 export function JamScreen({ initialState, userId }: Props) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const [state, dispatch] = useReducer(
-    reducer,
+    jamReducer,
     {
       routes: initialState.routes,
       players: initialState.players,
       logs: new Map(
         initialState.my_logs.map((log) => [logKey(log.user_id, log.jam_route_id), log]),
       ),
-    } as LocalState,
+    } as JamLocalState,
   );
 
   const [activeRouteId, setActiveRouteId] = useState<string | null>(null);
@@ -110,7 +58,7 @@ export function JamScreen({ initialState, userId }: Props) {
         old: JamRoute;
       };
       if (evt.eventType === "DELETE") {
-        dispatch({ type: "set-routes", routes: state.routes.filter((r) => r.id !== evt.old.id) });
+        dispatch({ type: "remove-route", id: evt.old.id });
       } else {
         dispatch({ type: "upsert-route", route: evt.new });
       }
@@ -299,25 +247,38 @@ export function JamScreen({ initialState, userId }: Props) {
         </button>
       </header>
 
-      <section className={styles.leaderboardStrip} aria-label="Leaderboard">
-        {leaderboard.slice(0, 5).map((row) => (
-          <div key={row.user_id} className={styles.leaderRow}>
-            <span className={styles.rank}>
-              {row.rank === 1 ? <FaCrown aria-hidden /> : `#${row.rank}`}
-            </span>
-            <span className={styles.username}>
-              @{row.username ?? "unknown"}
-            </span>
-            <span className={styles.points}>
-              <FaBolt aria-hidden />
-              {row.flashes}
-              <FaFlag aria-hidden />
-              {row.zones}
-              <strong>{row.points}</strong>
-            </span>
-          </div>
-        ))}
-      </section>
+      <ul className={styles.leaderboardStrip} aria-label="Leaderboard">
+        {leaderboard.slice(0, 5).map((row) => {
+          const isSelf = row.user_id === userId;
+          return (
+            <li key={row.user_id}>
+              <LeaderboardRow
+                entry={{
+                  userId: row.user_id,
+                  username: row.username,
+                  name: row.display_name,
+                  avatarUrl: row.avatar_url,
+                  rank: row.rank,
+                  points: row.points,
+                  flashes: row.flashes,
+                }}
+                highlighted={isSelf}
+                interactive={false}
+                trailing={
+                  row.zones > 0 ? (
+                    <span
+                      className={styles.zoneCount}
+                      aria-label={`${row.zones} zones`}
+                    >
+                      <FaFlag aria-hidden /> {row.zones}
+                    </span>
+                  ) : null
+                }
+              />
+            </li>
+          );
+        })}
+      </ul>
 
       <JamGrid
         routes={state.routes}
@@ -341,7 +302,6 @@ export function JamScreen({ initialState, userId }: Props) {
             setActiveRouteId(null);
           }}
           onSubmit={handleLog}
-          pending={isPending}
         />
       )}
 
@@ -393,86 +353,3 @@ export function JamScreen({ initialState, userId }: Props) {
   );
 }
 
-// ── Leaderboard derivation ────────────────────────
-// Mirror of the server-side formula in get_jam_leaderboard. Client-
-// side derivation keeps the board reactive to local + realtime
-// events without another round trip per edit.
-
-function computeJamLeaderboard(
-  players: JamPlayerView[],
-  logs: Map<string, JamLog>,
-): JamLeaderboardRow[] {
-  const rows: JamLeaderboardRow[] = players.map((p) => {
-    let sends = 0;
-    let flashes = 0;
-    let zones = 0;
-    let points = 0;
-    let attempts = 0;
-    let lastSendAt: string | null = null;
-
-    for (const log of logs.values()) {
-      if (log.user_id !== p.user_id) continue;
-      attempts += log.attempts;
-      if (log.zone) {
-        zones += 1;
-        points += 1;
-      }
-      if (log.completed) {
-        sends += 1;
-        if (log.attempts === 1) {
-          flashes += 1;
-          points += 4;
-        } else if (log.attempts === 2) {
-          points += 3;
-        } else if (log.attempts === 3) {
-          points += 2;
-        } else {
-          points += 1;
-        }
-        if (
-          log.completed_at &&
-          (!lastSendAt || log.completed_at > lastSendAt)
-        ) {
-          lastSendAt = log.completed_at;
-        }
-      }
-    }
-
-    return {
-      user_id: p.user_id,
-      username: p.username ?? null,
-      display_name: p.display_name ?? null,
-      avatar_url: p.avatar_url ?? null,
-      sends,
-      flashes,
-      zones,
-      points,
-      attempts,
-      last_send_at: lastSendAt,
-      rank: 0, // assigned after sort
-    };
-  });
-
-  rows.sort((a, b) => {
-    if (b.points !== a.points) return b.points - a.points;
-    if (b.flashes !== a.flashes) return b.flashes - a.flashes;
-    if (b.sends !== a.sends) return b.sends - a.sends;
-    // Earliest last send wins ties after that (encourages speed).
-    if (a.last_send_at && b.last_send_at) {
-      return a.last_send_at.localeCompare(b.last_send_at);
-    }
-    return 0;
-  });
-
-  let prevKey = "";
-  let rank = 0;
-  for (let i = 0; i < rows.length; i++) {
-    const key = `${rows[i].points}|${rows[i].flashes}|${rows[i].sends}`;
-    if (key !== prevKey) {
-      rank = i + 1;
-      prevKey = key;
-    }
-    rows[i].rank = rank;
-  }
-  return rows;
-}

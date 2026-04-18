@@ -2,8 +2,9 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { FaPlus, FaUserPlus } from "react-icons/fa6";
 import { requireSignedIn } from "@/lib/auth";
+import { createServiceClient } from "@/lib/supabase/server";
 import {
-  getActiveJamForUser,
+  getActiveJamForUserById,
   getUserJams,
 } from "@/lib/data/jam-queries";
 import { PageHeader } from "@/components/motion";
@@ -34,10 +35,15 @@ export default async function JamPage() {
   if ("error" in auth) redirect("/login");
   const { supabase, userId } = auth;
 
-  // Fetch in parallel. Active jam is a single indexed lookup; history
-  // list is the top N summaries (default 5 for the strip).
+  // Fetch in parallel. Active-jam banner data comes through a service-
+  // role RPC with the user id passed explicitly (matches `/jam/[id]`'s
+  // hydrator so the banner can't point at a jam the page can't
+  // actually load — both paths resolve membership the same way).
+  // History list stays on the user-authed client since its RLS path
+  // has proven stable.
+  const service = createServiceClient();
   const [activeJam, recentJams] = await Promise.all([
-    getActiveJamForUser(supabase),
+    getActiveJamForUserById(service, userId),
     getUserJams(supabase, userId, { limit: RECENT_JAMS_LIMIT }),
   ]);
 

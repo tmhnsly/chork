@@ -1,11 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
   TOP_LIMIT,
-  BROWSE_WINDOW,
   computeInitialOffset,
-  computePrevOffset,
-  computeNextOffset,
-  computeReturnOffset,
+  firstMissingRange,
+  seedCache,
+  type RowCache,
 } from "./browseSection.helpers";
 import type { LeaderboardEntry } from "@/lib/data";
 
@@ -50,32 +49,78 @@ describe("computeInitialOffset", () => {
   });
 });
 
-describe("computePrevOffset", () => {
-  it("steps back by BROWSE_WINDOW", () => {
-    expect(computePrevOffset(15)).toBe(15 - BROWSE_WINDOW);
+describe("seedCache", () => {
+  it("keys rows by offset (rank − 1)", () => {
+    const rows = [stubRow(8), stubRow(9), stubRow(10)];
+    const cache = seedCache(rows);
+    expect(cache[7]?.rank).toBe(8);
+    expect(cache[8]?.rank).toBe(9);
+    expect(cache[9]?.rank).toBe(10);
+    expect(cache[6]).toBeUndefined();
   });
 
-  it("clamps to TOP_LIMIT", () => {
-    expect(computePrevOffset(7)).toBe(TOP_LIMIT);
-    expect(computePrevOffset(TOP_LIMIT)).toBe(TOP_LIMIT);
+  it("skips rows with a null rank", () => {
+    const rows: LeaderboardEntry[] = [
+      stubRow(8),
+      { ...stubRow(0), rank: null },
+    ];
+    const cache = seedCache(rows);
+    expect(Object.keys(cache)).toHaveLength(1);
+    expect(cache[7]?.rank).toBe(8);
+  });
+
+  it("handles an empty list", () => {
+    expect(seedCache([])).toEqual({});
   });
 });
 
-describe("computeNextOffset", () => {
-  it("steps forward by BROWSE_WINDOW (no upper clamp)", () => {
-    expect(computeNextOffset(10)).toBe(15);
-    expect(computeNextOffset(0)).toBe(BROWSE_WINDOW);
-  });
-});
-
-describe("computeReturnOffset", () => {
-  it("re-centres on userRank with half-window bias", () => {
-    expect(computeReturnOffset(10)).toBe(7);
-    expect(computeReturnOffset(20)).toBe(17);
+describe("firstMissingRange", () => {
+  it("returns null when every offset in the range is cached", () => {
+    const cache: RowCache = {
+      5: stubRow(6),
+      6: stubRow(7),
+      7: stubRow(8),
+    };
+    expect(firstMissingRange(cache, 5, 8)).toBeNull();
   });
 
-  it("clamps to TOP_LIMIT for users near the top", () => {
-    expect(computeReturnOffset(6)).toBe(TOP_LIMIT);
-    expect(computeReturnOffset(1)).toBe(TOP_LIMIT);
+  it("returns the whole range when the cache is empty", () => {
+    expect(firstMissingRange({}, 5, 10)).toEqual({ start: 5, count: 5 });
+  });
+
+  it("finds a gap inside a partially-filled cache", () => {
+    const cache: RowCache = {
+      5: stubRow(6),
+      6: stubRow(7),
+      // 7 + 8 missing
+      9: stubRow(10),
+    };
+    expect(firstMissingRange(cache, 5, 10)).toEqual({ start: 7, count: 2 });
+  });
+
+  it("returns only the FIRST contiguous gap — later holes get a follow-up pass", () => {
+    const cache: RowCache = {
+      5: stubRow(6),
+      // 6 missing
+      7: stubRow(8),
+      // 8 missing
+      9: stubRow(10),
+    };
+    const result = firstMissingRange(cache, 5, 10);
+    expect(result).toEqual({ start: 6, count: 1 });
+  });
+
+  it("handles a gap at the leading edge", () => {
+    const cache: RowCache = { 7: stubRow(8), 8: stubRow(9) };
+    expect(firstMissingRange(cache, 5, 9)).toEqual({ start: 5, count: 2 });
+  });
+
+  it("handles a gap at the trailing edge", () => {
+    const cache: RowCache = { 5: stubRow(6), 6: stubRow(7) };
+    expect(firstMissingRange(cache, 5, 10)).toEqual({ start: 7, count: 3 });
+  });
+
+  it("returns null for an empty range", () => {
+    expect(firstMissingRange({}, 5, 5)).toBeNull();
   });
 });

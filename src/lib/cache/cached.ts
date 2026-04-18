@@ -13,6 +13,7 @@ import { unstable_cache } from "next/cache";
  *   user:{id}:profile           — profile row edits (username, theme, etc)
  *   user:{id}:stats             — this user's user_set_stats changed
  *   user:{id}:crews             — crew membership changed for this user
+ *   user:{id}:jams              — jam history changed for this user
  *   user:{id}:notifications     — new / read notifications for this user
  *   crew:{id}                   — crew row or member set edits
  *   gyms:listed                 — a gym's is_listed flag changed
@@ -28,6 +29,7 @@ export type Tag =
   | `user:username-${string}:profile`
   | `user:${string}:stats`
   | `user:${string}:crews`
+  | `user:${string}:jams`
   | `user:${string}:notifications`
   | `crew:${string}`
   | `gyms:listed`

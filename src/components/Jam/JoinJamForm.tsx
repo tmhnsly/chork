@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { FaQrcode, FaArrowRight } from "react-icons/fa6";
 import { Button, showToast } from "@/components/ui";
@@ -8,13 +8,13 @@ import { createBrowserSupabase } from "@/lib/supabase/client";
 import { lookupJamByCode } from "@/lib/data/jam-queries";
 import { joinJamAction } from "@/app/jam/actions";
 import type { JoinJamLookup } from "@/lib/data/jam-types";
+import { JAM_CODE_RE } from "@/lib/validation";
+import { JAM_SCALE_LABEL } from "./jam-scale-label";
 import styles from "./joinJamForm.module.scss";
 
 interface Props {
   initialCode: string | null;
 }
-
-const CODE_PATTERN = /^[A-HJ-NP-Z2-9]{6}$/;
 
 export function JoinJamForm({ initialCode }: Props) {
   const router = useRouter();
@@ -25,17 +25,24 @@ export function JoinJamForm({ initialCode }: Props) {
   const [scanning, setScanning] = useState(false);
 
   const normalised = code.trim().toUpperCase();
-  const codeValid = CODE_PATTERN.test(normalised);
+  const codeValid = JAM_CODE_RE.test(normalised);
 
-  // Auto-lookup whenever the input resolves to a valid code that
-  // hasn't already produced a result or error. Work runs inside an
-  // async IIFE so React's setState calls happen post-await, and a
-  // `cancelled` flag guards against stale writes when the user types
-  // ahead of the previous lookup landing.
+  // Retry counter: the manual "Look up" button bumps this to
+  // re-run the auto-lookup effect without depending on the lookup
+  // result state. Previously the effect had `lookup` + `lookupError`
+  // in its deps so the button could flip those back to null and
+  // re-trigger — that caused the effect to re-subscribe on every
+  // settle. With a dedicated retry tick, the effect only re-runs
+  // when the user intentionally asks for it or the code changes.
+  const [retryTick, setRetryTick] = useState(0);
+
+  // Auto-lookup on a valid code or manual retry. The async IIFE
+  // pattern keeps the setState calls on a post-await microtask,
+  // which the project's `react-hooks/set-state-in-effect` rule
+  // tolerates as long as the effect body itself doesn't call
+  // setState synchronously.
   useEffect(() => {
     if (!codeValid) return;
-    if (lookup) return;
-    if (lookupError) return;
     let cancelled = false;
     (async () => {
       const supabase = createBrowserSupabase();
@@ -58,14 +65,15 @@ export function JoinJamForm({ initialCode }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [codeValid, normalised, lookup, lookupError]);
+  }, [codeValid, normalised, retryTick]);
 
-  // Manual "Look up" button — clears any prior result/error and
-  // forces the auto-lookup effect above to re-fire.
-  function triggerLookup() {
+  // Manual "Look up" — clear prior result/error and bump the retry
+  // tick so the auto-lookup effect re-fires for the current code.
+  const triggerLookup = useCallback(() => {
     setLookupError(null);
     setLookup(null);
-  }
+    setRetryTick((t) => t + 1);
+  }, []);
 
   function handleJoin() {
     if (!lookup) return;
@@ -153,18 +161,14 @@ export function JoinJamForm({ initialCode }: Props) {
             </div>
             <div className={styles.previewRow}>
               <dt>Scale</dt>
-              <dd>
-                {lookup.grading_scale === "v"
-                  ? "V-scale"
-                  : lookup.grading_scale === "font"
-                  ? "Font"
-                  : "Custom"}
-              </dd>
+              <dd>{JAM_SCALE_LABEL[lookup.grading_scale]}</dd>
             </div>
           </dl>
           <Button type="button" onClick={handleJoin} disabled={pending} fullWidth>
             {pending ? "Joining…" : "Join jam"}{" "}
-            <FaArrowRight aria-hidden style={{ marginLeft: "auto" }} />
+            <span className={styles.ctaIcon}>
+              <FaArrowRight aria-hidden />
+            </span>
           </Button>
         </section>
       )}

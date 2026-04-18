@@ -1,0 +1,44 @@
+@use "mixins/typography" as type;
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  min-height: var(--size-touch-target);
+}
+
+.badges {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-left: var(--space-4);
+}
+
+.badge {
+  @include type.typography(button);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--accent-text-low-contrast);
+}
+
+.zoneChip {
+  @include type.typography(button);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--success-text-low-contrast);
+}
+
+.flash {
+  color: var(--flash-text-low-contrast);
+
+  .icon {
+    color: var(--flash-text-low-contrast);
+  }
+}
+
+.icon {
+  font-size: var(--text-sm);
+}

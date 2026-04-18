@@ -5,7 +5,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../database.types";
-import type { Jam, JamLog, JamPlayer, JamRoute } from "./jam-types";
+import type { JamGradingScale, JamLog, JamPlayer, JamRoute } from "./jam-types";
 
 type Client = SupabaseClient<Database>;
 
@@ -22,7 +22,7 @@ function undef<T>(value: T | null | undefined): T | undefined {
 export interface CreateJamParams {
   name: string | null;
   location: string | null;
-  gradingScale: "v" | "font" | "custom";
+  gradingScale: JamGradingScale;
   minGrade: number | null;
   maxGrade: number | null;
   customGrades: string[] | null;
@@ -138,21 +138,3 @@ export async function endJam(
   return data as string;
 }
 
-// Fetch a jam row directly. Used by pages that need metadata before
-// dispatching an action (e.g. the /jam/[id] server component
-// fetching ahead of the client hydrator).
-export async function getJamById(
-  supabase: Client,
-  jamId: string,
-): Promise<Jam | null> {
-  const { data, error } = await supabase
-    .from("jams")
-    .select("*")
-    .eq("id", jamId)
-    .maybeSingle();
-  if (error) {
-    console.warn("[chork] getJamById failed:", error.message);
-    return null;
-  }
-  return (data ?? null) as Jam | null;
-}

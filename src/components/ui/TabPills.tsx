@@ -19,6 +19,18 @@ interface Props<T extends string | null> {
   onChange: (value: T) => void;
   /** Required for screen-reader context. */
   ariaLabel: string;
+  /**
+   * Layout behaviour when the row would overflow its container:
+   *   • `"scroll"` (default) — pills stay on one line and the row
+   *                             scrolls horizontally, matching the
+   *                             canonical mobile filter-strip feel.
+   *   • `"wrap"`             — pills wrap to a second line with
+   *                             consistent row spacing. Use inside
+   *                             `<BottomSheet subheader>` where a
+   *                             scrollbar inside the sticky chrome
+   *                             reads as broken.
+   */
+  layout?: "scroll" | "wrap";
   className?: string;
 }
 
@@ -40,6 +52,7 @@ export function TabPills<T extends string | null>({
   value,
   onChange,
   ariaLabel,
+  layout = "scroll",
   className,
 }: Props<T>) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -62,7 +75,13 @@ export function TabPills<T extends string | null>({
     <div
       role="tablist"
       aria-label={ariaLabel}
-      className={[styles.row, className].filter(Boolean).join(" ")}
+      className={[
+        styles.row,
+        layout === "wrap" ? styles.rowWrap : "",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
     >
       {options.map((opt, i) => {
         const selected = opt.value === value;

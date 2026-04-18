@@ -1,19 +1,5 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
-@use "mixins/surfaces" as surface;
-
-// BottomSheet owns the outer padding; this inner stack just controls
-// the vertical rhythm between the tab pills and the list.
-.body {
-  @include layout.stack(var(--space-4));
-  // Pin BOTH min and max so switching filters never resizes the
-  // sheet — short lists leave empty space below; long lists scroll
-  // inside the sheet's own overflow (vaul + native overflow-y).
-  // `calc(…)` keeps us just under the sheet's 90svh cap so the
-  // title bar + body + bottom safe-area padding all fit.
-  min-height: calc(90svh - 5rem);
-  max-height: calc(90svh - 5rem);
-}
 
 // ── List ──────────────────────────────────────────
 .list {
@@ -60,9 +46,23 @@
   font-size: var(--text-lg);
 }
 
+// Earned icon carries the row's family tint (accent / flash /
+// success). The per-family overrides below supply the colour for
+// flashes (amber) and zones (teal); the default accent lime handles
+// sends, jams, and every condition badge that isn't zone-themed.
 .rowIconEarned {
   background: var(--accent-bg);
   color: var(--accent-text-low-contrast);
+}
+
+.row--flash .rowIconEarned {
+  background: var(--flash-bg);
+  color: var(--flash-text-low-contrast);
+}
+
+.row--success .rowIconEarned {
+  background: var(--success-bg);
+  color: var(--success-text-low-contrast);
 }
 
 .rowText {
@@ -105,6 +105,17 @@
   transition: width var(--duration-normal) var(--ease-out);
 }
 
+// Family-tinted progress fill so a flash / zone ladder's bar reads
+// in its own colour while it grows — matches the ring colour on the
+// shelf above.
+.row--flash .progressFill {
+  background: var(--flash-solid);
+}
+
+.row--success .progressFill {
+  background: var(--success-solid);
+}
+
 .progressText {
   @include type.typography(label);
   font-size: var(--text-2xs);
@@ -121,7 +132,8 @@
 // semantic `on-solid` foreground token from `colors.scss` (which
 // resolves to high-contrast text for the accent fill). No one-off
 // hex values — matches every other "accent + on-solid" pair in the
-// app (Button primary, medal, active states).
+// app (Button primary, medal, active states). Family overrides swap
+// the scale so flashes tick amber, zones tick teal.
 .tick {
   flex-shrink: 0;
   display: inline-flex;
@@ -133,4 +145,14 @@
   background: var(--accent-solid);
   color: var(--accent-on-solid);
   font-size: var(--text-xs);
+}
+
+.row--flash .tick {
+  background: var(--flash-solid);
+  color: var(--flash-on-solid);
+}
+
+.row--success .tick {
+  background: var(--success-solid);
+  color: var(--success-on-solid);
 }

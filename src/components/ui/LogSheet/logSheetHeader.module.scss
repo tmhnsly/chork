@@ -1,0 +1,50 @@
+@use "mixins/typography" as type;
+
+// Route number hero. Stacks vertically: number then optional subline.
+// Padding tuned so the sheet's first content block sits just below
+// the close-button chrome without feeling cramped.
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) 0 var(--space-4);
+  flex-shrink: 0;
+}
+
+// 3-column grid keeps the number dead centre regardless of which
+// side icons are present. Each slot reserves a mirrored portion of
+// the row so flanking glyphs never push the digit off-axis.
+.routeNumber {
+  @include type.typography(display);
+  font-size: var(--text-5xl);
+  color: var(--accent-text);
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.numberText {
+  display: inline-block;
+  line-height: 1;
+}
+
+.numberSlot {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.6em;
+  line-height: 1;
+
+  &:first-child { justify-content: flex-end; }
+  &:last-child  { justify-content: flex-start; }
+}
+
+.flashIcon {
+  color: var(--flash-text-low-contrast);
+}
+
+.zoneIcon {
+  color: var(--success-text-low-contrast);
+}

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { deleteAccount } from "@/lib/user-actions";
-import { AppDialog, Button, showToast } from "@/components/ui";
+import { AppDialog, Button, SheetActions, showToast } from "@/components/ui";
 import styles from "./deleteAccountDialog.module.scss";
 
 interface Props {
@@ -59,7 +59,7 @@ export function DeleteAccountDialog({ open, onOpenChange }: Props) {
         autoComplete="off"
       />
 
-      <div className={styles.actions}>
+      <SheetActions>
         <Button
           variant="danger"
           onClick={handleDelete}
@@ -71,7 +71,7 @@ export function DeleteAccountDialog({ open, onOpenChange }: Props) {
         <Button variant="ghost" onClick={() => onOpenChange(false)} fullWidth>
           Cancel
         </Button>
-      </div>
+      </SheetActions>
     </AppDialog>
   );
 }

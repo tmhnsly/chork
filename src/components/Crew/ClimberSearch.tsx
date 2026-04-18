@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { FaUserPlus, FaPlus, FaCheck } from "react-icons/fa6";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { SearchField, UserAvatar, shimmerStyles, showToast } from "@/components/ui";
+import { SearchField, SheetBody, UserAvatar, shimmerStyles, showToast } from "@/components/ui";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import {
   searchClimbersForInvite,
@@ -77,7 +77,7 @@ export function ClimberSearch({ currentUserId, myCrews, onCreateCrew, autoFocus 
 
   return (
     <>
-      <div className={styles.body}>
+      <SheetBody padBottom="none">
         {/* Placeholder stays deliberately generic — iCloud Passwords
             pattern-matches words like "username" / "email" and
             pop-up-offers saved logins. The hint underneath carries
@@ -110,7 +110,7 @@ export function ClimberSearch({ currentUserId, myCrews, onCreateCrew, autoFocus 
             ))}
           </ul>
         ) : null}
-      </div>
+      </SheetBody>
 
       {activeTarget && (
         <CrewPickerSheet

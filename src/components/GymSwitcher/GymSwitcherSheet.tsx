@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { FaMagnifyingGlass, FaCheck } from "react-icons/fa6";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { shimmerStyles, showToast } from "@/components/ui";
+import { SheetBody, shimmerStyles, showToast } from "@/components/ui";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { switchActiveGym } from "@/app/(app)/actions";
 import styles from "./gymSwitcherSheet.module.scss";
@@ -93,7 +93,7 @@ export function GymSwitcherSheet({ open, onClose, activeGymId }: Props) {
 
   return (
     <BottomSheet open={open} onClose={onClose} title="Change gym" description="Pick the gym you're climbing at today">
-      <div className={styles.body}>
+      <SheetBody padBottom="none">
         <div className={styles.searchWrap}>
           <FaMagnifyingGlass className={styles.searchIcon} aria-hidden />
           <input
@@ -141,7 +141,7 @@ export function GymSwitcherSheet({ open, onClose, activeGymId }: Props) {
             })}
           </ul>
         )}
-      </div>
+      </SheetBody>
     </BottomSheet>
   );
 }

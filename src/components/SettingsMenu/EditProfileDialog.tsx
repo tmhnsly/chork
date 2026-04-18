@@ -8,7 +8,14 @@ import { useAuth } from "@/lib/auth-context";
 import { useUsernameValidation } from "@/hooks/use-username-validation";
 import { updateProfile, uploadAvatar } from "@/lib/user-actions";
 import { resizeAvatar } from "@/lib/image";
-import { AppDialog, Button, InputError, UserAvatar, showToast } from "@/components/ui";
+import {
+  AppDialog,
+  Button,
+  InputError,
+  SheetActions,
+  UserAvatar,
+  showToast,
+} from "@/components/ui";
 import styles from "./editProfileDialog.module.scss";
 
 interface Props {
@@ -269,14 +276,14 @@ function EditProfileBody({ user, onClose }: BodyProps) {
         </div>
       </div>
 
-      <div className={styles.actions}>
+      <SheetActions>
         <Button onClick={handleSave} disabled={submitting || uploading} fullWidth>
           {submitting ? "Saving..." : "Save changes"}
         </Button>
         <Button variant="ghost" onClick={() => onClose()} fullWidth>
           Cancel
         </Button>
-      </div>
+      </SheetActions>
     </>
   );
 }

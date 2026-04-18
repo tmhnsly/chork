@@ -26,7 +26,12 @@ const MAX_CUSTOM_GRADES = 50;
 const MAX_SCALE_NAME_LEN = 40;
 
 function isScale(value: unknown): value is JamGradingScale {
-  return value === "v" || value === "font" || value === "custom";
+  return (
+    value === "v"
+    || value === "font"
+    || value === "custom"
+    || value === "points"
+  );
 }
 
 function clampString(value: unknown, max: number): string | null {
@@ -78,7 +83,7 @@ export async function createJamAction(
     }
     minGrade = payload.minGrade;
     maxGrade = payload.maxGrade;
-  } else {
+  } else if (payload.gradingScale === "custom") {
     if (!Array.isArray(payload.customGrades) || payload.customGrades.length === 0) {
       return { error: "Add at least one custom grade" };
     }
@@ -94,6 +99,7 @@ export async function createJamAction(
     customGrades = normalised;
     saveScaleName = clampString(payload.saveScaleName, MAX_SCALE_NAME_LEN);
   }
+  // `points` falls through — no grades, no range, nothing to validate.
 
   const auth = await requireSignedIn();
   if ("error" in auth) return { error: auth.error };
@@ -258,8 +264,6 @@ export async function endJamAction(
     // the jam is still ended, the summary is still written; the
     // user just sees their new badges on their next profile visit.
     after(async () => {
-      revalidateTag(`user:${auth.userId}:jams`);
-
       // Achievement re-eval for every participant. Service-role
       // client because we're writing `user_achievements` rows for
       // other users — the evaluator's `evaluateAndPersistAchievements`
@@ -275,6 +279,13 @@ export async function endJamAction(
         .map((p) => p.user_id)
         .filter((id): id is string => id !== null);
       if (userIds.length === 0) return;
+
+      // Revalidate the jam history tag for every participant — every
+      // player's `/jam` landing + profile history list needs to pick
+      // up the new summary row, not just the caller's.
+      for (const userId of userIds) {
+        revalidateTag(`user:${userId}:jams`);
+      }
 
       // Batch profile read — one trip for every participant's gym.
       const { data: profiles } = await service

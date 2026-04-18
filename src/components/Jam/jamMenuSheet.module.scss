@@ -1,10 +1,8 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
 
-.body {
-  @include layout.stack(var(--space-4));
-  padding-bottom: var(--space-4);
-}
+// Body rhythm + end-jam confirm flow both come from shared
+// primitives now — `<SheetBody>` + `<ConfirmInline>`.
 
 .codeSection {
   @include layout.stack(var(--space-2));
@@ -37,19 +35,4 @@
   display: flex;
   gap: var(--space-2);
   width: 100%;
-}
-
-.endConfirm {
-  @include layout.stack(var(--space-3));
-}
-
-.confirmCopy {
-  @include type.typography(body);
-  color: var(--mono-text);
-  font-size: var(--text-sm);
-  margin: 0;
-}
-
-.confirmActions {
-  @include layout.stack(var(--space-2));
 }

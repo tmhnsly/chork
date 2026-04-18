@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BottomSheet, Button } from "@/components/ui";
+import { BottomSheet, Button, SheetBody } from "@/components/ui";
 import { gradeLabels } from "@/lib/data/grade-label";
 import type { JamGradingScale, JamRoute } from "@/lib/data/jam-types";
 import styles from "./jamAddRouteSheet.module.scss";
@@ -41,9 +41,13 @@ export function JamAddRouteSheet({
   const [grade, setGrade] = useState<number | null>(route?.grade ?? null);
   const [hasZone, setHasZone] = useState(route?.has_zone ?? false);
 
+  const pointsOnly = gradingScale === "points";
+
   // Compute the ordered label list the picker renders — matches the
   // scale the jam was created with, bounded to the chosen range.
+  // Points-only jams skip the picker entirely (no grade = no options).
   const options = useMemo(() => {
+    if (pointsOnly) return [];
     if (gradingScale === "custom") {
       return grades.map((g) => ({ value: g.ordinal, label: g.label }));
     }
@@ -55,12 +59,12 @@ export function JamAddRouteSheet({
       if (allLabels[i]) result.push({ value: i, label: allLabels[i] });
     }
     return result;
-  }, [gradingScale, grades, minGrade, maxGrade]);
+  }, [pointsOnly, gradingScale, grades, minGrade, maxGrade]);
 
   function handleSubmit() {
     onSubmit({
       description: description.trim() || null,
-      grade,
+      grade: pointsOnly ? null : grade,
       hasZone,
     });
   }
@@ -71,7 +75,7 @@ export function JamAddRouteSheet({
       onClose={onClose}
       title={mode === "add" ? "Add a route" : "Edit route"}
     >
-      <div className={styles.body}>
+      <SheetBody>
         <label className={styles.field}>
           <span className={styles.label}>Description (optional)</span>
           <textarea
@@ -83,28 +87,30 @@ export function JamAddRouteSheet({
           />
         </label>
 
-        <div className={styles.field}>
-          <span className={styles.label}>Grade</span>
-          <div className={styles.chipRow}>
-            <button
-              type="button"
-              className={`${styles.chip} ${grade === null ? styles.chipActive : ""}`}
-              onClick={() => setGrade(null)}
-            >
-              Ungraded
-            </button>
-            {options.map((opt) => (
+        {!pointsOnly && (
+          <div className={styles.field}>
+            <span className={styles.label}>Grade</span>
+            <div className={styles.chipRow}>
               <button
-                key={opt.value}
                 type="button"
-                className={`${styles.chip} ${grade === opt.value ? styles.chipActive : ""}`}
-                onClick={() => setGrade(opt.value)}
+                className={`${styles.chip} ${grade === null ? styles.chipActive : ""}`}
+                onClick={() => setGrade(null)}
               >
-                {opt.label}
+                Ungraded
               </button>
-            ))}
+              {options.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  className={`${styles.chip} ${grade === opt.value ? styles.chipActive : ""}`}
+                  onClick={() => setGrade(opt.value)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         <label className={styles.zoneRow}>
           <input
@@ -123,7 +129,7 @@ export function JamAddRouteSheet({
         <Button type="button" onClick={handleSubmit} disabled={pending} fullWidth>
           {pending ? "Saving…" : mode === "add" ? "Add route" : "Save changes"}
         </Button>
-      </div>
+      </SheetBody>
     </BottomSheet>
   );
 }

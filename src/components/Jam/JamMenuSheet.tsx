@@ -2,7 +2,13 @@
 
 import { useState } from "react";
 import { FaCopy, FaShare, FaFlag } from "react-icons/fa6";
-import { BottomSheet, Button, showToast } from "@/components/ui";
+import {
+  BottomSheet,
+  Button,
+  ConfirmInline,
+  SheetBody,
+  showToast,
+} from "@/components/ui";
 import type { Jam } from "@/lib/data/jam-types";
 import styles from "./jamMenuSheet.module.scss";
 
@@ -50,7 +56,7 @@ export function JamMenuSheet({ jam, onClose, onEnd, pending }: Props) {
 
   return (
     <BottomSheet open onClose={onClose} title="Jam menu">
-      <div className={styles.body}>
+      <SheetBody>
         <section className={styles.codeSection}>
           <span className={styles.codeLabel}>Join code</span>
           <span className={styles.code}>{jam.code}</span>
@@ -74,33 +80,21 @@ export function JamMenuSheet({ jam, onClose, onEnd, pending }: Props) {
             <FaFlag aria-hidden /> End jam
           </Button>
         ) : (
-          <section className={styles.endConfirm}>
-            <p className={styles.confirmCopy}>
-              End the jam for everyone? Final scores will be calculated
-              and the jam will be closed. This cannot be undone.
-            </p>
-            <div className={styles.confirmActions}>
-              <Button
-                type="button"
-                variant="danger"
-                onClick={onEnd}
-                disabled={pending}
-                fullWidth
-              >
-                {pending ? "Ending…" : "Yes, end jam"}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setConfirming(false)}
-                fullWidth
-              >
-                Cancel
-              </Button>
-            </div>
-          </section>
+          <ConfirmInline
+            prompt={
+              <p>
+                End the jam for everyone? Final scores will be calculated
+                and the jam will be closed. This cannot be undone.
+              </p>
+            }
+            confirmLabel="Yes, end jam"
+            pendingLabel="Ending…"
+            onConfirm={onEnd}
+            onCancel={() => setConfirming(false)}
+            pending={pending}
+          />
         )}
-      </div>
+      </SheetBody>
     </BottomSheet>
   );
 }

@@ -3,13 +3,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import {
-  FaMinus,
-  FaPlus,
   FaEyeSlash,
   FaEye,
   FaPaperPlane,
   FaBolt,
-  FaFlag,
   FaPen,
   FaCheck,
   FaXmark,
@@ -20,8 +17,12 @@ import {
 } from "react-icons/fa6";
 import type { ReactNode } from "react";
 import { pickSendMessage } from "@/lib/send-messages";
-import { RollingNumber } from "@/components/RollingNumber/RollingNumber";
-import { ZoneHoldRow } from "./ZoneHoldRow";
+import {
+  AttemptCounter,
+  CompletedRow,
+  LogSheetHeader,
+  ZoneHoldRow,
+} from "@/components/ui";
 import { GradeSlider } from "./GradeSlider";
 import { formatGrade, type GradingScale } from "@/lib/data/grade-label";
 import type { RouteSet, Route, RouteLog, Comment, PaginatedComments } from "@/lib/data";
@@ -456,79 +457,45 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
       // of the sheet off screen.
       size={betaExpanded ? "tall" : "default"}
     >
-          {/* ── Header ── */}
-          <header className={styles.header}>
-            {/* Route number sits in a 3-column grid so the digit is
-                always centred — flanking icons fill the side slots
-                when present without pushing the number off axis. */}
-            <h2 className={styles.routeNumber}>
-              <span className={styles.numberSlot} aria-hidden>
-                {zoneValue && <FaFlag className={styles.zoneIcon} />}
-              </span>
-              <span className={styles.numberText}>{route.number}</span>
-              <span className={styles.numberSlot} aria-hidden>
-                {isCurrentFlash && <FaBolt className={styles.flashIcon} />}
-              </span>
-            </h2>
-            {/* Community grade display — hidden for points-only sets.
-                Value and "Community grade" label render in the same
-                font size so the pair reads as a single line; they
-                only differ in colour. An ungraded route shows just
-                "Ungraded" in the same typography — no redundant
-                label. While the server call resolves, a shimmer fills
-                the same box to stop the header jumping. */}
-            {gradingDisabled ? null : gradeLabel === null ? (
-              <span
-                className={`${styles.communityGradeLine} ${styles.communityGradeSkeleton} ${shimmerStyles.skeleton}`}
-                aria-hidden="true"
-              />
-            ) : gradeLabel === "Ungraded" ? (
-              <span className={`${styles.communityGradeLine} ${styles.communityGradeMeta}`}>
-                Ungraded
-              </span>
-            ) : (
-              <span className={styles.communityGradeLine}>
-                <span className={styles.communityGradeValue}>{gradeLabel}</span>
-                <BrandDivider />
-                <span className={styles.communityGradeMeta}>Community grade</span>
-              </span>
-            )}
-          </header>
+          <LogSheetHeader
+            number={route.number}
+            showFlash={isCurrentFlash}
+            showZone={zoneValue}
+            subline={
+              gradingDisabled ? null : gradeLabel === null ? (
+                <span
+                  className={`${styles.communityGradeLine} ${styles.communityGradeSkeleton} ${shimmerStyles.skeleton}`}
+                  aria-hidden="true"
+                />
+              ) : gradeLabel === "Ungraded" ? (
+                <span className={`${styles.communityGradeLine} ${styles.communityGradeMeta}`}>
+                  Ungraded
+                </span>
+              ) : (
+                <span className={styles.communityGradeLine}>
+                  <span className={styles.communityGradeValue}>{gradeLabel}</span>
+                  <BrandDivider />
+                  <span className={styles.communityGradeMeta}>Community grade</span>
+                </span>
+              )
+            }
+          />
 
-          {/* ── Attempt counter (hero) ── */}
-          <div className={styles.counter}>
-            <span className={styles.counterLabel}>Attempts</span>
-            <div className={styles.counterControls}>
-              <button
-                className={`${styles.counterBtn} ${isCompleted ? styles.counterBtnHidden : ""}`}
-                onClick={() => changeAttempts(-1)}
-                disabled={isCompleted || !set.active || attempts <= 0}
-                type="button"
-                aria-label="Decrease attempts"
-                aria-hidden={isCompleted}
-                tabIndex={isCompleted ? -1 : 0}
-              >
-                <FaMinus />
-              </button>
-              <span className={styles.counterValue}>
-                <RollingNumber value={attempts} />
-              </span>
-              <button
-                className={`${styles.counterBtn} ${isCompleted ? styles.counterBtnHidden : ""}`}
-                onClick={() => changeAttempts(1)}
-                disabled={isCompleted || !set.active}
-                type="button"
-                aria-label="Increase attempts"
-                aria-hidden={isCompleted}
-                tabIndex={isCompleted ? -1 : 0}
-              >
-                <FaPlus />
-              </button>
-            </div>
-            <span className={`${styles.pointsPreview} ${isCompleted ? styles.pointsEarned : ""}`}>
-              <PointsPreview attempts={attempts} zone={zoneValue} completed={isCompleted} log={currentLog} />
-            </span>
-          </div>
+          <AttemptCounter
+            attempts={attempts}
+            hideControls={isCompleted}
+            disabled={isCompleted || !set.active}
+            onChange={(next) => changeAttempts(next - attempts)}
+            pointsEarned={isCompleted}
+            pointsPreview={
+              <PointsPreview
+                attempts={attempts}
+                zone={zoneValue}
+                completed={isCompleted}
+                log={currentLog}
+              />
+            }
+          />
 
           {/* ── Secondary controls ── */}
           <div className={styles.controls}>
@@ -546,23 +513,11 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
 
             {/* Complete / Undo */}
             {isCompleted && set.active ? (
-              <div className={styles.completedRow}>
-                <div className={styles.completedBadges}>
-                  <span className={`${styles.completedBadge} ${isCurrentFlash ? styles.completedFlash : ""}`}>
-                    {isCurrentFlash ? (
-                      <><FaBolt className={styles.completedIcon} /> Flashed</>
-                    ) : (
-                      <><FaCheck className={styles.completedIcon} /> Sent</>
-                    )}
-                  </span>
-                  {zoneValue && (
-                    <span className={styles.zoneBadgeChip}>
-                      <FaFlag className={styles.completedIcon} /> Zone
-                    </span>
-                  )}
-                </div>
-                <Button variant="ghost" onClick={handleUncomplete}>Undo</Button>
-              </div>
+              <CompletedRow
+                isFlash={isCurrentFlash}
+                hasZone={zoneValue}
+                onUndo={handleUncomplete}
+              />
             ) : (
               <Button
                 onClick={handleMarkComplete}
@@ -627,7 +582,23 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
           {(() => {
             const hasOwnComment = !!user && comments.some((c) => c.user_id === user.id);
             const noComments = totalComments === 0;
-            const showPostForm = isCompleted && set.active && !hasOwnComment && !betaExpanded;
+            // Gate on `commentsLoaded && !loadingComments` so the
+            // post-comment form never renders until we actually know
+            // whether the user has already commented. Without this,
+            // the form rendered on first paint (when `comments` is
+            // still `[]`), the sheet animated in at its "visible
+            // post form" height, then `fetchRouteData` resolved with
+            // an existing own-comment, `showPostForm` flipped false,
+            // and the `.postFormWrap height: auto → 0` transition
+            // snapped the sheet shorter — the "grows too large then
+            // pops back into place" artefact on entry.
+            const commentsReady = commentsLoaded && !loadingComments;
+            const showPostForm =
+              commentsReady
+              && isCompleted
+              && set.active
+              && !hasOwnComment
+              && !betaExpanded;
             return (
           <>
           <div className={styles.betaSection}>

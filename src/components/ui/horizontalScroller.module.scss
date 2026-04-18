@@ -1,0 +1,138 @@
+@use "mixins/layout" as layout;
+@use "mixins/breakpoints" as bp;
+
+// ── Root — bleed behaviour is mobile-first ────────
+// On mobile the scroller extends to both viewport edges so swipes
+// reach the physical screen edges and the row reads as native.
+// From the tablet breakpoint up, the centred page column already
+// leaves real margin either side of itself — bleeding into that
+// empty margin would just dump content into a dead zone. Instead
+// the scroller stays inside the column and scrolls locally,
+// matching how rich content carousels behave on wider layouts.
+.root {
+  // Defaults for the three custom props consumers can override via
+  // the `gap`, `alignTo`, and `alignOffset` props on the component.
+  --scroller-gap: var(--space-3);
+  --scroller-align: var(--content-app);
+  position: relative;
+
+  @include bp.mobile {
+    @include layout.bleed-x(var(--scroller-align));
+    // The bleed mixin sets horizontal padding; clear it so the track
+    // (which has its own padding) owns the gutter math.
+    padding-inline: 0;
+  }
+}
+
+// ── Edge fade (opt-in via `edgeFade` prop) ─────────
+// Soft-masks the left + right edges of the scroller across the
+// page gutter width. Only applies at the mobile bleed — above the
+// tablet breakpoint the scroller is bound inside the column so
+// there's nothing in the gutter to fade.
+.rootFade {
+  @include bp.mobile {
+    --scroller-fade: var(--gutter-x);
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      black var(--scroller-fade),
+      black calc(100% - var(--scroller-fade)),
+      transparent 100%
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent 0,
+      black var(--scroller-fade),
+      black calc(100% - var(--scroller-fade)),
+      transparent 100%
+    );
+  }
+}
+
+// ── Viewport — the actual scroll container ─────────
+// Radix ScrollArea handles native-scrollbar hiding on every
+// platform for us. `overflow-x: auto` is added by Radix too, but
+// we keep the touch momentum + clipping tuning explicit so no
+// future change to Radix's default styling regresses us.
+.viewport {
+  // Tiny top padding so interactive items' hover lifts + focus
+  // rings don't get shaved by the scroll viewport. The bigger
+  // bottom padding leaves a clean gap between the last row of
+  // content and the scrollbar below it — easier to grab the thumb
+  // with a pointer, more comfortable visual rhythm on mobile.
+  padding-top: var(--space-1);
+  padding-bottom: var(--space-3);
+  // iOS momentum scrolling. `touch` is deprecated in spec but still
+  // honoured by WebKit; costs nothing on evergreen Chromium.
+  -webkit-overflow-scrolling: touch;
+}
+
+// ── Track — flex row with per-edge gutter ──────────
+// Above the tablet breakpoint the scroller sits inside the page
+// column, so the track needs no edge padding — the column already
+// insets it. Below the breakpoint the scroller is bleeding to the
+// viewport edge, and the track restores the gutter-sized inset so
+// the first + last item line up with the page column.
+//
+// `--scroller-align-offset` (default 0) is subtracted from that
+// mobile inset when a consumer's items have internal centring —
+// kept as a CSS custom property so the calc stays in SCSS and the
+// TSX layer just exposes a typed `alignOffset` prop.
+.track {
+  display: flex;
+  gap: var(--scroller-gap);
+  padding-inline: 0;
+
+  @include bp.mobile {
+    padding-inline: calc(var(--gutter-x) - var(--scroller-align-offset, 0px));
+  }
+}
+
+// ── Scrollbar (desktop only — Radix hides on touch) ─
+// `type="hover"` on the Root means the bar only appears for pointer
+// devices. Positioned as an overlay under the viewport so the
+// scroller's vertical rhythm doesn't shift when the bar appears.
+.scrollbar {
+  display: flex;
+  user-select: none;
+  touch-action: none;
+  padding: 2px;
+  height: 6px;
+  background: transparent;
+  transition: background var(--duration-fast) var(--ease-out);
+
+  // Mobile bleed → scrollbar inherits the full-viewport width of
+  // its parent, so the gutter margins bring it back to column.
+  @include bp.mobile {
+    margin-inline: var(--gutter-x);
+  }
+
+  &:hover {
+    background: var(--mono-subtle-bg);
+    border-radius: var(--radius-full);
+  }
+
+  &[data-orientation="horizontal"] {
+    flex-direction: column;
+  }
+}
+
+.thumb {
+  flex: 1;
+  background: var(--mono-border);
+  border-radius: var(--radius-full);
+  position: relative;
+  transition: background var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    background: var(--mono-solid);
+  }
+
+  // Touch target floor per WAI — a 6px-tall visual thumb still has
+  // an ≥ 44px tap/drag target via this ::before expansion.
+  &::before {
+    content: "";
+    position: absolute;
+    inset: -10px 0;
+  }
+}

@@ -16,6 +16,16 @@
   }
 }
 
+// `layout="wrap"` — pills wrap instead of scroll. Use inside a
+// sticky subheader where a horizontal scrollbar would read as a
+// broken overflow. `row-gap` matches the inline `gap` so the two
+// axes share a single rhythm.
+.rowWrap {
+  overflow-x: visible;
+  flex-wrap: wrap;
+  row-gap: var(--space-2);
+}
+
 .pill {
   @include type.typography(label);
   @include focus.ring;

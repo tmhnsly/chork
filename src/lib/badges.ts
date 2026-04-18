@@ -134,6 +134,27 @@ export interface LockedBadge {
 
 export type BadgeStatus = EarnedBadge | LockedBadge;
 
+// ── Visual family ─────────────────────────────────
+
+/**
+ * Colour family a badge visually belongs to. Drives the earned-state
+ * tint on the shelf + sheet as well as the ring colour on in-progress
+ * slots, so a flash-category badge reads amber at 60% AND 100%.
+ *   • "flash"   — amber (flash category)
+ *   • "success" — teal (zone-themed badges, icon === "flag")
+ *   • "accent"  — lime (everything else: send ladders, jams, condition badges)
+ */
+export type BadgeFamily = "accent" | "flash" | "success";
+
+export function badgeFamily(badge: {
+  category: BadgeCategory;
+  icon: BadgeIcon;
+}): BadgeFamily {
+  if (badge.category === "flashes") return "flash";
+  if (badge.icon === "flag") return "success";
+  return "accent";
+}
+
 // ── Badge catalogue (re-export) ───────────────────
 
 export const BADGES: BadgeDefinition[] = ACHIEVEMENTS;

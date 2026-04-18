@@ -45,7 +45,14 @@ export async function middleware(request: NextRequest) {
   const { supabase, response } = createMiddlewareSupabase(request);
   const { data: { user } } = await supabase.auth.getUser();
   const isAuthenticated = !!user;
-  const isAuthRoute = AUTH_ROUTES.some((r) => pathname.startsWith(r));
+  // Match AUTH_ROUTES the same way PUBLIC_ROUTES does — exact
+  // match OR prefix-with-slash. Plain `startsWith(r)` meant
+  // "/login-anything" (e.g. "/login-wall-of-shame") was treated
+  // as an auth route, which redirected authed users from unrelated
+  // pages AND let unauthed users skip the public-route fallback.
+  const isAuthRoute = AUTH_ROUTES.some(
+    (r) => pathname === r || pathname.startsWith(`${r}/`),
+  );
   const isPublic = PUBLIC_ROUTES.some((r) => pathname === r || pathname.startsWith(`${r}/`));
 
   // Stamp the nav shell cookie so `NavBarShell` paints the correct
