@@ -249,19 +249,17 @@ export function OnboardingForm() {
               const next = gymChoice === "has-chork" ? "no-chork" : "has-chork";
               setGymChoice(next);
               if (next === "no-chork") setSelectedGym(null);
-              // Move focus to whichever radio was just selected so
-              // the roving tabindex stays on the active option.
+              // Move focus to whichever radio becomes aria-checked.
+              // State update commits synchronously in React 19 event
+              // handlers, so aria-checked is already flipped by the
+              // next paint — rAF fires just before paint, close
+              // enough that querying for the active radio returns
+              // the freshly-selected one.
               const group = e.currentTarget;
-              const target = group.querySelector<HTMLButtonElement>(
-                `button[aria-checked="true"]`,
-              );
-              // Next render will flip aria-checked; focus after
-              // paint so we land on the right button.
               requestAnimationFrame(() => {
-                const updated = group.querySelector<HTMLButtonElement>(
-                  `button[aria-checked="true"]`,
-                );
-                (updated ?? target)?.focus();
+                group
+                  .querySelector<HTMLButtonElement>(`button[aria-checked="true"]`)
+                  ?.focus();
               });
             }}
           >

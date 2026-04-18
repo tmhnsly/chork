@@ -73,10 +73,13 @@ export function BrowseSection({
   // fire the window effect again, and potentially trigger fresh
   // fetches for ranges we already know are past the end. The state
   // still exists so atBottom can recompute for the disabled button.
+  //
+  // Assign during render (not in an effect) so the ref reflects the
+  // committed state before any sibling effect runs on the same
+  // render. Reading a ref during render is disallowed; writing to
+  // one is fine and is the documented pattern for "derived ref".
   const maxKnownOffsetRef = useRef<number | null>(null);
-  useEffect(() => {
-    maxKnownOffsetRef.current = maxKnownOffset;
-  }, [maxKnownOffset]);
+  maxKnownOffsetRef.current = maxKnownOffset;
 
   const fetchRange = useCallback(
     async (start: number, count: number, { silent = false } = {}) => {

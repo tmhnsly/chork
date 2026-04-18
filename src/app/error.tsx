@@ -11,13 +11,20 @@ interface Props {
 
 export default function GlobalError({ error, reset }: Props) {
   useEffect(() => {
-    // In production Next replaces `error.message` with a generic
-    // string and exposes only `error.digest` — logging the full
-    // object client-side surfaces no real server-side context and
-    // risks pushing internals (message / stack in dev, where we'd
-    // rather keep console noise minimal) to any attached telemetry.
-    // The digest is enough to correlate with the server log entry.
-    console.error("[chork] page error", { digest: error.digest });
+    // Prod: digest-only. Next already redacts `error.message` to a
+    // generic string in production, so the full Error object carries
+    // no real server-side context for the client; the digest is the
+    // correlation key for the server log entry. Dropping the object
+    // also keeps any attached client telemetry (Sentry/etc) from
+    // shipping stack frames that were meant to stay server-side.
+    //
+    // Dev: keep the full Error. `pnpm dev` debugging is a lot worse
+    // without a stack, and the prod redaction concern doesn't apply.
+    if (process.env.NODE_ENV === "development") {
+      console.error("[chork] page error", error);
+    } else {
+      console.error("[chork] page error", { digest: error.digest });
+    }
   }, [error]);
 
   return (
