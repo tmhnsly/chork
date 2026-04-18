@@ -39,5 +39,11 @@ jobs:
       - name: Build
         run: pnpm build
         env:
+          # Placeholders — the CI build only needs these to satisfy
+          # the env.ts schema at module load. CI is sandboxed and
+          # never connects to Supabase. Real values live in Vercel's
+          # project env for deploys.
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
+          SUPABASE_SERVICE_ROLE_KEY: placeholder
+          NEXT_PUBLIC_SITE_URL: https://chork.vercel.app
