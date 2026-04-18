@@ -7,6 +7,7 @@ import { getNotifications } from "@/lib/data/notifications";
 import type { NotificationRow } from "@/lib/data/notifications";
 import { isUuid } from "@/lib/validation";
 
+import { tags } from "@/lib/cache/tags";
 /**
  * Fetch the caller's recent notifications. Called by the NotificationsSheet
  * the first time it opens — keeps the 50-row payload off the profile
@@ -49,7 +50,7 @@ export async function markAllNotificationsRead(): Promise<{ error: string } | { 
     });
     if (error) return { error: formatError(error) };
 
-    revalidateTag(`user:${userId}:notifications`);
+    revalidateTag(tags.userNotifications(userId));
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
@@ -77,7 +78,7 @@ export async function dismissNotification(
       .eq("user_id", userId);
     if (error) return { error: formatError(error) };
 
-    revalidateTag(`user:${userId}:notifications`);
+    revalidateTag(tags.userNotifications(userId));
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };

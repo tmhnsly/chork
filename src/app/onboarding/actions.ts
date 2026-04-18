@@ -4,10 +4,12 @@ import { revalidateTag } from "next/cache";
 import { requireSignedIn } from "@/lib/auth";
 import { validateUsername, UUID_RE } from "@/lib/validation";
 import { createGymMembership } from "@/lib/data/mutations";
-import { formatError } from "@/lib/errors";
+import { formatError, formatErrorForLog } from "@/lib/errors";
 import { revalidateUserProfile } from "@/lib/cache/revalidate";
 import type { Gym } from "@/lib/data";
 
+import { logger } from "@/lib/logger";
+import { tags } from "@/lib/cache/tags";
 const MAX_NAME_LENGTH = 80;
 
 /**
@@ -24,7 +26,7 @@ export async function fetchListedGyms(): Promise<Gym[]> {
     .eq("is_listed", true)
     .order("name");
   if (error) {
-    console.warn("[chork] fetchListedGyms failed:", error);
+    logger.warn("fetchlistedgyms_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return data ?? [];
@@ -94,7 +96,7 @@ export async function completeOnboarding(
     // climber's new gym's set without waiting for TTL.
     await revalidateUserProfile(supabase, userId);
     if (normalisedGymId) {
-      revalidateTag(`gym:${normalisedGymId}:active-set`);
+      revalidateTag(tags.gymActiveSet(normalisedGymId));
     }
     return { success: true };
   } catch (err) {

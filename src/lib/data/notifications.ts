@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
+import { logger } from "@/lib/logger";
+import { formatErrorForLog } from "@/lib/errors";
 type Supabase = SupabaseClient<Database>;
 
 /**
@@ -60,7 +62,7 @@ export async function getNotifications(
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) {
-    console.warn("[chork] getNotifications failed:", error);
+    logger.warn("getnotifications_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return (data ?? []).map((r) => ({
@@ -94,7 +96,7 @@ export async function getUnreadNotificationCount(
     .eq("user_id", userId)
     .is("read_at", null);
   if (error) {
-    console.warn("[chork] getUnreadNotificationCount failed:", error);
+    logger.warn("getunreadnotificationcount_failed", { err: formatErrorForLog(error) });
     return 0;
   }
   return count ?? 0;

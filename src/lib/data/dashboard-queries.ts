@@ -6,6 +6,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
+import { logger } from "@/lib/logger";
+import { formatErrorForLog } from "@/lib/errors";
 type Supabase = SupabaseClient<Database>;
 
 // ── A. Active set overview ────────────────────────
@@ -24,7 +26,7 @@ export async function getSetOverview(
 ): Promise<SetOverview | null> {
   const { data, error } = await supabase.rpc("get_set_overview", { p_set_id: setId });
   if (error) {
-    console.warn("[chork] getSetOverview failed:", error);
+    logger.warn("getsetoverview_failed", { err: formatErrorForLog(error) });
     return null;
   }
   const row = Array.isArray(data) ? data[0] : null;
@@ -52,7 +54,7 @@ export async function getTopRoutes(
     p_limit: limit,
   });
   if (error) {
-    console.warn("[chork] getTopRoutes failed:", error);
+    logger.warn("gettoproutes_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return (data ?? []) as TopRouteRow[];
@@ -65,7 +67,7 @@ export async function getActiveClimberCount(
 ): Promise<number> {
   const { data, error } = await supabase.rpc("get_active_climber_count", { p_set_id: setId });
   if (error) {
-    console.warn("[chork] getActiveClimberCount failed:", error);
+    logger.warn("getactiveclimbercount_failed", { err: formatErrorForLog(error) });
     return 0;
   }
   return typeof data === "number" ? data : 0;
@@ -90,7 +92,7 @@ export async function getEngagementTrend(
     p_limit: limit,
   });
   if (error) {
-    console.warn("[chork] getEngagementTrend failed:", error);
+    logger.warn("getengagementtrend_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return (data ?? []) as EngagementPoint[];
@@ -114,7 +116,7 @@ export async function getFlashLeaderboardSet(
     p_limit: limit,
   });
   if (error) {
-    console.warn("[chork] getFlashLeaderboardSet failed:", error);
+    logger.warn("getflashleaderboardset_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return (data ?? []) as FlashLeader[];
@@ -135,7 +137,7 @@ export async function getZoneSendRatio(
 ): Promise<ZoneSendRow[]> {
   const { data, error } = await supabase.rpc("get_zone_send_ratio", { p_set_id: setId });
   if (error) {
-    console.warn("[chork] getZoneSendRatio failed:", error);
+    logger.warn("getzonesendratio_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return (data ?? []) as ZoneSendRow[];
@@ -155,7 +157,7 @@ export async function getCommunityGradeDistribution(
 ): Promise<GradeDistributionRow[]> {
   const { data, error } = await supabase.rpc("get_community_grade_distribution", { p_set_id: setId });
   if (error) {
-    console.warn("[chork] getCommunityGradeDistribution failed:", error);
+    logger.warn("getcommunitygradedistribution_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return (data ?? []) as GradeDistributionRow[];
@@ -176,7 +178,7 @@ export async function getSetterBreakdown(
 ): Promise<SetterBreakdownRow[]> {
   const { data, error } = await supabase.rpc("get_setter_breakdown", { p_set_id: setId });
   if (error) {
-    console.warn("[chork] getSetterBreakdown failed:", error);
+    logger.warn("getsetterbreakdown_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return (data ?? []) as SetterBreakdownRow[];
@@ -199,7 +201,7 @@ export async function getAllTimeOverview(
 ): Promise<AllTimeOverview | null> {
   const { data, error } = await supabase.rpc("get_all_time_overview", { p_gym_id: gymId });
   if (error) {
-    console.warn("[chork] getAllTimeOverview failed:", error);
+    logger.warn("getalltimeoverview_failed", { err: formatErrorForLog(error) });
     return null;
   }
   const row = Array.isArray(data) ? data[0] : null;

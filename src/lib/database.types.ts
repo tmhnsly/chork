@@ -1982,6 +1982,8 @@ export type Database = {
         Args: { p_kind: string; p_payload?: Json; p_user_id: string }
         Returns: string
       }
+      prune_old_activity_events: { Args: never; Returns: number }
+      prune_old_notifications: { Args: never; Returns: number }
       recompute_route_grade: {
         Args: { p_route_id: string }
         Returns: undefined

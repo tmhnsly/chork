@@ -4,7 +4,7 @@ import { revalidateTag } from "next/cache";
 import { after } from "next/server";
 import { requireSignedIn } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
-import { formatError } from "@/lib/errors";
+import { formatError, formatErrorForLog } from "@/lib/errors";
 import { UUID_RE } from "@/lib/validation";
 import {
   createJam,
@@ -19,6 +19,8 @@ import { buildBadgeContext } from "@/lib/achievements/context";
 import { evaluateAndPersistAchievements } from "@/lib/achievements/evaluate";
 import type { JamGradingScale } from "@/lib/data/jam-types";
 
+import { logger } from "@/lib/logger";
+import { tags } from "@/lib/cache/tags";
 const MAX_NAME_LEN = 80;
 const MAX_LOCATION_LEN = 120;
 const MAX_DESCRIPTION_LEN = 240;
@@ -284,7 +286,7 @@ export async function endJamAction(
       // player's `/jam` landing + profile history list needs to pick
       // up the new summary row, not just the caller's.
       for (const userId of userIds) {
-        revalidateTag(`user:${userId}:jams`);
+        revalidateTag(tags.userJams(userId));
       }
 
       // Batch profile read — one trip for every participant's gym.
@@ -307,7 +309,7 @@ export async function endJamAction(
           await evaluateAndPersistAchievements(service, userId, ctx);
         } catch (err) {
           // Per-user evaluation failures must not block the rest.
-          console.warn("[chork] jam-end achievement eval failed:", err);
+          logger.warn("jam_end_achievement_eval_failed", { err: formatErrorForLog(err) });
         }
       }
     });

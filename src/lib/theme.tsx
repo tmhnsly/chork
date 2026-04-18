@@ -12,6 +12,8 @@ import {
   type ThemeName,
 } from "@/lib/theme-store";
 
+import { logger } from "@/lib/logger";
+import { formatErrorForLog } from "@/lib/errors";
 export { THEME_META, syncThemeFromProfile } from "@/lib/theme-store";
 export type { ThemeName, ThemeMeta } from "@/lib/theme-store";
 
@@ -49,7 +51,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
         const { updateThemePreference } = await import("@/lib/user-actions");
         await updateThemePreference(next);
       } catch (err) {
-        console.warn("[chork] theme persist failed:", err);
+        logger.warn("theme_persist_failed", { err: formatErrorForLog(err) });
       }
     })();
   }, [profile?.id]);

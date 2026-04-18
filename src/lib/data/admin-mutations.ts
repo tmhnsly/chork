@@ -3,6 +3,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { createServiceClient } from "@/lib/supabase/server";
 
+import { logger } from "@/lib/logger";
+import { formatErrorForLog } from "@/lib/errors";
 type Supabase = SupabaseClient<Database>;
 
 // ────────────────────────────────────────────────────────────────
@@ -137,7 +139,7 @@ export async function acceptGymInvite(input: AcceptInviteInput): Promise<
   if (markErr) {
     // Admin row is already inserted; this is a minor accounting failure,
     // not a blocker for the invitee.
-    console.warn("[chork] Could not mark invite accepted:", markErr);
+    logger.warn("could_not_mark_invite_accepted_failed", { err: formatErrorForLog(markErr) });
   }
 
   return { gymId: invite.gym_id, role };

@@ -8,6 +8,7 @@ import { requireAuth, requireSignedIn } from "./auth";
 import { validateUsername } from "./validation";
 import { formatError } from "./errors";
 
+import { tags } from "@/lib/cache/tags";
 /**
  * Check if a username is available.
  * Requires authentication - derives userId from session, ignores client-supplied value.
@@ -79,17 +80,17 @@ export async function updateProfile(
       .eq("id", userId);
 
     if (error) return { error: formatError(error) };
-    revalidateTag(`user:${userId}:profile`);
+    revalidateTag(tags.userProfile(userId));
     // The new username's by-username cache entry busts directly; the
     // old one needs an explicit bust on rename. revalidateUserProfile
     // would re-look-up but we already have both names in scope.
     if (payload.username) {
-      revalidateTag(`user:username-${payload.username}:profile`);
+      revalidateTag(tags.userByUsername(payload.username));
       if (oldUsername && oldUsername !== payload.username) {
-        revalidateTag(`user:username-${oldUsername}:profile`);
+        revalidateTag(tags.userByUsername(oldUsername));
       }
     } else if (oldUsername) {
-      revalidateTag(`user:username-${oldUsername}:profile`);
+      revalidateTag(tags.userByUsername(oldUsername));
     }
     return { success: true };
   } catch (err) {

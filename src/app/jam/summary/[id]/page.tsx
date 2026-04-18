@@ -3,7 +3,7 @@ import Link from "next/link";
 import { format, parseISO } from "date-fns";
 import { FaCrown, FaArrowLeft } from "react-icons/fa6";
 import { requireSignedIn } from "@/lib/auth";
-import { createServiceClient } from "@/lib/supabase/server";
+import { createServerSupabase, createServiceClient } from "@/lib/supabase/server";
 import { getJamSummaryForUser } from "@/lib/data/jam-queries";
 import { PageHeader } from "@/components/motion";
 import { UserAvatar } from "@/components/ui";
@@ -19,6 +19,31 @@ export default async function JamSummaryPage({ params, searchParams }: Props) {
   const { fresh } = await searchParams;
   const auth = await requireSignedIn();
   if ("error" in auth) redirect("/login");
+
+  // Access control: only the host + players who participated can
+  // view a jam summary. Migration 052 RLS already restricts DIRECT
+  // table access to host + participants, but the hydrator below
+  // bypasses RLS (service_role), so we re-enforce the check at the
+  // page boundary via two RLS-respecting reads. 404 for
+  // non-participants so URL-guess enumeration doesn't leak jam
+  // existence (host identity, location, roster, points were all
+  // previously readable by any authed user with the URL).
+  const supabaseAnon = await createServerSupabase();
+  const [{ data: asPlayer }, { data: asHost }] = await Promise.all([
+    supabaseAnon
+      .from("jam_summary_players")
+      .select("user_id")
+      .eq("jam_summary_id", id)
+      .eq("user_id", auth.userId)
+      .maybeSingle(),
+    supabaseAnon
+      .from("jam_summaries")
+      .select("host_id")
+      .eq("id", id)
+      .eq("host_id", auth.userId)
+      .maybeSingle(),
+  ]);
+  if (!asPlayer && !asHost) notFound();
 
   // Service-role hydrator — takes the caller's user id explicitly
   // so the attempts-privacy mask inside the RPC doesn't rely on

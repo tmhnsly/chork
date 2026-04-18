@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import path from "path";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
   // `/index` is Pages-Router-era shorthand that Next keeps responding
@@ -112,4 +113,17 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Sentry wrapper. Activates only when SENTRY_AUTH_TOKEN is set at
+// build time (source-map upload needs it). Missing token = plugin
+// is a no-op; runtime init is still gated on NEXT_PUBLIC_SENTRY_DSN
+// inside the sentry.*.config.ts files, so every layer degrades
+// gracefully without Sentry credentials.
+export default withSentryConfig(nextConfig, {
+  // Disable the integration entirely when no auth token is present.
+  // Prevents a dev build from talking to Sentry's API.
+  silent: !process.env.SENTRY_AUTH_TOKEN,
+  // Keep source maps out of the browser bundle (upload-only).
+  widenClientFileUpload: true,
+  // Skip the telemetry ping that runs on every build.
+  telemetry: false,
+});

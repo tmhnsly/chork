@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Outfit, Inter } from "next/font/google";
 import { Providers } from "./providers";
 import { NavBarShell } from "@/components/NavBar/NavBarShell";
+import { env } from "@/lib/env";
 import "@/styles/globals.scss";
 
 const outfit = Outfit({
@@ -18,11 +19,9 @@ const inter = Inter({
 });
 
 // Public site URL for absolute share-link image / canonical resolution.
-// Set NEXT_PUBLIC_SITE_URL in env (Vercel project setting) — fallback
-// is the current Vercel preview domain. When chork.app is provisioned,
-// flip the env var; the fallback stays as the deploy domain so
-// previews always resolve.
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chork.vercel.app";
+// Validated + typed via `@/lib/env`; missing env var fails the build
+// in production rather than silently shipping a stale fallback.
+const SITE_URL = env.SITE_URL;
 
 const APP_DESCRIPTION =
   "Bouldering competition tracker for gyms. Log every send on numbered routes in your gym's active set, climb the public Chorkboard, and compete with crews.";

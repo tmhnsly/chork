@@ -30,8 +30,11 @@
     "@radix-ui/react-scroll-area": "^1.2.10",
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-visually-hidden": "^1.2.4",
+    "@sentry/nextjs": "^10.49.0",
     "@supabase/ssr": "^0.10.0",
     "@supabase/supabase-js": "^2.102.1",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.37.0",
     "date-fns": "^4.1.0",
     "idb": "^8.0.3",
     "next": "^15.2.1",
@@ -42,7 +45,8 @@
     "react-icons": "^5.6.0",
     "sass": "^1.85.1",
     "server-only": "^0.0.1",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "zod": "^4.3.6"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

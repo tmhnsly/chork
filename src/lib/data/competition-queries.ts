@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
+import { logger } from "@/lib/logger";
+import { formatErrorForLog } from "@/lib/errors";
 type Supabase = SupabaseClient<Database>;
 
 export interface CompetitionSummary {
@@ -58,7 +60,7 @@ export async function getCompetitionsForOrganiser(
     .eq("organiser_id", userId)
     .order("starts_at", { ascending: false });
   if (error) {
-    console.warn("[chork] getCompetitionsForOrganiser failed:", error);
+    logger.warn("getcompetitionsfororganiser_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return (data ?? []) as CompetitionSummary[];
@@ -74,7 +76,7 @@ export async function getCompetitionGyms(
     .select("competition_id, gym_id, gyms:gym_id (name, slug)")
     .eq("competition_id", competitionId);
   if (error) {
-    console.warn("[chork] getCompetitionGyms failed:", error);
+    logger.warn("getcompetitiongyms_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return (data ?? []).flatMap((row) => {
@@ -101,7 +103,7 @@ export async function getCompetitionCategories(
     .order("display_order", { ascending: true })
     .order("name", { ascending: true });
   if (error) {
-    console.warn("[chork] getCompetitionCategories failed:", error);
+    logger.warn("getcompetitioncategories_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return (data ?? []) as CompetitionCategory[];
@@ -123,7 +125,7 @@ export async function getMyCompetitionParticipation(
     .eq("user_id", userId)
     .maybeSingle();
   if (error) {
-    console.warn("[chork] getMyCompetitionParticipation failed:", error);
+    logger.warn("getmycompetitionparticipation_failed", { err: formatErrorForLog(error) });
     return null;
   }
   return data ?? null;
@@ -153,7 +155,7 @@ export async function getCompetitionVenueStats(
     p_competition_id: competitionId,
   });
   if (error) {
-    console.warn("[chork] getCompetitionVenueStats failed:", error);
+    logger.warn("getcompetitionvenuestats_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return (data ?? []) as CompetitionVenueStats[];
@@ -177,7 +179,7 @@ export async function getCompetitionLeaderboard(
     p_offset: offset,
   });
   if (error) {
-    console.warn("[chork] getCompetitionLeaderboard failed:", error);
+    logger.warn("getcompetitionleaderboard_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return (data ?? []).map((r) => ({

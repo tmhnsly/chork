@@ -48,6 +48,8 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import { BrandDivider } from "@/components/ui/BrandDivider";
 import styles from "./routeLogSheet.module.scss";
 
+import { logger } from "@/lib/logger";
+import { formatErrorForLog } from "@/lib/errors";
 /** Data returned by fetchRouteData, cacheable at the SendsGrid level. */
 export interface CachedRouteData {
   grade: number | null;
@@ -173,7 +175,7 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
         setNextPage(2);
         onCacheRef.current?.(route.id, data);
       })
-      .catch((err) => console.warn("[chork] fetchRouteData failed:", err))
+      .catch((err) => logger.warn("fetchroutedata_failed", { err: formatErrorForLog(err) }))
       .finally(() => setLoadingComments(false));
   }, [route.id, cachedData, gradingScale]);
 
@@ -566,7 +568,7 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
                       );
                       onCacheRef.current?.(route.id, fresh);
                     } catch (err) {
-                      console.warn("[chork] grade refresh failed:", err);
+                      logger.warn("grade_refresh_failed", { err: formatErrorForLog(err) });
                     }
                   }, 600);
                 }}

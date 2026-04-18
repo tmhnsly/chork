@@ -4,6 +4,7 @@ import { revalidateTag } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
+import { tags } from "@/lib/cache/tags";
 type Supabase = SupabaseClient<Database>;
 
 /**
@@ -24,13 +25,13 @@ export async function revalidateUserProfile(
   supabase: Supabase,
   userId: string,
 ): Promise<void> {
-  revalidateTag(`user:${userId}:profile`);
+  revalidateTag(tags.userProfile(userId));
   const { data } = await supabase
     .from("profiles")
     .select("username")
     .eq("id", userId)
     .maybeSingle();
   if (data?.username) {
-    revalidateTag(`user:username-${data.username}:profile`);
+    revalidateTag(tags.userByUsername(data.username));
   }
 }

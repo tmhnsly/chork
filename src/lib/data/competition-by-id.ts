@@ -9,6 +9,9 @@ import type {
   CompetitionCategory,
 } from "./competition-queries";
 
+import { logger } from "@/lib/logger";
+import { formatErrorForLog } from "@/lib/errors";
+import { tags } from "@/lib/cache/tags";
 /**
  * Single competition by id. Server-only — lives here (not in
  * competition-queries.ts) so the cached-context client chain doesn't
@@ -30,12 +33,12 @@ export const getCompetitionById = cache(
           .eq("id", id)
           .maybeSingle();
         if (error) {
-          console.warn("[chork] getCompetitionById failed:", error);
+          logger.warn("getcompetitionbyid_failed", { err: formatErrorForLog(error) });
           return null;
         }
         return (data as CompetitionSummary | null) ?? null;
       },
-      { tags: [`competition:${competitionId}`], revalidate: 300 },
+      { tags: [tags.competition(competitionId)], revalidate: 300 },
     );
     return fn(competitionId);
   },
@@ -57,7 +60,7 @@ export const getCompetitionGymsCached = cache(
           .select("competition_id, gym_id, gyms:gym_id (name, slug)")
           .eq("competition_id", id);
         if (error) {
-          console.warn("[chork] getCompetitionGymsCached failed:", error);
+          logger.warn("getcompetitiongymscached_failed", { err: formatErrorForLog(error) });
           return [];
         }
         return (data ?? []).flatMap((row) => {
@@ -71,7 +74,7 @@ export const getCompetitionGymsCached = cache(
           }];
         });
       },
-      { tags: [`competition:${competitionId}`], revalidate: 300 },
+      { tags: [tags.competition(competitionId)], revalidate: 300 },
     );
     return fn(competitionId);
   },
@@ -95,12 +98,12 @@ export const getCompetitionCategoriesCached = cache(
           .order("display_order", { ascending: true })
           .order("name", { ascending: true });
         if (error) {
-          console.warn("[chork] getCompetitionCategoriesCached failed:", error);
+          logger.warn("getcompetitioncategoriescached_failed", { err: formatErrorForLog(error) });
           return [];
         }
         return (data ?? []) as CompetitionCategory[];
       },
-      { tags: [`competition:${competitionId}`], revalidate: 300 },
+      { tags: [tags.competition(competitionId)], revalidate: 300 },
     );
     return fn(competitionId);
   },

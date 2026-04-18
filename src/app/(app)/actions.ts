@@ -22,12 +22,15 @@ import type {
   PaginatedComments,
   ActivityEventType,
 } from "@/lib/data";
-import { formatError } from "@/lib/errors";
+import { formatError, formatErrorForLog } from "@/lib/errors";
 import { UUID_RE } from "@/lib/validation";
+import { enforce as enforceRateLimit } from "@/lib/rate-limit";
 import { buildBadgeContext } from "@/lib/achievements/context";
 import { evaluateAndPersistAchievements } from "@/lib/achievements/evaluate";
 import type { BadgeDefinition } from "@/lib/badges";
 
+import { logger } from "@/lib/logger";
+import { tags } from "@/lib/cache/tags";
 type ActionResult<T = unknown> = { error: string } | ({ success: true } & T);
 type LogResult = ActionResult<{ log: RouteLog; earnedBadges?: BadgeDefinition[] }>;
 type CommentResult = { error: string } | { comment: Comment };
@@ -44,6 +47,9 @@ export async function updateAttempts(
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId, gymId } = auth;
+
+  const rl = await enforceRateLimit("mutationsWrite", userId);
+  if (!rl.ok) return { error: rl.error };
 
   try {
     const log = await upsertRouteLog(supabase, userId, routeId, { attempts }, logId, gymId);
@@ -77,6 +83,9 @@ export async function completeRoute(
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId, gymId } = auth;
 
+  const rl = await enforceRateLimit("mutationsWrite", userId);
+  if (!rl.ok) return { error: rl.error };
+
   const isFlash = attempts === 1;
 
   try {
@@ -99,9 +108,9 @@ export async function completeRoute(
 
     // upsertRouteLog joined routes for us — no extra round trip needed.
     if (log.set_id) {
-      revalidateTag(`set:${log.set_id}:leaderboard`);
+      revalidateTag(tags.setLeaderboard(log.set_id));
     }
-    revalidateTag(`user:${userId}:stats`);
+    revalidateTag(tags.userStats(userId));
     // No profile-row bust: a send doesn't change profiles.* fields.
     // user_set_stats does change (via trigger) but that's read by
     // getProfileSummary which isn't server-cached.
@@ -147,6 +156,9 @@ export async function uncompleteRoute(
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId, gymId } = auth;
 
+  const rl = await enforceRateLimit("mutationsWrite", userId);
+  if (!rl.ok) return { error: rl.error };
+
   try {
     const [log] = await Promise.all([
       upsertRouteLog(supabase, userId, routeId, {
@@ -158,9 +170,9 @@ export async function uncompleteRoute(
     ]);
 
     if (log.set_id) {
-      revalidateTag(`set:${log.set_id}:leaderboard`);
+      revalidateTag(tags.setLeaderboard(log.set_id));
     }
-    revalidateTag(`user:${userId}:stats`);
+    revalidateTag(tags.userStats(userId));
     // No profile-row bust — see completeRoute note.
 
     return { success: true, log };
@@ -179,6 +191,9 @@ export async function toggleZone(
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId, gymId } = auth;
+
+  const rl = await enforceRateLimit("mutationsWrite", userId);
+  if (!rl.ok) return { error: rl.error };
 
   try {
     const log = await upsertRouteLog(supabase, userId, routeId, { zone }, logId, gymId);
@@ -208,12 +223,15 @@ export async function updateGradeVote(
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId, gymId } = auth;
 
+  const rl = await enforceRateLimit("mutationsWrite", userId);
+  if (!rl.ok) return { error: rl.error };
+
   try {
     const log = await upsertRouteLog(supabase, userId, routeId, { grade_vote: gradeVote }, logId, gymId);
     // routes.community_grade is updated via trigger (migration 026).
     // Bust the per-route grade cache entry so the route sheet shows
     // fresh average within the next request.
-    revalidateTag(`route:${routeId}:grade`);
+    revalidateTag(tags.routeGrade(routeId));
     return { success: true, log };
   } catch (err) {
     return { error: formatError(err) };
@@ -232,6 +250,9 @@ export async function postComment(
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId, gymId } = auth;
+
+  const rl = await enforceRateLimit("mutationsWrite", userId);
+  if (!rl.ok) return { error: rl.error };
 
   try {
     const comment = await createComment(supabase, {
@@ -255,6 +276,12 @@ export async function postComment(
     // button to flicker and the beta toggle to drop interaction
     // until a full page reload.
     revalidatePath("/crew");
+    // Bust the per-route comment cache so the next fetcher sees the
+    // new comment without waiting out the 60s staleTime. Safe no-op
+    // today (comments aren't wrapped in cachedQuery yet), but the
+    // tag-shape is registered in `tags.ts` so a future cache wrap
+    // doesn't silently serve stale post-mutation.
+    revalidateTag(tags.routeComments(routeId));
     return { comment };
   } catch (err) {
     return { error: formatError(err) };
@@ -275,7 +302,7 @@ export async function fetchComments(
   try {
     return await getCommentsByRoute(auth.supabase, routeId, page, 20);
   } catch (err) {
-    console.warn("[chork] fetchComments failed:", err);
+    logger.warn("fetchcomments_failed", { err: formatErrorForLog(err) });
     return { items: [], totalItems: 0, totalPages: 0, page: 1 };
   }
 }
@@ -298,15 +325,15 @@ export async function fetchRouteData(routeId: string): Promise<{
 
   const [grade, comments, likedSet] = await Promise.all([
     getRouteGrade(routeId).catch((err) => {
-      console.warn("[chork] fetchRouteData grade failed:", err);
+      logger.warn("fetchroutedata_grade_failed", { err: formatErrorForLog(err) });
       return null;
     }),
     getCommentsByRoute(supabase, routeId, 1, 2).catch((err) => {
-      console.warn("[chork] fetchRouteData comments failed:", err);
+      logger.warn("fetchroutedata_comments_failed", { err: formatErrorForLog(err) });
       return { items: [], totalItems: 0, totalPages: 0, page: 1 } as PaginatedComments;
     }),
     getLikedCommentIds(supabase, userId, routeId).catch((err) => {
-      console.warn("[chork] fetchRouteData likedIds failed:", err);
+      logger.warn("fetchroutedata_likedids_failed", { err: formatErrorForLog(err) });
       return new Set<string>();
     }),
   ]);
@@ -322,6 +349,9 @@ export async function likeComment(
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId, gymId } = auth;
+
+  const rl = await enforceRateLimit("mutationsWrite", userId);
+  if (!rl.ok) return { error: rl.error };
 
   try {
     return await toggleCommentLike(supabase, userId, commentId, gymId);
@@ -343,11 +373,14 @@ export async function editComment(
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId, gymId } = auth;
 
+  const rl = await enforceRateLimit("mutationsWrite", userId);
+  if (!rl.ok) return { error: rl.error };
+
   try {
     // Ownership + gym-scope check
     const { data: existing, error: fetchError } = await supabase
       .from("comments")
-      .select("user_id, gym_id")
+      .select("user_id, gym_id, route_id")
       .eq("id", commentId)
       .single();
 
@@ -359,6 +392,9 @@ export async function editComment(
     }
 
     const comment = await updateComment(supabase, commentId, trimmed);
+    // Mirror postComment — bust the per-route comment cache tag so
+    // a future cache wrap doesn't serve stale edited text.
+    revalidateTag(tags.routeComments(existing.route_id));
     return { comment };
   } catch (err) {
     return { error: formatError(err) };
@@ -407,6 +443,9 @@ export async function savePushSubscription(input: {
   const auth = await requireSignedIn();
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId } = auth;
+
+  const rl = await enforceRateLimit("pushSubscribe", userId);
+  if (!rl.ok) return { error: rl.error };
 
   try {
     const { error } = await supabase

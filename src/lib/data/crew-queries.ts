@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
+import { logger } from "@/lib/logger";
+import { formatErrorForLog } from "@/lib/errors";
 type Supabase = SupabaseClient<Database>;
 
 // ────────────────────────────────────────────────────────────────
@@ -100,7 +102,7 @@ export async function getMyCrews(
     .eq("status", "active");
 
   if (error) {
-    console.warn("[chork] getMyCrews failed:", error);
+    logger.warn("getmycrews_failed", { err: formatErrorForLog(error) });
     return [];
   }
 
@@ -156,7 +158,7 @@ export async function getPendingCrewInvites(
     .order("created_at", { ascending: false });
 
   if (error) {
-    console.warn("[chork] getPendingCrewInvites failed:", error);
+    logger.warn("getpendingcrewinvites_failed", { err: formatErrorForLog(error) });
     return [];
   }
 
@@ -195,7 +197,7 @@ export async function getCrewMemberPreviews(
     p_limit: limit,
   });
   if (error) {
-    console.warn("[chork] getCrewMemberPreviews failed:", error);
+    logger.warn("getcrewmemberpreviews_failed", { err: formatErrorForLog(error) });
     return new Map();
   }
 
@@ -231,7 +233,7 @@ export async function getCrewMembers(
     .order("created_at", { ascending: true });
 
   if (error) {
-    console.warn("[chork] getCrewMembers failed:", error);
+    logger.warn("getcrewmembers_failed", { err: formatErrorForLog(error) });
     return [];
   }
 
@@ -264,7 +266,7 @@ export async function getCrewLeaderboard(
     p_offset: offset,
   });
   if (error) {
-    console.warn("[chork] getCrewLeaderboard failed:", error);
+    logger.warn("getcrewleaderboard_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return (data ?? []).map((r) => ({
@@ -305,7 +307,7 @@ export async function getCrewActivityFeed(
         p_before: before ?? undefined,
       });
   if (error) {
-    console.warn("[chork] getCrewActivityFeed failed:", error);
+    logger.warn("getcrewactivityfeed_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return (data ?? []) as CrewActivityEvent[];
@@ -344,7 +346,7 @@ export async function getAllLiveSets(
     .eq("status", "live");
 
   if (error) {
-    console.warn("[chork] getAllLiveSets failed:", error);
+    logger.warn("getalllivesets_failed", { err: formatErrorForLog(error) });
     return [];
   }
 
@@ -401,7 +403,7 @@ export async function searchClimbersForInvite(
   );
 
   if (error || !profiles) {
-    console.warn("[chork] searchClimbersForInvite failed:", error);
+    logger.warn("searchclimbersforinvite_failed", { err: formatErrorForLog(error) });
     return [];
   }
   if (profiles.length === 0) return [];
@@ -466,7 +468,7 @@ export async function getCrewCountForUser(
     .eq("user_id", userId)
     .eq("status", "active");
   if (error) {
-    console.warn("[chork] getCrewCountForUser failed:", error);
+    logger.warn("getcrewcountforuser_failed", { err: formatErrorForLog(error) });
     return 0;
   }
   return count ?? 0;

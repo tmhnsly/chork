@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { env } from "@/lib/env";
 
 /**
  * Chork is a logged-in app; public surface is only the landing +
@@ -7,7 +8,6 @@ import type { MetadataRoute } from "next";
  * here so bots don't waste crawl budget and so we don't have to
  * rely on the 401 wall as our SEO boundary.
  */
-const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chork.vercel.app";
 
 export default function robots(): MetadataRoute.Robots {
   return {
@@ -30,7 +30,7 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    sitemap: `${SITE}/sitemap.xml`,
-    host: SITE,
+    sitemap: `${env.SITE_URL}/sitemap.xml`,
+    host: env.SITE_URL,
   };
 }

@@ -19,6 +19,9 @@ import type {
   LeaderboardEntry,
 } from "./types";
 
+import { logger } from "@/lib/logger";
+import { formatErrorForLog } from "@/lib/errors";
+import { tags } from "@/lib/cache/tags";
 /**
  * ── Error contract ────────────────────────────────────────────────
  *
@@ -56,7 +59,7 @@ export async function getUserGymRole(
     .eq("gym_id", gymId)
     .maybeSingle();
   if (error) {
-    console.warn("[chork] getUserGymRole failed:", error);
+    logger.warn("getusergymrole_failed", { err: formatErrorForLog(error) });
     return null;
   }
   return (data?.role as GymRole) ?? null;
@@ -74,7 +77,7 @@ export async function getProfile(supabase: Supabase, userId: string): Promise<Pr
     .eq("id", userId)
     .single();
   if (error) {
-    console.warn("[chork] getProfile failed:", error);
+    logger.warn("getprofile_failed", { err: formatErrorForLog(error) });
     return null;
   }
   return data;
@@ -92,7 +95,7 @@ export const getProfileByUsername = cache(
           .eq("username", u)
           .single();
         if (error) {
-          console.warn("[chork] getProfileByUsername failed:", error);
+          logger.warn("getprofilebyusername_failed", { err: formatErrorForLog(error) });
           return null;
         }
         return data;
@@ -101,7 +104,7 @@ export const getProfileByUsername = cache(
         // Tag must be known at wrap time; username is the only keyable
         // thing we have until the fetch resolves. On rename, updateProfile
         // revalidates both old and new username tags (Phase 3).
-        tags: [`user:username-${username}:profile`],
+        tags: [tags.userByUsername(username)],
         revalidate: 300,
       },
     );
@@ -122,7 +125,7 @@ export async function searchGyms(supabase: Supabase, query: string): Promise<Gym
     .order("name")
     .limit(20);
   if (error) {
-    console.warn("[chork] searchGyms failed:", error);
+    logger.warn("searchgyms_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return data ?? [];
@@ -139,12 +142,12 @@ export function getGym(gymId: string): Promise<Gym | null> {
         .eq("id", id)
         .single();
       if (error) {
-        console.warn("[chork] getGym failed:", error);
+        logger.warn("getgym_failed", { err: formatErrorForLog(error) });
         return null;
       }
       return data;
     },
-    { tags: [`gym:${gymId}`], revalidate: 3600 },
+    { tags: [tags.gym(gymId)], revalidate: 3600 },
   );
   return fn(gymId);
 }
@@ -164,12 +167,12 @@ export function getCurrentSet(gymId: string): Promise<RouteSet | null> {
         .limit(1)
         .maybeSingle();
       if (error) {
-        console.warn("[chork] getCurrentSet failed:", error);
+        logger.warn("getcurrentset_failed", { err: formatErrorForLog(error) });
         return null;
       }
       return data;
     },
-    { tags: [`gym:${gymId}:active-set`], revalidate: 60 },
+    { tags: [tags.gymActiveSet(gymId)], revalidate: 60 },
   );
   return fn(gymId);
 }
@@ -195,16 +198,23 @@ export const getAllSets = cache(
           .from("sets")
           .select("*")
           .eq("gym_id", id)
-          .order("starts_at", { ascending: false });
+          .order("starts_at", { ascending: false })
+          // Ceiling-guard. Profile streak + history surfaces show the
+          // 200 most recent sets overlapping the user's tenure; older
+          // history is archive-only and would otherwise pull the whole
+          // gym's set history on every render. At 200 a long-running
+          // gym (weekly resets for 4 years = ~210 sets) has one set
+          // clipped; past that, callers paginate explicitly.
+          .limit(200);
         if (since) query = query.gte("ends_at", since);
         const { data, error } = await query;
         if (error) {
-          console.warn("[chork] getAllSets failed:", error);
+          logger.warn("getallsets_failed", { err: formatErrorForLog(error) });
           return [];
         }
         return data ?? [];
       },
-      { tags: [`gym:${gymId}:active-set`], revalidate: 300 },
+      { tags: [tags.gymActiveSet(gymId)], revalidate: 300 },
     );
     return fn(gymId, sinceIso);
   },
@@ -221,14 +231,18 @@ export function getRoutesBySet(setId: string): Promise<Route[]> {
         .from("routes")
         .select("*")
         .eq("set_id", id)
-        .order("number");
+        .order("number")
+        // Ceiling-guard. Normal sets are <100 routes; 300 covers
+        // outlier jam-style mega-sets without letting a pathological
+        // seed ship a 10k-row payload to the wall.
+        .limit(300);
       if (error) {
-        console.warn("[chork] getRoutesBySet failed:", error);
+        logger.warn("getroutesbyset_failed", { err: formatErrorForLog(error) });
         return [];
       }
       return data ?? [];
     },
-    { tags: [`set:${setId}:routes`], revalidate: 300 },
+    { tags: [tags.setRoutes(setId)], revalidate: 300 },
   );
   return fn(setId);
 }
@@ -253,7 +267,7 @@ export async function getRoutesBySetIds(
     .in("set_id", setIds)
     .order("number");
   if (error) {
-    console.warn("[chork] getRoutesBySetIds failed:", error);
+    logger.warn("getroutesbysetids_failed", { err: formatErrorForLog(error) });
     return byId;
   }
 
@@ -278,7 +292,7 @@ export async function getLogsBySetForUser(
     .eq("routes.set_id", setId)
     .eq("user_id", userId);
   if (error) {
-    console.warn("[chork] getLogsBySetForUser failed:", error);
+    logger.warn("getlogsbysetforuser_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return (data ?? []) as RouteLog[];
@@ -325,10 +339,10 @@ export async function getAllRouteDataForUserInGym(
   ]);
 
   if (logsResult.error) {
-    console.warn("[chork] getAllRouteDataForUserInGym logs failed:", logsResult.error);
+    logger.warn("getallroutedataforuseringym_logs_failed", { err: formatErrorForLog(logsResult.error) });
   }
   if (routesResult.error) {
-    console.warn("[chork] getAllRouteDataForUserInGym count failed:", routesResult.error);
+    logger.warn("getallroutedataforuseringym_count_failed", { err: formatErrorForLog(routesResult.error) });
   }
 
   type LogRow = {
@@ -368,7 +382,7 @@ export async function getUserSetStats(
     p_gym_id: gymId,
   });
   if (error) {
-    console.warn("[chork] getUserSetStats failed:", error);
+    logger.warn("getusersetstats_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return data ?? [];
@@ -392,12 +406,12 @@ export function getRouteGrade(routeId: string): Promise<number | null> {
         .eq("id", id)
         .maybeSingle();
       if (error) {
-        console.warn("[chork] getRouteGrade failed:", error);
+        logger.warn("getroutegrade_failed", { err: formatErrorForLog(error) });
         return null;
       }
       return data?.community_grade ?? null;
     },
-    { tags: [`route:${routeId}:grade`], revalidate: 300 },
+    { tags: [tags.routeGrade(routeId)], revalidate: 300 },
   );
   return fn(routeId);
 }
@@ -416,7 +430,7 @@ export async function getActivityEventsForUser(
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) {
-    console.warn("[chork] getActivityEventsForUser failed:", error);
+    logger.warn("getactivityeventsforuser_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return (data ?? []) as ActivityEventWithRoute[];
@@ -443,7 +457,7 @@ export async function getCommentsByRoute(
     .range(from, to);
 
   if (error) {
-    console.warn("[chork] getCommentsByRoute failed:", error);
+    logger.warn("getcommentsbyroute_failed", { err: formatErrorForLog(error) });
   }
 
   const totalItems = count ?? 0;
@@ -470,7 +484,7 @@ export async function getLikedCommentIds(
     .eq("comments.route_id", routeId);
 
   if (error) {
-    console.warn("[chork] getLikedCommentIds failed:", error);
+    logger.warn("getlikedcommentids_failed", { err: formatErrorForLog(error) });
     return new Set();
   }
 
@@ -501,7 +515,7 @@ export async function getLeaderboard(
       });
 
   if (error) {
-    console.warn("[chork] getLeaderboard failed:", error);
+    logger.warn("getleaderboard_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return normaliseLeaderboardRows(data ?? []);
@@ -520,7 +534,7 @@ export async function getLeaderboardNeighbourhood(
     p_set_id: setId ?? undefined,
   });
   if (error) {
-    console.warn("[chork] getLeaderboardNeighbourhood failed:", error);
+    logger.warn("getleaderboardneighbourhood_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return normaliseLeaderboardRows(data ?? []);
@@ -539,7 +553,7 @@ export async function getLeaderboardUserRow(
     p_set_id: setId ?? undefined,
   });
   if (error) {
-    console.warn("[chork] getLeaderboardUserRow failed:", error);
+    logger.warn("getleaderboarduserrow_failed", { err: formatErrorForLog(error) });
     return null;
   }
   const rows = normaliseLeaderboardRows(data ?? []);
@@ -579,7 +593,7 @@ export async function getEarnedAchievements(
     .eq("user_id", userId);
 
   if (error) {
-    console.warn("[chork] getEarnedAchievements failed:", error);
+    logger.warn("getearnedachievements_failed", { err: formatErrorForLog(error) });
     return new Map();
   }
   return new Map((data ?? []).map((r) => [r.badge_id, r.earned_at]));
@@ -611,12 +625,12 @@ export function getListedGyms(): Promise<GymListing[]> {
         .eq("is_listed", true)
         .order("name");
       if (error) {
-        console.warn("[chork] getListedGyms failed:", error);
+        logger.warn("getlistedgyms_failed", { err: formatErrorForLog(error) });
         return [];
       }
       return data ?? [];
     },
-    { tags: ["gyms:listed"], revalidate: 3600 },
+    { tags: [tags.gymsListed()], revalidate: 3600 },
   );
   return fn();
 }
@@ -630,77 +644,12 @@ export interface GymStats {
   totalRoutes: number;
 }
 
-/**
- * Aggregate headline numbers for a gym. Used by the Chorkboard stats strip.
- * Each count is a cheap `head: true` select — the DB never returns rows,
- * only the row count, so this is safe to run on every Chorkboard paint.
- */
-export async function getGymStats(
-  supabase: Supabase,
-  gymId: string,
-  setId: string | null = null,
-): Promise<GymStats> {
-  // `climberCount` counts distinct climbers who have at least one
-  // completed log in the scope — the strip reflects activity, not
-  // bare membership rows. Pulled via RPC because Supabase REST
-  // can't do `count(distinct …)`.
-  if (setId) {
-    // route_logs has no `set_id` column — it links through `routes`.
-    // Inner-join via the FK so the count is scoped to the set.
-    const [activeClimbers, sends, flashes, routes] = await Promise.all([
-      supabase.rpc("get_active_climber_count", { p_set_id: setId }),
-      supabase
-        .from("route_logs")
-        .select("id, routes!inner(set_id)", { count: "exact", head: true })
-        .eq("routes.set_id", setId)
-        .eq("completed", true),
-      supabase
-        .from("route_logs")
-        .select("id, routes!inner(set_id)", { count: "exact", head: true })
-        .eq("routes.set_id", setId)
-        .eq("completed", true)
-        .eq("attempts", 1),
-      supabase
-        .from("routes")
-        .select("id", { count: "exact", head: true })
-        .eq("set_id", setId),
-    ]);
-
-    return {
-      climberCount: activeClimbers.data ?? 0,
-      totalSends: sends.count ?? 0,
-      totalFlashes: flashes.count ?? 0,
-      totalRoutes: routes.count ?? 0,
-    };
-  }
-
-  // All-time gym-wide
-  const [activeClimbers, sends, flashes, routes] = await Promise.all([
-    supabase.rpc("get_gym_active_climber_count", { p_gym_id: gymId }),
-    supabase
-      .from("route_logs")
-      .select("id", { count: "exact", head: true })
-      .eq("gym_id", gymId)
-      .eq("completed", true),
-    supabase
-      .from("route_logs")
-      .select("id", { count: "exact", head: true })
-      .eq("gym_id", gymId)
-      .eq("completed", true)
-      .eq("attempts", 1),
-    supabase
-      .from("routes")
-      .select("id, sets!inner(gym_id)", { count: "exact", head: true })
-      .eq("sets.gym_id", gymId),
-  ]);
-
-  return {
-    climberCount: activeClimbers.data ?? 0,
-    totalSends: sends.count ?? 0,
-    totalFlashes: flashes.count ?? 0,
-    totalRoutes: routes.count ?? 0,
-  };
-}
+// NOTE: the old `getGymStats(supabase, gymId, setId?)` helper was
+// removed — every surface now reads through `getGymStatsV2Cached`
+// below, which fans out four bucket counts via a single cached RPC
+// (migration 039). The uncached variant was allocating four
+// head:true count queries per call with no tag-gated invalidation,
+// which would have become a connection-pool headache at scale.
 
 // ── Profile summary (migration 036) ────────────────
 
@@ -734,7 +683,7 @@ export const getProfileSummary = cache(
       p_gym_id: gymId,
     });
     if (error) {
-      console.warn("[chork] getProfileSummary failed:", error);
+      logger.warn("getprofilesummary_failed", { err: formatErrorForLog(error) });
       return {
         per_set: [],
         active_set_detail: [],
@@ -770,7 +719,7 @@ export async function getGymStatsV2(
     p_set_id: setId ?? undefined,
   });
   if (error) {
-    console.warn("[chork] getGymStatsV2 failed:", error);
+    logger.warn("getgymstatsv2_failed", { err: formatErrorForLog(error) });
     return {
       all_time: { climberCount: 0, totalSends: 0, totalFlashes: 0, totalRoutes: 0 },
       set: null,
@@ -829,15 +778,15 @@ export function getLeaderboardCached(
             p_offset: offset,
           });
       if (error) {
-        console.warn("[chork] getLeaderboardCached failed:", error);
+        logger.warn("getleaderboardcached_failed", { err: formatErrorForLog(error) });
         return [];
       }
       return normaliseLeaderboardRows(data ?? []);
     },
     {
       tags: setId
-        ? [`set:${setId}:leaderboard`, `gym:${gymId}`]
-        : [`gym:${gymId}`],
+        ? [tags.setLeaderboard(setId), tags.gym(gymId)]
+        : [tags.gym(gymId)],
       // 60s — short enough that climbers see new sends within a minute
       // even without a precise tag bust hitting their cache; long enough
       // that 100 simultaneous viewers cost 1 RPC, not 100.
@@ -860,7 +809,7 @@ export function getGymStatsV2Cached(
         p_set_id: setId ?? undefined,
       });
       if (error) {
-        console.warn("[chork] getGymStatsV2Cached failed:", error);
+        logger.warn("getgymstatsv2cached_failed", { err: formatErrorForLog(error) });
         return {
           all_time: { climberCount: 0, totalSends: 0, totalFlashes: 0, totalRoutes: 0 },
           set: null,
@@ -883,8 +832,8 @@ export function getGymStatsV2Cached(
     },
     {
       tags: setId
-        ? [`set:${setId}:leaderboard`, `gym:${gymId}`]
-        : [`gym:${gymId}`],
+        ? [tags.setLeaderboard(setId), tags.gym(gymId)]
+        : [tags.gym(gymId)],
       revalidate: 60,
     },
   );

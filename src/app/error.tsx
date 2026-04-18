@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { RevealText } from "@/components/motion";
+import { logger } from "@/lib/logger";
 import styles from "./error.module.scss";
 
 interface Props {
@@ -21,9 +22,13 @@ export default function GlobalError({ error, reset }: Props) {
     // Dev: keep the full Error. `pnpm dev` debugging is a lot worse
     // without a stack, and the prod redaction concern doesn't apply.
     if (process.env.NODE_ENV === "development") {
-      console.error("[chork] page error", error);
+      logger.error("page_error", {
+        digest: error.digest,
+        message: error.message,
+        stack: error.stack,
+      });
     } else {
-      console.error("[chork] page error", { digest: error.digest });
+      logger.error("page_error", { digest: error.digest });
     }
   }, [error]);
 

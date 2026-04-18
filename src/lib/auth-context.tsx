@@ -13,6 +13,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { createBrowserSupabase } from "./supabase/client";
+import { env } from "./env";
 import { showToast } from "@/components/ui";
 import { signOutAction } from "@/app/login/actions";
 import { removePushSubscription } from "@/app/(app)/actions";
@@ -21,6 +22,8 @@ import { DEFAULT_THEME, setThemeStore } from "./theme-store";
 import { mutationQueue } from "./offline/mutation-queue";
 import type { Profile } from "./data/types";
 
+import { logger } from "@/lib/logger";
+import { formatErrorForLog } from "@/lib/errors";
 /**
  * Local cache of the climber's profile. Lets the bootstrap skip the
  * Supabase profile-fetch round-trip on warm cache — NavBar paints in
@@ -198,7 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .eq("id", userId)
       .single();
     if (error) {
-      console.warn("[chork] fetchProfile failed:", error);
+      logger.warn("fetchprofile_failed", { err: formatErrorForLog(error) });
     }
     return data;
   }, [supabase]);
@@ -213,7 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .limit(1)
       .maybeSingle();
     if (error) {
-      console.warn("[chork] fetchIsAdmin failed:", error);
+      logger.warn("fetchisadmin_failed", { err: formatErrorForLog(error) });
       return false;
     }
     return data !== null;
@@ -325,14 +328,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // No client-side redirect needed — avoids double-redirect issues.
 
   const resetPassword = useCallback(async (email: string) => {
-    // Prefer the configured site URL over `window.location.origin` —
-    // the latter resolves to `http://localhost:3000` during local
-    // development, so the password-reset email would point a user
-    // at their machine. Fall back to the window origin only when the
-    // env isn't set (e.g. storybook, tests).
-    const base = process.env.NEXT_PUBLIC_SITE_URL ?? window.location.origin;
+    // `env.SITE_URL` is build-validated — a missing env var fails
+    // the build, so we never risk sending a password-reset email
+    // that points to `http://localhost:3000` (the previous
+    // `window.location.origin` fallback).
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${base}/auth/callback?next=/login`,
+      redirectTo: `${env.SITE_URL}/auth/callback?next=/login`,
     });
     if (error) {
       showToast(error.message, "error");
@@ -365,12 +366,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await removePushSubscription(endpoint);
       }
     } catch (err) {
-      console.warn("[chork] signout: push teardown failed", err);
+      logger.warn("signout_push_teardown_failed", { err: formatErrorForLog(err) });
     }
     try {
       await supabase.removeAllChannels();
     } catch (err) {
-      console.warn("[chork] signout: realtime teardown failed", err);
+      logger.warn("signout_realtime_teardown_failed", { err: formatErrorForLog(err) });
     }
 
     // ── Flip the server session. ──
@@ -388,7 +389,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       result = await signOutAction();
     } catch (err) {
-      console.warn("[chork] signout: action threw", err);
+      logger.warn("signout_action_threw", { err: formatErrorForLog(err) });
       showToast("Sign out failed. Try again.", "error");
       return;
     }
@@ -411,7 +412,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (outgoingUserId) {
         void mutationQueue
           .clearForUser(outgoingUserId)
-          .catch((err) => console.warn("[chork] signout: queue clear failed", err));
+          .catch((err) =>
+            logger.warn("signout_queue_clear_failed", { err: formatErrorForLog(err) }),
+          );
       }
 
       // Wipe the browser SDK's in-memory session. `scope: "local"`
@@ -419,7 +422,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // already cleared that side.
       void supabase.auth
         .signOut({ scope: "local" })
-        .catch((err) => console.warn("[chork] signout: local SDK signout failed", err));
+        .catch((err) =>
+          logger.warn("signout_local_sdk_failed", { err: formatErrorForLog(err) }),
+        );
 
       // Drop the localStorage profile cache so a bfcache restore
       // can't re-hydrate a signed-in nav after navigation.

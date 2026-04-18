@@ -2,14 +2,17 @@
 
 import { revalidateTag } from "next/cache";
 import { requireSignedIn } from "@/lib/auth";
-import { formatError } from "@/lib/errors";
+import { formatError, formatErrorForLog } from "@/lib/errors";
 import { sendPushInBackground } from "@/lib/push/server";
 import { notifyUser } from "@/lib/notify";
 import { revalidateUserProfile } from "@/lib/cache/revalidate";
 import { UUID_RE } from "@/lib/validation";
+import { enforce as enforceRateLimit } from "@/lib/rate-limit";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
+import { logger } from "@/lib/logger";
+import { tags } from "@/lib/cache/tags";
 type ActionResult<T = unknown> = { error: string } | ({ success: true } & T);
 
 /**
@@ -22,7 +25,7 @@ async function revalidateCrewMembers(
   crewId: string,
   extraUserIds: string[] = [],
 ) {
-  revalidateTag(`crew:${crewId}`);
+  revalidateTag(tags.crew(crewId));
   const { data: members } = await supabase
     .from("crew_members")
     .select("user_id")
@@ -32,14 +35,14 @@ async function revalidateCrewMembers(
   if (Array.isArray(members)) {
     for (const m of members) {
       if (m.user_id && !seen.has(m.user_id)) {
-        revalidateTag(`user:${m.user_id}:crews`);
+        revalidateTag(tags.userCrews(m.user_id));
         seen.add(m.user_id);
       }
     }
   }
   for (const uid of extraUserIds) {
     if (!seen.has(uid)) {
-      revalidateTag(`user:${uid}:crews`);
+      revalidateTag(tags.userCrews(uid));
       seen.add(uid);
     }
   }
@@ -120,6 +123,15 @@ export async function inviteToCrew(
     return { error: "You can't invite yourself." };
   }
 
+  // Edge-layer rate limit (Upstash). Runs BEFORE the SQL
+  // `bump_invite_rate_limit` check below for two reasons:
+  //   • faster fail under a burst — Redis short-circuits before we
+  //     take a Postgres connection slot.
+  //   • defence-in-depth — if the SQL RPC ever drifts (grant
+  //     tightening, schema rename), the app-layer cap still holds.
+  const rl = await enforceRateLimit("invitesSend", userId);
+  if (!rl.ok) return { error: rl.error };
+
   try {
     // Rate limit — 10 invites per caller per day. RPC is atomic so a
     // parallel burst can't race past the cap.
@@ -186,12 +198,12 @@ export async function inviteToCrew(
         { category: "invite_received" },
       );
     } catch (err) {
-      console.warn("[chork] crew-invite dispatch failed:", err);
+      logger.warn("crew_invite_dispatch_failed", { err: formatErrorForLog(err) });
     }
 
-    revalidateTag(`crew:${crewId}`);
-    revalidateTag(`user:${userId}:crews`);
-    revalidateTag(`user:${targetUserId}:notifications`);
+    revalidateTag(tags.crew(crewId));
+    revalidateTag(tags.userCrews(userId));
+    revalidateTag(tags.userNotifications(targetUserId));
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
@@ -258,7 +270,7 @@ export async function acceptCrewInvite(crewMemberId: string): Promise<ActionResu
           { category: "invite_accepted" },
         );
       } catch (err) {
-        console.warn("[chork] crew-accept push dispatch failed:", err);
+        logger.warn("crew_accept_push_dispatch_failed", { err: formatErrorForLog(err) });
       }
     }
 
@@ -267,7 +279,7 @@ export async function acceptCrewInvite(crewMemberId: string): Promise<ActionResu
       // members list, so the fan-out catches them too.
       await revalidateCrewMembers(supabase, invite.crew_id);
       if (invite.invited_by && invite.invited_by !== userId) {
-        revalidateTag(`user:${invite.invited_by}:notifications`);
+        revalidateTag(tags.userNotifications(invite.invited_by));
       }
     }
     return { success: true };
@@ -303,10 +315,10 @@ export async function declineCrewInvite(crewMemberId: string): Promise<ActionRes
     if (error) return { error: formatError(error) };
 
     if (invite?.crew_id) {
-      revalidateTag(`crew:${invite.crew_id}`);
-      revalidateTag(`user:${userId}:crews`);
+      revalidateTag(tags.crew(invite.crew_id));
+      revalidateTag(tags.userCrews(userId));
       if (invite.invited_by && invite.invited_by !== userId) {
-        revalidateTag(`user:${invite.invited_by}:notifications`);
+        revalidateTag(tags.userNotifications(invite.invited_by));
       }
     }
     return { success: true };
@@ -370,8 +382,8 @@ export async function leaveCrew(crewId: string): Promise<ActionResult> {
       // the membership + pending invite rows.
       const { error } = await supabase.from("crews").delete().eq("id", crewId);
       if (error) return { error: formatError(error) };
-      revalidateTag(`crew:${crewId}`);
-      revalidateTag(`user:${userId}:crews`);
+      revalidateTag(tags.crew(crewId));
+      revalidateTag(tags.userCrews(userId));
       return { success: true };
     }
 
@@ -476,11 +488,11 @@ export async function transferCrewOwnership(
         { category: "ownership_changed" },
       );
     } catch (err) {
-      console.warn("[chork] crew-transfer push dispatch failed:", err);
+      logger.warn("crew_transfer_push_dispatch_failed", { err: formatErrorForLog(err) });
     }
 
     await revalidateCrewMembers(supabase, crewId);
-    revalidateTag(`user:${newOwnerId}:notifications`);
+    revalidateTag(tags.userNotifications(newOwnerId));
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };

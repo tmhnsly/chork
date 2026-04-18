@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { formatAuthError, formatError, type AuthErrorField } from "@/lib/errors";
+import { env } from "@/lib/env";
 
 export interface AuthActionState {
   error?: string;
@@ -124,12 +125,11 @@ export async function signUpAction(
   if (!password) return { error: "Password is required", field: "password" };
 
   const supabase = await createServerSupabase();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chork.vercel.app";
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${siteUrl}/auth/callback?next=/onboarding`,
+      emailRedirectTo: `${env.SITE_URL}/auth/callback?next=/onboarding`,
     },
   });
   if (error) {

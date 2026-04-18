@@ -21,6 +21,7 @@ import type {
   UserAllTimeStats,
 } from "./jam-types";
 
+import { logger } from "@/lib/logger";
 type Client = SupabaseClient<Database>;
 
 // NOTE: the legacy `getJamState` wrapper was removed — it relied on
@@ -43,7 +44,7 @@ export async function getJamById(
     .eq("id", jamId)
     .maybeSingle();
   if (error) {
-    console.warn("[chork] getJamById failed:", formatErrorForLog(error));
+    logger.warn("getjambyid_failed", { err: formatErrorForLog(error) });
     return null;
   }
   return (data ?? null) as Jam | null;
@@ -54,7 +55,7 @@ export async function getActiveJamForUser(
 ): Promise<ActiveJamSummary | null> {
   const { data, error } = await supabase.rpc("get_active_jam_for_user");
   if (error) {
-    console.warn("[chork] getActiveJamForUser failed:", formatErrorForLog(error));
+    logger.warn("getactivejamforuser_failed", { err: formatErrorForLog(error) });
     return null;
   }
   const rows = (data ?? []) as ActiveJamSummary[];
@@ -79,7 +80,7 @@ export async function getActiveJamForUserById(
     p_user_id: userId,
   });
   if (error) {
-    console.warn("[chork] getActiveJamForUserById failed:", formatErrorForLog(error));
+    logger.warn("getactivejamforuserbyid_failed", { err: formatErrorForLog(error) });
     return null;
   }
   const rows = (data ?? []) as ActiveJamSummary[];
@@ -106,7 +107,7 @@ export async function getJamStateForUser(
     p_user_id: userId,
   });
   if (error) {
-    console.warn("[chork] getJamStateForUser failed:", formatErrorForLog(error));
+    logger.warn("getjamstateforuser_failed", { err: formatErrorForLog(error) });
     return null;
   }
   return (data ?? null) as unknown as JamState | null;
@@ -122,7 +123,7 @@ export async function lookupJamByCode(
     p_code: normalised,
   });
   if (error) {
-    console.warn("[chork] lookupJamByCode failed:", formatErrorForLog(error));
+    logger.warn("lookupjambycode_failed", { err: formatErrorForLog(error) });
     return null;
   }
   const rows = (data ?? []) as JoinJamLookup[];
@@ -144,7 +145,7 @@ export async function getUserJams(
     p_before: before ?? undefined,
   });
   if (error) {
-    console.warn("[chork] getUserJams failed:", formatErrorForLog(error));
+    logger.warn("getuserjams_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return (data ?? []) as JamHistoryRow[];
@@ -171,7 +172,7 @@ export async function getJamSummaryForUser(
     p_user_id: userId,
   });
   if (error) {
-    console.warn("[chork] getJamSummaryForUser failed:", formatErrorForLog(error));
+    logger.warn("getjamsummaryforuser_failed", { err: formatErrorForLog(error) });
     return null;
   }
   return (data ?? null) as unknown as JamSummaryBundle | null;
@@ -182,7 +183,7 @@ export async function getUserSavedScales(
 ): Promise<SavedScale[]> {
   const { data, error } = await supabase.rpc("get_user_saved_scales");
   if (error) {
-    console.warn("[chork] getUserSavedScales failed:", formatErrorForLog(error));
+    logger.warn("getusersavedscales_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return (data ?? []) as unknown as SavedScale[];
@@ -196,7 +197,7 @@ export async function getUserAllTimeStats(
     p_user_id: userId,
   });
   if (error) {
-    console.warn("[chork] getUserAllTimeStats failed:", formatErrorForLog(error));
+    logger.warn("getuseralltimestats_failed", { err: formatErrorForLog(error) });
     return null;
   }
   const rows = (data ?? []) as UserAllTimeStats[];

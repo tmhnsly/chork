@@ -10,6 +10,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
+import { logger } from "@/lib/logger";
+import { formatErrorForLog } from "@/lib/errors";
 type Supabase = SupabaseClient<Database>;
 
 export interface AdminGymSummary {
@@ -37,7 +39,7 @@ export async function isGymAdminOf(
     .eq("gym_id", gymId)
     .maybeSingle();
   if (error) {
-    console.warn("[chork] isGymAdminOf failed:", error);
+    logger.warn("isgymadminof_failed", { err: formatErrorForLog(error) });
     return false;
   }
   return data !== null;
@@ -59,7 +61,7 @@ export async function getAdminGymsForUser(
     .order("created_at", { ascending: true });
 
   if (error) {
-    console.warn("[chork] getAdminGymsForUser failed:", error);
+    logger.warn("getadmingymsforuser_failed", { err: formatErrorForLog(error) });
     return [];
   }
 
@@ -102,7 +104,7 @@ export async function getActiveSetForAdminGym(
     .maybeSingle();
 
   if (error) {
-    console.warn("[chork] getActiveSetForAdminGym failed:", error);
+    logger.warn("getactivesetforadmingym_failed", { err: formatErrorForLog(error) });
     return null;
   }
   return (data as AdminSetSummary | null) ?? null;
@@ -117,10 +119,15 @@ export async function getAllSetsForAdminGym(
     .from("sets")
     .select("id, name, status, starts_at, ends_at, grading_scale, max_grade, closing_event")
     .eq("gym_id", gymId)
-    .order("starts_at", { ascending: false });
+    .order("starts_at", { ascending: false })
+    // Ceiling-guard. Long-running gyms (weekly resets for 4+ years)
+    // would otherwise pull hundreds of archived sets on every admin
+    // dashboard render. 200 covers >99% of real gyms; older history
+    // needs explicit pagination.
+    .limit(200);
 
   if (error) {
-    console.warn("[chork] getAllSetsForAdminGym failed:", error);
+    logger.warn("getallsetsforadmingym_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return (data ?? []) as AdminSetSummary[];
@@ -140,7 +147,7 @@ export async function getRouteTags(supabase: Supabase): Promise<RouteTagRow[]> {
     .order("name");
 
   if (error) {
-    console.warn("[chork] getRouteTags failed:", error);
+    logger.warn("getroutetags_failed", { err: formatErrorForLog(error) });
     return [];
   }
   return data ?? [];
@@ -170,7 +177,7 @@ export async function getAdminRoutesForSet(
     .order("number");
 
   if (error) {
-    console.warn("[chork] getAdminRoutesForSet failed:", error);
+    logger.warn("getadminroutesforset_failed", { err: formatErrorForLog(error) });
     return [];
   }
 

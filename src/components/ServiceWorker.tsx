@@ -2,11 +2,13 @@
 
 import { useEffect } from "react";
 
+import { logger } from "@/lib/logger";
+import { formatErrorForLog } from "@/lib/errors";
 export function ServiceWorker() {
   useEffect(() => {
     if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
       navigator.serviceWorker.register("/sw.js").catch((err) => {
-        console.warn("[chork] SW registration failed:", err);
+        logger.warn("sw_registration_failed", { err: formatErrorForLog(err) });
       });
     }
   }, []);

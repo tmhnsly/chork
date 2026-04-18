@@ -4,6 +4,8 @@ import { useCallback, useRef, useState } from "react";
 import { checkUsernameAvailable } from "@/lib/user-actions";
 import { validateUsername } from "@/lib/validation";
 
+import { logger } from "@/lib/logger";
+import { formatErrorForLog } from "@/lib/errors";
 export type UsernameStatus = "idle" | "checking" | "available" | "invalid";
 
 export function useUsernameValidation(currentUsername?: string) {
@@ -53,7 +55,7 @@ export function useUsernameValidation(currentUsername?: string) {
         return true;
       } catch (err) {
         // Server error — allow submit, server will validate on save
-        console.warn("[chork] username validation failed:", err);
+        logger.warn("username_validation_failed", { err: formatErrorForLog(err) });
         if (reqRef.current === token) setStatus("idle");
         return true;
       }

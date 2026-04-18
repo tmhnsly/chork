@@ -7,6 +7,8 @@ import type {
   CrewOwnershipTransferredPayload,
 } from "@/lib/data/notifications";
 
+import { logger } from "@/lib/logger";
+import { formatErrorForLog } from "@/lib/errors";
 /**
  * Discriminated-union helper. Each kind's payload is typed so a
  * caller that passes the wrong shape trips TypeScript rather than
@@ -41,9 +43,9 @@ export async function notifyUser(
       p_payload: args.payload as unknown as Database["public"]["Functions"]["notify_user"]["Args"]["p_payload"],
     });
     if (error) {
-      console.warn("[chork] notifyUser failed:", error);
+      logger.warn("notifyuser_failed", { err: formatErrorForLog(error) });
     }
   } catch (err) {
-    console.warn("[chork] notifyUser threw:", err);
+    logger.warn("notifyuser_threw_failed", { err: formatErrorForLog(err) });
   }
 }

@@ -2,6 +2,7 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 
+import { tags } from "@/lib/cache/tags";
 /**
  * Tag taxonomy — any string literal outside this union is a type error.
  * Keeps mutations, cache wraps, and `revalidateTag` calls in lockstep.
@@ -22,9 +23,11 @@ import { unstable_cache } from "next/cache";
 export type Tag =
   | `gym:${string}`
   | `gym:${string}:active-set`
+  | `gym:${string}:stats-all-time`
   | `set:${string}:routes`
   | `set:${string}:leaderboard`
   | `route:${string}:grade`
+  | `route:${string}:comments`
   | `user:${string}:profile`
   | `user:username-${string}:profile`
   | `user:${string}:stats`

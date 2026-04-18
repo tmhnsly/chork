@@ -3,6 +3,8 @@ import { after } from "next/server";
 import webpush, { type PushSubscription as WebPushSubscription } from "web-push";
 import { createServiceClient } from "@/lib/supabase/server";
 
+import { logger } from "@/lib/logger";
+import { formatErrorForLog } from "@/lib/errors";
 /**
  * How many push endpoints to dispatch in parallel. Web-push calls
  * are network-bound (tens to hundreds of ms each); with an
@@ -149,7 +151,7 @@ export async function sendPushToUsers(
         if (status === 404 || status === 410) {
           toRemove.push(row.id);
         } else {
-          console.warn("[chork] push send failed:", err);
+          logger.warn("push_send_failed", { err: formatErrorForLog(err) });
         }
       }
     }
@@ -182,7 +184,7 @@ export function sendPushInBackground(
     try {
       await sendPushToUsers(userIds, payload, options);
     } catch (err) {
-      console.warn("[chork] background push dispatch failed:", err);
+      logger.warn("background_push_dispatch_failed", { err: formatErrorForLog(err) });
     }
   });
 }

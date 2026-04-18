@@ -6,6 +6,7 @@ import { getUserGymRole, isGymAdmin } from "@/lib/data/queries";
 import { formatError } from "@/lib/errors";
 import type { RouteSet, Route } from "@/lib/data";
 
+import { tags } from "@/lib/cache/tags";
 type AdminResult<T = unknown> = { error: string } | ({ success: true } & T);
 
 /**
@@ -72,8 +73,8 @@ export async function createSet(
 
     if (routesError) return { error: formatError(routesError) };
 
-    revalidateTag(`gym:${gymId}:active-set`);
-    revalidateTag(`set:${set.id}:routes`);
+    revalidateTag(tags.gymActiveSet(gymId));
+    revalidateTag(tags.setRoutes(set.id));
     return { success: true, set };
   } catch (err) {
     return { error: formatError(err) };
@@ -109,8 +110,8 @@ export async function endSet(
 
     if (error) return { error: formatError(error) };
 
-    revalidateTag(`gym:${gymId}:active-set`);
-    revalidateTag(`set:${setId}:leaderboard`);
+    revalidateTag(tags.gymActiveSet(gymId));
+    revalidateTag(tags.setLeaderboard(setId));
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };

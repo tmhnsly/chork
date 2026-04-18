@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createMiddlewareSupabase } from "@/lib/supabase/middleware";
+import { sign, verify } from "@/lib/cookie-sign";
 
 const AUTH_ROUTES = ["/login"];
 // Routes an UNAUTHED visitor may reach without a login redirect.
@@ -61,7 +62,17 @@ export async function middleware(request: NextRequest) {
   // to Crew / Jam / Profile). We don't fire an extra SELECT just for
   // this — the onboarded-check below runs on the same request anyway,
   // and extending it to read `active_gym_id` is a single column.
-  const existingShell = request.cookies.get(AUTH_SHELL_COOKIE)?.value;
+  //
+  // Both cookies (`chork-onboarded` + `chork-auth-shell`) are perf
+  // fast-path signals, NOT auth decisions — downstream pages always
+  // re-read profiles via `requireAuth`. But middleware still shouldn't
+  // trust arbitrary client-set values either, so we round-trip both
+  // through `sign`/`verify`: a forged value from DevTools fails the
+  // HMAC check and falls through to the slow path (same as a cache
+  // miss) rather than granting the fast-path silently. When no
+  // `CHORK_COOKIE_SECRET` is configured, the helpers degrade to
+  // pass-through so local dev still boots.
+  const existingShell = await verify(request.cookies.get(AUTH_SHELL_COOKIE)?.value);
   let nextShell: "u" | "ang" | "awg" = isAuthenticated ? "ang" : "u";
 
   // Signed-in users never need the login page.
@@ -79,7 +90,11 @@ export async function middleware(request: NextRequest) {
   // fast-path, falling back to a profile read. The flag only ever
   // flips false → true once per user's lifetime, so the cookie
   // stays valid until the user id changes.
-  const cached = request.cookies.get(ONBOARDED_COOKIE)?.value;
+  //
+  // `verify` unwraps the HMAC signature added below; a forged or
+  // tampered cookie returns null so we fall through to the profile
+  // read rather than trusting the DevTools-set value.
+  const cached = await verify(request.cookies.get(ONBOARDED_COOKIE)?.value);
   const expected = `${user.id}:1`;
   let isOnboarded = cached === expected;
   let hasGym: boolean | null = null;
@@ -94,7 +109,7 @@ export async function middleware(request: NextRequest) {
     hasGym = !!profile?.active_gym_id;
 
     if (isOnboarded) {
-      response.cookies.set(ONBOARDED_COOKIE, expected, {
+      response.cookies.set(ONBOARDED_COOKIE, await sign(expected), {
         httpOnly: true,
         sameSite: "lax",
         secure: process.env.NODE_ENV === "production",
@@ -127,7 +142,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (existingShell !== nextShell) {
-    response.cookies.set(AUTH_SHELL_COOKIE, nextShell, {
+    response.cookies.set(AUTH_SHELL_COOKIE, await sign(nextShell), {
       httpOnly: true,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",

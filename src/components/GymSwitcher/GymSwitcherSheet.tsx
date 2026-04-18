@@ -9,6 +9,8 @@ import { createBrowserSupabase } from "@/lib/supabase/client";
 import { switchActiveGym } from "@/app/(app)/actions";
 import styles from "./gymSwitcherSheet.module.scss";
 
+import { logger } from "@/lib/logger";
+import { formatErrorForLog } from "@/lib/errors";
 /**
  * Shape of a listed gym row. Mirrors `GymListing` in lib/data/queries,
  * declared locally because this is a client component and the queries
@@ -55,7 +57,7 @@ export function GymSwitcherSheet({ open, onClose, activeGymId }: Props) {
         .order("name");
       if (cancelled) return;
       if (error) {
-        console.warn("[chork] gym listing failed:", error);
+        logger.warn("gym_listing_failed", { err: formatErrorForLog(error) });
         setGyms([]);
         return;
       }

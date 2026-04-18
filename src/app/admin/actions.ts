@@ -19,13 +19,17 @@ import {
   deleteCompetitionCategory,
 } from "@/lib/data/admin-mutations";
 import { createServiceClient } from "@/lib/supabase/server";
-import { formatError } from "@/lib/errors";
+import { formatError, formatErrorForLog } from "@/lib/errors";
 import { UUID_RE } from "@/lib/validation";
+import { env } from "@/lib/env";
+import { enforce as enforceRateLimit } from "@/lib/rate-limit";
 import { getGym } from "@/lib/data/queries";
 import { formatSetLabel } from "@/lib/data/set-label";
 import { getGymClimberUserIds, sendPushInBackground } from "@/lib/push/server";
 import { randomBytes } from "node:crypto";
 
+import { logger } from "@/lib/logger";
+import { tags } from "@/lib/cache/tags";
 type ActionResult<T = unknown> = { error: string } | ({ success: true } & T);
 
 // Slugs: lowercase letters, digits, single hyphens. Matches the same
@@ -105,6 +109,13 @@ export async function sendAdminInvite(form: {
     return { error: "Only owners can invite other owners." };
   }
 
+  // Rate-limit admin invite dispatch alongside crew invites — same
+  // abuse shape (mass email from an authed role), different
+  // resource. Edge-layer so Redis short-circuits before we burn a
+  // Postgres connection on the upsert below.
+  const rl = await enforceRateLimit("invitesSend", userId);
+  if (!rl.ok) return { error: rl.error };
+
   // Opaque, URL-safe, single-use token. 32 bytes → 43 chars base64url.
   const token = randomBytes(32).toString("base64url");
 
@@ -140,19 +151,13 @@ export async function sendAdminInvite(form: {
   // re-fetches automatically via the server action's response cycle.
   // No revalidateTag needed.
 
-  // The server action returns the URL so the caller (admin UI) can show
-  // a copy-link button. Email delivery wiring lands with the push /
-  // notifications infrastructure in a subsequent phase.
-  //
-  // Fallback matches the other call sites (layout.tsx, robots.ts,
-  // sitemap.ts, login/actions.ts). An empty-string fallback here
-  // would produce a relative URL like `/admin/invite/<token>` that
-  // the admin would then try to paste into a chat — the other side
-  // has no way to resolve that. Use the canonical prod host so the
-  // link is always copy-pasteable even when `NEXT_PUBLIC_SITE_URL`
-  // is unset locally.
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://chork.vercel.app";
-  return { success: true, inviteUrl: `${baseUrl}/admin/invite/${token}` };
+  // The server action returns the URL so the caller (admin UI) can
+  // show a copy-link button. Email delivery wiring lands with the
+  // push / notifications infrastructure in a subsequent phase.
+  // `env.SITE_URL` is validated at module load — a missing env var
+  // fails the build rather than shipping a relative URL that can't
+  // be pasted into a chat.
+  return { success: true, inviteUrl: `${env.SITE_URL}/admin/invite/${token}` };
 }
 
 export async function cancelAdminInvite(inviteId: string): Promise<ActionResult> {
@@ -266,7 +271,7 @@ export async function createSet(
   });
   if ("error" in result) return { error: result.error };
 
-  revalidateTag(`gym:${form.gymId}:active-set`);
+  revalidateTag(tags.gymActiveSet(form.gymId));
   return { success: true, setId: result.setId };
 }
 
@@ -321,13 +326,13 @@ export async function updateSet(
         });
       }
     } catch (err) {
-      console.warn("[chork] set-live push preparation failed:", err);
+      logger.warn("set_live_push_preparation_failed", { err: formatErrorForLog(err) });
     }
   }
 
-  revalidateTag(`gym:${setRow.gym_id}:active-set`);
+  revalidateTag(tags.gymActiveSet(setRow.gym_id));
   // Status transitions affect leaderboard semantics for the set.
-  revalidateTag(`set:${setId}:leaderboard`);
+  revalidateTag(tags.setLeaderboard(setId));
   return { success: true };
 }
 
@@ -397,6 +402,13 @@ export async function quickSetupSetRoutes(form: {
   if (!Array.isArray(form.zoneRouteNumbers)) {
     return { error: "Invalid zone route list." };
   }
+  // Cap array size before the filter so a hostile payload with 10k
+  // entries doesn't burn CPU just to get reduced to zero. The count
+  // bound above is already 100, so any zone list longer than that
+  // can't produce a valid row anyway.
+  if (form.zoneRouteNumbers.length > form.count) {
+    return { error: "Zone route list exceeds route count." };
+  }
   const gate = await verifyAdminOfSet(form.setId);
   if ("error" in gate) return { error: gate.error };
 
@@ -407,7 +419,7 @@ export async function quickSetupSetRoutes(form: {
   });
   if ("error" in result) return { error: result.error };
 
-  revalidateTag(`set:${form.setId}:routes`);
+  revalidateTag(tags.setRoutes(form.setId));
   return { success: true, created: result.created };
 }
 
@@ -434,10 +446,15 @@ export async function updateRoute(
   const result = await updateAdminRoute(gate.auth.supabase, routeId, form);
   if ("error" in result) return { error: result.error };
 
-  revalidateTag(`set:${gate.routeRow.set_id}:routes`);
-  revalidateTag(`route:${routeId}:grade`);
+  revalidateTag(tags.setRoutes(gate.routeRow.set_id));
+  revalidateTag(tags.routeGrade(routeId));
   return { success: true };
 }
+
+// Real routes typically carry 0–5 tags (style + difficulty + setter
+// vibe). 20 is a generous ceiling that rejects hostile payloads before
+// they reach the DB insert path, without constraining realistic use.
+const MAX_ROUTE_TAGS = 20;
 
 export async function updateRouteTags(
   routeId: string,
@@ -446,14 +463,20 @@ export async function updateRouteTags(
   const gate = await verifyAdminOfRoute(routeId);
   if ("error" in gate) return { error: gate.error };
 
-  if (!Array.isArray(tagIds) || tagIds.some((t) => !UUID_RE.test(t))) {
+  if (!Array.isArray(tagIds)) {
+    return { error: "Invalid tag list." };
+  }
+  if (tagIds.length > MAX_ROUTE_TAGS) {
+    return { error: `Routes can have at most ${MAX_ROUTE_TAGS} tags.` };
+  }
+  if (tagIds.some((t) => !UUID_RE.test(t))) {
     return { error: "Invalid tag list." };
   }
 
   const result = await setRouteTags(gate.auth.supabase, routeId, tagIds);
   if ("error" in result) return { error: result.error };
 
-  revalidateTag(`set:${gate.routeRow.set_id}:routes`);
+  revalidateTag(tags.setRoutes(gate.routeRow.set_id));
   return { success: true };
 }
 
@@ -490,7 +513,7 @@ export async function createNewCompetition(form: {
   });
   if ("error" in result) return { error: result.error };
 
-  revalidateTag(`competition:${result.competitionId}`);
+  revalidateTag(tags.competition(result.competitionId));
   return { success: true, competitionId: result.competitionId };
 }
 
@@ -543,7 +566,7 @@ export async function updateCompetitionAction(
   const result = await updateCompetition(gate.supabase, competitionId, form);
   if ("error" in result) return { error: result.error };
 
-  revalidateTag(`competition:${competitionId}`);
+  revalidateTag(tags.competition(competitionId));
   return { success: true };
 }
 
@@ -582,7 +605,7 @@ export async function linkCompetitionGym(form: {
   const result = await linkGymToCompetition(auth.supabase, form.competitionId, form.gymId);
   if ("error" in result) return { error: result.error };
 
-  revalidateTag(`competition:${form.competitionId}`);
+  revalidateTag(tags.competition(form.competitionId));
   return { success: true };
 }
 
@@ -602,7 +625,7 @@ export async function unlinkCompetitionGym(form: {
   const result = await unlinkGymFromCompetition(auth.supabase, form.competitionId, form.gymId);
   if ("error" in result) return { error: result.error };
 
-  revalidateTag(`competition:${form.competitionId}`);
+  revalidateTag(tags.competition(form.competitionId));
   return { success: true };
 }
 
@@ -625,7 +648,7 @@ export async function addCompetitionCategory(form: {
   );
   if ("error" in result) return { error: result.error };
 
-  revalidateTag(`competition:${form.competitionId}`);
+  revalidateTag(tags.competition(form.competitionId));
   return { success: true, categoryId: result.categoryId };
 }
 
@@ -648,7 +671,7 @@ export async function removeCompetitionCategory(categoryId: string): Promise<Act
   const result = await deleteCompetitionCategory(gate.supabase, categoryId);
   if ("error" in result) return { error: result.error };
 
-  revalidateTag(`competition:${cat.competition_id}`);
+  revalidateTag(tags.competition(cat.competition_id));
   return { success: true };
 }
 
