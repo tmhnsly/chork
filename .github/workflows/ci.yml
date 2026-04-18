@@ -1,5 +1,14 @@
 name: CI
 
+# CI runs code-correctness checks only (typecheck + lint + tests).
+# The deployed build is owned by Vercel's native GitHub integration
+# — it runs on every push to main and pushes a preview/prod deploy
+# with the real env vars from Vercel Project Settings. Running
+# `pnpm build` here as well would duplicate that work, require us
+# to either sync secrets to GH Actions or stub them with fake
+# values, and email us twice on every failure. Single source of
+# truth for the build is Vercel.
+
 on:
   pull_request:
     branches: [main]
@@ -35,15 +44,3 @@ jobs:
 
       - name: Unit tests
         run: pnpm test
-
-      - name: Build
-        run: pnpm build
-        env:
-          # Placeholders — the CI build only needs these to satisfy
-          # the env.ts schema at module load. CI is sandboxed and
-          # never connects to Supabase. Real values live in Vercel's
-          # project env for deploys.
-          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder
-          SUPABASE_SERVICE_ROLE_KEY: placeholder
-          NEXT_PUBLIC_SITE_URL: https://chork.vercel.app
