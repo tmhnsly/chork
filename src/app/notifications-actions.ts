@@ -50,7 +50,7 @@ export async function markAllNotificationsRead(): Promise<{ error: string } | { 
     });
     if (error) return { error: formatError(error) };
 
-    revalidateTag(tags.userNotifications(userId));
+    revalidateTag(tags.userNotifications(userId), "max");
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
@@ -78,7 +78,7 @@ export async function dismissNotification(
       .eq("user_id", userId);
     if (error) return { error: formatError(error) };
 
-    revalidateTag(tags.userNotifications(userId));
+    revalidateTag(tags.userNotifications(userId), "max");
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };

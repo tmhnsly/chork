@@ -101,7 +101,11 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["react-icons/fa6", "date-fns"],
   },
   sassOptions: {
-    includePaths: [
+    // Dart sass 1.80+ renamed `includePaths` → `loadPaths`. Next 16
+    // pipes the option through unchanged, so the rename has to
+    // happen here for `@use "mixins/..."` imports to resolve
+    // against `src/styles` without a relative path.
+    loadPaths: [
       path.join(process.cwd(), "node_modules"),
       path.join(process.cwd(), "src/styles"),
     ],

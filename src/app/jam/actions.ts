@@ -286,7 +286,7 @@ export async function endJamAction(
       // player's `/jam` landing + profile history list needs to pick
       // up the new summary row, not just the caller's.
       for (const userId of userIds) {
-        revalidateTag(tags.userJams(userId));
+        revalidateTag(tags.userJams(userId), "max");
       }
 
       // Batch profile read — one trip for every participant's gym.

@@ -25,13 +25,13 @@ export async function revalidateUserProfile(
   supabase: Supabase,
   userId: string,
 ): Promise<void> {
-  revalidateTag(tags.userProfile(userId));
+  revalidateTag(tags.userProfile(userId), "max");
   const { data } = await supabase
     .from("profiles")
     .select("username")
     .eq("id", userId)
     .maybeSingle();
   if (data?.username) {
-    revalidateTag(tags.userByUsername(data.username));
+    revalidateTag(tags.userByUsername(data.username), "max");
   }
 }

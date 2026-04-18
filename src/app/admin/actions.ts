@@ -271,7 +271,7 @@ export async function createSet(
   });
   if ("error" in result) return { error: result.error };
 
-  revalidateTag(tags.gymActiveSet(form.gymId));
+  revalidateTag(tags.gymActiveSet(form.gymId), "max");
   return { success: true, setId: result.setId };
 }
 
@@ -330,9 +330,9 @@ export async function updateSet(
     }
   }
 
-  revalidateTag(tags.gymActiveSet(setRow.gym_id));
+  revalidateTag(tags.gymActiveSet(setRow.gym_id), "max");
   // Status transitions affect leaderboard semantics for the set.
-  revalidateTag(tags.setLeaderboard(setId));
+  revalidateTag(tags.setLeaderboard(setId), "max");
   return { success: true };
 }
 
@@ -419,7 +419,7 @@ export async function quickSetupSetRoutes(form: {
   });
   if ("error" in result) return { error: result.error };
 
-  revalidateTag(tags.setRoutes(form.setId));
+  revalidateTag(tags.setRoutes(form.setId), "max");
   return { success: true, created: result.created };
 }
 
@@ -446,8 +446,8 @@ export async function updateRoute(
   const result = await updateAdminRoute(gate.auth.supabase, routeId, form);
   if ("error" in result) return { error: result.error };
 
-  revalidateTag(tags.setRoutes(gate.routeRow.set_id));
-  revalidateTag(tags.routeGrade(routeId));
+  revalidateTag(tags.setRoutes(gate.routeRow.set_id), "max");
+  revalidateTag(tags.routeGrade(routeId), "max");
   return { success: true };
 }
 
@@ -476,7 +476,7 @@ export async function updateRouteTags(
   const result = await setRouteTags(gate.auth.supabase, routeId, tagIds);
   if ("error" in result) return { error: result.error };
 
-  revalidateTag(tags.setRoutes(gate.routeRow.set_id));
+  revalidateTag(tags.setRoutes(gate.routeRow.set_id), "max");
   return { success: true };
 }
 
@@ -513,7 +513,7 @@ export async function createNewCompetition(form: {
   });
   if ("error" in result) return { error: result.error };
 
-  revalidateTag(tags.competition(result.competitionId));
+  revalidateTag(tags.competition(result.competitionId), "max");
   return { success: true, competitionId: result.competitionId };
 }
 
@@ -566,7 +566,7 @@ export async function updateCompetitionAction(
   const result = await updateCompetition(gate.supabase, competitionId, form);
   if ("error" in result) return { error: result.error };
 
-  revalidateTag(tags.competition(competitionId));
+  revalidateTag(tags.competition(competitionId), "max");
   return { success: true };
 }
 
@@ -605,7 +605,7 @@ export async function linkCompetitionGym(form: {
   const result = await linkGymToCompetition(auth.supabase, form.competitionId, form.gymId);
   if ("error" in result) return { error: result.error };
 
-  revalidateTag(tags.competition(form.competitionId));
+  revalidateTag(tags.competition(form.competitionId), "max");
   return { success: true };
 }
 
@@ -625,7 +625,7 @@ export async function unlinkCompetitionGym(form: {
   const result = await unlinkGymFromCompetition(auth.supabase, form.competitionId, form.gymId);
   if ("error" in result) return { error: result.error };
 
-  revalidateTag(tags.competition(form.competitionId));
+  revalidateTag(tags.competition(form.competitionId), "max");
   return { success: true };
 }
 
@@ -648,7 +648,7 @@ export async function addCompetitionCategory(form: {
   );
   if ("error" in result) return { error: result.error };
 
-  revalidateTag(tags.competition(form.competitionId));
+  revalidateTag(tags.competition(form.competitionId), "max");
   return { success: true, categoryId: result.categoryId };
 }
 
@@ -671,7 +671,7 @@ export async function removeCompetitionCategory(categoryId: string): Promise<Act
   const result = await deleteCompetitionCategory(gate.supabase, categoryId);
   if ("error" in result) return { error: result.error };
 
-  revalidateTag(tags.competition(cat.competition_id));
+  revalidateTag(tags.competition(cat.competition_id), "max");
   return { success: true };
 }
 

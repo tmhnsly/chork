@@ -108,9 +108,9 @@ export async function completeRoute(
 
     // upsertRouteLog joined routes for us — no extra round trip needed.
     if (log.set_id) {
-      revalidateTag(tags.setLeaderboard(log.set_id));
+      revalidateTag(tags.setLeaderboard(log.set_id), "max");
     }
-    revalidateTag(tags.userStats(userId));
+    revalidateTag(tags.userStats(userId), "max");
     // No profile-row bust: a send doesn't change profiles.* fields.
     // user_set_stats does change (via trigger) but that's read by
     // getProfileSummary which isn't server-cached.
@@ -170,9 +170,9 @@ export async function uncompleteRoute(
     ]);
 
     if (log.set_id) {
-      revalidateTag(tags.setLeaderboard(log.set_id));
+      revalidateTag(tags.setLeaderboard(log.set_id), "max");
     }
-    revalidateTag(tags.userStats(userId));
+    revalidateTag(tags.userStats(userId), "max");
     // No profile-row bust — see completeRoute note.
 
     return { success: true, log };
@@ -231,7 +231,7 @@ export async function updateGradeVote(
     // routes.community_grade is updated via trigger (migration 026).
     // Bust the per-route grade cache entry so the route sheet shows
     // fresh average within the next request.
-    revalidateTag(tags.routeGrade(routeId));
+    revalidateTag(tags.routeGrade(routeId), "max");
     return { success: true, log };
   } catch (err) {
     return { error: formatError(err) };
@@ -281,7 +281,7 @@ export async function postComment(
     // today (comments aren't wrapped in cachedQuery yet), but the
     // tag-shape is registered in `tags.ts` so a future cache wrap
     // doesn't silently serve stale post-mutation.
-    revalidateTag(tags.routeComments(routeId));
+    revalidateTag(tags.routeComments(routeId), "max");
     return { comment };
   } catch (err) {
     return { error: formatError(err) };
@@ -394,7 +394,7 @@ export async function editComment(
     const comment = await updateComment(supabase, commentId, trimmed);
     // Mirror postComment — bust the per-route comment cache tag so
     // a future cache wrap doesn't serve stale edited text.
-    revalidateTag(tags.routeComments(existing.route_id));
+    revalidateTag(tags.routeComments(existing.route_id), "max");
     return { comment };
   } catch (err) {
     return { error: formatError(err) };

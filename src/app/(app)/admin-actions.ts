@@ -73,8 +73,8 @@ export async function createSet(
 
     if (routesError) return { error: formatError(routesError) };
 
-    revalidateTag(tags.gymActiveSet(gymId));
-    revalidateTag(tags.setRoutes(set.id));
+    revalidateTag(tags.gymActiveSet(gymId), "max");
+    revalidateTag(tags.setRoutes(set.id), "max");
     return { success: true, set };
   } catch (err) {
     return { error: formatError(err) };
@@ -110,8 +110,8 @@ export async function endSet(
 
     if (error) return { error: formatError(error) };
 
-    revalidateTag(tags.gymActiveSet(gymId));
-    revalidateTag(tags.setLeaderboard(setId));
+    revalidateTag(tags.gymActiveSet(gymId), "max");
+    revalidateTag(tags.setLeaderboard(setId), "max");
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };

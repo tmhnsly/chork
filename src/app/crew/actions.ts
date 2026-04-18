@@ -25,7 +25,7 @@ async function revalidateCrewMembers(
   crewId: string,
   extraUserIds: string[] = [],
 ) {
-  revalidateTag(tags.crew(crewId));
+  revalidateTag(tags.crew(crewId), "max");
   const { data: members } = await supabase
     .from("crew_members")
     .select("user_id")
@@ -35,14 +35,14 @@ async function revalidateCrewMembers(
   if (Array.isArray(members)) {
     for (const m of members) {
       if (m.user_id && !seen.has(m.user_id)) {
-        revalidateTag(tags.userCrews(m.user_id));
+        revalidateTag(tags.userCrews(m.user_id), "max");
         seen.add(m.user_id);
       }
     }
   }
   for (const uid of extraUserIds) {
     if (!seen.has(uid)) {
-      revalidateTag(tags.userCrews(uid));
+      revalidateTag(tags.userCrews(uid), "max");
       seen.add(uid);
     }
   }
@@ -201,9 +201,9 @@ export async function inviteToCrew(
       logger.warn("crew_invite_dispatch_failed", { err: formatErrorForLog(err) });
     }
 
-    revalidateTag(tags.crew(crewId));
-    revalidateTag(tags.userCrews(userId));
-    revalidateTag(tags.userNotifications(targetUserId));
+    revalidateTag(tags.crew(crewId), "max");
+    revalidateTag(tags.userCrews(userId), "max");
+    revalidateTag(tags.userNotifications(targetUserId), "max");
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
@@ -279,7 +279,7 @@ export async function acceptCrewInvite(crewMemberId: string): Promise<ActionResu
       // members list, so the fan-out catches them too.
       await revalidateCrewMembers(supabase, invite.crew_id);
       if (invite.invited_by && invite.invited_by !== userId) {
-        revalidateTag(tags.userNotifications(invite.invited_by));
+        revalidateTag(tags.userNotifications(invite.invited_by), "max");
       }
     }
     return { success: true };
@@ -315,10 +315,10 @@ export async function declineCrewInvite(crewMemberId: string): Promise<ActionRes
     if (error) return { error: formatError(error) };
 
     if (invite?.crew_id) {
-      revalidateTag(tags.crew(invite.crew_id));
-      revalidateTag(tags.userCrews(userId));
+      revalidateTag(tags.crew(invite.crew_id), "max");
+      revalidateTag(tags.userCrews(userId), "max");
       if (invite.invited_by && invite.invited_by !== userId) {
-        revalidateTag(tags.userNotifications(invite.invited_by));
+        revalidateTag(tags.userNotifications(invite.invited_by), "max");
       }
     }
     return { success: true };
@@ -382,8 +382,8 @@ export async function leaveCrew(crewId: string): Promise<ActionResult> {
       // the membership + pending invite rows.
       const { error } = await supabase.from("crews").delete().eq("id", crewId);
       if (error) return { error: formatError(error) };
-      revalidateTag(tags.crew(crewId));
-      revalidateTag(tags.userCrews(userId));
+      revalidateTag(tags.crew(crewId), "max");
+      revalidateTag(tags.userCrews(userId), "max");
       return { success: true };
     }
 
@@ -492,7 +492,7 @@ export async function transferCrewOwnership(
     }
 
     await revalidateCrewMembers(supabase, crewId);
-    revalidateTag(tags.userNotifications(newOwnerId));
+    revalidateTag(tags.userNotifications(newOwnerId), "max");
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };

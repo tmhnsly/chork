@@ -96,7 +96,7 @@ export async function completeOnboarding(
     // climber's new gym's set without waiting for TTL.
     await revalidateUserProfile(supabase, userId);
     if (normalisedGymId) {
-      revalidateTag(tags.gymActiveSet(normalisedGymId));
+      revalidateTag(tags.gymActiveSet(normalisedGymId), "max");
     }
     return { success: true };
   } catch (err) {

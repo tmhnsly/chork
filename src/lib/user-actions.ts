@@ -80,17 +80,17 @@ export async function updateProfile(
       .eq("id", userId);
 
     if (error) return { error: formatError(error) };
-    revalidateTag(tags.userProfile(userId));
+    revalidateTag(tags.userProfile(userId), "max");
     // The new username's by-username cache entry busts directly; the
     // old one needs an explicit bust on rename. revalidateUserProfile
     // would re-look-up but we already have both names in scope.
     if (payload.username) {
-      revalidateTag(tags.userByUsername(payload.username));
+      revalidateTag(tags.userByUsername(payload.username), "max");
       if (oldUsername && oldUsername !== payload.username) {
-        revalidateTag(tags.userByUsername(oldUsername));
+        revalidateTag(tags.userByUsername(oldUsername), "max");
       }
     } else if (oldUsername) {
-      revalidateTag(tags.userByUsername(oldUsername));
+      revalidateTag(tags.userByUsername(oldUsername), "max");
     }
     return { success: true };
   } catch (err) {

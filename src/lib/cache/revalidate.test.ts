@@ -42,8 +42,8 @@ describe("revalidateUserProfile", () => {
 
     await revalidateUserProfile(sb as never, USER_A);
 
-    expect(revalidateTag).toHaveBeenCalledWith(`user:${USER_A}:profile`);
-    expect(revalidateTag).toHaveBeenCalledWith("user:username-alice:profile");
+    expect(revalidateTag).toHaveBeenCalledWith(`user:${USER_A}:profile`, "max");
+    expect(revalidateTag).toHaveBeenCalledWith("user:username-alice:profile", "max");
   });
 
   it("only busts user:{uid}:profile when no profile row exists", async () => {
@@ -53,7 +53,7 @@ describe("revalidateUserProfile", () => {
 
     await revalidateUserProfile(sb as never, USER_A);
 
-    expect(revalidateTag).toHaveBeenCalledWith(`user:${USER_A}:profile`);
+    expect(revalidateTag).toHaveBeenCalledWith(`user:${USER_A}:profile`, "max");
     expect(revalidateTag).toHaveBeenCalledTimes(1);
   });
 
@@ -66,7 +66,7 @@ describe("revalidateUserProfile", () => {
 
     // Errors logged elsewhere; bust still fires for the uid tag so a
     // by-uid cache entry (when that wrap exists) doesn't go stale.
-    expect(revalidateTag).toHaveBeenCalledWith(`user:${USER_A}:profile`);
+    expect(revalidateTag).toHaveBeenCalledWith(`user:${USER_A}:profile`, "max");
     expect(revalidateTag).toHaveBeenCalledTimes(1);
   });
 });
