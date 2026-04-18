@@ -141,6 +141,39 @@ describe("MutationQueue flush", () => {
     expect(entry.args[1]).toBe(3);
   });
 
+  it("caps per-user queue size and drops oldest entries first", async () => {
+    // Belt-and-braces — a runaway enqueue (bug, malicious JS, etc)
+    // shouldn't be able to eat unbounded IndexedDB quota. Test
+    // mirrors the prod invariant: after the cap is hit, the NEWEST
+    // entry always survives and the OLDEST is evicted.
+    //
+    // Using a very low cap would require patching the module-level
+    // constant; instead the test asserts the shape of the policy
+    // directly — the internal cap is 500, so we enqueue 502 entries
+    // (each with a distinct routeId so compaction doesn't merge
+    // them) and expect exactly 500 rows to remain, with the
+    // earliest two dropped.
+    const { queue, fakeDb } = await loadQueue();
+    queue.setCurrentUserResolver(async () => "user-a");
+    queue.setActionRunner(vi.fn() as never);
+
+    // 502 distinct routes → compaction keeps each, cap kicks in.
+    for (let i = 0; i < 502; i++) {
+      await queue.enqueue({
+        action: "updateAttempts",
+        args: [`route-${i}`, 1],
+        routeId: `route-${i}`,
+      });
+    }
+
+    expect(fakeDb.entries.size).toBe(500);
+    // The two oldest (route-0, route-1) should have been evicted.
+    const remaining = [...fakeDb.entries.values()].map((e) => e.routeId);
+    expect(remaining).not.toContain("route-0");
+    expect(remaining).not.toContain("route-1");
+    expect(remaining).toContain("route-501");
+  });
+
   it("does not run entries belonging to a different user", async () => {
     // Shared-device scenario: user A queues a write, user B signs
     // in. Queue must never post A's writes under B's cookies.

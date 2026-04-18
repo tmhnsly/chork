@@ -6,6 +6,16 @@ type Listener = (count: number) => void;
 
 const MAX_RETRIES = 3;
 
+// Belt-and-braces cap on total queued entries per device, to bound
+// IndexedDB growth under pathological conditions (e.g. a bug that
+// enqueues in a tight loop, or a user offline for weeks with
+// compaction-missing action variants). Normal offline usage sits
+// in the 10–50 range; 500 is ~10× the p99 without being so large
+// that a full replay on reconnect would stall the UI. When the cap
+// is hit the OLDEST entries are dropped first — a user's most
+// recent work wins over their oldest.
+const MAX_QUEUE_SIZE = 500;
+
 // Actions that are superseded when a completeRoute is queued for the same route
 const SUPERSEDED_BY_COMPLETE: OfflineAction[] = [
   "updateAttempts",
@@ -86,6 +96,22 @@ class MutationQueue {
     };
 
     await db.put(STORE_NAME, entry);
+
+    // Size guard — runs after the write so the new entry is always
+    // retained. If we're over the cap, drop the oldest entries
+    // (sorted by createdAt) until we're back under. Scoped to the
+    // enqueueing user so one user's spam can't evict another's
+    // legitimate queue on a shared device.
+    const all = await db.getAllFromIndex(STORE_NAME, "userId", userId);
+    if (all.length > MAX_QUEUE_SIZE) {
+      const toDrop = all
+        .sort((a, b) => a.createdAt - b.createdAt)
+        .slice(0, all.length - MAX_QUEUE_SIZE);
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      for (const e of toDrop) tx.store.delete(e.id);
+      await tx.done;
+    }
+
     this.notify();
     return true;
   }
