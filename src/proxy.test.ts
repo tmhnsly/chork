@@ -1,7 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { config } from "./middleware";
+import { config } from "./proxy";
 
-describe("middleware config", () => {
+// Next 16 renamed `middleware.ts` → `proxy.ts` (the file now also
+// runs in the Node.js runtime by default instead of the edge). The
+// `config.matcher` export shape is unchanged, so this suite keeps
+// asserting the same invariants against the renamed module.
+describe("proxy config", () => {
   it("covers the home route for session refresh", () => {
     expect(config.matcher).toContain("/");
   });

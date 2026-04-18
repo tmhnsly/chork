@@ -33,7 +33,7 @@ const ONBOARDED_COOKIE = "chork-onboarded";
 // briefly show the wrong shape, same as before this cookie existed.
 const AUTH_SHELL_COOKIE = "chork-auth-shell";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Fast-path: pages whose output doesn't depend on who's looking
