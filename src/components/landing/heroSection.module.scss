@@ -48,6 +48,16 @@
   // No single colour on the headline — each sentence span owns its
   // tier below. Keep the display typography inheritance so word
   // metrics stay identical between the two halves.
+  //
+  // Responsive size via viewport width: the fixed 3rem (48px) of
+  // `--text-5xl` made "COMPETE WITH" overflow the content column
+  // on narrow phones (e.g. iPhone SE @ 375px), chopping the italic
+  // slant of the final glyph at the viewport edge. Scaling with
+  // viewport keeps the headline readable without cutting. The
+  // clamp floor (`--text-3xl`, ~30px) guards against impossibly
+  // tiny screens; the ceiling (`--text-5xl`) restores the original
+  // size from tablet up.
+  font-size: clamp(var(--text-3xl), 10vw, var(--text-5xl));
 }
 
 // First sentence: primary text (step 12).

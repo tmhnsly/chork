@@ -14,21 +14,32 @@
 // size unchanged, but the overflow region now fully contains any
 // glyph overhang — nothing gets shaved.
 
+// Baseline: overflow: hidden + padding/negative-margin on the right
+// widens the clip box by 0.2em without affecting layout, so Outfit
+// Bold italic's forward slant on W / Y / K / T isn't shaved. Works
+// on every browser since the dawn of CSS.
 .wordClip {
   display: inline-block;
   overflow: hidden;
   vertical-align: baseline;
-
-  // Right-side only. Italic bold's forward slant on letters like
-  // W / Y / K / T extends the final glyph's right edge up to ~0.2em
-  // past the measured line-box end. Padding + negative margin widens
-  // the overflow region in that direction without affecting layout
-  // metrics around it. Vertical padding is deliberately 0 — the
-  // font's own line-height already includes ascender + descender
-  // room, and adding top/bottom padding inflated the inline box's
-  // height and pushed the `<h1>` downward on multi-line titles.
   padding-right: 0.2em;
   margin-right: -0.2em;
+}
+
+// Modern browsers (Safari 16.4+, Chrome 90+, Firefox 102+): swap to
+// `overflow: clip` + `overflow-clip-margin`. This extends the visible
+// region 0.2em past ALL edges WITHOUT touching layout — no padding
+// hack, no negative margin, no asymmetric side-effects. Descenders
+// and ascenders get the same breathing room as horizontal overhang,
+// and the inline-block's box retains its natural dimensions so
+// headline line-height stays stable.
+@supports (overflow-clip-margin: 0.2em) {
+  .wordClip {
+    overflow: clip;
+    overflow-clip-margin: 0.2em;
+    padding-right: 0;
+    margin-right: 0;
+  }
 }
 
 .word {
