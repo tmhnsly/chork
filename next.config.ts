@@ -70,6 +70,13 @@ const nextConfig: NextConfig = {
   },
 
   experimental: {
+    // NOTE: Partial Prerendering (`ppr: "incremental"`) was trialled
+    // for `/u/[username]` but the stable 15.x line reserves the
+    // feature for canary only (errors out at build time). Revisit
+    // when PPR graduates to stable in a point release we're
+    // comfortable bumping to. The page is already structured for
+    // PPR (static shell + Suspense-streamed sections), so the
+    // switch-on is a two-line change when the upstream is ready.
     staleTimes: {
       // Client router cache TTL. With Phase 3 mutations now revalidating
       // precise tags instead of scorching the whole layout, 60s is a

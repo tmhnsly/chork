@@ -119,14 +119,16 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Shell-cookie refinement for authed users: if we don't know the
-  // gym state yet (warm onboarded-cookie path skipped the profile
-  // read), peek the existing shell cookie and only upgrade when it
-  // doesn't match. Avoids an extra SELECT on every page nav.
+  // Shell-cookie refinement for authed users. The cold-path profile
+  // read above already populated `hasGym`, so this branch only fires
+  // when the onboarded cookie was warm (skipped the read) AND the
+  // shell cookie is missing / unknown. In that case we'd previously
+  // fire a second identical SELECT just for the gym bit — wasted
+  // work. The cold path now covers both cookies in one query; this
+  // fallback stays as the last line of defence for the (rare) state
+  // where both cookies have drifted.
   if (isAuthenticated) {
     if (hasGym === null) {
-      // Warm path — trust the existing cookie's gym bit if present,
-      // otherwise query once to seed it.
       if (existingShell === "awg" || existingShell === "ang") {
         hasGym = existingShell === "awg";
       } else {
@@ -141,6 +143,10 @@ export async function middleware(request: NextRequest) {
     nextShell = hasGym ? "awg" : "ang";
   }
 
+  // Write the shell cookie whenever its value differs from what the
+  // request brought in. Covers both the cold-path case (hasGym just
+  // resolved from the profile read above) and drift recovery (shell
+  // cookie was stale / unsigned / forged so `verify` returned null).
   if (existingShell !== nextShell) {
     response.cookies.set(AUTH_SHELL_COOKIE, await sign(nextShell), {
       httpOnly: true,

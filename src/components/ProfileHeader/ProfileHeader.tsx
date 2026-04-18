@@ -1,14 +1,31 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { FaBell, FaGear } from "react-icons/fa6";
 import type { Profile } from "@/lib/data";
 import type { PendingInvite } from "@/lib/data/crew-queries";
 import { UserAvatar } from "@/components/ui";
 import { RevealText } from "@/components/motion";
-import { NotificationsSheet } from "@/components/Notifications/NotificationsSheet";
-import { SettingsSheet } from "./SettingsSheet";
 import styles from "./profileHeader.module.scss";
+
+// Lazy-load the sheets. NotificationsSheet (~275 LOC) + SettingsSheet
+// (~388 LOC, which itself pulls EditProfileDialog + DeleteAccountDialog)
+// only render behind a button tap, so keeping them out of the first-
+// paint bundle matters more than a static import. Profile visits to
+// another climber (`isOwnProfile=false`) never instantiate either
+// component — without dynamic, the full code still ships.
+const NotificationsSheet = dynamic(
+  () =>
+    import("@/components/Notifications/NotificationsSheet").then(
+      (m) => m.NotificationsSheet,
+    ),
+  { ssr: false },
+);
+const SettingsSheet = dynamic(
+  () => import("./SettingsSheet").then((m) => m.SettingsSheet),
+  { ssr: false },
+);
 
 interface Props {
   user: Profile;

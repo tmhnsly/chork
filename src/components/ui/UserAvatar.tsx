@@ -46,6 +46,14 @@ export function UserAvatar({ user, size = 40, className, priority = false }: Pro
           alt={user.name || user.username}
           width={size}
           height={size}
+          // Avatars are fixed-pixel UI chrome, never responsive.
+          // Without `sizes`, Next's optimizer has to assume a wide
+          // range and ships the 256-px variant for a 32-px slot —
+          // ~10 KB of bandwidth per avatar wasted, which adds up
+          // to hundreds of KB on a leaderboard / crew roster page.
+          // Telling it the exact rendered width cuts the srcset
+          // down to 1×/2× only.
+          sizes={`${size}px`}
           className={styles.image}
           priority={priority}
           fetchPriority={priority ? "high" : undefined}

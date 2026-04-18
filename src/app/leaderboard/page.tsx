@@ -46,22 +46,24 @@ export default async function LeaderboardPage() {
   // only (mig 039) — they can't be hit directly from the browser.
   // userRow / neighbourhood stay per-user (uncached) since they
   // depend on the caller's identity.
-  const [top, userRow, stats, currentSetRoutes] = await Promise.all([
-    getLeaderboardCached(gymId, initialSetId, TOP_LIMIT, 0),
-    getLeaderboardUserRow(supabase, gymId, userId, initialSetId),
-    getGymStatsV2Cached(gymId, initialSetId),
-    initialSetId ? getRoutesBySet(initialSetId) : Promise.resolve([]),
-  ]);
+  //
+  // Neighbourhood runs unconditionally in the same parallel wave.
+  // Previously it waited on userRow.rank > TOP_LIMIT before firing,
+  // which added 50–100 ms of serial latency for mid-ranked viewers.
+  // For top-N viewers the RPC result is thrown away by
+  // LeaderboardView's existing dedup (line 142) — ~5 rows wasted,
+  // no user-facing cost.
+  const [top, userRow, stats, currentSetRoutes, neighbourhood] =
+    await Promise.all([
+      getLeaderboardCached(gymId, initialSetId, TOP_LIMIT, 0),
+      getLeaderboardUserRow(supabase, gymId, userId, initialSetId),
+      getGymStatsV2Cached(gymId, initialSetId),
+      initialSetId ? getRoutesBySet(initialSetId) : Promise.resolve([]),
+      getLeaderboardNeighbourhood(supabase, gymId, userId, initialSetId),
+    ]);
 
   const allTimeStats = stats.all_time;
   const setStats = stats.set;
-
-  const needsNeighbourhood =
-    userRow !== null && userRow.rank !== null && userRow.rank > TOP_LIMIT;
-
-  const neighbourhood = needsNeighbourhood
-    ? await getLeaderboardNeighbourhood(supabase, gymId, userId, initialSetId)
-    : [];
 
   return (
     <main className={styles.page}>
