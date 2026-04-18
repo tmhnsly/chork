@@ -107,3 +107,115 @@
     color: var(--accent-text);
   }
 }
+
+// ── Confirmation screen ───────────────────────────
+// Shown after a signup when Supabase is waiting for the user to
+// click the verification email. Replaces the form entirely — the
+// previous toast was too easy to miss, leaving new users staring at
+// an unchanged form wondering whether submit worked.
+.confirmIconWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 5rem;
+  height: 5rem;
+  border-radius: var(--radius-full);
+  background: var(--accent-subtle-bg);
+  color: var(--accent-text);
+  // Gentle entrance so the icon doesn't slam in after form submit —
+  // respects `prefers-reduced-motion` via the no-animation media
+  // override at the bottom of this block.
+  animation: confirmIconIn var(--duration-normal) var(--ease-out-expo) both;
+}
+
+.confirmIcon {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.confirmHeading {
+  @include type.typography(display);
+  color: var(--mono-text);
+}
+
+.confirmBody {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+  max-width: 28ch;
+  line-height: 1.5;
+}
+
+// Inline emphasis for the actual email address inside the body copy.
+// Stepping the contrast up so the address visually anchors the line
+// the user is scanning for.
+.confirmEmail {
+  color: var(--mono-text);
+  font-weight: var(--weight-semibold);
+  word-break: break-all;
+}
+
+// Primary action. Styled like the main submit button but as an
+// anchor (opens webmail in a new tab).
+.confirmMailBtn {
+  @include type.typography(button);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--size-touch-target);
+  width: 100%;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-2);
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    background: var(--accent-solid-hover);
+  }
+}
+
+.confirmMailBtnIcon {
+  font-size: 0.85em;
+  opacity: 0.8;
+}
+
+.confirmHint {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  max-width: 32ch;
+  line-height: 1.5;
+}
+
+.confirmUseDifferent {
+  @include type.typography(meta);
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--accent-text-low-contrast);
+  cursor: pointer;
+  text-decoration: underline;
+
+  &:hover {
+    color: var(--accent-text);
+  }
+}
+
+@keyframes confirmIconIn {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confirmIconWrap {
+    animation: none;
+  }
+}

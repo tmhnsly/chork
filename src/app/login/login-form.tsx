@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useState, useEffect } from "react";
+import { useActionState, useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
+import { FaCircleCheck, FaArrowUpRightFromSquare } from "react-icons/fa6";
 import { useAuth } from "@/lib/auth-context";
 import { RevealText } from "@/components/motion";
 import { Button, ChorkMark, showToast } from "@/components/ui";
@@ -11,6 +12,39 @@ import styles from "./login.module.scss";
 type Mode = "sign-in" | "sign-up";
 
 const MIN_PASSWORD_LENGTH = 8;
+
+/**
+ * Webmail provider lookup. The confirmation-pending screen shows an
+ * "Open <Provider>" button that jumps straight to the user's inbox
+ * so they don't have to tab-hunt. Detection is by the email's
+ * domain — covers the top consumer providers, which catches the
+ * vast majority of real signups. Unknown domains get no button
+ * rather than a misleading one (mailto: opens compose, not inbox,
+ * so we skip it entirely).
+ */
+type MailProvider = { label: string; url: string };
+
+const MAIL_PROVIDERS: Record<string, MailProvider> = {
+  "gmail.com": { label: "Open Gmail", url: "https://mail.google.com/mail/u/0/#inbox" },
+  "googlemail.com": { label: "Open Gmail", url: "https://mail.google.com/mail/u/0/#inbox" },
+  "outlook.com": { label: "Open Outlook", url: "https://outlook.live.com/mail/" },
+  "hotmail.com": { label: "Open Outlook", url: "https://outlook.live.com/mail/" },
+  "live.com": { label: "Open Outlook", url: "https://outlook.live.com/mail/" },
+  "msn.com": { label: "Open Outlook", url: "https://outlook.live.com/mail/" },
+  "yahoo.com": { label: "Open Yahoo Mail", url: "https://mail.yahoo.com/" },
+  "yahoo.co.uk": { label: "Open Yahoo Mail", url: "https://mail.yahoo.com/" },
+  "icloud.com": { label: "Open iCloud Mail", url: "https://www.icloud.com/mail" },
+  "me.com": { label: "Open iCloud Mail", url: "https://www.icloud.com/mail" },
+  "mac.com": { label: "Open iCloud Mail", url: "https://www.icloud.com/mail" },
+  "proton.me": { label: "Open Proton Mail", url: "https://mail.proton.me/inbox" },
+  "protonmail.com": { label: "Open Proton Mail", url: "https://mail.proton.me/inbox" },
+};
+
+function mailProviderForEmail(email: string): MailProvider | null {
+  const domain = email.split("@")[1]?.toLowerCase();
+  if (!domain) return null;
+  return MAIL_PROVIDERS[domain] ?? null;
+}
 
 // Pull a server-returned field error out of whichever action state
 // carries it. Only one of signIn/signUp is ever populated at a time
@@ -45,6 +79,20 @@ export function LoginForm() {
   const [signInState, signInFormAction, signInPending] = useActionState(signInAction, undefined);
   const [signUpState, signUpFormAction, signUpPending] = useActionState(signUpAction, undefined);
   const submitting = signInPending || signUpPending;
+
+  // Snapshot the email at submit-time so the "check your inbox"
+  // screen shows the right address even if the user keeps typing
+  // into the input after the action resolves. Updating it in
+  // `handleClientValidate` avoids a useEffect-setState-from-props
+  // pattern (which the set-state-in-effect rule flags).
+  const submittedEmailRef = useRef("");
+
+  // Derived: we're in the "waiting for email confirmation" state if
+  // signUp succeeded AND didn't give us a `next` (auto-confirm path).
+  // Derived, not stored, so there's nothing to invalidate when the
+  // action state changes — the view flips naturally on the next render.
+  const confirmPendingEmail =
+    signUpState?.success && !signUpState.next ? submittedEmailRef.current : null;
 
   // Server-returned field errors — derived at render so state stays
   // out of the loop (no useEffect + setState sync to the server
@@ -106,7 +154,9 @@ export function LoginForm() {
     //     finishes setup instead of sitting on a form they've
     //     already submitted (re-submitting while authed hits the
     //     /login middleware redirect and crashes the server action).
-    //   • `next` absent → email confirmation flow. Toast, stay put.
+    //   • `next` absent → email confirmation flow. Render the
+    //     "check your inbox" view (derived from `confirmPendingEmail`
+    //     below — no setState needed here).
     if (signUpState.next) {
       if (
         typeof navigator !== "undefined" &&
@@ -117,7 +167,6 @@ export function LoginForm() {
       window.location.href = signUpState.next;
       return;
     }
-    showToast("Account created — check your email to confirm", "info");
   }, [signUpState]);
 
   function validate(): boolean {
@@ -160,7 +209,31 @@ export function LoginForm() {
     setDirty({ email: false, password: false, confirm: false });
     if (!validate()) {
       e.preventDefault();
+      return;
     }
+    // Capture the email at submit-time so the confirmation view
+    // shows the right address even if the user edits the input
+    // field after the action resolves.
+    submittedEmailRef.current = email.trim();
+  }
+
+  // Render the "check your inbox" view whenever we're waiting on
+  // email confirmation. Keeps the user on /login but visually
+  // replaces the form — no more "is this working?" toast.
+  if (confirmPendingEmail) {
+    return (
+      <ConfirmEmailScreen
+        email={confirmPendingEmail}
+        onUseDifferent={() => {
+          // Clear signUpState so `confirmPendingEmail` goes null on
+          // the next render. useActionState doesn't expose a reset
+          // API; swapping the form's `key` back to "sign-up" isn't
+          // enough either — the fix is to hard-reload the page.
+          // Simple + predictable: user lands back on a clean /login.
+          window.location.reload();
+        }}
+      />
+    );
   }
 
   return (
@@ -298,6 +371,69 @@ export function LoginForm() {
             ? "Don't have an account? Sign up"
             : "Already have an account? Sign in"}
         </button>
+      </div>
+    </main>
+  );
+}
+
+/**
+ * Post-signup confirmation screen. Replaces the form entirely while
+ * we wait for the user to click the verification email. The
+ * "Open <Provider>" button jumps straight to their webmail inbox
+ * when we recognise the domain (Gmail, Outlook, iCloud, etc.);
+ * unknown domains skip the button entirely — a misleading mailto:
+ * link (which opens compose, not inbox) would be worse than
+ * nothing.
+ */
+function ConfirmEmailScreen({
+  email,
+  onUseDifferent,
+}: {
+  email: string;
+  onUseDifferent: () => void;
+}) {
+  const provider = mailProviderForEmail(email);
+
+  return (
+    <main className={styles.page}>
+      <div className={styles.content}>
+        <div className={styles.confirmIconWrap} aria-hidden="true">
+          <FaCircleCheck className={styles.confirmIcon} />
+        </div>
+        <RevealText
+          text="Check your inbox"
+          as="h1"
+          className={styles.confirmHeading}
+        />
+        <p className={styles.confirmBody}>
+          We sent a confirmation link to{" "}
+          <span className={styles.confirmEmail}>{email}</span>.
+          Click it to finish setting up your account.
+        </p>
+
+        {provider && (
+          <a
+            className={styles.confirmMailBtn}
+            href={provider.url}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {provider.label}
+            <FaArrowUpRightFromSquare aria-hidden className={styles.confirmMailBtnIcon} />
+          </a>
+        )}
+
+        <p className={styles.confirmHint}>
+          No email yet? Check spam, or{" "}
+          <button
+            type="button"
+            className={styles.confirmUseDifferent}
+            onClick={onUseDifferent}
+          >
+            try a different address
+          </button>
+          .
+        </p>
       </div>
     </main>
   );
