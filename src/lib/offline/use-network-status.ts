@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect } from "react";
 import { mutationQueue } from "./mutation-queue";
 import { registerActionRunner } from "./action-map";
 
@@ -25,7 +25,6 @@ export function useNetworkStatus(): { isOnline: boolean; pendingCount: number; r
   const [isOnline, setIsOnline] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
   const [ready, setReady] = useState(false);
-  const mountedRef = useRef(false);
 
   useEffect(() => {
     // Defer state updates to avoid synchronous setState in effect

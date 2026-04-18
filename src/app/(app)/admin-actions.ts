@@ -4,7 +4,7 @@ import { revalidateTag } from "next/cache";
 import { requireAuth } from "@/lib/auth";
 import { getUserGymRole, isGymAdmin } from "@/lib/data/queries";
 import { formatError } from "@/lib/errors";
-import type { RouteSet, Route } from "@/lib/data";
+import type { RouteSet } from "@/lib/data";
 
 import { tags } from "@/lib/cache/tags";
 type AdminResult<T = unknown> = { error: string } | ({ success: true } & T);

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import { BadgeShelf } from "./BadgeShelf";
-import { BADGES, evaluateBadges, type BadgeContext } from "@/lib/badges";
+import { evaluateBadges, type BadgeContext } from "@/lib/badges";
 
 const meta = {
   title: "Components/BadgeShelf",

@@ -426,7 +426,8 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
     const wasLiked = likedIds.has(commentId);
     setLikedIds((prev) => {
       const next = new Set(prev);
-      wasLiked ? next.delete(commentId) : next.add(commentId);
+      if (wasLiked) next.delete(commentId);
+      else next.add(commentId);
       return next;
     });
     setComments((prev) =>
@@ -437,7 +438,8 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
     if (result.error) {
       setLikedIds((prev) => {
         const next = new Set(prev);
-        wasLiked ? next.add(commentId) : next.delete(commentId);
+        if (wasLiked) next.add(commentId);
+        else next.delete(commentId);
         return next;
       });
       setComments((prev) =>

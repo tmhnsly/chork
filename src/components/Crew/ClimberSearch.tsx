@@ -38,7 +38,11 @@ interface Props {
 export function ClimberSearch({ currentUserId, myCrews, onCreateCrew, autoFocus }: Props) {
   const [query, setQuery] = useState("");
   const [activeTarget, setActiveTarget] = useState<UserSearchResult | null>(null);
-  const [pending, startTransition] = useTransition();
+  // `pending` is forwarded to search result rows so their action buttons
+  // can disable during an in-flight invite. `startTransition` is
+  // destructured as `_` because the outer ClimberSearch doesn't itself
+  // invoke transitions — only child components do via their own hook.
+  const [pending, _startTransition] = useTransition();
 
   // Keyed cache — tagging rows with the query they belong to lets us
   // derive the loading state from a mismatch instead of calling

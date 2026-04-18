@@ -18,7 +18,6 @@ interface Props {
 
 export async function generateMetadata({ params }: Props) {
   const { id } = await params;
-  const supabase = await createServerSupabase();
   const competition = await getCompetitionById(id);
   return { title: `${competition?.name ?? "Competition"} - Chork` };
 }

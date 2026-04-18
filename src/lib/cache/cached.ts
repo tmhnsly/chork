@@ -1,8 +1,6 @@
 import "server-only";
 
 import { unstable_cache } from "next/cache";
-
-import { tags } from "@/lib/cache/tags";
 /**
  * Tag taxonomy — any string literal outside this union is a type error.
  * Keeps mutations, cache wraps, and `revalidateTag` calls in lockstep.

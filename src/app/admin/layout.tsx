@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createServerSupabase, getServerUser } from "@/lib/supabase/server";
+import { getServerUser } from "@/lib/supabase/server";
 import { AdminNav } from "@/components/admin/AdminNav";
 import styles from "./layout.module.scss";
 
@@ -18,7 +18,6 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createServerSupabase();
   const user = await getServerUser();
   if (!user) redirect("/login?next=/admin");
 
