@@ -95,10 +95,29 @@ export function LoginForm() {
       if (!signUpState.field || signUpState.field === "general") {
         showToast(signUpState.error, "error");
       }
+      return;
     }
-    if (signUpState?.success) {
-      showToast("Account created — check your email to confirm", "info");
+    if (!signUpState?.success) return;
+
+    // Two shapes of success:
+    //   • `next` present → Supabase auto-confirmed the account
+    //     (email confirmations disabled in the project). Session is
+    //     already committed. Hard-nav to /onboarding so the user
+    //     finishes setup instead of sitting on a form they've
+    //     already submitted (re-submitting while authed hits the
+    //     /login middleware redirect and crashes the server action).
+    //   • `next` absent → email confirmation flow. Toast, stay put.
+    if (signUpState.next) {
+      if (
+        typeof navigator !== "undefined" &&
+        navigator.serviceWorker?.controller
+      ) {
+        navigator.serviceWorker.controller.postMessage({ type: "clear-cache" });
+      }
+      window.location.href = signUpState.next;
+      return;
     }
+    showToast("Account created — check your email to confirm", "info");
   }, [signUpState]);
 
   function validate(): boolean {

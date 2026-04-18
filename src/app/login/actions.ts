@@ -110,9 +110,20 @@ export async function signOutAction(): Promise<{ error?: string }> {
 
 /**
  * Sign-up server action. Same cookie-commit motivation as signIn.
- * The verification email is sent by Supabase; redirect lands on the
- * /auth/callback page with `?next=/onboarding` so the climber starts
- * the onboarding flow when they confirm.
+ *
+ * Two shapes of success:
+ *   • Email confirmations ENABLED on the Supabase project →
+ *     `data.session` is null. Supabase sends a verification email;
+ *     user clicks the link, lands on /auth/callback, gets signed
+ *     in, redirects to /onboarding. Server action returns
+ *     `{ success: true }` (no `next`). Form shows a "check your
+ *     email" toast.
+ *   • Email confirmations DISABLED →  `data.session` is populated
+ *     immediately. User is authed right now. Mirror the signIn
+ *     flow: return `{ next: "/onboarding" }` so the client
+ *     hard-navs and completes onboarding. Without this the form
+ *     just sits there with a "check your email" toast that's
+ *     misleading (no email is coming).
  */
 export async function signUpAction(
   prevState: AuthActionState | undefined,
@@ -125,7 +136,7 @@ export async function signUpAction(
   if (!password) return { error: "Password is required", field: "password" };
 
   const supabase = await createServerSupabase();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -135,6 +146,13 @@ export async function signUpAction(
   if (error) {
     const { message, field } = formatAuthError(error);
     return { error: message, field };
+  }
+  // `data.session` is non-null only when Supabase auto-confirms the
+  // account (email confirmations disabled in the project settings).
+  // In that case the user is already signed in — hard-nav to
+  // /onboarding to complete setup.
+  if (data.session) {
+    return { success: true, next: "/onboarding" };
   }
   return { success: true };
 }
