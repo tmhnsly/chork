@@ -36,3 +36,29 @@
   gap: var(--space-2);
   width: 100%;
 }
+
+.qrSection {
+  @include layout.stack(var(--space-3));
+  padding: var(--space-4);
+  border-radius: var(--radius-3);
+  background: var(--mono-subtle-bg);
+  align-items: center;
+  text-align: center;
+}
+
+// White panel under the QR. Scanner reliability drops sharply on
+// dark or tinted backgrounds, so we pin this surface regardless of
+// the active theme. Inner padding matches `marginSize` on the QR
+// so the quiet zone is visually balanced against the frame edge.
+.qrFrame {
+  padding: var(--space-3);
+  background: #ffffff;
+  border-radius: var(--radius-2);
+  line-height: 0;
+}
+
+.qrCaption {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-xs);
+}

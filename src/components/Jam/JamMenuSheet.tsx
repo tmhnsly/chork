@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { FaCopy, FaShare, FaFlag } from "react-icons/fa6";
+import { QRCodeSVG } from "qrcode.react";
 import {
   BottomSheet,
   Button,
@@ -21,6 +22,13 @@ interface Props {
 
 export function JamMenuSheet({ jam, onClose, onEnd, pending }: Props) {
   const [confirming, setConfirming] = useState(false);
+  // Lazy initialiser so `window.location.origin` stays out of the
+  // render body — `react-hooks/purity` flags direct global reads
+  // during render. Computed once on mount; the sheet only exists on
+  // the jam page where the origin is fixed for the session.
+  const [scanUrl] = useState(
+    () => `${window.location.origin}/jam/${jam.id}`,
+  );
 
   async function copyCode() {
     try {
@@ -68,6 +76,26 @@ export function JamMenuSheet({ jam, onClose, onEnd, pending }: Props) {
               <FaShare aria-hidden /> Share link
             </Button>
           </div>
+        </section>
+
+        <section className={styles.qrSection}>
+          <span className={styles.codeLabel}>Scan to join</span>
+          {/* White panel regardless of theme — scanner contrast
+              trumps surface cohesion on this one element (Apple
+              Wallet passes do the same). */}
+          <div className={styles.qrFrame}>
+            <QRCodeSVG
+              value={scanUrl}
+              size={200}
+              level="M"
+              marginSize={2}
+              bgColor="#ffffff"
+              fgColor="#111210"
+            />
+          </div>
+          <span className={styles.qrCaption}>
+            No need to type — camera does it for you.
+          </span>
         </section>
 
         {!confirming ? (
