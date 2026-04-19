@@ -29,7 +29,7 @@ export function SiteFooter() {
           <FaInstagram aria-hidden />
         </a>
         <a
-          href="mailto:hi@chork.app"
+          href="mailto:hello@chork.app"
           aria-label="Email Chork"
           className={styles.socialLink}
         >

@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { FaArrowLeft } from "react-icons/fa6";
 import { PageHeader } from "@/components/motion";
+import { Button } from "@/components/ui";
 import styles from "./privacy.module.scss";
 
 export const metadata = {
@@ -76,12 +78,17 @@ export default function PrivacyPage() {
         <h2 className={styles.heading}>Contact</h2>
         <p>
           Questions about your privacy? Get in touch at{" "}
-          <Link href="mailto:hi@chork.app" className={styles.link}>hi@chork.app</Link>.
+          <Link href="mailto:hello@chork.app" className={styles.link}>hello@chork.app</Link>.
         </p>
       </section>
 
       <footer className={styles.footer}>
-        <Link href="/" className={styles.link}>Back to Chork</Link>
+        <Link href="/" className={styles.backLink}>
+          <Button variant="secondary">
+            <FaArrowLeft aria-hidden />
+            Back to Chork
+          </Button>
+        </Link>
       </footer>
     </main>
   );

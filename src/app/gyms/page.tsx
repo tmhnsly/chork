@@ -119,7 +119,7 @@ export default function GymsMarketingPage() {
           <div className={styles.ctaRow}>
             <a
               className={styles.ctaPrimary}
-              href="mailto:hi@chork.app?subject=Chork for gyms"
+              href="mailto:hello@chork.app?subject=Chork for gyms"
             >
               Bring Chork to your gym <FaArrowRight aria-hidden />
             </a>
@@ -229,9 +229,9 @@ export default function GymsMarketingPage() {
         </p>
         <a
           className={styles.finalCtaButton}
-          href="mailto:hi@chork.app?subject=Chork for gyms"
+          href="mailto:hello@chork.app?subject=Chork for gyms"
         >
-          hi@chork.app <FaArrowRight aria-hidden />
+          hello@chork.app <FaArrowRight aria-hidden />
         </a>
       </section>
 
