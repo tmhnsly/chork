@@ -94,6 +94,10 @@ export const metadata: Metadata = {
     ],
   },
   // OpenGraph for Facebook / LinkedIn / iMessage / Slack / Discord etc.
+  // Hero image is generated dynamically by `src/app/opengraph-image.tsx`
+  // — Next's file-based convention auto-injects the <meta og:image> tag,
+  // so no manual `images` entry is needed (and listing one here would
+  // override the generated route).
   openGraph: {
     type: "website",
     siteName: "Chork",
@@ -101,23 +105,14 @@ export const metadata: Metadata = {
     description: APP_DESCRIPTION,
     url: SITE_URL,
     locale: "en_GB",
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "Chork. Log every send. Top the Chorkboard. Start climbing free at chork.app.",
-        type: "image/png",
-      },
-    ],
   },
-  // Twitter / X cards. summary_large_image gives the full 1200×630 hero
-  // — the same OG image is reused since the platforms render identically.
+  // Twitter / X cards. `summary_large_image` is driven by
+  // `src/app/twitter-image.tsx` (which re-exports the OG route) so the
+  // same hero renders on both platforms.
   twitter: {
     card: "summary_large_image",
     title: "Chork · Bouldering competition tracker for gyms & crews",
     description: APP_DESCRIPTION,
-    images: ["/og-image.png"],
   },
   // Search-engine hints. robots auto-derives sensible defaults; tighten
   // here only if a future page needs noindex (handled per-page via its
