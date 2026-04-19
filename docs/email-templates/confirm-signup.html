@@ -68,8 +68,19 @@
                 <td align="left" valign="middle" style="line-height:1;">
                   <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                     <tr>
-                      <td valign="middle" style="padding-right:10px; line-height:0;">
-                        <img src="{{ .SiteURL }}/apple-touch-icon-dark.png" width="32" height="32" alt="" style="display:block; border-radius:7px; width:32px; height:32px;">
+                      <td valign="middle" style="padding-right:12px; line-height:0;">
+                        <!--
+                          Inline SVG of the Chork wordmark icon — the "C" arc + lime dot that
+                          ships as /icon.svg in the repo, inlined here so email clients don't
+                          need to load it over HTTP. Apple Mail + iOS Mail render this as
+                          expected. Gmail web / Outlook classic strip <svg>; on those the
+                          wordmark beside remains the brand mark (by design — logo is
+                          decoration, not load-bearing).
+                        -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 48 48" role="img" aria-label="Chork" style="display:block;">
+                          <path d="M29 11 A14 14 0 1 0 29 37" stroke="#ecede8" stroke-width="10" stroke-linecap="round" fill="none"/>
+                          <circle cx="38" cy="24" r="7.5" fill="#bdee63"/>
+                        </svg>
                       </td>
                       <td valign="middle">
                         <span class="wordmark" style="font-family:'Outfit',-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif; font-size:22px; font-weight:800; letter-spacing:-0.025em; color:#ecede8; line-height:1;">chork<span style="color:#bdee63;">.</span></span>
