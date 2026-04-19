@@ -24,9 +24,16 @@ describe("withTimeout", () => {
     // Never-resolving promise — without the timeout it would hang.
     const inner = new Promise<string>(() => {});
     const racing = withTimeout(inner, 500, "stuck");
+    // Register the rejection expectations BEFORE advancing the fake
+    // timer. Each `expect(...).rejects.X` attaches its own handler to
+    // `racing`, so when the timer fires the rejection is already
+    // observed — no unhandled-rejection window between the timer
+    // callback and the assertion `await`.
+    const isTimeoutError = expect(racing).rejects.toBeInstanceOf(TimeoutError);
+    const hasReasonInMessage = expect(racing).rejects.toThrow(/500ms.*stuck/);
     await vi.advanceTimersByTimeAsync(500);
-    await expect(racing).rejects.toBeInstanceOf(TimeoutError);
-    await expect(racing).rejects.toThrow(/500ms.*stuck/);
+    await isTimeoutError;
+    await hasReasonInMessage;
   });
 
   it("clears the timer once the inner promise settles so no stray callbacks fire", async () => {
