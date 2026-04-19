@@ -136,14 +136,6 @@ export async function signUpAction(
   if (!password) return { error: "Password is required", field: "password" };
 
   const supabase = await createServerSupabase();
-  // TODO(smtp): the verification email here goes via Supabase's
-  // built-in SMTP which is capped at ~3–4 sends/hour per project.
-  // Fine for dev, will rate-limit us hard at real traffic. Before
-  // launch (or on first "confirmation email never arrived" bug
-  // report), plug a proper SMTP provider into Supabase dashboard →
-  // Authentication → SMTP Settings. Resend's 3k/mo free tier is
-  // the easiest drop-in. No code change required once SMTP is
-  // swapped in the dashboard.
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
