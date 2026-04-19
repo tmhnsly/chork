@@ -38,7 +38,11 @@
 
   @include bp.tablet {
     grid-template-columns: repeat(2, 1fr);
-    grid-auto-rows: 15rem;
+    // minmax floor + auto growth — fixed rows caused tiles to
+    // overflow their row (tile min-height 17.5rem > 15rem row) and
+    // collide with the next row's neighbour. The floor keeps short
+    // tiles from collapsing; `auto` lets taller ones breathe.
+    grid-auto-rows: minmax(17.5rem, auto);
     grid-template-areas:
       "chorkboard   chorkboard"
       "wall         flash"
@@ -50,7 +54,7 @@
 
   @include bp.desktop {
     grid-template-columns: repeat(4, 1fr);
-    grid-auto-rows: 17.5rem;
+    grid-auto-rows: minmax(17.5rem, auto);
     grid-template-areas:
       "chorkboard chorkboard wall  flash"
       "beta       beta       zone  achievements"
