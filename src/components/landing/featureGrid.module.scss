@@ -1,12 +1,11 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
-@use "mixins/surfaces" as surface;
 @use "mixins/breakpoints" as bp;
+@use "mixins/surfaces" as surface;
 
+// ── Section ─────────────────────────────────────────
 // Full-bleed subtle-bg band. `position: relative` + z-index:1 so the
-// opaque section sits on top of the HeroSection's full-viewport hero
-// grid below it — the overlap is what makes the hero's last row
-// partly covered (a deliberate "more below" cue).
+// opaque section sits on top of the HeroSection's hero grid below it.
 .section {
   position: relative;
   width: 100%;
@@ -14,31 +13,81 @@
   background: var(--mono-subtle-bg);
 }
 
+// Bento — 8 tiles. Mobile stacks, tablet pairs squares, desktop
+// runs a 4×3 grid with Chorkboard as a medium 2×1 centre-piece and
+// varied small/wide bands for pacing.
 .grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--space-2);
+  gap: var(--space-3);
   max-width: var(--content-wide);
   margin: 0 auto;
+  grid-template-areas:
+    "chorkboard"
+    "wall"
+    "flash"
+    "jams"
+    "zone"
+    "achievements"
+    "crews"
+    "beta";
 
   @include bp.tablet {
     grid-template-columns: repeat(2, 1fr);
+    grid-auto-rows: minmax(220px, auto);
+    grid-template-areas:
+      "chorkboard   chorkboard"
+      "wall         flash"
+      "jams         jams"
+      "zone         achievements"
+      "crews        crews"
+      "beta         beta";
   }
 
   @include bp.desktop {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
+    grid-auto-rows: minmax(240px, auto);
+    grid-template-areas:
+      "chorkboard chorkboard wall  flash"
+      "jams       jams       zone  achievements"
+      "crews      crews      beta  beta";
   }
 }
 
-.card {
-  @include layout.stack(var(--space-2));
-  padding: var(--space-5);
+.tileChorkboard   { grid-area: chorkboard; }
+.tileWall         { grid-area: wall; }
+.tileJams         { grid-area: jams; }
+.tileCrews        { grid-area: crews; }
+.tileFlash        { grid-area: flash; }
+.tileAchievements { grid-area: achievements; }
+.tileZone         { grid-area: zone; }
+.tileBeta         { grid-area: beta; }
+
+// ── Shared tile shell ───────────────────────────────
+// Layered architecture:
+//   .visual (absolute, inset: 0) — animations fill the whole tile
+//   .meta   (absolute, bottom)   — glass panel laid over visual
+//
+// Animations in the visual layer can extend behind the meta glass, so
+// rings / halos / gradient washes read as depth beneath the text,
+// blurred through the panel's backdrop-filter. Tiles themselves carry
+// a themed radial-gradient wash (gold for ranking/flash, teal for
+// zone, red for live jams, lime for climber-social) so each card
+// reads as its own accent family.
+.tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 280px;
   background: var(--mono-app-bg);
   border: 1px solid var(--mono-border-subtle);
   border-radius: var(--radius-3);
+
+  // Entrance (non-looping — plays once when grid scrolls into view).
   opacity: 0;
   transform: translateY(16px);
-  animation: cardIn var(--duration-slow) var(--ease-out) forwards;
+  animation: tileIn var(--duration-slow) var(--ease-out) forwards;
   animation-play-state: paused;
 
   .gridVisible & {
@@ -51,23 +100,147 @@
     transform: none;
   }
 
-  @for $i from 1 through 6 {
+  @for $i from 1 through 8 {
     &:nth-child(#{$i}) {
-      animation-delay: #{($i - 1) * 80}ms;
+      animation-delay: #{($i - 1) * 60}ms;
     }
   }
 }
 
-.cardHeader {
+// Area assignments — one class per tile.
+// (Uniform grid — no grid-area assignments needed; tiles flow in
+// document order. Kept the .tile* classes as thematic hooks for
+// per-tile background tints and icon colours below.)
+
+// Apple-restrained chrome: all tiles share a mono border and a
+// neutral mono base. Colour only comes through as a gentle radial
+// wash from the top-left corner — scale-matched per feature —
+// fading into mono ground on the bottom-right so body copy always
+// lands on something close to neutral.
+//
+// Palette split so Flash + Achievements don't read as twins even
+// though they're neighbours: Flash keeps flash (amber), Achievements
+// swaps to success (teal) for a distinct medal vibe.
+.tileChorkboard,
+.tileFlash {
+  background:
+    radial-gradient(120% 90% at 0% 0%, var(--flash-subtle-bg) 0%, transparent 55%),
+    var(--mono-app-bg);
+}
+
+.tileAchievements {
+  background:
+    radial-gradient(120% 90% at 0% 0%, var(--accent-subtle-bg) 0%, transparent 55%),
+    var(--mono-app-bg);
+}
+
+.tileJams {
+  background:
+    radial-gradient(120% 90% at 0% 0%, var(--error-subtle-bg) 0%, transparent 55%),
+    var(--mono-app-bg);
+}
+
+.tileZone {
+  background:
+    radial-gradient(120% 90% at 0% 0%, var(--success-subtle-bg) 0%, transparent 55%),
+    var(--mono-app-bg);
+}
+
+.tileWall,
+.tileCrews,
+.tileBeta {
+  background:
+    radial-gradient(120% 90% at 0% 0%, var(--accent-subtle-bg) 0%, transparent 55%),
+    var(--mono-app-bg);
+}
+
+// ── Visual + meta slots ─────────────────────────────
+// Visual is a full-tile absolute layer. Content flex-centers so it
+// sits in the vertical middle of the tile; animation elements (rings,
+// halos) extend outward and bleed behind the meta glass panel.
+//
+// Container-type: inline-size scopes cqi units to this tile so
+// interior decoration scales with its own width (not the viewport).
+.visual {
+  position: relative;
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6) var(--space-5);
+  // Visual owns the area above the meta panel. `overflow: visible` so
+  // absolutely-positioned animation elements (rings, halos) can bleed
+  // DOWN into the meta's area — the tile's own `overflow: hidden`
+  // still clips at the tile edge. Tile has a stacking context via
+  // position: relative; this sub-layer sits at z-index 1 below the
+  // glass meta panel.
+  overflow: visible;
+  container-type: inline-size;
+  container-name: tile;
+  z-index: 1;
+}
+
+// Glass meta panel — flows naturally at bottom of the flex column.
+// Content centers in the visual area above it; animation elements
+// inside visual can extend downward behind meta and get blurred
+// through the backdrop-filter. Per-tile overrides below re-emit the
+// glass with a themed base (flash / error / accent) so the panel
+// reads as a tinted frost rather than neutral grey.
+.meta {
+  @include surface.glass(60%, var(--mono-subtle-bg));
+  @include layout.stack(var(--space-1));
+  position: relative;
+  border: none;
+  border-top: 1px solid var(--mono-border-subtle);
+  padding: var(--space-3) var(--space-5) var(--space-4);
+  z-index: 2;
+}
+
+.metaHead {
   display: flex;
   align-items: center;
   gap: var(--space-2);
 }
 
+// Meta leading icon — defaults to the accent-family tint; per-tile
+// overrides below match each card's thematic scale so the meta icon
+// echoes the card's colour identity.
 .icon {
   display: flex;
-  font-size: var(--text-lg);
+  font-size: var(--text-md);
   color: var(--accent-text);
+}
+
+// Meta panel chrome stays mono — title in step 12, description in
+// step 11, border in step 6. Colour comes through the panel only
+// via the blurred tile background behind it (the radial wash peeks
+// through the glass, gently tinting the frost without overwhelming
+// the text).
+//
+// The leading icon is the only coloured element kept per-tile — a
+// single accent glyph that hints at the feature's family without
+// pulling focus from the body copy.
+.tileChorkboard .icon,
+.tileFlash .icon {
+  color: var(--flash-text);
+}
+
+.tileAchievements .icon {
+  color: var(--accent-text);
+}
+
+.tileJams .icon {
+  color: var(--error-text);
+}
+
+.tileWall .icon,
+.tileCrews .icon,
+.tileBeta .icon {
+  color: var(--accent-text);
+}
+
+.tileZone .icon {
+  color: var(--success-text);
 }
 
 .title {
@@ -79,9 +252,872 @@
   color: var(--mono-text-low-contrast);
 }
 
-@keyframes cardIn {
+@keyframes tileIn {
   to {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+// ══════════════════════════════════════════════════════
+// FLASH — rings + keyframes (bolt + chip live in the CHORKBOARD-
+// adjacent flashCore block further down).
+// ══════════════════════════════════════════════════════
+
+.flashRing {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: clamp(96px, 36cqi, 200px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%) scale(0.5);
+  border-radius: 50%;
+  border: clamp(2px, 0.9cqi, 4px) solid var(--flash-solid);
+  box-shadow: 0 0 18px var(--flash-bg);
+  opacity: 0;
+  animation: flashRing 4.4s ease-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.flashRing2 {
+  animation-delay: 2.2s;
+}
+
+.flashPts {
+  @include type.typography(label);
+  font-size: clamp(var(--text-2xs), 3cqi, var(--text-sm));
+  padding: 2px clamp(8px, 2.5cqi, 12px);
+  border-radius: var(--radius-full);
+  background: var(--flash-solid);
+  color: var(--flash-on-solid);
+  white-space: nowrap;
+  position: relative;
+  z-index: 3;
+}
+
+@keyframes flashPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 8px var(--flash-bg));
+  }
+  50% {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 22px var(--flash-bg));
+  }
+}
+
+@keyframes flashRing {
+  0%   { transform: translate(-50%, -50%) scale(0.5); opacity: 0.75; }
+  85%  { transform: translate(-50%, -50%) scale(2.6); opacity: 0; }
+  100% { transform: translate(-50%, -50%) scale(2.6); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flashRing { animation: none; opacity: 0; }
+}
+
+// ══════════════════════════════════════════════════════
+// CHORKBOARD — three empty plinths + an animated "@YOU" that
+// climbs rank 3 → 2 → 1 with a crown-landing celebration.
+// ══════════════════════════════════════════════════════
+
+.podium {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1.15fr 1fr;
+  align-items: end;
+  gap: clamp(8px, 2.5cqi, 16px);
+  width: 100%;
+  max-width: min(320px, 82cqi);
+  aspect-ratio: 2 / 1;
+  margin: 0 auto;
+}
+
+.slot {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+  position: relative;
+}
+
+.plinth {
+  position: relative;
+  width: 100%;
+  border-radius: var(--radius-2) var(--radius-2) 0 0;
+  border: 1px solid var(--mono-border-subtle);
+  border-bottom: none;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.plinthGold {
+  height: clamp(50px, 18cqi, 96px);
+  background: linear-gradient(180deg, var(--flash-bg), var(--mono-subtle-bg));
+  border-color: var(--flash-border);
+
+  // Slow shimmer sweep — idles most of the loop, pulses once, repeats.
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      120deg,
+      transparent 0%,
+      transparent 40%,
+      rgba(255, 255, 255, 0.35) 50%,
+      transparent 60%,
+      transparent 100%
+    );
+    transform: translateX(-100%);
+    animation: podiumShimmer 6s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::after { animation: none; }
+  }
+}
+
+.plinthSilver {
+  height: clamp(36px, 13cqi, 70px);
+  background: var(--mono-subtle-bg);
+}
+
+.plinthBronze {
+  height: clamp(26px, 9cqi, 50px);
+  background: linear-gradient(180deg, var(--bronze-bg), var(--mono-subtle-bg));
+  border-color: var(--bronze-border);
+}
+
+.plinthNum {
+  @include type.typography(number);
+  font-size: clamp(var(--text-sm), 3.5cqi, var(--text-lg));
+  color: var(--mono-text);
+  opacity: 0.6;
+
+  .plinthGold & { color: var(--flash-text); opacity: 1; }
+  .plinthBronze & { color: var(--bronze-text); opacity: 1; }
+}
+
+@keyframes podiumShimmer {
+  0%, 70% { transform: translateX(-100%); }
+  95%, 100% { transform: translateX(100%); }
+}
+
+// ── The climbing @YOU avatar ───────────────────────
+// Absolute-positioned over the podium, moves between three plinth
+// tops on a 12s loop. Left/bottom percentages are podium-relative
+// so the rider lands squarely on each plinth regardless of cqi.
+.youRiser {
+  position: absolute;
+  width: clamp(38px, 13cqi, 60px);
+  height: clamp(38px, 13cqi, 60px);
+  transform: translateX(-50%);
+  z-index: 5;
+  animation: youClimb 12s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    left: 50%;
+    bottom: 50%;
+  }
+}
+
+.youAvatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+  border: 3px solid var(--mono-app-bg);
+  box-shadow: 0 0 0 2px var(--accent-solid), 0 4px 14px var(--accent-bg);
+  font-family: var(--font-heading);
+  font-weight: var(--weight-black);
+  font-style: italic;
+  font-size: clamp(10px, 3cqi, 14px);
+  letter-spacing: var(--tracking-tight);
+  line-height: 1;
+}
+
+// Crown — only appears when YOU reaches rank 1.
+.youCrown {
+  position: absolute;
+  top: clamp(-26px, -8cqi, -18px);
+  left: 50%;
+  transform: translateX(-50%) scale(0);
+  font-size: clamp(20px, 6cqi, 30px);
+  color: var(--flash-solid);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+  opacity: 0;
+  animation: crownLand 12s ease-out infinite;
+  pointer-events: none;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+  }
+}
+
+// Celebration sparks — also only fire at rank 1.
+.youSpark {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  font-size: clamp(10px, 3.5cqi, 16px);
+  color: var(--flash-solid);
+  filter: drop-shadow(0 0 6px var(--flash-bg));
+  opacity: 0;
+  animation: sparkPop 12s ease-out infinite;
+  pointer-events: none;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+.youSparkA { top: -20%; left: -28%; animation-delay: 0.4s; }
+.youSparkB { top: -12%; right: -32%; animation-delay: 0.8s; }
+
+// 12s loop — 0-28% rank 3 (right, lowest), 30-55% rank 2 (left,
+// middle), 58-92% rank 1 (centre, highest), 100% back to rank 3.
+//
+// Percentages for `left` are podium-relative centres for each slot:
+//   rank 3 slot centre ≈ 83% (right column)
+//   rank 2 slot centre ≈ 17% (left column)
+//   rank 1 slot centre ≈ 50% (middle column)
+// `bottom` places the avatar just above each plinth top — tuned
+// to the clamp'd plinth heights above.
+@keyframes youClimb {
+  0%, 28%   { left: 83%; bottom: 18%; }
+  30%, 55%  { left: 17%; bottom: 26%; }
+  58%, 92%  { left: 50%; bottom: 36%; }
+  97%, 100% { left: 83%; bottom: 18%; }
+}
+
+@keyframes crownLand {
+  0%, 58%   { opacity: 0; transform: translateX(-50%) translateY(-8px) scale(0.4); }
+  65%       { opacity: 1; transform: translateX(-50%) translateY(0) scale(1.15); }
+  72%, 92%  { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+  97%, 100% { opacity: 0; transform: translateX(-50%) translateY(-8px) scale(0.4); }
+}
+
+@keyframes sparkPop {
+  0%, 62%   { opacity: 0; transform: scale(0.4) rotate(0); }
+  70%       { opacity: 1; transform: scale(1.2) rotate(15deg); }
+  82%       { opacity: 0; transform: scale(1.6) rotate(30deg); }
+  100%      { opacity: 0; transform: scale(1.6) rotate(30deg); }
+}
+
+// ══════════════════════════════════════════════════════
+// THE WALL — mini send grid cycling through states
+// ══════════════════════════════════════════════════════
+
+// 4-col × 3-row grid to fit the square tile (12 cells, same count
+// as before — just reshaped wide→square).
+.wallGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: clamp(4px, 2cqi, 10px);
+  width: 100%;
+  max-width: min(220px, 76cqi);
+}
+
+.cell {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: max(3px, 1.2cqi);
+  background: var(--mono-bg);
+  container-type: inline-size;
+}
+
+.cell[class*="cell"] {
+  animation: cellCycle 9s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * 110ms);
+}
+
+.cellEmpty     { animation: none; }
+.cellAttempted { --cell-mid: var(--mono-solid); }
+.cellCompleted { --cell-mid: var(--accent-solid); }
+.cellFlash     { --cell-mid: var(--flash-solid); }
+
+@keyframes cellCycle {
+  0%, 8%    { background: var(--mono-bg); }
+  22%, 78%  { background: var(--cell-mid, var(--mono-bg)); }
+  92%, 100% { background: var(--mono-bg); }
+}
+
+.cellBolt {
+  position: absolute;
+  top: 8%;
+  right: 8%;
+  font-size: 38cqi;
+  line-height: 1;
+  color: var(--flash-on-solid);
+  opacity: 0;
+  animation: boltReveal 9s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * 110ms);
+}
+
+@keyframes boltReveal {
+  0%, 18%, 82%, 100% { opacity: 0; }
+  28%, 72%           { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell[class*="cell"] { animation: none; }
+  .cellBolt { animation: none; opacity: 1; }
+  .cellAttempted { background: var(--mono-solid); }
+  .cellCompleted { background: var(--accent-solid); }
+  .cellFlash     { background: var(--flash-solid); }
+}
+
+// ══════════════════════════════════════════════════════
+// JAMS — JAM badge + roster + attributed route rows
+// ══════════════════════════════════════════════════════
+
+.jamGame {
+  width: 100%;
+  max-width: min(340px, 84cqi);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(8px, 2.5cqi, 14px);
+}
+
+.jamHead {
+  display: flex;
+  align-items: center;
+  gap: clamp(8px, 2.5cqi, 14px);
+}
+
+.jamBadge {
+  padding: clamp(3px, 1cqi, 5px) clamp(8px, 2.4cqi, 12px);
+  border-radius: var(--radius-full);
+  background: var(--error-solid);
+  color: var(--error-on-solid);
+  @include type.typography(label);
+  font-size: clamp(9px, 2.4cqi, 12px);
+  letter-spacing: var(--tracking-wide);
+}
+
+.jamPlayers {
+  display: flex;
+}
+
+.jamPlayer {
+  display: grid;
+  place-items: center;
+  width: clamp(22px, 7cqi, 32px);
+  height: clamp(22px, 7cqi, 32px);
+  border-radius: 50%;
+  border: 2px solid var(--mono-app-bg);
+  font-family: var(--font-heading);
+  font-weight: var(--weight-bold);
+  font-size: clamp(10px, 2.6cqi, 13px);
+  line-height: 1;
+  margin-left: clamp(-10px, -2.5cqi, -5px);
+
+  &:first-child { margin-left: 0; }
+}
+
+.jamPlayeraccent { background: var(--accent-solid); color: var(--accent-on-solid); }
+.jamPlayermono   { background: var(--mono-solid);   color: var(--mono-app-bg); }
+.jamPlayerflash  { background: var(--flash-solid);  color: var(--flash-on-solid); }
+
+.jamBuild {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(4px, 1.4cqi, 8px);
+}
+
+.jamCardRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: clamp(8px, 2.5cqi, 12px);
+  padding: clamp(5px, 1.8cqi, 9px) clamp(9px, 2.8cqi, 14px);
+  background: var(--mono-bg);
+  border: 1px solid var(--mono-border-subtle);
+  border-radius: var(--radius-2);
+  opacity: 0;
+  transform: translateY(6px);
+  animation: jamRowAppear 6s ease-out infinite;
+  animation-delay: calc(var(--i, 0) * 500ms);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.jamGrade {
+  padding: clamp(2px, 0.7cqi, 4px) clamp(6px, 2cqi, 10px);
+  border-radius: var(--radius-1);
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+  font-family: var(--font-heading);
+  font-weight: var(--weight-black);
+  font-style: italic;
+  font-size: clamp(10px, 2.8cqi, 14px);
+  line-height: 1;
+  letter-spacing: var(--tracking-tight);
+}
+
+.jamRouteName {
+  @include type.typography(meta);
+  font-size: clamp(11px, 3cqi, 14px);
+  color: var(--mono-text);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jamTag {
+  display: grid;
+  place-items: center;
+  width: clamp(20px, 5.5cqi, 28px);
+  height: clamp(20px, 5.5cqi, 28px);
+  border-radius: 50%;
+  font-family: var(--font-heading);
+  font-weight: var(--weight-bold);
+  font-size: clamp(9px, 2.4cqi, 12px);
+  line-height: 1;
+}
+
+.jamTagaccent { background: var(--accent-solid); color: var(--accent-on-solid); }
+.jamTagmono   { background: var(--mono-solid);   color: var(--mono-app-bg); }
+.jamTagflash  { background: var(--flash-solid);  color: var(--flash-on-solid); }
+
+@keyframes jamRowAppear {
+  0%, 8%    { opacity: 0; transform: translateY(8px); }
+  16%, 80%  { opacity: 1; transform: translateY(0); }
+  90%, 100% { opacity: 0; transform: translateY(-4px); }
+}
+
+// ══════════════════════════════════════════════════════
+// CREWS — crew name + avatar cluster + activity chip
+// ══════════════════════════════════════════════════════
+
+.crewPanel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(12px, 3.5cqi, 20px);
+  width: 100%;
+  max-width: min(320px, 88cqi);
+  // Extra top padding inside the panel so the cycling crew-name
+  // pill lands with comfortable breathing room below the tile border.
+  padding-top: clamp(8px, 2.5cqi, 14px);
+}
+
+// Cycling crew name — 4 labels stacked at the same position, each
+// revealed for ~25% of a 12s loop. Sits in a pill so it reads as a
+// proper chip rather than floating text.
+.crewNameTrack {
+  position: relative;
+  height: clamp(24px, 7cqi, 32px);
+  min-width: clamp(140px, 46cqi, 200px);
+  display: grid;
+  place-items: center;
+}
+
+.crewName {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(4px, 1.3cqi, 7px) clamp(12px, 3.5cqi, 16px);
+  border-radius: var(--radius-full);
+  background: var(--mono-bg);
+  border: 1px solid var(--mono-border-subtle);
+  @include type.typography(label);
+  font-size: clamp(10px, 2.8cqi, 13px);
+  color: var(--mono-text);
+  letter-spacing: var(--tracking-wide);
+  opacity: 0;
+  transform: translateY(6px);
+  animation: crewNameCycle 12s ease-in-out infinite;
+  animation-delay: calc(var(--i, 0) * 3s);
+  white-space: nowrap;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    opacity: 0;
+
+    &:first-child { opacity: 1; transform: none; }
+  }
+}
+
+// 4 names × 3s each in a 12s loop. Each is visible for ~22% of the
+// cycle with a short fade-in/out so the swaps feel like a reveal.
+@keyframes crewNameCycle {
+  0%         { opacity: 0; transform: translateY(6px); filter: blur(3px); }
+  4%, 22%    { opacity: 1; transform: translateY(0); filter: blur(0); }
+  26%        { opacity: 0; transform: translateY(-6px); filter: blur(3px); }
+  26.01%, 100% { opacity: 0; transform: translateY(-6px); }
+}
+
+.crewClusterWrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: clamp(6px, 2cqi, 12px) 0;
+}
+
+.crewCluster {
+  display: flex;
+  position: relative;
+  z-index: 2;
+}
+
+.crewDot {
+  display: grid;
+  place-items: center;
+  width: clamp(34px, 11cqi, 56px);
+  height: clamp(34px, 11cqi, 56px);
+  border-radius: 50%;
+  border: 3px solid var(--mono-app-bg);
+  font-family: var(--font-heading);
+  font-weight: var(--weight-bold);
+  font-size: clamp(12px, 4cqi, 20px);
+  line-height: 1;
+  text-align: center;
+  margin-left: clamp(-16px, -3.5cqi, -10px);
+  opacity: 0;
+  transform: scale(0.6);
+  animation: crewPop 7s ease-out infinite;
+  animation-delay: calc(var(--i, 0) * 180ms);
+
+  &:first-child { margin-left: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.crewDotaccent { background: var(--accent-solid); color: var(--accent-on-solid); }
+.crewDotmono   { background: var(--mono-solid);   color: var(--mono-app-bg); }
+.crewDotflash  { background: var(--flash-solid);  color: var(--flash-on-solid); }
+
+.crewPulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: clamp(200px, 70cqi, 320px);
+  height: clamp(80px, 28cqi, 140px);
+  transform: translate(-50%, -50%) scale(0.92);
+  border-radius: 999px;
+  border: 1px dashed var(--accent-border);
+  opacity: 0;
+  animation: crewHalo 7s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+.crewActivity {
+  display: inline-flex;
+  align-items: center;
+  gap: clamp(6px, 2cqi, 10px);
+  padding: clamp(4px, 1.3cqi, 7px) clamp(10px, 3cqi, 14px);
+  border-radius: var(--radius-full);
+  background: var(--mono-bg);
+  border: 1px solid var(--mono-border-subtle);
+  max-width: 100%;
+}
+
+.crewActivityDot {
+  width: clamp(5px, 1.5cqi, 7px);
+  height: clamp(5px, 1.5cqi, 7px);
+  border-radius: 50%;
+  background: var(--accent-solid);
+  animation: crewActivityPulse 1.8s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+.crewActivityText {
+  @include type.typography(meta);
+  font-size: clamp(10px, 2.7cqi, 13px);
+  color: var(--mono-text-low-contrast);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  strong {
+    font-weight: var(--weight-semibold);
+    color: var(--mono-text);
+  }
+}
+
+@keyframes crewPop {
+  0%, 10%   { opacity: 0; transform: scale(0.6); }
+  22%, 85%  { opacity: 1; transform: scale(1); }
+  95%, 100% { opacity: 0; transform: scale(0.8); }
+}
+
+@keyframes crewHalo {
+  0%, 15%, 95%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(0.92); }
+  40%, 70%           { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+}
+
+@keyframes crewActivityPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(1.3); }
+}
+
+// ══════════════════════════════════════════════════════
+// FLASH — bolt + rings + 4pts chip (wrapped in flashCore)
+// ══════════════════════════════════════════════════════
+
+.flashCore {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(8px, 2.5cqi, 14px);
+}
+
+.flashBolt {
+  font-size: clamp(2rem, 28cqi, 4rem);
+  color: var(--flash-solid);
+  filter: drop-shadow(0 0 10px var(--flash-bg));
+  animation: flashPulse 4.4s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// ACHIEVEMENTS — bobbing medal + 3 satellite stars
+// ══════════════════════════════════════════════════════
+
+.badgeCore {
+  position: relative;
+  width: clamp(100px, 36cqi, 180px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+
+.badgeIcon {
+  font-size: clamp(44px, 24cqi, 96px);
+  color: var(--accent-solid);
+  filter: drop-shadow(0 0 14px var(--accent-bg));
+  animation: badgeBob 3s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+.badgeStar {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  font-size: clamp(14px, 6cqi, 24px);
+  color: var(--flash-solid);
+  filter: drop-shadow(0 0 6px var(--flash-bg));
+  opacity: 0;
+  animation: starPop 3.6s ease-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    opacity: 0.6;
+  }
+}
+
+.badgeStarA { top: 6%;    left: 4%;   animation-delay: 0s; }
+.badgeStarB { top: 10%;   right: 2%;  animation-delay: 1.2s; }
+.badgeStarC { bottom: 6%; left: 14%;  animation-delay: 2.4s; }
+
+@keyframes badgeBob {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50%      { transform: translateY(-4px) rotate(2deg); }
+}
+
+@keyframes starPop {
+  0%   { opacity: 0; transform: scale(0.4) rotate(0); }
+  25%  { opacity: 1; transform: scale(1.2) rotate(20deg); }
+  55%  { opacity: 0; transform: scale(1.5) rotate(40deg); }
+  100% { opacity: 0; transform: scale(1.5) rotate(40deg); }
+}
+
+// ══════════════════════════════════════════════════════
+// BETA SPRAY — two chat bubbles, blur/reveal loop
+// ══════════════════════════════════════════════════════
+
+.tileBeta .visual {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: clamp(8px, 2.5cqi, 14px);
+  padding-left: clamp(16px, 4cqi, 24px);
+  padding-right: clamp(16px, 4cqi, 24px);
+}
+
+.betaBubble {
+  position: relative;
+  max-width: min(260px, 72cqi);
+  padding: clamp(8px, 2cqi, 12px) clamp(12px, 3cqi, 18px);
+  background: var(--mono-bg);
+  border: 1px solid var(--mono-border-subtle);
+  border-radius: var(--radius-3);
+  @include type.typography(meta);
+  font-size: clamp(var(--text-xs), 3cqi, var(--text-md));
+  color: var(--mono-text);
+}
+
+.betaBubbleA {
+  border-bottom-left-radius: var(--radius-1);
+  align-self: flex-start;
+}
+
+.betaBubbleB {
+  border-bottom-right-radius: var(--radius-1);
+  align-self: flex-end;
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent-text);
+}
+
+.betaMask {
+  display: inline-block;
+  opacity: 0.4;
+  filter: blur(3px);
+  animation: betaReveal 7s ease-in-out infinite;
+
+  .betaBubbleB & { animation-delay: 2s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    opacity: 1;
+    filter: none;
+  }
+}
+
+.betaLockIcon {
+  position: absolute;
+  right: clamp(6px, 2cqi, 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: clamp(10px, 2.6cqi, 14px);
+  color: var(--mono-text-low-contrast);
+  opacity: 0.6;
+  animation: betaLockFade 7s ease-in-out infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes betaReveal {
+  0%, 30%   { opacity: 0.4; filter: blur(3px); }
+  45%, 75%  { opacity: 1; filter: blur(0); }
+  90%, 100% { opacity: 0.4; filter: blur(3px); }
+}
+
+@keyframes betaLockFade {
+  0%, 30%   { opacity: 0.7; }
+  45%, 75%  { opacity: 0; }
+  90%, 100% { opacity: 0.7; }
+}
+
+// ══════════════════════════════════════════════════════
+// ZONE — flag hero + +1 PT chip that pops in periodically
+// ══════════════════════════════════════════════════════
+
+.zoneScene {
+  position: relative;
+  width: 100%;
+  max-width: min(200px, 80cqi);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+
+.zoneFlag {
+  position: relative;
+  font-size: clamp(56px, 30cqi, 120px);
+  color: var(--success-solid);
+  filter: drop-shadow(0 0 16px var(--success-bg));
+  transform-origin: 22% 80%;
+  animation: zoneFlagWave 3.6s ease-in-out infinite;
+  z-index: 2;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+.zonePts {
+  position: absolute;
+  top: 6%;
+  right: 4%;
+  display: inline-flex;
+  align-items: baseline;
+  gap: clamp(2px, 0.8cqi, 4px);
+  padding: clamp(4px, 1.4cqi, 8px) clamp(10px, 2.8cqi, 14px);
+  border-radius: var(--radius-full);
+  background: var(--success-solid);
+  color: var(--success-on-solid);
+  border: 1px solid var(--success-border-hover);
+  box-shadow: 0 4px 14px var(--success-bg);
+  opacity: 0;
+  transform: translateY(8px) scale(0.85);
+  animation: zonePtsPop 3.6s ease-out infinite;
+  animation-delay: 0.4s;
+  z-index: 3;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.zonePtsMain {
+  font-family: var(--font-heading);
+  font-weight: var(--weight-black);
+  font-style: italic;
+  font-size: clamp(14px, 4cqi, 20px);
+  letter-spacing: var(--tracking-tight);
+  line-height: 1;
+}
+
+.zonePtsUnit {
+  @include type.typography(label);
+  font-size: clamp(8px, 2cqi, 10px);
+  letter-spacing: var(--tracking-wide);
+}
+
+@keyframes zoneFlagWave {
+  0%, 100% { transform: rotate(-5deg); }
+  50%      { transform: rotate(5deg); }
+}
+
+@keyframes zonePtsPop {
+  0%, 30%   { opacity: 0; transform: translateY(8px) scale(0.85); }
+  45%, 75%  { opacity: 1; transform: translateY(0) scale(1); }
+  90%, 100% { opacity: 0; transform: translateY(-4px) scale(0.95); }
 }
