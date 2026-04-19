@@ -1,7 +1,7 @@
 {
   "name": "Chork",
   "short_name": "Chork",
-  "description": "Bouldering comp tracker — send it, log it, prove it.",
+  "description": "Bouldering comp tracker — climb it, log it, top it.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#111210",
