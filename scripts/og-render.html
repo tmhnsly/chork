@@ -5,10 +5,10 @@
 <title>Chork OG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:ital,wght@0,500;0,700;0,800;1,500;1,700;1,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    /* Radix olive-dark canonical values (steps 1-12) */
+    /* Radix olive-dark canonical values */
     --olive-1:  #111210;
     --olive-2:  #181917;
     --olive-3:  #22231f;
@@ -22,110 +22,130 @@
     --olive-11: #afb1a1;
     --olive-12: #eeeee9;
 
-    /* Lime (dark variant accent, matches app dark mode) */
+    /* Lime (dark-variant accent) */
+    --lime-8:   #66832b;
     --lime-9:   #bdee63;
     --lime-10:  #d4ff70;
     --lime-11:  #bdee63;
     --lime-12:  #effbcf;
 
-    /* Amber (flash) — used sparingly as secondary accent */
+    /* Amber flash */
     --amber-9:  #ffb224;
+
+    /* Teal zone */
+    --teal-9:   #12a594;
   }
+
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body {
     width: 1200px; height: 630px;
-    background: var(--olive-1);
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     color: var(--olive-12);
     overflow: hidden;
+    background: var(--olive-1);
   }
 
-  .frame {
+  .stage {
     position: relative;
     width: 1200px; height: 630px;
-    background:
-      radial-gradient(1200px 600px at 85% 115%, rgba(189, 238, 99, 0.10), transparent 60%),
-      radial-gradient(900px 500px at 0% -10%, rgba(189, 238, 99, 0.05), transparent 55%),
-      var(--olive-1);
-    display: flex;
-    flex-direction: column;
+    overflow: hidden;
+    background: var(--olive-1);
+  }
+
+  /* ---------- Background scenery (shows through the glass) ---------- */
+  .bg {
+    position: absolute; inset: 0;
     overflow: hidden;
   }
-
-  /* Watermark — giant outlined "C" echoing the brand glyph */
-  .watermark {
+  /* Big blurred colour blobs — soft macOS desktop-wallpaper feel */
+  .blob {
     position: absolute;
-    right: -140px;
-    bottom: -160px;
-    width: 780px;
-    height: 780px;
-    opacity: 0.06;
+    border-radius: 50%;
+    filter: blur(80px);
+    opacity: 0.9;
+  }
+  .blob-lime {
+    width: 720px; height: 720px;
+    right: -140px; top: -220px;
+    background: radial-gradient(closest-side, rgba(189, 238, 99, 0.55), rgba(189, 238, 99, 0) 70%);
+  }
+  .blob-amber {
+    width: 540px; height: 540px;
+    left: -120px; bottom: -180px;
+    background: radial-gradient(closest-side, rgba(255, 178, 36, 0.28), rgba(255, 178, 36, 0) 70%);
+  }
+  .blob-teal {
+    width: 520px; height: 520px;
+    left: 40%; top: 40%;
+    background: radial-gradient(closest-side, rgba(18, 165, 148, 0.22), rgba(18, 165, 148, 0) 70%);
+  }
+  .blob-olive {
+    width: 900px; height: 900px;
+    left: -260px; top: -300px;
+    background: radial-gradient(closest-side, rgba(104, 112, 102, 0.35), rgba(104, 112, 102, 0) 70%);
+  }
+  .blob-lime-2 {
+    width: 440px; height: 440px;
+    right: 180px; bottom: -80px;
+    background: radial-gradient(closest-side, rgba(189, 238, 99, 0.22), rgba(189, 238, 99, 0) 70%);
+    filter: blur(60px);
+  }
+
+  /* Subtle climbing-hold dot field — gives the blur something to grab onto */
+  .dots {
+    position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,0.045) 1.4px, transparent 1.6px);
+    background-size: 28px 28px;
+    mask-image: radial-gradient(ellipse at 50% 50%, black 40%, transparent 90%);
+  }
+
+  /* Vignette on the background only (outside the card) */
+  .vignette {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at 50% 50%, rgba(0,0,0,0) 40%, rgba(0,0,0,0.35) 100%);
     pointer-events: none;
   }
-  .watermark svg { width: 100%; height: 100%; display: block; }
 
-  /* Subtle grid watermark behind everything */
-  .grid {
+  /* ---------- Glass card ---------- */
+  .card {
     position: absolute;
-    inset: 0;
-    background-image:
-      linear-gradient(to right, rgba(255,255,255,0.022) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255,255,255,0.022) 1px, transparent 1px);
-    background-size: 48px 48px;
-    mask-image: radial-gradient(ellipse at 50% 50%, black 40%, transparent 85%);
+    top: 44px; left: 44px; right: 44px; bottom: 44px;
+    border-radius: 28px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.09) 0%, rgba(255,255,255,0.05) 100%);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    border: 1px solid rgba(255,255,255,0.14);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.14),
+      inset 0 -1px 0 rgba(0,0,0,0.18),
+      0 30px 80px -20px rgba(0,0,0,0.55),
+      0 2px 0 rgba(255,255,255,0.03);
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    padding: 34px 44px;
+    overflow: hidden;
+  }
+  /* Specular highlight — tiny moving light top-left, static here */
+  .card::before {
+    content: '';
+    position: absolute;
+    top: -120px; left: -80px;
+    width: 420px; height: 260px;
+    background: radial-gradient(closest-side, rgba(255,255,255,0.14), transparent 70%);
+    filter: blur(20px);
     pointer-events: none;
   }
 
-  /* Header bar — mirrors the email template bar */
-  .bar {
-    position: relative;
-    background: var(--olive-2);
-    padding: 26px 56px;
+  /* ---------- Top chrome row ---------- */
+  .top {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid var(--olive-4);
-    z-index: 2;
-  }
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-  }
-  .brand svg { display: block; }
-  .wordmark {
-    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
-    font-size: 32px;
-    font-weight: 800;
-    letter-spacing: -0.025em;
-    color: var(--olive-12);
-    line-height: 1;
-  }
-  .wordmark .dot { color: var(--lime-9); }
-  .tagline {
-    font-family: 'Inter', sans-serif;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--olive-11);
-    line-height: 1;
-  }
-  .tagline .sep { color: var(--olive-8); margin: 0 10px; }
-
-  /* Main content */
-  .content {
     position: relative;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    padding: 0 64px;
     z-index: 2;
   }
-
   .eyebrow {
     display: inline-flex;
     align-items: center;
@@ -135,157 +155,230 @@
     font-weight: 600;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: var(--lime-11);
-    margin-bottom: 22px;
+    color: var(--olive-11);
   }
-  .eyebrow::before {
-    content: '';
-    width: 8px; height: 8px;
+  .eyebrow .glyph {
+    display: inline-flex;
+    align-items: center;
+  }
+  .eyebrow svg { display: block; }
+  .sep { color: var(--olive-8); margin: 0 2px; }
+
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--olive-11);
+  }
+  .status .pulse {
+    width: 10px; height: 10px;
     border-radius: 50%;
     background: var(--lime-9);
-    box-shadow: 0 0 16px rgba(189, 238, 99, 0.6);
+    box-shadow: 0 0 0 3px rgba(189, 238, 99, 0.25), 0 0 18px rgba(189, 238, 99, 0.6);
   }
 
-  h1 {
-    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  /* ---------- Middle content ---------- */
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    align-items: center;
+    gap: 36px;
+    padding: 8px 0;
+    position: relative;
+    z-index: 2;
+  }
+
+  .hero {
+    display: flex;
+    flex-direction: column;
+    gap: 0px;
+  }
+  .hero .line1 {
+    font-family: 'Outfit', sans-serif;
     font-weight: 800;
-    font-size: 78px;
-    line-height: 0.98;
-    letter-spacing: -0.035em;
+    font-size: 124px;
+    line-height: 0.9;
+    letter-spacing: -0.045em;
     color: var(--olive-12);
-    max-width: 960px;
   }
-  h1 .accent { color: var(--lime-9); }
+  .hero .line1 .dot { color: var(--lime-9); }
+  .hero .line2 {
+    font-family: 'Outfit', sans-serif;
+    font-style: italic;
+    font-weight: 500;
+    font-size: 82px;
+    line-height: 0.98;
+    letter-spacing: -0.03em;
+    color: #d6d7ce;
+    margin-top: 4px;
+    padding-left: 4px;
+  }
 
-  .sub {
-    margin-top: 22px;
+  .divider {
+    width: 1px;
+    height: 80%;
+    background: linear-gradient(to bottom, transparent 0%, rgba(255,255,255,0.14) 30%, rgba(255,255,255,0.14) 70%, transparent 100%);
+    align-self: center;
+  }
+
+  .meta {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding-left: 4px;
+  }
+  .meta-row .label {
     font-family: 'Inter', sans-serif;
-    font-size: 22px;
-    line-height: 1.45;
-    font-weight: 400;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
     color: var(--olive-11);
-    max-width: 760px;
-    letter-spacing: -0.005em;
+    margin-bottom: 6px;
   }
+  .meta-row .value {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 24px;
+    line-height: 1.15;
+    letter-spacing: -0.015em;
+    color: var(--olive-12);
+  }
+  .meta-row .value .dot { color: var(--lime-9); font-weight: 800; }
+  .meta-row .value .mid { color: var(--olive-8); margin: 0 8px; font-weight: 400; }
 
-  .cta-row {
-    margin-top: 40px;
+  /* ---------- Bottom row ---------- */
+  .bottom {
     display: flex;
     align-items: center;
-    gap: 20px;
+    justify-content: space-between;
+    position: relative;
+    z-index: 2;
   }
 
   .cta {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
-    padding: 18px 30px;
+    gap: 14px;
+    padding: 18px 30px 18px 34px;
     background: var(--lime-9);
-    color: #1a1a1a;
+    color: #141612;
     font-family: 'Outfit', sans-serif;
     font-weight: 700;
-    font-size: 20px;
-    border-radius: 14px;
-    letter-spacing: -0.01em;
+    font-size: 18px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    box-shadow:
+      0 12px 28px rgba(189, 238, 99, 0.22),
+      inset 0 1px 0 rgba(255,255,255,0.5),
+      inset 0 -1px 0 rgba(0,0,0,0.15);
     line-height: 1;
-    box-shadow: 0 8px 32px rgba(189, 238, 99, 0.18);
   }
   .cta .arrow {
-    font-weight: 600;
-    transform: translateY(-1px);
-  }
-
-  .cta-hint {
-    font-family: 'Inter', sans-serif;
-    font-size: 15px;
-    font-weight: 500;
-    color: var(--olive-11);
-    letter-spacing: 0.01em;
-  }
-  .cta-hint b { color: var(--olive-12); font-weight: 600; }
-
-  /* Footer strip */
-  .footer {
-    position: relative;
-    padding: 18px 64px 22px;
-    display: flex;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: #141612;
+    color: var(--lime-9);
+    display: inline-flex;
     align-items: center;
-    justify-content: space-between;
-    z-index: 2;
-  }
-  .url {
-    font-family: 'Outfit', sans-serif;
+    justify-content: center;
+    font-size: 14px;
     font-weight: 700;
-    font-size: 16px;
-    letter-spacing: 0.02em;
-    color: var(--olive-12);
+    letter-spacing: 0;
   }
-  .url .slash { color: var(--lime-9); }
-  .chips {
-    display: flex;
-    gap: 10px;
+
+  .web {
+    text-align: right;
   }
-  .chip {
+  .web .label {
     font-family: 'Inter', sans-serif;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.22em;
     text-transform: uppercase;
     color: var(--olive-11);
-    padding: 8px 14px;
-    border: 1px solid var(--olive-5);
-    border-radius: 999px;
-    background: rgba(255,255,255,0.015);
+    margin-bottom: 4px;
   }
+  .web .url {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 30px;
+    letter-spacing: -0.02em;
+    color: var(--olive-12);
+    line-height: 1;
+  }
+  .web .url .dot { color: var(--lime-9); }
 </style>
 </head>
 <body>
-  <div class="frame">
-    <div class="grid"></div>
-
-    <div class="watermark" aria-hidden="true">
-      <svg viewBox="0 0 48 48" fill="none">
-        <path d="M29 11 A14 14 0 1 0 29 37" stroke="#ecede8" stroke-width="10" stroke-linecap="round"/>
-        <circle cx="38" cy="24" r="7.5" fill="#bdee63"/>
-      </svg>
+  <div class="stage">
+    <div class="bg">
+      <div class="blob blob-olive"></div>
+      <div class="blob blob-lime"></div>
+      <div class="blob blob-amber"></div>
+      <div class="blob blob-teal"></div>
+      <div class="blob blob-lime-2"></div>
+      <div class="dots"></div>
     </div>
+    <div class="vignette"></div>
 
-    <!-- Header bar -->
-    <div class="bar">
-      <div class="brand">
-        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 48 48" role="img" aria-label="Chork">
-          <path d="M29 11 A14 14 0 1 0 29 37" stroke="#ecede8" stroke-width="10" stroke-linecap="round" fill="none"/>
-          <circle cx="38" cy="24" r="7.5" fill="#bdee63"/>
-        </svg>
-        <span class="wordmark">chork<span class="dot">.</span></span>
+    <div class="card">
+      <!-- Top chrome -->
+      <div class="top">
+        <div class="eyebrow">
+          <span class="glyph">
+            <svg width="18" height="18" viewBox="0 0 48 48" fill="none">
+              <path d="M29 11 A14 14 0 1 0 29 37" stroke="#afb1a1" stroke-width="10" stroke-linecap="round"/>
+              <circle cx="38" cy="24" r="7.5" fill="#bdee63"/>
+            </svg>
+          </span>
+          Bouldering tracker<span class="sep">—</span>EST. 2025
+        </div>
+        <div class="status">
+          Live at chork.app
+          <span class="pulse"></span>
+        </div>
       </div>
-      <div class="tagline">
-        Climb it<span class="sep">·</span>Log it<span class="sep">·</span>Top it
+
+      <!-- Main content -->
+      <div class="main">
+        <div class="hero">
+          <div class="line1">chork<span class="dot">.</span></div>
+          <div class="line2">bouldering.</div>
+        </div>
+        <div class="divider"></div>
+        <div class="meta">
+          <div class="meta-row">
+            <div class="label">For</div>
+            <div class="value">Gyms &amp; crews</div>
+          </div>
+          <div class="meta-row">
+            <div class="label">Scoring</div>
+            <div class="value">Points<span class="mid">·</span>Flash<span class="mid">·</span>Zone</div>
+          </div>
+          <div class="meta-row">
+            <div class="label">Leaderboard</div>
+            <div class="value">Public Chorkboard<span class="dot">.</span></div>
+          </div>
+        </div>
       </div>
-    </div>
 
-    <!-- Main content -->
-    <div class="content">
-      <div class="eyebrow">Bouldering competition tracker</div>
-      <h1>Log every send.<br>Top the <span class="accent">Chorkboard</span>.</h1>
-      <p class="sub">Track attempts on your gym's active set, earn points on the public leaderboard, and compete with your crew.</p>
-
-      <div class="cta-row">
+      <!-- Bottom row -->
+      <div class="bottom">
         <div class="cta">
-          Start climbing free
+          Join for free
           <span class="arrow">→</span>
         </div>
-        <div class="cta-hint">No card. Just <b>chork.app</b></div>
-      </div>
-    </div>
-
-    <!-- Footer -->
-    <div class="footer">
-      <div class="url">chork<span class="slash">.</span>app</div>
-      <div class="chips">
-        <span class="chip">PWA</span>
-        <span class="chip">Free to use</span>
-        <span class="chip">Private crews</span>
+        <div class="web">
+          <div class="label">On the web</div>
+          <div class="url">chork<span class="dot">.</span>app</div>
+        </div>
       </div>
     </div>
   </div>
