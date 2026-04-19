@@ -1,17 +1,56 @@
 @use "mixins/typography" as type;
 
-// Site-wide footer. Column-stack of social / legal-links / copyright.
-// Handles its own navbar + safe-area clearance so mounting pages can
-// run their content right up to the footer without double-padding.
+// Site-wide footer. Column-stack of brand signoff / social / legal /
+// copyright. Handles its own navbar + safe-area clearance so mounting
+// pages can run their content right up to the footer without
+// double-padding.
 .footer {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-8) var(--gutter-x);
+  gap: var(--space-3);
+  padding: var(--space-10) var(--gutter-x) 0;
   padding-bottom: calc(
     var(--navbar-height) + env(safe-area-inset-bottom, 0px) + var(--space-6)
   );
+}
+
+// ── Brand signoff ─────────────────────────────────
+// Big ChorkMark + "chork.app" wordmark + "EST 2026" eyebrow. Sits at
+// the top of the footer as a proper brand closer — the legal chrome
+// below reads as supplemental.
+.brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+.mark {
+  width: clamp(72px, 16vw, 120px);
+  height: auto;
+}
+
+// "chork.app" — same display-size Outfit black italic as the hero
+// headline, but forced lowercase so the domain reads as a domain.
+// Tight tracking keeps the "." tucked close to the "p".
+.wordmark {
+  font-family: var(--font-heading);
+  font-weight: var(--weight-black);
+  font-style: italic;
+  font-size: clamp(var(--text-4xl), 9vw, 4.5rem);
+  line-height: 1;
+  letter-spacing: var(--tracking-tight);
+  color: var(--mono-text);
+  margin: 0;
+}
+
+.est {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-wide);
 }
 
 // ── Social row ────────────────────────────────────
@@ -66,9 +105,9 @@
 }
 
 // ── Copyright ─────────────────────────────────────
-// Label typography (Outfit semibold uppercase wide-tracking) —
-// matches the brand wordmark treatment used elsewhere so the legal
-// line reads as brand chrome, not a plain caption.
+// Label typography matches the brand wordmark treatment used
+// elsewhere so the legal line reads as brand chrome, not a plain
+// caption.
 .copyright {
   @include type.typography(label);
   color: var(--mono-text-low-contrast);
