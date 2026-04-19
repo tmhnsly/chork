@@ -6,76 +6,109 @@
 <meta name="color-scheme" content="light dark">
 <meta name="supported-color-schemes" content="light dark">
 <title>Confirm your new email</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800&family=Inter:wght@400;500;600&display=swap');
   :root { color-scheme: light dark; }
-  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Inter:wght@400;500;600&display=swap');
-  body { margin:0; padding:0; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
-  table { border-collapse:collapse; }
+  body, html { margin:0; padding:0; width:100% !important; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
+  * { -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+  table { border-collapse:collapse; mso-table-lspace:0pt; mso-table-rspace:0pt; }
   img { border:0; outline:none; text-decoration:none; -ms-interpolation-mode:bicubic; display:block; }
-  a { color:#1b1d16; text-decoration:underline; }
-  a:hover { text-decoration:none; }
-  .bg-page { background:#f6f7f3; }
-  .bg-card { background:#ffffff; }
-  .text-primary { color:#1b1d16; }
-  .text-muted { color:#6f7264; }
-  .btn a { color:#1b1d16 !important; text-decoration:none !important; }
+  a { color:inherit; }
+
+  .bg-page    { background:#f4f5f0; }
+  .bg-card    { background:#ffffff; }
+  .bar        { background:#1b1d16; }
+  .heading    { color:#1b1d16; }
+  .body-text  { color:#5f6253; }
+  .muted      { color:#8a8d7d; }
+  .wordmark   { color:#ecede8; }
+  .eyebrow    { color:#9a9d8c; }
+  .rule       { background:#e8ead8; }
+
   @media (prefers-color-scheme: dark) {
-    .bg-page { background:#0f110d !important; }
-    .bg-card { background:#1a1c17 !important; }
-    .text-primary { color:#ecede8 !important; }
-    .text-muted { color:#8b8f7f !important; }
-    a { color:#ecede8 !important; }
-    .wordmark { color:#ecede8 !important; }
-    .link-plain { color:#8b8f7f !important; }
+    body, html, .bg-page { background:#0c0d0a !important; }
+    .bg-card { background:#1b1d16 !important; }
+    .bar     { background:#1b1d16 !important; }
+    .heading { color:#ecede8 !important; }
+    .body-text { color:#b3b6a5 !important; }
+    .muted   { color:#8a8d7d !important; }
+    .eyebrow { color:#7a7d6c !important; }
+    .rule    { background:#2e3128 !important; }
   }
+
   @media only screen and (max-width: 600px) {
-    .outer { padding:24px 16px !important; }
-    .card { padding:28px 22px !important; border-radius:16px !important; }
-    h1 { font-size:24px !important; }
+    .outer     { padding:24px 14px !important; }
+    .card-pad  { padding:36px 26px !important; }
+    .bar-pad   { padding:20px 24px !important; }
+    .h1        { font-size:28px !important; line-height:1.15 !important; }
+    .body-copy { font-size:15px !important; }
+    .btn a     { padding:15px 26px !important; font-size:15px !important; }
+    .tagline   { display:none !important; }
   }
 </style>
 </head>
-<body class="bg-page" style="margin:0; padding:0; background:#f6f7f3; font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+<body class="bg-page" style="margin:0; padding:0; background:#f4f5f0; font-family:'Inter',-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,sans-serif;">
 
-<div style="display:none !important; max-height:0; overflow:hidden; opacity:0; visibility:hidden; mso-hide:all; font-size:1px; line-height:1px; color:transparent;">
-  Confirm your new email address for Chork.
-</div>
+<div style="display:none !important; max-height:0; overflow:hidden; opacity:0; visibility:hidden; mso-hide:all; font-size:1px; line-height:1px; color:transparent;">Confirm the new email on your Chork account.</div>
 
-<table role="presentation" class="bg-page" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f6f7f3;">
+<table role="presentation" class="bg-page" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f5f0;">
   <tr>
-    <td class="outer" align="center" style="padding:48px 20px;">
+    <td class="outer" align="center" style="padding:56px 20px;">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px; width:100%;">
 
         <tr>
-          <td align="left" style="padding:0 4px 24px 4px;">
-            <a href="{{ .SiteURL }}" style="text-decoration:none;">
-              <span class="wordmark text-primary" style="font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; font-size:26px; font-weight:800; letter-spacing:-0.02em; color:#1b1d16; line-height:1;">chork<span style="color:#bdee63;">.</span></span>
-            </a>
+          <td class="bar bar-pad" style="background:#1b1d16; padding:22px 28px; border-radius:20px 20px 0 0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="left" valign="middle" style="line-height:1;">
+                  <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td valign="middle" style="padding-right:10px; line-height:0;">
+                        <img src="{{ .SiteURL }}/apple-touch-icon-dark.png" width="32" height="32" alt="" style="display:block; border-radius:7px; width:32px; height:32px;">
+                      </td>
+                      <td valign="middle">
+                        <span class="wordmark" style="font-family:'Outfit',-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif; font-size:22px; font-weight:800; letter-spacing:-0.025em; color:#ecede8; line-height:1;">chork<span style="color:#bdee63;">.</span></span>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+                <td class="tagline" align="right" valign="middle">
+                  <span style="font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; font-size:10px; font-weight:600; letter-spacing:0.18em; text-transform:uppercase; color:#6b6e5e;">Log · Climb · Compete</span>
+                </td>
+              </tr>
+            </table>
           </td>
         </tr>
 
         <tr>
-          <td class="card bg-card" style="background:#ffffff; border-radius:20px; padding:40px 36px;">
-            <h1 class="text-primary" style="margin:0 0 14px 0; font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; font-size:28px; font-weight:700; line-height:1.2; letter-spacing:-0.02em; color:#1b1d16;">Confirm your new email</h1>
-            <p class="text-muted" style="margin:0 0 32px 0; font-size:16px; line-height:1.55; color:#6f7264;">You're changing the email on your Chork account. Tap the button to confirm this new address is yours.</p>
+          <td class="bg-card card-pad" style="background:#ffffff; padding:48px 40px; border-radius:0 0 20px 20px;">
+            <h1 class="h1 heading" style="margin:0 0 16px 0; font-family:'Outfit',-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif; font-size:32px; font-weight:800; line-height:1.12; letter-spacing:-0.03em; color:#1b1d16;">Confirm your new email.</h1>
+            <p class="body-copy body-text" style="margin:0 0 36px 0; font-family:'Inter',-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',Roboto,sans-serif; font-size:16px; line-height:1.6; color:#5f6253;">You're changing the email on your Chork account. Tap below to confirm this new address is yours.</p>
 
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" class="btn">
               <tr>
-                <td bgcolor="#bdee63" style="border-radius:12px;" class="btn">
-                  <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email_change&amp;next=/profile" style="display:inline-block; padding:14px 28px; font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; font-size:16px; font-weight:700; color:#1b1d16 !important; text-decoration:none !important; border-radius:12px; letter-spacing:-0.01em;">Confirm new email</a>
+                <td bgcolor="#bdee63" style="background:#bdee63; border-radius:10px;">
+                  <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email_change&amp;next=/profile" style="display:inline-block; padding:16px 30px; font-family:'Outfit',-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif; font-size:16px; font-weight:700; color:#1b1d16 !important; text-decoration:none !important; border-radius:10px; letter-spacing:-0.01em; line-height:1;">Confirm new email&nbsp;&nbsp;→</a>
                 </td>
               </tr>
             </table>
 
-            <p class="text-muted" style="margin:36px 0 6px 0; font-size:13px; line-height:1.55; color:#6f7264;">Or copy this link into your browser:</p>
-            <p class="text-muted link-plain" style="margin:0; font-size:13px; line-height:1.45; color:#6f7264; word-break:break-all;">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email_change&amp;next=/profile</p>
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:44px;">
+              <tr><td class="rule" height="1" style="background:#e8ead8; line-height:1px; font-size:1px;">&nbsp;</td></tr>
+            </table>
+
+            <p class="eyebrow" style="margin:22px 0 6px 0; font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:11px; font-weight:600; letter-spacing:0.12em; text-transform:uppercase; color:#9a9d8c;">Button not working?</p>
+            <p class="muted" style="margin:0; font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:13px; line-height:1.55; color:#8a8d7d; word-break:break-all;">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=email_change&amp;next=/profile</p>
           </td>
         </tr>
 
         <tr>
-          <td style="padding:24px 4px 0 4px;">
-            <p class="text-muted" style="margin:0 0 8px 0; font-size:12px; line-height:1.55; color:#6f7264;">Didn't request this change? Contact us right away at <a href="mailto:hello@chork.app" style="color:#6f7264;">hello@chork.app</a> — your account may need attention.</p>
-            <p class="text-muted" style="margin:0; font-size:12px; line-height:1.55; color:#6f7264;">Chork — bouldering comp tracker · <a href="{{ .SiteURL }}" style="color:#6f7264; text-decoration:underline;">chork.app</a></p>
+          <td align="center" style="padding:28px 6px 0 6px;">
+            <p class="muted" style="margin:0 0 8px 0; font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:12px; line-height:1.55; color:#8a8d7d;">Didn't request this change? Contact us right away at <a href="mailto:hello@chork.app" style="color:#8a8d7d;">hello@chork.app</a> — your account may need attention.</p>
+            <p class="eyebrow" style="margin:0; font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; font-size:11px; line-height:1.55; color:#9a9d8c;">Chork &nbsp;·&nbsp; <a href="{{ .SiteURL }}" style="color:#9a9d8c; text-decoration:underline;">chork.app</a> &nbsp;·&nbsp; <a href="mailto:hello@chork.app" style="color:#9a9d8c; text-decoration:underline;">hello@chork.app</a></p>
           </td>
         </tr>
 
