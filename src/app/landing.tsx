@@ -1,59 +1,18 @@
 "use client";
 
-import {
-  FaClipboardCheck,
-  FaBolt,
-  FaFlag,
-  FaScaleBalanced,
-  FaComments,
-  FaTrophy,
-} from "react-icons/fa6";
 import Link from "next/link";
+import { FaArrowRight } from "react-icons/fa6";
 import { Button } from "@/components/ui";
 import { SiteFooter } from "@/components/landing/SiteFooter";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { HeroGrid } from "@/components/landing/HeroGrid";
 import { FeatureGrid } from "@/components/landing/FeatureGrid";
-import type { FeatureItem } from "@/components/landing/FeatureGrid";
 import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import type { Step } from "@/components/landing/HowItWorksSection";
 import { ScoringSection } from "@/components/landing/ScoringSection";
 import type { ScoreRow } from "@/components/landing/ScoringSection";
 import { FadeIn } from "@/components/landing/FadeIn";
 import styles from "./landing.module.scss";
-
-const features: FeatureItem[] = [
-  {
-    icon: <FaClipboardCheck />,
-    title: "Log your sends",
-    description: "Track attempts across sessions. Mark sends when you top out. Your progress, always saved.",
-  },
-  {
-    icon: <FaBolt />,
-    title: "Flash detection",
-    description: "Send it first try and earn maximum points. Flash badges show everyone you meant business.",
-  },
-  {
-    icon: <FaFlag />,
-    title: "Zone holds",
-    description: "Reach the crux and earn partial credit. Every zone hold adds a bonus point to your score.",
-  },
-  {
-    icon: <FaScaleBalanced />,
-    title: "Community grades",
-    description: "Climbers vote on difficulty after sending. The consensus grade is the real grade.",
-  },
-  {
-    icon: <FaComments />,
-    title: "Beta spray",
-    description: "Send a route, unlock the comments. Share hints with your crew and help others send.",
-  },
-  {
-    icon: <FaTrophy />,
-    title: "Leaderboard",
-    description: "See where you rank in the current set. Points update live as you and your crew climb.",
-  },
-];
 
 const steps: Step[] = [
   {
@@ -94,7 +53,7 @@ const scoreRows: ScoreRow[] = [
 export function LandingPage() {
   const ctaButton = (
     <Link href="/login">
-      <Button>Get started</Button>
+      <Button>Get started <FaArrowRight aria-hidden /></Button>
     </Link>
   );
 
@@ -107,7 +66,7 @@ export function LandingPage() {
         visual={<HeroGrid />}
       />
 
-      <FeatureGrid items={features} />
+      <FeatureGrid />
 
       <FadeIn>
         <HowItWorksSection steps={steps} />
@@ -124,7 +83,7 @@ export function LandingPage() {
             Join your crew on the wall. It takes ten seconds.
           </p>
           <Link href="/login">
-            <Button variant="secondary">Sign up free</Button>
+            <Button variant="secondary">Sign up free <FaArrowRight aria-hidden /></Button>
           </Link>
         </section>
       </FadeIn>
