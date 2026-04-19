@@ -146,14 +146,16 @@
     position: relative;
     z-index: 2;
   }
+  /* `label` preset — Outfit 600, uppercase, tracking 0.06em (wide), xs */
   .eyebrow {
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Outfit', sans-serif;
     font-size: 13px;
     font-weight: 600;
-    letter-spacing: 0.2em;
+    line-height: 1.25;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--olive-11);
   }
@@ -168,10 +170,11 @@
     display: inline-flex;
     align-items: center;
     gap: 10px;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Outfit', sans-serif;
     font-size: 13px;
     font-weight: 600;
-    letter-spacing: 0.2em;
+    line-height: 1.25;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--olive-11);
   }
@@ -198,25 +201,28 @@
     flex-direction: column;
     gap: 0px;
   }
+  /* Wordmark — email convention: Outfit 800, tracking -0.025em */
   .hero .line1 {
     font-family: 'Outfit', sans-serif;
     font-weight: 800;
-    font-size: 124px;
-    line-height: 0.9;
-    letter-spacing: -0.045em;
+    font-size: 128px;
+    line-height: 1;
+    letter-spacing: -0.025em;
     color: var(--olive-12);
   }
   .hero .line1 .dot { color: var(--lime-9); }
+  /* `display` preset — Outfit 900, italic, UPPERCASE, tracking -0.02em, leading 1.1
+     Secondary-sentence colour (step 11) per the app's hero convention. */
   .hero .line2 {
     font-family: 'Outfit', sans-serif;
     font-style: italic;
-    font-weight: 500;
-    font-size: 82px;
-    line-height: 0.98;
-    letter-spacing: -0.03em;
-    color: #d6d7ce;
-    margin-top: 4px;
-    padding-left: 4px;
+    font-weight: 900;
+    font-size: 64px;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    color: var(--olive-11);
+    margin-top: 8px;
   }
 
   .divider {
@@ -232,21 +238,24 @@
     gap: 18px;
     padding-left: 4px;
   }
+  /* `label` preset */
   .meta-row .label {
-    font-family: 'Inter', sans-serif;
-    font-size: 11px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.22em;
+    line-height: 1.25;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--olive-11);
     margin-bottom: 6px;
   }
+  /* `card-title` preset — Outfit 700, tight tracking, snug leading, lg */
   .meta-row .value {
     font-family: 'Outfit', sans-serif;
     font-weight: 700;
-    font-size: 24px;
-    line-height: 1.15;
-    letter-spacing: -0.015em;
+    font-size: 22px;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
     color: var(--olive-12);
   }
   .meta-row .value .dot { color: var(--lime-9); font-weight: 800; }
@@ -261,34 +270,35 @@
     z-index: 2;
   }
 
+  /* Hero CTA — mirrors the email template: Outfit 700, tracking -0.01em,
+     non-uppercase. Sized up from the email's 16px for OG legibility. */
   .cta {
     display: inline-flex;
     align-items: center;
     gap: 14px;
-    padding: 18px 30px 18px 34px;
+    padding: 18px 24px 18px 30px;
     background: var(--lime-9);
-    color: #141612;
+    color: #1b1d16;
     font-family: 'Outfit', sans-serif;
     font-weight: 700;
-    font-size: 18px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    border-radius: 999px;
+    font-size: 20px;
+    line-height: 1;
+    letter-spacing: -0.01em;
+    border-radius: 14px;
     box-shadow:
       0 12px 28px rgba(189, 238, 99, 0.22),
       inset 0 1px 0 rgba(255,255,255,0.5),
       inset 0 -1px 0 rgba(0,0,0,0.15);
-    line-height: 1;
   }
   .cta .arrow {
-    width: 26px; height: 26px;
+    width: 28px; height: 28px;
     border-radius: 50%;
-    background: #141612;
+    background: #1b1d16;
     color: var(--lime-9);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
     letter-spacing: 0;
   }
@@ -296,20 +306,23 @@
   .web {
     text-align: right;
   }
+  /* `label` preset */
   .web .label {
-    font-family: 'Inter', sans-serif;
-    font-size: 11px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 0.22em;
+    line-height: 1.25;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--olive-11);
     margin-bottom: 4px;
   }
+  /* Wordmark convention — Outfit 800, tracking -0.025em */
   .web .url {
     font-family: 'Outfit', sans-serif;
-    font-weight: 700;
+    font-weight: 800;
     font-size: 30px;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
     color: var(--olive-12);
     line-height: 1;
   }
@@ -350,7 +363,7 @@
       <div class="main">
         <div class="hero">
           <div class="line1">chork<span class="dot">.</span></div>
-          <div class="line2">bouldering.</div>
+          <div class="line2">Bouldering,<br>scored.</div>
         </div>
         <div class="divider"></div>
         <div class="meta">
