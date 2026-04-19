@@ -30,7 +30,8 @@ interface Props {
     completions: number;
     flashes: number;
     totalRoutes: number;
-    resetDate?: string;
+    /** Reset countdown string (e.g. "4d" / "2w5d" / "today"). */
+    resetIn?: string;
     /** Leaderboard placement for this climber on the active set. */
     rank?: number | null;
   } | null;
@@ -148,7 +149,7 @@ export function ClimberStats({
           routeIds={routeIds}
           routeHasZone={routeHasZone}
           routeNumbers={routeNumbers}
-          resetDate={currentSet.resetDate}
+          resetIn={currentSet.resetIn}
           gymName={gymName}
           rank={currentSet.rank}
         />

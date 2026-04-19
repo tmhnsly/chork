@@ -1,4 +1,4 @@
-import { format, parseISO } from "date-fns";
+import { formatSetResetCountdown } from "@/lib/data/set-label";
 import { createServerSupabase } from "@/lib/supabase/server";
 import {
   getProfileSummary,
@@ -99,7 +99,7 @@ export async function ProfileStats({ userId, gymId, createdAt }: Props) {
         flashes: activeSetStats.flashes,
         points: activeSetStats.points,
         totalRoutes: routes.length,
-        resetDate: format(parseISO(activeSet.ends_at), "MMM d"),
+        resetIn: formatSetResetCountdown(activeSet.ends_at),
         rank: rankRow?.rank ?? null,
       }
     : null;

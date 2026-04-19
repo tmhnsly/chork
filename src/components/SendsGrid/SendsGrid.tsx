@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { format, parseISO } from "date-fns";
+import { formatSetResetCountdown } from "@/lib/data/set-label";
 import type { RouteSet, Route, RouteLog } from "@/lib/data";
 import { isFlash, computePoints, deriveTileState } from "@/lib/data";
 import { formatGrade, type GradingScale } from "@/lib/data/grade-label";
@@ -103,7 +103,7 @@ export function SendsGrid({ set, routes, initialLogs, gymName }: Props) {
     [routes],
   );
 
-  const endsAt = format(parseISO(set.ends_at), "MMM d");
+  const resetIn = formatSetResetCountdown(set.ends_at);
 
   return (
     <>
@@ -117,7 +117,7 @@ export function SendsGrid({ set, routes, initialLogs, gymName }: Props) {
           routeIds={routeIds}
           routeHasZone={routeHasZone}
           routeNumbers={routeNumbers}
-          resetDate={endsAt}
+          resetIn={resetIn}
           gymName={gymName}
         />
 

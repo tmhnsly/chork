@@ -38,7 +38,7 @@ export const InProgress: Story = {
     logs,
     routeIds,
     routeHasZone,
-    resetDate: "May 6",
+    resetIn: "2w5d",
   },
 };
 
@@ -52,6 +52,6 @@ export const Empty: Story = {
     logs: new Map(),
     routeIds,
     routeHasZone,
-    resetDate: "May 6",
+    resetIn: "2w5d",
   },
 };

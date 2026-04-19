@@ -16,7 +16,11 @@ interface Props {
   routeHasZone: boolean[];
   /** Route numbers for the chart axis (same order/length as routeIds). */
   routeNumbers?: number[];
-  resetDate?: string;
+  /**
+   * Reset-countdown string from `formatSetResetCountdown(ends_at)` —
+   * e.g. "4d", "2w5d", "today", "ended".
+   */
+  resetIn?: string;
   gymName?: string | null;
   /** Leaderboard placement for the viewed climber in this set (optional). */
   rank?: number | null;
@@ -31,7 +35,7 @@ export function StatsWidget({
   routeIds,
   routeHasZone,
   routeNumbers,
-  resetDate,
+  resetIn,
   gymName,
   rank,
 }: Props) {
@@ -64,7 +68,7 @@ export function StatsWidget({
     <SectionCard
       title="Current Set"
       icon={rankIcon}
-      meta={<SetMeta resetDate={resetDate} gymName={gymName} />}
+      meta={<SetMeta resetIn={resetIn} gymName={gymName} />}
     >
       <RingStatsRow
         completions={completions}

@@ -10,25 +10,25 @@ interface Props {
   /** Gym name — rendered alongside the optional reset date. */
   gymName: string;
   /**
-   * Reset date for the currently-scoped set. Pass `undefined`/`null`
-   * when the view is scoped to all-time so the meta row drops the
-   * "Resets …" half and just shows the gym name.
+   * Reset countdown for the currently-scoped set (e.g. "4d" / "2w5d").
+   * Pass `undefined`/`null` when the view is scoped to all-time so
+   * the meta row drops the "Resets …" half and just shows the gym.
    */
-  resetDate?: string | null;
+  resetIn?: string | null;
 }
 
 /**
  * Headline stats strip for the Chorkboard — climbers, sends, flashes,
  * routes. Wrapped in the shared SectionCard; meta row renders the
- * shared `SetMeta` so the "Resets 20 April · Yonder" pairing matches
+ * shared `SetMeta` so the "Resets in 2w5d · Yonder" pairing matches
  * the profile's Current Set card exactly.
  */
-export function GymStatsStrip({ stats, gymName, resetDate }: Props) {
+export function GymStatsStrip({ stats, gymName, resetIn }: Props) {
   return (
     <SectionCard
       title="Gym stats"
       icon={<FaChartColumn />}
-      meta={<SetMeta resetDate={resetDate} gymName={gymName} />}
+      meta={<SetMeta resetIn={resetIn} gymName={gymName} />}
     >
       <div className={styles.strip} aria-label="Gym stats">
         <Stat
