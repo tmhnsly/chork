@@ -91,6 +91,21 @@
     opacity: 0.6;
     cursor: not-allowed;
   }
+
+  // Inline SVG children (react-icons, inline marks) carry a baseline
+  // descender that can offset them a pixel or two from the label text
+  // even with `align-items: center` on the flex parent. `display:block`
+  // strips that descender space; `flex-shrink: 0` stops the icon from
+  // squashing when a button is width-constrained (narrow viewports,
+  // grid cells); `width/height: 1em` locks dimensions to the label
+  // font-size so the icon can't reflow if a parent changes text size.
+  // Collectively these kill any CLS risk from icon rendering.
+  > svg {
+    display: block;
+    width: 1em;
+    height: 1em;
+    flex-shrink: 0;
+  }
 }
 
 .btnPrimary {

@@ -20,7 +20,7 @@ export const WithGrid: Story = {
   args: {
     headline: "Track your sends. Compete with your crew.",
     subheadline: "The bouldering comp tracker that keeps score so you can keep climbing.",
-    cta: <Button>Get started <FaArrowRight aria-hidden /></Button>,
+    cta: <Button>Get started<FaArrowRight aria-hidden /></Button>,
     visual: <HeroGrid />,
   },
 };
@@ -30,6 +30,6 @@ export const TextOnly: Story = {
   args: {
     headline: "Track your sends. Compete with your crew.",
     subheadline: "The bouldering comp tracker that keeps score so you can keep climbing.",
-    cta: <Button>Get started <FaArrowRight aria-hidden /></Button>,
+    cta: <Button>Get started<FaArrowRight aria-hidden /></Button>,
   },
 };

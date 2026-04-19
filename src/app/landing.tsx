@@ -53,7 +53,7 @@ const scoreRows: ScoreRow[] = [
 export function LandingPage() {
   const ctaButton = (
     <Link href="/login">
-      <Button>Get started <FaArrowRight aria-hidden /></Button>
+      <Button>Get started<FaArrowRight aria-hidden /></Button>
     </Link>
   );
 
@@ -83,7 +83,7 @@ export function LandingPage() {
             Join your crew on the wall. It takes ten seconds.
           </p>
           <Link href="/login">
-            <Button variant="secondary">Sign up free <FaArrowRight aria-hidden /></Button>
+            <Button variant="secondary">Sign up free<FaArrowRight aria-hidden /></Button>
           </Link>
         </section>
       </FadeIn>
