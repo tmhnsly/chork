@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Chork OG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Radix olive-dark canonical values (steps 1-12) */
+    --olive-1:  #111210;
+    --olive-2:  #181917;
+    --olive-3:  #22231f;
+    --olive-4:  #292a26;
+    --olive-5:  #30312c;
+    --olive-6:  #383933;
+    --olive-7:  #43443d;
+    --olive-8:  #5b5d52;
+    --olive-9:  #687066;
+    --olive-10: #767c71;
+    --olive-11: #afb1a1;
+    --olive-12: #eeeee9;
+
+    /* Lime (dark variant accent, matches app dark mode) */
+    --lime-9:   #bdee63;
+    --lime-10:  #d4ff70;
+    --lime-11:  #bdee63;
+    --lime-12:  #effbcf;
+
+    /* Amber (flash) — used sparingly as secondary accent */
+    --amber-9:  #ffb224;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 1200px; height: 630px;
+    background: var(--olive-1);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color: var(--olive-12);
+    overflow: hidden;
+  }
+
+  .frame {
+    position: relative;
+    width: 1200px; height: 630px;
+    background:
+      radial-gradient(1200px 600px at 85% 115%, rgba(189, 238, 99, 0.10), transparent 60%),
+      radial-gradient(900px 500px at 0% -10%, rgba(189, 238, 99, 0.05), transparent 55%),
+      var(--olive-1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Watermark — giant outlined "C" echoing the brand glyph */
+  .watermark {
+    position: absolute;
+    right: -140px;
+    bottom: -160px;
+    width: 780px;
+    height: 780px;
+    opacity: 0.06;
+    pointer-events: none;
+  }
+  .watermark svg { width: 100%; height: 100%; display: block; }
+
+  /* Subtle grid watermark behind everything */
+  .grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(to right, rgba(255,255,255,0.022) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.022) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse at 50% 50%, black 40%, transparent 85%);
+    pointer-events: none;
+  }
+
+  /* Header bar — mirrors the email template bar */
+  .bar {
+    position: relative;
+    background: var(--olive-2);
+    padding: 26px 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--olive-4);
+    z-index: 2;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .brand svg { display: block; }
+  .wordmark {
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    color: var(--olive-12);
+    line-height: 1;
+  }
+  .wordmark .dot { color: var(--lime-9); }
+  .tagline {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--olive-11);
+    line-height: 1;
+  }
+  .tagline .sep { color: var(--olive-8); margin: 0 10px; }
+
+  /* Main content */
+  .content {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 64px;
+    z-index: 2;
+  }
+
+  .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--lime-11);
+    margin-bottom: 22px;
+  }
+  .eyebrow::before {
+    content: '';
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--lime-9);
+    box-shadow: 0 0 16px rgba(189, 238, 99, 0.6);
+  }
+
+  h1 {
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-weight: 800;
+    font-size: 78px;
+    line-height: 0.98;
+    letter-spacing: -0.035em;
+    color: var(--olive-12);
+    max-width: 960px;
+  }
+  h1 .accent { color: var(--lime-9); }
+
+  .sub {
+    margin-top: 22px;
+    font-family: 'Inter', sans-serif;
+    font-size: 22px;
+    line-height: 1.45;
+    font-weight: 400;
+    color: var(--olive-11);
+    max-width: 760px;
+    letter-spacing: -0.005em;
+  }
+
+  .cta-row {
+    margin-top: 40px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 18px 30px;
+    background: var(--lime-9);
+    color: #1a1a1a;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    border-radius: 14px;
+    letter-spacing: -0.01em;
+    line-height: 1;
+    box-shadow: 0 8px 32px rgba(189, 238, 99, 0.18);
+  }
+  .cta .arrow {
+    font-weight: 600;
+    transform: translateY(-1px);
+  }
+
+  .cta-hint {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--olive-11);
+    letter-spacing: 0.01em;
+  }
+  .cta-hint b { color: var(--olive-12); font-weight: 600; }
+
+  /* Footer strip */
+  .footer {
+    position: relative;
+    padding: 18px 64px 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    z-index: 2;
+  }
+  .url {
+    font-family: 'Outfit', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.02em;
+    color: var(--olive-12);
+  }
+  .url .slash { color: var(--lime-9); }
+  .chips {
+    display: flex;
+    gap: 10px;
+  }
+  .chip {
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--olive-11);
+    padding: 8px 14px;
+    border: 1px solid var(--olive-5);
+    border-radius: 999px;
+    background: rgba(255,255,255,0.015);
+  }
+</style>
+</head>
+<body>
+  <div class="frame">
+    <div class="grid"></div>
+
+    <div class="watermark" aria-hidden="true">
+      <svg viewBox="0 0 48 48" fill="none">
+        <path d="M29 11 A14 14 0 1 0 29 37" stroke="#ecede8" stroke-width="10" stroke-linecap="round"/>
+        <circle cx="38" cy="24" r="7.5" fill="#bdee63"/>
+      </svg>
+    </div>
+
+    <!-- Header bar -->
+    <div class="bar">
+      <div class="brand">
+        <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 48 48" role="img" aria-label="Chork">
+          <path d="M29 11 A14 14 0 1 0 29 37" stroke="#ecede8" stroke-width="10" stroke-linecap="round" fill="none"/>
+          <circle cx="38" cy="24" r="7.5" fill="#bdee63"/>
+        </svg>
+        <span class="wordmark">chork<span class="dot">.</span></span>
+      </div>
+      <div class="tagline">
+        Climb it<span class="sep">·</span>Log it<span class="sep">·</span>Top it
+      </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="content">
+      <div class="eyebrow">Bouldering competition tracker</div>
+      <h1>Log every send.<br>Top the <span class="accent">Chorkboard</span>.</h1>
+      <p class="sub">Track attempts on your gym's active set, earn points on the public leaderboard, and compete with your crew.</p>
+
+      <div class="cta-row">
+        <div class="cta">
+          Start climbing free
+          <span class="arrow">→</span>
+        </div>
+        <div class="cta-hint">No card. Just <b>chork.app</b></div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer">
+      <div class="url">chork<span class="slash">.</span>app</div>
+      <div class="chips">
+        <span class="chip">PWA</span>
+        <span class="chip">Free forever</span>
+        <span class="chip">Private crews</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
