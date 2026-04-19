@@ -24,6 +24,7 @@ import type { Profile } from "./data/types";
 
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
+import { withTimeout } from "@/lib/async";
 /**
  * Local cache of the climber's profile. Lets the bootstrap skip the
  * Supabase profile-fetch round-trip on warm cache — NavBar paints in
@@ -360,6 +361,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // if signOutAction fails AND the user cancels the retry, push
     // / realtime stay torn down until they toggle push back on in
     // settings or refresh. Acceptable for a rare failure path.
+    //
+    // `unsubscribeDevice` + `removePushSubscription` are self-bounded
+    // now — the SW-ready wait inside `push/client.ts` caps itself via
+    // `withTimeout`, so the outer try/catch just handles thrown
+    // errors (network / action failures), not hangs.
     try {
       const { endpoint } = await unsubscribeDevice();
       if (endpoint) {
@@ -368,8 +374,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       logger.warn("signout_push_teardown_failed", { err: formatErrorForLog(err) });
     }
+    // `removeAllChannels` internally waits for WebSocket close-ack.
+    // Different hang risk from the SW case but same treatment —
+    // cap the wait so a stale socket can't stall sign-out.
     try {
-      await supabase.removeAllChannels();
+      await withTimeout(supabase.removeAllChannels(), 1500, "realtime-close");
     } catch (err) {
       logger.warn("signout_realtime_teardown_failed", { err: formatErrorForLog(err) });
     }

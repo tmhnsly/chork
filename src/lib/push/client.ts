@@ -1,10 +1,17 @@
 "use client";
 
+import { withTimeout } from "@/lib/async";
+
 /**
  * Client-side push helpers. Exposed without a server-only import so
  * browser components can reach them; no secrets live here — only the
  * public VAPID key (NEXT_PUBLIC_VAPID_PUBLIC_KEY) is read.
  */
+
+// Cap on `navigator.serviceWorker.ready` waits. 1.5s is long enough
+// for a healthy SW to resolve on even a slow device and short enough
+// that a stuck UI recovers before the user thinks the app is broken.
+const SW_READY_TIMEOUT_MS = 1500;
 
 function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
   // The VAPID public key Chrome expects is raw bytes — decode from
@@ -64,8 +71,16 @@ export async function readPushStatus(): Promise<PushStatus> {
   if (perm === "denied") return "denied";
   if (perm === "default") return "default";
 
+  // `navigator.serviceWorker.ready` can hang indefinitely when the SW
+  // state is wedged (dev-server restarts, certain iOS transitions,
+  // unregistered SW). Cap the wait so this settings read can't block
+  // the component that awaits it.
   try {
-    const reg = await navigator.serviceWorker.ready;
+    const reg = await withTimeout(
+      navigator.serviceWorker.ready,
+      SW_READY_TIMEOUT_MS,
+      "sw-ready",
+    );
     const existing = await reg.pushManager.getSubscription();
     return existing ? "subscribed" : "granted";
   } catch {
@@ -99,7 +114,16 @@ export async function subscribeDevice(): Promise<SerializedSubscription | { erro
     return { error: "Notifications were blocked. Enable them in your browser settings." };
   }
 
-  const reg = await navigator.serviceWorker.ready;
+  let reg: ServiceWorkerRegistration;
+  try {
+    reg = await withTimeout(
+      navigator.serviceWorker.ready,
+      SW_READY_TIMEOUT_MS,
+      "sw-ready",
+    );
+  } catch {
+    return { error: "Service worker isn't ready. Refresh the page and try again." };
+  }
   const existing = await reg.pushManager.getSubscription();
   const subscription =
     existing ??
@@ -124,7 +148,19 @@ export async function subscribeDevice(): Promise<SerializedSubscription | { erro
  */
 export async function unsubscribeDevice(): Promise<{ endpoint: string | null }> {
   if (!pushSupported()) return { endpoint: null };
-  const reg = await navigator.serviceWorker.ready;
+  // Same hang guard as above. If the SW is wedged during a sign-out
+  // / settings toggle, the caller should move on rather than wait
+  // forever for cleanup of state that may already be torn down.
+  let reg: ServiceWorkerRegistration;
+  try {
+    reg = await withTimeout(
+      navigator.serviceWorker.ready,
+      SW_READY_TIMEOUT_MS,
+      "sw-ready",
+    );
+  } catch {
+    return { endpoint: null };
+  }
   const existing = await reg.pushManager.getSubscription();
   if (!existing) return { endpoint: null };
   const endpoint = existing.endpoint;
