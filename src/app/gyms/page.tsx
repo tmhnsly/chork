@@ -2,13 +2,14 @@ import Link from "next/link";
 import { FaArrowRight } from "react-icons/fa6";
 import { RevealText } from "@/components/motion";
 import { FadeIn } from "@/components/landing/FadeIn";
+import { GymsFeatureGrid } from "@/components/landing/GymsFeatureGrid";
 import { SiteFooter } from "@/components/landing/SiteFooter";
 import styles from "./gyms.module.scss";
 
 export const metadata = {
   title: "Chork for gyms",
   description:
-    "The bouldering comp tracker built for gyms — publish sets in two minutes, run comps across venues, keep your regulars showing up for a live leaderboard.",
+    "The bouldering comp tracker built for gyms. Publish sets in two minutes, run comps across venues, and keep your regulars showing up for a live leaderboard.",
 };
 
 interface Benefit {
@@ -32,38 +33,6 @@ const BENEFITS: Benefit[] = [
     number: "03",
     title: "Run comps people turn up for.",
     body: "Single gym, multi-gym, category-filtered. Chork handles the scoreboard and the live scoring. You handle the event. Visiting comp organisers get their own role so they can run an event at your gym without admin access.",
-  },
-];
-
-interface Value {
-  title: string;
-  body: string;
-}
-
-const VALUES: Value[] = [
-  {
-    title: "Nothing to install.",
-    body: "Chork lives on the web. Climbers open the URL and start logging sends right away. If they want an icon on their home screen, Android prompts them after a few visits and iOS takes a couple of taps from the share sheet. Either way, it's the same app.",
-  },
-  {
-    title: "Climbers don't pay a cent.",
-    body: "Every member, drop-in and first-timer gets the full Chork experience after a quick email signup. No subscription, no trial, no upsell. Their wallet stays in the changing room.",
-  },
-  {
-    title: "Setting that fits how your setters work.",
-    body: "Pick V-scale, Font, or a points system for each set. Draft the routes ahead of time, schedule the live date, then hit publish. The admin editor was built for setters, not spreadsheets.",
-  },
-  {
-    title: "Real numbers on your wall.",
-    body: "See which routes are getting flashed, which ones nobody touches, and how your setters' grades land versus what climbers vote. Useful signals about your wall, not charts for the sake of charts.",
-  },
-  {
-    title: "Competitions built in.",
-    body: "Run weekly sprints, seasonal ladders, or multi-gym events. Chork handles the scoreboard and the live scoring. You handle the event. Visiting organisers get their own role so they can run a comp at your gym without admin access.",
-  },
-  {
-    title: "Crews that keep regulars coming back.",
-    body: "Climbers form small private groups with shared leaderboards. Mates chase each other up the board all week, and your regulars show up more often because their crew has been posting sends.",
   },
 ];
 
@@ -132,6 +101,25 @@ export default function GymsMarketingPage() {
 
       <FadeIn>
         <section
+          className={styles.values}
+          aria-labelledby="values-heading"
+        >
+          <header className={styles.valuesHead}>
+            <h2 id="values-heading" className={styles.sectionEyebrow}>
+              What gym owners get
+            </h2>
+            <p className={styles.valuesLede}>
+              Every surface, climber and admin, designed by people who climb
+              at the gyms they&apos;re building for.
+            </p>
+          </header>
+
+          <GymsFeatureGrid />
+        </section>
+      </FadeIn>
+
+      <FadeIn>
+        <section
           className={styles.benefits}
           aria-labelledby="benefits-heading"
         >
@@ -164,32 +152,6 @@ export default function GymsMarketingPage() {
               No lock-in.
             </span>
           </p>
-        </section>
-      </FadeIn>
-
-      <FadeIn>
-        <section
-          className={styles.values}
-          aria-labelledby="values-heading"
-        >
-          <header className={styles.valuesHead}>
-            <h2 id="values-heading" className={styles.sectionEyebrow}>
-              What gym owners get
-            </h2>
-            <p className={styles.valuesLede}>
-              Every surface, climber and admin, designed by people who climb
-              at the gyms they&apos;re building for.
-            </p>
-          </header>
-
-          <div className={styles.valuesGrid}>
-            {VALUES.map((v) => (
-              <article key={v.title} className={styles.valueCard}>
-                <h3 className={styles.valueTitle}>{v.title}</h3>
-                <p className={styles.valueBody}>{v.body}</p>
-              </article>
-            ))}
-          </div>
         </section>
       </FadeIn>
 

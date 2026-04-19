@@ -29,7 +29,7 @@ const APP_DESCRIPTION =
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Chork — Competition tracker for gyms & crews",
+    default: "Chork · Competition tracker for climbing gyms",
     template: "%s · Chork",
   },
   description: APP_DESCRIPTION,
@@ -97,7 +97,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Chork",
-    title: "Chork — Bouldering competition tracker for gyms & crews",
+    title: "Chork · Bouldering competition tracker for gyms & crews",
     description: APP_DESCRIPTION,
     url: SITE_URL,
     locale: "en_GB",
@@ -106,7 +106,7 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Chork — Log every send. Top the Chorkboard. Start climbing free at chork.app.",
+        alt: "Chork. Log every send. Top the Chorkboard. Start climbing free at chork.app.",
         type: "image/png",
       },
     ],
@@ -115,7 +115,7 @@ export const metadata: Metadata = {
   // — the same OG image is reused since the platforms render identically.
   twitter: {
     card: "summary_large_image",
-    title: "Chork — Bouldering competition tracker for gyms & crews",
+    title: "Chork · Bouldering competition tracker for gyms & crews",
     description: APP_DESCRIPTION,
     images: ["/og-image.png"],
   },

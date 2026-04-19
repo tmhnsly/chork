@@ -134,8 +134,8 @@ export function ChorkboardTile() {
           <h3 className={styles.title}>Chorkboard</h3>
         </div>
         <p className={styles.description}>
-          Your gym&rsquo;s live leaderboard. Climb the ranks, hit
-          the podium, wear the crown.
+          Your gym&rsquo;s live board. Climb it, take the crown, hold
+          it as long as you can.
         </p>
       </div>
     </article>
@@ -168,8 +168,8 @@ export function WallTile() {
           <h3 className={styles.title}>The Wall</h3>
         </div>
         <p className={styles.description}>
-          Every route in your gym&rsquo;s current set, as a punch
-          card. Tap a tile, log attempts, mark the top.
+          Every route in the current set, laid out as a punch card.
+          Tap, log, top out.
         </p>
       </div>
     </article>
@@ -226,8 +226,8 @@ export function JamsTile() {
           <h3 className={styles.title}>Jams</h3>
         </div>
         <p className={styles.description}>
-          A climbing game you play anywhere. Build the set with your
-          crew as you climb, scores update live.
+          A climbing game for anywhere. Build the set as you go.
+          Scores update live.
         </p>
       </div>
     </article>
@@ -300,8 +300,8 @@ export function CrewsTile() {
           <h3 className={styles.title}>Crews</h3>
         </div>
         <p className={styles.description}>
-          Build a private group. Your own leaderboard, your own
-          activity feed, just the climbers you know.
+          A private group with your own leaderboard and activity
+          feed. Just the climbers you know.
         </p>
       </div>
     </article>
@@ -329,8 +329,7 @@ export function FlashTile() {
           <h3 className={styles.title}>Flash it</h3>
         </div>
         <p className={styles.description}>
-          First-try sends earn max points and a badge your crew
-          can see.
+          First-try sends earn max points. Your crew will know.
         </p>
       </div>
     </article>
@@ -364,8 +363,8 @@ export function AchievementsTile() {
           <h3 className={styles.title}>Achievements</h3>
         </div>
         <p className={styles.description}>
-          Earn badges for streaks, flashes, podium finishes. Every
-          one is permanent.
+          Permanent badges for streaks, flashes, podium finishes.
+          Nobody can take them off you.
         </p>
       </div>
     </article>
@@ -393,7 +392,8 @@ export function ZoneTile() {
           <h3 className={styles.title}>Hit the zone</h3>
         </div>
         <p className={styles.description}>
-          Reach the bonus hold for a point, even without topping out.
+          Reach the bonus hold for a point. Even if the top beats
+          you.
         </p>
       </div>
     </article>
@@ -422,8 +422,8 @@ export function BetaTile() {
           <h3 className={styles.title}>Beta spray</h3>
         </div>
         <p className={styles.description}>
-          Send a route to unlock its beta. Until then the hints stay
-          blurred. Nobody gets a spoiler.
+          Send the route to unlock the beta. Until then the hints
+          stay blurry. No spoilers.
         </p>
       </div>
     </article>
