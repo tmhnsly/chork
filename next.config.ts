@@ -12,6 +12,18 @@ const nextConfig: NextConfig = {
     return [
       { source: "/index",       destination: "/", permanent: true },
       { source: "/index.html",  destination: "/", permanent: true },
+      // Canonicalise on chork.app. Any hit to the Vercel preview
+      // hostname (chork.vercel.app, the default `*.vercel.app` alias)
+      // lands the user on the branded domain instead — single source
+      // of truth for SEO, cookies, and user mental model. Preserves
+      // path + query via the `:path*` capture so deep links keep
+      // working.
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: "chork.vercel.app" }],
+        destination: "https://chork.app/:path*",
+        permanent: true,
+      },
     ];
   },
 
