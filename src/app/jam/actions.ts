@@ -17,7 +17,7 @@ import {
 } from "@/lib/data/jam-mutations";
 import { buildBadgeContext } from "@/lib/achievements/context";
 import { evaluateAndPersistAchievements } from "@/lib/achievements/evaluate";
-import type { JamGradingScale } from "@/lib/data/jam-types";
+import type { JamGradingScale, JamRoute } from "@/lib/data/jam-types";
 
 import { logger } from "@/lib/logger";
 import { tags } from "@/lib/cache/tags";
@@ -163,7 +163,7 @@ interface RoutePayload {
 
 export async function addJamRouteAction(
   payload: RoutePayload,
-): Promise<{ error: string } | { id: string }> {
+): Promise<{ error: string } | { route: JamRoute }> {
   if (!UUID_RE.test(payload.jamId)) return { error: "Invalid jam id" };
 
   const auth = await requireSignedIn();
@@ -176,7 +176,11 @@ export async function addJamRouteAction(
       grade: typeof payload.grade === "number" ? payload.grade : null,
       hasZone: !!payload.hasZone,
     });
-    return { id: route.id };
+    // Return the full row so the client can dispatch `upsert-route`
+    // immediately — the jam grid must not wait on the realtime
+    // self-echo, which drops often enough for the creator to see a
+    // stale list until they refresh.
+    return { route };
   } catch (err) {
     return { error: formatError(err) };
   }
@@ -191,18 +195,18 @@ interface UpdateRoutePayload {
 
 export async function updateJamRouteAction(
   payload: UpdateRoutePayload,
-): Promise<{ error: string } | { ok: true }> {
+): Promise<{ error: string } | { route: JamRoute }> {
   if (!UUID_RE.test(payload.routeId)) return { error: "Invalid route id" };
   const auth = await requireSignedIn();
   if ("error" in auth) return { error: auth.error };
   try {
-    await updateJamRoute(auth.supabase, {
+    const route = await updateJamRoute(auth.supabase, {
       routeId: payload.routeId,
       description: clampString(payload.description, MAX_DESCRIPTION_LEN),
       grade: typeof payload.grade === "number" ? payload.grade : null,
       hasZone: !!payload.hasZone,
     });
-    return { ok: true };
+    return { route };
   } catch (err) {
     return { error: formatError(err) };
   }

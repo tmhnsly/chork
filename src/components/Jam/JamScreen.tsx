@@ -122,6 +122,12 @@ export function JamScreen({ initialState, userId }: Props) {
           showToast(result.error, "error");
           return;
         }
+        // Paint the new row locally on server success — the realtime
+        // self-echo is unreliable for the creator right after an HTTP
+        // round-trip, so the grid would otherwise stay stale until a
+        // refresh. The reducer's upsert-route is idempotent on id, so
+        // the echo (when it arrives) is a harmless no-op.
+        dispatch({ type: "upsert-route", route: result.route });
         setAddSheetOpen(false);
       });
     },
@@ -144,6 +150,7 @@ export function JamScreen({ initialState, userId }: Props) {
           showToast(result.error, "error");
           return;
         }
+        dispatch({ type: "upsert-route", route: result.route });
         setEditRoute(null);
       });
     },
