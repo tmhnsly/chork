@@ -6,11 +6,15 @@
 // ── Section ─────────────────────────────────────────
 // Full-bleed subtle-bg band. `position: relative` + z-index:1 so the
 // opaque section sits on top of the HeroSection's hero grid below it.
+// An upward-casting box-shadow sells the panel-over-hero effect —
+// the section reads as a raised layer rather than flush against the
+// hero content above.
 .section {
   position: relative;
   width: 100%;
   padding: var(--section-gap) var(--gutter-x);
   background: var(--mono-subtle-bg);
+  box-shadow: 0 -12px 32px -8px rgba(0, 0, 0, 0.12);
 }
 
 // Bento — 8 tiles. Mobile stacks, tablet pairs squares, desktop
@@ -26,11 +30,11 @@
     "chorkboard"
     "wall"
     "flash"
-    "jams"
+    "beta"
     "zone"
     "achievements"
     "crews"
-    "beta";
+    "jams";
 
   @include bp.tablet {
     grid-template-columns: repeat(2, 1fr);
@@ -38,10 +42,10 @@
     grid-template-areas:
       "chorkboard   chorkboard"
       "wall         flash"
-      "jams         jams"
+      "beta         beta"
       "zone         achievements"
       "crews        crews"
-      "beta         beta";
+      "jams         jams";
   }
 
   @include bp.desktop {
@@ -49,8 +53,8 @@
     grid-auto-rows: minmax(240px, auto);
     grid-template-areas:
       "chorkboard chorkboard wall  flash"
-      "jams       jams       zone  achievements"
-      "crews      crews      beta  beta";
+      "beta       beta       zone  achievements"
+      "crews      crews      jams  jams";
   }
 }
 
@@ -322,6 +326,9 @@
 // climbs rank 3 → 2 → 1 with a crown-landing celebration.
 // ══════════════════════════════════════════════════════
 
+// Single source of truth for plinth + rider heights. The rider /
+// rivals / crown all reference these vars so their `bottom` values
+// stay locked to whatever the plinths measure at any viewport.
 .podium {
   position: relative;
   display: grid;
@@ -332,6 +339,11 @@
   max-width: min(320px, 82cqi);
   aspect-ratio: 2 / 1;
   margin: 0 auto;
+
+  --plinth-gold:   clamp(50px, 18cqi, 96px);
+  --plinth-silver: clamp(36px, 13cqi, 70px);
+  --plinth-bronze: clamp(26px, 9cqi, 50px);
+  --rider-h:       clamp(38px, 13cqi, 60px);
 }
 
 .slot {
@@ -354,7 +366,7 @@
 }
 
 .plinthGold {
-  height: clamp(50px, 18cqi, 96px);
+  height: var(--plinth-gold);
   background: linear-gradient(180deg, var(--flash-bg), var(--mono-subtle-bg));
   border-color: var(--flash-border);
 
@@ -382,12 +394,12 @@
 }
 
 .plinthSilver {
-  height: clamp(36px, 13cqi, 70px);
+  height: var(--plinth-silver);
   background: var(--mono-subtle-bg);
 }
 
 .plinthBronze {
-  height: clamp(26px, 9cqi, 50px);
+  height: var(--plinth-bronze);
   background: linear-gradient(180deg, var(--bronze-bg), var(--mono-subtle-bg));
   border-color: var(--bronze-border);
 }
@@ -407,22 +419,22 @@
   95%, 100% { transform: translateX(100%); }
 }
 
-// ── The climbing @YOU avatar ───────────────────────
-// Absolute-positioned over the podium, moves between three plinth
-// tops on a 12s loop. Left/bottom percentages are podium-relative
-// so the rider lands squarely on each plinth regardless of cqi.
+// ── @YOU rider ─────────────────────────────────────
+// Absolute over the podium. 13s loop: rank 3 → rank 2 → rank 1 →
+// back to rank 3. `bottom` pulls from the plinth-height CSS vars
+// so the rider lands exactly on each plinth top regardless of cqi.
 .youRiser {
   position: absolute;
-  width: clamp(38px, 13cqi, 60px);
-  height: clamp(38px, 13cqi, 60px);
+  width: var(--rider-h);
+  height: var(--rider-h);
   transform: translateX(-50%);
   z-index: 5;
-  animation: youClimb 12s ease-in-out infinite;
+  animation: youClimb 13s var(--ease-in-out) infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
-    left: 50%;
-    bottom: 50%;
+    left: 85%;
+    bottom: var(--plinth-bronze);
   }
 }
 
@@ -444,27 +456,78 @@
   line-height: 1;
 }
 
-// Crown — only appears when YOU reaches rank 1.
-.youCrown {
+// Rivals — share the rider's shape + dimensions. Each starts on its
+// plinth and plays its own knock-off / re-entry keyframe.
+.rival {
   position: absolute;
-  top: clamp(-26px, -8cqi, -18px);
-  left: 50%;
-  transform: translateX(-50%) scale(0);
-  font-size: clamp(20px, 6cqi, 30px);
-  color: var(--flash-solid);
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
-  opacity: 0;
-  animation: crownLand 12s ease-out infinite;
-  pointer-events: none;
+  width: var(--rider-h);
+  height: var(--rider-h);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  border: 3px solid var(--mono-app-bg);
+  font-family: var(--font-heading);
+  font-weight: var(--weight-black);
+  font-style: italic;
+  font-size: clamp(10px, 3cqi, 14px);
+  letter-spacing: var(--tracking-tight);
+  line-height: 1;
+  transform: translateX(-50%);
+  z-index: 4;
+}
+
+.rivalSecond {
+  // Column 1 (silver) centre — 1fr 1.15fr 1fr columns + gaps put
+  // the silver slot's visual centre at ~15% of the podium width.
+  left: 15%;
+  bottom: var(--plinth-silver);
+  background: var(--mono-solid);
+  color: var(--mono-app-bg);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
+  animation: rivalKnockLeft 13s var(--ease-in-out) infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
-    opacity: 1;
-    transform: translateX(-50%) scale(1);
   }
 }
 
-// Celebration sparks — also only fire at rank 1.
+.rivalFirst {
+  left: 50%;
+  bottom: var(--plinth-gold);
+  background: var(--flash-solid);
+  color: var(--flash-on-solid);
+  box-shadow: 0 0 0 2px var(--flash-bg), 0 4px 14px rgba(0, 0, 0, 0.14);
+  animation: rivalKnockUp 13s var(--ease-in-out) infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+// Standalone crown pinned above the rank-1 plinth — bottom = plinth
+// height + ~85% of rider height so the crown sits on whoever is
+// standing on rank 1 (their head, with a slight overlap).
+.podiumCrown {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--plinth-gold) + var(--rider-h) * 0.85);
+  transform: translateX(-50%) rotate(0deg);
+  font-size: clamp(20px, 7cqi, 34px);
+  color: var(--flash-solid);
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+  transform-origin: center 60%;
+  animation: crownSpin 13s linear infinite;
+  pointer-events: none;
+  z-index: 6;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transform: translateX(-50%);
+  }
+}
+
+// Celebration sparks — fire during the crown-land window (33-52%),
+// anchored relative to .youRiser so they float around YOU at rank 1.
 .youSpark {
   position: absolute;
   display: grid;
@@ -473,7 +536,7 @@
   color: var(--flash-solid);
   filter: drop-shadow(0 0 6px var(--flash-bg));
   opacity: 0;
-  animation: sparkPop 12s ease-out infinite;
+  animation: sparkPop 13s var(--ease-out) infinite;
   pointer-events: none;
 
   @media (prefers-reduced-motion: reduce) {
@@ -481,36 +544,127 @@
   }
 }
 
-.youSparkA { top: -20%; left: -28%; animation-delay: 0.4s; }
-.youSparkB { top: -12%; right: -32%; animation-delay: 0.8s; }
+.youSparkA { top: -20%; left: -28%; animation-delay: 0.2s; }
+.youSparkB { top: -12%; right: -32%; animation-delay: 0.45s; }
 
-// 12s loop — 0-28% rank 3 (right, lowest), 30-55% rank 2 (left,
-// middle), 58-92% rank 1 (centre, highest), 100% back to rank 3.
+// ── Keyframes (13s loop) ───────────────────────────
+// Timings are built so every knock fires ONLY after @YOU has actually
+// arrived at the rival's rank — no rival flies until the rider is
+// standing on the plinth next to them.
 //
-// Percentages for `left` are podium-relative centres for each slot:
-//   rank 3 slot centre ≈ 83% (right column)
-//   rank 2 slot centre ≈ 17% (left column)
-//   rank 1 slot centre ≈ 50% (middle column)
-// `bottom` places the avatar just above each plinth top — tuned
-// to the clamp'd plinth heights above.
+//   0-10%   YOU rank 3 · rivals on 2+1 · crown on R (static)
+//  10-16%   YOU climbs 3→2 (ease-in-out)
+//   16%     YOU at rank 2 · rivalSecond is hit
+//  16-20%   rivalSecond launches left (ease-out-expo)
+//  20-23%   YOU holds rank 2 · crown still on R
+//  23-29%   YOU climbs 2→1 (ease-in-out)
+//   29%     YOU at rank 1 · rivalFirst is hit
+//  29-33%   rivalFirst launches up · CROWN starts its cartoon spin
+//           (720° in ~0.78s = fast)
+//  33-35%   Crown snatched — spring scale-pop (1 → 1.25 → 1)
+//  35-62%   YOU on rank 1, crown on YOU's head, sparks fire
+//  62-72%   YOU descends 1→3 · crown FADES out as YOU walks off
+//  72-92%   Empty podium 1+2 · crown hidden
+//  85-92%   Fresh rivalSecond slides back in from the left
+//  92-100%  Fresh rivalFirst slides in from the right · crown
+//           FADES BACK IN on the new R
+//   100%    ≡ 0% — seamless loop (720° ≡ 0° visually)
 @keyframes youClimb {
-  0%, 28%   { left: 83%; bottom: 18%; }
-  30%, 55%  { left: 17%; bottom: 26%; }
-  58%, 92%  { left: 50%; bottom: 36%; }
-  97%, 100% { left: 83%; bottom: 18%; }
+  0%, 10%   { left: 85%; bottom: var(--plinth-bronze); }
+  16%, 23%  { left: 15%; bottom: var(--plinth-silver); }
+  29%, 62%  { left: 50%; bottom: var(--plinth-gold); }
+  72%, 100% { left: 85%; bottom: var(--plinth-bronze); }
 }
 
-@keyframes crownLand {
-  0%, 58%   { opacity: 0; transform: translateX(-50%) translateY(-8px) scale(0.4); }
-  65%       { opacity: 1; transform: translateX(-50%) translateY(0) scale(1.15); }
-  72%, 92%  { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
-  97%, 100% { opacity: 0; transform: translateX(-50%) translateY(-8px) scale(0.4); }
+// Rival 2 (silver): YOU arrives at rank 2 at 16%. Rival starts
+// launching at 14% — ease-out-expo so the hit lands right as YOU
+// tops the plinth, rival is already flying by the time YOU settles.
+@keyframes rivalKnockLeft {
+  0%, 14%     {
+    transform: translateX(-50%) translate(0, 0) rotate(0);
+    opacity: 1;
+    animation-timing-function: var(--ease-out-expo);
+  }
+  18%         { transform: translateX(-50%) translate(-340%, 35%) rotate(-35deg); opacity: 0; }
+  18.01%, 86% { transform: translateX(-50%) translate(-340%, 35%) rotate(-35deg); opacity: 0; }
+  92%, 100%   {
+    transform: translateX(-50%) translate(0, 0) rotate(0);
+    opacity: 1;
+    animation-timing-function: var(--ease-out);
+  }
 }
 
+// Rival 1 (gold): YOU arrives at rank 1 at 29%. Rival starts
+// launching at 27% — gone by the time YOU fully lands. Straight up
+// + full backflip out of frame.
+@keyframes rivalKnockUp {
+  0%, 27%     {
+    transform: translateX(-50%) translate(0, 0) rotate(0);
+    opacity: 1;
+    animation-timing-function: var(--ease-out-expo);
+  }
+  31%         { transform: translateX(-50%) translate(0, -380%) rotate(200deg); opacity: 0; }
+  31.01%, 94% { transform: translateX(-50%) translate(0, -380%) rotate(200deg); opacity: 0; }
+  99%, 100%   {
+    transform: translateX(-50%) translate(0, 0) rotate(0);
+    opacity: 1;
+    animation-timing-function: var(--ease-out);
+  }
+}
+
+// Crown choreography — the cartoon moment:
+//   0-29%:  on R, static (0°)
+//  29-33%:  R is mid-launch, crown rips through 720° (2 rotations
+//           in ~0.52s — cartoon tempo, linear for even spin)
+//  33-35%:  YOU snatches — spring bounce (scale 1 → 1.25)
+//  35-38%:  settles on YOU (ease-out back to scale 1)
+//  38-62%:  static on YOU
+//  62-70%:  YOU descends · crown fades out (opacity 1→0, scale 0.9)
+//  70-92%:  hidden
+//  92-100%: fades back in on new R (opacity 0→1, scale 0.9→1). At
+//           100% rotation is 720° ≡ 0°, so loop is seamless.
+@keyframes crownSpin {
+  0%, 27%    {
+    opacity: 1;
+    transform: translateX(-50%) rotate(0deg) scale(1);
+    animation-timing-function: linear;
+  }
+  31%        {
+    opacity: 1;
+    transform: translateX(-50%) rotate(720deg) scale(1);
+    animation-timing-function: var(--ease-spring);
+  }
+  33%        {
+    opacity: 1;
+    transform: translateX(-50%) rotate(720deg) scale(1.25);
+    animation-timing-function: var(--ease-out);
+  }
+  36%, 62%   {
+    opacity: 1;
+    transform: translateX(-50%) rotate(720deg) scale(1);
+    animation-timing-function: var(--ease-in);
+  }
+  70%        {
+    opacity: 0;
+    transform: translateX(-50%) rotate(720deg) scale(0.9);
+    animation-timing-function: linear;
+  }
+  70.01%, 92% {
+    opacity: 0;
+    transform: translateX(-50%) rotate(720deg) scale(0.9);
+    animation-timing-function: var(--ease-out);
+  }
+  100%       {
+    opacity: 1;
+    transform: translateX(-50%) rotate(720deg) scale(1);
+  }
+}
+
+// Sparks fire when YOU wears the crown (35-55% window).
 @keyframes sparkPop {
-  0%, 62%   { opacity: 0; transform: scale(0.4) rotate(0); }
-  70%       { opacity: 1; transform: scale(1.2) rotate(15deg); }
-  82%       { opacity: 0; transform: scale(1.6) rotate(30deg); }
+  0%, 34%   { opacity: 0; transform: scale(0.4) rotate(0); }
+  40%       { opacity: 1; transform: scale(1.2) rotate(15deg); }
+  55%       { opacity: 0; transform: scale(1.6) rotate(30deg); }
   100%      { opacity: 0; transform: scale(1.6) rotate(30deg); }
 }
 
@@ -914,14 +1068,14 @@
 
 .badgeCore {
   position: relative;
-  width: clamp(100px, 36cqi, 180px);
+  width: clamp(120px, 44cqi, 220px);
   aspect-ratio: 1;
   display: grid;
   place-items: center;
 }
 
 .badgeIcon {
-  font-size: clamp(44px, 24cqi, 96px);
+  font-size: clamp(48px, 32cqi, 140px);
   color: var(--accent-solid);
   filter: drop-shadow(0 0 14px var(--accent-bg));
   animation: badgeBob 3s ease-in-out infinite;
@@ -1050,7 +1204,7 @@
 .zoneScene {
   position: relative;
   width: 100%;
-  max-width: min(200px, 80cqi);
+  max-width: min(240px, 86cqi);
   aspect-ratio: 1;
   display: grid;
   place-items: center;
@@ -1058,7 +1212,7 @@
 
 .zoneFlag {
   position: relative;
-  font-size: clamp(56px, 30cqi, 120px);
+  font-size: clamp(60px, 38cqi, 156px);
   color: var(--success-solid);
   filter: drop-shadow(0 0 16px var(--success-bg));
   transform-origin: 22% 80%;

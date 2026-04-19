@@ -75,10 +75,13 @@ function TileGrid({ children }: GridVisibleProps) {
 // ═══════════════════════════════════════════════════════
 
 // ── Chorkboard ──────────────────────────────────────────
-// Medium-bento podium scene: three plinths + an animated "@YOU"
-// avatar that climbs the ranks on a loop — starts rank 3 (right),
-// moves to rank 2 (left), lands on rank 1 (centre) with crown +
-// celebration sparkles.
+// Medium-bento podium with a 16s narrative loop: @YOU starts on
+// rank 3 with rivals M (silver) and R (gold) already in place.
+// @YOU climbs, knocking M left and R up off-screen. The crown
+// spins alone on an empty rank 1, lands on @YOU's head with sparks,
+// then @YOU steps back down to 3 as fresh rivals slide in from the
+// sides to take 2 and 1. Cycle returns to the starting state for a
+// seamless loop.
 
 export function ChorkboardTile() {
   return (
@@ -101,11 +104,20 @@ export function ChorkboardTile() {
             </div>
           </div>
 
-          {/* Climbing avatar — absolute-positioned, transitions
-              between the three plinths on a 12s loop. Crown +
-              sparkles fire when it reaches rank 1. */}
+          {/* Rival on rank 2 — knocked off to the left when YOU
+              arrives, slides back in at the end of the cycle. */}
+          <div className={`${styles.rival} ${styles.rivalSecond}`}>M</div>
+
+          {/* Rival on rank 1 — knocked up + off when YOU arrives,
+              slides in from the right at the end of the cycle. */}
+          <div className={`${styles.rival} ${styles.rivalFirst}`}>R</div>
+
+          {/* Standalone crown pinned above the gold plinth — spins
+              on its own during the two vacancy windows. */}
+          <FaCrown className={styles.podiumCrown} />
+
+          {/* Climbing @YOU — moves rank 3 → 2 → 1 → 3 over 16s. */}
           <div className={styles.youRiser}>
-            <FaCrown className={styles.youCrown} />
             <span className={`${styles.youSpark} ${styles.youSparkA}`}>
               <FaStar />
             </span>
@@ -435,11 +447,11 @@ export function FeatureGrid() {
         <ChorkboardTile />
         <WallTile />
         <FlashTile />
-        <JamsTile />
+        <BetaTile />
         <ZoneTile />
         <AchievementsTile />
         <CrewsTile />
-        <BetaTile />
+        <JamsTile />
       </TileGrid>
     </section>
   );
