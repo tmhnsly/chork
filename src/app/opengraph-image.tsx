@@ -5,37 +5,63 @@ export const alt =
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-// Fetch a single weight of a Google Font, subsetted to the exact glyphs we
-// render. Subsetting keeps each request tiny (~2-3kb per weight) so the OG
-// image builds fast even on a cold Vercel edge invocation.
+// Fetch a single weight of a Google Font, subsetted to the exact glyphs
+// we render. Subsetting keeps each request tiny (~2-3 kb) so the OG
+// image builds fast even on a cold Vercel invocation.
+//
+// Two Google-Fonts quirks handled here:
+//
+//  1. The CSS2 API picks the font format based on User-Agent. Without
+//     a UA (or with a modern one) it returns `.woff2`, which Satori
+//     does not support. A legacy Firefox UA forces it to return a
+//     format Satori CAN parse — historically `.ttf`, today typically
+//     `.woff` for most families. Both are fine for Satori.
+//
+//  2. Outfit (our brand display family) ships ONLY upright weights on
+//     Google Fonts — no italic variant. Requesting `ital,wght@1,…`
+//     returns HTTP 400 "Font family not found". So we only ever
+//     request upright here; faux-italic on the design side is done
+//     via `transform: skewX(...)` in the JSX.
 async function loadGoogleFont(
   family: string,
   weight: number,
-  italic: boolean,
   text: string,
 ): Promise<ArrayBuffer> {
-  const ital = italic ? "1" : "0";
-  const spec = `${family}:ital,wght@${ital},${weight}`;
+  const spec = `${family}:wght@${weight}`;
   const css = await (
     await fetch(
       `https://fonts.googleapis.com/css2?family=${encodeURIComponent(
         spec,
       )}&text=${encodeURIComponent(text)}`,
+      {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:10.0) Gecko/20100101 Firefox/10.0",
+        },
+      },
     )
   ).text();
-  const match = css.match(/src: url\((.+?)\) format\('(?:opentype|truetype)'\)/);
-  if (!match) throw new Error(`font fetch failed: ${family} ${weight}`);
+  const match = css.match(
+    /src:\s*url\((.+?)\)\s*format\('(?:opentype|truetype|woff)'\)/,
+  );
+  if (!match) {
+    throw new Error(
+      `font fetch failed: ${family} ${weight} — no matching @font-face src in response`,
+    );
+  }
   const res = await fetch(match[1]);
   return res.arrayBuffer();
 }
 
 export default async function OpengraphImage() {
-  const displayText = "chork.CLIMB IT.LOG TOP";
+  // Union of every glyph rendered below — lets Google Fonts return a
+  // tiny subsetted @font-face. Keep in sync with the JSX text content.
+  const displayText = "chorkCLIMBITOGP.";
   const bodyText = "chork.appJoin for free→";
 
-  const [outfitBlackItalic, outfitSemi] = await Promise.all([
-    loadGoogleFont("Outfit", 900, true, displayText),
-    loadGoogleFont("Outfit", 600, false, bodyText),
+  const [outfitBlack, outfitSemi] = await Promise.all([
+    loadGoogleFont("Outfit", 900, displayText),
+    loadGoogleFont("Outfit", 600, bodyText),
   ]);
 
   return new ImageResponse(
@@ -94,18 +120,22 @@ export default async function OpengraphImage() {
           <div
             style={{
               display: "flex",
-              alignItems: "center",
-              gap: 4,
+              alignItems: "flex-end",
+              gap: 12,
             }}
           >
             <span
               style={{
-                fontSize: 160,
+                fontSize: 180,
                 fontWeight: 900,
-                fontStyle: "italic",
                 color: "#ecedeb",
-                letterSpacing: "-0.05em",
+                letterSpacing: "-0.055em",
                 lineHeight: 1,
+                // Faux italic — Outfit has no italic variant so we
+                // skew the glyphs manually. Satori supports skewX on
+                // transform; the result is close enough to the brand
+                // display preset used across the app.
+                transform: "skewX(-8deg)",
               }}
             >
               chork
@@ -113,13 +143,12 @@ export default async function OpengraphImage() {
             {/* Lime dot replaces the full stop — matches the favicon */}
             <div
               style={{
-                width: 32,
-                height: 32,
+                width: 36,
+                height: 36,
                 borderRadius: 999,
                 background: "#bdee63",
-                marginTop: 100,
-                marginLeft: 8,
-                boxShadow: "0 0 40px rgba(189, 238, 99, 0.45)",
+                marginBottom: 18,
+                boxShadow: "0 0 40px rgba(189, 238, 99, 0.5)",
               }}
             />
           </div>
@@ -129,13 +158,13 @@ export default async function OpengraphImage() {
             style={{
               display: "flex",
               gap: 28,
-              fontSize: 56,
+              fontSize: 60,
               fontWeight: 900,
-              fontStyle: "italic",
               textTransform: "uppercase",
-              letterSpacing: "-0.015em",
+              letterSpacing: "-0.02em",
               color: "#ecedeb",
               lineHeight: 1,
+              transform: "skewX(-8deg)",
             }}
           >
             <span>Climb it.</span>
@@ -189,9 +218,9 @@ export default async function OpengraphImage() {
       fonts: [
         {
           name: "Outfit",
-          data: outfitBlackItalic,
+          data: outfitBlack,
           weight: 900,
-          style: "italic",
+          style: "normal",
         },
         {
           name: "OutfitBody",
