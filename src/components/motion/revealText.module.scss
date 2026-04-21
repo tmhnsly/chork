@@ -1,45 +1,49 @@
 // Reveal text — word-by-word vertical mask reveal.
 //
-// Matches the canonical Framer Motion text-reveal pattern: a
-// `overflow: hidden` wrapper around an inner span that animates
-// from `translateY(100%) → 0`. No clip-path — on iOS Safari the
-// combination of `overflow: hidden` + `padding + negative margin`
-// is the most reliable way to keep italic overhang visible while
-// masking the vertical travel.
+// An inner `.word` span sits at `translateY(110%)` (fully below the
+// mask) and animates up to `translateY(0)` over 0.75s. The outer
+// `.wordClip` wrapper is the mask.
 //
-// The trick: pad the wrapper by a little on every side (so the
-// overflow box includes the italic slant's right-hand overhang +
-// descender tails), then negate the padding with an equal margin
-// so adjacent words keep their natural metric spacing. Net visual
-// size unchanged, but the overflow region now fully contains any
-// glyph overhang — nothing gets shaved.
-
-// Modern path (Safari 16.4+, Chrome 90+, Firefox 102+): `overflow:
-// clip` + `overflow-clip-margin` extends the visible region 0.2em
-// past every edge WITHOUT touching layout. No padding/margin hack,
-// no asymmetric side-effects. Ascenders + descenders + horizontal
-// italic overhang all get the same breathing room, and the inline-
-// block keeps its natural box dimensions so headline line-height
-// stays stable.
+// HORIZONTAL GLYPH OVERHANG — the recurring iOS italic-clipping bug.
+//
+// Italic display glyphs overhang their advance width at the top-
+// right stroke by roughly `tan(slant) × cap-height`. For Outfit 900
+// italic (~12° browser-synthesised slant) that is ~0.21em before
+// subpixel / AA rounding adds another 1-2px. If the mask clips at
+// the advance-width edge, the forward tail of the final letter
+// (W / Y / K / T, plus periods after italic caps) gets shaved.
+//
+// Previous attempts used `overflow: hidden` + padding / negative
+// margin (or an `@supports overflow-clip-margin` dual-path). Both
+// regressed on iOS repeatedly — iOS Safari reports support for
+// `overflow-clip-margin` while silently failing to render it, and
+// the padding/margin dance touches layout enough to shift adjacent
+// decoration (e.g. the hero's lime-dot signature mark).
+//
+// The durable solution is `clip-path: inset(…)` with negative
+// horizontal offsets: it gives us an asymmetric mask (tight
+// top/bottom for the vertical reveal, open left/right for the
+// italic overhang) WITHOUT touching layout at all. No padding, no
+// margin, no `@supports` gate, no font-synthesis side-effects.
+//
+// `--reveal-overhang` is exposed as a tuning knob so a future
+// heavier-slant italic (Druk, Bebas) can widen the horizontal
+// breathing room without touching this file. 0.5em default covers
+// Outfit at every size we ship plus comfortable headroom.
 .wordClip {
   display: inline-block;
   vertical-align: baseline;
-  overflow: clip;
-  overflow-clip-margin: 0.2em;
-}
 
-// Fallback for browsers without `overflow-clip-margin` support.
-// `overflow: hidden` + padding/negative-margin on the right widens
-// the clip box by 0.2em in layout space — only the forward italic
-// overhang on W / Y / K / T is protected (vertical overhang may
-// still shave, but that's rare at display sizes with --leading-
-// tight line-heights).
-@supports not (overflow-clip-margin: 0.2em) {
-  .wordClip {
-    overflow: hidden;
-    padding-right: 0.2em;
-    margin-right: -0.2em;
-  }
+  // inset(top right bottom left). `0` top/bottom clips the vertical
+  // reveal tight to the line-height box; negative right/left
+  // extends the paintable region beyond the element's inline edges
+  // so italic overhang renders in full.
+  clip-path: inset(
+    0
+    calc(var(--reveal-overhang, 0.5em) * -1)
+    0
+    calc(var(--reveal-overhang, 0.5em) * -1)
+  );
 }
 
 .word {
@@ -76,7 +80,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .wordClip {
-    overflow: visible;
+    clip-path: none;
   }
   .word {
     animation: none;
