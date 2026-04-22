@@ -75,7 +75,7 @@ function TileGrid({ children }: GridVisibleProps) {
 // ═══════════════════════════════════════════════════════
 
 // ── Chorkboard ──────────────────────────────────────────
-// Medium-bento podium with a 16s narrative loop: @YOU starts on
+// Medium-bento podium with a 9s narrative loop: @YOU starts on
 // rank 3 with rivals M (silver) and R (gold) already in place.
 // @YOU climbs, knocking M left and R up off-screen. The crown
 // spins alone on an empty rank 1, lands on @YOU's head with sparks,

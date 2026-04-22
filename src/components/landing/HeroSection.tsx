@@ -33,6 +33,11 @@ export function HeroSection({ headline, subheadline, cta, visual }: Props) {
   return (
     <section className={styles.hero}>
       <div className={styles.inner}>
+        <span className={styles.devNotice} role="status">
+          <span className={styles.devNoticeDot} aria-hidden="true" />
+          In active development — test freely, don&rsquo;t expect stability
+          yet
+        </span>
         <ChorkMark className={styles.mark} mode="auto" />
         <h1 className={styles.headline}>
           <span className={styles.headlinePrimary}>

@@ -440,7 +440,7 @@
   height: var(--rider-h);
   transform: translateX(-50%);
   z-index: 5;
-  animation: youClimb 13s var(--ease-in-out) infinite;
+  animation: youClimb 9s var(--ease-in-out) infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -495,7 +495,7 @@
   background: var(--mono-solid);
   color: var(--mono-app-bg);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
-  animation: rivalKnockLeft 13s var(--ease-in-out) infinite;
+  animation: rivalKnockLeft 9s var(--ease-in-out) infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -508,7 +508,7 @@
   background: var(--flash-solid);
   color: var(--flash-on-solid);
   box-shadow: 0 0 0 2px var(--flash-bg), 0 4px 14px rgba(0, 0, 0, 0.14);
-  animation: rivalKnockUp 13s var(--ease-in-out) infinite;
+  animation: rivalKnockUp 9s var(--ease-in-out) infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -527,7 +527,7 @@
   color: var(--flash-solid);
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
   transform-origin: center 60%;
-  animation: crownSpin 13s linear infinite;
+  animation: crownSpin 9s linear infinite;
   pointer-events: none;
   z-index: 6;
 
@@ -547,7 +547,7 @@
   color: var(--flash-solid);
   filter: drop-shadow(0 0 6px var(--flash-bg));
   opacity: 0;
-  animation: sparkPop 13s var(--ease-out) infinite;
+  animation: sparkPop 9s var(--ease-out) infinite;
   pointer-events: none;
 
   @media (prefers-reduced-motion: reduce) {
@@ -558,7 +558,7 @@
 .youSparkA { top: -20%; left: -28%; animation-delay: 0.2s; }
 .youSparkB { top: -12%; right: -32%; animation-delay: 0.45s; }
 
-// ── Keyframes (13s loop) ───────────────────────────
+// ── Keyframes (9s loop) ────────────────────────────
 // Timings are built so every knock fires ONLY after @YOU has actually
 // arrived at the rival's rank — no rival flies until the rider is
 // standing on the plinth next to them.
@@ -1285,4 +1285,35 @@
   0%, 30%   { opacity: 0; transform: translateY(8px) scale(0.85); }
   45%, 75%  { opacity: 1; transform: translateY(0) scale(1); }
   90%, 100% { opacity: 0; transform: translateY(-4px) scale(0.95); }
+}
+
+// ══════════════════════════════════════════════════════
+// Visibility gate — every animation inside the grid stays paused
+// until `TileGrid` (see FeatureGrid.tsx) adds `.gridVisible` on
+// first IntersectionObserver hit. Before this, ~20 infinite loops
+// (Chorkboard choreography, Wall cell cycle, Jams rows, Crews halo/
+// pop/activity, Flash rings, Achievements, Zone, Beta, etc.) kept
+// ticking whether the grid was on-screen or not — wasted paint +
+// composite work on every scroll position.
+//
+// Blanket rule rather than per-animation because the grid has so
+// many animated descendants that maintaining a list would rot.
+// `animation-play-state` on elements without an animation is a
+// no-op, so the universal selector is harmless on the static
+// descendants. `prefers-reduced-motion` already zeroes each
+// animation above, so those users bypass this entirely (no
+// animation defined → play-state irrelevant).
+// ══════════════════════════════════════════════════════
+.grid,
+.grid *,
+.grid *::before,
+.grid *::after {
+  animation-play-state: paused;
+}
+
+.gridVisible,
+.gridVisible *,
+.gridVisible *::before,
+.gridVisible *::after {
+  animation-play-state: running;
 }

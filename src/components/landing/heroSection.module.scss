@@ -15,6 +15,40 @@
   padding: var(--space-8) var(--gutter-x) 0;
 }
 
+// ── Dev-status pill ────────────────────────────────
+// Pre-launch disclaimer — appears above the brand mark so early
+// visitors read it before engaging with the CTA. Low-key styling
+// (subtle surface + step-11 text) so it sits under the hero
+// hierarchy rather than competing with the headline; the amber
+// dot on the left carries the "heads up" signal without an
+// error-red alarm. Fades in on the same `heroIn` keyframe as the
+// rest of the hero, with zero delay so it lands first.
+.devNotice {
+  @include type.typography(label);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  align-self: start;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-1);
+  border: 1px solid var(--mono-border-subtle);
+  background: var(--mono-subtle-bg);
+  color: var(--mono-text-low-contrast);
+  animation: heroIn var(--duration-hero) var(--ease-out) both;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+.devNoticeDot {
+  width: 0.5em;
+  height: 0.5em;
+  border-radius: 50%;
+  background: var(--flash-solid);
+  flex-shrink: 0;
+}
+
 // ── Brand mark ─────────────────────────────────────
 // Poster-style opener — first visual beat of the hero. NavBar lives
 // at the bottom of the viewport so there's no brand anchor at the

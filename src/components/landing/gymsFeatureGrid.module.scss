@@ -870,3 +870,24 @@
     transform: scale(1);
   }
 }
+
+// ══════════════════════════════════════════════════════
+// Visibility gate — mirrors the landing FeatureGrid pattern. Every
+// animation inside the grid stays paused until `TileGrid` (see
+// GymsFeatureGrid.tsx) adds `.gridVisible` on first
+// IntersectionObserver hit, so the /gyms bento loops don't tick
+// until the grid scrolls into view.
+// ══════════════════════════════════════════════════════
+.grid,
+.grid *,
+.grid *::before,
+.grid *::after {
+  animation-play-state: paused;
+}
+
+.gridVisible,
+.gridVisible *,
+.gridVisible *::before,
+.gridVisible *::after {
+  animation-play-state: running;
+}
