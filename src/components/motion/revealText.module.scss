@@ -13,37 +13,69 @@
 // the advance-width edge, the forward tail of the final letter
 // (W / Y / K / T, plus periods after italic caps) gets shaved.
 //
-// Previous attempts used `overflow: hidden` + padding / negative
-// margin (or an `@supports overflow-clip-margin` dual-path). Both
-// regressed on iOS repeatedly — iOS Safari reports support for
-// `overflow-clip-margin` while silently failing to render it, and
-// the padding/margin dance touches layout enough to shift adjacent
-// decoration (e.g. the hero's lime-dot signature mark).
+// Outfit black italic on this site is *synthesised* — `next/font`
+// only loads upright weights (see `src/app/layout.tsx`) because
+// Google Fonts has no Outfit italic — so the slant is always
+// browser-painted. iOS Safari's synth-italic overhangs the advance
+// width more aggressively than a real italic font face, which is
+// why this surface keeps regressing on that one engine.
 //
-// The durable solution is `clip-path: inset(…)` with negative
-// horizontal offsets: it gives us an asymmetric mask (tight
-// top/bottom for the vertical reveal, open left/right for the
-// italic overhang) WITHOUT touching layout at all. No padding, no
-// margin, no `@supports` gate, no font-synthesis side-effects.
+// HISTORY of failed approaches:
+//
+// 1. `overflow: clip` + `overflow-clip-margin: 0.2em`. iOS Safari
+//    reports `@supports (overflow-clip-margin: 0.2em)` true while
+//    silently failing to render any extension — the modern path
+//    activated and shipped tight clipping.
+// 2. `overflow: hidden` + asymmetric `padding-right: 0.2em` /
+//    `margin-right: -0.2em`. 0.2em is mathematically tight at the
+//    responsive-clamp floor, AND inline-block + overflow:hidden
+//    shifts the baseline to the bottom of the margin box, drifting
+//    adjacent decoration (the hero's lime-dot signature mark).
+// 3. `clip-path: inset(0 -0.5em 0 -0.5em)` — relied on negative
+//    insets *extending the painted region* beyond the element's
+//    border-box. WebKit (iOS Safari) treats clip-path as a
+//    clipping operation but does NOT extend the paint bounds of
+//    an inline-block past its layout box, so the synth-italic
+//    overhang still got cropped at the advance-width edge.
+//
+// THE DURABLE FIX (this file): physically widen the layout box
+// itself with `padding-inline`, then negate the padding with an
+// equal `margin-inline` so adjacent inline siblings (the dot, the
+// next word) sit at the exact same metric position as before.
+// Italic overhang now lives INSIDE the wider border box rather
+// than depending on negative-inset clip-path painting outside it.
+// The mask is a non-negative `clip-path: inset(0)` that clips at
+// the new wider edges — no browser-quirk reliance, no overflow
+// baseline shift, no @supports gate, no asymmetric drift.
 //
 // `--reveal-overhang` is exposed as a tuning knob so a future
-// heavier-slant italic (Druk, Bebas) can widen the horizontal
-// breathing room without touching this file. 0.5em default covers
-// Outfit at every size we ship plus comfortable headroom.
+// heavier-slant italic (Druk, Bebas) can widen the breathing room
+// without touching this file. 0.6em default covers Outfit
+// synth-italic at every size we ship — ~0.21em geometric overhang
+// + ~0.07em AA fringe at the 30px clamp floor — with comfortable
+// headroom for subpixel rounding.
 .wordClip {
   display: inline-block;
   vertical-align: baseline;
 
-  // inset(top right bottom left). `0` top/bottom clips the vertical
-  // reveal tight to the line-height box; negative right/left
-  // extends the paintable region beyond the element's inline edges
-  // so italic overhang renders in full.
-  clip-path: inset(
-    0
-    calc(var(--reveal-overhang, 0.5em) * -1)
-    0
-    calc(var(--reveal-overhang, 0.5em) * -1)
-  );
+  // Widen the box symmetrically so the italic overhang past the
+  // advance width paints inside the border-box rather than outside
+  // it. Both inline sides padded equally.
+  padding-inline: var(--reveal-overhang, 0.6em);
+
+  // Negate the padding for inline-flow layout. Equal magnitude on
+  // both sides so subsequent siblings (the lime signature dot,
+  // the next word) stay at their natural metric position — the
+  // dot does not drift the way it did under the asymmetric
+  // padding-right/-margin-right attempt.
+  margin-inline: calc(var(--reveal-overhang, 0.6em) * -1);
+
+  // Mask the slide-up reveal. inset(0) clips at the (now wider)
+  // border-box edges — italic overhang sits inside the visible
+  // region; the slide is masked tight to the line-height box on
+  // the vertical axis. No negative values, so no reliance on the
+  // iOS clip-path-paint-extend behaviour that broke the prior fix.
+  clip-path: inset(0);
 }
 
 .word {
