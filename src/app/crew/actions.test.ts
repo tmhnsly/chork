@@ -2,8 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 vi.mock("@/lib/auth", () => ({ requireSignedIn: vi.fn() }));
-vi.mock("@/lib/push/server", () => ({ sendPushInBackground: vi.fn() }));
-vi.mock("@/lib/notify", () => ({ notifyUser: vi.fn() }));
+vi.mock("@/lib/notify", () => ({ notify: vi.fn() }));
 
 // ────────────────────────────────────────────────────────────────
 // Supabase client mock
@@ -205,9 +204,9 @@ describe("inviteToCrew", () => {
     expect(result).toEqual({ error: expect.stringContaining("already has an invite") });
   });
 
-  it("fires a push notification after a successful invite (best effort)", async () => {
+  it("dispatches a notification after a successful invite", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
-    const { sendPushInBackground } = await import("@/lib/push/server");
+    const { notify } = await import("@/lib/notify");
 
     const supabase = {
       from: (table: string) => {
@@ -236,24 +235,21 @@ describe("inviteToCrew", () => {
     const { inviteToCrew } = await import("./actions");
     await inviteToCrew(CREW_1, USER_B);
 
-    expect(sendPushInBackground).toHaveBeenCalledWith(
-      [USER_B],
+    expect(notify).toHaveBeenCalledWith(
       expect.objectContaining({
-        title: "New crew invite",
-        url: "/crew",
+        kind: "crew_invite_received",
+        recipient: USER_B,
+        actor: USER_A,
+        crewId: CREW_1,
+        crewName: "Tuesday Crew",
+        inviterUsername: "alice",
       }),
-      expect.objectContaining({ category: "invite_received" }),
-    );
-    const { notifyUser } = await import("@/lib/notify");
-    expect(notifyUser).toHaveBeenCalledWith(
-      USER_B,
-      expect.objectContaining({ kind: "crew_invite_received" }),
     );
   });
 
-  it("still returns success when the push dispatch throws", async () => {
+  it("still returns success when the dispatcher throws", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
-    const { sendPushInBackground } = await import("@/lib/push/server");
+    const { notify } = await import("@/lib/notify");
 
     const supabase = {
       from: (table: string) => {
@@ -269,13 +265,11 @@ describe("inviteToCrew", () => {
       supabase: supabase as never,
       userId: USER_A,
     });
-    // Background dispatch is fire-and-forget; even if it throws
-    // synchronously (e.g. after() called outside a request scope),
-    // the surrounding try/catch in inviteToCrew swallows it so the
-    // user-visible response stays { success: true }.
-    vi.mocked(sendPushInBackground).mockImplementation(() => {
-      throw new Error("after() outside request scope");
-    });
+    // Defense-in-depth: notify() owns its own try/catch internally so
+    // shouldn't throw, but the action still wraps the dispatch in a
+    // try/catch so a freak failure can't unwind the user-visible
+    // response. Force a throw to verify.
+    vi.mocked(notify).mockRejectedValueOnce(new Error("dispatcher boom"));
 
     const { inviteToCrew } = await import("./actions");
     const result = await inviteToCrew(CREW_1, USER_B);
@@ -324,10 +318,9 @@ describe("acceptCrewInvite", () => {
     });
   });
 
-  it("pushes + notifies the inviter on success (category: invite_accepted)", async () => {
+  it("notifies the inviter on success (kind: crew_invite_accepted)", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
-    const { sendPushInBackground } = await import("@/lib/push/server");
-    const { notifyUser } = await import("@/lib/notify");
+    const { notify } = await import("@/lib/notify");
     const supabase = {
       from: (table: string) => {
         if (table === "crew_members") {
@@ -356,29 +349,27 @@ describe("acceptCrewInvite", () => {
     const { acceptCrewInvite } = await import("./actions");
     expect(await acceptCrewInvite(INVITE_1)).toEqual({ success: true });
 
-    expect(sendPushInBackground).toHaveBeenCalledWith(
-      [USER_B],
-      expect.objectContaining({ title: "Invite accepted" }),
-      expect.objectContaining({ category: "invite_accepted" }),
-    );
-    expect(notifyUser).toHaveBeenCalledWith(
-      USER_B,
+    expect(notify).toHaveBeenCalledWith(
       expect.objectContaining({
         kind: "crew_invite_accepted",
-        payload: expect.objectContaining({ crew_id: CREW_1 }),
+        recipient: USER_B,
+        actor: USER_A,
+        crewId: CREW_1,
+        crewName: "Tuesday Crew",
+        accepterUsername: "alice",
       }),
     );
   });
 
-  it("skips push when the update's returning row has no inviter", async () => {
+  it("skips dispatch when the update's returning row has no inviter", async () => {
     // Invariant: when the inviter field is null (e.g. system-
     // generated invite) or equals the accepter themselves, we skip
-    // the push dispatch — there's no one to notify. Post-refactor,
+    // the dispatch — there's no one to notify. Post-refactor,
     // the "update returned nothing at all" case now fails with
-    // "Invite not found", so this test exercises the other no-push
+    // "Invite not found", so this test exercises the other no-dispatch
     // branch: returning row exists but its `invited_by` is falsy.
     const { requireSignedIn } = await import("@/lib/auth");
-    const { sendPushInBackground } = await import("@/lib/push/server");
+    const { notify } = await import("@/lib/notify");
     vi.mocked(requireSignedIn).mockResolvedValue({
       supabase: mockSupabase({
         "table:crew_members": {
@@ -390,7 +381,7 @@ describe("acceptCrewInvite", () => {
     });
     const { acceptCrewInvite } = await import("./actions");
     expect(await acceptCrewInvite(INVITE_1)).toEqual({ success: true });
-    expect(sendPushInBackground).not.toHaveBeenCalled();
+    expect(notify).not.toHaveBeenCalled();
   });
 });
 
@@ -559,10 +550,9 @@ describe("transferCrewOwnership", () => {
     expect(call).toBeGreaterThan(0);
   });
 
-  it("succeeds on the happy path + pushes + notifies", async () => {
+  it("succeeds on the happy path + dispatches notification", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
-    const { sendPushInBackground } = await import("@/lib/push/server");
-    const { notifyUser } = await import("@/lib/notify");
+    const { notify } = await import("@/lib/notify");
     const supabase = {
       from: (table: string) => {
         if (table === "crews") {
@@ -590,14 +580,15 @@ describe("transferCrewOwnership", () => {
     const { transferCrewOwnership } = await import("./actions");
     expect(await transferCrewOwnership(CREW_1, USER_B)).toEqual({ success: true });
 
-    expect(sendPushInBackground).toHaveBeenCalledWith(
-      [USER_B],
-      expect.objectContaining({ title: "You're now the crew creator" }),
-      expect.objectContaining({ category: "ownership_changed" }),
-    );
-    expect(notifyUser).toHaveBeenCalledWith(
-      USER_B,
-      expect.objectContaining({ kind: "crew_ownership_transferred" }),
+    expect(notify).toHaveBeenCalledWith(
+      expect.objectContaining({
+        kind: "crew_ownership_transferred",
+        recipient: USER_B,
+        actor: USER_A,
+        crewId: CREW_1,
+        crewName: "Tuesday Crew",
+        fromUsername: "alice",
+      }),
     );
   });
 });

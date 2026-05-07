@@ -3,8 +3,7 @@
 import { revalidateTag } from "next/cache";
 import { requireSignedIn } from "@/lib/auth";
 import { formatError, formatErrorForLog } from "@/lib/errors";
-import { sendPushInBackground } from "@/lib/push/server";
-import { notifyUser } from "@/lib/notify";
+import { notify } from "@/lib/notify";
 import { revalidateUserProfile } from "@/lib/cache/revalidate";
 import { UUID_RE } from "@/lib/validation";
 import { enforce as enforceRateLimit } from "@/lib/rate-limit";
@@ -171,39 +170,26 @@ export async function inviteToCrew(
       return { error: formatError(error) };
     }
 
-    // Fire a push notification + log the event to the in-app log
-    // so the invitee catches up even if the push was dropped. Both
-    // are best-effort; the invite row is already written by now.
     try {
       const [{ data: crewRow }, { data: inviterRow }] = await Promise.all([
         supabase.from("crews").select("name").eq("id", crewId).maybeSingle(),
         supabase.from("profiles").select("username").eq("id", userId).maybeSingle(),
       ]);
-      await notifyUser(targetUserId, {
+      await notify({
         kind: "crew_invite_received",
-        payload: {
-          crew_id: crewId,
-          crew_name: crewRow?.name ?? "a crew",
-          invite_id: inserted?.id ?? "",
-          inviter_username: inviterRow?.username ?? "someone",
-        },
+        recipient: targetUserId,
+        actor: userId,
+        crewId,
+        crewName: crewRow?.name ?? "a crew",
+        inviteId: inserted?.id ?? "",
+        inviterUsername: inviterRow?.username ?? "someone",
       });
-      sendPushInBackground(
-        [targetUserId],
-        {
-          title: "New crew invite",
-          body: `@${inviterRow?.username ?? "someone"} invited you to ${crewRow?.name ?? "a crew"}.`,
-          url: "/crew",
-        },
-        { category: "invite_received" },
-      );
     } catch (err) {
       logger.warn("crew_invite_dispatch_failed", { err: formatErrorForLog(err) });
     }
 
     revalidateTag(tags.crew(crewId), "max");
     revalidateTag(tags.userCrews(userId), "max");
-    revalidateTag(tags.userNotifications(targetUserId), "max");
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
@@ -237,11 +223,6 @@ export async function acceptCrewInvite(crewMemberId: string): Promise<ActionResu
     if (error) return { error: formatError(error) };
     if (!invite) return { error: "Invite not found." };
 
-    // Best-effort push to the inviter so they see the confirmation
-    // without needing to reopen the app. sendPushInBackground defers
-    // the dispatch via after() so the action returns as soon as the
-    // notify_user log row is written; push latency stays off the
-    // user-visible response.
     if (invite?.invited_by && invite.invited_by !== userId) {
       try {
         const { data: accepterRow } = await supabase
@@ -252,35 +233,21 @@ export async function acceptCrewInvite(crewMemberId: string): Promise<ActionResu
         const crewName = Array.isArray(invite.crew)
           ? invite.crew[0]?.name
           : invite.crew?.name;
-        await notifyUser(invite.invited_by, {
+        await notify({
           kind: "crew_invite_accepted",
-          payload: {
-            crew_id: invite.crew_id,
-            crew_name: crewName ?? "a crew",
-            accepter_username: accepterRow?.username ?? "someone",
-          },
+          recipient: invite.invited_by,
+          actor: userId,
+          crewId: invite.crew_id,
+          crewName: crewName ?? "a crew",
+          accepterUsername: accepterRow?.username ?? "someone",
         });
-        sendPushInBackground(
-          [invite.invited_by],
-          {
-            title: "Invite accepted",
-            body: `@${accepterRow?.username ?? "someone"} joined ${crewName ?? "your crew"}.`,
-            url: "/crew",
-          },
-          { category: "invite_accepted" },
-        );
       } catch (err) {
         logger.warn("crew_accept_push_dispatch_failed", { err: formatErrorForLog(err) });
       }
     }
 
     if (invite?.crew_id) {
-      // crew_id from the prior fetch + accepter is now active in the
-      // members list, so the fan-out catches them too.
       await revalidateCrewMembers(supabase, invite.crew_id);
-      if (invite.invited_by && invite.invited_by !== userId) {
-        revalidateTag(tags.userNotifications(invite.invited_by), "max");
-      }
     }
     return { success: true };
   } catch (err) {
@@ -457,8 +424,6 @@ export async function transferCrewOwnership(
       .eq("id", crewId);
     if (error) return { error: formatError(error) };
 
-    // Notify the new creator best-effort — they just gained rights
-    // over the crew and may not be watching the app.
     try {
       const { data: fromRow } = await supabase
         .from("profiles")
@@ -470,29 +435,19 @@ export async function transferCrewOwnership(
         .select("name")
         .eq("id", crewId)
         .maybeSingle();
-      await notifyUser(newOwnerId, {
+      await notify({
         kind: "crew_ownership_transferred",
-        payload: {
-          crew_id: crewId,
-          crew_name: crewName?.name ?? "a crew",
-          from_username: fromRow?.username ?? "someone",
-        },
+        recipient: newOwnerId,
+        actor: userId,
+        crewId,
+        crewName: crewName?.name ?? "a crew",
+        fromUsername: fromRow?.username ?? "someone",
       });
-      sendPushInBackground(
-        [newOwnerId],
-        {
-          title: "You're now the crew creator",
-          body: `@${fromRow?.username ?? "someone"} handed ${crewName?.name ?? "a crew"} over to you.`,
-          url: `/crew/${crewId}`,
-        },
-        { category: "ownership_changed" },
-      );
     } catch (err) {
       logger.warn("crew_transfer_push_dispatch_failed", { err: formatErrorForLog(err) });
     }
 
     await revalidateCrewMembers(supabase, crewId);
-    revalidateTag(tags.userNotifications(newOwnerId), "max");
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
