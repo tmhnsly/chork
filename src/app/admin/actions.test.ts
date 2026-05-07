@@ -16,6 +16,9 @@ vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("@/lib/auth", () => ({
   requireSignedIn: vi.fn(),
   requireGymAdmin: vi.fn(),
+  requireAdminOfSet: vi.fn(),
+  requireAdminOfRoute: vi.fn(),
+  requireCompetitionOrganiser: vi.fn(),
 }));
 vi.mock("@/lib/data/admin-mutations", () => ({
   createGymWithOwner: vi.fn(),
@@ -332,29 +335,25 @@ describe("set status shortcuts", () => {
 // ────────────────────────────────────────────────────────────────
 describe("updateRoute", () => {
   it("rejects malformed route ids", async () => {
+    const { requireAdminOfRoute } = await import("@/lib/auth");
+    vi.mocked(requireAdminOfRoute).mockResolvedValueOnce({ error: "Invalid route." });
     const { updateRoute } = await import("./actions");
     expect(await updateRoute("nope", {})).toEqual({ error: "Invalid route." });
   });
 
   it("rejects route numbers outside 1..999", async () => {
-    // verifyAdminOfRoute returns {auth, routeRow} only when the route
-    // exists. To exercise the number-range check we need the service
-    // client's select to resolve the row first; route-level auth is
-    // tested in the happy path below.
-    const { createServiceClient } = await import("@/lib/supabase/server");
-    vi.mocked(createServiceClient).mockReturnValue(
-      mockSupabase({
-        "table:routes": {
-          data: { id: ROUTE_1, set_id: SET_1, sets: { gym_id: GYM_1 } },
-        },
-      }) as never,
-    );
-    const { requireGymAdmin } = await import("@/lib/auth");
-    vi.mocked(requireGymAdmin).mockResolvedValue({
-      supabase: mockSupabase() as never,
-      userId: USER_A,
-      gymId: GYM_1,
-      isOwner: true,
+    // requireAdminOfRoute returns {auth, routeRow} only when the route
+    // exists + the caller admins its gym. Mock that successful gate
+    // here so the action proceeds to the number-range check.
+    const { requireAdminOfRoute } = await import("@/lib/auth");
+    vi.mocked(requireAdminOfRoute).mockResolvedValueOnce({
+      auth: {
+        supabase: mockSupabase() as never,
+        userId: USER_A,
+        gymId: GYM_1,
+        isOwner: true,
+      },
+      routeRow: { id: ROUTE_1, set_id: SET_1, gym_id: GYM_1 },
     });
     const { updateRoute } = await import("./actions");
     expect(await updateRoute(ROUTE_1, { number: 1000 })).toEqual({

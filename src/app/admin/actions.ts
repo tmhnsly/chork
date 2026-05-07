@@ -2,7 +2,13 @@
 
 import { revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireGymAdmin, requireSignedIn } from "@/lib/auth";
+import {
+  requireAdminOfRoute,
+  requireAdminOfSet,
+  requireCompetitionOrganiser,
+  requireGymAdmin,
+  requireSignedIn,
+} from "@/lib/auth";
 import {
   createGymWithOwner,
   acceptGymInvite,
@@ -357,39 +363,6 @@ export async function unpublishSet(setId: string): Promise<ActionResult> {
 // explicit return type, `as const` literals on each branch trick TS
 // into seeing `error` as optionally-undefined on the union).
 
-async function verifyAdminOfSet(setId: string): Promise<
-  { error: string } | { auth: Extract<Awaited<ReturnType<typeof requireGymAdmin>>, { gymId: string }>; setRow: { gym_id: string } }
-> {
-  if (!UUID_RE.test(setId)) return { error: "Invalid set." };
-  const service = createServiceClient();
-  const { data: setRow } = await service
-    .from("sets")
-    .select("gym_id")
-    .eq("id", setId)
-    .maybeSingle();
-  if (!setRow) return { error: "Set not found." };
-  const auth = await requireGymAdmin(setRow.gym_id);
-  if ("error" in auth) return { error: auth.error };
-  return { auth, setRow };
-}
-
-async function verifyAdminOfRoute(routeId: string): Promise<
-  { error: string } | { auth: Extract<Awaited<ReturnType<typeof requireGymAdmin>>, { gymId: string }>; routeRow: { id: string; set_id: string; gym_id: string } }
-> {
-  if (!UUID_RE.test(routeId)) return { error: "Invalid route." };
-  const service = createServiceClient();
-  const { data: routeRow } = await service
-    .from("routes")
-    .select("id, set_id, sets!inner(gym_id)")
-    .eq("id", routeId)
-    .maybeSingle<{ id: string; set_id: string; sets: { gym_id: string } | { gym_id: string }[] }>();
-  if (!routeRow) return { error: "Route not found." };
-  const gymId = Array.isArray(routeRow.sets) ? routeRow.sets[0]?.gym_id : routeRow.sets?.gym_id;
-  if (!gymId) return { error: "Route not found." };
-  const auth = await requireGymAdmin(gymId);
-  if ("error" in auth) return { error: auth.error };
-  return { auth, routeRow: { id: routeRow.id, set_id: routeRow.set_id, gym_id: gymId } };
-}
 
 export async function quickSetupSetRoutes(form: {
   setId: string;
@@ -409,7 +382,7 @@ export async function quickSetupSetRoutes(form: {
   if (form.zoneRouteNumbers.length > form.count) {
     return { error: "Zone route list exceeds route count." };
   }
-  const gate = await verifyAdminOfSet(form.setId);
+  const gate = await requireAdminOfSet(form.setId);
   if ("error" in gate) return { error: gate.error };
 
   const result = await quickSetupRoutes(gate.auth.supabase, {
@@ -431,7 +404,7 @@ export async function updateRoute(
     setterName?: string | null;
   }
 ): Promise<ActionResult> {
-  const gate = await verifyAdminOfRoute(routeId);
+  const gate = await requireAdminOfRoute(routeId);
   if ("error" in gate) return { error: gate.error };
 
   if (form.number !== undefined && (!Number.isInteger(form.number) || form.number < 1 || form.number > 999)) {
@@ -460,7 +433,7 @@ export async function updateRouteTags(
   routeId: string,
   tagIds: string[]
 ): Promise<ActionResult> {
-  const gate = await verifyAdminOfRoute(routeId);
+  const gate = await requireAdminOfRoute(routeId);
   if ("error" in gate) return { error: gate.error };
 
   if (!Array.isArray(tagIds)) {
@@ -517,27 +490,6 @@ export async function createNewCompetition(form: {
   return { success: true, competitionId: result.competitionId };
 }
 
-async function verifyCompetitionOrganiser(competitionId: string): Promise<
-  { error: string } | Extract<Awaited<ReturnType<typeof requireSignedIn>>, { supabase: unknown }>
-> {
-  if (!UUID_RE.test(competitionId)) return { error: "Invalid competition." };
-
-  const auth = await requireSignedIn();
-  if ("error" in auth) return { error: auth.error };
-
-  const service = createServiceClient();
-  const { data: comp } = await service
-    .from("competitions")
-    .select("organiser_id")
-    .eq("id", competitionId)
-    .maybeSingle();
-  if (!comp) return { error: "Competition not found." };
-  if (comp.organiser_id !== auth.userId) {
-    return { error: "Only the organiser can manage this competition." };
-  }
-  return auth;
-}
-
 export async function updateCompetitionAction(
   competitionId: string,
   form: {
@@ -548,7 +500,7 @@ export async function updateCompetitionAction(
     status?: "draft" | "live" | "archived";
   }
 ): Promise<ActionResult> {
-  const gate = await verifyCompetitionOrganiser(competitionId);
+  const gate = await requireCompetitionOrganiser(competitionId);
   if ("error" in gate) return { error: gate.error };
 
   if (form.name !== undefined) {
@@ -579,7 +531,7 @@ async function ensureOrganiserOrGymAdmin(
   competitionId: string,
   gymId: string,
 ): Promise<ActionResult> {
-  const asOrganiser = await verifyCompetitionOrganiser(competitionId);
+  const asOrganiser = await requireCompetitionOrganiser(competitionId);
   if ("error" in asOrganiser) {
     const asAdmin = await requireGymAdmin(gymId);
     if ("error" in asAdmin) {
@@ -634,7 +586,7 @@ export async function addCompetitionCategory(form: {
   name: string;
   displayOrder?: number;
 }): Promise<ActionResult<{ categoryId: string }>> {
-  const gate = await verifyCompetitionOrganiser(form.competitionId);
+  const gate = await requireCompetitionOrganiser(form.competitionId);
   if ("error" in gate) return { error: gate.error };
 
   const name = (form.name ?? "").trim();
@@ -665,7 +617,7 @@ export async function removeCompetitionCategory(categoryId: string): Promise<Act
     .maybeSingle();
   if (!cat) return { error: "Category not found." };
 
-  const gate = await verifyCompetitionOrganiser(cat.competition_id);
+  const gate = await requireCompetitionOrganiser(cat.competition_id);
   if ("error" in gate) return { error: gate.error };
 
   const result = await deleteCompetitionCategory(gate.supabase, categoryId);
