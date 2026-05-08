@@ -3,7 +3,7 @@
 import { FaCrown } from "react-icons/fa6";
 import { UserAvatar } from "@/components/ui";
 import type { LeaderboardEntry } from "@/lib/data";
-import { toAvatarUser } from "./helpers";
+import { toAvatarUser } from "@/lib/data/leaderboard-helpers";
 import { PODIUM_AVATAR_SIZE_FIRST, PODIUM_AVATAR_SIZE_RUNNER_UP } from "./podium-constants";
 import styles from "./podium.module.scss";
 

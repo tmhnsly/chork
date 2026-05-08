@@ -9,6 +9,10 @@ import { StatsWidget } from "@/components/StatsWidget/StatsWidget";
 import { SendGridTile } from "@/components/ui/SendGridTile/SendGridTile";
 import { Legend } from "@/components/ui";
 import dynamic from "next/dynamic";
+// SendsGrid owns the per-route data cache; the type lives in the
+// RouteLogSheet folder because that's the consumer that fills + reads it.
+// Type-only import — the heavy component itself is dynamic-loaded below.
+// eslint-disable-next-line no-restricted-imports
 import type { CachedRouteData } from "@/components/RouteLogSheet/types";
 
 const RouteLogSheet = dynamic(

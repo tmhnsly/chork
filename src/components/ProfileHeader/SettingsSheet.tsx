@@ -17,10 +17,15 @@ import {
   FaChevronRight,
 } from "react-icons/fa6";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+// SettingsSheet is intentionally a roll-up of feature-owned dialogs.
+// Each dialog stays in its own feature folder; this surface composes
+// them into one entry point.
+/* eslint-disable no-restricted-imports */
 import { EditProfileDialog } from "@/components/SettingsMenu/EditProfileDialog";
 import { DeleteAccountDialog } from "@/components/SettingsMenu/DeleteAccountDialog";
 import { GymSwitcherSheet } from "@/components/GymSwitcher/GymSwitcherSheet";
 import { InstallPwaSheet } from "@/components/InstallPwa/InstallPwaSheet";
+/* eslint-enable no-restricted-imports */
 import { useAuth } from "@/lib/auth-context";
 import { useTheme, THEME_META, type ThemeName } from "@/lib/theme";
 import { savePushSubscription, removePushSubscription } from "@/app/(app)/actions";

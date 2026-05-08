@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { getCompetitionLeaderboard, type CompetitionLeaderboardRow } from "@/lib/data/competition-queries";
 import { UserAvatar, shimmerStyles, TabPills, type TabPillOption } from "@/components/ui";
-import { toAvatarUser } from "@/components/Leaderboard/helpers";
+import { toAvatarUser } from "@/lib/data/leaderboard-helpers";
 import type { CompetitionCategory } from "@/lib/data/competition-queries";
 import styles from "./competitionLeaderboard.module.scss";
 
