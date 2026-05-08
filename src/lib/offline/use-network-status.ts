@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { mutationQueue } from "./mutation-queue";
-import { registerActionRunner } from "./action-map";
+import { registerActionRunner } from "./registry";
 
 let registered = false;
 function ensureRegistered() {

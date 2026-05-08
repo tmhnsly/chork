@@ -1,16 +1,5 @@
-export const OFFLINE_ACTIONS = [
-  "updateAttempts",
-  "completeRoute",
-  "uncompleteRoute",
-  "toggleZone",
-  "updateGradeVote",
-  // Jam logs reuse the offline pipeline. They upsert on
-  // (user_id, jam_route_id) server-side so replay is idempotent,
-  // matching the route_log contract.
-  "upsertJamLog",
-] as const;
-
-export type OfflineAction = (typeof OFFLINE_ACTIONS)[number];
+export type { OfflineAction } from "./registry";
+import type { OfflineAction } from "./registry";
 
 export interface QueuedMutation {
   id: string;
