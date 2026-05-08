@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit, Inter, DM_Sans } from "next/font/google";
+import { Outfit, Inter, Archivo } from "next/font/google";
 import { Providers } from "./providers";
 import { NavBarShell } from "@/components/NavBar/NavBarShell";
 import { env } from "@/lib/env";
@@ -20,17 +20,17 @@ const inter = Inter({
 
 // Real italic for display surfaces. Outfit ships no italic on Google
 // Fonts, so every `font-style: italic` on the heading family was being
-// browser-synthesised by skewing the upright glyph — the synth shape
-// overhangs its advance-width box by ~0.21em at 12° slant, which iOS
-// Safari paints outside the layout box and then clips. A real italic
-// font reports correct advance widths, so the right edge no longer
-// shaves off — fixes the recurring RevealText regression for good.
+// browser-synthesised by skewing the upright glyph — synth-italic
+// glyphs overhang their advance-width box, which iOS Safari paints
+// outside the layout box and then clips. A real italic font reports
+// correct advance widths, so the right edge no longer shaves off.
 //
-// DM Sans goes up to weight 1000 with a true italic axis, so the heavy
-// display weights (matching Outfit Black 900) render with proper
-// glyph metrics. Drop-in alternatives if the visual character ever
-// needs swapping: Plus Jakarta Sans (max 800) or Hanken Grotesk.
-const dmSansItalic = DM_Sans({
+// Archivo: neutral grotesque, weight up to 900, has a real italic
+// axis. Picked after a side-by-side trial across DM Sans, Hanken
+// Grotesk, Plus Jakarta, Mona/Hubot, Public Sans — Archivo holds
+// the most consistent character against Outfit Black upright while
+// keeping the grid-numbers (01 / 02 / 03 / 04) readable.
+const archivoItalic = Archivo({
   subsets: ["latin"],
   weight: ["700", "800", "900"],
   style: ["italic"],
@@ -201,7 +201,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${outfit.variable} ${inter.variable} ${dmSansItalic.variable}`}
+      className={`${outfit.variable} ${inter.variable} ${archivoItalic.variable}`}
     >
       <body>
         <a href="#main-content" className="skip-link">Skip to main content</a>
