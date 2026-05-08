@@ -5,9 +5,9 @@ import {
   getGym,
   getCurrentSet,
   getRoutesBySet,
-  getLeaderboardUserRow,
   getAllSets,
 } from "@/lib/data/queries";
+import { getLeaderboardUserRow } from "@/lib/data/leaderboard-queries";
 import { ClimberStats } from "@/components/ClimberStats/ClimberStats";
 import {
   flashRate,

@@ -21,7 +21,7 @@ import { ScoringBreakdown } from "./ScoringBreakdown";
 import { InviteCard } from "./InviteCard";
 import { PageHeader } from "@/components/motion";
 import type { LeaderboardEntry, Route } from "@/lib/data";
-import type { GymStats } from "@/lib/data/queries";
+import type { GymStats } from "@/lib/data/leaderboard-queries";
 import { fetchLeaderboardTab } from "@/app/leaderboard/actions";
 import styles from "./leaderboardView.module.scss";
 

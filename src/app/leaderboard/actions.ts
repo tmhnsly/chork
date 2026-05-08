@@ -1,12 +1,12 @@
 "use server";
 
 import { requireAuth } from "@/lib/auth";
+import { getLogsBySetForUser } from "@/lib/data/queries";
 import {
   getLeaderboardCached,
   getLeaderboardNeighbourhood,
   getLeaderboardUserRow,
-  getLogsBySetForUser,
-} from "@/lib/data/queries";
+} from "@/lib/data/leaderboard-queries";
 import { UUID_RE } from "@/lib/validation";
 import type { LeaderboardEntry } from "@/lib/data";
 

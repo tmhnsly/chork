@@ -1,7 +1,7 @@
 "use server";
 
 import { requireAuth } from "@/lib/auth";
-import { getLeaderboardUserRow } from "@/lib/data/queries";
+import { getLeaderboardUserRow } from "@/lib/data/leaderboard-queries";
 import { UUID_RE } from "@/lib/validation";
 
 /**

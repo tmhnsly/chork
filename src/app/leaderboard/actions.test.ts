@@ -8,13 +8,14 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/auth", () => ({ requireAuth: vi.fn() }));
 vi.mock("@/lib/data/queries", () => ({
-  getLeaderboard: vi.fn(() => Promise.resolve([])),
-  getLeaderboardCached: vi.fn(() => Promise.resolve([])),
-  getLeaderboardNeighbourhood: vi.fn(() => Promise.resolve([])),
-  getLeaderboardUserRow: vi.fn(() => Promise.resolve(null)),
   getProfile: vi.fn(),
   getRoutesBySet: vi.fn(() => Promise.resolve([])),
   getLogsBySetForUser: vi.fn(() => Promise.resolve([])),
+}));
+vi.mock("@/lib/data/leaderboard-queries", () => ({
+  getLeaderboardCached: vi.fn(() => Promise.resolve([])),
+  getLeaderboardNeighbourhood: vi.fn(() => Promise.resolve([])),
+  getLeaderboardUserRow: vi.fn(() => Promise.resolve(null)),
 }));
 
 type SbResult = { data?: unknown; error?: unknown };

@@ -4,12 +4,14 @@ import { requireAuth } from "@/lib/auth";
 import {
   getGym,
   getCurrentSet,
+  getRoutesBySet,
+} from "@/lib/data/queries";
+import {
   getLeaderboardCached,
   getLeaderboardNeighbourhood,
   getLeaderboardUserRow,
   getGymStatsV2Cached,
-  getRoutesBySet,
-} from "@/lib/data/queries";
+} from "@/lib/data/leaderboard-queries";
 import { LeaderboardView } from "@/components/Leaderboard/LeaderboardView";
 import styles from "./leaderboard.module.scss";
 

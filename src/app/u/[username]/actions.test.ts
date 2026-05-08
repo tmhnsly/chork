@@ -10,7 +10,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/auth", () => ({ requireAuth: vi.fn() }));
-vi.mock("@/lib/data/queries", () => ({
+vi.mock("@/lib/data/leaderboard-queries", () => ({
   getLeaderboardUserRow: vi.fn(),
 }));
 
@@ -108,7 +108,7 @@ describe("fetchSetPlacement", () => {
       userId: USER_A,
       gymId: GYM_OWN,
     });
-    const { getLeaderboardUserRow } = await import("@/lib/data/queries");
+    const { getLeaderboardUserRow } = await import("@/lib/data/leaderboard-queries");
     vi.mocked(getLeaderboardUserRow).mockResolvedValue({
       user_id: USER_B,
       username: "b",
@@ -135,7 +135,7 @@ describe("fetchSetPlacement", () => {
       userId: USER_A,
       gymId: GYM_OWN,
     });
-    const { getLeaderboardUserRow } = await import("@/lib/data/queries");
+    const { getLeaderboardUserRow } = await import("@/lib/data/leaderboard-queries");
     vi.mocked(getLeaderboardUserRow).mockResolvedValue(null);
 
     const { fetchSetPlacement } = await import("./actions");
