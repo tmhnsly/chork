@@ -1,11 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { FaLock } from "react-icons/fa6";
 import type { BadgeStatus } from "@/lib/badges";
 import { badgeFamily } from "@/lib/badges";
 import { ICON_MAP } from "@/lib/badge-icons";
-import { AchievementDetailSheet } from "@/components/Achievements/AchievementDetailSheet";
 import { BrandDivider } from "@/components/ui/BrandDivider";
 import { HorizontalScroller } from "@/components/ui/HorizontalScroller";
 import styles from "./badgeShelf.module.scss";
@@ -21,11 +20,13 @@ interface Props {
   /** Called when the user taps the header count OR the "+N more"
    *  pill at the end of the shelf. Opens the full catalogue. */
   onSeeAll?: () => void;
+  /** Called when the user taps an individual badge slot. Parent
+   *  owns the detail sheet — keeps BadgeShelf presentational and
+   *  decoupled from the Achievements feature folder. */
+  onTapBadge?: (badge: BadgeStatus) => void;
 }
 
-export function BadgeShelf({ badges, onSeeAll }: Props) {
-  const [openBadgeId, setOpenBadgeId] = useState<string | null>(null);
-
+export function BadgeShelf({ badges, onSeeAll, onTapBadge }: Props) {
   // Shelf contents — earned achievements plus the NEXT unearned tier
   // in each progress ladder (flashes / sends / points). Condition-
   // based locked achievements (Saviour, Not Easy Being Green, rhyme
@@ -77,10 +78,6 @@ export function BadgeShelf({ badges, onSeeAll }: Props) {
       totalEarned: earned.length,
     };
   }, [badges]);
-
-  const openBadge = openBadgeId
-    ? badges.find((b) => b.badge.id === openBadgeId) ?? null
-    : null;
 
   return (
     <section className={styles.shelf} aria-labelledby="achievements-heading">
@@ -145,7 +142,7 @@ export function BadgeShelf({ badges, onSeeAll }: Props) {
               key={b.badge.id}
               type="button"
               className={`${styles.slot} ${styles[`slot--${state}`]} ${family ? styles[`slot--${family}`] : ""}`}
-              onClick={() => setOpenBadgeId(b.badge.id)}
+              onClick={() => onTapBadge?.(b)}
               aria-label={`${name}. ${isSecret ? "Secret achievement." : b.badge.description}`}
             >
               <span className={styles.circle}>
@@ -174,14 +171,6 @@ export function BadgeShelf({ badges, onSeeAll }: Props) {
           </button>
         )}
       </HorizontalScroller>
-
-      {openBadge && (
-        <AchievementDetailSheet
-          badge={openBadge}
-          open
-          onClose={() => setOpenBadgeId(null)}
-        />
-      )}
     </section>
   );
 }

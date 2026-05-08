@@ -5,9 +5,13 @@ import dynamic from "next/dynamic";
 import { BadgeShelf } from "@/components/BadgeShelf/BadgeShelf";
 import type { BadgeStatus } from "@/lib/badges";
 
-// Lazy — sheet only opens when the user taps "See all".
+// Lazy — sheets only open on user gesture.
 const AchievementsSheet = dynamic(
   () => import("./AchievementsSheet").then((m) => m.AchievementsSheet),
+  { ssr: false },
+);
+const AchievementDetailSheet = dynamic(
+  () => import("./AchievementDetailSheet").then((m) => m.AchievementDetailSheet),
   { ssr: false },
 );
 
@@ -16,20 +20,34 @@ interface Props {
 }
 
 /**
- * Client wrapper around `BadgeShelf` that manages the "See all" sheet state.
- * Kept minimal so the server page can remain an RSC.
+ * Client wrapper around `BadgeShelf` that owns both the "See all" sheet
+ * and the per-badge detail sheet. BadgeShelf reports taps; this layer
+ * decides what to do — keeps BadgeShelf decoupled from the Achievements
+ * feature folder. Server page can stay an RSC.
  */
 export function ProfileAchievements({ badges }: Props) {
-  const [open, setOpen] = useState(false);
+  const [allOpen, setAllOpen] = useState(false);
+  const [openBadge, setOpenBadge] = useState<BadgeStatus | null>(null);
 
   return (
     <>
-      <BadgeShelf badges={badges} onSeeAll={() => setOpen(true)} />
+      <BadgeShelf
+        badges={badges}
+        onSeeAll={() => setAllOpen(true)}
+        onTapBadge={setOpenBadge}
+      />
       <AchievementsSheet
         badges={badges}
-        open={open}
-        onClose={() => setOpen(false)}
+        open={allOpen}
+        onClose={() => setAllOpen(false)}
       />
+      {openBadge && (
+        <AchievementDetailSheet
+          badge={openBadge}
+          open
+          onClose={() => setOpenBadge(null)}
+        />
+      )}
     </>
   );
 }
