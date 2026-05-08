@@ -9,7 +9,7 @@ import { StatsWidget } from "@/components/StatsWidget/StatsWidget";
 import { SendGridTile } from "@/components/ui/SendGridTile/SendGridTile";
 import { Legend } from "@/components/ui";
 import dynamic from "next/dynamic";
-import type { CachedRouteData } from "@/components/RouteLogSheet/RouteLogSheet";
+import type { CachedRouteData } from "@/components/RouteLogSheet/types";
 
 const RouteLogSheet = dynamic(
   () => import("@/components/RouteLogSheet/RouteLogSheet").then((m) => m.RouteLogSheet),

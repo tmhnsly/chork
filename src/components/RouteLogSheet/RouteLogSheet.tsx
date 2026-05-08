@@ -25,7 +25,8 @@ import {
 } from "@/components/ui";
 import { GradeSlider } from "./GradeSlider";
 import { formatGrade, type GradingScale } from "@/lib/data/grade-label";
-import type { RouteSet, Route, RouteLog, Comment, PaginatedComments } from "@/lib/data";
+import type { RouteSet, Route, RouteLog, Comment } from "@/lib/data";
+import type { CachedRouteData } from "./types";
 import { createOptimisticLog } from "@/lib/data";
 import { isFlash, computePoints } from "@/lib/data";
 import { useAuth } from "@/lib/auth-context";
@@ -50,13 +51,6 @@ import styles from "./routeLogSheet.module.scss";
 
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
-/** Data returned by fetchRouteData, cacheable at the SendsGrid level. */
-export interface CachedRouteData {
-  grade: number | null;
-  comments: PaginatedComments;
-  likedIds: string[];
-}
-
 interface Props {
   set: RouteSet;
   route: Route;
