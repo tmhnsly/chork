@@ -9,6 +9,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
 import { AUTH_REQUIRED_ERROR } from "./auth-errors";
 import { UUID_RE } from "./validation";
+import { enforce as enforceRateLimit } from "./rate-limit";
 
 type AuthSuccess = {
   supabase: SupabaseClient<Database>;
@@ -216,5 +217,31 @@ export async function requireCompetitionOrganiser(
   if (comp.organiser_id !== auth.userId) {
     return { error: "Only the organiser can manage this competition." };
   }
+  return auth;
+}
+
+/**
+ * Single-line gate for climber-side mutations. Validates the resource
+ * UUID, runs requireAuth (gym-scoped), and applies the standard
+ * write-rate-limit. Most route_log + comment mutations in
+ * `(app)/actions.ts` open with this prelude — the helper keeps it
+ * consistent and prevents an action from quietly skipping the
+ * rate-limit step.
+ *
+ * `resourceLabel` shapes the error message ("Invalid route" / "Invalid
+ * comment") so callers can keep their existing user-facing wording.
+ *
+ * Inline checks unique to one action (e.g. logId UUID, attempts range,
+ * grade bounds) stay at the call site after the gate returns success.
+ */
+export async function gateClimberMutation(
+  resourceId: string,
+  resourceLabel: string,
+): Promise<AuthSuccess | AuthFailure> {
+  if (!UUID_RE.test(resourceId)) return { error: `Invalid ${resourceLabel}` };
+  const auth = await requireAuth();
+  if ("error" in auth) return { error: auth.error };
+  const rl = await enforceRateLimit("mutationsWrite", auth.userId);
+  if (!rl.ok) return { error: rl.error };
   return auth;
 }

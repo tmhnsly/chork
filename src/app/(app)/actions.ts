@@ -2,7 +2,7 @@
 
 import { revalidatePath, revalidateTag } from "next/cache";
 import { revalidateUserProfile } from "@/lib/cache/revalidate";
-import { requireAuth, requireSignedIn } from "@/lib/auth";
+import { gateClimberMutation, requireAuth, requireSignedIn } from "@/lib/auth";
 import {
   upsertRouteLog,
   createActivityEvent,
@@ -40,16 +40,11 @@ export async function updateAttempts(
   attempts: number,
   logId?: string
 ): Promise<LogResult> {
-  if (!UUID_RE.test(routeId)) return { error: "Invalid route" };
   if (logId !== undefined && !UUID_RE.test(logId)) return { error: "Invalid log" };
   if (!Number.isInteger(attempts) || attempts < 0 || attempts > 999) return { error: "Invalid attempts" };
-
-  const auth = await requireAuth();
-  if ("error" in auth) return { error: auth.error };
-  const { supabase, userId, gymId } = auth;
-
-  const rl = await enforceRateLimit("mutationsWrite", userId);
-  if (!rl.ok) return { error: rl.error };
+  const gate = await gateClimberMutation(routeId, "route");
+  if ("error" in gate) return gate;
+  const { supabase, userId, gymId } = gate;
 
   try {
     const log = await upsertRouteLog(supabase, userId, routeId, { attempts }, logId, gymId);
@@ -68,7 +63,6 @@ export async function completeRoute(
   zone: boolean,
   logId?: string
 ): Promise<LogResult> {
-  if (!UUID_RE.test(routeId)) return { error: "Invalid route" };
   if (logId !== undefined && !UUID_RE.test(logId)) return { error: "Invalid log" };
   if (!Number.isInteger(attempts) || attempts < 1 || attempts > 999) return { error: "Invalid attempts" };
   // Grade bound matches the DB constraint relaxed in migration 014
@@ -78,13 +72,9 @@ export async function completeRoute(
   if (gradeVote !== null && (!Number.isInteger(gradeVote) || gradeVote < 0 || gradeVote > 30)) {
     return { error: "Invalid grade" };
   }
-
-  const auth = await requireAuth();
-  if ("error" in auth) return { error: auth.error };
-  const { supabase, userId, gymId } = auth;
-
-  const rl = await enforceRateLimit("mutationsWrite", userId);
-  if (!rl.ok) return { error: rl.error };
+  const gate = await gateClimberMutation(routeId, "route");
+  if ("error" in gate) return gate;
+  const { supabase, userId, gymId } = gate;
 
   const isFlash = attempts === 1;
 
@@ -150,14 +140,10 @@ export async function uncompleteRoute(
   routeId: string,
   logId?: string
 ): Promise<LogResult> {
-  if (!UUID_RE.test(routeId)) return { error: "Invalid route" };
   if (logId !== undefined && !UUID_RE.test(logId)) return { error: "Invalid log" };
-  const auth = await requireAuth();
-  if ("error" in auth) return { error: auth.error };
-  const { supabase, userId, gymId } = auth;
-
-  const rl = await enforceRateLimit("mutationsWrite", userId);
-  if (!rl.ok) return { error: rl.error };
+  const gate = await gateClimberMutation(routeId, "route");
+  if ("error" in gate) return gate;
+  const { supabase, userId, gymId } = gate;
 
   try {
     const [log] = await Promise.all([
@@ -186,14 +172,10 @@ export async function toggleZone(
   zone: boolean,
   logId?: string
 ): Promise<LogResult> {
-  if (!UUID_RE.test(routeId)) return { error: "Invalid route" };
   if (logId !== undefined && !UUID_RE.test(logId)) return { error: "Invalid log" };
-  const auth = await requireAuth();
-  if ("error" in auth) return { error: auth.error };
-  const { supabase, userId, gymId } = auth;
-
-  const rl = await enforceRateLimit("mutationsWrite", userId);
-  if (!rl.ok) return { error: rl.error };
+  const gate = await gateClimberMutation(routeId, "route");
+  if ("error" in gate) return gate;
+  const { supabase, userId, gymId } = gate;
 
   try {
     const log = await upsertRouteLog(supabase, userId, routeId, { zone }, logId, gymId);
@@ -209,7 +191,6 @@ export async function updateGradeVote(
   gradeVote: number | null,
   logId: string
 ): Promise<LogResult> {
-  if (!UUID_RE.test(routeId)) return { error: "Invalid route" };
   if (!UUID_RE.test(logId)) return { error: "Invalid log" };
   // Grade bound matches the DB constraint relaxed in migration 014
   // (0..30 covers V/Font/points scales). The previous 0..10 clamp
@@ -218,13 +199,9 @@ export async function updateGradeVote(
   if (gradeVote !== null && (!Number.isInteger(gradeVote) || gradeVote < 0 || gradeVote > 30)) {
     return { error: "Invalid grade" };
   }
-
-  const auth = await requireAuth();
-  if ("error" in auth) return { error: auth.error };
-  const { supabase, userId, gymId } = auth;
-
-  const rl = await enforceRateLimit("mutationsWrite", userId);
-  if (!rl.ok) return { error: rl.error };
+  const gate = await gateClimberMutation(routeId, "route");
+  if ("error" in gate) return gate;
+  const { supabase, userId, gymId } = gate;
 
   try {
     const log = await upsertRouteLog(supabase, userId, routeId, { grade_vote: gradeVote }, logId, gymId);
@@ -242,17 +219,12 @@ export async function postComment(
   routeId: string,
   body: string
 ): Promise<CommentResult> {
-  if (!UUID_RE.test(routeId)) return { error: "Invalid route" };
   const trimmed = typeof body === "string" ? body.trim() : "";
   if (!trimmed) return { error: "Comment can't be empty - write something first" };
   if (trimmed.length > 500) return { error: "Comments must be 500 characters or less" };
-
-  const auth = await requireAuth();
-  if ("error" in auth) return { error: auth.error };
-  const { supabase, userId, gymId } = auth;
-
-  const rl = await enforceRateLimit("mutationsWrite", userId);
-  if (!rl.ok) return { error: rl.error };
+  const gate = await gateClimberMutation(routeId, "route");
+  if ("error" in gate) return gate;
+  const { supabase, userId, gymId } = gate;
 
   try {
     const comment = await createComment(supabase, {
@@ -344,14 +316,9 @@ export async function fetchRouteData(routeId: string): Promise<{
 export async function likeComment(
   commentId: string
 ): Promise<{ liked?: boolean; likes?: number; error?: string }> {
-  if (!UUID_RE.test(commentId)) return { error: "Invalid comment" };
-
-  const auth = await requireAuth();
-  if ("error" in auth) return { error: auth.error };
-  const { supabase, userId, gymId } = auth;
-
-  const rl = await enforceRateLimit("mutationsWrite", userId);
-  if (!rl.ok) return { error: rl.error };
+  const gate = await gateClimberMutation(commentId, "comment");
+  if ("error" in gate) return gate;
+  const { supabase, userId, gymId } = gate;
 
   try {
     return await toggleCommentLike(supabase, userId, commentId, gymId);
@@ -364,17 +331,12 @@ export async function editComment(
   commentId: string,
   body: string
 ): Promise<CommentResult> {
-  if (!UUID_RE.test(commentId)) return { error: "Invalid comment" };
   const trimmed = typeof body === "string" ? body.trim() : "";
   if (!trimmed) return { error: "Comment can't be empty - write something first" };
   if (trimmed.length > 500) return { error: "Comments must be 500 characters or less" };
-
-  const auth = await requireAuth();
-  if ("error" in auth) return { error: auth.error };
-  const { supabase, userId, gymId } = auth;
-
-  const rl = await enforceRateLimit("mutationsWrite", userId);
-  if (!rl.ok) return { error: rl.error };
+  const gate = await gateClimberMutation(commentId, "comment");
+  if ("error" in gate) return gate;
+  const { supabase, userId, gymId } = gate;
 
   try {
     // Ownership + gym-scope check

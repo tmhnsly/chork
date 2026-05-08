@@ -6,10 +6,22 @@ vi.mock("@/lib/supabase/server", () => ({
   createServerSupabase: vi.fn(),
   createServiceClient: vi.fn(),
 }));
-vi.mock("@/lib/auth", () => ({
-  requireAuth: vi.fn(),
-  requireSignedIn: vi.fn(),
-}));
+vi.mock("@/lib/auth", () => {
+  const requireAuth = vi.fn();
+  const requireSignedIn = vi.fn();
+  // gateClimberMutation in production: UUID gate + requireAuth + rate-
+  // limit. Mock forwards UUID failure inline + delegates the auth
+  // outcome to the existing requireAuth mock so per-test setups that
+  // call vi.mocked(requireAuth).mockResolvedValue(mockAuth) continue
+  // to work without a parallel gateClimberMutation mock at every site.
+  // Rate limit is skipped — covered by lib/rate-limit's own tests.
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const gateClimberMutation = vi.fn(async (id: string, label: string) => {
+    if (!UUID_RE.test(id)) return { error: `Invalid ${label}` };
+    return await requireAuth();
+  });
+  return { requireAuth, requireSignedIn, gateClimberMutation };
+});
 vi.mock("@/lib/data/mutations", () => ({
   upsertRouteLog: vi.fn(),
   createActivityEvent: vi.fn(),
