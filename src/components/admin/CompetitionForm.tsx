@@ -7,6 +7,7 @@ import {
   createNewCompetition,
   updateCompetitionAction,
 } from "@/app/admin/actions";
+import { toDateInput, fromDateInput } from "./date-input";
 import styles from "./competitionForm.module.scss";
 
 type Status = "draft" | "live" | "archived";
@@ -160,11 +161,3 @@ export function CompetitionForm({ mode, competition }: Props) {
   );
 }
 
-function toDateInput(iso: string | undefined): string {
-  if (!iso) return "";
-  return iso.slice(0, 10);
-}
-
-function fromDateInput(value: string): string {
-  return new Date(`${value}T00:00:00Z`).toISOString();
-}
