@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { PageTitle } from "./PageTitle";
+import { RevealText } from "./RevealText";
 import styles from "./pageHeader.module.scss";
 
 /**
@@ -27,7 +27,7 @@ interface Props {
 }
 
 /**
- * Shared page-level header. Pairs `PageTitle` (with its reveal
+ * Shared page-level header. Pairs the title (with its RevealText
  * animation) with an optional subtitle and applies the canonical
  * spacing between title and the first piece of page content.
  *
@@ -41,7 +41,7 @@ export function PageHeader({ title, subtitle, as = "h1", size = "md" }: Props) {
     .join(" ");
   return (
     <header className={styles.header}>
-      <PageTitle text={title} as={as} className={titleClass} />
+      <RevealText text={title} as={as} className={titleClass} />
       {subtitle && <p className={styles.subtitle}>{subtitle}</p>}
     </header>
   );
