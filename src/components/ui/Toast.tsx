@@ -9,7 +9,8 @@ import {
   FaTrophy,
 } from "react-icons/fa6";
 import { ICON_MAP } from "@/lib/badge-icons";
-import type { BadgeDefinition, BadgeCategory, BadgeIcon } from "@/lib/badges";
+import { badgeFamily } from "@/lib/badges";
+import type { BadgeDefinition } from "@/lib/badges";
 import styles from "./toast.module.scss";
 
 type Variant = "info" | "success" | "warning" | "error";
@@ -48,15 +49,6 @@ export function showToast(message: string, variant: Variant = "success") {
   );
 }
 
-// Match BadgeShelf's earnedFamily(badge) so the toast's tint mirrors
-// the colour family the achievement reads as in the shelf — flash
-// earns get amber, zone earns get teal, everything else accent lime.
-function familyFor(badge: { category: BadgeCategory; icon: BadgeIcon }): "accent" | "flash" | "success" {
-  if (badge.category === "flashes") return "flash";
-  if (badge.icon === "flag") return "success";
-  return "accent";
-}
-
 /**
  * Rich toast for a freshly-earned achievement. Larger footprint than
  * the standard variant — icon medallion on the left, "Achievement
@@ -68,7 +60,7 @@ function familyFor(badge: { category: BadgeCategory; icon: BadgeIcon }): "accent
  */
 export function showAchievementToast(badge: BadgeDefinition) {
   const Icon = ICON_MAP[badge.icon] ?? FaTrophy;
-  const family = familyFor(badge);
+  const family = badgeFamily(badge);
 
   toast.custom(
     (t) => (

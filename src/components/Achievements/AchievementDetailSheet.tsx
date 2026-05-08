@@ -3,8 +3,10 @@
 import { FaCheck, FaLock } from "react-icons/fa6";
 import { format, parseISO } from "date-fns";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { ICON_MAP, ProgressRing } from "@/components/BadgeShelf/BadgeShelf";
-import type { BadgeStatus, BadgeCategory, BadgeIcon, ProgressKey } from "@/lib/badges";
+import { ProgressRing } from "@/components/BadgeShelf/BadgeShelf";
+import { ICON_MAP } from "@/lib/badge-icons";
+import { badgeFamily } from "@/lib/badges";
+import type { BadgeStatus, ProgressKey } from "@/lib/badges";
 import styles from "./achievementDetailSheet.module.scss";
 
 interface Props {
@@ -53,9 +55,9 @@ export function AchievementDetailSheet({ badge, open, onClose }: Props) {
   // Family drives both the earned tint AND the in-progress ring
   // colour so a flash-category badge reads amber at both 60% and
   // 100% earned.
-  const family: "flash" | "success" | "accent" | null =
+  const family =
     heroState === "earned" || heroState === "progress"
-      ? earnedFamily(badge.badge)
+      ? badgeFamily(badge.badge)
       : null;
 
   return (
@@ -120,13 +122,6 @@ export function AchievementDetailSheet({ badge, open, onClose }: Props) {
       </div>
     </BottomSheet>
   );
-}
-
-/** Match the shelf's badge → colour family mapping. */
-function earnedFamily(badge: { category: BadgeCategory; icon: BadgeIcon }): "flash" | "success" | "accent" {
-  if (badge.category === "flashes") return "flash";
-  if (badge.icon === "flag") return "success";
-  return "accent";
 }
 
 /** Human unit for the "N / target <unit>" progress label. Exhaustive
