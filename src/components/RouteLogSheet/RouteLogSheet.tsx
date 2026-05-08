@@ -6,17 +6,14 @@ import {
   FaEyeSlash,
   FaEye,
   FaPaperPlane,
-  FaBolt,
   FaPen,
-  FaCheck,
-  FaXmark,
   FaHeart,
   FaRegHeart,
   FaChevronDown,
-  FaArrowRight,
 } from "react-icons/fa6";
-import type { ReactNode } from "react";
 import { pickSendMessage } from "@/lib/send-messages";
+import { PointsPreview } from "./PointsPreview";
+import { EditCommentForm } from "./EditCommentForm";
 import {
   AttemptCounter,
   CompletedRow,
@@ -27,8 +24,7 @@ import { GradeSlider } from "./GradeSlider";
 import { formatGrade, type GradingScale } from "@/lib/data/grade-label";
 import type { RouteSet, Route, RouteLog, Comment } from "@/lib/data";
 import type { CachedRouteData } from "./types";
-import { createOptimisticLog } from "@/lib/data";
-import { isFlash, computePoints } from "@/lib/data";
+import { createOptimisticLog, isFlash } from "@/lib/data";
 import { useAuth } from "@/lib/auth-context";
 import {
   offlineUpdateAttempts as updateAttempts,
@@ -61,34 +57,6 @@ interface Props {
   onLogUpdate: (routeId: string, log: RouteLog) => void;
 }
 
-
-function PointsPreview({
-  attempts,
-  zone,
-  completed,
-  log,
-}: {
-  attempts: number;
-  zone: boolean;
-  completed: boolean;
-  log: RouteLog | null;
-}): ReactNode {
-  if (completed && log) {
-    const pts = computePoints(log);
-    return <><span className={styles.ptsValue}>{pts}</span> pts</>;
-  }
-  if (attempts === 0) return "\u00A0";
-  const pts = computePoints({ attempts, completed: true, zone: false });
-  const flash = attempts === 1;
-  return (
-    <>
-      Send now <FaArrowRight className={styles.ptsArrow} />{" "}
-      <span className={`${styles.ptsValue} ${flash ? styles.ptsValueFlash : ""}`}>{pts} pts</span>
-      {flash && <FaBolt className={styles.ptsFlash} />}
-      {zone && <span className={styles.ptsZone}>+1 zone</span>}
-    </>
-  );
-}
 
 export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRouteData, onLogUpdate }: Props) {
   const { profile: user } = useAuth();
@@ -770,71 +738,3 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
   );
 }
 
-/**
- * Inline edit form for a comment.
- *
- * We focus the input on mount and explicitly scroll it into view
- * afterwards. The `scrollIntoView` call mirrors what iOS does when
- * the user taps an input directly — the browser lifts the field
- * above the virtual keyboard. When focus is triggered *program-
- * matically* (our effect), iOS does not perform that lift, which
- * used to leave the edit input hidden behind the keyboard. A small
- * timeout gives the keyboard animation time to start so the scroll
- * position settles above it.
- *
- * The earlier "panel shifts up when editing" bug was fixed in CSS
- * by pinning the edit-form row height — that's why it's safe to
- * re-enable the natural scroll-into-view behaviour here.
- */
-function EditCommentForm({
-  initialBody,
-  onChange,
-  onSubmit,
-  onCancel,
-}: {
-  initialBody: string;
-  onChange: (v: string) => void;
-  onSubmit: () => void;
-  onCancel: () => void;
-}) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const el = inputRef.current;
-    if (!el) return;
-    el.focus();
-    const id = window.setTimeout(() => {
-      el.scrollIntoView({ block: "center", behavior: "smooth" });
-    }, 120);
-    return () => window.clearTimeout(id);
-  }, []);
-
-  return (
-    <div className={styles.editForm}>
-      <input
-        ref={inputRef}
-        type="text"
-        className={styles.commentInput}
-        value={initialBody}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      <button
-        type="button"
-        className={styles.editConfirm}
-        onClick={onSubmit}
-        disabled={!initialBody.trim()}
-        aria-label="Save comment"
-      >
-        <FaCheck />
-      </button>
-      <button
-        type="button"
-        className={styles.editCancel}
-        onClick={onCancel}
-        aria-label="Cancel edit"
-      >
-        <FaXmark />
-      </button>
-    </div>
-  );
-}
