@@ -5,7 +5,7 @@ import { FaCheck, FaLock } from "react-icons/fa6";
 import { format, parseISO } from "date-fns";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { SheetBody, TabPills, type TabPillOption } from "@/components/ui";
-import { ICON_MAP } from "@/components/BadgeShelf/BadgeShelf";
+import { ICON_MAP } from "@/lib/badge-icons";
 import type { BadgeStatus, BadgeCategory } from "@/lib/badges";
 import { badgeFamily } from "@/lib/badges";
 import styles from "./achievementsSheet.module.scss";

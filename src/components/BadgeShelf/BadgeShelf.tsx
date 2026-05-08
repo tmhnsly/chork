@@ -9,12 +9,6 @@ import { BrandDivider } from "@/components/ui/BrandDivider";
 import { HorizontalScroller } from "@/components/ui/HorizontalScroller";
 import styles from "./badgeShelf.module.scss";
 
-// ICON_MAP re-exported so existing imports from BadgeShelf keep
-// working. The map itself lives in src/lib/badge-icons.tsx so
-// lightweight surfaces (toasts) can render icons without pulling
-// in the shelf's full sheet/animation tree.
-export { ICON_MAP };
-
 interface Props {
   badges: BadgeStatus[];
   /** Called when the user taps the header count OR the "+N more"

@@ -5,7 +5,7 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import { SheetBody } from "@/components/ui";
 import { RingStatsRow } from "@/components/RingStatsRow/RingStatsRow";
 import { RouteChart } from "@/components/RouteChart/RouteChart";
-import { ICON_MAP as BADGE_ICONS } from "@/components/BadgeShelf/BadgeShelf";
+import { ICON_MAP as BADGE_ICONS } from "@/lib/badge-icons";
 import { pointsPerSend } from "@/lib/data/profile-stats";
 import { fetchSetPlacement } from "@/app/u/[username]/actions";
 import type { SetCell } from "./PreviousSetsGrid";
