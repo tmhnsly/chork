@@ -459,9 +459,8 @@
   color: var(--accent-on-solid);
   border: 3px solid var(--mono-app-bg);
   box-shadow: 0 0 0 2px var(--accent-solid), 0 4px 14px var(--accent-bg);
-  font-family: var(--font-heading);
+  @include type.italic-display;
   font-weight: var(--weight-black);
-  font-style: italic;
   font-size: clamp(10px, 3cqi, 14px);
   letter-spacing: var(--tracking-tight);
   line-height: 1;
@@ -477,9 +476,8 @@
   display: grid;
   place-items: center;
   border: 3px solid var(--mono-app-bg);
-  font-family: var(--font-heading);
+  @include type.italic-display;
   font-weight: var(--weight-black);
-  font-style: italic;
   font-size: clamp(10px, 3cqi, 14px);
   letter-spacing: var(--tracking-tight);
   line-height: 1;
@@ -829,9 +827,8 @@
   border-radius: var(--radius-1);
   background: var(--accent-solid);
   color: var(--accent-on-solid);
-  font-family: var(--font-heading);
+  @include type.italic-display;
   font-weight: var(--weight-black);
-  font-style: italic;
   font-size: clamp(10px, 2.8cqi, 14px);
   line-height: 1;
   letter-spacing: var(--tracking-tight);
@@ -1262,9 +1259,8 @@
 }
 
 .zonePtsMain {
-  font-family: var(--font-heading);
+  @include type.italic-display;
   font-weight: var(--weight-black);
-  font-style: italic;
   font-size: clamp(14px, 4cqi, 20px);
   letter-spacing: var(--tracking-tight);
   line-height: 1;

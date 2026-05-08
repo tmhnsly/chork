@@ -39,9 +39,8 @@
 }
 
 .number {
-  font-family: var(--font-heading);
+  @include type.italic-display;
   font-weight: var(--weight-black);
-  font-style: italic;
   font-size: 40cqi;
   line-height: 1;
   letter-spacing: var(--tracking-tight);

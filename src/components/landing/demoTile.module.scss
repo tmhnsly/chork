@@ -1,3 +1,5 @@
+@use "mixins/typography" as type;
+
 .tile {
   position: relative;
   aspect-ratio: 1;
@@ -9,9 +11,8 @@
 }
 
 .number {
-  font-family: var(--font-heading);
+  @include type.italic-display;
   font-weight: var(--weight-black);
-  font-style: italic;
   font-size: 40cqi;
   line-height: 1;
   letter-spacing: var(--tracking-tight);

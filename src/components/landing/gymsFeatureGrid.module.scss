@@ -233,9 +233,8 @@
 .dashboardBigValue {
   position: absolute;
   inset: 0;
-  font-family: var(--font-heading);
+  @include type.italic-display;
   font-weight: var(--weight-black);
-  font-style: italic;
   font-size: clamp(40px, 13cqi, 64px);
   line-height: 1;
   color: var(--flash-text);
@@ -364,9 +363,8 @@
 }
 
 .compTitle {
-  font-family: var(--font-heading);
+  @include type.italic-display;
   font-weight: var(--weight-black);
-  font-style: italic;
   font-size: clamp(14px, 4.2cqi, 20px);
   line-height: 1;
   color: var(--mono-text);
@@ -636,9 +634,8 @@
   inset: 0;
   display: grid;
   place-items: center;
-  font-family: var(--font-heading);
+  @include type.italic-display;
   font-weight: var(--weight-black);
-  font-style: italic;
   font-size: clamp(44px, 20cqi, 96px);
   line-height: 1;
   color: var(--accent-text);
@@ -715,9 +712,8 @@
   display: inline-flex;
   align-items: flex-start;
   gap: clamp(2px, 0.8cqi, 4px);
-  font-family: var(--font-heading);
+  @include type.italic-display;
   font-weight: var(--weight-black);
-  font-style: italic;
   color: var(--success-text);
   line-height: 0.9;
   letter-spacing: var(--tracking-tight);

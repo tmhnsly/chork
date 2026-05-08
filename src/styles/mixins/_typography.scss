@@ -4,6 +4,12 @@
 // Each preset defines size, leading, weight, tracking, family,
 // and optional transform / style (italic).
 // Family maps: heading → --font-heading (Outfit), body → --font-body (Inter).
+//
+// Italic surfaces use --font-display-italic (Bricolage Grotesque) so the
+// glyphs come from a real italic font instead of a browser-skewed
+// upright. Outfit ships no italic on Google Fonts; the synth-italic
+// overhang past the advance-width box was the root cause of the
+// recurring iOS RevealText right-edge clipping.
 @use "sass:map";
 
 $_typography: (
@@ -98,5 +104,20 @@ $_typography: (
   $style: map.get($p, style);
   @if $style {
     font-style: $style;
+    @if $style == italic {
+      // Override the heading family with the real-italic font so iOS
+      // doesn't synthesise + clip. Falls back to the preset's own
+      // family if --font-display-italic isn't loaded yet.
+      font-family: var(--font-display-italic, #{map.get($p, family)});
+    }
   }
+}
+
+// Standalone italic-display mixin for surfaces that style themselves
+// without going through `typography($preset)`. Pairs `font-style:
+// italic` with the real-italic font swap so a `@include type.italic-
+// display` is always equivalent to using a `style: italic` preset.
+@mixin italic-display {
+  font-style: italic;
+  font-family: var(--font-display-italic, var(--font-heading));
 }

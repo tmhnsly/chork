@@ -94,7 +94,6 @@
 
 .winnerPoints {
   @include type.typography(number);
-  font-style: italic;
   color: var(--accent-text);
   font-size: var(--text-4xl);
   line-height: 1;
@@ -140,7 +139,6 @@
 
 .playerRank {
   @include type.typography(number);
-  font-style: italic;
   color: var(--mono-text);
   font-size: var(--text-xl);
   min-width: 2rem;
@@ -180,7 +178,6 @@
 
 .playerPoints {
   @include type.typography(number);
-  font-style: italic;
   color: var(--accent-text);
   font-size: var(--text-lg);
 }

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit, Inter } from "next/font/google";
+import { Outfit, Inter, DM_Sans } from "next/font/google";
 import { Providers } from "./providers";
 import { NavBarShell } from "@/components/NavBar/NavBarShell";
 import { env } from "@/lib/env";
@@ -16,6 +16,26 @@ const inter = Inter({
   variable: "--font-inter",
   display: "swap",
   preload: false,
+});
+
+// Real italic for display surfaces. Outfit ships no italic on Google
+// Fonts, so every `font-style: italic` on the heading family was being
+// browser-synthesised by skewing the upright glyph — the synth shape
+// overhangs its advance-width box by ~0.21em at 12° slant, which iOS
+// Safari paints outside the layout box and then clips. A real italic
+// font reports correct advance widths, so the right edge no longer
+// shaves off — fixes the recurring RevealText regression for good.
+//
+// DM Sans goes up to weight 1000 with a true italic axis, so the heavy
+// display weights (matching Outfit Black 900) render with proper
+// glyph metrics. Drop-in alternatives if the visual character ever
+// needs swapping: Plus Jakarta Sans (max 800) or Hanken Grotesk.
+const dmSansItalic = DM_Sans({
+  subsets: ["latin"],
+  weight: ["700", "800", "900"],
+  style: ["italic"],
+  variable: "--font-display-italic",
+  display: "swap",
 });
 
 // Public site URL for absolute share-link image / canonical resolution.
@@ -181,7 +201,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${outfit.variable} ${inter.variable}`}
+      className={`${outfit.variable} ${inter.variable} ${dmSansItalic.variable}`}
     >
       <body>
         <a href="#main-content" className="skip-link">Skip to main content</a>
