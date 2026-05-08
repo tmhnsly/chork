@@ -4,6 +4,10 @@ import { revalidateTag } from "next/cache";
 import { requireSignedIn } from "@/lib/auth";
 import { formatError, formatErrorForLog } from "@/lib/errors";
 import { notify } from "@/lib/notify";
+import {
+  sendCrewInvite as sendCrewInviteLifecycle,
+  transferCrewOwnership as transferCrewOwnershipLifecycle,
+} from "@/lib/data/crew-lifecycle";
 import { revalidateUserProfile } from "@/lib/cache/revalidate";
 import { UUID_RE } from "@/lib/validation";
 import { enforce as enforceRateLimit } from "@/lib/rate-limit";
@@ -123,7 +127,8 @@ export async function inviteToCrew(
   }
 
   // Edge-layer rate limit (Upstash). Runs BEFORE the SQL
-  // `bump_invite_rate_limit` check below for two reasons:
+  // `bump_invite_rate_limit` check inside the lifecycle for two
+  // reasons:
   //   • faster fail under a burst — Redis short-circuits before we
   //     take a Postgres connection slot.
   //   • defence-in-depth — if the SQL RPC ever drifts (grant
@@ -131,69 +136,14 @@ export async function inviteToCrew(
   const rl = await enforceRateLimit("invitesSend", userId);
   if (!rl.ok) return { error: rl.error };
 
-  try {
-    // Rate limit — 10 invites per caller per day. RPC is atomic so a
-    // parallel burst can't race past the cap.
-    const { data: under } = await supabase.rpc("bump_invite_rate_limit");
-    if (under === false) {
-      return { error: "You've hit today's invite limit. Try again tomorrow." };
-    }
-
-    // Reject invites where the target has opted out OR has blocked
-    // the caller OR the caller has blocked them. The search query
-    // filters these, but a stale client payload might still reach us.
-    const { data: target } = await supabase
-      .from("profiles")
-      .select("allow_crew_invites")
-      .eq("id", targetUserId)
-      .maybeSingle();
-    if (!target) return { error: "User not found." };
-    if (!target.allow_crew_invites) return { error: "That climber isn't taking invites." };
-
-    const { data: inserted, error } = await supabase
-      .from("crew_members")
-      .insert({
-        crew_id: crewId,
-        user_id: targetUserId,
-        invited_by: userId,
-        status: "pending",
-      })
-      .select("id")
-      .single();
-
-    if (error) {
-      // Unique violation = already a member or pending. Surface a
-      // meaningful message rather than a raw DB error.
-      if (error.code === "23505") {
-        return { error: "This climber already has an invite for that crew." };
-      }
-      return { error: formatError(error) };
-    }
-
-    try {
-      const [{ data: crewRow }, { data: inviterRow }] = await Promise.all([
-        supabase.from("crews").select("name").eq("id", crewId).maybeSingle(),
-        supabase.from("profiles").select("username").eq("id", userId).maybeSingle(),
-      ]);
-      await notify({
-        kind: "crew_invite_received",
-        recipient: targetUserId,
-        actor: userId,
-        crewId,
-        crewName: crewRow?.name ?? "a crew",
-        inviteId: inserted?.id ?? "",
-        inviterUsername: inviterRow?.username ?? "someone",
-      });
-    } catch (err) {
-      logger.warn("crew_invite_dispatch_failed", { err: formatErrorForLog(err) });
-    }
-
-    revalidateTag(tags.crew(crewId), "max");
-    revalidateTag(tags.userCrews(userId), "max");
-    return { success: true };
-  } catch (err) {
-    return { error: formatError(err) };
-  }
+  const result = await sendCrewInviteLifecycle({
+    supabase,
+    actorId: userId,
+    crewId,
+    targetUserId,
+  });
+  if ("error" in result) return { error: result.error };
+  return { success: true };
 }
 
 export async function acceptCrewInvite(crewMemberId: string): Promise<ActionResult> {
@@ -396,62 +346,14 @@ export async function transferCrewOwnership(
     return { error: "You're already the creator." };
   }
 
-  try {
-    const { data: crew } = await supabase
-      .from("crews")
-      .select("created_by")
-      .eq("id", crewId)
-      .maybeSingle();
-    if (!crew) return { error: "Crew not found." };
-    if (crew.created_by !== userId) {
-      return { error: "Only the current creator can transfer a crew." };
-    }
-
-    const { data: target } = await supabase
-      .from("crew_members")
-      .select("id")
-      .eq("crew_id", crewId)
-      .eq("user_id", newOwnerId)
-      .eq("status", "active")
-      .maybeSingle();
-    if (!target) {
-      return { error: "That climber isn't an active member of this crew." };
-    }
-
-    const { error } = await supabase
-      .from("crews")
-      .update({ created_by: newOwnerId })
-      .eq("id", crewId);
-    if (error) return { error: formatError(error) };
-
-    try {
-      const { data: fromRow } = await supabase
-        .from("profiles")
-        .select("username")
-        .eq("id", userId)
-        .maybeSingle();
-      const { data: crewName } = await supabase
-        .from("crews")
-        .select("name")
-        .eq("id", crewId)
-        .maybeSingle();
-      await notify({
-        kind: "crew_ownership_transferred",
-        recipient: newOwnerId,
-        actor: userId,
-        crewId,
-        crewName: crewName?.name ?? "a crew",
-        fromUsername: fromRow?.username ?? "someone",
-      });
-    } catch (err) {
-      logger.warn("crew_transfer_push_dispatch_failed", { err: formatErrorForLog(err) });
-    }
-
-    await revalidateCrewMembers(supabase, crewId);
-    return { success: true };
-  } catch (err) {
-    return { error: formatError(err) };
-  }
+  const result = await transferCrewOwnershipLifecycle({
+    supabase,
+    actorId: userId,
+    crewId,
+    newOwnerId,
+  });
+  if ("error" in result) return { error: result.error };
+  return { success: true };
 }
 
 export async function setAllowCrewInvites(allow: boolean): Promise<ActionResult> {
