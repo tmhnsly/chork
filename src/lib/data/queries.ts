@@ -259,8 +259,31 @@ export function getRoutesBySet(setId: string): Promise<Route[]> {
  * N+1 when a page needs per-set route info for a user's entire
  * history (the profile page's previous-sets grid is the canonical
  * caller).
+ *
+ * Per-render dedupe: the profile page has two sibling Suspense
+ * sections (ProfileAchievementsSection + PreviousSetsSection) that
+ * both call this with the same `previousSets` ids. React `cache()`
+ * compares args by Object.is, so the two `.map(...)` arrays of the
+ * same ids would miss the cache. Routing through a string key
+ * (sorted-comma-joined) makes the second caller hit the cached
+ * result and skip the DB roundtrip.
  */
+const getRoutesBySetIdsByKey = cache(
+  async (supabase: Supabase, key: string): Promise<Map<string, Route[]>> => {
+    const setIds = key === "" ? [] : key.split(",");
+    return getRoutesBySetIdsRaw(supabase, setIds);
+  },
+);
+
 export async function getRoutesBySetIds(
+  supabase: Supabase,
+  setIds: string[]
+): Promise<Map<string, Route[]>> {
+  const key = [...setIds].sort().join(",");
+  return getRoutesBySetIdsByKey(supabase, key);
+}
+
+async function getRoutesBySetIdsRaw(
   supabase: Supabase,
   setIds: string[]
 ): Promise<Map<string, Route[]>> {
