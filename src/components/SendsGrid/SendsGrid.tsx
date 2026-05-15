@@ -5,7 +5,7 @@ import { formatSetResetCountdown } from "@/lib/data/set-label";
 import type { RouteSet, Route, RouteLog } from "@/lib/data";
 import { isFlash, computePoints, deriveTileState } from "@/lib/data";
 import { formatGrade, type GradingScale } from "@/lib/data/grade-label";
-import { StatsWidget } from "@/components/StatsWidget/StatsWidget";
+import { StatsWidget } from "@/components/ui/StatsWidget/StatsWidget";
 import { SendGridTile } from "@/components/ui/SendGridTile/SendGridTile";
 import { Legend } from "@/components/ui";
 import dynamic from "next/dynamic";

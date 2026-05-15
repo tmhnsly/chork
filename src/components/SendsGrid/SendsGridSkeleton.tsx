@@ -1,8 +1,8 @@
 import { FaLayerGroup } from "react-icons/fa6";
 import { shimmerStyles, Legend } from "@/components/ui";
 import { SectionCard } from "@/components/ui/SectionCard";
-import { RingStatsRow } from "@/components/RingStatsRow/RingStatsRow";
-import { RouteChart } from "@/components/RouteChart/RouteChart";
+import { RingStatsRow } from "@/components/ui/RingStatsRow/RingStatsRow";
+import { RouteChart } from "@/components/ui/RouteChart/RouteChart";
 import { SendGridTile } from "@/components/ui/SendGridTile/SendGridTile";
 import styles from "./sendsGrid.module.scss";
 

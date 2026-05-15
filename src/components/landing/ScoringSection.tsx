@@ -1,4 +1,4 @@
-import { ScoringChart, type ScoreRow } from "@/components/ScoringChart/ScoringChart";
+import { ScoringChart, type ScoreRow } from "@/components/ui/ScoringChart/ScoringChart";
 import styles from "./scoringSection.module.scss";
 
 interface Props {

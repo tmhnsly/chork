@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { SheetBody } from "@/components/ui";
-import { RingStatsRow } from "@/components/RingStatsRow/RingStatsRow";
-import { RouteChart } from "@/components/RouteChart/RouteChart";
+import { RingStatsRow } from "@/components/ui/RingStatsRow/RingStatsRow";
+import { RouteChart } from "@/components/ui/RouteChart/RouteChart";
 import { ICON_MAP as BADGE_ICONS } from "@/lib/badge-icons";
 import { pointsPerSend } from "@/lib/data/profile-stats";
 import { fetchSetPlacement } from "@/app/u/[username]/actions";

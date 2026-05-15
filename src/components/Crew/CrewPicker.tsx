@@ -4,7 +4,7 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { FaPlus, FaUsers } from "react-icons/fa6";
 import { Button } from "@/components/ui";
-import { PendingInvitesCard } from "./PendingInvitesCard";
+import { PendingInvitesCard } from "@/components/ui/PendingInvitesCard";
 import { CrewCard } from "./CrewCard";
 import type {
   Crew,

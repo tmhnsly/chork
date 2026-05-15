@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
-import { BadgeShelf } from "@/components/BadgeShelf/BadgeShelf";
+import { BadgeShelf } from "@/components/ui/BadgeShelf/BadgeShelf";
 import type { BadgeStatus } from "@/lib/badges";
 
 // Lazy — sheets only open on user gesture.

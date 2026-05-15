@@ -1,4 +1,4 @@
-import { ScoringChart, type ScoreRow } from "@/components/ScoringChart/ScoringChart";
+import { ScoringChart, type ScoreRow } from "@/components/ui/ScoringChart/ScoringChart";
 import styles from "./scoringBreakdown.module.scss";
 
 // Mirrors the points formula in src/lib/data/logs.ts. The `weight`

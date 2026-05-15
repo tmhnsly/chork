@@ -9,11 +9,7 @@ import {
   FaXmark,
 } from "react-icons/fa6";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-// Notifications surfaces pending crew invites alongside other inbox
-// items — composing the canonical Crew widget rather than reimplementing
-// the accept/decline UI.
-// eslint-disable-next-line no-restricted-imports
-import { PendingInvitesCard } from "@/components/Crew/PendingInvitesCard";
+import { PendingInvitesCard } from "@/components/ui/PendingInvitesCard";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import type { PendingInvite } from "@/lib/data/crew-queries";
 import type {

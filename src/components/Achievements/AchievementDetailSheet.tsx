@@ -3,7 +3,7 @@
 import { FaCheck, FaLock } from "react-icons/fa6";
 import { format, parseISO } from "date-fns";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { ProgressRing } from "@/components/BadgeShelf/BadgeShelf";
+import { ProgressRing } from "@/components/ui/BadgeShelf/BadgeShelf";
 import { ICON_MAP } from "@/lib/badge-icons";
 import { badgeFamily } from "@/lib/badges";
 import type { BadgeStatus, ProgressKey } from "@/lib/badges";

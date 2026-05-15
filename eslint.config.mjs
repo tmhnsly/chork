@@ -53,14 +53,13 @@ const config = [
                 "!@/components/ui/**",
                 "!@/components/motion/**",
                 "!@/components/landing/**",
+                // ActivityRings / CountUpNumber / RollingNumber are
+                // shared rendering primitives that haven't been moved
+                // into components/ui/ yet. The exclusions stay until
+                // they're either consolidated or relocated.
                 "!@/components/ActivityRings/**",
                 "!@/components/CountUpNumber/**",
-                "!@/components/RingStatsRow/**",
-                "!@/components/RouteChart/**",
-                "!@/components/StatsWidget/**",
-                "!@/components/ScoringChart/**",
                 "!@/components/RollingNumber/**",
-                "!@/components/BadgeShelf/**",
               ],
               message:
                 "Cross-feature component import. Lift to a shared parent (props/callbacks) or extract to components/ui/ instead.",

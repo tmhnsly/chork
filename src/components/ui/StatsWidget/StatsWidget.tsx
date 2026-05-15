@@ -1,5 +1,5 @@
-import { RingStatsRow } from "@/components/RingStatsRow/RingStatsRow";
-import { RouteChart } from "@/components/RouteChart/RouteChart";
+import { RingStatsRow } from "@/components/ui/RingStatsRow/RingStatsRow";
+import { RouteChart } from "@/components/ui/RouteChart/RouteChart";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { SetMeta } from "@/components/ui";
 import { computeMaxPoints } from "@/lib/data";
