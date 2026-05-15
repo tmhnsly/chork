@@ -24,15 +24,18 @@ export function useJamRealtime(
     onPlayerChange: ChangeHandler;
   },
 ) {
-  // Cache the latest handlers in a ref so the effect below can
+  // Cache the latest handlers in a ref so the channel callbacks can
   // always invoke the freshest closure without tearing the channel
-  // down on every parent render. The ref assignment happens inside
-  // an effect rather than directly during render — `react-hooks/refs`
-  // flags the latter as incorrect ref usage.
+  // down on every parent render. The handlers object is recreated on
+  // every render at the call site, so this effect fires on every
+  // render — that's intentional and the cost is one ref assignment.
+  // DO NOT add `handlers` to the channel-subscription effect below;
+  // that would tear down and re-subscribe the Supabase channel on
+  // every render.
   const handlersRef = useRef(handlers);
   useEffect(() => {
     handlersRef.current = handlers;
-  }, [handlers]);
+  });
 
   useEffect(() => {
     if (!jamId) return;
