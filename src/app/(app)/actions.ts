@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath, revalidateTag } from "next/cache";
+import { revalidateTag } from "next/cache";
 import { revalidateUserProfile } from "@/lib/cache/revalidate";
 import { gateClimberMutation, requireAuth, requireSignedIn } from "@/lib/auth";
 import {
@@ -417,6 +417,28 @@ export async function savePushSubscription(input: {
   if (!rl.ok) return { error: rl.error };
 
   try {
+    // Dedupe by device key (p256dh) rather than endpoint. When a push
+    // service rotates the endpoint URL on the same device, the
+    // p256dh + auth keypair stays stable — we can identify "this is
+    // the same browser/device" and replace just its prior endpoint
+    // without affecting any other device the user has subscribed.
+    //
+    // Naive "delete all other endpoints for this user" would break
+    // multi-device users (phone + tablet → each has its own endpoint
+    // AND its own p256dh; deleting "others" would drop pushes to the
+    // sibling device). The scoped delete by p256dh dedupes the
+    // rotation case without touching foreign devices.
+    //
+    // The post-send 404/410 GC in lib/push/server.ts handles the
+    // rest of the stale-endpoint surface (e.g. a uninstalled PWA
+    // that never re-subscribes).
+    await supabase
+      .from("push_subscriptions")
+      .delete()
+      .eq("user_id", userId)
+      .eq("p256dh", input.p256dh)
+      .neq("endpoint", input.endpoint);
+
     const { error } = await supabase
       .from("push_subscriptions")
       .upsert(
@@ -523,11 +545,12 @@ export async function joinCompetition(
       );
     if (error) return { error: formatError(error) };
 
-    // Narrow: competition participation only surfaces on the
-    // competition detail page + its listing. No need to scorch the
-    // root layout (wall, crew, leaderboard are all unaffected).
-    revalidatePath(`/competitions/${competitionId}`);
-    revalidatePath("/competitions");
+    // Tag-bust the competition detail (matches CLAUDE.md rule:
+    // mutations revalidate tags, not paths). The /competitions
+    // listing page picks up the participation flip via its 60s RSC
+    // stale-time — adding a dedicated `competitionsList` tag is the
+    // follow-up if the listing freshness ever becomes user-visible.
+    revalidateTag(tags.competition(competitionId), "max");
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
@@ -553,8 +576,8 @@ export async function leaveCompetition(
       .eq("user_id", userId);
     if (error) return { error: formatError(error) };
 
-    revalidatePath(`/competitions/${competitionId}`);
-    revalidatePath("/competitions");
+    // Same tag-bust pattern as joinCompetition above.
+    revalidateTag(tags.competition(competitionId), "max");
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };

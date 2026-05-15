@@ -189,17 +189,30 @@ export async function uploadAvatar(
   // Client should resize to 256x256 JPEG before upload.
   // These are safety limits, not the primary validation.
   if (file.size > 500 * 1024) return { error: "Image too large - should be resized client-side" };
+  // file.type is the BROWSER-SUPPLIED Content-Type from the multipart
+  // form. Trust it for early rejection only — the authoritative check
+  // is the magic-byte sniff below.
   if (file.type !== "image/jpeg") return { error: "Only JPEG accepted" };
 
   const path = `${userId}/avatar.jpg`;
 
   try {
+    const buffer = Buffer.from(await file.arrayBuffer());
+    // Magic-byte check: JPEG starts with 0xFF 0xD8. Without this, a
+    // client could send a non-JPEG payload (HTML, SVG, polyglot) with
+    // Content-Type: image/jpeg, and we'd happily upload it + force
+    // `contentType: "image/jpeg"` on the storage object, then write
+    // the URL to profiles.avatar_url. Next's image optimiser would
+    // process it as JPEG and could surface image-parser CVEs. The
+    // sniff closes that window. Cheap (2-byte read), no library.
+    if (buffer.length < 2 || buffer[0] !== 0xff || buffer[1] !== 0xd8) {
+      return { error: "File doesn't look like a JPEG" };
+    }
     // Hash the actual file bytes — stable per-content, not per-upload
     // attempt. Re-uploading the same image yields the same URL so
     // browser + CDN caches don't churn. A genuine new image flips the
     // hash and forces a fetch. Truncated to 8 hex chars: enough
     // entropy for cache-busting, short enough not to bloat URLs.
-    const buffer = Buffer.from(await file.arrayBuffer());
     const contentHash = createHash("sha1").update(buffer).digest("hex").slice(0, 8);
 
     // Use service client for storage — RLS on storage buckets requires

@@ -234,15 +234,23 @@ export async function declineCrewInvite(crewMemberId: string): Promise<ActionRes
       .eq("status", "pending")
       .maybeSingle();
 
-    const { error } = await supabase
+    // `.select("id")` so we know whether the delete actually removed
+    // a row. If another tab / device accepted (or declined) the
+    // invite between our read above and this delete, the status has
+    // already flipped — the predicate excludes the row, the delete
+    // is a no-op, and we don't want to fire spurious cache busts
+    // (which would invalidate the inviter's notifications tag for no
+    // user-visible reason).
+    const { data: deleted, error } = await supabase
       .from("crew_members")
       .delete()
       .eq("id", crewMemberId)
       .eq("user_id", userId)
-      .eq("status", "pending");
+      .eq("status", "pending")
+      .select("id");
     if (error) return { error: formatError(error) };
 
-    if (invite?.crew_id) {
+    if (invite?.crew_id && deleted && deleted.length > 0) {
       revalidateTag(tags.crew(invite.crew_id), "max");
       revalidateTag(tags.userCrews(userId), "max");
       if (invite.invited_by && invite.invited_by !== userId) {
