@@ -1,6 +1,3 @@
-"use client";
-
-import { useEffect, useRef, useState } from "react";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import {
   FaBolt,
@@ -15,6 +12,7 @@ import {
   FaStar,
   FaUsers,
 } from "react-icons/fa6";
+import { InView } from "./InView";
 import styles from "./featureGrid.module.scss";
 
 // ═══════════════════════════════════════════════════════
@@ -34,40 +32,6 @@ const CELL_CLASS: Record<CellState, string> = {
   completed: styles.cellCompleted,
   flash: styles.cellFlash,
 };
-
-interface GridVisibleProps {
-  children: React.ReactNode;
-}
-
-function TileGrid({ children }: GridVisibleProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.05 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <div
-      ref={ref}
-      className={`${styles.grid} ${visible ? styles.gridVisible : ""}`}
-    >
-      {children}
-    </div>
-  );
-}
 
 // ═══════════════════════════════════════════════════════
 // Tile components — each is self-contained with a visual
@@ -443,7 +407,7 @@ export function FeatureGrid() {
       <VisuallyHidden.Root asChild>
         <h2 id="feature-grid-heading">What Chork does</h2>
       </VisuallyHidden.Root>
-      <TileGrid>
+      <InView baseClass={styles.grid} visibleClass={styles.gridVisible}>
         <ChorkboardTile />
         <WallTile />
         <FlashTile />
@@ -452,7 +416,7 @@ export function FeatureGrid() {
         <AchievementsTile />
         <CrewsTile />
         <JamsTile />
-      </TileGrid>
+      </InView>
     </section>
   );
 }

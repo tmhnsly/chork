@@ -1,6 +1,3 @@
-"use client";
-
-import { useEffect, useRef, useState } from "react";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import {
   FaChartColumn,
@@ -14,42 +11,8 @@ import {
   FaTrophy,
   FaUsers,
 } from "react-icons/fa6";
+import { InView } from "./InView";
 import styles from "./gymsFeatureGrid.module.scss";
-
-// ═══════════════════════════════════════════════════════
-// Shared wrapper — same IntersectionObserver pattern as the
-// landing FeatureGrid so the tile entrance staggers on scroll.
-// ═══════════════════════════════════════════════════════
-
-function TileGrid({ children }: { children: React.ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setVisible(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.05 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <div
-      ref={ref}
-      className={`${styles.grid} ${visible ? styles.gridVisible : ""}`}
-    >
-      {children}
-    </div>
-  );
-}
 
 // ═══════════════════════════════════════════════════════
 // Tile components
@@ -385,14 +348,14 @@ export function GymsFeatureGrid() {
       <VisuallyHidden.Root asChild>
         <h2 id="gyms-features-heading">What gym owners get</h2>
       </VisuallyHidden.Root>
-      <TileGrid>
+      <InView baseClass={styles.grid} visibleClass={styles.gridVisible}>
         <DashboardTile />
         <CompetitionsTile />
         <CrewsTile />
         <GradingTile />
         <FreeTile />
         <NoInstallTile />
-      </TileGrid>
+      </InView>
     </section>
   );
 }

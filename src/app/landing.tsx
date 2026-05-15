@@ -1,5 +1,3 @@
-"use client";
-
 import Link from "next/link";
 import { FaArrowRight } from "react-icons/fa6";
 import { Button } from "@/components/ui";

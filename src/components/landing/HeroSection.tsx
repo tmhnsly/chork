@@ -1,5 +1,3 @@
-"use client";
-
 import type { ReactNode } from "react";
 import { RevealText } from "@/components/motion";
 import { ChorkMark } from "@/components/ui";
