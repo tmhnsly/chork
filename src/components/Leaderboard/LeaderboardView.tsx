@@ -77,9 +77,16 @@ export function LeaderboardView({
   // Track which tabs have an in-flight fetch to prevent duplicate requests
   const inFlightTabs = useRef<Set<Tab>>(new Set());
 
+  // Mirror cache as a ref so handleTabChange can check "is this tab
+  // already cached?" without listing `cache` as a dep. Listing it as
+  // a dep meant every successful fetch rebuilt the callback and
+  // busted React.memo on any child that received it as a prop.
+  const cacheRef = useRef(cache);
+  cacheRef.current = cache;
+
   const handleTabChange = useCallback((next: Tab) => {
     setTab(next);
-    if (cache[next] || inFlightTabs.current.has(next)) return;
+    if (cacheRef.current[next] || inFlightTabs.current.has(next)) return;
     inFlightTabs.current.add(next);
     const fetchSetId = next === "set" ? currentSetId : null;
     startTransition(async () => {
@@ -94,7 +101,7 @@ export function LeaderboardView({
         inFlightTabs.current.delete(next);
       }
     });
-  }, [cache, currentSetId]);
+  }, [currentSetId]);
 
   const openSheet = useCallback((entry: LeaderboardEntry) => {
     setSheetEntry(entry);
