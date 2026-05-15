@@ -286,6 +286,38 @@ navbar + home indicator), max-width, and centering.
 - Use Postgres RPCs for aggregations — never fetch N rows to sum in JS
 - Usernames always displayed with `@` prefix
 
+### Complex client state — use a reducer + hook
+
+- **`useReducer` for genuinely coupled state.** Reach for it when 3+
+  pieces of state must mutate together — optimistic update + revert,
+  atomic toggles (`toggle-like` flipping `likedIds` AND
+  `comments[i].likes` in one step), one-shot hydration of a
+  multi-field payload. Independent toggles, orthogonal form fields,
+  and isolated flags stay as `useState` — a reducer for those is
+  just indirection. Reference shapes:
+  `src/components/Jam/jamScreenReducer.ts` (realtime merge) and
+  `src/components/RouteLogSheet/routeLogReducer.ts` (optimistic +
+  revert + paginated list).
+- **Custom `useXState` hook for the async handlers around the
+  reducer.** When the reducer-owning component grows server-action
+  handlers, debounced flushes, optimistic/revert paths, or unmount
+  cleanups, extract a `useXState({...}): { state, ...handlers }`
+  next to the reducer. The orchestrator component becomes JSX +
+  prop bridging. Reference: `useRouteLogState`.
+- **Reducer tests are pure unit tests.** Call
+  `reducer(state, action)` and assert the return — no render harness,
+  no mocks, no fake timers. Pin every transition that has an
+  invariant (optimistic-revert paths, idempotent toggle pairs,
+  one-shot hydration). References:
+  `src/components/Jam/jamScreenReducer.test.ts` (25+ cases) and
+  `src/components/RouteLogSheet/routeLogReducer.test.ts` (23 cases).
+- **Use `useDebouncedFlush` for the debounce-with-flush-on-unmount
+  pattern.** Lives at `src/hooks/use-debounced-flush.ts` (pure logic
+  in `src/lib/debouncer.ts` with its own unit tests). Never re-roll
+  the `timerRef` + `pendingRef` + latest-flush-ref trio inline.
+  Adopted by RouteLogSheet (attempts + grade vote) and JamLogSheet
+  (attempts).
+
 ---
 
 ## Domain rules — IMPORTANT
