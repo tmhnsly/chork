@@ -226,6 +226,28 @@ describe("uncompleteRoute grade-vote cleanup", () => {
       mockAuth.gymId,
     );
   });
+
+  // Regression: deleteCompletionEvents uses the service-role client
+  // (RLS-bypassing), so the gym scope MUST be passed in — without it,
+  // a route-id collision across gyms could delete events from the
+  // wrong gym silently. See src/lib/data/mutations.ts.
+  it("scopes the service-role activity-event delete to the caller's gym", async () => {
+    const { requireAuth } = await import("@/lib/auth");
+    vi.mocked(requireAuth).mockResolvedValue(mockAuth);
+
+    const { upsertRouteLog, deleteCompletionEvents } = await import("@/lib/data/mutations");
+    vi.mocked(upsertRouteLog).mockResolvedValue(mockLog);
+
+    const { uncompleteRoute } = await import("./actions");
+    await uncompleteRoute(ROUTE_ID, LOG_ID);
+
+    expect(deleteCompletionEvents).toHaveBeenCalledWith(
+      expect.anything(),
+      mockAuth.userId,
+      ROUTE_ID,
+      mockAuth.gymId,
+    );
+  });
 });
 
 describe("editComment", () => {

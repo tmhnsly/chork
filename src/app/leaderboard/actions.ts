@@ -111,6 +111,21 @@ export async function fetchClimberSheetLogs(
     return { error: "Set not found" };
   }
 
+  // Verify the *target* user is also a member of this gym. The set
+  // check alone isn't enough: if a target user once logged on a route
+  // that has since moved between gyms (or any shared-set edge case), a
+  // gym-A caller could enumerate gym-B climber UUIDs and read their
+  // sanitised logs. Same defence as fetchSetPlacement (u/[username]/actions.ts).
+  const { data: membership } = await supabase
+    .from("gym_memberships")
+    .select("user_id")
+    .eq("user_id", climberUserId)
+    .eq("gym_id", gymId)
+    .maybeSingle();
+  if (!membership) {
+    return { error: "Climber not in this gym" };
+  }
+
   const rawLogs = await getLogsBySetForUser(supabase, setId, climberUserId);
 
   const logs: SanitisedLog[] = rawLogs.map((l) => ({

@@ -199,6 +199,12 @@ export async function updateJamRouteAction(
   if (!UUID_RE.test(payload.routeId)) return { error: "Invalid route id" };
   const auth = await requireSignedIn();
   if ("error" in auth) return { error: auth.error };
+  // No `added_by === userId` check on purpose: jams are intentionally
+  // collaborative — any player may edit any route's metadata. The
+  // update_jam_route RPC enforces `is_jam_player(jam_id)` at the SQL
+  // layer (migrations 041 + 046), which is the correct authorisation
+  // for the designed model. Don't add an author gate here without
+  // first changing the jam product semantics.
   try {
     const route = await updateJamRoute(auth.supabase, {
       routeId: payload.routeId,

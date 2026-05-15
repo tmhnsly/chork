@@ -152,7 +152,7 @@ export async function uncompleteRoute(
         completed_at: null,
         grade_vote: null,
       }, logId, gymId),
-      deleteCompletionEvents(supabase, userId, routeId),
+      deleteCompletionEvents(supabase, userId, routeId, gymId),
     ]);
 
     if (log.set_id) {

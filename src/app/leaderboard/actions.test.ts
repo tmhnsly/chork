@@ -143,11 +143,33 @@ describe("fetchClimberSheetLogs", () => {
     });
   });
 
+  // Regression: a target user that is NOT a member of the caller's
+  // gym must be rejected even if the set's gym_id passes the first
+  // check. Without this gate, a gym-A caller could enumerate gym-B
+  // climber UUIDs over a set that happens to share a gym_id, leaking
+  // their sanitised logs.
+  it("rejects a target climber who is not a member of the caller's gym", async () => {
+    const { requireAuth } = await import("@/lib/auth");
+    vi.mocked(requireAuth).mockResolvedValue({
+      supabase: mockSupabase({
+        "table:sets": { data: { gym_id: GYM_OWN } },
+        "table:gym_memberships": { data: null },
+      }) as never,
+      userId: USER_A,
+      gymId: GYM_OWN,
+    });
+    const { fetchClimberSheetLogs } = await import("./actions");
+    expect(await fetchClimberSheetLogs(USER_A, SET_SAME)).toEqual({
+      error: "Climber not in this gym",
+    });
+  });
+
   it("sanitises raw logs — flash derived from attempts===1, no raw attempt count in output", async () => {
     const { requireAuth } = await import("@/lib/auth");
     vi.mocked(requireAuth).mockResolvedValue({
       supabase: mockSupabase({
         "table:sets": { data: { gym_id: GYM_OWN } },
+        "table:gym_memberships": { data: { user_id: USER_A } },
       }) as never,
       userId: USER_A,
       gymId: GYM_OWN,

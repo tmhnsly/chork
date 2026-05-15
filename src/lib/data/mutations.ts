@@ -191,14 +191,20 @@ export async function createActivityEvent(
 export async function deleteCompletionEvents(
   supabase: Supabase,
   userId: string,
-  routeId: string
+  routeId: string,
+  gymId: string,
 ): Promise<void> {
+  // Service role bypasses RLS, so app code must scope every filter we'd
+  // otherwise lean on RLS for. Without gym_id, a route-id collision (or
+  // a future "shared route" feature) would let one gym's uncomplete
+  // delete a user's events from another gym silently.
   const service = createServiceClient();
   const { error } = await service
     .from("activity_events")
     .delete()
     .eq("user_id", userId)
     .eq("route_id", routeId)
+    .eq("gym_id", gymId)
     .in("type", ["completed", "flashed"]);
   if (error) throw error;
 }
