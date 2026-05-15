@@ -14,6 +14,7 @@ import {
   ZoneHoldRow,
 } from "@/components/ui";
 import { BrandDivider } from "@/components/ui/BrandDivider";
+import { useDebouncedFlush } from "@/hooks/use-debounced-flush";
 import { formatGrade } from "@/lib/data/grade-label";
 import type { JamRoute, JamLog, JamGradingScale } from "@/lib/data/jam-types";
 import styles from "./jamLogSheet.module.scss";
@@ -78,51 +79,33 @@ export function JamLogSheet({
   const [completed, setCompleted] = useState(log?.completed ?? false);
   const [zone, setZone] = useState(log?.zone ?? false);
 
-  // Debounced attempts save. Mirrors the wall sheet's pattern:
-  // optimistic counter update on +/-, single server write after
-  // the user stops tapping.
-  const attemptsDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingAttemptsRef = useRef<number | null>(null);
-
-  // Refs track the latest state + callback for the debounce timer
-  // and the unmount flush. Without them the debounce closure would
-  // capture `zone` / `completed` at the time the +/- was tapped,
-  // and a user who toggled zone between the tap and the 800 ms
-  // fire would see their zone write silently overwritten by the
-  // delayed attempts save. The unmount cleanup has the same
-  // problem if it snapshots state inside a `[]`-deps effect.
-  const onSubmitRef = useRef(onSubmit);
+  // Latest-state refs for the debounced attempts flush. Without them
+  // the debounce closure would capture `completed` / `zone` at the
+  // time +/- was tapped, and a user who toggled zone between the tap
+  // and the 800ms fire would see their zone write silently
+  // overwritten by the delayed attempts save. Commit-phase write
+  // avoids `react-hooks/refs` flagging render-time ref writes.
   const completedRef = useRef(completed);
   const zoneRef = useRef(zone);
-  // react-hooks/refs flags ref writes during render as a hazard;
-  // stage the updates in a commit-phase effect instead. The refs
-  // are only read from async handlers (debounce timer, unmount
-  // cleanup) so a one-commit lag is invisible to the user.
   useEffect(() => {
-    onSubmitRef.current = onSubmit;
     completedRef.current = completed;
     zoneRef.current = zone;
   });
 
-  // Flush any pending attempts save on unmount so a quick open →
-  // tap + → close doesn't drop the last increment. Reads the
-  // LATEST completed/zone via refs — not the values captured at
-  // mount time.
-  useEffect(() => {
-    return () => {
-      if (attemptsDebounceRef.current) {
-        clearTimeout(attemptsDebounceRef.current);
-        const value = pendingAttemptsRef.current;
-        if (value !== null) {
-          onSubmitRef.current({
-            attempts: value,
-            completed: completedRef.current,
-            zone: zoneRef.current,
-          });
-        }
-      }
-    };
-  }, []);
+  // Debounced attempts save. Mirrors the wall sheet's pattern via
+  // the shared `useDebouncedFlush` primitive — auto-flushes on
+  // unmount so a quick open → tap + → close doesn't drop the
+  // increment. The flush reads the LATEST completed/zone via refs.
+  const attemptsFlush = useDebouncedFlush<number>({
+    delayMs: ATTEMPTS_DEBOUNCE_MS,
+    flush: (next) => {
+      onSubmit({
+        attempts: next,
+        completed: completedRef.current,
+        zone: zoneRef.current,
+      });
+    },
+  });
 
   // Intentionally NO `log` → local state sync effect. The canonical
   // flow is:
@@ -157,39 +140,24 @@ export function JamLogSheet({
 
   const isCurrentFlash = completed && attempts === 1;
 
-  const cancelAttemptsDebounce = useCallback(() => {
-    if (attemptsDebounceRef.current) {
-      clearTimeout(attemptsDebounceRef.current);
-      attemptsDebounceRef.current = null;
-    }
-    pendingAttemptsRef.current = null;
-  }, []);
-
-  const handleAttemptsChange = useCallback((next: number) => {
-    // Can't change attempts while the route is completed; the +/-
-    // buttons are already disabled in that state, this is a belt-
-    // and-braces guard for any programmatic callers.
-    if (completedRef.current) return;
-    setAttempts(next);
-    pendingAttemptsRef.current = next;
-    if (attemptsDebounceRef.current) {
-      clearTimeout(attemptsDebounceRef.current);
-    }
-    attemptsDebounceRef.current = setTimeout(() => {
-      attemptsDebounceRef.current = null;
-      pendingAttemptsRef.current = null;
-      // Read latest completed/zone from refs so a mid-debounce
-      // zone toggle or completion isn't overwritten by this write.
-      onSubmitRef.current({
-        attempts: next,
-        completed: completedRef.current,
-        zone: zoneRef.current,
-      });
-    }, ATTEMPTS_DEBOUNCE_MS);
-  }, []);
+  const handleAttemptsChange = useCallback(
+    (next: number) => {
+      // Can't change attempts while the route is completed; the +/-
+      // buttons are already disabled in that state, this is a belt-
+      // and-braces guard for any programmatic callers.
+      if (completedRef.current) return;
+      setAttempts(next);
+      attemptsFlush.schedule(next);
+    },
+    [attemptsFlush],
+  );
 
   function handleComplete() {
-    cancelAttemptsDebounce();
+    // Cancel any pending attempts debounce — this write already
+    // carries the latest `attempts` value, and leaving the timer
+    // running would fire an 800ms-later write with completed=false
+    // and clobber the completion we just made.
+    attemptsFlush.cancel();
     const finalAttempts = attempts === 0 ? 1 : attempts;
     setAttempts(finalAttempts);
     setCompleted(true);
@@ -197,17 +165,16 @@ export function JamLogSheet({
   }
 
   function handleUndo() {
-    cancelAttemptsDebounce();
+    attemptsFlush.cancel();
     setCompleted(false);
     onSubmit({ attempts, completed: false, zone });
   }
 
   function handleZoneToggle(checked: boolean) {
-    // Cancel any pending attempts debounce — this write already
-    // carries the latest `attempts` value, and leaving the timer
-    // running would fire an 800 ms-later write with the OLD zone
-    // (captured in its closure) and clobber the toggle we just made.
-    cancelAttemptsDebounce();
+    // Same reason as handleComplete: a pending attempts debounce
+    // would fire later with the OLD zone (captured in the flush
+    // callback's ref read at fire time) and clobber the toggle.
+    attemptsFlush.cancel();
     setZone(checked);
     onSubmit({ attempts, completed, zone: checked });
   }
