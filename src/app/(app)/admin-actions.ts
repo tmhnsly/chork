@@ -1,8 +1,7 @@
 "use server";
 
 import { revalidateTag } from "next/cache";
-import { requireAuth } from "@/lib/auth";
-import { getUserGymRole, isGymAdmin } from "@/lib/data/queries";
+import { requireGymAdmin } from "@/lib/auth";
 import { formatError } from "@/lib/errors";
 import type { RouteSet } from "@/lib/data";
 
@@ -10,7 +9,18 @@ import { tags } from "@/lib/cache/tags";
 type AdminResult<T = unknown> = { error: string } | ({ success: true } & T);
 
 /**
- * Create a new set with routes. Deactivates any existing active set.
+ * Home-page quick-create flow used by `CreateSetForm` when an admin
+ * lands on the Wall with no active set. The full set editor lives at
+ * `/admin/sets/new`; this is the 30-second shortcut.
+ *
+ * Auth: `requireGymAdmin(gymId)` reads the `gym_admins` table — the
+ * canonical admin source of truth per CLAUDE.md. Do NOT switch back
+ * to the legacy `gym_memberships.role` gate; that table's role column
+ * is cosmetic and bypassing it lets a stale role grant set-management.
+ *
+ * Status: writes `status: "live"` directly. The legacy `active`
+ * boolean is derived from `status` via the migration 003 trigger;
+ * old readers of `active` keep working without code changes.
  */
 export async function createSet(
   gymId: string,
@@ -23,28 +33,20 @@ export async function createSet(
   if (!startsAt || !endsAt) return { error: "Start and end dates are required" };
   if (routeCount < 1 || routeCount > 50) return { error: "Route count must be between 1 and 50" };
 
-  const auth = await requireAuth();
+  const auth = await requireGymAdmin(gymId);
   if ("error" in auth) return { error: auth.error };
-  const { supabase, userId, gymId: activeGymId } = auth;
-
-  // Verify the requested gym matches the user's active gym
-  if (gymId !== activeGymId) {
-    return { error: "You can only manage your active gym" };
-  }
-
-  // Check admin role
-  const role = await getUserGymRole(supabase, userId, gymId);
-  if (!isGymAdmin(role)) {
-    return { error: "You don't have permission to manage sets for this gym" };
-  }
+  const { supabase } = auth;
 
   try {
-    // Deactivate existing active sets for this gym
+    // Archive any existing live set for this gym so the new one is
+    // unambiguously "the live set". The trigger on `sets` derives
+    // `active = (status = 'live')`, so old readers of `active` still
+    // see the right value after the status flip.
     await supabase
       .from("sets")
-      .update({ active: false })
+      .update({ status: "archived" })
       .eq("gym_id", gymId)
-      .eq("active", true);
+      .eq("status", "live");
 
     // Create the new set
     const { data: set, error: setError } = await supabase
@@ -53,7 +55,7 @@ export async function createSet(
         gym_id: gymId,
         starts_at: startsAt,
         ends_at: endsAt,
-        active: true,
+        status: "live",
       })
       .select()
       .single();
@@ -82,29 +84,21 @@ export async function createSet(
 }
 
 /**
- * End the current active set (deactivate it).
+ * End the current live set (transitions status → archived). Same
+ * auth + status notes as `createSet` above.
  */
 export async function endSet(
   gymId: string,
   setId: string
 ): Promise<AdminResult> {
-  const auth = await requireAuth();
+  const auth = await requireGymAdmin(gymId);
   if ("error" in auth) return { error: auth.error };
-  const { supabase, userId, gymId: activeGymId } = auth;
-
-  if (gymId !== activeGymId) {
-    return { error: "You can only manage your active gym" };
-  }
-
-  const role = await getUserGymRole(supabase, userId, gymId);
-  if (!isGymAdmin(role)) {
-    return { error: "You don't have permission to manage sets for this gym" };
-  }
+  const { supabase } = auth;
 
   try {
     const { error } = await supabase
       .from("sets")
-      .update({ active: false })
+      .update({ status: "archived" })
       .eq("id", setId)
       .eq("gym_id", gymId);
 

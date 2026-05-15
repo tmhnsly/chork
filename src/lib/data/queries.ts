@@ -15,7 +15,6 @@ import type {
   Comment,
   PaginatedComments,
   ActivityEventWithRoute,
-  GymRole,
 } from "./types";
 
 import { logger } from "@/lib/logger";
@@ -43,29 +42,6 @@ import { tags } from "@/lib/cache/tags";
  * keep callers free of try/catch.
  */
 type Supabase = SupabaseClient<Database>;
-
-// ── Gym membership ─────────────────────────────────
-
-export async function getUserGymRole(
-  supabase: Supabase,
-  userId: string,
-  gymId: string
-): Promise<GymRole | null> {
-  const { data, error } = await supabase
-    .from("gym_memberships")
-    .select("role")
-    .eq("user_id", userId)
-    .eq("gym_id", gymId)
-    .maybeSingle();
-  if (error) {
-    logger.warn("getusergymrole_failed", { err: formatErrorForLog(error) });
-    return null;
-  }
-  return (data?.role as GymRole) ?? null;
-}
-
-// Re-export from pure module so existing imports don't break
-export { isGymAdmin } from "./roles";
 
 // ── Profiles ───────────────────────────────────────
 
