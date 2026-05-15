@@ -26,8 +26,14 @@ export function JamMenuSheet({ jam, onClose, onEnd, pending }: Props) {
   // render body — `react-hooks/purity` flags direct global reads
   // during render. Computed once on mount; the sheet only exists on
   // the jam page where the origin is fixed for the session.
+  //
+  // Encodes the /jam/join?code=… path (NOT /jam/{id}). The id-direct
+  // path requires the scanner to already be a player, so a fresh
+  // scanner gets bounced. The join path runs add_jam_player then
+  // forwards into the jam — which is what "scan the QR to join" is
+  // supposed to mean. Matches the share-link behaviour below.
   const [scanUrl] = useState(
-    () => `${window.location.origin}/jam/${jam.id}`,
+    () => `${window.location.origin}/jam/join?code=${jam.code}`,
   );
 
   async function copyCode() {
