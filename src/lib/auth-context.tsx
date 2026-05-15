@@ -40,6 +40,21 @@ import { withTimeout } from "@/lib/async";
 const PROFILE_CACHE_KEY = "chork-profile-cache-v2";
 const PROFILE_CACHE_TTL_MS = 60 * 60 * 1000; // 1h
 
+/**
+ * Columns fetched for the auth profile. Explicit list — DO NOT widen
+ * to `select("*")`. The profile is cached in localStorage and exposed
+ * to every consumer of `useAuth().profile`, so any new column ships
+ * automatically into client storage and every client component when
+ * `*` is used. Adding a column here is a conscious "this is safe to
+ * expose client-side" decision.
+ *
+ * Currently excluded from auth surface (server-only): invites_sent_date,
+ * invites_sent_today — rate-limit bookkeeping for crew invites that
+ * has no UI consumer and shouldn't end up in the cache.
+ */
+const AUTH_PROFILE_COLUMNS =
+  "id, username, name, avatar_url, onboarded, active_gym_id, theme, allow_crew_invites, push_invite_received, push_invite_accepted, push_ownership_changed, created_at, updated_at";
+
 interface ProfileCacheEntry {
   profile: Profile;
   /**
@@ -198,13 +213,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     const { data, error } = await supabase
       .from("profiles")
-      .select("*")
+      .select(AUTH_PROFILE_COLUMNS)
       .eq("id", userId)
       .single();
     if (error) {
       logger.warn("fetchprofile_failed", { err: formatErrorForLog(error) });
     }
-    return data;
+    // Cast to Profile (the full table row type) is safe because every
+    // consumer of `useAuth().profile` reads one of the AUTH_PROFILE_COLUMNS
+    // fields. Server-only / rate-limit columns (invites_sent_*) live on
+    // the table but are never read client-side and stay out of the
+    // localStorage cache. When adding a new column, explicitly decide
+    // whether it belongs in this list — automatic inclusion via select(*)
+    // was how the cache started shipping every future column to clients.
+    return data as Profile | null;
   }, [supabase]);
 
   // Cheap admin probe — single indexed lookup on gym_admins. Null user
