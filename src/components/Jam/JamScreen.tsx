@@ -21,6 +21,7 @@ import { JamGrid } from "./JamGrid";
 import { JamLogSheet } from "./JamLogSheet";
 import { JamAddRouteSheet } from "./JamAddRouteSheet";
 import { JamMenuSheet } from "./JamMenuSheet";
+import { JamPlayerGridSheet } from "./JamPlayerGridSheet";
 import { jamReducer, logKey, type JamLocalState } from "./jamScreenReducer";
 import { visibleAttempts } from "@/lib/data/logs";
 import styles from "./jamScreen.module.scss";
@@ -49,6 +50,10 @@ export function JamScreen({ initialState, userId }: Props) {
   const [addSheetOpen, setAddSheetOpen] = useState(false);
   const [editRoute, setEditRoute] = useState<JamRoute | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  // Peeking another player's send grid from the leaderboard. Their
+  // logs are already in `state.logs` via realtime (sanitised in
+  // onLogChange), so no fetch is needed.
+  const [peekPlayerId, setPeekPlayerId] = useState<string | null>(null);
 
   // Subscribe to realtime events for the jam.
   useJamRealtime(initialState.jam.id, {
@@ -283,7 +288,11 @@ export function JamScreen({ initialState, userId }: Props) {
                   flashes: row.flashes,
                 }}
                 highlighted={isSelf}
-                interactive={false}
+                // Tapping any row (including your own) peeks the
+                // climber's per-route grid. Their logs are already in
+                // state.logs via realtime (sanitised for non-self in
+                // onLogChange), so the peek is a zero-fetch sheet.
+                onPress={() => setPeekPlayerId(row.user_id)}
                 trailing={
                   row.zones > 0 ? (
                     <span
@@ -360,6 +369,23 @@ export function JamScreen({ initialState, userId }: Props) {
           pending={isPending}
         />
       )}
+
+      {peekPlayerId && (() => {
+        const peekedPlayer = state.players.find((p) => p.user_id === peekPlayerId);
+        if (!peekedPlayer) return null;
+        const peekedRow = leaderboard.find((r) => r.user_id === peekPlayerId);
+        return (
+          <JamPlayerGridSheet
+            player={peekedPlayer}
+            row={peekedRow}
+            routes={state.routes}
+            logs={state.logs}
+            grades={initialState.grades}
+            gradingScale={initialState.jam.grading_scale}
+            onClose={() => setPeekPlayerId(null)}
+          />
+        );
+      })()}
 
       <button
         type="button"
