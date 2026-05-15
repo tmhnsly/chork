@@ -66,6 +66,13 @@ export type RouteLogAction =
       data: CachedRouteData;
       gradingScale: GradingScale;
     }
+  /**
+   * Lazy comment-only seed for the case where the beta drawer is
+   * opened before any cached/fetched data has populated the comment
+   * list. Touches comment fields only — does NOT mutate gradeLabel
+   * or likedIds (those come from hydrate-route-data).
+   */
+  | { type: "seed-comments"; result: PaginatedComments }
   | { type: "append-comments"; result: PaginatedComments }
   | { type: "prepend-comment"; comment: Comment }
   | { type: "replace-comment"; comment: Comment }
@@ -163,6 +170,18 @@ export function routeLogReducer(
         comments: data.comments.items,
         totalComments: data.comments.totalItems,
         hasMore: data.comments.page < data.comments.totalPages,
+        nextPage: 2,
+        commentsLoaded: true,
+      };
+    }
+
+    case "seed-comments": {
+      const { result } = action;
+      return {
+        ...state,
+        comments: result.items,
+        totalComments: result.totalItems,
+        hasMore: result.page < result.totalPages,
         nextPage: 2,
         commentsLoaded: true,
       };

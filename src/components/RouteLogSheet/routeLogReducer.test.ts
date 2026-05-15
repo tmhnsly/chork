@@ -227,6 +227,35 @@ describe("toggle-like (atomic likedIds + comments[i].likes)", () => {
   });
 });
 
+describe("seed-comments (lazy comment-only fill)", () => {
+  // Used by the beta-drawer fallback path when initial hydrate-route-data
+  // either errored or hasn't yet been called. Must NOT touch gradeLabel
+  // or likedIds — those come from the broader hydrate.
+  it("seeds comments + counts + pagination, sets commentsLoaded, leaves grade/liked intact", () => {
+    const state = freshState({
+      gradeLabel: "V4",
+      likedIds: new Set(["c-existing"]),
+      commentsLoaded: false,
+    });
+    const next = routeLogReducer(state, {
+      type: "seed-comments",
+      result: {
+        items: [makeComment({ id: "c-1" }), makeComment({ id: "c-2" })],
+        totalItems: 8,
+        totalPages: 3,
+        page: 1,
+      },
+    });
+    expect(next.comments).toHaveLength(2);
+    expect(next.totalComments).toBe(8);
+    expect(next.hasMore).toBe(true);
+    expect(next.nextPage).toBe(2);
+    expect(next.commentsLoaded).toBe(true);
+    expect(next.gradeLabel).toBe("V4");
+    expect(next.likedIds.has("c-existing")).toBe(true);
+  });
+});
+
 describe("append-comments", () => {
   it("extends comments, advances nextPage, updates hasMore", () => {
     const seed = makeComment({ id: "c-1" });
