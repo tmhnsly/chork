@@ -1,0 +1,71 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+
+.header {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.headerStat {
+  @include layout.stack(var(--space-1));
+  flex: 1;
+  min-width: 0;
+}
+
+.headerValue {
+  @include type.typography(number);
+  font-size: var(--text-2xl);
+  line-height: 1;
+  color: var(--mono-text);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+
+  &.accent {
+    color: var(--accent-text);
+  }
+}
+
+.headerLabel {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-2xs);
+}
+
+// ── Five-cell stats grid ────────────────────────
+// Matches the gym "All Time" card's extras grid (3 cols x 2 rows
+// when populated). Five values fit cleanly: 3 on top, 2 on bottom.
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.cell {
+  @include layout.stack(var(--space-1));
+  padding: var(--space-2) var(--space-3);
+  background: var(--mono-bg);
+  border-radius: var(--radius-2);
+}
+
+.cellValue {
+  @include type.typography(number);
+  font-size: var(--text-lg);
+  line-height: 1.1;
+  color: var(--mono-text);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.flashValue {
+  color: var(--flash-text);
+}
+
+.cellLabel {
+  @include type.typography(label);
+  font-size: var(--text-2xs);
+  color: var(--mono-text-low-contrast);
+}

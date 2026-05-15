@@ -123,7 +123,7 @@ export default async function UserProfilePage({ params }: Props) {
           climber has no jams on record so first-time visitors see
           a quiet profile. */}
       <Suspense fallback={null}>
-        <ProfileJamsSection userId={profileUser.id} />
+        <ProfileJamsSection userId={profileUser.id} isOwnProfile={isOwnProfile} />
       </Suspense>
     </main>
   );
