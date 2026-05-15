@@ -18,8 +18,7 @@ import { formatErrorForLog } from "@/lib/errors";
  * still authenticates + validates + enforces RLS; rate limiting is
  * an extra layer, not the first line of defence.
  *
- * The three buckets mirror real abuse vectors, not service-tier
- * policy:
+ * The buckets mirror real abuse vectors, not service-tier policy:
  *   • `mutationsWrite` — 60/min. Covers normal session pacing
  *     (an active climber logs maybe 1 route/min during a real
  *     session) + optimistic retries. Stops a hostile authed
@@ -30,6 +29,12 @@ import { formatErrorForLog } from "@/lib/errors";
  *   • `pushSubscribe` — 5/min. A browser that legitimately
  *     changes its push endpoint does it once per install, not
  *     dozens of times.
+ *   • `gymSignup` — 3/hour. Creating a new gym is genuinely rare —
+ *     a real admin onboards one gym, maybe corrects a typo by
+ *     re-running. The bucket is tighter than the others because
+ *     gym rows have no uniqueness on `name` (only `slug`), so an
+ *     attacker could otherwise mass-pollute the gyms table with
+ *     valid-looking-but-spam rows.
  */
 
 // Single Redis client, lazily created. Upstash's REST client is stateless
@@ -49,7 +54,11 @@ function redis(): Redis | null {
 
 // Limiter factories are memoised so we don't reconstruct the sliding
 // window algorithm on every `enforce()` call.
-type LimiterKey = "mutationsWrite" | "invitesSend" | "pushSubscribe";
+type LimiterKey =
+  | "mutationsWrite"
+  | "invitesSend"
+  | "pushSubscribe"
+  | "gymSignup";
 
 const _limiters: Partial<Record<LimiterKey, Ratelimit>> = {};
 
@@ -80,6 +89,14 @@ function limiter(key: LimiterKey): Ratelimit | null {
         redis: client,
         limiter: Ratelimit.slidingWindow(5, "1 m"),
         prefix: "rl:push",
+        analytics: false,
+      });
+      break;
+    case "gymSignup":
+      _limiters[key] = new Ratelimit({
+        redis: client,
+        limiter: Ratelimit.slidingWindow(3, "1 h"),
+        prefix: "rl:gym-signup",
         analytics: false,
       });
       break;

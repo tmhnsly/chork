@@ -73,6 +73,15 @@ export async function signupGym(form: {
   const auth = await requireSignedIn();
   if ("error" in auth) return { error: auth.error };
 
+  // Rate-limit: gym signups are rare in legitimate use (one per
+  // admin onboarding session). Without this, a single authed user
+  // could mass-create gym rows — `gyms.name` has no uniqueness
+  // constraint, so spam wouldn't even fail at the DB layer until
+  // the per-call slug collision check. See lib/rate-limit.ts for
+  // bucket sizing.
+  const rl = await enforceRateLimit("gymSignup", auth.userId);
+  if (!rl.ok) return { error: rl.error };
+
   const result = await createGymWithOwner({
     name,
     slug,
