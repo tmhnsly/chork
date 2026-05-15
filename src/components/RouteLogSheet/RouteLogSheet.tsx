@@ -1,19 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import Link from "next/link";
-import {
-  FaEyeSlash,
-  FaEye,
-  FaPaperPlane,
-  FaPen,
-  FaHeart,
-  FaRegHeart,
-  FaChevronDown,
-} from "react-icons/fa6";
 import { pickSendMessage } from "@/lib/send-messages";
 import { PointsPreview } from "./PointsPreview";
-import { EditCommentForm } from "./EditCommentForm";
+import { CommentThread } from "./CommentThread";
 import {
   AttemptCounter,
   CompletedRow,
@@ -40,7 +30,7 @@ import {
   editComment,
   likeComment,
 } from "@/app/(app)/actions";
-import { Button, shimmerStyles, showToast, showAchievementToast, UserAvatar } from "@/components/ui";
+import { Button, shimmerStyles, showToast, showAchievementToast } from "@/components/ui";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { BrandDivider } from "@/components/ui/BrandDivider";
 import styles from "./routeLogSheet.module.scss";
@@ -73,22 +63,19 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
   const gradingDisabled = gradingScale === "points";
   const [completing, setCompleting] = useState(false);
 
-  // Beta spray state
+  // Beta spray data state — owned here so the BottomSheet can size on
+  // `betaExpanded` and so the parent's cache (`onCacheRouteData`) sees
+  // the same comments view the user has interacted with. Local UI state
+  // (input draft, posting flag, edit draft, etc.) lives in CommentThread.
   const [betaExpanded, setBetaExpanded] = useState(false);
-  const [betaRevealed, setBetaRevealed] = useState(false);
   const [comments, setComments] = useState<Comment[]>([]);
-  const [commentBody, setCommentBody] = useState("");
-  const [posting, setPosting] = useState(false);
   const [hasMore, setHasMore] = useState(false);
   const [loadingComments, setLoadingComments] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [nextPage, setNextPage] = useState(1);
   const [totalComments, setTotalComments] = useState(0);
   const [commentsLoaded, setCommentsLoaded] = useState(false);
-  const [expanded, setExpanded] = useState(false);
   const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editBody, setEditBody] = useState("");
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gradeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -166,7 +153,6 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
       setTotalComments(result.totalItems);
       setHasMore(result.page < result.totalPages);
       setNextPage((p) => p + 1);
-      setExpanded(true);
     } finally {
       setLoadingMore(false);
     }
@@ -333,51 +319,40 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
     zoningRef.current = false;
   }
 
-  // ── Comments ──
-  async function handlePostComment() {
-    if (!navigator.onLine) {
-      showToast("You're offline — comments available when you reconnect", "info");
-      return;
-    }
-    const trimmed = commentBody.trim();
-    if (!trimmed) return;
-    setPosting(true);
+  // ── Comments — data-side handlers (orchestrator owns the array) ──
+  //
+  // Returns boolean so CommentThread can clear its input on success.
+  // The local UI state (input draft, posting flag) lives there.
+  async function onPostComment(body: string): Promise<boolean> {
     try {
-      const result = await postComment(route.id, trimmed);
+      const result = await postComment(route.id, body);
       if ("error" in result) {
         showToast(result.error, "error");
-        return;
+        return false;
       }
       setComments((prev) => [result.comment, ...prev]);
       setTotalComments((n) => n + 1);
-      setCommentBody("");
-      showToast("Beta posted");
+      return true;
     } catch {
       showToast("Something went wrong", "error");
-    } finally {
-      setPosting(false);
+      return false;
     }
   }
 
-  async function handleEditComment(commentId: string) {
-    const trimmed = editBody.trim();
-    if (!trimmed) return;
-    const original = comments.find((c) => c.id === commentId);
-    if (original && original.body === trimmed) {
-      setEditingId(null);
-      return;
-    }
-    const result = await editComment(commentId, trimmed);
+  async function onEditCommentAction(commentId: string, body: string): Promise<boolean> {
+    const result = await editComment(commentId, body);
     if ("error" in result) {
       showToast(result.error, "error");
-      return;
+      return false;
     }
     setComments((prev) => prev.map((c) => (c.id === commentId ? result.comment : c)));
-    setEditingId(null);
-    showToast("Comment updated");
+    return true;
   }
 
-  async function handleLike(commentId: string) {
+  // Like is fire-and-forget with optimistic UI + revert on error.
+  // Debounced per-comment-id via likingRef so spamming the heart
+  // button never sends duplicate requests.
+  async function onLikeComment(commentId: string) {
     if (!navigator.onLine) {
       showToast("You're offline — likes available when you reconnect", "info");
       return;
@@ -393,7 +368,9 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
       return next;
     });
     setComments((prev) =>
-      prev.map((c) => c.id === commentId ? { ...c, likes: c.likes + (wasLiked ? -1 : 1) } : c)
+      prev.map((c) =>
+        c.id === commentId ? { ...c, likes: c.likes + (wasLiked ? -1 : 1) } : c,
+      ),
     );
 
     const result = await likeComment(commentId);
@@ -405,7 +382,9 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
         return next;
       });
       setComments((prev) =>
-        prev.map((c) => c.id === commentId ? { ...c, likes: c.likes + (wasLiked ? 1 : -1) } : c)
+        prev.map((c) =>
+          c.id === commentId ? { ...c, likes: c.likes + (wasLiked ? 1 : -1) } : c,
+        ),
       );
       showToast(result.error, "error");
     }
@@ -540,200 +519,24 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
             )}
           </div>
 
-          {/* ── Beta spray (collapsible) ──
-              When there are no comments, the chevron is replaced by a
-              "No comments" label and the toggle is disabled. The post
-              form lives outside the drawer (below) so sharing beta
-              doesn't compete with reading it for vertical space. */}
-          {(() => {
-            const hasOwnComment = !!user && comments.some((c) => c.user_id === user.id);
-            const noComments = totalComments === 0;
-            // Gate on `commentsLoaded && !loadingComments` so the
-            // post-comment form never renders until we actually know
-            // whether the user has already commented. Without this,
-            // the form rendered on first paint (when `comments` is
-            // still `[]`), the sheet animated in at its "visible
-            // post form" height, then `fetchRouteData` resolved with
-            // an existing own-comment, `showPostForm` flipped false,
-            // and the `.postFormWrap height: auto → 0` transition
-            // snapped the sheet shorter — the "grows too large then
-            // pops back into place" artefact on entry.
-            const commentsReady = commentsLoaded && !loadingComments;
-            const showPostForm =
-              commentsReady
-              && isCompleted
-              && set.active
-              && !hasOwnComment
-              && !betaExpanded;
-            return (
-          <>
-          <div className={styles.betaSection}>
-            <button
-              type="button"
-              className={styles.betaToggleBtn}
-              onClick={handleExpandBeta}
-              aria-expanded={betaExpanded}
-              disabled={noComments}
-              aria-disabled={noComments}
-            >
-              <span className={styles.sectionLabel}>
-                BETA SPRAY
-                {totalComments > 0 && ` (${totalComments})`}
-              </span>
-              {noComments ? (
-                <span className={styles.betaEmptyLabel}>No comments</span>
-              ) : (
-                <FaChevronDown className={`${styles.betaChevron} ${betaExpanded ? styles.betaChevronOpen : ""}`} />
-              )}
-            </button>
-
-            <div
-              className={`${styles.betaDrawer} ${betaExpanded ? styles.betaDrawerOpen : ""}`}
-              aria-hidden={!betaExpanded}
-            >
-              <div className={styles.betaDrawerInner}>
-              <div className={styles.betaContent}>
-                {loadingComments ? (
-                  <div className={styles.commentList} role="status" aria-busy="true" aria-label="Loading beta spray">
-                    {[0, 1].map((i) => (
-                      <div key={i} className={styles.commentRow}>
-                        <div className={styles.avatarLink}>
-                          <div className={`${styles.commentAvatar} ${shimmerStyles.skeleton}`} />
-                        </div>
-                        <div className={styles.commentContent}>
-                          <span className={`${shimmerStyles.skeletonLine} ${shimmerStyles.skeletonShort}`} />
-                          <span className={shimmerStyles.skeletonLine} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : comments.length === 0 ? (
-                  <p className={styles.betaEmpty}>No comments yet</p>
-                ) : (
-                  <div className={styles.betaRegion}>
-                    {/* Reveal toggle sits OUTSIDE the blur layer so the
-                        label stays sharp when the beta is hidden —
-                        previously it was nested inside the blurred div
-                        and got the same `filter: blur()` as the text. */}
-                    {!isCompleted && comments.length > 0 && (
-                      <button
-                        type="button"
-                        className={styles.revealBtn}
-                        onClick={() => setBetaRevealed((v) => !v)}
-                      >
-                        {betaRevealed ? <FaEyeSlash /> : <FaEye />}
-                        <span>{betaRevealed ? "Hide beta" : "Reveal beta"}</span>
-                      </button>
-                    )}
-                    <div className={!isCompleted && !betaRevealed ? styles.betaBlurred : ""}>
-                    <ul className={styles.commentList}>
-                      {(expanded ? comments : comments.slice(0, 2)).map((c) => {
-                        const author = c.profiles;
-                        const username = author?.username ?? "unknown";
-                        const isOwn = user?.id === c.user_id;
-
-                        return (
-                          <li key={c.id} className={styles.commentItem}>
-                            <div className={styles.commentRow}>
-                              <Link href={`/u/${username}`} className={styles.avatarLink}>
-                                <UserAvatar
-                                  user={{
-                                    id: c.user_id,
-                                    username,
-                                    name: author?.name ?? "",
-                                    avatar_url: author?.avatar_url ?? "",
-                                  }}
-                                  size={32}
-                                />
-                              </Link>
-                              <div className={styles.commentContent}>
-                                {/* Render the author line in BOTH modes so the
-                                    row height doesn't collapse during edit —
-                                    prevents sibling comments (and content
-                                    above the panel) from shifting. */}
-                                <Link href={`/u/${username}`} className={styles.commentAuthor}>@{username}</Link>
-                                {editingId === c.id ? (
-                                  <EditCommentForm
-                                    initialBody={editBody}
-                                    onChange={setEditBody}
-                                    onSubmit={() => handleEditComment(c.id)}
-                                    onCancel={() => setEditingId(null)}
-                                  />
-                                ) : (
-                                  <>
-                                    <p className={styles.commentBody}>{c.body}</p>
-                                    {c.likes > 0 && <span className={styles.commentLikes}>{c.likes} {c.likes === 1 ? "like" : "likes"}</span>}
-                                  </>
-                                )}
-                              </div>
-                              {isOwn ? (
-                                editingId !== c.id && (
-                                  <button type="button" className={styles.actionBtn} onClick={() => { setEditingId(c.id); setEditBody(c.body); }} aria-label="Edit comment"><FaPen /></button>
-                                )
-                              ) : (
-                                <button
-                                  type="button"
-                                  className={`${styles.actionBtn} ${likedIds.has(c.id) ? styles.likeBtnActive : ""}`}
-                                  onClick={() => handleLike(c.id)}
-                                  aria-label={likedIds.has(c.id) ? "Unlike" : "Like"}
-                                >
-                                  {likedIds.has(c.id) ? <FaHeart /> : <FaRegHeart />}
-                                </button>
-                              )}
-                            </div>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                    {!expanded && comments.length > 2 ? (
-                      <button type="button" className={styles.loadMore} onClick={() => setExpanded(true)}>
-                        Show {comments.length - 2} more
-                      </button>
-                    ) : hasMore && (
-                      <button type="button" className={styles.loadMore} onClick={loadMore} disabled={loadingMore}>
-                        {loadingMore ? "Loading..." : "Load more"}
-                      </button>
-                    )}
-                    </div>
-                  </div>
-                )}
-
-              </div>
-              </div>
-            </div>
-          </div>
-
-          <div
-            className={`${styles.postFormWrap} ${showPostForm ? styles.postFormVisible : ""}`}
-            aria-hidden={!showPostForm}
-          >
-            <div className={styles.postFormInner}>
-              <form className={styles.commentForm} onSubmit={(e) => { e.preventDefault(); handlePostComment(); }}>
-                <input
-                  type="text"
-                  className={styles.commentInput}
-                  placeholder="Share beta..."
-                  aria-label="Share beta"
-                  value={commentBody}
-                  onChange={(e) => setCommentBody(e.target.value)}
-                  disabled={posting || !showPostForm}
-                  tabIndex={showPostForm ? 0 : -1}
-                />
-                <button
-                  type="submit"
-                  className={styles.commentSubmit}
-                  disabled={posting || !commentBody.trim() || !showPostForm}
-                  aria-label="Post comment"
-                  tabIndex={showPostForm ? 0 : -1}
-                >
-                  <FaPaperPlane />
-                </button>
-              </form>
-            </div>
-          </div>
-          </>
-            );
-          })()}
+          <CommentThread
+            userId={user?.id}
+            isCompleted={isCompleted}
+            setActive={set.active}
+            betaExpanded={betaExpanded}
+            onToggleBetaExpanded={handleExpandBeta}
+            comments={comments}
+            totalComments={totalComments}
+            hasMore={hasMore}
+            loadingComments={loadingComments}
+            loadingMore={loadingMore}
+            likedIds={likedIds}
+            commentsLoaded={commentsLoaded}
+            onLoadMore={loadMore}
+            onPostComment={onPostComment}
+            onEditComment={onEditCommentAction}
+            onLikeComment={onLikeComment}
+          />
     </BottomSheet>
   );
 }
