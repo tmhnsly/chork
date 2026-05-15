@@ -265,56 +265,46 @@ export async function leaveCrew(crewId: string): Promise<ActionResult> {
   const { supabase, userId } = auth;
 
   try {
-    const [{ data: crew }, { count: activeCount }] = await Promise.all([
-      supabase.from("crews").select("created_by").eq("id", crewId).maybeSingle(),
-      supabase
-        .from("crew_members")
-        .select("id", { count: "exact", head: true })
-        .eq("crew_id", crewId)
-        .eq("status", "active"),
-    ]);
+    // Atomic count + branch + delete via `leave_crew_atomic` RPC
+    // (migration 057). The previous read-then-write flow had a TOCTOU
+    // window where a concurrent join could land between the count and
+    // the crew delete, leading to "you joined and were instantly
+    // removed for no visible reason." The RPC locks the crews row
+    // for the duration so concurrent joins serialise correctly.
+    //
+    // RPC name is cast through `as never` because database.types.ts
+    // is regenerated AFTER migration 057 is applied — without the
+    // cast, `pnpm build` fails type-check before the regen lands.
+    // The cast scopes to the RPC name only; the return value is
+    // narrowed to text via the outcome variable below.
+    const { data: outcome, error: rpcError } = await supabase.rpc(
+      "leave_crew_atomic" as never,
+      { p_crew_id: crewId } as never,
+    );
+    if (rpcError) return { error: formatError(rpcError) };
 
-    if (!crew) return { error: "Crew not found." };
-
-    const isCreator = crew.created_by === userId;
-    const otherActive = Math.max(0, (activeCount ?? 0) - 1);
-
-    // Read-then-write ordering (rather than delete-self-then-recount +
-    // rollback-insert) because the INSERT policy on crew_members
-    // forbids both self-insert and `status=active` — a rollback would
-    // RLS-fail silently and strand the creator outside their own crew
-    // with no path back in. The window between count and delete is
-    // sub-millisecond; concurrent joins against a crew being
-    // dismantled are covered by FK cascades in the solo-creator
-    // tear-down branch.
-    if (isCreator && otherActive > 0) {
-      return {
-        error:
-          "You created this crew — transfer it or remove the other members first.",
-      };
+    switch (outcome as unknown as string) {
+      case "not_found":
+        return { error: "Crew not found." };
+      case "not_member":
+        return { error: "You're not a member of this crew." };
+      case "creator_blocked":
+        return {
+          error:
+            "You created this crew — transfer it or remove the other members first.",
+        };
+      case "crew_deleted":
+        revalidateTag(tags.crew(crewId), "max");
+        revalidateTag(tags.userCrews(userId), "max");
+        return { success: true };
+      case "left":
+        // Leaver no longer in crew_members; pass them via extraUserIds so
+        // their crews tag busts alongside the remaining active set.
+        await revalidateCrewMembers(supabase, crewId, [userId]);
+        return { success: true };
+      default:
+        return { error: "Unexpected response from leave-crew." };
     }
-
-    if (isCreator && otherActive === 0) {
-      // Solo creator leaving → delete the crew; FK cascades handle
-      // the membership + pending invite rows.
-      const { error } = await supabase.from("crews").delete().eq("id", crewId);
-      if (error) return { error: formatError(error) };
-      revalidateTag(tags.crew(crewId), "max");
-      revalidateTag(tags.userCrews(userId), "max");
-      return { success: true };
-    }
-
-    const { error } = await supabase
-      .from("crew_members")
-      .delete()
-      .eq("crew_id", crewId)
-      .eq("user_id", userId);
-    if (error) return { error: formatError(error) };
-
-    // Leaver no longer in crew_members; pass them via extraUserIds so
-    // their crews tag busts alongside the remaining active set.
-    await revalidateCrewMembers(supabase, crewId, [userId]);
-    return { success: true };
   } catch (err) {
     return { error: formatError(err) };
   }

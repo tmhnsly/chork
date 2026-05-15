@@ -408,17 +408,24 @@ describe("declineCrewInvite", () => {
 // leaveCrew
 // ────────────────────────────────────────────────────────────────
 describe("leaveCrew", () => {
+  // Atomicity moved to the `leave_crew_atomic` RPC (migration 057).
+  // Each test mocks the RPC's return value (one of 'left',
+  // 'crew_deleted', 'creator_blocked', 'not_found', 'not_member')
+  // and asserts the action surfaces the right ActionResult shape +
+  // cache-tag busts. The lock + count logic itself is enforced
+  // server-side and isn't unit-tested here — it's a Postgres
+  // FOR UPDATE behaviour, covered by integration tests if any.
+
   it("rejects malformed UUID", async () => {
     const { leaveCrew } = await import("./actions");
     expect(await leaveCrew("notuuid")).toEqual({ error: "Invalid crew." });
   });
 
-  it("deletes a non-creator member row", async () => {
+  it("returns success when a non-creator member's row is deleted ('left')", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
       supabase: mockSupabase({
-        "table:crews": { data: { created_by: USER_B }, error: null },
-        "table:crew_members": { data: null, error: null, count: 3 },
+        "rpc:leave_crew_atomic": { data: "left", error: null },
       }) as never,
       userId: USER_A,
     });
@@ -426,12 +433,11 @@ describe("leaveCrew", () => {
     expect(await leaveCrew(CREW_1)).toEqual({ success: true });
   });
 
-  it("refuses when the creator tries to leave with other members present", async () => {
+  it("surfaces a friendly error when the RPC returns 'creator_blocked'", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
       supabase: mockSupabase({
-        "table:crews": { data: { created_by: USER_A }, error: null },
-        "table:crew_members": { data: null, error: null, count: 3 },
+        "rpc:leave_crew_atomic": { data: "creator_blocked", error: null },
       }) as never,
       userId: USER_A,
     });
@@ -440,14 +446,11 @@ describe("leaveCrew", () => {
     expect("error" in res).toBe(true);
   });
 
-  it("deletes the crew entirely when the solo creator leaves", async () => {
+  it("returns success on the solo-creator teardown path ('crew_deleted')", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
       supabase: mockSupabase({
-        "table:crews": { data: { created_by: USER_A }, error: null },
-        // count = 1 → the creator, alone. `otherActive = count - 1 = 0`
-        // triggers the solo-teardown branch.
-        "table:crew_members": { data: null, error: null, count: 1 },
+        "rpc:leave_crew_atomic": { data: "crew_deleted", error: null },
       }) as never,
       userId: USER_A,
     });
@@ -455,17 +458,29 @@ describe("leaveCrew", () => {
     expect(await leaveCrew(CREW_1)).toEqual({ success: true });
   });
 
-  it("errors cleanly when the crew can't be found", async () => {
+  it("errors cleanly when the RPC returns 'not_found'", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
       supabase: mockSupabase({
-        "table:crews": { data: null, error: null },
-        "table:crew_members": { data: null, error: null, count: 0 },
+        "rpc:leave_crew_atomic": { data: "not_found", error: null },
       }) as never,
       userId: USER_A,
     });
     const { leaveCrew } = await import("./actions");
     expect(await leaveCrew(CREW_1)).toEqual({ error: "Crew not found." });
+  });
+
+  it("errors cleanly when the RPC returns 'not_member'", async () => {
+    const { requireSignedIn } = await import("@/lib/auth");
+    vi.mocked(requireSignedIn).mockResolvedValue({
+      supabase: mockSupabase({
+        "rpc:leave_crew_atomic": { data: "not_member", error: null },
+      }) as never,
+      userId: USER_A,
+    });
+    const { leaveCrew } = await import("./actions");
+    const res = await leaveCrew(CREW_1);
+    expect("error" in res).toBe(true);
   });
 });
 
