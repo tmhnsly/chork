@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState, useEffect } from "react";
+import { useActionState, useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { FaCircleCheck, FaArrowUpRightFromSquare } from "react-icons/fa6";
 import { useAuth } from "@/lib/auth-context";
@@ -60,10 +60,34 @@ function serverFieldError(
   return undefined;
 }
 
+// Maps the `?error=` query keys our auth routes redirect with onto
+// user-facing toast copy. Keep the keys narrow — anything not in this
+// map falls back to a generic message so an attacker can't craft a
+// URL that displays arbitrary text.
+const AUTH_ERROR_MESSAGES: Record<string, string> = {
+  "link-expired":
+    "That sign-in link has expired or already been used. Send a new one.",
+  "confirmation-invalid":
+    "That confirmation link is invalid. Check the email or request a new one.",
+};
+
 export function LoginForm() {
   const { resetPassword } = useAuth();
   const searchParams = useSearchParams();
   const next = searchParams.get("next") ?? "/";
+  const errorKey = searchParams.get("error");
+
+  // Surface redirect-borne errors (e.g. /auth/callback?... → expired
+  // magic link, /auth/confirm → invalid token) as a toast on first
+  // paint. Tracked in a ref so a re-render from form interaction
+  // doesn't re-fire the toast.
+  const errorToastedRef = useRef(false);
+  useEffect(() => {
+    if (!errorKey || errorToastedRef.current) return;
+    errorToastedRef.current = true;
+    const msg = AUTH_ERROR_MESSAGES[errorKey] ?? "Sign-in didn't complete. Try again.";
+    showToast(msg, "error");
+  }, [errorKey]);
 
   const [mode, setMode] = useState<Mode>("sign-in");
   const [email, setEmail] = useState("");

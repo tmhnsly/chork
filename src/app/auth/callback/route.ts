@@ -21,5 +21,11 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.redirect(new URL("/login", request.url));
+  // Reach here when: `code` is missing entirely (someone hit /auth/callback
+  // directly with no params) OR `exchangeCodeForSession` rejected (expired
+  // / re-used / malformed code). Surface a specific error key so the
+  // login page can toast something more useful than "you're signed out
+  // for unstated reasons." Matches the pattern /auth/confirm uses for
+  // its own failure modes (`?error=confirmation-invalid`).
+  return NextResponse.redirect(new URL("/login?error=link-expired", origin));
 }
