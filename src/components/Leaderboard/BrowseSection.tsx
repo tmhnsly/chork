@@ -81,6 +81,16 @@ export function BrowseSection({
   const maxKnownOffsetRef = useRef<number | null>(null);
   maxKnownOffsetRef.current = maxKnownOffset;
 
+  // Same pattern for the row cache. The window-prefetch effect reads
+  // `cache` to compute missing ranges, but listing `cache` as an
+  // effect dep means every successful prefetch (which calls setCache)
+  // re-fires the effect and re-evaluates ranges — including the
+  // already-cached ones — and can trigger duplicate fetches under
+  // fast scrolling. The ref lets the effect read the latest committed
+  // cache without re-firing on every cache mutation.
+  const cacheRef = useRef<RowCache>(cache);
+  cacheRef.current = cache;
+
   const fetchRange = useCallback(
     async (start: number, count: number, { silent = false } = {}) => {
       if (count <= 0) return;
@@ -120,28 +130,34 @@ export function BrowseSection({
 
   // Ensure the visible window is loaded, then prefetch above + below
   // so the next nudge is instant.
+  //
+  // Reads cache via cacheRef so the effect only fires on topOffset
+  // change — not on every setCache result, which would re-evaluate
+  // prefetch ranges (some already cached) and could race the in-flight
+  // guard under fast scrolling.
   useEffect(() => {
+    const snapshot = cacheRef.current;
     const viewEnd = topOffset + BROWSE_WINDOW;
-    const missingInView = firstMissingRange(cache, topOffset, viewEnd);
+    const missingInView = firstMissingRange(snapshot, topOffset, viewEnd);
     if (missingInView) {
       void fetchRange(missingInView.start, missingInView.count);
     }
     // Prefetch above.
     const prefetchTop = Math.max(TOP_LIMIT, topOffset - PREFETCH_BUFFER);
-    const missingAbove = firstMissingRange(cache, prefetchTop, topOffset);
+    const missingAbove = firstMissingRange(snapshot, prefetchTop, topOffset);
     if (missingAbove) {
       void fetchRange(missingAbove.start, missingAbove.count, { silent: true });
     }
     // Prefetch below.
     const missingBelow = firstMissingRange(
-      cache,
+      snapshot,
       viewEnd,
       viewEnd + PREFETCH_BUFFER,
     );
     if (missingBelow) {
       void fetchRange(missingBelow.start, missingBelow.count, { silent: true });
     }
-  }, [topOffset, cache, fetchRange]);
+  }, [topOffset, fetchRange]);
 
   const visibleRows = useMemo(() => {
     const rows: LeaderboardEntry[] = [];
