@@ -146,11 +146,32 @@ export async function toggleCommentLike(
   const service = createServiceClient();
 
   if (existing) {
-    const { error: deleteError } = await supabase
+    // Race-safe unlike: two concurrent unlikes (e.g. two tabs) both
+    // read the same `existing` row, both fire delete-by-id. The first
+    // delete affects 1 row, the second affects 0 — and without
+    // checking the count both would fire `increment_comment_likes(-1)`,
+    // double-decrementing the counter below the true row count.
+    //
+    // `select("id")` after delete returns the actually-deleted rows;
+    // only fire the RPC when this caller's delete was the one that
+    // removed the row.
+    const { data: deleted, error: deleteError } = await supabase
       .from("comment_likes")
       .delete()
-      .eq("id", existing.id);
+      .eq("id", existing.id)
+      .select("id");
     if (deleteError) throw deleteError;
+
+    if (!deleted || deleted.length === 0) {
+      // Another client removed the row first. Re-read the current
+      // counter so the caller's UI ends up consistent.
+      const { data: comment } = await supabase
+        .from("comments")
+        .select("likes")
+        .eq("id", commentId)
+        .maybeSingle();
+      return { liked: false, likes: comment?.likes ?? 0 };
+    }
 
     // Atomic decrement — no race condition
     const { data: newLikes, error: rpcError } = await service
@@ -160,17 +181,20 @@ export async function toggleCommentLike(
     return { liked: false, likes: newLikes ?? 0 };
   }
 
+  // Like-direction race is already covered by the
+  // `unique(user_id, comment_id)` constraint on comment_likes — the
+  // second concurrent insert throws and we exit before the RPC fires.
   const { error: insertError } = await supabase
     .from("comment_likes")
     .insert({ user_id: userId, comment_id: commentId, gym_id: gymId });
   if (insertError) throw insertError;
 
   // Atomic increment — no race condition
-    const { data: newLikes, error: rpcError } = await service
-      .rpc("increment_comment_likes", { p_comment_id: commentId, p_delta: 1 });
-    if (rpcError) throw rpcError;
+  const { data: newLikes, error: rpcError } = await service
+    .rpc("increment_comment_likes", { p_comment_id: commentId, p_delta: 1 });
+  if (rpcError) throw rpcError;
 
-    return { liked: true, likes: newLikes ?? 0 };
+  return { liked: true, likes: newLikes ?? 0 };
 }
 
 // ── Activity events ────────────────────────────────
