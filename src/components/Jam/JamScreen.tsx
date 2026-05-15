@@ -22,6 +22,7 @@ import { JamLogSheet } from "./JamLogSheet";
 import { JamAddRouteSheet } from "./JamAddRouteSheet";
 import { JamMenuSheet } from "./JamMenuSheet";
 import { jamReducer, logKey, type JamLocalState } from "./jamScreenReducer";
+import { visibleAttempts } from "@/lib/data/logs";
 import styles from "./jamScreen.module.scss";
 
 interface Props {
@@ -72,7 +73,19 @@ export function JamScreen({ initialState, userId }: Props) {
       if (evt.eventType === "DELETE") {
         dispatch({ type: "remove-log", userId: evt.old.user_id, routeId: evt.old.jam_route_id });
       } else {
-        dispatch({ type: "upsert-log", log: evt.new });
+        // Privacy: raw attempt counts are owner-only (per CLAUDE.md
+        // domain rule "Attempt counts are private — never show raw
+        // attempts to other users"). Realtime ships jam_logs with
+        // REPLICA IDENTITY FULL, so other-player events arrive with
+        // raw counts; sanitise via the same `visibleAttempts`
+        // collapse used by the wall (flash → 1, non-flash completion
+        // → 2, incomplete → 0). Own events keep raw attempts so the
+        // user's points preview + log sheet stay correct.
+        const sanitisedLog: JamLog =
+          evt.new.user_id === userId
+            ? evt.new
+            : { ...evt.new, attempts: visibleAttempts(evt.new, false) };
+        dispatch({ type: "upsert-log", log: sanitisedLog });
       }
     },
     onPlayerChange: () => {
