@@ -53,12 +53,29 @@ const config: StorybookConfig = {
   webpackFinal: async (config) => {
     patchSassConfig(config.module?.rules);
 
-    // Alias auth-context to the Storybook mock so components using
-    // useAuth() get a mock provider that doesn't need next/navigation.
     config.resolve = config.resolve ?? {};
+    const stubPath = path.resolve(__dirname, "server-actions-stub.ts");
     config.resolve.alias = {
       ...(config.resolve.alias as Record<string, string> ?? {}),
+      // Alias auth-context to the Storybook mock so components using
+      // useAuth() get a mock provider that doesn't need next/navigation.
       "@/lib/auth-context": path.resolve(__dirname, "decorators.tsx"),
+      // Server-only modules. Next.js production builds replace these
+      // with RPC stubs at the client edge via the `"use server"`
+      // boundary; Storybook's webpack doesn't honour that, so the
+      // full modules + their server-only imports (node:crypto,
+      // web-push → net/tls) get pulled into the browser bundle and
+      // crash. Story renders never *call* these actions — they only
+      // import them.
+      //
+      // Aliases use BOTH the `@/`-prefixed specifier AND the resolved
+      // absolute path — tsconfig-paths resolves `@/` first, so the
+      // unprefixed form is the one webpack ultimately sees. Listing
+      // both is belt-and-braces.
+      "@/lib/user-actions": stubPath,
+      "@/lib/push/server": stubPath,
+      [path.resolve(__dirname, "../src/lib/user-actions.ts")]: stubPath,
+      [path.resolve(__dirname, "../src/lib/push/server.ts")]: stubPath,
     };
 
     return config;
