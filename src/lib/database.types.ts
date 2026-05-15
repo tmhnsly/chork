@@ -1716,7 +1716,6 @@ export type Database = {
           zones: number
         }[]
       }
-      get_jam_state: { Args: { p_jam_id: string }; Returns: Json }
       get_jam_state_for_user: {
         Args: { p_jam_id: string; p_user_id: string }
         Returns: Json
