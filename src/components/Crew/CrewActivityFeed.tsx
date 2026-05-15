@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FaBolt, FaFlag, FaCheck } from "react-icons/fa6";
 import { UserAvatar } from "@/components/ui";
 import { createBrowserSupabase } from "@/lib/supabase/client";
@@ -49,15 +49,25 @@ export function CrewActivityFeed({
   const [exhausted, setExhausted] = useState<boolean>(initialExhausted);
   const [loadingMore, setLoadingMore] = useState(false);
 
+  // Tab-switching this feed unmounts mid-fetch. Without these guards a
+  // thrown error left the spinner stuck and the in-flight resolve fired
+  // setState on a dead instance.
+  const mountedRef = useRef(true);
+  useEffect(() => () => { mountedRef.current = false; }, []);
+
   async function handleLoadMore() {
     if (!cursor || loadingMore || exhausted) return;
     setLoadingMore(true);
-    const supabase = createBrowserSupabase();
-    const page = await getCrewActivityFeed(supabase, PAGE_SIZE, cursor, crewId);
-    setEvents((prev) => [...prev, ...page]);
-    if (page.length < PAGE_SIZE) setExhausted(true);
-    else setCursor(page[page.length - 1].happened_at);
-    setLoadingMore(false);
+    try {
+      const supabase = createBrowserSupabase();
+      const page = await getCrewActivityFeed(supabase, PAGE_SIZE, cursor, crewId);
+      if (!mountedRef.current) return;
+      setEvents((prev) => [...prev, ...page]);
+      if (page.length < PAGE_SIZE) setExhausted(true);
+      else setCursor(page[page.length - 1].happened_at);
+    } finally {
+      if (mountedRef.current) setLoadingMore(false);
+    }
   }
 
   if (events.length === 0) {
