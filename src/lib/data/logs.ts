@@ -48,3 +48,30 @@ export function deriveTileState(
   if (isFlash(log)) return "flash";
   return "completed";
 }
+
+/**
+ * Privacy contract: raw attempt counts are owner-only. When rendering
+ * a log on another climber's profile, we collapse `attempts` to one of
+ * three buckets so downstream consumers (RouteChart bar heights,
+ * computePoints math) still distinguish flash from non-flash while
+ * leaking nothing about how many tries it took:
+ *
+ *   - Flash (attempts === 1 && completed)   → 1   (full-height bar, 4 pts)
+ *   - Non-flash completion                  → 2   (uniform shorter bar, 3 pts)
+ *   - Uncompleted (regardless of tries)     → 0   (no "in progress" signal)
+ *
+ * Zone status is public (contributes to public leaderboard) and is
+ * not touched here — pass it through unchanged.
+ *
+ * Always thread through `isOwnProfile` from the page boundary; the
+ * helper itself is the single source of truth for this rule so adding
+ * a new caller can't quietly skip it.
+ */
+export function visibleAttempts(
+  log: Pick<RouteLog, "attempts" | "completed">,
+  isOwnProfile: boolean,
+): number {
+  if (isOwnProfile) return log.attempts;
+  if (!log.completed) return 0;
+  return log.attempts === 1 ? 1 : 2;
+}

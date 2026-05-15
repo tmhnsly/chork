@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isFlash, computePoints, computeMaxPoints } from "./logs";
+import { isFlash, computePoints, computeMaxPoints, visibleAttempts } from "./logs";
 
 describe("isFlash", () => {
   it("returns true for 1 attempt + completed", () => {
@@ -48,6 +48,59 @@ describe("computePoints", () => {
     expect(computePoints({ attempts: 1, completed: true, zone: true })).toBe(5);
     expect(computePoints({ attempts: 3, completed: true, zone: true })).toBe(3);
     expect(computePoints({ attempts: 0, completed: false, zone: true })).toBe(1);
+  });
+});
+
+describe("visibleAttempts (privacy contract)", () => {
+  // CLAUDE.md privacy rule: raw attempt counts are owner-only. This
+  // helper is the single boundary that strips them for visitors. Each
+  // case below maps a private input to its public-safe output — if any
+  // assertion breaks, a regression has reintroduced an attempts leak.
+
+  it("returns raw attempts unchanged when isOwnProfile is true", () => {
+    expect(visibleAttempts({ attempts: 1, completed: true }, true)).toBe(1);
+    expect(visibleAttempts({ attempts: 4, completed: true }, true)).toBe(4);
+    expect(visibleAttempts({ attempts: 99, completed: true }, true)).toBe(99);
+    expect(visibleAttempts({ attempts: 3, completed: false }, true)).toBe(3);
+  });
+
+  it("preserves flash signal for visitors (1 attempt + completed → 1)", () => {
+    expect(visibleAttempts({ attempts: 1, completed: true }, false)).toBe(1);
+  });
+
+  it("collapses non-flash completions to a single bucket for visitors", () => {
+    expect(visibleAttempts({ attempts: 2, completed: true }, false)).toBe(2);
+    expect(visibleAttempts({ attempts: 3, completed: true }, false)).toBe(2);
+    expect(visibleAttempts({ attempts: 4, completed: true }, false)).toBe(2);
+    expect(visibleAttempts({ attempts: 99, completed: true }, false)).toBe(2);
+  });
+
+  it("hides 'attempted but not completed' state from visitors", () => {
+    expect(visibleAttempts({ attempts: 1, completed: false }, false)).toBe(0);
+    expect(visibleAttempts({ attempts: 7, completed: false }, false)).toBe(0);
+  });
+
+  it("downstream point bars only emit 0, 3, or 4 pts for visitors", () => {
+    // The whole reason we collapse: computePoints fed visitor-sanitised
+    // logs must never reveal which "tries" bucket a completion was in.
+    // Zone bonus is omitted here (public anyway).
+    const samples = [
+      { attempts: 1, completed: true, zone: false },
+      { attempts: 2, completed: true, zone: false },
+      { attempts: 3, completed: true, zone: false },
+      { attempts: 6, completed: true, zone: false },
+      { attempts: 4, completed: false, zone: false },
+    ];
+    const visitorPoints = new Set(
+      samples.map((s) =>
+        computePoints({
+          attempts: visibleAttempts(s, false),
+          completed: s.completed,
+          zone: s.zone,
+        }),
+      ),
+    );
+    expect(visitorPoints).toEqual(new Set([0, 3, 4]));
   });
 });
 

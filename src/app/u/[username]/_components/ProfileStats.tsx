@@ -8,6 +8,7 @@ import {
   getAllSets,
 } from "@/lib/data/queries";
 import { getLeaderboardUserRow } from "@/lib/data/leaderboard-queries";
+import { visibleAttempts } from "@/lib/data/logs";
 import { ClimberStats } from "@/components/ClimberStats/ClimberStats";
 import {
   flashRate,
@@ -24,9 +25,14 @@ interface Props {
    * calculation to sets that overlapped the climber's tenure.
    */
   createdAt: string;
+  /**
+   * Gates private stats (raw attempt counts). When false, `totalAttempts`
+   * is nulled out before reaching the client so visitors never see it.
+   */
+  isOwnProfile: boolean;
 }
 
-export async function ProfileStats({ userId, gymId, createdAt }: Props) {
+export async function ProfileStats({ userId, gymId, createdAt, isOwnProfile }: Props) {
   const supabase = await createServerSupabase();
 
   const [summary, activeSet, gym] = await Promise.all([
@@ -75,7 +81,9 @@ export async function ProfileStats({ userId, gymId, createdAt }: Props) {
   const allTimeExtras = {
     flashRate: flashRate(totals.sends, totals.flashes),
     pointsPerSend: pointsPerSend(totals.points, totals.sends),
-    totalAttempts: summary.total_attempts,
+    // Privacy: raw attempts are owner-only. Null hides the cell entirely
+    // in ClimberStats so the existence of the metric isn't telegraphed.
+    totalAttempts: isOwnProfile ? summary.total_attempts : null,
     completionRate: completionRate(totals.sends, summary.unique_routes_attempted),
     uniqueRoutesAttempted: summary.unique_routes_attempted,
     totalRoutesInGym: summary.total_routes_in_gym,
@@ -106,12 +114,13 @@ export async function ProfileStats({ userId, gymId, createdAt }: Props) {
 
   // SendGridTile mini-grid wants a Map<route_id, log>. Build it from
   // active_set_detail; routes that the climber hasn't logged yield no
-  // entry so SendGridTile renders the empty state.
+  // entry so SendGridTile renders the empty state. `visibleAttempts`
+  // is the single source of truth for the owner-only-attempts rule.
   const logsByRoute = new Map(
     summary.active_set_detail.map((d) => [
       d.route_id,
       {
-        attempts: d.attempts,
+        attempts: visibleAttempts(d, isOwnProfile),
         completed: d.completed,
         zone: d.zone,
         route_id: d.route_id,

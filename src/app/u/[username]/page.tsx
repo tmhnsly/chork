@@ -81,6 +81,7 @@ export default async function UserProfilePage({ params }: Props) {
             userId={profileUser.id}
             gymId={gymId}
             createdAt={profileUser.created_at}
+            isOwnProfile={isOwnProfile}
           />
         </Suspense>
       )}
@@ -113,6 +114,7 @@ export default async function UserProfilePage({ params }: Props) {
             userId={profileUser.id}
             gymId={gymId}
             createdAt={profileUser.created_at}
+            isOwnProfile={isOwnProfile}
           />
         </Suspense>
       )}

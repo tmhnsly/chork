@@ -8,6 +8,7 @@ import {
 } from "@/lib/data/queries";
 import type { Route } from "@/lib/data";
 import { computeMaxPoints } from "@/lib/data";
+import { visibleAttempts } from "@/lib/data/logs";
 import { evaluateBadgesForSet } from "@/lib/badges";
 import { PreviousSetsGrid } from "@/components/sections/PreviousSetsGrid";
 import type { SetCell, SetCellLog } from "@/components/sections/PreviousSetsGrid";
@@ -16,6 +17,12 @@ interface Props {
   userId: string;
   gymId: string;
   createdAt: string;
+  /**
+   * Gates per-route attempt counts. When false, every `SetCellLog`
+   * shipped to the client is sanitised so the bar chart in the set
+   * detail sheet can't be reverse-engineered into attempt buckets.
+   */
+  isOwnProfile: boolean;
 }
 
 interface SetStats {
@@ -32,7 +39,7 @@ function formatSetLabel(starts: string, ends: string) {
   ].join(" – ");
 }
 
-export async function PreviousSetsSection({ userId, gymId, createdAt }: Props) {
+export async function PreviousSetsSection({ userId, gymId, createdAt, isOwnProfile }: Props) {
   const supabase = await createServerSupabase();
 
   // Sets the climber could have touched. createdAt scopes out sets that
@@ -83,8 +90,13 @@ export async function PreviousSetsSection({ userId, gymId, createdAt }: Props) {
   ): SetCell {
     const stats = statsBySet.get(setRecord.id) ?? { completions: 0, flashes: 0, points: 0, zones: 0 };
     const setLogs = logsBySet.get(setRecord.id) ?? [];
+    // `visibleAttempts` is the single source of truth for the owner-only
+    // attempts contract — see src/lib/data/logs.ts.
     const logs: Map<string, SetCellLog> = new Map(
-      setLogs.map((l) => [l.route_id, { attempts: l.attempts, completed: l.completed, zone: l.zone }]),
+      setLogs.map((l) => [
+        l.route_id,
+        { attempts: visibleAttempts(l, isOwnProfile), completed: l.completed, zone: l.zone },
+      ]),
     );
     const totalRoutes = routes.length;
     const maxPoints = computeMaxPoints(totalRoutes, routes.filter((r) => r.has_zone).length);
@@ -120,7 +132,13 @@ export async function PreviousSetsSection({ userId, gymId, createdAt }: Props) {
       id: setRecord.id,
       label: formatSetLabel(setRecord.starts_at, setRecord.ends_at),
       isActive,
-      hasActivity: stats.completions > 0 || setLogs.some((l) => l.attempts > 0),
+      // For visitors, the "attempted but uncompleted" signal leaks raw
+      // activity. Drop that clause off-profile; zone + completion counts
+      // are already public (leaderboard contributions).
+      hasActivity:
+        stats.completions > 0 ||
+        stats.zones > 0 ||
+        (isOwnProfile && setLogs.some((l) => l.attempts > 0)),
       completions: stats.completions,
       flashes: stats.flashes,
       zones: stats.zones,

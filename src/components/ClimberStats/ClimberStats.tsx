@@ -11,8 +11,13 @@ export interface AllTimeExtras {
   flashRate: number | null;
   /** Average points per send (1dp), null if no sends */
   pointsPerSend: number | null;
-  /** Sum of attempts across completed routes */
-  totalAttempts: number;
+  /**
+   * Sum of attempts across completed routes. Null when viewing another
+   * climber's profile — attempt counts are private (see CLAUDE.md
+   * privacy contract), so the cell is omitted entirely rather than
+   * shown as a dash, which would leak the cell's existence.
+   */
+  totalAttempts: number | null;
   /** 0–1 fraction, null if no routes attempted */
   completionRate: number | null;
   uniqueRoutesAttempted: number;
@@ -110,10 +115,12 @@ export function ClimberStats({
               label="Pts / send"
               value={allTimeExtras.pointsPerSend === null ? EM_DASH : allTimeExtras.pointsPerSend.toFixed(1)}
             />
-            <ExtraCell
-              label="Attempts"
-              value={formatNumber(allTimeExtras.totalAttempts)}
-            />
+            {allTimeExtras.totalAttempts !== null && (
+              <ExtraCell
+                label="Attempts"
+                value={formatNumber(allTimeExtras.totalAttempts)}
+              />
+            )}
             <ExtraCell
               label="Completion"
               value={formatPercent(allTimeExtras.completionRate)}
