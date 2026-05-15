@@ -80,11 +80,20 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const gradeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingAttemptsRef = useRef<number | null>(null);
+  // Mirrors pendingAttemptsRef for the grade-vote debounce. Holds the
+  // value the next debounced save will commit, so the unmount cleanup
+  // can flush it directly (network only — no setState on a dead
+  // component) and the user's vote isn't dropped on rapid close.
+  const pendingGradeVoteRef = useRef<number | null>(null);
   const logIdRef = useRef(currentLog?.id);
   const onCacheRef = useRef(onCacheRouteData);
   const onLogUpdateRef = useRef(onLogUpdate);
   const likingRef = useRef<Set<string>>(new Set());
   const currentLogRef = useRef(currentLog);
+  // Tracks the staggered badge-toast timers so we can cancel them
+  // if the sheet unmounts mid-stagger. Otherwise toasts keep firing
+  // for up to N×250ms after the user has swiped the sheet closed.
+  const badgeToastTimersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   logIdRef.current = currentLog?.id;
   currentLogRef.current = currentLog;
@@ -204,14 +213,37 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
 
   useEffect(() => {
     return () => {
+      // Flush the attempts debounce so a pending save isn't dropped
+      // by an unmount-during-debounce.
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
         if (pendingAttemptsRef.current !== null) {
           saveAttempts(pendingAttemptsRef.current);
         }
       }
+      // Flush the grade-vote debounce too — fire the server save
+      // directly without setState so the user's vote isn't lost on
+      // rapid sheet close, but no warning fires for "setState on
+      // unmounted component". onCacheRef.current can still be
+      // called safely (it's the parent's cache, which is alive).
+      if (gradeDebounceRef.current) {
+        clearTimeout(gradeDebounceRef.current);
+        gradeDebounceRef.current = null;
+        const pending = pendingGradeVoteRef.current;
+        const logId = logIdRef.current;
+        if (pending !== null && logId) {
+          updateGradeVote(route.id, pending, logId).catch((err) =>
+            logger.warn("grade_flush_failed", { err: formatErrorForLog(err) }),
+          );
+        }
+      }
+      // Cancel any pending staggered badge toasts — they were dispatched
+      // to celebrate the send inside this open sheet; once the sheet has
+      // unmounted, the remaining toasts read as orphaned noise.
+      for (const id of badgeToastTimersRef.current) clearTimeout(id);
+      badgeToastTimersRef.current = [];
     };
-  }, [saveAttempts]);
+  }, [saveAttempts, route.id]);
 
   // ── Complete / Uncomplete ──
   async function handleMarkComplete() {
@@ -229,6 +261,13 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
       debounceRef.current = null;
     }
     pendingAttemptsRef.current = null;
+
+    // Snapshot the pre-click state so an error-revert restores what
+    // the user was actually looking at — NOT the `log` prop, which
+    // is the value at mount and stale after any uncomplete/recomplete
+    // cycle within the same sheet open. Revert paths below read these.
+    const snapshotLog = currentLog;
+    const snapshotAttempts = attempts;
 
     const optimisticLog = createOptimisticLog({
       id: currentLog?.id ?? "",
@@ -248,10 +287,9 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
     const result = await completeRoute(route.id, attempts, gradeVote, zoneValue, currentLog?.id);
     if ("error" in result) {
       showToast(result.error, "error");
-      // Revert
-      setCurrentLog(log);
-      setAttempts(log?.attempts ?? 0);
-      if (log) onLogUpdate(route.id, log);
+      setCurrentLog(snapshotLog);
+      setAttempts(snapshotAttempts);
+      if (snapshotLog) onLogUpdate(route.id, snapshotLog);
     } else if (result.log) {
       setCurrentLog(result.log);
       onLogUpdate(route.id, result.log);
@@ -262,7 +300,8 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
       // keeps the slide-in feeling intentional rather than batched.
       if (result.earnedBadges) {
         result.earnedBadges.forEach((badge, i) => {
-          setTimeout(() => showAchievementToast(badge), i * 250);
+          const id = setTimeout(() => showAchievementToast(badge), i * 250);
+          badgeToastTimersRef.current.push(id);
         });
       }
     }
@@ -307,9 +346,17 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
     if (zoningRef.current) return;
     zoningRef.current = true;
 
-    setCurrentLog((prev) => (prev ? { ...prev, zone: checked } : prev));
-    const latest = currentLogRef.current;
-    if (latest) onLogUpdate(route.id, { ...latest, zone: checked });
+    // Compute the next log once so setCurrentLog and onLogUpdate see
+    // the same value. Reading currentLogRef.current after a functional
+    // setter is stale — it still points to the previous render's
+    // commit, which under rapid double-toggles diverges from what
+    // setCurrentLog just applied.
+    const base = currentLogRef.current;
+    if (base) {
+      const next = { ...base, zone: checked };
+      setCurrentLog(next);
+      onLogUpdate(route.id, next);
+    }
 
     const result = await toggleZone(route.id, checked, logIdRef.current);
     if ("error" in result) {
@@ -483,9 +530,14 @@ export function RouteLogSheet({ set, route, log, cachedData, onClose, onCacheRou
                 maxGrade={maxGrade}
                 onChange={(grade) => {
                   setGradeVote(grade);
+                  // Record the pending value so unmount cleanup can
+                  // flush the server save (network only) without
+                  // dropping the user's vote on rapid sheet close.
+                  pendingGradeVoteRef.current = grade;
                   // Debounce the server call — user may tap multiple chips quickly
                   if (gradeDebounceRef.current) clearTimeout(gradeDebounceRef.current);
                   gradeDebounceRef.current = setTimeout(async () => {
+                    pendingGradeVoteRef.current = null;
                     const logId = logIdRef.current;
                     if (!logId) return;
                     const result = await updateGradeVote(route.id, grade, logId);
