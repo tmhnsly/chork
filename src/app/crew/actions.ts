@@ -290,19 +290,13 @@ export async function leaveCrew(crewId: string): Promise<ActionResult> {
     // the crew delete, leading to "you joined and were instantly
     // removed for no visible reason." The RPC locks the crews row
     // for the duration so concurrent joins serialise correctly.
-    //
-    // RPC name is cast through `as never` because database.types.ts
-    // is regenerated AFTER migration 057 is applied — without the
-    // cast, `pnpm build` fails type-check before the regen lands.
-    // The cast scopes to the RPC name only; the return value is
-    // narrowed to text via the outcome variable below.
     const { data: outcome, error: rpcError } = await supabase.rpc(
-      "leave_crew_atomic" as never,
-      { p_crew_id: crewId } as never,
+      "leave_crew_atomic",
+      { p_crew_id: crewId },
     );
     if (rpcError) return { error: formatError(rpcError) };
 
-    switch (outcome as unknown as string) {
+    switch (outcome) {
       case "not_found":
         return { error: "Crew not found." };
       case "not_member":

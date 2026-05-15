@@ -1959,6 +1959,7 @@ export type Database = {
           status: string
         }[]
       }
+      leave_crew_atomic: { Args: { p_crew_id: string }; Returns: string }
       leave_jam: {
         Args: { p_jam_id: string }
         Returns: {
