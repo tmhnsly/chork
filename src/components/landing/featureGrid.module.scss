@@ -3,6 +3,14 @@
 @use "mixins/breakpoints" as bp;
 @use "mixins/surfaces" as surface;
 
+// Single source of truth for the bento tile floor. MUST be referenced
+// by both `.tile { min-height }` AND `grid-auto-rows: minmax(...)` so
+// the values can't drift apart. If they do drift — i.e. the tile's
+// min-height exceeds the row track's floor — tiles overflow their
+// track and visually collide with the row below them. Don't inline a
+// new magic number; widen this variable instead.
+$tile-min-h: 17.5rem;
+
 // ── Section ─────────────────────────────────────────
 // Full-bleed subtle-bg band. `position: relative` + z-index:1 so the
 // opaque section sits on top of the HeroSection's hero grid below it.
@@ -38,11 +46,10 @@
 
   @include bp.tablet {
     grid-template-columns: repeat(2, 1fr);
-    // minmax floor + auto growth — fixed rows caused tiles to
-    // overflow their row (tile min-height 17.5rem > 15rem row) and
-    // collide with the next row's neighbour. The floor keeps short
-    // tiles from collapsing; `auto` lets taller ones breathe.
-    grid-auto-rows: minmax(17.5rem, auto);
+    // Row floor = tile floor (see $tile-min-h at top). `auto` lets
+    // taller tiles breathe; the minmax keeps short ones from
+    // collapsing. Never replace with a fixed value — that's the bug.
+    grid-auto-rows: minmax($tile-min-h, auto);
     grid-template-areas:
       "chorkboard   chorkboard"
       "wall         flash"
@@ -54,7 +61,7 @@
 
   @include bp.desktop {
     grid-template-columns: repeat(4, 1fr);
-    grid-auto-rows: minmax(17.5rem, auto);
+    grid-auto-rows: minmax($tile-min-h, auto);
     grid-template-areas:
       "chorkboard chorkboard wall  flash"
       "beta       beta       zone  achievements"
@@ -87,7 +94,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  min-height: 17.5rem;
+  min-height: $tile-min-h;
   background: var(--mono-app-bg);
   border: 1px solid var(--mono-border-subtle);
   border-radius: var(--radius-3);
