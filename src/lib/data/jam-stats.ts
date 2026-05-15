@@ -50,14 +50,24 @@ export function computeJamLifetimeStats(
   let totalFlashes = 0;
   let totalPoints = 0;
   let jamsWon = 0;
-  let bestFinish = jams[0].user_rank;
+  // Valid ranks start at 1 (dense_rank in the RPC). 0 / null means
+  // unranked — typically a player who joined and never logged a
+  // send. Skip those rows when picking bestFinish so the lifetime
+  // best isn't dragged down to 0 (which would then beat every real
+  // rank under `<` comparison and silently overwrite a legit 1st
+  // place finish).
+  let bestFinish: number | null = null;
 
   for (const jam of jams) {
     totalSends += jam.user_sends;
     totalFlashes += jam.user_flashes;
     totalPoints += jam.user_points;
     if (jam.user_is_winner) jamsWon += 1;
-    if (jam.user_rank < bestFinish) bestFinish = jam.user_rank;
+    if (jam.user_rank > 0) {
+      if (bestFinish === null || jam.user_rank < bestFinish) {
+        bestFinish = jam.user_rank;
+      }
+    }
   }
 
   return {

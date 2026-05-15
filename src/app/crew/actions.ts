@@ -29,11 +29,22 @@ async function revalidateCrewMembers(
   extraUserIds: string[] = [],
 ) {
   revalidateTag(tags.crew(crewId), "max");
-  const { data: members } = await supabase
+  const { data: members, error } = await supabase
     .from("crew_members")
     .select("user_id")
     .eq("crew_id", crewId)
     .eq("status", "active");
+  // Log instead of silently swallowing — without this, a failed
+  // member-fetch leaves remaining crew members' `userCrews` tags
+  // un-busted and the only evidence is a stale /crew/[id] page for
+  // up to 60s. The fan-out continues with whatever we have so the
+  // partial bust isn't blocked by transient network noise.
+  if (error) {
+    logger.warn("revalidateCrewMembers_failed", {
+      crewId,
+      err: formatErrorForLog(error),
+    });
+  }
   const seen = new Set<string>();
   if (Array.isArray(members)) {
     for (const m of members) {

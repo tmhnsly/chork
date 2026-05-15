@@ -136,12 +136,21 @@ export async function toggleCommentLike(
   commentId: string,
   gymId: string
 ): Promise<{ liked: boolean; likes: number }> {
-  const { data: existing } = await supabase
+  const { data: existing, error: readError } = await supabase
     .from("comment_likes")
     .select("id")
     .eq("user_id", userId)
     .eq("comment_id", commentId)
     .maybeSingle();
+
+  // Surface RLS / network errors explicitly instead of silently
+  // treating them as "no row exists." If the read was blocked
+  // (policy mismatch, gym drift, transient outage), we don't know
+  // whether the user has liked the comment — proceeding to INSERT
+  // could hit the unique constraint and surface "duplicate key" to
+  // the user, while proceeding to DELETE could no-op without
+  // updating the counter. Bail out with a useful error instead.
+  if (readError) throw readError;
 
   const service = createServiceClient();
 

@@ -241,18 +241,18 @@ export async function postComment(
       gym_id: gymId,
     });
 
-    // Narrow: only the crew activity feed renders beta-spray events.
-    // The old `revalidatePath("/", "layout")` was scorching the whole
-    // app tree on every comment post, which re-rendered the
-    // RouteLogSheet's parent → caused the sheet's title bar + close
-    // button to flicker and the beta toggle to drop interaction
-    // until a full page reload.
-    revalidatePath("/crew");
     // Bust the per-route comment cache so the next fetcher sees the
     // new comment without waiting out the 60s staleTime. Safe no-op
     // today (comments aren't wrapped in cachedQuery yet), but the
     // tag-shape is registered in `tags.ts` so a future cache wrap
     // doesn't silently serve stale post-mutation.
+    //
+    // No `revalidatePath("/crew")` here — CLAUDE.md forbids path
+    // revalidation. The crew activity feed picks up the new
+    // beta-spray event on its next render (60s `staleTimes.dynamic`
+    // window). When tighter freshness is needed, introduce a
+    // dedicated `userCrewActivity` tag rather than re-adding a path
+    // call.
     revalidateTag(tags.routeComments(routeId), "max");
     return { comment };
   } catch (err) {
@@ -267,12 +267,19 @@ export async function fetchComments(
   if (!UUID_RE.test(routeId)) {
     return { items: [], totalItems: 0, totalPages: 0, page: 1 };
   }
+  // `fetchComments` is a public server action — any client can call
+  // it with arbitrary args. Clamp `page` to a positive integer so a
+  // hostile or malformed payload (page=0, page=-1, page=NaN, page=1.5)
+  // can't reach the Postgres OFFSET clause with a value that would
+  // either error or scan past intended bounds.
+  const safePage =
+    Number.isInteger(page) && page >= 1 ? page : 1;
   const auth = await requireAuth();
   if ("error" in auth) {
     return { items: [], totalItems: 0, totalPages: 0, page: 1 };
   }
   try {
-    return await getCommentsByRoute(routeId, page, 20);
+    return await getCommentsByRoute(routeId, safePage, 20);
   } catch (err) {
     logger.warn("fetchcomments_failed", { err: formatErrorForLog(err) });
     return { items: [], totalItems: 0, totalPages: 0, page: 1 };

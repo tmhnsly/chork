@@ -5,6 +5,21 @@ import { JamHistoryList } from "@/components/Jam/JamHistoryList";
 import { JamLifetimeStatsCard } from "@/components/Jam/JamLifetimeStatsCard";
 import styles from "./profileJamsSection.module.scss";
 
+/**
+ * Upper bound on how many jam rows we fetch for lifetime-stat
+ * aggregation. The current `getUserJams` RPC paginates by
+ * `started_at desc`, so a power user with >200 jams gets their
+ * stats computed over their 200 most-recent jams only — `jamsPlayed`
+ * undercounts, `bestFinish` could miss an old podium, totals are
+ * truncated. Trade-off: server-side aggregation requires a dedicated
+ * RPC, and 200 covers every real user today.
+ *
+ * Follow-up seam if this becomes a real undercount: add
+ * `get_jam_lifetime_stats(p_user_id uuid)` that aggregates server-side
+ * + return alongside the paginated history list.
+ */
+const MAX_JAMS_FETCH = 200;
+
 interface Props {
   userId: string;
   isOwnProfile?: boolean;
@@ -27,7 +42,7 @@ interface Props {
  */
 export async function ProfileJamsSection({ userId, isOwnProfile }: Props) {
   const supabase = await createServerSupabase();
-  const jams = await getUserJams(supabase, userId, { limit: 200 });
+  const jams = await getUserJams(supabase, userId, { limit: MAX_JAMS_FETCH });
 
   if (jams.length === 0) return null;
 

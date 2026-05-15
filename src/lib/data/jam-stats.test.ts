@@ -71,6 +71,29 @@ describe("computeJamLifetimeStats", () => {
     expect(computeJamLifetimeStats(jams).bestFinish).toBe(1);
   });
 
+  // Regression: a player who joined a jam but logged zero sends comes
+  // back from the RPC with user_rank=0. Earlier code seeded bestFinish
+  // from jams[0].user_rank then compared with `<` — if that first jam
+  // had rank=0, every later jam's real rank (e.g. 1, 2, 3) failed
+  // `r < 0`, leaving bestFinish stuck at 0 and silently hiding podium
+  // finishes.
+  it("ignores user_rank=0 rows (unranked) when picking bestFinish", () => {
+    const jams = [
+      makeJam({ user_rank: 0 }), // unranked — joined but logged nothing
+      makeJam({ user_rank: 1 }), // real 1st place
+      makeJam({ user_rank: 4 }),
+    ];
+    expect(computeJamLifetimeStats(jams).bestFinish).toBe(1);
+  });
+
+  it("returns bestFinish null when every jam is unranked", () => {
+    const jams = [
+      makeJam({ user_rank: 0 }),
+      makeJam({ user_rank: 0 }),
+    ];
+    expect(computeJamLifetimeStats(jams).bestFinish).toBeNull();
+  });
+
   it("flashRate computes flashes/sends as a fraction (null when no sends)", () => {
     expect(
       computeJamLifetimeStats([

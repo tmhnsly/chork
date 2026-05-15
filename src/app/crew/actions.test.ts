@@ -3,6 +3,12 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 vi.mock("@/lib/auth", () => ({ requireSignedIn: vi.fn() }));
 vi.mock("@/lib/notify", () => ({ notify: vi.fn() }));
+// Mock the rate-limit module explicitly so tests can drive the
+// "rate-limited" branch. Without this mock, production rate-limit
+// in `enforce()` is no-op'd because Upstash env vars are absent in
+// the test env — the early-exit error path in inviteToCrew (and any
+// other rate-limit caller) never gets coverage.
+vi.mock("@/lib/rate-limit", () => ({ enforce: vi.fn() }));
 
 // ────────────────────────────────────────────────────────────────
 // Supabase client mock
@@ -49,8 +55,13 @@ const USER_B = "22222222-2222-2222-2222-222222222222";
 const CREW_1 = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 const INVITE_1 = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
 
-beforeEach(() => {
+beforeEach(async () => {
   vi.resetAllMocks();
+  // Default rate-limit to allowing the request — the rare tests
+  // that exercise the "rate-limited" branch override this with a
+  // per-test mockResolvedValueOnce.
+  const { enforce } = await import("@/lib/rate-limit");
+  vi.mocked(enforce).mockResolvedValue({ ok: true });
 });
 
 // ────────────────────────────────────────────────────────────────
@@ -148,6 +159,31 @@ describe("inviteToCrew", () => {
     const { inviteToCrew } = await import("./actions");
     const result = await inviteToCrew(CREW_1, USER_A);
     expect(result).toEqual({ error: "You can't invite yourself." });
+  });
+
+  // Pins the Upstash rate-limit early-exit branch. Without the
+  // `@/lib/rate-limit` mock at the top of this file, `enforce()`
+  // would short-circuit to ok:true (no Upstash env in tests), so
+  // this branch had no coverage and a regression to it would slip
+  // through silently. Tests the user-facing error string passes
+  // through unchanged.
+  it("surfaces the rate-limit error when Upstash trips", async () => {
+    const { requireSignedIn } = await import("@/lib/auth");
+    const { enforce } = await import("@/lib/rate-limit");
+    vi.mocked(requireSignedIn).mockResolvedValue({
+      supabase: mockSupabase() as never,
+      userId: USER_A,
+    });
+    vi.mocked(enforce).mockResolvedValueOnce({
+      ok: false,
+      error: "Too many requests. Try again in 42s.",
+      retryAfter: 42,
+    });
+    const { inviteToCrew } = await import("./actions");
+    const result = await inviteToCrew(CREW_1, USER_B);
+    expect(result).toEqual({
+      error: "Too many requests. Try again in 42s.",
+    });
   });
 
   it("rejects when the daily rate limit bump returns false", async () => {
@@ -446,8 +482,9 @@ describe("leaveCrew", () => {
     expect("error" in res).toBe(true);
   });
 
-  it("returns success on the solo-creator teardown path ('crew_deleted')", async () => {
+  it("returns success on the solo-creator teardown path ('crew_deleted') AND busts crew + userCrews tags", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
+    const { revalidateTag } = await import("next/cache");
     vi.mocked(requireSignedIn).mockResolvedValue({
       supabase: mockSupabase({
         "rpc:leave_crew_atomic": { data: "crew_deleted", error: null },
@@ -456,6 +493,17 @@ describe("leaveCrew", () => {
     });
     const { leaveCrew } = await import("./actions");
     expect(await leaveCrew(CREW_1)).toEqual({ success: true });
+
+    // Regression pin: an earlier version of this test only asserted
+    // the return shape and would have silently passed if the
+    // `revalidateTag` calls were dropped — leaving the deleted crew
+    // visible on the creator's /crew page for up to 60s. Assert both
+    // tag busts fired with the expected keys.
+    const calls = vi
+      .mocked(revalidateTag)
+      .mock.calls.map((c) => c[0]);
+    expect(calls).toContain(`crew:${CREW_1}`);
+    expect(calls).toContain(`user:${USER_A}:crews`);
   });
 
   it("errors cleanly when the RPC returns 'not_found'", async () => {
