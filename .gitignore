@@ -18,6 +18,7 @@
 # debug
 npm-debug.log*
 .pnpm-debug.log*
+debug-storybook.log
 
 # env files
 .env*
