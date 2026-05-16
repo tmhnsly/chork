@@ -134,11 +134,16 @@ export function getCurrentSet(gymId: string): Promise<RouteSet | null> {
     ["set-active", gymId],
     async (id: string): Promise<RouteSet | null> => {
       const supabase = createCachedContextClient();
+      // Filter by `status = 'live'` rather than the trigger-derived
+      // legacy `active` column. CLAUDE.md: "New code writes `status`;
+      // old readers of `active` still work. Prefer `status` in new
+      // code." Migration 058 added `sets_status_live_idx (gym_id)
+      // WHERE status = 'live'` — perfect partial-index hit.
       const { data, error } = await supabase
         .from("sets")
         .select("*")
         .eq("gym_id", id)
-        .eq("active", true)
+        .eq("status", "live")
         .limit(1)
         .maybeSingle();
       if (error) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   FaUserPlus,
@@ -74,8 +74,20 @@ export function NotificationsSheet({
     };
   }, [open, loaded]);
 
+  // Track whether we've already marked-read for THIS open cycle.
+  // Without this, the effect re-fires whenever `unreadCount` changes
+  // during an open session (e.g. realtime delivers a new notification
+  // while the sheet is on screen) — issuing redundant server calls
+  // even though the DB is already at read=now() for the unread set we
+  // saw. Reset on close so the next open re-arms.
+  const markedRef = useRef(false);
   useEffect(() => {
-    if (!open || unreadCount === 0) return;
+    if (!open) {
+      markedRef.current = false;
+      return;
+    }
+    if (markedRef.current || unreadCount === 0) return;
+    markedRef.current = true;
     startTransition(() => {
       // Fire-and-forget — errors surface as console warnings, bell
       // just stays lit until the next successful open.
@@ -141,7 +153,12 @@ function NotificationRowView({
   row: NotificationRow;
   onDismissed: (id: string) => void;
 }) {
-  const when = relative(row.created_at);
+  // `relative()` calls formatDistanceToNow → new Date() internally,
+  // which CLAUDE.md flags as a render-body impurity in "use client"
+  // components. Memoise on the row's created_at so the comparison
+  // happens once per mount; the relative-time string drifts but for
+  // an open sheet showing recent items the difference is invisible.
+  const when = useMemo(() => relative(row.created_at), [row.created_at]);
 
   switch (row.kind) {
     case "crew_invite_received":

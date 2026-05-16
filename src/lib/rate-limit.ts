@@ -58,7 +58,8 @@ type LimiterKey =
   | "mutationsWrite"
   | "invitesSend"
   | "pushSubscribe"
-  | "gymSignup";
+  | "gymSignup"
+  | "competitionsCreate";
 
 const _limiters: Partial<Record<LimiterKey, Ratelimit>> = {};
 
@@ -97,6 +98,19 @@ function limiter(key: LimiterKey): Ratelimit | null {
         redis: client,
         limiter: Ratelimit.slidingWindow(3, "1 h"),
         prefix: "rl:gym-signup",
+        analytics: false,
+      });
+      break;
+    case "competitionsCreate":
+      // createNewCompetition needs only `requireSignedIn` — any
+      // climber can create a competition record. There is no
+      // uniqueness on `competitions.name` so spam-create is the
+      // genuine abuse vector. 5/hour is generous for legitimate
+      // organisers (a real human writes maybe one or two per session).
+      _limiters[key] = new Ratelimit({
+        redis: client,
+        limiter: Ratelimit.slidingWindow(5, "1 h"),
+        prefix: "rl:comp-create",
         analytics: false,
       });
       break;

@@ -23,6 +23,7 @@ import {
 import { ChorkMark } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { createBrowserSupabase } from "@/lib/supabase/client";
+import { getPendingCrewInviteCount } from "@/lib/data/crew-queries";
 import styles from "./navBar.module.scss";
 
 // Badge acknowledgement is client-side only: a user seeing the Crew tab
@@ -246,13 +247,14 @@ function AuthenticatedNav({
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      // Data access goes through the lib/data/ helper rather than
+      // direct supabase chains in components (CLAUDE.md). The browser
+      // client is created here because NavBar is "use client" — the
+      // helper is structural and accepts whichever client the caller
+      // passes.
       const supabase = createBrowserSupabase();
-      const { count } = await supabase
-        .from("crew_members")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId)
-        .eq("status", "pending");
-      if (!cancelled) setPendingCount(count ?? 0);
+      const count = await getPendingCrewInviteCount(supabase, userId);
+      if (!cancelled) setPendingCount(count);
     })();
     return () => { cancelled = true; };
   }, [userId, isOnCrew]);

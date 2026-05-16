@@ -486,6 +486,12 @@ export async function createNewCompetition(form: {
   const auth = await requireSignedIn();
   if ("error" in auth) return { error: auth.error };
 
+  // Rate limit — see lib/rate-limit.ts for sizing rationale. Without
+  // this, any signed-in user could spam-create competition rows
+  // (`competitions.name` has no uniqueness constraint).
+  const rl = await enforceRateLimit("competitionsCreate", auth.userId);
+  if (!rl.ok) return { error: rl.error };
+
   const result = await createCompetition(auth.supabase, {
     name,
     description: form.description?.trim() || null,

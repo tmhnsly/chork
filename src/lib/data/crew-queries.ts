@@ -333,6 +333,11 @@ export interface ActiveSetOption {
 export async function getAllLiveSets(
   supabase: Supabase
 ): Promise<ActiveSetOption[]> {
+  // Most-recently-started first + cap. Without `.order()` the result
+  // is Postgres heap order — at scale (dozens of gyms each with a
+  // live set) the set picker would shuffle on every fetch. Cap at
+  // 50 to bound payload for the multi-gym widget; the UI doesn't
+  // surface more than a handful of options at once.
   const { data, error } = await supabase
     .from("sets")
     .select(`
@@ -343,7 +348,9 @@ export async function getAllLiveSets(
       gym_id,
       gyms:gym_id (name)
     `)
-    .eq("status", "live");
+    .eq("status", "live")
+    .order("starts_at", { ascending: false })
+    .limit(50);
 
   if (error) {
     logger.warn("getalllivesets_failed", { err: formatErrorForLog(error) });
@@ -469,6 +476,27 @@ export async function getCrewCountForUser(
     .eq("status", "active");
   if (error) {
     logger.warn("getcrewcountforuser_failed", { err: formatErrorForLog(error) });
+    return 0;
+  }
+  return count ?? 0;
+}
+
+/**
+ * Count of pending crew invites for the user — drives the badge on the
+ * NavBar's Crew tab. Used from a "use client" surface so the caller
+ * passes a browser supabase client.
+ */
+export async function getPendingCrewInviteCount(
+  supabase: Supabase,
+  userId: string,
+): Promise<number> {
+  const { count, error } = await supabase
+    .from("crew_members")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("status", "pending");
+  if (error) {
+    logger.warn("getpendingcrewinvitecount_failed", { err: formatErrorForLog(error) });
     return 0;
   }
   return count ?? 0;
