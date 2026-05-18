@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { FaPlus, FaTag, FaFlag, FaChevronRight } from "react-icons/fa6";
 import { BottomSheet } from "@/components/ui/BottomSheet";
@@ -37,6 +37,12 @@ export function RoutesAdmin({ setId, initialRoutes, tags }: Props) {
   const [pending, startTransition] = useTransition();
   const [routes, setRoutes] = useState(initialRoutes);
   const [editingId, setEditingId] = useState<string | null>(null);
+  // Per-route dedup ref so rapid double-toggle doesn't fire two
+  // concurrent server calls whose reverts compose incorrectly.
+  // Declared before the early-return below so hook-call order stays
+  // stable across renders (rules-of-hooks). Mirrors the pattern in
+  // useRouteLogState.handleZoneToggle.
+  const zoningRef = useRef<Set<string>>(new Set());
 
   if (routes.length === 0) {
     return <QuickSetupForm setId={setId} onCreated={(created) => {
@@ -53,6 +59,9 @@ export function RoutesAdmin({ setId, initialRoutes, tags }: Props) {
   }
 
   function handleToggleZone(route: AdminRouteRow) {
+    if (zoningRef.current.has(route.id)) return;
+    zoningRef.current.add(route.id);
+
     const next = !route.has_zone;
     setRoutes((prev) =>
       prev.map((r) => (r.id === route.id ? { ...r, has_zone: next } : r))
@@ -60,11 +69,19 @@ export function RoutesAdmin({ setId, initialRoutes, tags }: Props) {
     startTransition(async () => {
       const res = await updateRoute(route.id, { hasZone: next });
       if ("error" in res) {
+        // Revert by reading the latest committed value and negating
+        // it, NOT the closure-captured `next` — under the dedup guard
+        // these resolve to the same value, but reading latest makes
+        // the revert robust against any future refresh that lands
+        // an updated has_zone between optimistic + error response.
         setRoutes((prev) =>
-          prev.map((r) => (r.id === route.id ? { ...r, has_zone: !next } : r))
+          prev.map((r) =>
+            r.id === route.id ? { ...r, has_zone: !r.has_zone } : r,
+          )
         );
         showToast(res.error, "error");
       }
+      zoningRef.current.delete(route.id);
     });
   }
 

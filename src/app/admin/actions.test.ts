@@ -9,7 +9,7 @@
  * thenable chain builder resolved per table/RPC, individual module
  * mocks for auth + external side-effects (createGymWithOwner etc).
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
@@ -42,6 +42,17 @@ vi.mock("@/lib/data/queries", () => ({ getGym: vi.fn() }));
 vi.mock("@/lib/push/server", () => ({
   getGymClimberUserIds: vi.fn(() => Promise.resolve([])),
   sendPushInBackground: vi.fn(),
+}));
+// Mock the rate-limit module so the rate-limited actions
+// (signupGym, sendAdminInvite, createNewCompetition) don't depend on
+// the real Upstash module state across parallel test workers. The
+// real `enforce` no-ops when `hasUpstash` is false, but vi.mock
+// caching across worker boundaries can let module state from a
+// sibling test file (e.g. crew/actions.test.ts which mocks the same
+// import) bleed across. Default-allows here; per-test overrides via
+// `vi.mocked(enforce).mockResolvedValueOnce({ ok: false, ... })`.
+vi.mock("@/lib/rate-limit", () => ({
+  enforce: vi.fn(() => Promise.resolve({ ok: true })),
 }));
 
 // ────────────────────────────────────────────────────────────────
@@ -88,8 +99,22 @@ const GYM_1 = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 const SET_1 = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
 const ROUTE_1 = "cccccccc-cccc-cccc-cccc-cccccccccccc";
 
-beforeEach(() => {
+// Warm `./actions` once per file. The dynamic `await import("./actions")`
+// inside the first test can blow the 5s default timeout under parallel
+// worker contention (transforming this entry + its full dep graph cold).
+// Pre-loading here amortises that cost outside the per-test budget.
+beforeAll(async () => {
+  await import("./actions");
+}, 30_000);
+
+beforeEach(async () => {
   vi.resetAllMocks();
+  // Re-establish the rate-limit default — vi.resetAllMocks() clears
+  // the implementation set in the vi.mock factory above. Dynamic
+  // import so we read the mocked module (the top-level vi.mock is
+  // hoisted before any static import would resolve).
+  const { enforce } = await import("@/lib/rate-limit");
+  vi.mocked(enforce).mockResolvedValue({ ok: true });
 });
 
 // ────────────────────────────────────────────────────────────────
