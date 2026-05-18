@@ -22,6 +22,7 @@ import {
   requireAdminOfSet,
   requireAdminOfRoute,
   requireCompetitionOrganiser,
+  requireCompetitionOrganiserOrGymAdmin,
 } from "./auth";
 
 const USER_A = "11111111-1111-1111-1111-111111111111";
@@ -251,5 +252,67 @@ describe("requireCompetitionOrganiser", () => {
     );
     const result = await requireCompetitionOrganiser(COMP_1);
     expect(result).toMatchObject({ userId: USER_A });
+  });
+});
+
+// ────────────────────────────────────────────────────────────────
+// requireCompetitionOrganiserOrGymAdmin
+// ────────────────────────────────────────────────────────────────
+
+describe("requireCompetitionOrganiserOrGymAdmin", () => {
+  it("rejects malformed competition id without touching the DB", async () => {
+    const result = await requireCompetitionOrganiserOrGymAdmin("nope", GYM_1);
+    expect(result).toEqual({ error: "Invalid competition." });
+    expect(getServerUserMock).not.toHaveBeenCalled();
+  });
+
+  it("rejects malformed gym id without touching the DB", async () => {
+    const result = await requireCompetitionOrganiserOrGymAdmin(COMP_1, "nope");
+    expect(result).toEqual({ error: "Invalid gym." });
+    expect(getServerUserMock).not.toHaveBeenCalled();
+  });
+
+  it("returns role=organiser when caller is the competition organiser", async () => {
+    getServerUserMock.mockResolvedValue({ id: USER_A });
+    createServerSupabaseMock.mockReturnValue(makeClient({}));
+    createServiceClientMock.mockReturnValue(
+      makeClient({
+        "table:competitions": { data: { organiser_id: USER_A } },
+      }),
+    );
+    const result = await requireCompetitionOrganiserOrGymAdmin(COMP_1, GYM_1);
+    expect(result).toMatchObject({ userId: USER_A, role: "organiser" });
+  });
+
+  it("falls back to gym-admin when organiser path fails", async () => {
+    getServerUserMock.mockResolvedValue({ id: USER_A });
+    // Organiser lookup: someone ELSE is the organiser → fail.
+    createServiceClientMock.mockReturnValue(
+      makeClient({
+        "table:competitions": { data: { organiser_id: USER_B } },
+      }),
+    );
+    // Gym admin lookup: caller IS an admin of the gym → succeed.
+    createServerSupabaseMock.mockReturnValue(
+      makeClient({ "table:gym_admins": { data: { role: "admin" } } }),
+    );
+    const result = await requireCompetitionOrganiserOrGymAdmin(COMP_1, GYM_1);
+    expect(result).toMatchObject({ userId: USER_A, role: "gymAdmin" });
+  });
+
+  it("rejects with the composite error when neither path matches", async () => {
+    getServerUserMock.mockResolvedValue({ id: USER_A });
+    createServiceClientMock.mockReturnValue(
+      makeClient({
+        "table:competitions": { data: { organiser_id: USER_B } },
+      }),
+    );
+    createServerSupabaseMock.mockReturnValue(
+      makeClient({ "table:gym_admins": { data: null } }),
+    );
+    const result = await requireCompetitionOrganiserOrGymAdmin(COMP_1, GYM_1);
+    expect(result).toEqual({
+      error: "Not authorised to manage this competition/gym.",
+    });
   });
 });

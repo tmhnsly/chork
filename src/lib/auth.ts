@@ -220,6 +220,54 @@ export async function requireCompetitionOrganiser(
   return auth;
 }
 
+type OrganiserOrGymAdminSuccess = {
+  supabase: SupabaseClient<Database>;
+  userId: string;
+  /**
+   * Which path matched. Callers don't usually branch on this — both
+   * paths are equally authorised for the link/unlink surfaces — but
+   * it's surfaced for telemetry + future owner-only escalations.
+   */
+  role: "organiser" | "gymAdmin";
+};
+
+/**
+ * Composite gate for cross-resource actions that EITHER the comp
+ * organiser OR a gym admin of the linked gym is allowed to perform
+ * (currently `linkCompetitionGym` / `unlinkCompetitionGym`).
+ *
+ * Tries the organiser path first since it's the cheaper round-trip
+ * (a single comp lookup vs. the gym admin's admin-row lookup), then
+ * falls back to the gym-admin path. Either match wins. RLS still
+ * backstops server-side; this helper is defence-in-depth so the
+ * action never reaches Supabase if neither role applies.
+ */
+export async function requireCompetitionOrganiserOrGymAdmin(
+  competitionId: string,
+  gymId: string,
+): Promise<OrganiserOrGymAdminSuccess | AuthFailure> {
+  if (!UUID_RE.test(competitionId)) return { error: "Invalid competition." };
+  if (!UUID_RE.test(gymId)) return { error: "Invalid gym." };
+
+  const asOrganiser = await requireCompetitionOrganiser(competitionId);
+  if (!("error" in asOrganiser)) {
+    return {
+      supabase: asOrganiser.supabase,
+      userId: asOrganiser.userId,
+      role: "organiser",
+    };
+  }
+  const asAdmin = await requireGymAdmin(gymId);
+  if (!("error" in asAdmin)) {
+    return {
+      supabase: asAdmin.supabase,
+      userId: asAdmin.userId,
+      role: "gymAdmin",
+    };
+  }
+  return { error: "Not authorised to manage this competition/gym." };
+}
+
 /**
  * Single-line gate for climber-side mutations. Validates the resource
  * UUID, runs requireAuth (gym-scoped), and applies the standard

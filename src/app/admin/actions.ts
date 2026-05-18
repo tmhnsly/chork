@@ -6,6 +6,7 @@ import {
   requireAdminOfRoute,
   requireAdminOfSet,
   requireCompetitionOrganiser,
+  requireCompetitionOrganiserOrGymAdmin,
   requireGymAdmin,
   requireSignedIn,
 } from "@/lib/auth";
@@ -538,38 +539,25 @@ export async function updateCompetitionAction(
 }
 
 // Linking/unlinking a gym is allowed for either the comp organiser
-// OR an admin of that gym. Server-side we require at least one of
-// the two to match before touching the DB — RLS is the ultimate
-// backstop but we never want to lean on it alone (the policy can
-// change, bugs happen, and defence in depth is cheap here).
-async function ensureOrganiserOrGymAdmin(
-  competitionId: string,
-  gymId: string,
-): Promise<ActionResult> {
-  const asOrganiser = await requireCompetitionOrganiser(competitionId);
-  if ("error" in asOrganiser) {
-    const asAdmin = await requireGymAdmin(gymId);
-    if ("error" in asAdmin) {
-      return { error: "Not authorised to manage this competition/gym." };
-    }
-  }
-  return { success: true };
-}
+// OR an admin of that gym — see requireCompetitionOrganiserOrGymAdmin
+// in src/lib/auth.ts for the full rationale (defence-in-depth on top
+// of RLS).
 
 export async function linkCompetitionGym(form: {
   competitionId: string;
   gymId: string;
 }): Promise<ActionResult> {
-  if (!UUID_RE.test(form.competitionId)) return { error: "Invalid competition." };
-  if (!UUID_RE.test(form.gymId)) return { error: "Invalid gym." };
-
-  const auth = await requireSignedIn();
-  if ("error" in auth) return { error: auth.error };
-
-  const gate = await ensureOrganiserOrGymAdmin(form.competitionId, form.gymId);
+  const gate = await requireCompetitionOrganiserOrGymAdmin(
+    form.competitionId,
+    form.gymId,
+  );
   if ("error" in gate) return { error: gate.error };
 
-  const result = await linkGymToCompetition(auth.supabase, form.competitionId, form.gymId);
+  const result = await linkGymToCompetition(
+    gate.supabase,
+    form.competitionId,
+    form.gymId,
+  );
   if ("error" in result) return { error: result.error };
 
   revalidateTag(tags.competition(form.competitionId), "max");
@@ -580,16 +568,17 @@ export async function unlinkCompetitionGym(form: {
   competitionId: string;
   gymId: string;
 }): Promise<ActionResult> {
-  if (!UUID_RE.test(form.competitionId)) return { error: "Invalid competition." };
-  if (!UUID_RE.test(form.gymId)) return { error: "Invalid gym." };
-
-  const auth = await requireSignedIn();
-  if ("error" in auth) return { error: auth.error };
-
-  const gate = await ensureOrganiserOrGymAdmin(form.competitionId, form.gymId);
+  const gate = await requireCompetitionOrganiserOrGymAdmin(
+    form.competitionId,
+    form.gymId,
+  );
   if ("error" in gate) return { error: gate.error };
 
-  const result = await unlinkGymFromCompetition(auth.supabase, form.competitionId, form.gymId);
+  const result = await unlinkGymFromCompetition(
+    gate.supabase,
+    form.competitionId,
+    form.gymId,
+  );
   if ("error" in result) return { error: result.error };
 
   revalidateTag(tags.competition(form.competitionId), "max");
