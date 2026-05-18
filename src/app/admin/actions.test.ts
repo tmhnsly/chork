@@ -9,7 +9,16 @@
  * thenable chain builder resolved per table/RPC, individual module
  * mocks for auth + external side-effects (createGymWithOwner etc).
  */
-import { describe, it, expect, vi, beforeAll, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+
+// The dynamic `await import("./actions")` inside each test pulls in
+// the full admin actions dep graph (database.types, supabase clients,
+// push helpers, etc) the first time it runs. Under heavy parallel
+// worker contention the cold transform can exceed Vitest's 5s default
+// per-test budget on the very first import. Bump the per-test +
+// per-hook timeout for this file — every subsequent dynamic import
+// resolves from the module cache and stays fast.
+vi.setConfig({ testTimeout: 15_000, hookTimeout: 15_000 });
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
@@ -98,14 +107,6 @@ const USER_A = "11111111-1111-1111-1111-111111111111";
 const GYM_1 = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 const SET_1 = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
 const ROUTE_1 = "cccccccc-cccc-cccc-cccc-cccccccccccc";
-
-// Warm `./actions` once per file. The dynamic `await import("./actions")`
-// inside the first test can blow the 5s default timeout under parallel
-// worker contention (transforming this entry + its full dep graph cold).
-// Pre-loading here amortises that cost outside the per-test budget.
-beforeAll(async () => {
-  await import("./actions");
-}, 30_000);
 
 beforeEach(async () => {
   vi.resetAllMocks();

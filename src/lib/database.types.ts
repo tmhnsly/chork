@@ -2012,6 +2012,10 @@ export type Database = {
           username: string
         }[]
       }
+      set_route_tags_tx: {
+        Args: { p_route_id: string; p_tag_ids: string[] }
+        Returns: undefined
+      }
       update_jam_route: {
         Args: {
           p_description?: string

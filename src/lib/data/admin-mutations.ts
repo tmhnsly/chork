@@ -267,44 +267,27 @@ export async function updateAdminRoute(
 }
 
 /**
- * Replace the tag set for a route atomically — deletes rows that were
- * removed and inserts new ones, skipping any that are already present.
- * The route_tags_map RLS policy gates both sides via is_admin_of_route.
+ * Replace the tag set for a route atomically. Delegates to the
+ * set_route_tags_tx Postgres function (migration 060) so the read +
+ * delete + insert happen in one transaction with a FOR UPDATE lock
+ * on the route. Prior app-side flow could partial-write if the
+ * INSERT step failed after the DELETE step succeeded; the RPC
+ * eliminates that window.
+ *
+ * Auth: the RPC re-checks is_admin_of_route via SECURITY DEFINER,
+ * so even if the app caller forgets the requireAdminOfRoute gate
+ * the DB still refuses an unauthorised tag overwrite.
  */
 export async function setRouteTags(
   supabase: Supabase,
   routeId: string,
   tagIds: string[]
 ): Promise<{ success: true } | { error: string }> {
-  // Fetch the current set so we only touch rows that actually change.
-  const { data: existing, error: readErr } = await supabase
-    .from("route_tags_map")
-    .select("tag_id")
-    .eq("route_id", routeId);
-  if (readErr) return { error: readErr.message };
-
-  const current = new Set((existing ?? []).map((r) => r.tag_id));
-  const next = new Set(tagIds);
-
-  const toRemove = [...current].filter((id) => !next.has(id));
-  const toAdd = [...next].filter((id) => !current.has(id));
-
-  if (toRemove.length > 0) {
-    const { error } = await supabase
-      .from("route_tags_map")
-      .delete()
-      .eq("route_id", routeId)
-      .in("tag_id", toRemove);
-    if (error) return { error: error.message };
-  }
-
-  if (toAdd.length > 0) {
-    const { error } = await supabase
-      .from("route_tags_map")
-      .insert(toAdd.map((tag_id) => ({ route_id: routeId, tag_id })));
-    if (error) return { error: error.message };
-  }
-
+  const { error } = await supabase.rpc("set_route_tags_tx", {
+    p_route_id: routeId,
+    p_tag_ids: tagIds,
+  });
+  if (error) return { error: error.message };
   return { success: true };
 }
 
