@@ -3,6 +3,7 @@ import type { Database } from "@/lib/database.types";
 
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
+import { rpcMany } from "./rpc";
 type Supabase = SupabaseClient<Database>;
 
 // ────────────────────────────────────────────────────────────────
@@ -115,12 +116,15 @@ export async function getMyCrews(
   // Server-side count per crew (migration 035). Previously this
   // fetched every member row and tallied client-side — fine at 3
   // crews, wasteful as the user joins more.
-  const { data: counts } = await supabase.rpc("get_crew_member_counts", {
-    p_crew_ids: crewRows.map((c) => c.id),
-  });
+  const counts = await rpcMany<{ crew_id: string; count: number }>(
+    supabase.rpc("get_crew_member_counts", {
+      p_crew_ids: crewRows.map((c) => c.id),
+    }),
+    "getcrewmembercounts_failed",
+  );
 
   const tally = new Map<string, number>();
-  for (const row of counts ?? []) {
+  for (const row of counts) {
     tally.set(row.crew_id, row.count);
   }
 
@@ -192,17 +196,22 @@ export async function getCrewMemberPreviews(
 ): Promise<Map<string, Pick<CrewMember, "user_id" | "username" | "name" | "avatar_url">[]>> {
   if (crewIds.length === 0) return new Map();
 
-  const { data, error } = await supabase.rpc("get_crew_member_previews", {
-    p_crew_ids: crewIds,
-    p_limit: limit,
-  });
-  if (error) {
-    logger.warn("getcrewmemberpreviews_failed", { err: formatErrorForLog(error) });
-    return new Map();
-  }
-
+  type PreviewRow = {
+    crew_id: string;
+    user_id: string;
+    username: string;
+    name: string;
+    avatar_url: string;
+  };
+  const rows = await rpcMany<PreviewRow>(
+    supabase.rpc("get_crew_member_previews", {
+      p_crew_ids: crewIds,
+      p_limit: limit,
+    }),
+    "getcrewmemberpreviews_failed",
+  );
   const byCrew = new Map<string, Pick<CrewMember, "user_id" | "username" | "name" | "avatar_url">[]>();
-  for (const row of data ?? []) {
+  for (const row of rows) {
     const arr = byCrew.get(row.crew_id) ?? [];
     arr.push({
       user_id: row.user_id,
@@ -259,17 +268,27 @@ export async function getCrewLeaderboard(
   limit = 50,
   offset = 0
 ): Promise<CrewLeaderboardRow[]> {
-  const { data, error } = await supabase.rpc("get_crew_leaderboard", {
-    p_crew_id: crewId,
-    p_set_id: setId,
-    p_limit: limit,
-    p_offset: offset,
-  });
-  if (error) {
-    logger.warn("getcrewleaderboard_failed", { err: formatErrorForLog(error) });
-    return [];
-  }
-  return (data ?? []).map((r) => ({
+  type Raw = {
+    user_id: string;
+    username: string;
+    name: string;
+    avatar_url: string;
+    rank: number | string | null;
+    sends: number;
+    flashes: number;
+    zones: number;
+    points: number;
+  };
+  const rows = await rpcMany<Raw>(
+    supabase.rpc("get_crew_leaderboard", {
+      p_crew_id: crewId,
+      p_set_id: setId,
+      p_limit: limit,
+      p_offset: offset,
+    }),
+    "getcrewleaderboard_failed",
+  );
+  return rows.map((r) => ({
     user_id: r.user_id,
     username: r.username,
     name: r.name,

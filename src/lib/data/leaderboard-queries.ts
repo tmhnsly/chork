@@ -5,9 +5,20 @@ import type { Database } from "../database.types";
 import { cachedQuery } from "@/lib/cache/cached";
 import { createCachedContextClient } from "@/lib/supabase/server";
 import type { LeaderboardEntry } from "./types";
-import { logger } from "@/lib/logger";
-import { formatErrorForLog } from "@/lib/errors";
 import { tags } from "@/lib/cache/tags";
+import { rpcMany, rpcSingle } from "./rpc";
+
+type RawLeaderboardRow = {
+  user_id: string;
+  username: string;
+  name: string;
+  avatar_url: string;
+  rank: number | string | null;
+  sends: number;
+  flashes: number;
+  zones: number;
+  points: number;
+};
 
 /**
  * Leaderboard + gym-stats queries.
@@ -48,16 +59,15 @@ export async function getLeaderboardNeighbourhood(
   userId: string,
   setId: string | null,
 ): Promise<LeaderboardEntry[]> {
-  const { data, error } = await supabase.rpc("get_leaderboard_neighbourhood", {
-    p_gym_id: gymId,
-    p_user_id: userId,
-    p_set_id: setId ?? undefined,
-  });
-  if (error) {
-    logger.warn("getleaderboardneighbourhood_failed", { err: formatErrorForLog(error) });
-    return [];
-  }
-  return normaliseLeaderboardRows(data ?? []);
+  const rows = await rpcMany<RawLeaderboardRow>(
+    supabase.rpc("get_leaderboard_neighbourhood", {
+      p_gym_id: gymId,
+      p_user_id: userId,
+      p_set_id: setId ?? undefined,
+    }),
+    "getleaderboardneighbourhood_failed",
+  );
+  return normaliseLeaderboardRows(rows);
 }
 
 /** Fetch the user's own row. Returns null if unranked. */
@@ -67,17 +77,16 @@ export async function getLeaderboardUserRow(
   userId: string,
   setId: string | null,
 ): Promise<LeaderboardEntry | null> {
-  const { data, error } = await supabase.rpc("get_leaderboard_user_row", {
-    p_gym_id: gymId,
-    p_user_id: userId,
-    p_set_id: setId ?? undefined,
-  });
-  if (error) {
-    logger.warn("getleaderboarduserrow_failed", { err: formatErrorForLog(error) });
-    return null;
-  }
-  const rows = normaliseLeaderboardRows(data ?? []);
-  return rows[0] ?? null;
+  const rows = await rpcMany<RawLeaderboardRow>(
+    supabase.rpc("get_leaderboard_user_row", {
+      p_gym_id: gymId,
+      p_user_id: userId,
+      p_set_id: setId ?? undefined,
+    }),
+    "getleaderboarduserrow_failed",
+  );
+  const normalised = normaliseLeaderboardRows(rows);
+  return normalised[0] ?? null;
 }
 
 // ── Server-cached variants (migration 039) ─────────
@@ -103,23 +112,23 @@ export function getLeaderboardCached(
     ["leaderboard", gymId, setId ?? "all", String(limit), String(offset)],
     async (): Promise<LeaderboardEntry[]> => {
       const supabase = createCachedContextClient();
-      const { data, error } = setId
-        ? await supabase.rpc("get_leaderboard_set_cached", {
+      const promise = setId
+        ? supabase.rpc("get_leaderboard_set_cached", {
             p_gym_id: gymId,
             p_set_id: setId,
             p_limit: limit,
             p_offset: offset,
           })
-        : await supabase.rpc("get_leaderboard_all_time_cached", {
+        : supabase.rpc("get_leaderboard_all_time_cached", {
             p_gym_id: gymId,
             p_limit: limit,
             p_offset: offset,
           });
-      if (error) {
-        logger.warn("getleaderboardcached_failed", { err: formatErrorForLog(error) });
-        return [];
-      }
-      return normaliseLeaderboardRows(data ?? []);
+      const rows = await rpcMany<RawLeaderboardRow>(
+        promise,
+        "getleaderboardcached_failed",
+      );
+      return normaliseLeaderboardRows(rows);
     },
     {
       tags: setId
@@ -142,19 +151,14 @@ export function getGymStatsV2Cached(
     ["gym-stats-v2", gymId, setId ?? "all"],
     async (): Promise<GymStatsBuckets> => {
       const supabase = createCachedContextClient();
-      const { data, error } = await supabase.rpc("get_gym_stats_v2_cached", {
-        p_gym_id: gymId,
-        p_set_id: setId ?? undefined,
-      });
-      if (error) {
-        logger.warn("getgymstatsv2cached_failed", { err: formatErrorForLog(error) });
-        return {
-          all_time: { climberCount: 0, totalSends: 0, totalFlashes: 0, totalRoutes: 0 },
-          set: null,
-        };
-      }
       type Raw = { climbers: number; sends: number; flashes: number; routes: number };
-      const raw = data as { all_time: Raw; set: Raw | null } | null;
+      const raw = await rpcSingle<{ all_time: Raw; set: Raw | null }>(
+        supabase.rpc("get_gym_stats_v2_cached", {
+          p_gym_id: gymId,
+          p_set_id: setId ?? undefined,
+        }),
+        "getgymstatsv2cached_failed",
+      );
       const toStats = (r: Raw): GymStats => ({
         climberCount: r.climbers,
         totalSends: r.sends,

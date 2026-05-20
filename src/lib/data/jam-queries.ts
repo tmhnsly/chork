@@ -23,6 +23,7 @@ import type {
 
 import { logger } from "@/lib/logger";
 import { asJsonShape, asJsonShapeArray } from "./json-shape";
+import { rpcSingle, rpcMany } from "./rpc";
 type Client = SupabaseClient<Database>;
 
 // NOTE: the legacy `getJamState` wrapper was removed — it relied on
@@ -54,13 +55,10 @@ export async function getJamById(
 export async function getActiveJamForUser(
   supabase: Client,
 ): Promise<ActiveJamSummary | null> {
-  const { data, error } = await supabase.rpc("get_active_jam_for_user");
-  if (error) {
-    logger.warn("getactivejamforuser_failed", { err: formatErrorForLog(error) });
-    return null;
-  }
-  const rows = (data ?? []) as ActiveJamSummary[];
-  return rows[0] ?? null;
+  return rpcSingle<ActiveJamSummary>(
+    supabase.rpc("get_active_jam_for_user"),
+    "getactivejamforuser_failed",
+  );
 }
 
 /**
@@ -77,15 +75,10 @@ export async function getActiveJamForUserById(
   service: Client,
   userId: string,
 ): Promise<ActiveJamSummary | null> {
-  const { data, error } = await service.rpc("get_active_jam_for_user_by_id", {
-    p_user_id: userId,
-  });
-  if (error) {
-    logger.warn("getactivejamforuserbyid_failed", { err: formatErrorForLog(error) });
-    return null;
-  }
-  const rows = (data ?? []) as ActiveJamSummary[];
-  return rows[0] ?? null;
+  return rpcSingle<ActiveJamSummary>(
+    service.rpc("get_active_jam_for_user_by_id", { p_user_id: userId }),
+    "getactivejamforuserbyid_failed",
+  );
 }
 
 /**
@@ -120,15 +113,10 @@ export async function lookupJamByCode(
 ): Promise<JoinJamLookup | null> {
   const normalised = code.trim().toUpperCase();
   if (!JAM_CODE_RE.test(normalised)) return null;
-  const { data, error } = await supabase.rpc("join_jam_by_code", {
-    p_code: normalised,
-  });
-  if (error) {
-    logger.warn("lookupjambycode_failed", { err: formatErrorForLog(error) });
-    return null;
-  }
-  const rows = (data ?? []) as JoinJamLookup[];
-  return rows[0] ?? null;
+  return rpcSingle<JoinJamLookup>(
+    supabase.rpc("join_jam_by_code", { p_code: normalised }),
+    "lookupjambycode_failed",
+  );
 }
 
 export async function getUserJams(
@@ -137,19 +125,17 @@ export async function getUserJams(
   options: { limit?: number; before?: string | null } = {},
 ): Promise<JamHistoryRow[]> {
   const { limit = 20, before = null } = options;
-  const { data, error } = await supabase.rpc("get_user_jams", {
-    p_user_id: userId,
-    p_limit: limit,
-    // `p_before` is `timestamptz default null` server-side; the
-    // generated type models it as `string | undefined`, so fold
-    // our domain `null` through to match.
-    p_before: before ?? undefined,
-  });
-  if (error) {
-    logger.warn("getuserjams_failed", { err: formatErrorForLog(error) });
-    return [];
-  }
-  return (data ?? []) as JamHistoryRow[];
+  return rpcMany<JamHistoryRow>(
+    supabase.rpc("get_user_jams", {
+      p_user_id: userId,
+      p_limit: limit,
+      // `p_before` is `timestamptz default null` server-side; the
+      // generated type models it as `string | undefined`, so fold
+      // our domain `null` through to match.
+      p_before: before ?? undefined,
+    }),
+    "getuserjams_failed",
+  );
 }
 
 /**
@@ -194,15 +180,10 @@ export async function getUserAllTimeStats(
   supabase: Client,
   userId: string,
 ): Promise<UserAllTimeStats | null> {
-  const { data, error } = await supabase.rpc("get_user_all_time_stats", {
-    p_user_id: userId,
-  });
-  if (error) {
-    logger.warn("getuseralltimestats_failed", { err: formatErrorForLog(error) });
-    return null;
-  }
-  const rows = (data ?? []) as UserAllTimeStats[];
-  return rows[0] ?? null;
+  return rpcSingle<UserAllTimeStats>(
+    supabase.rpc("get_user_all_time_stats", { p_user_id: userId }),
+    "getuseralltimestats_failed",
+  );
 }
 
 // Neutral default used whenever the RPC fails or returns no rows.
@@ -226,16 +207,9 @@ export async function getJamAchievementContext(
   supabase: Client,
   userId: string,
 ): Promise<JamAchievementContext> {
-  const { data, error } = await supabase.rpc("get_jam_achievement_context", {
-    p_user_id: userId,
-  });
-  if (error) {
-    console.warn(
-      "[chork] getJamAchievementContext failed:",
-      formatErrorForLog(error),
-    );
-    return emptyJamAchievementContext();
-  }
-  const rows = (data ?? []) as JamAchievementContext[];
-  return rows[0] ?? emptyJamAchievementContext();
+  const row = await rpcSingle<JamAchievementContext>(
+    supabase.rpc("get_jam_achievement_context", { p_user_id: userId }),
+    "getjamachievementcontext_failed",
+  );
+  return row ?? emptyJamAchievementContext();
 }

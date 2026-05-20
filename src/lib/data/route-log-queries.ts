@@ -6,6 +6,7 @@ import type { RouteLog, ActivityEventWithRoute } from "./types";
 
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
+import { rpcMany } from "./rpc";
 
 type Supabase = SupabaseClient<Database>;
 
@@ -102,15 +103,10 @@ export async function getUserSetStats(
   userId: string,
   gymId: string
 ): Promise<{ set_id: string; completions: number; flashes: number; points: number }[]> {
-  const { data, error } = await supabase.rpc("get_user_set_stats", {
-    p_user_id: userId,
-    p_gym_id: gymId,
-  });
-  if (error) {
-    logger.warn("getusersetstats_failed", { err: formatErrorForLog(error) });
-    return [];
-  }
-  return data ?? [];
+  return rpcMany<{ set_id: string; completions: number; flashes: number; points: number }>(
+    supabase.rpc("get_user_set_stats", { p_user_id: userId, p_gym_id: gymId }),
+    "getusersetstats_failed",
+  );
 }
 
 // ── Activity events ────────────────────────────────

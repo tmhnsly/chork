@@ -8,6 +8,7 @@ import type { Database } from "@/lib/database.types";
 
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
+import { rpcSingle, rpcMany } from "./rpc";
 type Supabase = SupabaseClient<Database>;
 
 // ── A. Active set overview ────────────────────────
@@ -24,13 +25,10 @@ export async function getSetOverview(
   supabase: Supabase,
   setId: string
 ): Promise<SetOverview | null> {
-  const { data, error } = await supabase.rpc("get_set_overview", { p_set_id: setId });
-  if (error) {
-    logger.warn("getsetoverview_failed", { err: formatErrorForLog(error) });
-    return null;
-  }
-  const row = Array.isArray(data) ? data[0] : null;
-  return row as SetOverview | null;
+  return rpcSingle<SetOverview>(
+    supabase.rpc("get_set_overview", { p_set_id: setId }),
+    "getsetoverview_failed",
+  );
 }
 
 // ── B. Top routes ─────────────────────────────────
@@ -49,15 +47,10 @@ export async function getTopRoutes(
   setId: string,
   limit = 10
 ): Promise<TopRouteRow[]> {
-  const { data, error } = await supabase.rpc("get_top_routes", {
-    p_set_id: setId,
-    p_limit: limit,
-  });
-  if (error) {
-    logger.warn("gettoproutes_failed", { err: formatErrorForLog(error) });
-    return [];
-  }
-  return (data ?? []) as TopRouteRow[];
+  return rpcMany<TopRouteRow>(
+    supabase.rpc("get_top_routes", { p_set_id: setId, p_limit: limit }),
+    "gettoproutes_failed",
+  );
 }
 
 // ── C + D. Active climbers + engagement trend ─────
@@ -87,15 +80,10 @@ export async function getEngagementTrend(
   gymId: string,
   limit = 12
 ): Promise<EngagementPoint[]> {
-  const { data, error } = await supabase.rpc("get_engagement_trend", {
-    p_gym_id: gymId,
-    p_limit: limit,
-  });
-  if (error) {
-    logger.warn("getengagementtrend_failed", { err: formatErrorForLog(error) });
-    return [];
-  }
-  return (data ?? []) as EngagementPoint[];
+  return rpcMany<EngagementPoint>(
+    supabase.rpc("get_engagement_trend", { p_gym_id: gymId, p_limit: limit }),
+    "getengagementtrend_failed",
+  );
 }
 
 // ── E. Flash leaderboard ──────────────────────────
@@ -111,15 +99,10 @@ export async function getFlashLeaderboardSet(
   setId: string,
   limit = 5
 ): Promise<FlashLeader[]> {
-  const { data, error } = await supabase.rpc("get_flash_leaderboard_set", {
-    p_set_id: setId,
-    p_limit: limit,
-  });
-  if (error) {
-    logger.warn("getflashleaderboardset_failed", { err: formatErrorForLog(error) });
-    return [];
-  }
-  return (data ?? []) as FlashLeader[];
+  return rpcMany<FlashLeader>(
+    supabase.rpc("get_flash_leaderboard_set", { p_set_id: setId, p_limit: limit }),
+    "getflashleaderboardset_failed",
+  );
 }
 
 // ── F. Zone vs send ratio ─────────────────────────
@@ -135,12 +118,10 @@ export async function getZoneSendRatio(
   supabase: Supabase,
   setId: string
 ): Promise<ZoneSendRow[]> {
-  const { data, error } = await supabase.rpc("get_zone_send_ratio", { p_set_id: setId });
-  if (error) {
-    logger.warn("getzonesendratio_failed", { err: formatErrorForLog(error) });
-    return [];
-  }
-  return (data ?? []) as ZoneSendRow[];
+  return rpcMany<ZoneSendRow>(
+    supabase.rpc("get_zone_send_ratio", { p_set_id: setId }),
+    "getzonesendratio_failed",
+  );
 }
 
 // ── G. Community grade distribution ───────────────
@@ -155,12 +136,10 @@ export async function getCommunityGradeDistribution(
   supabase: Supabase,
   setId: string
 ): Promise<GradeDistributionRow[]> {
-  const { data, error } = await supabase.rpc("get_community_grade_distribution", { p_set_id: setId });
-  if (error) {
-    logger.warn("getcommunitygradedistribution_failed", { err: formatErrorForLog(error) });
-    return [];
-  }
-  return (data ?? []) as GradeDistributionRow[];
+  return rpcMany<GradeDistributionRow>(
+    supabase.rpc("get_community_grade_distribution", { p_set_id: setId }),
+    "getcommunitygradedistribution_failed",
+  );
 }
 
 // ── H. Setter breakdown ───────────────────────────
@@ -176,12 +155,10 @@ export async function getSetterBreakdown(
   supabase: Supabase,
   setId: string
 ): Promise<SetterBreakdownRow[]> {
-  const { data, error } = await supabase.rpc("get_setter_breakdown", { p_set_id: setId });
-  if (error) {
-    logger.warn("getsetterbreakdown_failed", { err: formatErrorForLog(error) });
-    return [];
-  }
-  return (data ?? []) as SetterBreakdownRow[];
+  return rpcMany<SetterBreakdownRow>(
+    supabase.rpc("get_setter_breakdown", { p_set_id: setId }),
+    "getsetterbreakdown_failed",
+  );
 }
 
 // ── I. All-time overview ──────────────────────────
@@ -199,11 +176,8 @@ export async function getAllTimeOverview(
   supabase: Supabase,
   gymId: string
 ): Promise<AllTimeOverview | null> {
-  const { data, error } = await supabase.rpc("get_all_time_overview", { p_gym_id: gymId });
-  if (error) {
-    logger.warn("getalltimeoverview_failed", { err: formatErrorForLog(error) });
-    return null;
-  }
-  const row = Array.isArray(data) ? data[0] : null;
-  return row as AllTimeOverview | null;
+  return rpcSingle<AllTimeOverview>(
+    supabase.rpc("get_all_time_overview", { p_gym_id: gymId }),
+    "getalltimeoverview_failed",
+  );
 }

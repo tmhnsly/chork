@@ -3,6 +3,7 @@ import type { Database } from "@/lib/database.types";
 
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
+import { rpcMany } from "./rpc";
 type Supabase = SupabaseClient<Database>;
 
 export interface CompetitionSummary {
@@ -151,14 +152,10 @@ export async function getCompetitionVenueStats(
   supabase: Supabase,
   competitionId: string
 ): Promise<CompetitionVenueStats[]> {
-  const { data, error } = await supabase.rpc("get_competition_venue_stats", {
-    p_competition_id: competitionId,
-  });
-  if (error) {
-    logger.warn("getcompetitionvenuestats_failed", { err: formatErrorForLog(error) });
-    return [];
-  }
-  return (data ?? []) as CompetitionVenueStats[];
+  return rpcMany<CompetitionVenueStats>(
+    supabase.rpc("get_competition_venue_stats", { p_competition_id: competitionId }),
+    "getcompetitionvenuestats_failed",
+  );
 }
 
 /** Ranked leaderboard rows via the SQL RPC. Category filter optional. */
@@ -172,17 +169,28 @@ export async function getCompetitionLeaderboard(
   // Supabase's generated `.rpc()` signature treats optional parameters
   // as `string | undefined`; our callers pass `string | null` to mirror
   // the SQL default. Coerce null → undefined at the boundary.
-  const { data, error } = await supabase.rpc("get_competition_leaderboard", {
-    p_competition_id: competitionId,
-    p_category_id: categoryId ?? undefined,
-    p_limit: limit,
-    p_offset: offset,
-  });
-  if (error) {
-    logger.warn("getcompetitionleaderboard_failed", { err: formatErrorForLog(error) });
-    return [];
-  }
-  return (data ?? []).map((r) => ({
+  type Raw = {
+    user_id: string;
+    username: string;
+    name: string;
+    avatar_url: string;
+    category_id: string | null;
+    rank: number | string;
+    sends: number;
+    flashes: number;
+    zones: number;
+    points: number;
+  };
+  const rows = await rpcMany<Raw>(
+    supabase.rpc("get_competition_leaderboard", {
+      p_competition_id: competitionId,
+      p_category_id: categoryId ?? undefined,
+      p_limit: limit,
+      p_offset: offset,
+    }),
+    "getcompetitionleaderboard_failed",
+  );
+  return rows.map((r) => ({
     user_id: r.user_id,
     username: r.username,
     name: r.name,
