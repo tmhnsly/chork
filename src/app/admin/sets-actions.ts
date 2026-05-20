@@ -8,7 +8,8 @@ import { formatErrorForLog } from "@/lib/errors";
 import { UUID_RE } from "@/lib/validation";
 import { getGym } from "@/lib/data/gym-queries";
 import { formatSetLabel } from "@/lib/data/set-label";
-import { getGymClimberUserIds, sendPushInBackground } from "@/lib/push/server";
+import { getGymClimberUserIds } from "@/lib/push/server";
+import { announce } from "@/lib/announce";
 import { logger } from "@/lib/logger";
 import { tags } from "@/lib/cache/tags";
 
@@ -117,25 +118,24 @@ export async function updateSet(
   });
   if ("error" in result) return { error: result.error };
 
-  // Draft → live transition: notify every climber who has logged at
-  // this gym. Fan-out can be hundreds of endpoints — dispatch
-  // *after* the response is sent so the admin's publish click
-  // returns immediately instead of waiting on web-push round-trips.
+  // Draft → live transition: broadcast Announcement to every climber
+  // with activity at this gym. See CONTEXT.md "Announcement" for the
+  // distinction from per-recipient Notifications. announce() dispatch
+  // is background + best-effort; the user-id fetch is awaited here so
+  // we can size the fan-out + skip the call when no climbers exist.
   if (setRow.status !== "live" && form.status === "live") {
     try {
       const [userIds, gym] = await Promise.all([
         getGymClimberUserIds(setRow.gym_id),
         getGym(setRow.gym_id),
       ]);
-      if (userIds.length > 0) {
-        sendPushInBackground(userIds, {
-          title: `New set at ${gym?.name ?? "your gym"}`,
-          body: `${formatSetLabel({ name: form.name ?? setRow.name, starts_at: form.startsAt ?? setRow.starts_at, ends_at: form.endsAt ?? setRow.ends_at })} is now live. Get climbing.`,
-          url: "/",
-        });
-      }
+      announce({
+        userIds,
+        title: `New set at ${gym?.name ?? "your gym"}`,
+        body: `${formatSetLabel({ name: form.name ?? setRow.name, starts_at: form.startsAt ?? setRow.starts_at, ends_at: form.endsAt ?? setRow.ends_at })} is now live. Get climbing.`,
+      });
     } catch (err) {
-      logger.warn("set_live_push_preparation_failed", { err: formatErrorForLog(err) });
+      logger.warn("set_live_announce_preparation_failed", { err: formatErrorForLog(err) });
     }
   }
 

@@ -33,8 +33,12 @@ A broadcast push with no per-recipient log row, no opt-out category,
 fan-out to N users. Different shape from a Notification — kept
 deliberately separate.
 
-Currently a single instance: a set going `draft → live` pushes to
-every climber with activity at that gym. If a second announcement type
-appears, name the concept (`announce(...)`) and give it its own seam.
-Until then, set-goes-live calls `sendPushInBackground` directly in
-`src/app/admin/actions.ts`.
+Implemented by `announce(message)` in `src/lib/announce.ts`. Caller
+hands over `{ userIds, title, body, url? }`; the helper schedules a
+best-effort background push and swallows any failure. Use this for
+gym-wide events (sets going live, competition start, season finale);
+use `notify()` for per-recipient social events that need a log row.
+
+Current callers:
+- Set `draft → live` transition in `src/app/admin/sets-actions.ts` —
+  fan-out to every climber with activity at that gym.
