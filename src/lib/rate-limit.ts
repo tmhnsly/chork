@@ -54,7 +54,7 @@ function redis(): Redis | null {
 
 // Limiter factories are memoised so we don't reconstruct the sliding
 // window algorithm on every `enforce()` call.
-type LimiterKey =
+export type LimiterKey =
   | "mutationsWrite"
   | "invitesSend"
   | "pushSubscribe"

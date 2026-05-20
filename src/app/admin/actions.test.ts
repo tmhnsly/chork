@@ -29,6 +29,7 @@ vi.mock("@/lib/auth", () => ({
   requireAdminOfRoute: vi.fn(),
   requireCompetitionOrganiser: vi.fn(),
   requireCompetitionOrganiserOrGymAdmin: vi.fn(),
+  gateGymAdminMutation: vi.fn(),
 }));
 vi.mock("@/lib/data/admin-mutations", () => ({
   createGymWithOwner: vi.fn(),
@@ -182,13 +183,6 @@ describe("signupGym", () => {
 // sendAdminInvite — role gating
 // ────────────────────────────────────────────────────────────────
 describe("sendAdminInvite", () => {
-  it("rejects malformed gym ids", async () => {
-    const { sendAdminInvite } = await import("./actions");
-    expect(
-      await sendAdminInvite({ gymId: "not-a-uuid", email: "a@b.co", role: "admin" }),
-    ).toEqual({ error: "Invalid gym." });
-  });
-
   it("rejects malformed emails", async () => {
     const { sendAdminInvite } = await import("./actions");
     expect(
@@ -196,9 +190,18 @@ describe("sendAdminInvite", () => {
     ).toHaveProperty("error", "Enter a valid email address.");
   });
 
+  it("rejects malformed gym ids via the gate", async () => {
+    const { gateGymAdminMutation } = await import("@/lib/auth");
+    vi.mocked(gateGymAdminMutation).mockResolvedValue({ error: "Invalid gym" });
+    const { sendAdminInvite } = await import("./actions");
+    expect(
+      await sendAdminInvite({ gymId: "not-a-uuid", email: "a@b.co", role: "admin" }),
+    ).toEqual({ error: "Invalid gym" });
+  });
+
   it("rejects owner invites from non-owners", async () => {
-    const { requireGymAdmin } = await import("@/lib/auth");
-    vi.mocked(requireGymAdmin).mockResolvedValue({
+    const { gateGymAdminMutation } = await import("@/lib/auth");
+    vi.mocked(gateGymAdminMutation).mockResolvedValue({
       supabase: mockSupabase() as never,
       userId: USER_A,
       gymId: GYM_1,
@@ -211,8 +214,8 @@ describe("sendAdminInvite", () => {
   });
 
   it("surfaces the invite URL on success", async () => {
-    const { requireGymAdmin } = await import("@/lib/auth");
-    vi.mocked(requireGymAdmin).mockResolvedValue({
+    const { gateGymAdminMutation } = await import("@/lib/auth");
+    vi.mocked(gateGymAdminMutation).mockResolvedValue({
       supabase: mockSupabase({ "table:gym_invites": { data: null, error: null } }) as never,
       userId: USER_A,
       gymId: GYM_1,
@@ -319,16 +322,16 @@ describe("createSet", () => {
     });
   });
 
-  it("surfaces auth failure", async () => {
-    const { requireGymAdmin } = await import("@/lib/auth");
-    vi.mocked(requireGymAdmin).mockResolvedValue({ error: "Not signed in" });
+  it("surfaces auth failure from the gate", async () => {
+    const { gateGymAdminMutation } = await import("@/lib/auth");
+    vi.mocked(gateGymAdminMutation).mockResolvedValue({ error: "Not signed in" });
     const { createSet } = await import("./actions");
     expect(await createSet(form)).toEqual({ error: "Not signed in" });
   });
 
   it("returns the created set id on success", async () => {
-    const { requireGymAdmin } = await import("@/lib/auth");
-    vi.mocked(requireGymAdmin).mockResolvedValue({
+    const { gateGymAdminMutation } = await import("@/lib/auth");
+    vi.mocked(gateGymAdminMutation).mockResolvedValue({
       supabase: mockSupabase() as never,
       userId: USER_A,
       gymId: GYM_1,

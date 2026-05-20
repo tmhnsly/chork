@@ -1,12 +1,11 @@
 "use server";
 
-import { requireGymAdmin, requireSignedIn } from "@/lib/auth";
+import { gateGymAdminMutation, requireSignedIn } from "@/lib/auth";
 import { acceptGymInvite } from "@/lib/data/admin-mutations";
 import { createServiceClient } from "@/lib/supabase/server";
 import { formatError } from "@/lib/errors";
 import { UUID_RE } from "@/lib/validation";
 import { env } from "@/lib/env";
-import { enforce as enforceRateLimit } from "@/lib/rate-limit";
 import { randomBytes } from "node:crypto";
 
 import type { ActionResult } from "@/lib/action-result";
@@ -22,14 +21,17 @@ export async function sendAdminInvite(form: {
   email: string;
   role: "admin" | "owner";
 }): Promise<ActionResult<{ inviteUrl: string }>> {
-  if (!UUID_RE.test(form.gymId)) return { error: "Invalid gym." };
   const email = (form.email ?? "").trim().toLowerCase();
   if (!EMAIL_RE.test(email)) return { error: "Enter a valid email address." };
   if (!["admin", "owner"].includes(form.role)) {
     return { error: "Invalid role." };
   }
 
-  const auth = await requireGymAdmin(form.gymId);
+  // UUID validate + requireGymAdmin + invitesSend rate-limit, in one
+  // call. See gateGymAdminMutation for the rationale on bundling.
+  const auth = await gateGymAdminMutation(form.gymId, "gym", {
+    rateLimit: "invitesSend",
+  });
   if ("error" in auth) return { error: auth.error };
   const { userId, gymId } = auth;
 
@@ -37,13 +39,6 @@ export async function sendAdminInvite(form: {
   if (form.role === "owner" && !auth.isOwner) {
     return { error: "Only owners can invite other owners." };
   }
-
-  // Rate-limit admin invite dispatch alongside crew invites — same
-  // abuse shape (mass email from an authed role), different
-  // resource. Edge-layer so Redis short-circuits before we burn a
-  // Postgres connection on the upsert below.
-  const rl = await enforceRateLimit("invitesSend", userId);
-  if (!rl.ok) return { error: rl.error };
 
   // Opaque, URL-safe, single-use token. 32 bytes → 43 chars base64url.
   const token = randomBytes(32).toString("base64url");

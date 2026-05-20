@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidateTag } from "next/cache";
-import { requireGymAdmin } from "@/lib/auth";
+import { gateGymAdminMutation, requireGymAdmin } from "@/lib/auth";
 import { createAdminSet, updateAdminSet } from "@/lib/data/admin-mutations";
 import { createServiceClient } from "@/lib/supabase/server";
 import { formatErrorForLog } from "@/lib/errors";
@@ -64,7 +64,7 @@ export async function createSet(
   const validation = validateSetInput({ ...form, status: createStatus });
   if (validation) return { error: validation };
 
-  const auth = await requireGymAdmin(form.gymId);
+  const auth = await gateGymAdminMutation(form.gymId, "gym");
   if ("error" in auth) return { error: auth.error };
 
   const result = await createAdminSet(auth.supabase, {

@@ -9,7 +9,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
 import { AUTH_REQUIRED_ERROR } from "./auth-errors";
 import { UUID_RE } from "./validation";
-import { enforce as enforceRateLimit } from "./rate-limit";
+import { enforce as enforceRateLimit, type LimiterKey as RateLimitKey } from "./rate-limit";
 
 type AuthSuccess = {
   supabase: SupabaseClient<Database>;
@@ -291,5 +291,45 @@ export async function gateClimberMutation(
   if ("error" in auth) return { error: auth.error };
   const rl = await enforceRateLimit("mutationsWrite", auth.userId);
   if (!rl.ok) return { error: rl.error };
+  return auth;
+}
+
+/**
+ * Sibling of `gateClimberMutation` for gym-admin server actions.
+ * Concentrates the prelude that every gym-admin mutation repeats:
+ *   1. UUID validate the supplied `gymId` (label feeds the user-facing
+ *      error string so the action keeps its existing wording).
+ *   2. Re-verify the caller admins THIS gym via `requireGymAdmin` —
+ *      never trust a client-supplied gymId.
+ *   3. Optionally enforce a rate-limit bucket (admin actions that get
+ *      one — invites, competition creation — share the same shape;
+ *      pass `null` to skip).
+ *
+ * Returns the `AdminAuthSuccess` shape (with `isOwner` and the
+ * verified gymId) so callers can branch on owner-only ops without a
+ * second round-trip.
+ *
+ * Inline action-specific checks (slug format, plan-tier allow-list,
+ * email shape, role allow-list) stay at the call site after the gate
+ * returns — the gate is for the prelude, not for every validation.
+ *
+ * Note: resource-scoped helpers (`requireAdminOfSet`, `requireAdminOfRoute`)
+ * are NOT subsumed here — they need to fetch the resource before they
+ * can decide which gym to authorise against, so they own their own
+ * shape. Use them directly when an action takes a set/route id rather
+ * than a gym id.
+ */
+export async function gateGymAdminMutation(
+  gymId: string,
+  resourceLabel: string,
+  options: { rateLimit: RateLimitKey | null } = { rateLimit: null },
+): Promise<AdminAuthSuccess | AuthFailure> {
+  if (!UUID_RE.test(gymId)) return { error: `Invalid ${resourceLabel}` };
+  const auth = await requireGymAdmin(gymId);
+  if ("error" in auth) return { error: auth.error };
+  if (options.rateLimit !== null) {
+    const rl = await enforceRateLimit(options.rateLimit, auth.userId);
+    if (!rl.ok) return { error: rl.error };
+  }
   return auth;
 }
