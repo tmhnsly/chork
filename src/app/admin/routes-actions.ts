@@ -10,7 +10,7 @@ import {
 import { UUID_RE } from "@/lib/validation";
 import { tags } from "@/lib/cache/tags";
 
-import type { ActionResult } from "./_shared";
+import type { ActionResult } from "@/lib/action-result";
 
 // ────────────────────────────────────────────────────────────────
 // Routes

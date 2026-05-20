@@ -9,8 +9,9 @@ import { env } from "@/lib/env";
 import { enforce as enforceRateLimit } from "@/lib/rate-limit";
 import { randomBytes } from "node:crypto";
 
-import type { ActionResult } from "./_shared";
-import { EMAIL_RE } from "./_shared";
+import type { ActionResult } from "@/lib/action-result";
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // ────────────────────────────────────────────────────────────────
 // Invites

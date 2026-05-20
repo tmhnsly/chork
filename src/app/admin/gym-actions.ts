@@ -1,12 +1,13 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { requireSignedIn } from "@/lib/auth";
 import { createGymWithOwner } from "@/lib/data/admin-mutations";
 import { enforce as enforceRateLimit } from "@/lib/rate-limit";
+import type { ActionResult } from "@/lib/action-result";
 
-import type { ActionResult } from "./_shared";
-import { SLUG_RE } from "./_shared";
+// Lowercase letters, digits, single hyphens — matches the gym-slug
+// shape elsewhere in the app (see migration 001).
+const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 // ────────────────────────────────────────────────────────────────
 // Gym signup — new admin creates a gym
@@ -61,22 +62,4 @@ export async function signupGym(form: {
   // profiles.* — getAdminGymsForUser is uncached and re-fetches via the
   // server action's response cycle, so no profile-tag bust required.
   return { success: true, gymId: result.gymId };
-}
-
-// ────────────────────────────────────────────────────────────────
-// Redirect helper — used by onboarding after success
-// ────────────────────────────────────────────────────────────────
-
-export async function signupGymAndRedirect(form: {
-  name: string;
-  slug: string;
-  city: string;
-  country: string;
-  planTier: "starter" | "pro" | "enterprise";
-}): Promise<void> {
-  const res = await signupGym(form);
-  if ("error" in res) {
-    throw new Error(res.error);
-  }
-  redirect("/admin");
 }

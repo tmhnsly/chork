@@ -16,7 +16,7 @@ import type { Database } from "@/lib/database.types";
 
 import { logger } from "@/lib/logger";
 import { tags } from "@/lib/cache/tags";
-type ActionResult<T = unknown> = { error: string } | ({ success: true } & T);
+import type { ActionResult } from "@/lib/action-result";
 
 /**
  * Fan-out tag invalidation: bust crew:{id} + every active member's

@@ -12,7 +12,7 @@ import { getGymClimberUserIds, sendPushInBackground } from "@/lib/push/server";
 import { logger } from "@/lib/logger";
 import { tags } from "@/lib/cache/tags";
 
-import type { ActionResult } from "./_shared";
+import type { ActionResult } from "@/lib/action-result";
 
 // ────────────────────────────────────────────────────────────────
 // Sets

@@ -28,7 +28,7 @@ import type { BadgeDefinition } from "@/lib/badges";
 
 import { logger } from "@/lib/logger";
 import { tags } from "@/lib/cache/tags";
-type ActionResult<T = unknown> = { error: string } | ({ success: true } & T);
+import type { ActionResult } from "@/lib/action-result";
 type LogResult = ActionResult<{ log: RouteLog; earnedBadges?: BadgeDefinition[] }>;
 type CommentResult = { error: string } | { comment: Comment };
 

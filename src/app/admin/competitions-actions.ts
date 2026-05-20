@@ -19,7 +19,7 @@ import { UUID_RE } from "@/lib/validation";
 import { enforce as enforceRateLimit } from "@/lib/rate-limit";
 import { tags } from "@/lib/cache/tags";
 
-import type { ActionResult } from "./_shared";
+import type { ActionResult } from "@/lib/action-result";
 
 // ────────────────────────────────────────────────────────────────
 // Competitions
