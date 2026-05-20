@@ -425,7 +425,7 @@ export async function searchClimbersForInvite(
     { data: mySharedCrews },
   ] = await Promise.all([
     supabase.from("gyms").select("id, name")
-      .in("id", profiles.map((p) => p.active_gym_id).filter(Boolean) as string[]),
+      .in("id", profiles.flatMap((p) => p.active_gym_id ? [p.active_gym_id] : [])),
     supabase.from("crew_members").select("user_id")
       .eq("invited_by", callerId)
       .eq("status", "pending")

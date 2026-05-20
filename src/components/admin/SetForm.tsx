@@ -13,7 +13,10 @@ import {
 import { toDateInput, fromDateInput } from "./date-input";
 import styles from "./setForm.module.scss";
 
-type Scale = "v" | "font" | "points";
+// Tuple is both the type-level union and the runtime list — no
+// `as Scale[]` cast needed when iterating.
+const SCALES = ["v", "font", "points"] as const;
+type Scale = typeof SCALES[number];
 type Status = "draft" | "live" | "archived";
 
 // Upper bound for the grade slider per scale. Source of truth for the
@@ -74,7 +77,7 @@ export function SetForm({ mode, gymId, set }: Props) {
           endsAt: fromDateInput(endsAt),
           gradingScale: scale,
           maxGrade,
-          status: (publishing ? "live" : "draft") as "live" | "draft",
+          status: publishing ? ("live" as const) : ("draft" as const),
           closingEvent,
         };
 
@@ -159,7 +162,7 @@ export function SetForm({ mode, gymId, set }: Props) {
       <fieldset className={styles.fieldset}>
         <legend className={styles.label}>Grading scale</legend>
         <div className={styles.scaleRow}>
-          {(["v", "font", "points"] as Scale[]).map((id) => (
+          {SCALES.map((id) => (
             <label
               key={id}
               className={`${styles.scaleChip} ${scale === id ? styles.scaleChipActive : ""}`}

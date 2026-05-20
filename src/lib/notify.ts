@@ -1,7 +1,7 @@
 import "server-only";
 import { revalidateTag } from "next/cache";
-import type { Database } from "@/lib/database.types";
 import { createServiceClient } from "@/lib/supabase/server";
+import { toJson } from "@/lib/data/json-shape";
 import { sendPushInBackground } from "@/lib/push/server";
 import { tags } from "@/lib/cache/tags";
 import { logger } from "@/lib/logger";
@@ -124,7 +124,11 @@ export async function notify(event: NotifyEvent): Promise<void> {
     const { error } = await service.rpc("notify_user", {
       p_user_id: event.recipient,
       p_kind: r.logKind,
-      p_payload: r.logPayload as unknown as Database["public"]["Functions"]["notify_user"]["Args"]["p_payload"],
+      // logPayload is one of three fixed-shape interfaces (string
+      // fields only). `toJson` is the single documented site that
+      // widens a closed interface to the generated `Json` union —
+      // see json-shape.ts for the rationale.
+      p_payload: toJson(r.logPayload),
     });
     if (error) {
       logger.warn("notify_log_failed", {

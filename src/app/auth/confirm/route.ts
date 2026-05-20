@@ -2,6 +2,27 @@ import { NextResponse } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createServerSupabase } from "@/lib/supabase/server";
 
+// Whitelist the OTP types we know Supabase Auth emits for this flow.
+// `searchParams.get("type")` is unfettered user input — a hostile
+// confirmation link could otherwise smuggle an arbitrary string into
+// verifyOtp's `type` field and trip a path we haven't audited.
+const VALID_OTP_TYPES = [
+  "signup",
+  "invite",
+  "magiclink",
+  "recovery",
+  "email_change",
+  "email",
+] as const satisfies readonly EmailOtpType[];
+
+function isValidOtpType(raw: string): raw is EmailOtpType {
+  return (VALID_OTP_TYPES as readonly string[]).includes(raw);
+}
+
+function parseOtpType(raw: string | null): EmailOtpType | null {
+  return raw !== null && isValidOtpType(raw) ? raw : null;
+}
+
 /**
  * Direct email confirmation handler.
  *
@@ -21,7 +42,7 @@ import { createServerSupabase } from "@/lib/supabase/server";
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const tokenHash = searchParams.get("token_hash");
-  const type = searchParams.get("type") as EmailOtpType | null;
+  const type = parseOtpType(searchParams.get("type"));
 
   // Tight open-redirect guard: only single-leading-slash relative paths.
   // Matches the pattern used in /auth/callback/route.ts.

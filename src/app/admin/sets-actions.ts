@@ -54,10 +54,13 @@ function validateSetInput(form: SetFormInput): string | null {
 export async function createSet(
   form: SetFormInput
 ): Promise<ActionResult<{ setId: string }>> {
-  // Create-time: force status into {draft, live} — you can't conjure an
-  // archived set from thin air.
-  if (form.status === "archived") form.status = "draft";
-  const validation = validateSetInput(form);
+  // Create-time: force status into {draft, live} — you can't conjure
+  // an archived set from thin air. Capture in a typed local so flow
+  // analysis narrows without `as`; mutating `form.status` directly
+  // doesn't narrow because mutation breaks TS's control-flow tracking.
+  const createStatus: "draft" | "live" =
+    form.status === "archived" ? "draft" : form.status;
+  const validation = validateSetInput({ ...form, status: createStatus });
   if (validation) return { error: validation };
 
   const auth = await requireGymAdmin(form.gymId);
@@ -70,8 +73,7 @@ export async function createSet(
     endsAt: form.endsAt,
     gradingScale: form.gradingScale,
     maxGrade: form.maxGrade,
-    // Status is narrowed above — archived is rewritten to draft.
-    status: form.status as "draft" | "live",
+    status: createStatus,
     closingEvent: !!form.closingEvent,
     venueGymId: form.venueGymId ?? null,
     competitionId: form.competitionId ?? null,

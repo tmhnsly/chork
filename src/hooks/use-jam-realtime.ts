@@ -40,22 +40,7 @@ export function useJamRealtime(
   useEffect(() => {
     if (!jamId) return;
     const supabase = createBrowserSupabase();
-    // Minimal shape of the Supabase realtime channel we rely on.
-    // Cast at the boundary so the rest of the hook stays typed.
-    type RealtimeClient = {
-      channel: (name: string) => RealtimeChannel;
-      removeChannel: (c: RealtimeChannel) => void;
-    };
-    type RealtimeChannel = {
-      on: (
-        event: string,
-        config: Record<string, unknown>,
-        cb: (payload: unknown) => void,
-      ) => RealtimeChannel;
-      subscribe: () => RealtimeChannel;
-    };
-    const rt = supabase as unknown as RealtimeClient;
-    const channel = rt.channel(`jam:${jamId}`);
+    const channel = supabase.channel(`jam:${jamId}`);
 
     channel
       .on(
@@ -76,7 +61,7 @@ export function useJamRealtime(
       .subscribe();
 
     return () => {
-      rt.removeChannel(channel);
+      supabase.removeChannel(channel);
     };
   }, [jamId]);
 }

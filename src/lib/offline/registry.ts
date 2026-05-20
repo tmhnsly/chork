@@ -45,6 +45,14 @@ type ActionFn = (...args: unknown[]) => Promise<unknown>;
  */
 export function registerActionRunner(): void {
   mutationQueue.setActionRunner(async (action, args) => {
+    // Dispatcher cast: each registered action has a different
+    // signature, but the queue calls them uniformly via the
+    // `(...args: unknown[])` shape. Safe because the queue captured
+    // `args` from the same call site that knows the action's real
+    // signature — they're persisted together and replayed together.
+    // If a future action accepts an arg shape that can't round-trip
+    // through `structuredClone` (e.g. functions, classes), validate
+    // here before dispatch.
     const fn = ACTION_REGISTRY[action] as unknown as ActionFn;
     return fn(...args);
   });

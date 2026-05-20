@@ -12,6 +12,21 @@ import { JAM_CODE_RE } from "@/lib/validation";
 import { JAM_SCALE_LABEL } from "./jam-scale-label";
 import styles from "./joinJamForm.module.scss";
 
+// BarcodeDetector isn't in lib.dom yet (Chromium / Safari ship it,
+// Firefox + Edge don't). Declare the surface we use so the feature
+// detection below + the constructor call below don't have to cast
+// through `unknown` per usage.
+interface BarcodeDetectorInstance {
+  detect: (source: HTMLVideoElement) => Promise<Array<{ rawValue: string }>>;
+}
+type BarcodeDetectorCtor = new (options: { formats: string[] }) => BarcodeDetectorInstance;
+
+declare global {
+  interface Window {
+    BarcodeDetector?: BarcodeDetectorCtor;
+  }
+}
+
 interface Props {
   initialCode: string | null;
 }
@@ -200,9 +215,7 @@ function QrScannerButton({
       if (typeof window === "undefined") {
         return;
       }
-      const hasDetector =
-        typeof (window as unknown as { BarcodeDetector?: unknown })
-          .BarcodeDetector !== "undefined";
+      const hasDetector = typeof window.BarcodeDetector !== "undefined";
       const hasCamera = !!navigator.mediaDevices?.getUserMedia;
       if (!cancelled) setSupported(hasDetector && hasCamera);
     })();
@@ -231,14 +244,9 @@ function QrScannerButton({
         video.srcObject = stream;
         await video.play();
 
-        const BarcodeDetectorCtor = (
-          window as unknown as {
-            BarcodeDetector: new (options: { formats: string[] }) => {
-              detect: (source: HTMLVideoElement) => Promise<Array<{ rawValue: string }>>;
-            };
-          }
-        ).BarcodeDetector;
-        const detector = new BarcodeDetectorCtor({ formats: ["qr_code"] });
+        const Ctor = window.BarcodeDetector;
+        if (!Ctor) return;
+        const detector = new Ctor({ formats: ["qr_code"] });
 
         intervalId = window.setInterval(async () => {
           if (cancelled || !videoRef.current) return;

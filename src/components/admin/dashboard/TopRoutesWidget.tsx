@@ -6,8 +6,11 @@ import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import type { TopRouteRow } from "@/lib/data/dashboard-queries";
 import styles from "./topRoutesWidget.module.scss";
 
-type Metric = "sends" | "attempts" | "flash_rate";
-
+// Single source of truth — the tuple is the type-level union AND the
+// runtime list, so no `Object.keys(...) as Metric[]` cast that
+// silently widens to `string[]` if a new key is added.
+const METRIC_KEYS = ["sends", "attempts", "flash_rate"] as const;
+type Metric = typeof METRIC_KEYS[number];
 const METRIC_LABELS: Record<Metric, string> = {
   sends: "Sends",
   attempts: "Attempts",
@@ -55,7 +58,7 @@ export function TopRoutesWidget({ routes }: Props) {
       emptyMessage="No route activity yet."
       actions={
         <SegmentedControl<Metric>
-          options={(Object.keys(METRIC_LABELS) as Metric[]).map((m) => ({
+          options={METRIC_KEYS.map((m) => ({
             value: m,
             label: METRIC_LABELS[m],
           }))}

@@ -3,6 +3,7 @@ import type { Database } from "@/lib/database.types";
 
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
+import { asJsonShape } from "./json-shape";
 type Supabase = SupabaseClient<Database>;
 
 /**
@@ -69,9 +70,10 @@ export async function getNotifications(
     id: r.id,
     kind: r.kind as NotificationKind,
     // `payload` is a jsonb column typed as Json in the generated
-    // Supabase types; narrow to the discriminated union. Each row's
-    // `kind` tells consumers which branch of the union to read.
-    payload: r.payload as unknown as NotificationPayload,
+    // Supabase types; narrow to the discriminated union via the
+    // shared output-side assertion helper. Each row's `kind` tells
+    // consumers which branch of the union to read.
+    payload: asJsonShape<NotificationPayload>(r.payload),
     read_at: r.read_at,
     created_at: r.created_at,
   }));

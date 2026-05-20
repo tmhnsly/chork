@@ -22,6 +22,7 @@ import type {
 } from "./jam-types";
 
 import { logger } from "@/lib/logger";
+import { asJsonShape, asJsonShapeArray } from "./json-shape";
 type Client = SupabaseClient<Database>;
 
 // NOTE: the legacy `getJamState` wrapper was removed — it relied on
@@ -110,7 +111,7 @@ export async function getJamStateForUser(
     logger.warn("getjamstateforuser_failed", { err: formatErrorForLog(error) });
     return null;
   }
-  return (data ?? null) as unknown as JamState | null;
+  return data == null ? null : asJsonShape<JamState>(data);
 }
 
 export async function lookupJamByCode(
@@ -175,7 +176,7 @@ export async function getJamSummaryForUser(
     logger.warn("getjamsummaryforuser_failed", { err: formatErrorForLog(error) });
     return null;
   }
-  return (data ?? null) as unknown as JamSummaryBundle | null;
+  return data == null ? null : asJsonShape<JamSummaryBundle>(data);
 }
 
 export async function getUserSavedScales(
@@ -186,7 +187,7 @@ export async function getUserSavedScales(
     logger.warn("getusersavedscales_failed", { err: formatErrorForLog(error) });
     return [];
   }
-  return (data ?? []) as unknown as SavedScale[];
+  return asJsonShapeArray<SavedScale>(data);
 }
 
 export async function getUserAllTimeStats(

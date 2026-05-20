@@ -59,11 +59,14 @@ export type PushCategory =
   | "invite_accepted"
   | "ownership_changed";
 
-const CATEGORY_COLUMN: Record<PushCategory, string> = {
+// Literal keys — `satisfies` constrains the values to actual profile
+// columns so a typo here fails the build (without losing the literal
+// types Object lookups need to remain narrow).
+const CATEGORY_COLUMN = {
   invite_received: "push_invite_received",
   invite_accepted: "push_invite_accepted",
   ownership_changed: "push_ownership_changed",
-};
+} as const satisfies Record<PushCategory, "push_invite_received" | "push_invite_accepted" | "push_ownership_changed">;
 
 interface SendOptions {
   category?: PushCategory | null;
@@ -101,15 +104,14 @@ export async function sendPushToUsers(
   let effectiveIds = userIds;
   if (options.category) {
     const column = CATEGORY_COLUMN[options.category];
-    // Dynamic column name — bypass the generated row type for the
-    // select + filter. The values come from a non-user-controlled
-    // constant map so there's no injection surface here.
-    const { data: profiles } = (await service
+    // Select all three opt-in columns explicitly so the row type stays
+    // fully typed (the previous dynamic select-string interpolation
+    // forced an `as unknown as` cast on the return shape). Picking by
+    // literal column name keeps `p[column]` properly narrowed.
+    const { data: profiles } = await service
       .from("profiles")
-      .select(`id, ${column}`)
-      .in("id", userIds)) as unknown as {
-      data: { id: string; [key: string]: boolean | string }[] | null;
-    };
+      .select("id, push_invite_received, push_invite_accepted, push_ownership_changed")
+      .in("id", userIds);
     effectiveIds = (profiles ?? [])
       .filter((p) => p[column] === true)
       .map((p) => p.id);
