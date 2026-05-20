@@ -38,17 +38,16 @@ export async function createGymWithOwner(
   supabase: Supabase,
   input: CreateGymInput,
 ): Promise<{ gymId: string } | { error: string }> {
-  // city/country can legitimately be null (matching the gyms columns),
-  // and the Postgres function accepts text parameters which are
-  // nullable by default. Supabase's type generator infers non-null
-  // `string` for them though — cast through `unknown` so the call
-  // compiles without forcing callers to coerce nulls to empty strings.
+  // Migration 062 reordered the function so p_city / p_country trail
+  // p_plan_tier with DEFAULT NULL — the Supabase type generator now
+  // marks them as optional. Omit (rather than send null) when the
+  // caller passes null so the DB-side defaults take over.
   const { data, error } = await supabase.rpc("create_gym_with_owner_tx", {
     p_name: input.name,
     p_slug: input.slug,
-    p_city: input.city as unknown as string,
-    p_country: input.country as unknown as string,
     p_plan_tier: input.plan_tier,
+    ...(input.city !== null && { p_city: input.city }),
+    ...(input.country !== null && { p_country: input.country }),
   });
 
   if (error || !data) {

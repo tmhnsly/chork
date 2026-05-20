@@ -120,13 +120,28 @@ describe("createGymWithOwner", () => {
     expect(await createGymWithOwner(supabase, baseInput)).toEqual({
       gymId: GYM_1,
     });
-    // Pins the RPC contract — function name + flattened args shape
-    // are what the DB function expects (migration 061).
+    // Pins the RPC contract — function name + arg shape (migration
+    // 062 reordered + made city/country optional).
     expect(rpc).toHaveBeenCalledWith("create_gym_with_owner_tx", {
       p_name: "Yonder",
       p_slug: "yonder",
+      p_plan_tier: "starter",
       p_city: "London",
       p_country: "GB",
+    });
+  });
+
+  it("omits p_city / p_country when null so DB defaults apply", async () => {
+    const { supabase, rpc } = rpcMock({ data: GYM_1, error: null });
+    const { createGymWithOwner } = await import("./admin-mutations");
+    await createGymWithOwner(supabase, {
+      ...baseInput,
+      city: null,
+      country: null,
+    });
+    expect(rpc).toHaveBeenCalledWith("create_gym_with_owner_tx", {
+      p_name: "Yonder",
+      p_slug: "yonder",
       p_plan_tier: "starter",
     });
   });
