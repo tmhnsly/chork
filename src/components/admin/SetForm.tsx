@@ -9,7 +9,7 @@ import {
   archiveSet,
   publishSet,
   unpublishSet,
-} from "@/app/admin/actions";
+} from "@/app/admin/sets-actions";
 import { toDateInput, fromDateInput } from "./date-input";
 import styles from "./setForm.module.scss";
 

@@ -3,7 +3,7 @@
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, showToast } from "@/components/ui";
-import { acceptAdminInvite } from "@/app/admin/actions";
+import { acceptAdminInvite } from "@/app/admin/invites-actions";
 import styles from "./inviteAcceptCard.module.scss";
 
 interface Props {

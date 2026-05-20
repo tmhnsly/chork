@@ -8,7 +8,7 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import {
   linkCompetitionGym,
   unlinkCompetitionGym,
-} from "@/app/admin/actions";
+} from "@/app/admin/competitions-actions";
 import type { CompetitionGymLink } from "@/lib/data/competition-queries";
 import type { AdminGymSummary } from "@/lib/data/admin-queries";
 import styles from "./competitionGymsPanel.module.scss";

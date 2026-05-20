@@ -9,7 +9,7 @@ import {
   quickSetupSetRoutes,
   updateRoute,
   updateRouteTags,
-} from "@/app/admin/actions";
+} from "@/app/admin/routes-actions";
 import type { AdminRouteRow, RouteTagRow } from "@/lib/data/admin-queries";
 import styles from "./routesAdmin.module.scss";
 

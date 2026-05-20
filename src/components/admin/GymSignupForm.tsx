@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, showToast } from "@/components/ui";
-import { signupGym } from "@/app/admin/actions";
+import { signupGym } from "@/app/admin/gym-actions";
 import styles from "./gymSignupForm.module.scss";
 
 type Plan = "starter" | "pro" | "enterprise";

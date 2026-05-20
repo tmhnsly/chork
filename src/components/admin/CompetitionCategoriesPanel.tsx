@@ -8,7 +8,7 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import {
   addCompetitionCategory,
   removeCompetitionCategory,
-} from "@/app/admin/actions";
+} from "@/app/admin/competitions-actions";
 import type { CompetitionCategory } from "@/lib/data/competition-queries";
 import styles from "./competitionCategoriesPanel.module.scss";
 

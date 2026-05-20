@@ -6,7 +6,7 @@ import { Button, showToast } from "@/components/ui";
 import {
   createNewCompetition,
   updateCompetitionAction,
-} from "@/app/admin/actions";
+} from "@/app/admin/competitions-actions";
 import { toDateInput, fromDateInput } from "./date-input";
 import styles from "./competitionForm.module.scss";
 
