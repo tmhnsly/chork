@@ -58,66 +58,68 @@ export function RoutesAdmin({ setId, initialRoutes, tags }: Props) {
     }} pending={pending} startTransition={startTransition} />;
   }
 
-  function handleToggleZone(route: AdminRouteRow) {
-    if (zoningRef.current.has(route.id)) return;
-    zoningRef.current.add(route.id);
-
-    // Capture the pre-toggle value in the closure so the revert
-    // restores it exactly — matching the pattern handleSetterName and
-    // handleToggleTag use below. `!r.has_zone` would only revert
-    // correctly under the dedup guard; if a `router.refresh()` lands
-    // server state between the optimistic write and the error
-    // response, flipping the current value would land somewhere
-    // unrelated to the user's intent.
-    const original = route.has_zone;
-    const next = !original;
+  // Local optimistic-patch helper. The three handlers below all follow
+  // the same shape: patch one route in the list, fire the server
+  // action, revert the patch + toast the error if the action fails.
+  // Kept inline (not promoted to a hook) because the pattern only
+  // repeats in this one component — the deletion test for a global
+  // hook fails, and the ceremony of passing patch / revert / action
+  // through a generic signature is heavier than the saved lines.
+  function patchOptimistically(
+    id: string,
+    patch: Partial<AdminRouteRow>,
+    revert: Partial<AdminRouteRow>,
+    action: () => Promise<{ error: string } | { success: true }>,
+  ): Promise<void> {
     setRoutes((prev) =>
-      prev.map((r) => (r.id === route.id ? { ...r, has_zone: next } : r))
+      prev.map((r) => (r.id === id ? { ...r, ...patch } : r))
     );
-    startTransition(async () => {
-      const res = await updateRoute(route.id, { hasZone: next });
-      if ("error" in res) {
-        setRoutes((prev) =>
-          prev.map((r) =>
-            r.id === route.id ? { ...r, has_zone: original } : r,
-          )
-        );
-        showToast(res.error, "error");
-      }
-      zoningRef.current.delete(route.id);
+    return new Promise((resolve) => {
+      startTransition(async () => {
+        const res = await action();
+        if ("error" in res) {
+          setRoutes((prev) =>
+            prev.map((r) => (r.id === id ? { ...r, ...revert } : r))
+          );
+          showToast(res.error, "error");
+        }
+        resolve();
+      });
     });
   }
 
+  function handleToggleZone(route: AdminRouteRow) {
+    if (zoningRef.current.has(route.id)) return;
+    zoningRef.current.add(route.id);
+    const original = route.has_zone;
+    void patchOptimistically(
+      route.id,
+      { has_zone: !original },
+      { has_zone: original },
+      () => updateRoute(route.id, { hasZone: !original }),
+    ).finally(() => zoningRef.current.delete(route.id));
+  }
+
   function handleSetterName(route: AdminRouteRow, next: string | null) {
-    setRoutes((prev) =>
-      prev.map((r) => (r.id === route.id ? { ...r, setter_name: next } : r))
+    void patchOptimistically(
+      route.id,
+      { setter_name: next },
+      { setter_name: route.setter_name },
+      () => updateRoute(route.id, { setterName: next }),
     );
-    startTransition(async () => {
-      const res = await updateRoute(route.id, { setterName: next });
-      if ("error" in res) {
-        setRoutes((prev) =>
-          prev.map((r) => (r.id === route.id ? { ...r, setter_name: route.setter_name } : r))
-        );
-        showToast(res.error, "error");
-      }
-    });
   }
 
   function handleToggleTag(route: AdminRouteRow, tagId: string) {
     const has = route.tag_ids.includes(tagId);
-    const nextIds = has ? route.tag_ids.filter((id) => id !== tagId) : [...route.tag_ids, tagId];
-    setRoutes((prev) =>
-      prev.map((r) => (r.id === route.id ? { ...r, tag_ids: nextIds } : r))
+    const nextIds = has
+      ? route.tag_ids.filter((id) => id !== tagId)
+      : [...route.tag_ids, tagId];
+    void patchOptimistically(
+      route.id,
+      { tag_ids: nextIds },
+      { tag_ids: route.tag_ids },
+      () => updateRouteTags(route.id, nextIds),
     );
-    startTransition(async () => {
-      const res = await updateRouteTags(route.id, nextIds);
-      if ("error" in res) {
-        setRoutes((prev) =>
-          prev.map((r) => (r.id === route.id ? { ...r, tag_ids: route.tag_ids } : r))
-        );
-        showToast(res.error, "error");
-      }
-    });
   }
 
   const editingRoute = routes.find((r) => r.id === editingId) ?? null;
