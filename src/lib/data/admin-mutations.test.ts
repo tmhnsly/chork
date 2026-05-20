@@ -73,7 +73,10 @@ beforeEach(() => {
 });
 
 // ────────────────────────────────────────────────────────────────
-// createGymWithOwner
+// createGymWithOwner — now delegates to create_gym_with_owner_tx RPC
+// (migration 061). Both inserts happen in one DB transaction, so the
+// app-side rollback path is gone. Tests pin the RPC wiring + the
+// friendly-error mapping for the slug-collision code.
 // ────────────────────────────────────────────────────────────────
 describe("createGymWithOwner", () => {
   const baseInput = {
@@ -82,57 +85,50 @@ describe("createGymWithOwner", () => {
     city: "London",
     country: "GB",
     plan_tier: "starter" as const,
-    ownerUserId: USER_A,
   };
 
-  it("returns a friendly message when the slug is already taken (PG 23505)", async () => {
-    const { createServiceClient } = await import("@/lib/supabase/server");
-    const { client } = mockService({
-      "table:gyms": { data: null, error: { code: "23505", message: "dup" } },
-    });
-    vi.mocked(createServiceClient).mockReturnValue(client as never);
+  function rpcMock(result: { data: unknown; error: unknown }) {
+    const rpc = vi.fn(() => Promise.resolve(result));
+    return { rpc, supabase: { rpc } as never };
+  }
 
+  it("returns a friendly message when the slug is already taken (PG 23505)", async () => {
+    const { supabase } = rpcMock({
+      data: null,
+      error: { code: "23505", message: "dup" },
+    });
     const { createGymWithOwner } = await import("./admin-mutations");
-    expect(await createGymWithOwner(baseInput)).toEqual({
+    expect(await createGymWithOwner(supabase, baseInput)).toEqual({
       error: "That gym slug is already taken.",
     });
   });
 
-  it("rolls the gym back when the owner-admin insert fails", async () => {
-    const { createServiceClient } = await import("@/lib/supabase/server");
-    const { client, calls } = mockService({
-      "table:gyms": [
-        { data: { id: GYM_1 }, error: null }, // insert → returns new id
-        { data: null, error: null },          // rollback delete
-      ],
-      "table:gym_admins": {
-        data: null,
-        error: { code: "xxx", message: "permission denied" },
-      },
+  it("forwards the raw error message for non-collision failures", async () => {
+    const { supabase } = rpcMock({
+      data: null,
+      error: { code: "42501", message: "Not authenticated" },
     });
-    vi.mocked(createServiceClient).mockReturnValue(client as never);
-
     const { createGymWithOwner } = await import("./admin-mutations");
-    const result = await createGymWithOwner(baseInput);
-    expect(result).toEqual({ error: "permission denied" });
-
-    // Rollback must have deleted the gym we just created so there's
-    // no orphan without an owner.
-    const gymCalls = calls.filter((c) => c.table === "gyms");
-    const deleteCalls = gymCalls.filter((c) => c.method === "delete");
-    expect(deleteCalls.length).toBeGreaterThan(0);
+    expect(await createGymWithOwner(supabase, baseInput)).toEqual({
+      error: "Not authenticated",
+    });
   });
 
   it("returns the new gym id on full success", async () => {
-    const { createServiceClient } = await import("@/lib/supabase/server");
-    const { client } = mockService({
-      "table:gyms": { data: { id: GYM_1 }, error: null },
-      "table:gym_admins": { data: null, error: null },
-    });
-    vi.mocked(createServiceClient).mockReturnValue(client as never);
-
+    const { supabase, rpc } = rpcMock({ data: GYM_1, error: null });
     const { createGymWithOwner } = await import("./admin-mutations");
-    expect(await createGymWithOwner(baseInput)).toEqual({ gymId: GYM_1 });
+    expect(await createGymWithOwner(supabase, baseInput)).toEqual({
+      gymId: GYM_1,
+    });
+    // Pins the RPC contract — function name + flattened args shape
+    // are what the DB function expects (migration 061).
+    expect(rpc).toHaveBeenCalledWith("create_gym_with_owner_tx", {
+      p_name: "Yonder",
+      p_slug: "yonder",
+      p_city: "London",
+      p_country: "GB",
+      p_plan_tier: "starter",
+    });
   });
 });
 

@@ -17,61 +17,48 @@ export interface CreateGymInput {
   city: string | null;
   country: string | null;
   plan_tier: "starter" | "pro" | "enterprise";
-  ownerUserId: string;
 }
 
 /**
  * Create a gym and seat the signing-up user as its first owner.
  *
- * Uses the service role for both writes because:
- *  - inserting into gyms is blocked by RLS for everyone except service
- *    role (admin signup is the only sanctioned creation path)
- *  - inserting the first gym_admins row is a chicken-and-egg problem:
- *    the RLS policy requires an existing owner to authorise new admins,
- *    but there isn't one yet
+ * Delegates to the create_gym_with_owner_tx Postgres function
+ * (migration 061): both inserts (gyms + gym_admins) happen in one
+ * implicit transaction, so a failure on the second insert rolls the
+ * first back automatically. Prior app-side flow could orphan a gym
+ * with no owner if its best-effort DELETE rollback also failed.
  *
- * Called only from a server action that has already validated the
- * caller's session — `ownerUserId` must come from `requireSignedIn()`,
- * never from the client.
+ * Auth: the RPC is SECURITY DEFINER and derives the owner uid from
+ * auth.uid() inside the function — the caller can't pass a different
+ * uid than the auth session's. Pass the authenticated user's
+ * supabase client (from requireSignedIn) so auth.uid() resolves
+ * correctly inside the function.
  */
-export async function createGymWithOwner(input: CreateGymInput): Promise<
-  { gymId: string } | { error: string }
-> {
-  const service = createServiceClient();
-
-  const { data: gym, error: gymErr } = await service
-    .from("gyms")
-    .insert({
-      name: input.name,
-      slug: input.slug,
-      city: input.city,
-      country: input.country,
-      plan_tier: input.plan_tier,
-      is_listed: false, // admin-controlled visibility; listings opt-in later
-    })
-    .select("id")
-    .single();
-
-  if (gymErr || !gym) {
-    if (gymErr?.code === "23505") {
-      return { error: "That gym slug is already taken." };
-    }
-    return { error: gymErr?.message ?? "Could not create gym." };
-  }
-
-  const { error: adminErr } = await service.from("gym_admins").insert({
-    gym_id: gym.id,
-    user_id: input.ownerUserId,
-    role: "owner",
+export async function createGymWithOwner(
+  supabase: Supabase,
+  input: CreateGymInput,
+): Promise<{ gymId: string } | { error: string }> {
+  // city/country can legitimately be null (matching the gyms columns),
+  // and the Postgres function accepts text parameters which are
+  // nullable by default. Supabase's type generator infers non-null
+  // `string` for them though — cast through `unknown` so the call
+  // compiles without forcing callers to coerce nulls to empty strings.
+  const { data, error } = await supabase.rpc("create_gym_with_owner_tx", {
+    p_name: input.name,
+    p_slug: input.slug,
+    p_city: input.city as unknown as string,
+    p_country: input.country as unknown as string,
+    p_plan_tier: input.plan_tier,
   });
 
-  if (adminErr) {
-    // Roll back the gym so we don't leave an orphan with no owner.
-    await service.from("gyms").delete().eq("id", gym.id);
-    return { error: adminErr.message };
+  if (error || !data) {
+    if (error?.code === "23505") {
+      return { error: "That gym slug is already taken." };
+    }
+    return { error: error?.message ?? "Could not create gym." };
   }
 
-  return { gymId: gym.id };
+  return { gymId: data };
 }
 
 // ────────────────────────────────────────────────────────────────

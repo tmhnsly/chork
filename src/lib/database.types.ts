@@ -1480,6 +1480,16 @@ export type Database = {
       }
       auto_publish_due_sets: { Args: never; Returns: number }
       bump_invite_rate_limit: { Args: never; Returns: boolean }
+      create_gym_with_owner_tx: {
+        Args: {
+          p_city: string
+          p_country: string
+          p_name: string
+          p_plan_tier: string
+          p_slug: string
+        }
+        Returns: string
+      }
       create_jam: {
         Args: {
           p_custom_grades?: string[]

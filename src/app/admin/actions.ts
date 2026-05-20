@@ -83,13 +83,12 @@ export async function signupGym(form: {
   const rl = await enforceRateLimit("gymSignup", auth.userId);
   if (!rl.ok) return { error: rl.error };
 
-  const result = await createGymWithOwner({
+  const result = await createGymWithOwner(auth.supabase, {
     name,
     slug,
     city,
     country,
     plan_tier: planTier,
-    ownerUserId: auth.userId,
   });
 
   if ("error" in result) return { error: result.error };
