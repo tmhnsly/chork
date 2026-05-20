@@ -28,6 +28,7 @@ vi.mock("@/lib/auth", () => ({
   requireAdminOfSet: vi.fn(),
   requireAdminOfRoute: vi.fn(),
   requireCompetitionOrganiser: vi.fn(),
+  requireCompetitionOrganiserOrGymAdmin: vi.fn(),
 }));
 vi.mock("@/lib/data/admin-mutations", () => ({
   createGymWithOwner: vi.fn(),

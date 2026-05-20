@@ -62,21 +62,24 @@ export function RoutesAdmin({ setId, initialRoutes, tags }: Props) {
     if (zoningRef.current.has(route.id)) return;
     zoningRef.current.add(route.id);
 
-    const next = !route.has_zone;
+    // Capture the pre-toggle value in the closure so the revert
+    // restores it exactly — matching the pattern handleSetterName and
+    // handleToggleTag use below. `!r.has_zone` would only revert
+    // correctly under the dedup guard; if a `router.refresh()` lands
+    // server state between the optimistic write and the error
+    // response, flipping the current value would land somewhere
+    // unrelated to the user's intent.
+    const original = route.has_zone;
+    const next = !original;
     setRoutes((prev) =>
       prev.map((r) => (r.id === route.id ? { ...r, has_zone: next } : r))
     );
     startTransition(async () => {
       const res = await updateRoute(route.id, { hasZone: next });
       if ("error" in res) {
-        // Revert by reading the latest committed value and negating
-        // it, NOT the closure-captured `next` — under the dedup guard
-        // these resolve to the same value, but reading latest makes
-        // the revert robust against any future refresh that lands
-        // an updated has_zone between optimistic + error response.
         setRoutes((prev) =>
           prev.map((r) =>
-            r.id === route.id ? { ...r, has_zone: !r.has_zone } : r,
+            r.id === route.id ? { ...r, has_zone: original } : r,
           )
         );
         showToast(res.error, "error");

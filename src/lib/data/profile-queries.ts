@@ -10,6 +10,7 @@ import type { Profile } from "./types";
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
 import { tags } from "@/lib/cache/tags";
+import { asJsonShape } from "./json-shape";
 
 type Supabase = SupabaseClient<Database>;
 
@@ -96,12 +97,14 @@ export const getProfileSummary = cache(
         unique_routes_attempted: 0,
       };
     }
-    return (data as ProfileSummary | null) ?? {
-      per_set: [],
-      active_set_detail: [],
-      total_routes_in_gym: 0,
-      total_attempts: 0,
-      unique_routes_attempted: 0,
-    };
+    return data == null
+      ? {
+          per_set: [],
+          active_set_detail: [],
+          total_routes_in_gym: 0,
+          total_attempts: 0,
+          unique_routes_attempted: 0,
+        }
+      : asJsonShape<ProfileSummary>(data);
   },
 );
