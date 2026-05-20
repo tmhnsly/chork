@@ -1,12 +1,10 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createServerSupabase, getServerProfile } from "@/lib/supabase/server";
-import {
-  getCurrentSet,
-  getRoutesBySet,
-  getLogsBySetForUser,
-  getGym,
-} from "@/lib/data/queries";
+import { getCurrentSet } from "@/lib/data/set-queries";
+import { getRoutesBySet } from "@/lib/data/route-queries";
+import { getLogsBySetForUser } from "@/lib/data/route-log-queries";
+import { getGym } from "@/lib/data/gym-queries";
 import { isGymAdminOf } from "@/lib/data/admin-queries";
 import { SendsGrid } from "@/components/SendsGrid/SendsGrid";
 import { SendsGridSkeleton } from "@/components/SendsGrid/SendsGridSkeleton";

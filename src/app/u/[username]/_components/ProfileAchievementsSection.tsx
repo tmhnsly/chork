@@ -1,11 +1,8 @@
 import { createServerSupabase } from "@/lib/supabase/server";
-import {
-  getProfileSummary,
-  getEarnedAchievements,
-  getAllSets,
-  getRoutesBySet,
-  getRoutesBySetIds,
-} from "@/lib/data/queries";
+import { getProfileSummary } from "@/lib/data/profile-queries";
+import { getEarnedAchievements } from "@/lib/data/achievement-queries";
+import { getAllSets } from "@/lib/data/set-queries";
+import { getRoutesBySet, getRoutesBySetIds } from "@/lib/data/route-queries";
 import { getJamAchievementContext } from "@/lib/data/jam-queries";
 import { evaluateBadges } from "@/lib/badges";
 import type { Route } from "@/lib/data";

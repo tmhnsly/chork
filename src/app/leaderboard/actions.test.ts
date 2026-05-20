@@ -7,9 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/auth", () => ({ requireAuth: vi.fn() }));
-vi.mock("@/lib/data/queries", () => ({
-  getProfile: vi.fn(),
-  getRoutesBySet: vi.fn(() => Promise.resolve([])),
+vi.mock("@/lib/data/route-log-queries", () => ({
   getLogsBySetForUser: vi.fn(() => Promise.resolve([])),
 }));
 vi.mock("@/lib/data/leaderboard-queries", () => ({
@@ -174,7 +172,7 @@ describe("fetchClimberSheetLogs", () => {
       userId: USER_A,
       gymId: GYM_OWN,
     });
-    const { getLogsBySetForUser } = await import("@/lib/data/queries");
+    const { getLogsBySetForUser } = await import("@/lib/data/route-log-queries");
     vi.mocked(getLogsBySetForUser).mockResolvedValue([
       {
         id: "log1",

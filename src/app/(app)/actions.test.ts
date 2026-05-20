@@ -30,10 +30,12 @@ vi.mock("@/lib/data/mutations", () => ({
   updateComment: vi.fn(),
   toggleCommentLike: vi.fn(),
 }));
-vi.mock("@/lib/data/queries", () => ({
+vi.mock("@/lib/data/comment-queries", () => ({
   getCommentsByRoute: vi.fn(),
-  getRouteGrade: vi.fn(),
   getLikedCommentIds: vi.fn(),
+}));
+vi.mock("@/lib/data/route-queries", () => ({
+  getRouteGrade: vi.fn(),
 }));
 
 // Realistic UUIDs for the validation layer — the server actions now

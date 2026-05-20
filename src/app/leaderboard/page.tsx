@@ -1,11 +1,9 @@
 import { redirect } from "next/navigation";
 import { formatSetResetCountdown } from "@/lib/data/set-label";
 import { requireAuth } from "@/lib/auth";
-import {
-  getGym,
-  getCurrentSet,
-  getRoutesBySet,
-} from "@/lib/data/queries";
+import { getGym } from "@/lib/data/gym-queries";
+import { getCurrentSet } from "@/lib/data/set-queries";
+import { getRoutesBySet } from "@/lib/data/route-queries";
 import {
   getLeaderboardCached,
   getLeaderboardNeighbourhood,

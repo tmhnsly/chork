@@ -6,11 +6,9 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import type { BadgeContext } from "@/lib/badges";
-import {
-  getAllSets,
-  getRoutesBySetIds,
-  getAllRouteDataForUserInGym,
-} from "@/lib/data/queries";
+import { getAllSets } from "@/lib/data/set-queries";
+import { getRoutesBySetIds } from "@/lib/data/route-queries";
+import { getAllRouteDataForUserInGym } from "@/lib/data/route-log-queries";
 import { computeAllTimeAggregates } from "@/lib/data/profile-stats";
 import { getJamAchievementContext } from "@/lib/data/jam-queries";
 

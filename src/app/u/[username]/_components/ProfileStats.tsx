@@ -1,12 +1,9 @@
 import { formatSetResetCountdown } from "@/lib/data/set-label";
 import { createServerSupabase } from "@/lib/supabase/server";
-import {
-  getProfileSummary,
-  getGym,
-  getCurrentSet,
-  getRoutesBySet,
-  getAllSets,
-} from "@/lib/data/queries";
+import { getProfileSummary } from "@/lib/data/profile-queries";
+import { getGym } from "@/lib/data/gym-queries";
+import { getCurrentSet, getAllSets } from "@/lib/data/set-queries";
+import { getRoutesBySet } from "@/lib/data/route-queries";
 import { getLeaderboardUserRow } from "@/lib/data/leaderboard-queries";
 import { visibleAttempts } from "@/lib/data/logs";
 import { ClimberStats } from "@/components/ClimberStats/ClimberStats";

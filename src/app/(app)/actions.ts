@@ -11,11 +11,8 @@ import {
   updateComment,
   toggleCommentLike,
 } from "@/lib/data/mutations";
-import {
-  getCommentsByRoute,
-  getRouteGrade,
-  getLikedCommentIds,
-} from "@/lib/data/queries";
+import { getCommentsByRoute, getLikedCommentIds } from "@/lib/data/comment-queries";
+import { getRouteGrade } from "@/lib/data/route-queries";
 import type {
   RouteLog,
   Comment,

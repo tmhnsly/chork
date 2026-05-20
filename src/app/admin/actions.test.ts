@@ -47,7 +47,7 @@ vi.mock("@/lib/data/admin-mutations", () => ({
 vi.mock("@/lib/supabase/server", () => ({
   createServiceClient: vi.fn(),
 }));
-vi.mock("@/lib/data/queries", () => ({ getGym: vi.fn() }));
+vi.mock("@/lib/data/gym-queries", () => ({ getGym: vi.fn() }));
 vi.mock("@/lib/push/server", () => ({
   getGymClimberUserIds: vi.fn(() => Promise.resolve([])),
   sendPushInBackground: vi.fn(),

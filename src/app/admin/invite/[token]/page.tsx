@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createServiceClient, getServerUser } from "@/lib/supabase/server";
 import { InviteAcceptCard } from "@/components/admin/InviteAcceptCard";
-import { getGym } from "@/lib/data/queries";
+import { getGym } from "@/lib/data/gym-queries";
 import styles from "./invite.module.scss";
 
 export const metadata = {

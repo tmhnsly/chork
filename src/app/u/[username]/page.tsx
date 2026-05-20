@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { createServerSupabase, getServerUser } from "@/lib/supabase/server";
-import { getProfileByUsername } from "@/lib/data/queries";
+import { getProfileByUsername } from "@/lib/data/profile-queries";
 import { getCrewCountForUser, getPendingCrewInvites } from "@/lib/data/crew-queries";
 import { getUnreadNotificationCount } from "@/lib/data/notifications";
 import { ProfileHeader } from "@/components/ProfileHeader/ProfileHeader";

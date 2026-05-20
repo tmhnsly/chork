@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { requireGymAdmin } from "@/lib/auth";
-import { getGym } from "@/lib/data/queries";
+import { getGym } from "@/lib/data/gym-queries";
 import { getActiveSetForAdminGym } from "@/lib/data/admin-queries";
 import {
   getSetOverview,

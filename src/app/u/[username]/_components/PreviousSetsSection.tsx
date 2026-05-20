@@ -1,11 +1,8 @@
 import { format, parseISO } from "date-fns";
 import { createServerSupabase } from "@/lib/supabase/server";
-import {
-  getAllSets,
-  getRoutesBySet,
-  getRoutesBySetIds,
-  getAllRouteDataForUserInGym,
-} from "@/lib/data/queries";
+import { getAllSets } from "@/lib/data/set-queries";
+import { getRoutesBySet, getRoutesBySetIds } from "@/lib/data/route-queries";
+import { getAllRouteDataForUserInGym } from "@/lib/data/route-log-queries";
 import type { Route } from "@/lib/data";
 import { computeMaxPoints } from "@/lib/data";
 import { visibleAttempts } from "@/lib/data/logs";

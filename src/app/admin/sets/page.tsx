@@ -6,7 +6,7 @@ import { getAllSetsForAdminGym, type AdminSetSummary } from "@/lib/data/admin-qu
 import { formatSetLabel } from "@/lib/data/set-label";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { SetStatusBadge } from "@/components/admin/SetStatusBadge";
-import { getGym } from "@/lib/data/queries";
+import { getGym } from "@/lib/data/gym-queries";
 import styles from "./sets.module.scss";
 
 export const metadata = {

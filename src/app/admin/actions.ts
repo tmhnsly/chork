@@ -30,7 +30,7 @@ import { formatError, formatErrorForLog } from "@/lib/errors";
 import { UUID_RE } from "@/lib/validation";
 import { env } from "@/lib/env";
 import { enforce as enforceRateLimit } from "@/lib/rate-limit";
-import { getGym } from "@/lib/data/queries";
+import { getGym } from "@/lib/data/gym-queries";
 import { formatSetLabel } from "@/lib/data/set-label";
 import { getGymClimberUserIds, sendPushInBackground } from "@/lib/push/server";
 import { randomBytes } from "node:crypto";

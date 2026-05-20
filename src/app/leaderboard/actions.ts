@@ -1,7 +1,7 @@
 "use server";
 
 import { requireAuth } from "@/lib/auth";
-import { getLogsBySetForUser } from "@/lib/data/queries";
+import { getLogsBySetForUser } from "@/lib/data/route-log-queries";
 import {
   getLeaderboardCached,
   getLeaderboardNeighbourhood,
