@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { FaPlus } from "react-icons/fa6";
+import { LinkButton } from "@/components/ui";
 import { requireSignedIn } from "@/lib/auth";
 import { getCompetitionsForOrganiser } from "@/lib/data/competition-queries";
 import { format, parseISO } from "date-fns";
@@ -28,9 +29,9 @@ export default async function AdminCompetitionsPage() {
     <main className={styles.page}>
       <PageHeader title="Competitions" subtitle="Competitions you organise." />
 
-      <Link href="/admin/competitions/new" className={styles.newBtn}>
+      <LinkButton href="/admin/competitions/new" className={styles.newBtn}>
         <FaPlus aria-hidden /> New competition
-      </Link>
+      </LinkButton>
 
       {competitions.length === 0 ? (
         <p className={styles.empty}>

@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { LinkButton } from "@/components/ui";
 import { requireGymAdmin } from "@/lib/auth";
 import { getGym } from "@/lib/data/gym-queries";
 import { getActiveSetForAdminGym } from "@/lib/data/admin-queries";
@@ -39,9 +40,9 @@ export default async function AdminHomePage() {
             head to <Link href="/admin/competitions">Competitions</Link>
             {" "}to organise a multi-gym comp.
           </p>
-          <Link href="/admin/signup" className={styles.noGymCta}>
+          <LinkButton href="/admin/signup" className={styles.noGymCta}>
             Start a gym
-          </Link>
+          </LinkButton>
         </section>
       </main>
     );

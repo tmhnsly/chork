@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { FaPlus } from "react-icons/fa6";
+import { LinkButton } from "@/components/ui";
 import { requireGymAdmin } from "@/lib/auth";
 import { getAllSetsForAdminGym, type AdminSetSummary } from "@/lib/data/admin-queries";
 import { formatSetLabel } from "@/lib/data/set-label";
@@ -29,9 +30,9 @@ export default async function AdminSetsPage() {
 
       <div className={styles.toolbar}>
         <h2 className={styles.sectionTitle}>Sets</h2>
-        <Link href="/admin/sets/new" className={styles.newBtn}>
+        <LinkButton href="/admin/sets/new">
           <FaPlus aria-hidden /> New set
-        </Link>
+        </LinkButton>
       </div>
 
       {sets.length === 0 ? (
