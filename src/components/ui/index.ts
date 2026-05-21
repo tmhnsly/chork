@@ -3,6 +3,7 @@ export { InputError } from "./InputError";
 export { AppDialog } from "./AppDialog";
 export { BottomSheet } from "./BottomSheet";
 export { Button } from "./Button";
+export { LinkButton } from "./LinkButton";
 export { ConfirmInline } from "./ConfirmInline";
 export { HorizontalScroller } from "./HorizontalScroller";
 export { SheetActions } from "./SheetActions";
