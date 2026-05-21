@@ -6,7 +6,7 @@ import { FaMagnifyingGlass, FaCheck } from "react-icons/fa6";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { SheetBody, shimmerStyles, showToast } from "@/components/ui";
 import { createBrowserSupabase } from "@/lib/supabase/client";
-import { switchActiveGym } from "@/app/(app)/actions";
+import { switchActiveGym } from "@/app/(app)/membership-actions";
 import styles from "./gymSwitcherSheet.module.scss";
 
 import { logger } from "@/lib/logger";

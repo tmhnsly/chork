@@ -72,20 +72,52 @@ cached read is safe to share.
 
 ### Read vs mutation error contract
 
-Codified at the top of `src/lib/data/queries.ts` and
-`src/lib/data/mutations.ts`:
+Codified at the top of `src/lib/data/read.ts`, `src/lib/data/mutations.ts`,
+and `src/lib/data/admin-mutations.ts`.
 
-- **Reads** (`*-queries.ts`) swallow Postgres errors, log to console,
-  return a neutral fallback (`null` / `[]`). Render paths handle
-  "absent" the same as "failed", so callers don't need try/catch.
-- **Mutations** (`*-mutations.ts`) throw on error. The server-action
-  caller wraps in try/catch and forwards via `formatError(err)` —
-  that's where the friendly mapping ([src/lib/errors.ts]) sanitises
-  the message before it leaves the server.
+**Reads** (`*-queries.ts`) swallow Postgres errors, log to console,
+return a neutral fallback (`null` / `[]`). Render paths handle
+"absent" the same as "failed", so callers don't need try/catch.
+Concentrated in `readSingle` / `readMany` helpers.
 
-Don't blur the line: a silent-swallow on a mutation lets the caller
-think the write succeeded and skip its post-write tag busts / push
-dispatch / activity log.
+**Mutations** follow one of two contracts depending on the kind of
+failure the function can produce. Both are valid; pick the one that
+matches the failure mode.
+
+#### Throw contract (`mutations.ts`, `jam-mutations.ts`)
+
+Used by climber-side writes (route logs, comments, comment likes,
+activity events) where Postgres errors are unexpected — a constraint
+or RLS violation reaching this layer means the action's pre-check
+missed something, and the right response is to bail to the action's
+top-level try/catch.
+
+- Mutation: `if (error) throw error;`
+- Caller (server action) wraps the call in `try { ... } catch (err)
+  { return { error: formatError(err) } }`.
+
+#### Discriminated-return contract (`admin-mutations.ts`, `crew-lifecycle.ts`)
+
+Used by admin + lifecycle writes that produce **known, user-facing
+business errors** — duplicate slug, expired invite, rate-limit
+exceeded, "you're already a member". The user needs a friendly,
+specific message; routing those through `formatError` would lose
+the specificity that makes the message actionable.
+
+- Mutation: `return { error: "That gym slug is already taken." }` for
+  business errors; only truly unexpected Postgres errors throw and
+  bubble.
+- Caller: `if ("error" in result) return { error: result.error }`.
+  No try/catch — the discriminated union does the narrowing.
+
+**Pick by failure shape:** if the failure is "user did something
+the UI should have prevented and we want a clean message," return
+discriminated. If the failure is "something broke that shouldn't
+have," throw. Don't mix the two contracts in one function.
+
+Don't blur the read/write line either: a silent-swallow on a mutation
+lets the caller think the write succeeded and skip its post-write
+tag busts / push dispatch / activity log.
 
 ---
 

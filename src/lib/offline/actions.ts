@@ -4,7 +4,7 @@ import {
   uncompleteRoute,
   toggleZone,
   updateGradeVote,
-} from "@/app/(app)/actions";
+} from "@/app/(app)/route-log-actions";
 import { withOfflineQueue } from "./with-offline-queue";
 
 export const offlineUpdateAttempts = withOfflineQueue(

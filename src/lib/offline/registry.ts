@@ -4,7 +4,7 @@ import {
   uncompleteRoute,
   toggleZone,
   updateGradeVote,
-} from "@/app/(app)/actions";
+} from "@/app/(app)/route-log-actions";
 import { upsertJamLogAction } from "@/app/jam/actions";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { mutationQueue } from "./mutation-queue";

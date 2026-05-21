@@ -28,7 +28,7 @@ import { InstallPwaSheet } from "@/components/InstallPwa/InstallPwaSheet";
 /* eslint-enable no-restricted-imports */
 import { useAuth } from "@/lib/auth-context";
 import { useTheme, THEME_META, type ThemeName } from "@/lib/theme";
-import { savePushSubscription, removePushSubscription } from "@/app/(app)/actions";
+import { savePushSubscription, removePushSubscription } from "@/app/(app)/push-actions";
 import { setAllowCrewInvites } from "@/app/crew/actions";
 import { updatePushCategory, type PushCategoryKey } from "@/lib/user-actions";
 import {

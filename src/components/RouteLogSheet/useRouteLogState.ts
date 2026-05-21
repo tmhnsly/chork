@@ -22,7 +22,7 @@ import {
   fetchRouteData,
   editComment,
   likeComment,
-} from "@/app/(app)/actions";
+} from "@/app/(app)/comment-actions";
 import { useDebouncedFlush } from "@/hooks/use-debounced-flush";
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";

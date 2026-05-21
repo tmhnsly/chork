@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { FaCheck } from "react-icons/fa6";
 import { Button, showToast } from "@/components/ui";
-import { joinCompetition, leaveCompetition } from "@/app/(app)/actions";
+import { joinCompetition, leaveCompetition } from "@/app/(app)/membership-actions";
 import type { CompetitionCategory } from "@/lib/data/competition-queries";
 import styles from "./competitionJoinBar.module.scss";
 

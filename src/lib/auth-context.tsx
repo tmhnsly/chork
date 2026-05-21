@@ -16,7 +16,7 @@ import { createBrowserSupabase } from "./supabase/client";
 import { env } from "./env";
 import { showToast } from "@/components/ui";
 import { signOutAction } from "@/app/login/actions";
-import { removePushSubscription } from "@/app/(app)/actions";
+import { removePushSubscription } from "@/app/(app)/push-actions";
 import { unsubscribeDevice } from "./push/client";
 import { DEFAULT_THEME, setThemeStore } from "./theme-store";
 import { mutationQueue } from "./offline/mutation-queue";
