@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { BottomSheet, Button, SheetBody } from "@/components/ui";
+import { FaFlag } from "react-icons/fa6";
+import { BottomSheet, Button, SheetBody, TabPills, ToggleRow } from "@/components/ui";
+import type { TabPillOption } from "@/components/ui";
 import { gradeLabels } from "@/lib/data/grade-label";
 import type { JamGradingScale, JamRoute } from "@/lib/data/jam-types";
 import styles from "./jamAddRouteSheet.module.scss";
@@ -46,15 +48,18 @@ export function JamAddRouteSheet({
   // Compute the ordered label list the picker renders — matches the
   // scale the jam was created with, bounded to the chosen range.
   // Points-only jams skip the picker entirely (no grade = no options).
-  const options = useMemo(() => {
+  // First option is `null` ("Ungraded") so climbers without a strong
+  // grading opinion can still add the route.
+  const options = useMemo<TabPillOption<number | null>[]>(() => {
     if (pointsOnly) return [];
+    const ungraded: TabPillOption<number | null> = { value: null, label: "Ungraded" };
     if (gradingScale === "custom") {
-      return grades.map((g) => ({ value: g.ordinal, label: g.label }));
+      return [ungraded, ...grades.map((g) => ({ value: g.ordinal, label: g.label }))];
     }
     const allLabels = gradeLabels(gradingScale, 30);
     const lo = minGrade ?? 0;
     const hi = maxGrade ?? allLabels.length - 1;
-    const result: Array<{ value: number; label: string }> = [];
+    const result: TabPillOption<number | null>[] = [ungraded];
     for (let i = lo; i <= hi; i++) {
       if (allLabels[i]) result.push({ value: i, label: allLabels[i] });
     }
@@ -77,7 +82,7 @@ export function JamAddRouteSheet({
     >
       <SheetBody>
         <label className={styles.field}>
-          <span className={styles.label}>Description (optional)</span>
+          <span className={styles.label}>Description</span>
           <textarea
             className={styles.textarea}
             value={description}
@@ -85,46 +90,29 @@ export function JamAddRouteSheet({
             placeholder="e.g. red hold to the top, no matching"
             onChange={(e) => setDescription(e.target.value)}
           />
+          <span className={styles.hint}>Optional — sketch the beta in a sentence.</span>
         </label>
 
         {!pointsOnly && (
           <div className={styles.field}>
             <span className={styles.label}>Grade</span>
-            <div className={styles.chipRow}>
-              <button
-                type="button"
-                className={`${styles.chip} ${grade === null ? styles.chipActive : ""}`}
-                onClick={() => setGrade(null)}
-              >
-                Ungraded
-              </button>
-              {options.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  className={`${styles.chip} ${grade === opt.value ? styles.chipActive : ""}`}
-                  onClick={() => setGrade(opt.value)}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+            <TabPills<number | null>
+              options={options}
+              value={grade}
+              onChange={setGrade}
+              ariaLabel="Grade"
+              layout="wrap"
+            />
           </div>
         )}
 
-        <label className={styles.zoneRow}>
-          <input
-            type="checkbox"
-            checked={hasZone}
-            onChange={(e) => setHasZone(e.target.checked)}
-          />
-          <span>
-            <span className={styles.zoneTitle}>Has a zone hold</span>
-            <span className={styles.zoneDetail}>
-              Climbers earn a bonus point for reaching it.
-            </span>
-          </span>
-        </label>
+        <ToggleRow
+          icon={<FaFlag aria-hidden />}
+          title="Zone hold"
+          detail="Climbers earn a bonus point for reaching it."
+          checked={hasZone}
+          onChange={setHasZone}
+        />
 
         <Button type="button" onClick={handleSubmit} disabled={pending} fullWidth>
           {pending ? "Saving…" : mode === "add" ? "Add route" : "Save changes"}

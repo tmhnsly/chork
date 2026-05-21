@@ -23,6 +23,7 @@ export { SetMeta } from "./SetMeta";
 export { SegmentedControl } from "./SegmentedControl";
 export { TabPills } from "./TabPills";
 export type { TabPillOption } from "./TabPills";
+export { ToggleRow } from "./ToggleRow";
 export { shimmerStyles } from "./Shimmer";
 export { ToastProvider, showToast, showAchievementToast } from "./Toast";
 export { UserAvatar } from "./UserAvatar";

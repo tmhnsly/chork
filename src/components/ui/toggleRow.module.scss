@@ -1,0 +1,102 @@
+@use "mixins/typography" as type;
+
+// ── ToggleRow — labelled row with an iOS-style switch on the right.
+//
+// The container is the <label> so the whole row is one large tap
+// target — meeting CLAUDE.md's 44×44 minimum and giving accessibility
+// tech the right "checkbox + label" association.
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--mono-subtle-bg);
+  border-radius: var(--radius-2);
+  cursor: pointer;
+}
+
+// Title side — icon + title + optional detail line in a column stack.
+.text {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--mono-text);
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--mono-text-low-contrast);
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.labelStack {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.title {
+  @include type.typography(label);
+  color: var(--mono-text);
+}
+
+.detail {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-xs);
+  margin-top: var(--space-1);
+}
+
+// ── CSS-only iOS-style switch driven by an `<input type="checkbox">`.
+//
+// Width / height / thumb dimensions are intentionally pixel-pinned —
+// the 44×26 outer + 22px thumb + 2px offsets are the canonical iOS
+// proportions and the proportions don't survive tokenisation cleanly.
+.switch {
+  appearance: none;
+  width: 44px;
+  height: 26px;
+  border-radius: var(--radius-full);
+  background: var(--mono-solid);
+  position: relative;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+  flex-shrink: 0;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 22px;
+    height: 22px;
+    border-radius: var(--radius-full);
+    background: var(--mono-app-bg);
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--duration-fast) var(--ease-out);
+  }
+
+  &:checked {
+    background: var(--accent-solid);
+  }
+
+  &:checked::before {
+    transform: translateX(18px);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-border);
+    outline-offset: 2px;
+  }
+}
+
+// When the switch is on, the icon picks up the accent so the row's
+// visual state reads at a glance.
+.row:has(.switch:checked) .icon {
+  color: var(--accent-solid);
+}

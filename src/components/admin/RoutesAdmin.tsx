@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { FaPlus, FaTag, FaFlag, FaChevronRight } from "react-icons/fa6";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { Button, showToast } from "@/components/ui";
+import { Button, showToast, ToggleRow } from "@/components/ui";
 import {
   quickSetupSetRoutes,
   updateRoute,
@@ -204,17 +204,12 @@ function RouteEditSheet({
       description="Edit zone, setter, and tags"
     >
       <div className={styles.sheetBody}>
-        <label className={styles.toggleRow}>
-          <span className={styles.toggleLabel}>
-            <FaFlag aria-hidden className={styles.toggleIcon} /> Zone hold
-          </span>
-          <input
-            type="checkbox"
-            className={styles.switch}
-            checked={route.has_zone}
-            onChange={onToggleZone}
-          />
-        </label>
+        <ToggleRow
+          icon={<FaFlag aria-hidden />}
+          title="Zone hold"
+          checked={route.has_zone}
+          onChange={() => onToggleZone()}
+        />
 
         <label className={styles.fieldRow}>
           <span className={styles.fieldLabel}>Setter</span>

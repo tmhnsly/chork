@@ -3,7 +3,7 @@
 import { useRef } from "react";
 import styles from "./tabPills.module.scss";
 
-export interface TabPillOption<T extends string | null> {
+export interface TabPillOption<T extends string | number | null> {
   /** Underlying value — string for normal tabs, `null` allowed for
    *  "All"-style options that represent "no filter". */
   value: T;
@@ -13,7 +13,7 @@ export interface TabPillOption<T extends string | null> {
   disabled?: boolean;
 }
 
-interface Props<T extends string | null> {
+interface Props<T extends string | number | null> {
   options: TabPillOption<T>[];
   value: T;
   onChange: (value: T) => void;
@@ -47,7 +47,7 @@ interface Props<T extends string | null> {
  * Pair with `SegmentedControl` when you want a fixed equal-width
  * segmented bar instead of a scrollable pill row.
  */
-export function TabPills<T extends string | null>({
+export function TabPills<T extends string | number | null>({
   options,
   value,
   onChange,

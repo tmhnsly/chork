@@ -105,70 +105,7 @@
   @include layout.stack(var(--space-5));
 }
 
-// Zone toggle — single row with a native checkbox styled as a
-// switch. Keeps accessibility (labelled input) while reading as
-// a modern OS-level switch.
-.toggleRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  background: var(--mono-subtle-bg);
-  border-radius: var(--radius-2);
-  cursor: pointer;
-}
-
-.toggleLabel {
-  @include type.typography(label);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--mono-text);
-}
-
-.toggleIcon {
-  color: var(--success-text);
-}
-
-// CSS-only iOS-style switch from a checkbox.
-.switch {
-  appearance: none;
-  width: 44px;
-  height: 26px;
-  border-radius: var(--radius-full);
-  background: var(--mono-solid);
-  position: relative;
-  cursor: pointer;
-  transition: background var(--duration-fast) var(--ease-out);
-  flex-shrink: 0;
-
-  &::before {
-    content: "";
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 22px;
-    height: 22px;
-    border-radius: var(--radius-full);
-    background: var(--mono-app-bg);
-    box-shadow: var(--shadow-sm);
-    transition: transform var(--duration-fast) var(--ease-out);
-  }
-
-  &:checked {
-    background: var(--accent-solid);
-  }
-
-  &:checked::before {
-    transform: translateX(18px);
-  }
-
-  &:focus-visible {
-    outline: 2px solid var(--accent-border);
-    outline-offset: 2px;
-  }
-}
+// Zone toggle row is now <ToggleRow> from @/components/ui.
 
 .fieldRow {
   @include layout.stack(var(--space-1));
