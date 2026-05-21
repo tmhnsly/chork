@@ -319,13 +319,14 @@ export async function fetchRouteData(routeId: string): Promise<{
 
 export async function likeComment(
   commentId: string
-): Promise<{ liked?: boolean; likes?: number; error?: string }> {
+): Promise<ActionResult<{ liked: boolean; likes: number }>> {
   const gate = await gateClimberMutation(commentId, "comment");
   if ("error" in gate) return gate;
   const { supabase, userId, gymId } = gate;
 
   try {
-    return await toggleCommentLike(supabase, userId, commentId, gymId);
+    const result = await toggleCommentLike(supabase, userId, commentId, gymId);
+    return { success: true, ...result };
   } catch (err) {
     return { error: formatError(err) };
   }

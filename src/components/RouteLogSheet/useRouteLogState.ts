@@ -431,7 +431,7 @@ export function useRouteLogState({
     dispatch({ type: "toggle-like", commentId, liked: !wasLiked });
 
     const result = await likeComment(commentId);
-    if (result.error) {
+    if ("error" in result) {
       // Revert by applying the same toggle in reverse.
       dispatch({ type: "toggle-like", commentId, liked: wasLiked });
       showToast(result.error, "error");

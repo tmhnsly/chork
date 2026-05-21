@@ -6,6 +6,7 @@ import { formatError } from "@/lib/errors";
 import { getNotifications } from "@/lib/data/notifications";
 import type { NotificationRow } from "@/lib/data/notifications";
 import { isUuid } from "@/lib/validation";
+import type { ActionResult } from "@/lib/action-result";
 
 import { tags } from "@/lib/cache/tags";
 /**
@@ -15,7 +16,7 @@ import { tags } from "@/lib/cache/tags";
  */
 export async function fetchNotifications(
   limit: number = 50,
-): Promise<{ rows: NotificationRow[] } | { error: string }> {
+): Promise<ActionResult<{ rows: NotificationRow[] }>> {
   const auth = await requireSignedIn();
   if ("error" in auth) return { error: auth.error };
   // Clamp to [1, 100]; non-finite inputs fall back to the default.
@@ -24,7 +25,7 @@ export async function fetchNotifications(
   const raw = Number.isFinite(limit) ? Math.floor(limit) : 50;
   const safeLimit = Math.max(1, Math.min(100, raw));
   const rows = await getNotifications(auth.supabase, safeLimit);
-  return { rows };
+  return { success: true, rows };
 }
 
 /**
@@ -33,7 +34,7 @@ export async function fetchNotifications(
  * update to the caller's own rows regardless of what the client
  * sends, so no IDs need to leave the browser.
  */
-export async function markAllNotificationsRead(): Promise<{ error: string } | { success: true }> {
+export async function markAllNotificationsRead(): Promise<ActionResult> {
   const auth = await requireSignedIn();
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId } = auth;
@@ -61,9 +62,7 @@ export async function markAllNotificationsRead(): Promise<{ error: string } | { 
  * Permanently drop a single notification row. Used for the swipe /
  * dismiss action inside the NotificationsSheet.
  */
-export async function dismissNotification(
-  id: string,
-): Promise<{ error: string } | { success: true }> {
+export async function dismissNotification(id: string): Promise<ActionResult> {
   if (!isUuid(id)) return { error: "Invalid notification" };
 
   const auth = await requireSignedIn();

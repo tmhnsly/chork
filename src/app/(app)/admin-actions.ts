@@ -4,9 +4,9 @@ import { revalidateTag } from "next/cache";
 import { requireGymAdmin } from "@/lib/auth";
 import { formatError } from "@/lib/errors";
 import type { RouteSet } from "@/lib/data";
+import type { ActionResult } from "@/lib/action-result";
 
 import { tags } from "@/lib/cache/tags";
-type AdminResult<T = unknown> = { error: string } | ({ success: true } & T);
 
 /**
  * Home-page quick-create flow used by `CreateSetForm` when an admin
@@ -28,7 +28,7 @@ export async function createSet(
   endsAt: string,
   routeCount: number,
   zoneRoutes: number[] // route numbers that have zone holds
-): Promise<AdminResult<{ set: RouteSet }>> {
+): Promise<ActionResult<{ set: RouteSet }>> {
   if (!gymId) return { error: "No gym selected" };
   if (!startsAt || !endsAt) return { error: "Start and end dates are required" };
   if (routeCount < 1 || routeCount > 50) return { error: "Route count must be between 1 and 50" };
@@ -90,7 +90,7 @@ export async function createSet(
 export async function endSet(
   gymId: string,
   setId: string
-): Promise<AdminResult> {
+): Promise<ActionResult> {
   const auth = await requireGymAdmin(gymId);
   if ("error" in auth) return { error: auth.error };
   const { supabase } = auth;
