@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { FaQrcode, FaArrowRight } from "react-icons/fa6";
-import { Button, showToast } from "@/components/ui";
+import { Banner, Button, showToast } from "@/components/ui";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { lookupJamByCode } from "@/lib/data/jam-queries";
 import { joinJamAction } from "@/app/jam/actions";
@@ -144,7 +144,7 @@ export function JoinJamForm({ initialCode }: Props) {
           />
         </div>
 
-        {lookupError && <p className={styles.error}>{lookupError}</p>}
+        {lookupError && <Banner variant="error">{lookupError}</Banner>}
       </section>
 
       {lookup && (

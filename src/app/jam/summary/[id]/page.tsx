@@ -64,7 +64,9 @@ export default async function JamSummaryPage({ params, searchParams }: Props) {
       />
 
       {winner && (
-        <section className={styles.winnerCard}>
+        <section
+          className={`${styles.winnerCard} ${fresh ? styles.winnerCardFresh : ""}`}
+        >
           <FaCrown aria-hidden className={styles.winnerIcon} />
           <div className={styles.winnerBody}>
             <span className={styles.winnerEyebrow}>Winner</span>

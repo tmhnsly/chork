@@ -87,6 +87,21 @@
   border-style: dashed;
 }
 
+// Decorative brand mark above the heading. Quieter opacity so it
+// reads as a watermark / vibe element, not a logo demanding
+// attention. Drives "this is the jam home" feel without leaning
+// on copy.
+.emptyMark {
+  opacity: 0.55;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-full);
+  background: var(--accent-subtle-bg);
+}
+
 .emptyTitle {
   @include type.typography(card-title);
   font-size: var(--text-md);

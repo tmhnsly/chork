@@ -2,6 +2,7 @@ export { FormField } from "./FormField";
 export { InputError } from "./InputError";
 export { AppDialog } from "./AppDialog";
 export { BottomSheet } from "./BottomSheet";
+export { Banner } from "./Banner";
 export { Button } from "./Button";
 export { LinkButton } from "./LinkButton";
 export { ConfirmInline } from "./ConfirmInline";

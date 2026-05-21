@@ -8,7 +8,7 @@ import {
   getUserJams,
 } from "@/lib/data/jam-queries";
 import { PageHeader } from "@/components/motion";
-import { Button } from "@/components/ui";
+import { Button, ChorkMark } from "@/components/ui";
 import { ActiveJamBanner } from "@/components/Jam/ActiveJamBanner";
 import { JamHistoryList } from "@/components/Jam/JamHistoryList";
 import styles from "./jam.module.scss";
@@ -94,6 +94,9 @@ export default async function JamPage() {
         </div>
         {recentJams.length === 0 ? (
           <div className={styles.emptyState}>
+            <div className={styles.emptyMark} aria-hidden>
+              <ChorkMark size={56} mode="accent" />
+            </div>
             <p className={styles.emptyTitle}>No jams yet</p>
             <p className={styles.emptyLede}>
               Start one with your mates or join by code.
