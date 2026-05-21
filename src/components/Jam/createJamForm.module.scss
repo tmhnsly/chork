@@ -3,19 +3,25 @@
 @use "mixins/input" as input;
 @use "mixins/surfaces" as surface;
 
+// Single source of truth for vertical rhythm — every form section
+// (field, fieldset, range card) sits at this gap from its
+// neighbours so the labels read as one consistent ladder.
 .form {
-  @include layout.stack(var(--space-4));
+  @include layout.stack(var(--space-5));
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
 .label {
   @include type.typography(label);
   color: var(--mono-text-low-contrast);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .input {
@@ -31,9 +37,6 @@
   margin: 0;
 }
 
-// Scale tabs + save-scale row moved to SegmentedControl + ToggleRow
-// primitives — no local SCSS for those any more.
-
 .scaleHint {
   @include type.typography(meta);
   color: var(--mono-text-low-contrast);
@@ -41,22 +44,98 @@
   margin: 0;
 }
 
-// Range picker now uses two stacked TabPills (one for easiest, one
-// for hardest). Column layout works better on mobile than the old
-// side-by-side select — each pill row wraps onto multiple lines if
-// the grade pool is large, and a single row works at narrow viewports.
-.rangePicker {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
+// ── Grade range card ────────────────────────────────
+// Apple Settings–style grouped row card. Two stepper rows with a
+// hairline divider between them. Replaces an earlier attempt that
+// rendered every grade as a separate pill (≈29 pills × 2 rows) —
+// scanned as noise, not a range picker.
+.rangeCard {
+  @include surface.card;
+  border-radius: var(--radius-3);
+  overflow: hidden;
 }
 
-.rangeField {
+.stepperRow {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+
+  & + & {
+    border-top: 1px solid var(--mono-border-subtle);
+  }
+}
+
+.stepperLabel {
+  @include type.typography(label);
+  color: var(--mono-text);
+  font-size: var(--text-sm);
+}
+
+.stepperControl {
+  display: inline-flex;
+  align-items: center;
   gap: var(--space-2);
 }
 
+.stepperBtn {
+  width: var(--size-touch-target);
+  height: var(--size-touch-target);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--mono-border-subtle);
+  background: var(--mono-app-bg);
+  color: var(--mono-text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+
+  &:hover:not(:disabled) {
+    border-color: var(--accent-border);
+    color: var(--accent-text);
+  }
+
+  &:active:not(:disabled) {
+    background: var(--mono-bg-hover);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-border);
+    outline-offset: 2px;
+  }
+}
+
+.stepperValue {
+  @include type.typography(number);
+  color: var(--accent-text);
+  font-size: var(--text-xl);
+  font-variant-numeric: tabular-nums;
+  min-width: 3.5rem;
+  text-align: center;
+  // Smooth value swaps without layout jitter on long labels (e.g.
+  // V0 → V10) — fixed minWidth + tabular-nums keep the column
+  // calm as climbers scrub through the range.
+}
+
+.rangeSummary {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-xs);
+  margin: var(--space-2) 0 0;
+  text-align: center;
+}
+
+// ── Custom-scale section ────────────────────────────
 .customSection {
   @include layout.stack(var(--space-3));
 }
@@ -184,4 +263,3 @@
     cursor: not-allowed;
   }
 }
-

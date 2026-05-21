@@ -2,15 +2,20 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FaPlus, FaXmark, FaArrowUp, FaArrowDown } from "react-icons/fa6";
+import {
+  FaPlus,
+  FaXmark,
+  FaArrowUp,
+  FaArrowDown,
+  FaChevronLeft,
+  FaChevronRight,
+} from "react-icons/fa6";
 import {
   Button,
   SegmentedControl,
-  TabPills,
   ToggleRow,
   showToast,
 } from "@/components/ui";
-import type { TabPillOption } from "@/components/ui";
 import { gradeLabels } from "@/lib/data/grade-label";
 import type { JamGradingScale, SavedScale } from "@/lib/data/jam-types";
 import { createJamAction } from "@/app/jam/actions";
@@ -296,13 +301,16 @@ export function CreateJamForm({ savedScales }: Props) {
 }
 
 /**
- * Two TabPills tracks — one for easiest, one for hardest. Same pill
- * primitive as the grade picker inside JamAddRouteSheet so the create
- * + add flows feel like one design language.
+ * Apple-iOS Settings-style grouped range card. Two stepper rows
+ * (easiest / hardest), one hairline between them, both sharing the
+ * same surface so the picker reads as a single "range" control.
  *
- * Max options below the current min are marked disabled so the picker
- * can't produce an invalid range. Tapping a min above the current max
- * snaps max up to match.
+ * Earlier this surface was 58 separate pills across two TabPills
+ * rows — every grade as its own dot. Visually overwhelming for a
+ * value the climber actually thinks about as "from X to Y." The
+ * stepper holds the same data with two big readable numbers and a
+ * ◀ ▶ pair, and the disabled-state logic keeps the range valid
+ * without the picker drawing every option.
  */
 function RangePicker({
   labels,
@@ -315,37 +323,74 @@ function RangePicker({
   max: number;
   onChange: (min: number, max: number) => void;
 }) {
-  const minOptions: TabPillOption<number>[] = labels.map((label, i) => ({
-    value: i,
-    label,
-  }));
-  const maxOptions: TabPillOption<number>[] = labels.map((label, i) => ({
-    value: i,
-    label,
-    disabled: i < min,
-  }));
-
+  const count = max - min + 1;
   return (
-    <div className={styles.rangePicker}>
-      <div className={styles.rangeField}>
-        <span className={styles.label}>Easiest</span>
-        <TabPills<number>
-          options={minOptions}
-          value={min}
-          onChange={(v) => onChange(v, Math.max(v, max))}
-          ariaLabel="Easiest grade"
-          layout="wrap"
+    <div>
+      <div className={styles.rangeCard}>
+        <StepperRow
+          label="Easiest"
+          value={labels[min] ?? ""}
+          canDecrement={min > 0}
+          canIncrement={min < max}
+          onDecrement={() => onChange(min - 1, max)}
+          onIncrement={() => onChange(min + 1, max)}
+        />
+        <StepperRow
+          label="Hardest"
+          value={labels[max] ?? ""}
+          canDecrement={max > min}
+          canIncrement={max < labels.length - 1}
+          onDecrement={() => onChange(min, max - 1)}
+          onIncrement={() => onChange(min, max + 1)}
         />
       </div>
-      <div className={styles.rangeField}>
-        <span className={styles.label}>Hardest</span>
-        <TabPills<number>
-          options={maxOptions}
-          value={max}
-          onChange={(v) => onChange(Math.min(v, min), v)}
-          ariaLabel="Hardest grade"
-          layout="wrap"
-        />
+      <p className={styles.rangeSummary}>
+        {count} {count === 1 ? "grade" : "grades"} in range
+      </p>
+    </div>
+  );
+}
+
+function StepperRow({
+  label,
+  value,
+  canDecrement,
+  canIncrement,
+  onDecrement,
+  onIncrement,
+}: {
+  label: string;
+  value: string;
+  canDecrement: boolean;
+  canIncrement: boolean;
+  onDecrement: () => void;
+  onIncrement: () => void;
+}) {
+  return (
+    <div className={styles.stepperRow}>
+      <span className={styles.stepperLabel}>{label}</span>
+      <div className={styles.stepperControl}>
+        <button
+          type="button"
+          className={styles.stepperBtn}
+          onClick={onDecrement}
+          disabled={!canDecrement}
+          aria-label={`Lower ${label.toLowerCase()} grade`}
+        >
+          <FaChevronLeft aria-hidden />
+        </button>
+        <span className={styles.stepperValue} aria-live="polite">
+          {value}
+        </span>
+        <button
+          type="button"
+          className={styles.stepperBtn}
+          onClick={onIncrement}
+          disabled={!canIncrement}
+          aria-label={`Raise ${label.toLowerCase()} grade`}
+        >
+          <FaChevronRight aria-hidden />
+        </button>
       </div>
     </div>
   );
