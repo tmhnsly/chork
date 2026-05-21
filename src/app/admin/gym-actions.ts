@@ -4,10 +4,7 @@ import { requireSignedIn } from "@/lib/auth";
 import { createGymWithOwner } from "@/lib/data/admin-mutations";
 import { enforce as enforceRateLimit } from "@/lib/rate-limit";
 import type { ActionResult } from "@/lib/action-result";
-
-// Lowercase letters, digits, single hyphens — matches the gym-slug
-// shape elsewhere in the app (see migration 001).
-const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+import { SLUG_RE } from "@/lib/validation";
 
 // ────────────────────────────────────────────────────────────────
 // Gym signup — new admin creates a gym

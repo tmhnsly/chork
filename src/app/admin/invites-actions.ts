@@ -4,13 +4,11 @@ import { gateGymAdminMutation, requireSignedIn } from "@/lib/auth";
 import { acceptGymInvite } from "@/lib/data/admin-mutations";
 import { createServiceClient } from "@/lib/supabase/server";
 import { formatError } from "@/lib/errors";
-import { UUID_RE } from "@/lib/validation";
+import { UUID_RE, EMAIL_RE } from "@/lib/validation";
 import { env } from "@/lib/env";
 import { randomBytes } from "node:crypto";
 
 import type { ActionResult } from "@/lib/action-result";
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // ────────────────────────────────────────────────────────────────
 // Invites

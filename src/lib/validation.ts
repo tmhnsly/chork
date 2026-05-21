@@ -17,6 +17,24 @@ export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f
  */
 export const JAM_CODE_RE = /^[A-HJ-NP-Z2-9]{6}$/;
 
+/**
+ * Gym slug format — lowercase letters / digits separated by single
+ * hyphens. Same shape used by the `gyms.slug` column constraint and
+ * the user-facing /g/[slug] route. Source of truth so admin signup
+ * and future public-listing flows can't drift apart on what counts
+ * as a valid slug.
+ */
+export const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+/**
+ * Loose RFC-ish email matcher — non-empty local part, "@", non-empty
+ * domain with at least one ".". Deliberately not RFC-5322 strict
+ * (which is many lines of grammar): we round-trip the email through
+ * Supabase Auth which does its own validation, so this is a
+ * client-side reject-obvious-junk guard, not a security gate.
+ */
+export const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 /** Convenience: returns true if the input is a well-formed UUID. */
 export function isUuid(value: unknown): value is string {
   return typeof value === "string" && UUID_RE.test(value);
