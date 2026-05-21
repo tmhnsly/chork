@@ -1,94 +1,24 @@
 @use "mixins/typography" as type;
 
-.header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
+// Identity + stats now live in the shared `ClimberPeekHeader`
+// primitive. Only the body grid and the rank chip we hand to the
+// header's trailing slot stay here.
 
-.headerText {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  flex: 1;
-  min-width: 0;
-}
-
-.displayName {
-  @include type.typography(card-title);
-  color: var(--mono-text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.handle {
-  @include type.typography(meta);
-  color: var(--mono-text-low-contrast);
-}
-
-.rankPoints {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--space-1);
-  flex-shrink: 0;
-}
-
-.rank {
-  @include type.typography(label);
+// Rank chip rendered into the header's trailing slot.
+.rankChip {
+  @include type.typography(number);
+  font-size: var(--text-md);
+  padding: var(--space-1) var(--space-3);
+  background: var(--accent-bg);
   color: var(--accent-text);
-  font-size: var(--text-sm);
-}
-
-.points {
-  @include type.typography(number);
-  color: var(--mono-text);
-  font-size: var(--text-lg);
-  line-height: 1;
-}
-
-// ── Stats strip ─────────────────────────────────
-.statsRow {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-2);
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.statCell {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-2) var(--space-3);
-  background: var(--mono-bg);
-  border-radius: var(--radius-2);
-  align-items: center;
-}
-
-.statValue {
-  @include type.typography(number);
-  font-size: var(--text-lg);
-  color: var(--mono-text);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-
-  &.flash { color: var(--flash-text); }
-  &.zone { color: var(--success-text); }
-}
-
-.statLabel {
-  @include type.typography(label);
-  color: var(--mono-text-low-contrast);
-  font-size: var(--text-2xs);
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 // ── Grid ────────────────────────────────────────
-// Same column shape as JamGrid + the wall, so the visual language is
-// consistent across the three surfaces a climber sees a grid in.
+// Same column shape as JamGrid + the wall, so the visual language
+// is consistent across the three surfaces a climber sees a grid in.
 .grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));

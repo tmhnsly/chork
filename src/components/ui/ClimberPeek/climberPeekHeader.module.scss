@@ -1,0 +1,115 @@
+@use "mixins/typography" as type;
+@use "mixins/focus";
+
+// ── Identity (title-slot row) ─────────────────────
+// Avatar + name + handle in one tappable target that links to the
+// climber's profile. The whole row is clickable so the user doesn't
+// have to chase a tiny "view profile" button — the identity IS the
+// affordance.
+.identityLink {
+  @include focus.ring;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+  text-decoration: none;
+  color: var(--mono-text);
+  border-radius: var(--radius-2);
+  padding: var(--space-1);
+  margin: calc(var(--space-1) * -1);
+  // Negative margin balances the padding so the link's tap area
+  // grows but the visual position matches the surrounding flex row.
+  transition: background var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    background: var(--mono-bg-hover);
+  }
+}
+
+.identityText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 2px;
+}
+
+.displayName {
+  @include type.typography(card-title);
+  color: var(--mono-text);
+  font-size: var(--text-md);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.handle {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--text-xs);
+}
+
+.trailing {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+}
+
+// ── Stats row (subheader) ─────────────────────────
+// Four-or-fewer compact cells in a single row. Lives in the
+// sticky-chrome subheader slot so it stays pinned while the body
+// (the send grid) scrolls underneath.
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.statCell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-2) var(--space-1);
+  background: var(--mono-bg);
+  border-radius: var(--radius-2);
+}
+
+.statValue {
+  @include type.typography(number);
+  font-size: var(--text-lg);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--mono-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.statIcon {
+  display: inline-flex;
+  font-size: 0.78em;
+}
+
+.statLabel {
+  @include type.typography(label);
+  font-size: var(--text-2xs);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mono-text-low-contrast);
+}
+
+.tone--flash .statValue {
+  color: var(--flash-text);
+}
+
+.tone--success .statValue {
+  color: var(--success-text);
+}
+
+// ── 3-cell variant — used when a sheet only has 3 stats (jam) ──
+.statsRow:has(.statCell:nth-child(3):last-child) {
+  grid-template-columns: repeat(3, 1fr);
+}

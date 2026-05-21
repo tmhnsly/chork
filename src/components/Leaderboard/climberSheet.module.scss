@@ -1,130 +1,40 @@
 @use "mixins/typography" as type;
-@use "mixins/layout" as layout;
 
-// Body rhythm comes from the `<SheetBody>` primitive.
+// Identity row + stats grid + sheet chrome all live in the shared
+// `ClimberPeekHeader` now. Only the body-side bits remain here:
+// the send grid, the skeleton tile sizing, the empty/error
+// fallback, and the rank chip we hand to `<ClimberPeekHeader>`'s
+// `trailing` slot.
 
-// ── Header (identity) ─────────────────────────────
-.header {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-}
-
-.identity {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  min-width: 0;
-}
-
-.username {
-  @include type.typography(card-title);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.name {
-  @include type.typography(meta);
-  color: var(--mono-text-low-contrast);
-}
-
+// Rank chip rendered into the header's trailing slot. Pill-shaped,
+// accent-tinted, big enough to read at a glance.
 .rankBadge {
   @include type.typography(number);
-  font-size: var(--text-xl);
-  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-md);
+  padding: var(--space-1) var(--space-3);
   background: var(--accent-bg);
   color: var(--accent-text);
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-full);
   flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
 }
 
-// ── Stats row ─────────────────────────────────────
-.stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-2);
-}
-
-.stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-3);
-  background: var(--mono-subtle-bg);
-  border-radius: var(--radius-2);
-}
-
-.statValue {
-  @include type.typography(number);
-  font-size: var(--text-xl);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  color: var(--mono-text);
-}
-
-.statLabel {
-  @include type.typography(label);
-  font-size: var(--text-2xs);
-  color: var(--mono-text-low-contrast);
-}
-
-.statIcon {
-  display: inline-flex;
-  font-size: 0.85em;
-}
-
-.stat--flash .statValue {
-  color: var(--flash-text);
-}
-
-.stat--success .statValue {
-  color: var(--success-text);
-}
-
-// ── Grid section ──────────────────────────────────
-.gridSection {
-  @include layout.stack(var(--space-2));
-}
-
+// ── Send grid ─────────────────────────────────────
+// Only the grid scrolls — the chrome (identity + stats) is sticky.
 .grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--space-2);
 }
 
-// Loading placeholder for each grid cell. The base SendGridTile sits at
-// step-3, so the resting tile uses step-3 too and the shimmer's
-// highlight only steps up by one to step-4 (`bg-hover`). That keeps
-// the pulse on-brand — same restraint as a hover state, never the
-// fully-saturated step-5 active level which read as a flashbulb.
-// Long, soft cycle so the grid breathes rather than flickers.
-.loadingTile {
+// Skeleton tile shape. Aspect-ratio matches SendGridTile so the
+// grid takes the same height during load as after — no layout pop
+// when the real tiles arrive. Shimmer animation is provided by
+// `shimmerStyles.skeleton` (the shared skeleton primitive); this
+// class only owns the geometry.
+.skeletonTile {
   aspect-ratio: 1;
-  background: linear-gradient(
-    105deg,
-    var(--mono-bg) 0%,
-    var(--mono-bg) 35%,
-    var(--mono-bg-hover) 50%,
-    var(--mono-bg) 65%,
-    var(--mono-bg) 100%
-  );
-  background-size: 250% 100%;
-  animation: climberGridShimmer 2.8s ease-in-out infinite;
-}
-
-@keyframes climberGridShimmer {
-  0%   { background-position: 150% 0; }
-  100% { background-position: -50% 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .loadingTile {
-    animation: none;
-    background: var(--mono-bg);
-  }
+  border-radius: var(--radius-2);
 }
 
 .empty {
@@ -132,10 +42,4 @@
   color: var(--mono-text-low-contrast);
   padding: var(--space-4);
   text-align: center;
-}
-
-.profileLink {
-  text-decoration: none;
-  display: block;
-  margin-top: var(--space-2);
 }

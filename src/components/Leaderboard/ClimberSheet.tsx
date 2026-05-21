@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
-import { FaBolt, FaFlag, FaUser } from "react-icons/fa6";
+import { FaBolt, FaFlag } from "react-icons/fa6";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { Button, SheetBody, UserAvatar } from "@/components/ui";
+import {
+  ClimberPeekHeader,
+  SheetBody,
+  shimmerStyles,
+} from "@/components/ui";
 import { SendGridTile } from "@/components/ui/SendGridTile/SendGridTile";
 import type { LeaderboardEntry, Route, TileState } from "@/lib/data";
 import { formatGrade } from "@/lib/data/grade-label";
@@ -88,95 +91,84 @@ export function ClimberSheet({ entry, setId, routes, onClose }: Props) {
 
   const logByRoute = logs ? new Map(logs.map((l) => [l.route_id, l])) : null;
 
+  const header = ClimberPeekHeader({
+    user: toAvatarUser(entry),
+    trailing: (
+      <span
+        className={styles.rankBadge}
+        aria-label={`Rank ${entry.rank ?? "unranked"}`}
+      >
+        {entry.rank === null ? "—" : `#${entry.rank}`}
+      </span>
+    ),
+    stats: [
+      { label: "Points", value: entry.points },
+      { label: "Sends", value: entry.sends },
+      { label: "Flashes", value: entry.flashes, icon: <FaBolt />, tone: "flash" },
+      { label: "Zones", value: entry.zones, icon: <FaFlag />, tone: "success" },
+    ],
+  });
+
   return (
     <BottomSheet
       open
       onClose={onClose}
-      title={setId ? "Current Set" : "All Time"}
-      description={`Climber stats for @${entry.username}`}
+      // Accessible title — visually hidden because `titleSlot` takes
+      // over the chrome with the rich identity row. AT still hears
+      // something meaningful when the sheet opens.
+      title={`@${entry.username}'s ${setId ? "current set" : "all-time"} stats`}
+      titleSlot={header.identity}
+      subheader={header.stats}
     >
-      <SheetBody gap={5}>
-        {/* Identity */}
-        <header className={styles.header}>
-          <UserAvatar user={toAvatarUser(entry)} size={72} />
-          <div className={styles.identity}>
-            <span className={styles.username}>@{entry.username}</span>
-            {entry.name && <span className={styles.name}>{entry.name}</span>}
-          </div>
-          <span className={styles.rankBadge} aria-label={`Rank ${entry.rank ?? "unranked"}`}>
-            {entry.rank === null ? "—" : `#${entry.rank}`}
-          </span>
-        </header>
-
-        {/* Stats */}
-        <section className={styles.stats} aria-label="Climbing stats">
-          <Stat label="Points" value={entry.points} />
-          <Stat label="Sends" value={entry.sends} />
-          <Stat label="Flashes" value={entry.flashes} icon={<FaBolt />} variant="flash" />
-          <Stat label="Zones" value={entry.zones} icon={<FaFlag />} variant="success" />
-        </section>
-
-        {/* Send grid (current set only) */}
+      <SheetBody>
         {setId && routes.length > 0 && (
-          <section className={styles.gridSection} aria-label="Send grid for current set">
-            <div
-              className={styles.grid}
-              role={loading ? "status" : undefined}
-              aria-busy={loading || undefined}
-              aria-label={loading ? "Loading send grid" : undefined}
-            >
-              {loading
-                ? routes.map((route) => (
-                    <div key={route.id} className={styles.loadingTile} aria-hidden />
-                  ))
-                : routes.map((route) => {
-                    const log = logByRoute?.get(route.id);
-                    return (
-                      <SendGridTile
-                        key={route.id}
-                        number={route.number}
-                        state={tileStateFromSanitised(log)}
-                        zone={log?.zone}
-                        gradeLabel={log?.grade_vote != null ? (formatGrade(log.grade_vote, "v") ?? undefined) : undefined}
-                      />
-                    );
-                  })}
-            </div>
-            {!loading && error && (
-              <p className={styles.empty}>Couldn&apos;t load send grid. {error}</p>
-            )}
-          </section>
+          <div
+            className={styles.grid}
+            role={loading ? "status" : undefined}
+            aria-busy={loading || undefined}
+            aria-label={loading ? "Loading send grid" : "Send grid for current set"}
+          >
+            {routes.map((route) => {
+              if (loading) {
+                return (
+                  <div
+                    key={route.id}
+                    className={`${styles.skeletonTile} ${shimmerStyles.skeleton}`}
+                    aria-hidden
+                  />
+                );
+              }
+              const log = logByRoute?.get(route.id);
+              return (
+                <SendGridTile
+                  key={route.id}
+                  number={route.number}
+                  state={tileStateFromSanitised(log)}
+                  zone={log?.zone}
+                  gradeLabel={
+                    log?.grade_vote != null
+                      ? (formatGrade(log.grade_vote, "v") ?? undefined)
+                      : undefined
+                  }
+                />
+              );
+            })}
+          </div>
+        )}
+        {!loading && error && (
+          <p className={styles.empty}>
+            Couldn&apos;t load send grid. {error}
+          </p>
         )}
         {setId && routes.length === 0 && (
           <p className={styles.empty}>No routes in the current set yet.</p>
         )}
-
-        <Link href={`/u/${entry.username}`} className={styles.profileLink}>
-          <Button fullWidth>
-            <FaUser aria-hidden="true" /> View full profile
-          </Button>
-        </Link>
+        {!setId && (
+          <p className={styles.empty}>
+            All-time stats above. Tap the avatar to see the full profile.
+          </p>
+        )}
       </SheetBody>
     </BottomSheet>
-  );
-}
-
-interface StatProps {
-  label: string;
-  value: number;
-  icon?: React.ReactNode;
-  variant?: "flash" | "success";
-}
-
-function Stat({ label, value, icon, variant }: StatProps) {
-  const cls = [styles.stat, variant ? styles[`stat--${variant}`] : ""].filter(Boolean).join(" ");
-  return (
-    <div className={cls}>
-      <span className={styles.statValue}>
-        {icon && <span className={styles.statIcon} aria-hidden="true">{icon}</span>}
-        {value}
-      </span>
-      <span className={styles.statLabel}>{label}</span>
-    </div>
   );
 }

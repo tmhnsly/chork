@@ -10,12 +10,23 @@ interface Props {
   open: boolean;
   onClose: () => void;
   /**
-   * Title rendered visibly at the top of the sheet (also used as the
-   * accessible `Dialog.Title`).
+   * Accessible name for the sheet — always written through to
+   * `Dialog.Title` for AT. Visually rendered at the top **unless**
+   * `titleSlot` is provided, in which case the title is kept
+   * visually hidden and the slot's content occupies the chrome.
    */
   title: string;
   /** Accessible description — used for screen readers only. */
   description?: string;
+  /**
+   * Optional rich visual title — replaces the plain title text in
+   * the sticky chrome (the close button stays on the right). The
+   * accessible `title` string is still announced via a
+   * visually-hidden `Dialog.Title`. Use when the sheet's "what is
+   * this about" needs more than a string — e.g. a climber peek
+   * sheet showing an avatar + linked name + rank chip.
+   */
+  titleSlot?: ReactNode;
   /**
    * Optional secondary row rendered directly under the title inside
    * the sticky chrome — filter pills, segmented tabs, meta strips.
@@ -55,6 +66,7 @@ export function BottomSheet({
   onClose,
   title,
   description,
+  titleSlot,
   subheader,
   disableOutsideClose = false,
   size = "default",
@@ -90,7 +102,16 @@ export function BottomSheet({
 
           <header className={styles.titleBar}>
             <div className={styles.titleRow}>
-              <Dialog.Title className={styles.title}>{title}</Dialog.Title>
+              {titleSlot ? (
+                <>
+                  <VisuallyHidden.Root asChild>
+                    <Dialog.Title>{title}</Dialog.Title>
+                  </VisuallyHidden.Root>
+                  <div className={styles.titleSlot}>{titleSlot}</div>
+                </>
+              ) : (
+                <Dialog.Title className={styles.title}>{title}</Dialog.Title>
+              )}
               <button
                 type="button"
                 className={styles.closeBtn}
