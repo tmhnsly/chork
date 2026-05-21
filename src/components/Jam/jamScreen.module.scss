@@ -10,82 +10,153 @@
   );
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
-.header {
+// ── Hero ──────────────────────────────────────────
+// The screen climbers spend most of their session on. Card surface
+// so it lifts off the page (not just a header on the app bg),
+// display-weight title, meta chips for the codified facts (players,
+// location), code chip that's a real interactive affordance — taps
+// open the share / end sheet directly instead of routing through the
+// kebab menu.
+.hero {
+  @include surface.glass(50%);
+  margin: var(--space-3) var(--gutter-x) 0;
+  border-radius: var(--radius-3);
+  padding: var(--space-4);
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-4) var(--gutter-x) var(--space-2);
   max-width: var(--content-app);
-  margin: 0 auto;
-  width: 100%;
+  width: calc(100% - 2 * var(--gutter-x));
+  box-sizing: border-box;
 }
 
-.headerBody {
+@media (min-width: 768px) {
+  .hero {
+    margin-inline: auto;
+  }
+}
+
+.heroBody {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-2);
   flex: 1;
   min-width: 0;
 }
 
 .title {
-  @include type.typography(page-title);
+  @include type.typography(display);
   color: var(--mono-text);
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  line-height: 1.1;
 }
 
-.meta {
+.metaRow {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
+  align-items: center;
+}
+
+.metaChip {
   @include type.typography(meta);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--mono-bg);
   color: var(--mono-text-low-contrast);
   font-size: var(--text-xs);
 }
 
-.code {
+// Code chip — tappable affordance to open the share sheet.
+// Reads as a real control rather than display-only text. Accent
+// border tint cues "this is the join code, share it" at a glance.
+.codeChip {
   @include type.typography(label);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--accent-bg);
   color: var(--accent-text);
+  border: 1px solid var(--accent-border-subtle);
   letter-spacing: 0.1em;
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    border-color: var(--accent-border);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-border);
+    outline-offset: 2px;
+  }
+}
+
+.codeLabel {
+  color: var(--accent-text-low-contrast);
+  font-size: var(--text-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .menuButton {
   width: var(--size-touch-target);
   height: var(--size-touch-target);
   border-radius: var(--radius-full);
-  border: 1px solid var(--mono-border);
-  background: var(--mono-app-bg);
+  border: 1px solid var(--mono-border-subtle);
+  background: var(--mono-bg);
   color: var(--mono-text);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  transition: border-color var(--duration-fast) var(--ease-out);
 
   &:hover {
     border-color: var(--accent-border);
   }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-border);
+    outline-offset: 2px;
+  }
 }
 
-// Leaderboard strip — 5 rows, each rendered by the shared
-// `<LeaderboardRow>` primitive (ui/LeaderboardRow). This file only
-// owns the list container + the optional "zone count" trailing
-// glyph slot the jam passes in via the primitive's `trailing` prop.
+// ── Leaderboard strip ──────────────────────────────
+// Surface treatment so the strip reads as "your standing in this
+// jam" rather than a list floating against the page bg. Card surface
+// with slim padding — the LeaderboardRow primitive already owns its
+// own per-row chrome, this container just frames the strip.
 .leaderboardStrip {
-  @include layout.stack(var(--space-1));
-  padding: var(--space-3) var(--gutter-x);
-  margin: 0 auto;
+  @include surface.card;
+  @include layout.stack(0);
+  margin: 0 var(--gutter-x);
+  padding: var(--space-2);
   max-width: var(--content-app);
-  width: 100%;
+  width: calc(100% - 2 * var(--gutter-x));
+  box-sizing: border-box;
   border-radius: var(--radius-3);
   list-style: none;
+}
+
+@media (min-width: 768px) {
+  .leaderboardStrip {
+    margin-inline: auto;
+  }
 }
 
 // Trailing count (passed via `LeaderboardRow`'s `trailing` slot)
@@ -97,6 +168,21 @@
   gap: var(--space-1);
   @include type.typography(meta);
   color: var(--success-text-low-contrast);
+}
+
+// ── Floating add button ─────────────────────────────
+// Scale-in entrance so the FAB lands rather than just appears.
+// CSS-only keyframe so we don't pull in a motion library (per
+// CLAUDE.md's animation-library policy).
+@keyframes fab-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .floatingAdd {
@@ -116,8 +202,21 @@
   justify-content: center;
   font-size: var(--text-xl);
   z-index: 10;
+  animation: fab-enter var(--duration-normal) var(--ease-out);
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
 
   &:hover {
-    filter: brightness(0.95);
+    background: var(--accent-solid-hover);
+  }
+
+  &:active {
+    transform: scale(0.94);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--accent-on-solid);
+    outline-offset: 2px;
   }
 }

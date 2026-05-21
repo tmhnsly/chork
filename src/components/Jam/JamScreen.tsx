@@ -248,18 +248,28 @@ export function JamScreen({ initialState, userId }: Props) {
 
   return (
     <main className={styles.screen}>
-      <header className={styles.header}>
-        <div className={styles.headerBody}>
+      <header className={styles.hero}>
+        <div className={styles.heroBody}>
           <h1 className={styles.title}>
             {initialState.jam.name?.trim() || "Untitled jam"}
           </h1>
-          <div className={styles.meta}>
-            {initialState.jam.location && <span>{initialState.jam.location}</span>}
-            <span>
+          <div className={styles.metaRow}>
+            <span className={styles.metaChip}>
               {state.players.length}{" "}
               {state.players.length === 1 ? "player" : "players"}
             </span>
-            <span className={styles.code}>Code {initialState.jam.code}</span>
+            {initialState.jam.location && (
+              <span className={styles.metaChip}>{initialState.jam.location}</span>
+            )}
+            <button
+              type="button"
+              className={styles.codeChip}
+              onClick={() => setMenuOpen(true)}
+              aria-label={`Join code ${initialState.jam.code}. Tap to share.`}
+            >
+              <span className={styles.codeLabel}>Code</span>
+              {initialState.jam.code}
+            </button>
           </div>
         </div>
         <button
