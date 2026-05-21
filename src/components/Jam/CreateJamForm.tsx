@@ -166,20 +166,26 @@ export function CreateJamForm({ savedScales }: Props) {
       </fieldset>
 
       {scale === "v" && (
-        <RangePicker
-          labels={V_LABELS}
-          min={vRange[0]}
-          max={vRange[1]}
-          onChange={(min, max) => setVRange([min, max])}
-        />
+        <fieldset className={styles.fieldset}>
+          <legend className={styles.label}>Grade range</legend>
+          <RangePicker
+            labels={V_LABELS}
+            min={vRange[0]}
+            max={vRange[1]}
+            onChange={(min, max) => setVRange([min, max])}
+          />
+        </fieldset>
       )}
       {scale === "font" && (
-        <RangePicker
-          labels={FONT_LABELS}
-          min={fontRange[0]}
-          max={fontRange[1]}
-          onChange={(min, max) => setFontRange([min, max])}
-        />
+        <fieldset className={styles.fieldset}>
+          <legend className={styles.label}>Grade range</legend>
+          <RangePicker
+            labels={FONT_LABELS}
+            min={fontRange[0]}
+            max={fontRange[1]}
+            onChange={(min, max) => setFontRange([min, max])}
+          />
+        </fieldset>
       )}
       {scale === "custom" && (
         <div className={styles.customSection}>
@@ -325,7 +331,7 @@ function RangePicker({
 }) {
   const count = max - min + 1;
   return (
-    <div>
+    <div className={styles.rangePicker}>
       <div className={styles.rangeCard}>
         <StepperRow
           label="Easiest"

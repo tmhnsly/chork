@@ -3,25 +3,37 @@
 @use "mixins/input" as input;
 @use "mixins/surfaces" as surface;
 
-// Single source of truth for vertical rhythm — every form section
-// (field, fieldset, range card) sits at this gap from its
-// neighbours so the labels read as one consistent ladder.
+// Single source of truth for vertical rhythm. Sections sit at
+// `--space-6` apart from each other (generous Apple-Settings
+// breathing room) and labels sit at `--space-3` from their control.
+// Every section in the form (field, fieldset, range card) uses the
+// same internal rhythm so the page reads as one ladder, not three
+// different ones.
 .form {
-  @include layout.stack(var(--space-5));
+  @include layout.stack(var(--space-6));
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
 
+// Uppercase section label, calm and small. Matches the section
+// header pattern in iOS Settings — quiet typography, generous
+// letter-spacing, low-contrast colour so the control below is the
+// loud thing, not its title.
 .label {
   @include type.typography(label);
   color: var(--mono-text-low-contrast);
   font-size: var(--text-2xs);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
+  display: block;
+  padding: 0;
+  // Reset <legend>'s native left padding so it lines up flush with
+  // the control it labels.
+  margin: 0;
 }
 
 .input {
@@ -31,7 +43,7 @@
 .fieldset {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
   border: none;
   padding: 0;
   margin: 0;
@@ -60,7 +72,9 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
+  // Generous vertical padding so the stepper reads as a roomy iOS
+  // Settings cell rather than a tight CRUD row.
+  padding: var(--space-4);
 
   & + & {
     border-top: 1px solid var(--mono-border-subtle);
@@ -127,11 +141,20 @@
   // calm as climbers scrub through the range.
 }
 
+// Card + summary share one column stack so the summary feels
+// paired with the card above rather than floating. Uses the same
+// space-3 internal rhythm as every other label→control pair.
+.rangePicker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
 .rangeSummary {
   @include type.typography(meta);
   color: var(--mono-text-low-contrast);
   font-size: var(--text-xs);
-  margin: var(--space-2) 0 0;
+  margin: 0;
   text-align: center;
 }
 
