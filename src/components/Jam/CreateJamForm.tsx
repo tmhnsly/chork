@@ -3,7 +3,14 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { FaPlus, FaXmark, FaArrowUp, FaArrowDown } from "react-icons/fa6";
-import { Button, showToast } from "@/components/ui";
+import {
+  Button,
+  SegmentedControl,
+  TabPills,
+  ToggleRow,
+  showToast,
+} from "@/components/ui";
+import type { TabPillOption } from "@/components/ui";
 import { gradeLabels } from "@/lib/data/grade-label";
 import type { JamGradingScale, SavedScale } from "@/lib/data/jam-types";
 import { createJamAction } from "@/app/jam/actions";
@@ -18,6 +25,13 @@ type ScaleTab = JamGradingScale;
 
 const V_LABELS = gradeLabels("v", 17);
 const FONT_LABELS = gradeLabels("font", 21);
+
+const SCALE_OPTIONS: { value: ScaleTab; label: string }[] = [
+  { value: "v", label: JAM_SCALE_LABEL.v },
+  { value: "font", label: JAM_SCALE_LABEL.font },
+  { value: "custom", label: JAM_SCALE_LABEL.custom },
+  { value: "points", label: JAM_SCALE_LABEL.points },
+];
 
 export function CreateJamForm({ savedScales }: Props) {
   const router = useRouter();
@@ -129,23 +143,15 @@ export function CreateJamForm({ savedScales }: Props) {
         />
       </label>
 
-      {/* Scale tabs */}
+      {/* Scale picker — SegmentedControl across V / Font / Custom / Points */}
       <fieldset className={styles.fieldset}>
         <legend className={styles.label}>Grading scale</legend>
-        <div className={styles.scaleTabs} role="radiogroup">
-          {(["v", "font", "custom", "points"] as const).map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              role="radio"
-              aria-checked={scale === tab}
-              className={`${styles.scaleTab} ${scale === tab ? styles.scaleTabActive : ""}`}
-              onClick={() => setScale(tab)}
-            >
-              {JAM_SCALE_LABEL[tab]}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl<ScaleTab>
+          options={SCALE_OPTIONS}
+          value={scale}
+          onChange={setScale}
+          ariaLabel="Grading scale"
+        />
         {scale === "points" && (
           <p className={styles.scaleHint}>
             No grades — every route is ungraded and the leaderboard ranks
@@ -256,16 +262,12 @@ export function CreateJamForm({ savedScales }: Props) {
                 ))}
               </ol>
 
-              <label className={styles.saveRow}>
-                <input
-                  type="checkbox"
-                  checked={saveScale}
-                  onChange={(e) => setSaveScale(e.target.checked)}
-                />
-                <span className={styles.saveLabel}>
-                  Save this scale for next time
-                </span>
-              </label>
+              <ToggleRow
+                title="Save this scale"
+                detail="Reuse it next jam without re-entering the grades."
+                checked={saveScale}
+                onChange={setSaveScale}
+              />
 
               {saveScale && (
                 <label className={styles.field}>
@@ -293,6 +295,15 @@ export function CreateJamForm({ savedScales }: Props) {
   );
 }
 
+/**
+ * Two TabPills tracks — one for easiest, one for hardest. Same pill
+ * primitive as the grade picker inside JamAddRouteSheet so the create
+ * + add flows feel like one design language.
+ *
+ * Max options below the current min are marked disabled so the picker
+ * can't produce an invalid range. Tapping a min above the current max
+ * snaps max up to match.
+ */
 function RangePicker({
   labels,
   min,
@@ -304,41 +315,37 @@ function RangePicker({
   max: number;
   onChange: (min: number, max: number) => void;
 }) {
+  const minOptions: TabPillOption<number>[] = labels.map((label, i) => ({
+    value: i,
+    label,
+  }));
+  const maxOptions: TabPillOption<number>[] = labels.map((label, i) => ({
+    value: i,
+    label,
+    disabled: i < min,
+  }));
+
   return (
     <div className={styles.rangePicker}>
       <div className={styles.rangeField}>
         <span className={styles.label}>Easiest</span>
-        <select
-          className={styles.input}
+        <TabPills<number>
+          options={minOptions}
           value={min}
-          onChange={(e) => {
-            const v = Number(e.target.value);
-            onChange(v, Math.max(v, max));
-          }}
-        >
-          {labels.map((label, i) => (
-            <option key={label} value={i}>
-              {label}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => onChange(v, Math.max(v, max))}
+          ariaLabel="Easiest grade"
+          layout="wrap"
+        />
       </div>
       <div className={styles.rangeField}>
         <span className={styles.label}>Hardest</span>
-        <select
-          className={styles.input}
+        <TabPills<number>
+          options={maxOptions}
           value={max}
-          onChange={(e) => {
-            const v = Number(e.target.value);
-            onChange(Math.min(v, min), v);
-          }}
-        >
-          {labels.map((label, i) => (
-            <option key={label} value={i} disabled={i < min}>
-              {label}
-            </option>
-          ))}
-        </select>
+          onChange={(v) => onChange(Math.min(v, min), v)}
+          ariaLabel="Hardest grade"
+          layout="wrap"
+        />
       </div>
     </div>
   );

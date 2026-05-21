@@ -31,32 +31,8 @@
   margin: 0;
 }
 
-.scaleTabs {
-  display: flex;
-  gap: var(--space-1);
-  padding: var(--space-1);
-  border-radius: var(--radius-full);
-  background: var(--mono-subtle-bg);
-}
-
-.scaleTab {
-  flex: 1;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-full);
-  background: transparent;
-  color: var(--mono-text-low-contrast);
-  border: none;
-  cursor: pointer;
-  @include type.typography(label);
-  font-size: var(--text-xs);
-  transition: all var(--duration-fast) var(--ease-out);
-}
-
-.scaleTabActive {
-  background: var(--mono-app-bg);
-  color: var(--mono-text);
-  box-shadow: var(--shadow-sm);
-}
+// Scale tabs + save-scale row moved to SegmentedControl + ToggleRow
+// primitives — no local SCSS for those any more.
 
 .scaleHint {
   @include type.typography(meta);
@@ -65,16 +41,20 @@
   margin: 0;
 }
 
+// Range picker now uses two stacked TabPills (one for easiest, one
+// for hardest). Column layout works better on mobile than the old
+// side-by-side select — each pill row wraps onto multiple lines if
+// the grade pool is large, and a single row works at narrow viewports.
 .rangePicker {
   display: flex;
+  flex-direction: column;
   gap: var(--space-3);
 }
 
 .rangeField {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
 .customSection {
@@ -205,15 +185,3 @@
   }
 }
 
-.saveRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-3) 0;
-}
-
-.saveLabel {
-  @include type.typography(body);
-  color: var(--mono-text);
-  font-size: var(--text-sm);
-}
