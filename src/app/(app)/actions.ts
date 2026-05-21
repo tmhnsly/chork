@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidateTag } from "next/cache";
-import { revalidateUserProfile } from "@/lib/cache/revalidate";
+import { revalidateUserProfile, revalidateRouteLogTags } from "@/lib/cache/revalidate";
 import { gateClimberMutation, requireAuth, requireSignedIn } from "@/lib/auth";
 import {
   upsertRouteLog,
@@ -94,10 +94,7 @@ export async function completeRoute(
     ]);
 
     // upsertRouteLog joined routes for us — no extra round trip needed.
-    if (log.set_id) {
-      revalidateTag(tags.setLeaderboard(log.set_id), "max");
-    }
-    revalidateTag(tags.userStats(userId), "max");
+    revalidateRouteLogTags(log.set_id, userId);
     // No profile-row bust: a send doesn't change profiles.* fields.
     // user_set_stats does change (via trigger) but that's read by
     // getProfileSummary which isn't server-cached.
@@ -152,10 +149,7 @@ export async function uncompleteRoute(
       deleteCompletionEvents(supabase, userId, routeId, gymId),
     ]);
 
-    if (log.set_id) {
-      revalidateTag(tags.setLeaderboard(log.set_id), "max");
-    }
-    revalidateTag(tags.userStats(userId), "max");
+    revalidateRouteLogTags(log.set_id, userId);
     // No profile-row bust — see completeRoute note.
 
     return { success: true, log };
