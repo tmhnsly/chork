@@ -9,6 +9,7 @@ import type { Comment, PaginatedComments } from "./types";
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
 import { tags } from "@/lib/cache/tags";
+import { readMany } from "./read";
 
 type Supabase = SupabaseClient<Database>;
 
@@ -74,16 +75,13 @@ export async function getLikedCommentIds(
   userId: string,
   routeId: string
 ): Promise<Set<string>> {
-  const { data, error } = await supabase
-    .from("comment_likes")
-    .select("comment_id, comments!inner(route_id)")
-    .eq("user_id", userId)
-    .eq("comments.route_id", routeId);
-
-  if (error) {
-    logger.warn("getlikedcommentids_failed", { err: formatErrorForLog(error) });
-    return new Set();
-  }
-
-  return new Set((data ?? []).map((r) => r.comment_id));
+  const rows = await readMany<{ comment_id: string }>(
+    supabase
+      .from("comment_likes")
+      .select("comment_id, comments!inner(route_id)")
+      .eq("user_id", userId)
+      .eq("comments.route_id", routeId),
+    "getlikedcommentids_failed",
+  );
+  return new Set(rows.map((r) => r.comment_id));
 }

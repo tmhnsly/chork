@@ -5,9 +5,8 @@ import { cachedQuery } from "@/lib/cache/cached";
 import { createCachedContextClient } from "@/lib/supabase/server";
 import type { RouteSet } from "./types";
 
-import { logger } from "@/lib/logger";
-import { formatErrorForLog } from "@/lib/errors";
 import { tags } from "@/lib/cache/tags";
+import { readMany, readSingle } from "./read";
 
 export function getCurrentSet(gymId: string): Promise<RouteSet | null> {
   const fn = cachedQuery(
@@ -19,18 +18,16 @@ export function getCurrentSet(gymId: string): Promise<RouteSet | null> {
       // old readers of `active` still work. Prefer `status` in new
       // code." Migration 058 added `sets_status_live_idx (gym_id)
       // WHERE status = 'live'` — perfect partial-index hit.
-      const { data, error } = await supabase
-        .from("sets")
-        .select("*")
-        .eq("gym_id", id)
-        .eq("status", "live")
-        .limit(1)
-        .maybeSingle();
-      if (error) {
-        logger.warn("getcurrentset_failed", { err: formatErrorForLog(error) });
-        return null;
-      }
-      return data;
+      return readSingle<RouteSet>(
+        supabase
+          .from("sets")
+          .select("*")
+          .eq("gym_id", id)
+          .eq("status", "live")
+          .limit(1)
+          .maybeSingle(),
+        "getcurrentset_failed",
+      );
     },
     { tags: [tags.gymActiveSet(gymId)], revalidate: 60 },
   );
@@ -59,23 +56,21 @@ export const getAllSets = cache(
       ["sets", gymId],
       async (id: string): Promise<RouteSet[]> => {
         const supabase = createCachedContextClient();
-        const { data, error } = await supabase
-          .from("sets")
-          .select("*")
-          .eq("gym_id", id)
-          .order("starts_at", { ascending: false })
-          // Ceiling-guard. Profile streak + history surfaces show the
-          // 200 most recent sets overlapping the user's tenure; older
-          // history is archive-only and would otherwise pull the whole
-          // gym's set history on every render. At 200 a long-running
-          // gym (weekly resets for 4 years = ~210 sets) has one set
-          // clipped; past that, callers paginate explicitly.
-          .limit(200);
-        if (error) {
-          logger.warn("getallsets_failed", { err: formatErrorForLog(error) });
-          return [];
-        }
-        return data ?? [];
+        return readMany<RouteSet>(
+          supabase
+            .from("sets")
+            .select("*")
+            .eq("gym_id", id)
+            .order("starts_at", { ascending: false })
+            // Ceiling-guard. Profile streak + history surfaces show the
+            // 200 most recent sets overlapping the user's tenure; older
+            // history is archive-only and would otherwise pull the whole
+            // gym's set history on every render. At 200 a long-running
+            // gym (weekly resets for 4 years = ~210 sets) has one set
+            // clipped; past that, callers paginate explicitly.
+            .limit(200),
+          "getallsets_failed",
+        );
       },
       { tags: [tags.gymActiveSet(gymId)], revalidate: 300 },
     );

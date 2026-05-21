@@ -11,20 +11,15 @@ import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
 import { tags } from "@/lib/cache/tags";
 import { asJsonShape } from "./json-shape";
+import { readSingle } from "./read";
 
 type Supabase = SupabaseClient<Database>;
 
 export async function getProfile(supabase: Supabase, userId: string): Promise<Profile | null> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", userId)
-    .single();
-  if (error) {
-    logger.warn("getprofile_failed", { err: formatErrorForLog(error) });
-    return null;
-  }
-  return data;
+  return readSingle<Profile>(
+    supabase.from("profiles").select("*").eq("id", userId).single(),
+    "getprofile_failed",
+  );
 }
 
 export const getProfileByUsername = cache(

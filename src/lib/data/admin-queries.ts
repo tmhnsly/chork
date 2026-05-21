@@ -12,6 +12,7 @@ import type { Database } from "@/lib/database.types";
 
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
+import { readMany, readSingle } from "./read";
 type Supabase = SupabaseClient<Database>;
 
 export interface AdminGymSummary {
@@ -32,17 +33,16 @@ export async function isGymAdminOf(
   userId: string,
   gymId: string,
 ): Promise<boolean> {
-  const { data, error } = await supabase
-    .from("gym_admins")
-    .select("user_id")
-    .eq("user_id", userId)
-    .eq("gym_id", gymId)
-    .maybeSingle();
-  if (error) {
-    logger.warn("isgymadminof_failed", { err: formatErrorForLog(error) });
-    return false;
-  }
-  return data !== null;
+  const row = await readSingle<{ user_id: string }>(
+    supabase
+      .from("gym_admins")
+      .select("user_id")
+      .eq("user_id", userId)
+      .eq("gym_id", gymId)
+      .maybeSingle(),
+    "isgymadminof_failed",
+  );
+  return row !== null;
 }
 
 /**
@@ -94,20 +94,17 @@ export async function getActiveSetForAdminGym(
   supabase: Supabase,
   gymId: string
 ): Promise<AdminSetSummary | null> {
-  const { data, error } = await supabase
-    .from("sets")
-    .select("id, name, status, starts_at, ends_at, grading_scale, max_grade, closing_event")
-    .eq("gym_id", gymId)
-    .eq("status", "live")
-    .order("starts_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) {
-    logger.warn("getactivesetforadmingym_failed", { err: formatErrorForLog(error) });
-    return null;
-  }
-  return (data as AdminSetSummary | null) ?? null;
+  return readSingle<AdminSetSummary>(
+    supabase
+      .from("sets")
+      .select("id, name, status, starts_at, ends_at, grading_scale, max_grade, closing_event")
+      .eq("gym_id", gymId)
+      .eq("status", "live")
+      .order("starts_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    "getactivesetforadmingym_failed",
+  );
 }
 
 /** All sets (any status) for the gym, newest first. Used by the sets list. */
@@ -115,22 +112,19 @@ export async function getAllSetsForAdminGym(
   supabase: Supabase,
   gymId: string
 ): Promise<AdminSetSummary[]> {
-  const { data, error } = await supabase
-    .from("sets")
-    .select("id, name, status, starts_at, ends_at, grading_scale, max_grade, closing_event")
-    .eq("gym_id", gymId)
-    .order("starts_at", { ascending: false })
-    // Ceiling-guard. Long-running gyms (weekly resets for 4+ years)
-    // would otherwise pull hundreds of archived sets on every admin
-    // dashboard render. 200 covers >99% of real gyms; older history
-    // needs explicit pagination.
-    .limit(200);
-
-  if (error) {
-    logger.warn("getallsetsforadmingym_failed", { err: formatErrorForLog(error) });
-    return [];
-  }
-  return (data ?? []) as AdminSetSummary[];
+  return readMany<AdminSetSummary>(
+    supabase
+      .from("sets")
+      .select("id, name, status, starts_at, ends_at, grading_scale, max_grade, closing_event")
+      .eq("gym_id", gymId)
+      .order("starts_at", { ascending: false })
+      // Ceiling-guard. Long-running gyms (weekly resets for 4+ years)
+      // would otherwise pull hundreds of archived sets on every admin
+      // dashboard render. 200 covers >99% of real gyms; older history
+      // needs explicit pagination.
+      .limit(200),
+    "getallsetsforadmingym_failed",
+  );
 }
 
 export interface RouteTagRow {
@@ -141,16 +135,10 @@ export interface RouteTagRow {
 
 /** Full catalogue of route tags (static — seeded via migration). */
 export async function getRouteTags(supabase: Supabase): Promise<RouteTagRow[]> {
-  const { data, error } = await supabase
-    .from("route_tags")
-    .select("id, slug, name")
-    .order("name");
-
-  if (error) {
-    logger.warn("getroutetags_failed", { err: formatErrorForLog(error) });
-    return [];
-  }
-  return data ?? [];
+  return readMany<RouteTagRow>(
+    supabase.from("route_tags").select("id, slug, name").order("name"),
+    "getroutetags_failed",
+  );
 }
 
 export interface AdminRouteRow {

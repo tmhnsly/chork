@@ -6,7 +6,7 @@ import { cachedQuery } from "@/lib/cache/cached";
 import { createCachedContextClient } from "@/lib/supabase/server";
 import type { LeaderboardEntry } from "./types";
 import { tags } from "@/lib/cache/tags";
-import { rpcMany, rpcSingle } from "./rpc";
+import { readMany, readSingle } from "./read";
 
 type RawLeaderboardRow = {
   user_id: string;
@@ -59,7 +59,7 @@ export async function getLeaderboardNeighbourhood(
   userId: string,
   setId: string | null,
 ): Promise<LeaderboardEntry[]> {
-  const rows = await rpcMany<RawLeaderboardRow>(
+  const rows = await readMany<RawLeaderboardRow>(
     supabase.rpc("get_leaderboard_neighbourhood", {
       p_gym_id: gymId,
       p_user_id: userId,
@@ -77,7 +77,7 @@ export async function getLeaderboardUserRow(
   userId: string,
   setId: string | null,
 ): Promise<LeaderboardEntry | null> {
-  const rows = await rpcMany<RawLeaderboardRow>(
+  const rows = await readMany<RawLeaderboardRow>(
     supabase.rpc("get_leaderboard_user_row", {
       p_gym_id: gymId,
       p_user_id: userId,
@@ -124,7 +124,7 @@ export function getLeaderboardCached(
             p_limit: limit,
             p_offset: offset,
           });
-      const rows = await rpcMany<RawLeaderboardRow>(
+      const rows = await readMany<RawLeaderboardRow>(
         promise,
         "getleaderboardcached_failed",
       );
@@ -152,7 +152,7 @@ export function getGymStatsV2Cached(
     async (): Promise<GymStatsBuckets> => {
       const supabase = createCachedContextClient();
       type Raw = { climbers: number; sends: number; flashes: number; routes: number };
-      const raw = await rpcSingle<{ all_time: Raw; set: Raw | null }>(
+      const raw = await readSingle<{ all_time: Raw; set: Raw | null }>(
         supabase.rpc("get_gym_stats_v2_cached", {
           p_gym_id: gymId,
           p_set_id: setId ?? undefined,

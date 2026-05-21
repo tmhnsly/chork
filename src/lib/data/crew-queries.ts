@@ -3,7 +3,7 @@ import type { Database } from "@/lib/database.types";
 
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
-import { rpcMany } from "./rpc";
+import { readMany } from "./read";
 type Supabase = SupabaseClient<Database>;
 
 // ────────────────────────────────────────────────────────────────
@@ -116,7 +116,7 @@ export async function getMyCrews(
   // Server-side count per crew (migration 035). Previously this
   // fetched every member row and tallied client-side — fine at 3
   // crews, wasteful as the user joins more.
-  const counts = await rpcMany<{ crew_id: string; count: number }>(
+  const counts = await readMany<{ crew_id: string; count: number }>(
     supabase.rpc("get_crew_member_counts", {
       p_crew_ids: crewRows.map((c) => c.id),
     }),
@@ -203,7 +203,7 @@ export async function getCrewMemberPreviews(
     name: string;
     avatar_url: string;
   };
-  const rows = await rpcMany<PreviewRow>(
+  const rows = await readMany<PreviewRow>(
     supabase.rpc("get_crew_member_previews", {
       p_crew_ids: crewIds,
       p_limit: limit,
@@ -279,7 +279,7 @@ export async function getCrewLeaderboard(
     zones: number;
     points: number;
   };
-  const rows = await rpcMany<Raw>(
+  const rows = await readMany<Raw>(
     supabase.rpc("get_crew_leaderboard", {
       p_crew_id: crewId,
       p_set_id: setId,

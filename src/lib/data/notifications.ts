@@ -4,6 +4,7 @@ import type { Database } from "@/lib/database.types";
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
 import { asJsonShape } from "./json-shape";
+import { readMany } from "./read";
 type Supabase = SupabaseClient<Database>;
 
 /**
@@ -57,16 +58,22 @@ export async function getNotifications(
   supabase: Supabase,
   limit = 50,
 ): Promise<NotificationRow[]> {
-  const { data, error } = await supabase
-    .from("notifications")
-    .select("id, kind, payload, read_at, created_at")
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  if (error) {
-    logger.warn("getnotifications_failed", { err: formatErrorForLog(error) });
-    return [];
-  }
-  return (data ?? []).map((r) => ({
+  type Raw = {
+    id: string;
+    kind: string;
+    payload: unknown;
+    read_at: string | null;
+    created_at: string;
+  };
+  const rows = await readMany<Raw>(
+    supabase
+      .from("notifications")
+      .select("id, kind, payload, read_at, created_at")
+      .order("created_at", { ascending: false })
+      .limit(limit),
+    "getnotifications_failed",
+  );
+  return rows.map((r) => ({
     id: r.id,
     kind: r.kind as NotificationKind,
     // `payload` is a jsonb column typed as Json in the generated

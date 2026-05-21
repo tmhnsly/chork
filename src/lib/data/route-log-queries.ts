@@ -6,7 +6,7 @@ import type { RouteLog, ActivityEventWithRoute } from "./types";
 
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
-import { rpcMany } from "./rpc";
+import { readMany } from "./read";
 
 type Supabase = SupabaseClient<Database>;
 
@@ -15,16 +15,14 @@ export async function getLogsBySetForUser(
   setId: string,
   userId: string
 ): Promise<RouteLog[]> {
-  const { data, error } = await supabase
-    .from("route_logs")
-    .select("*, routes!inner(set_id)")
-    .eq("routes.set_id", setId)
-    .eq("user_id", userId);
-  if (error) {
-    logger.warn("getlogsbysetforuser_failed", { err: formatErrorForLog(error) });
-    return [];
-  }
-  return (data ?? []) as RouteLog[];
+  return readMany<RouteLog>(
+    supabase
+      .from("route_logs")
+      .select("*, routes!inner(set_id)")
+      .eq("routes.set_id", setId)
+      .eq("user_id", userId),
+    "getlogsbysetforuser_failed",
+  );
 }
 
 export interface UserLogInGym {
@@ -103,7 +101,7 @@ export async function getUserSetStats(
   userId: string,
   gymId: string
 ): Promise<{ set_id: string; completions: number; flashes: number; points: number }[]> {
-  return rpcMany<{ set_id: string; completions: number; flashes: number; points: number }>(
+  return readMany<{ set_id: string; completions: number; flashes: number; points: number }>(
     supabase.rpc("get_user_set_stats", { p_user_id: userId, p_gym_id: gymId }),
     "getusersetstats_failed",
   );
@@ -116,15 +114,13 @@ export async function getActivityEventsForUser(
   userId: string,
   limit: number = 10
 ): Promise<ActivityEventWithRoute[]> {
-  const { data, error } = await supabase
-    .from("activity_events")
-    .select("*, routes(number)")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  if (error) {
-    logger.warn("getactivityeventsforuser_failed", { err: formatErrorForLog(error) });
-    return [];
-  }
-  return (data ?? []) as ActivityEventWithRoute[];
+  return readMany<ActivityEventWithRoute>(
+    supabase
+      .from("activity_events")
+      .select("*, routes(number)")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(limit),
+    "getactivityeventsforuser_failed",
+  );
 }

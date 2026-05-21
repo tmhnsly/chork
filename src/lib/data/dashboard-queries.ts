@@ -8,7 +8,7 @@ import type { Database } from "@/lib/database.types";
 
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
-import { rpcSingle, rpcMany } from "./rpc";
+import { readSingle, readMany } from "./read";
 type Supabase = SupabaseClient<Database>;
 
 // ── A. Active set overview ────────────────────────
@@ -25,7 +25,7 @@ export async function getSetOverview(
   supabase: Supabase,
   setId: string
 ): Promise<SetOverview | null> {
-  return rpcSingle<SetOverview>(
+  return readSingle<SetOverview>(
     supabase.rpc("get_set_overview", { p_set_id: setId }),
     "getsetoverview_failed",
   );
@@ -47,7 +47,7 @@ export async function getTopRoutes(
   setId: string,
   limit = 10
 ): Promise<TopRouteRow[]> {
-  return rpcMany<TopRouteRow>(
+  return readMany<TopRouteRow>(
     supabase.rpc("get_top_routes", { p_set_id: setId, p_limit: limit }),
     "gettoproutes_failed",
   );
@@ -80,7 +80,7 @@ export async function getEngagementTrend(
   gymId: string,
   limit = 12
 ): Promise<EngagementPoint[]> {
-  return rpcMany<EngagementPoint>(
+  return readMany<EngagementPoint>(
     supabase.rpc("get_engagement_trend", { p_gym_id: gymId, p_limit: limit }),
     "getengagementtrend_failed",
   );
@@ -99,7 +99,7 @@ export async function getFlashLeaderboardSet(
   setId: string,
   limit = 5
 ): Promise<FlashLeader[]> {
-  return rpcMany<FlashLeader>(
+  return readMany<FlashLeader>(
     supabase.rpc("get_flash_leaderboard_set", { p_set_id: setId, p_limit: limit }),
     "getflashleaderboardset_failed",
   );
@@ -118,7 +118,7 @@ export async function getZoneSendRatio(
   supabase: Supabase,
   setId: string
 ): Promise<ZoneSendRow[]> {
-  return rpcMany<ZoneSendRow>(
+  return readMany<ZoneSendRow>(
     supabase.rpc("get_zone_send_ratio", { p_set_id: setId }),
     "getzonesendratio_failed",
   );
@@ -136,7 +136,7 @@ export async function getCommunityGradeDistribution(
   supabase: Supabase,
   setId: string
 ): Promise<GradeDistributionRow[]> {
-  return rpcMany<GradeDistributionRow>(
+  return readMany<GradeDistributionRow>(
     supabase.rpc("get_community_grade_distribution", { p_set_id: setId }),
     "getcommunitygradedistribution_failed",
   );
@@ -155,7 +155,7 @@ export async function getSetterBreakdown(
   supabase: Supabase,
   setId: string
 ): Promise<SetterBreakdownRow[]> {
-  return rpcMany<SetterBreakdownRow>(
+  return readMany<SetterBreakdownRow>(
     supabase.rpc("get_setter_breakdown", { p_set_id: setId }),
     "getsetterbreakdown_failed",
   );
@@ -176,7 +176,7 @@ export async function getAllTimeOverview(
   supabase: Supabase,
   gymId: string
 ): Promise<AllTimeOverview | null> {
-  return rpcSingle<AllTimeOverview>(
+  return readSingle<AllTimeOverview>(
     supabase.rpc("get_all_time_overview", { p_gym_id: gymId }),
     "getalltimeoverview_failed",
   );

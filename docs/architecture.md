@@ -37,6 +37,27 @@ rather than calling `createServerSupabase()` internally. Two reasons:
 2. Server actions already hold an authed client from `requireAuth` —
    re-creating one would break React's per-render cache
 
+**Exception: cached helpers.** Functions wrapped in `cachedQuery(...)`
+(`getGym`, `getCurrentSet`, `getAllSets`, `getLeaderboardCached`,
+`getCompetitionById`, etc.) **must not** accept a Supabase client as
+an argument. Reasons:
+
+- `unstable_cache` keys on JSON-stringified args; a `SupabaseClient`
+  is not serialisable and would either explode the key cardinality
+  (every per-request client = a new cache entry) or throw.
+- Cached entries are shared across viewers, so the auth context
+  inside the cached body has to come from the service-role client,
+  not the caller's RLS-scoped one. Mixing per-viewer auth into a
+  shared cache is a permission-leak surface.
+
+Cached helpers therefore construct their own Supabase client inside
+`cachedQuery` via `createCachedContextClient()` (service-role, no
+RLS). The caller authorises at the page level **before** invoking
+the cached helper — typically through `requireAuth` /
+`requireGymAdmin` — and trusts the gate. See `src/lib/cache/cached.ts`
+for the implementation and the per-call-site notes on why each
+cached read is safe to share.
+
 ### Client vs server separation
 
 - `src/lib/supabase/server.ts` has `import "server-only"` at the

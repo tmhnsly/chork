@@ -7,27 +7,24 @@ import { createCachedContextClient } from "@/lib/supabase/server";
 import { escapeLikePattern } from "@/lib/validation";
 import type { Gym } from "./types";
 
-import { logger } from "@/lib/logger";
-import { formatErrorForLog } from "@/lib/errors";
 import { tags } from "@/lib/cache/tags";
+import { readMany, readSingle } from "./read";
 
 type Supabase = SupabaseClient<Database>;
 
 export async function searchGyms(supabase: Supabase, query: string): Promise<Gym[]> {
   const safe = escapeLikePattern(query.trim());
   if (!safe) return [];
-  const { data, error } = await supabase
-    .from("gyms")
-    .select("*")
-    .eq("is_listed", true)
-    .ilike("name", `%${safe}%`)
-    .order("name")
-    .limit(20);
-  if (error) {
-    logger.warn("searchgyms_failed", { err: formatErrorForLog(error) });
-    return [];
-  }
-  return data ?? [];
+  return readMany<Gym>(
+    supabase
+      .from("gyms")
+      .select("*")
+      .eq("is_listed", true)
+      .ilike("name", `%${safe}%`)
+      .order("name")
+      .limit(20),
+    "searchgyms_failed",
+  );
 }
 
 export function getGym(gymId: string): Promise<Gym | null> {
@@ -35,16 +32,10 @@ export function getGym(gymId: string): Promise<Gym | null> {
     ["gym", gymId],
     async (id: string): Promise<Gym | null> => {
       const supabase = createCachedContextClient();
-      const { data, error } = await supabase
-        .from("gyms")
-        .select("*")
-        .eq("id", id)
-        .single();
-      if (error) {
-        logger.warn("getgym_failed", { err: formatErrorForLog(error) });
-        return null;
-      }
-      return data;
+      return readSingle<Gym>(
+        supabase.from("gyms").select("*").eq("id", id).single(),
+        "getgym_failed",
+      );
     },
     { tags: [tags.gym(gymId)], revalidate: 3600 },
   );
@@ -69,16 +60,14 @@ export function getListedGyms(): Promise<GymListing[]> {
     ["gyms-listed"],
     async (): Promise<GymListing[]> => {
       const supabase = createCachedContextClient();
-      const { data, error } = await supabase
-        .from("gyms")
-        .select("id, name, slug, city, country")
-        .eq("is_listed", true)
-        .order("name");
-      if (error) {
-        logger.warn("getlistedgyms_failed", { err: formatErrorForLog(error) });
-        return [];
-      }
-      return data ?? [];
+      return readMany<GymListing>(
+        supabase
+          .from("gyms")
+          .select("id, name, slug, city, country")
+          .eq("is_listed", true)
+          .order("name"),
+        "getlistedgyms_failed",
+      );
     },
     { tags: [tags.gymsListed()], revalidate: 3600 },
   );

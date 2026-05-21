@@ -3,7 +3,7 @@ import type { Database } from "@/lib/database.types";
 
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
-import { rpcMany } from "./rpc";
+import { readMany, readSingle } from "./read";
 type Supabase = SupabaseClient<Database>;
 
 export interface CompetitionSummary {
@@ -55,16 +55,14 @@ export async function getCompetitionsForOrganiser(
   supabase: Supabase,
   userId: string
 ): Promise<CompetitionSummary[]> {
-  const { data, error } = await supabase
-    .from("competitions")
-    .select("id, name, description, starts_at, ends_at, status, organiser_id")
-    .eq("organiser_id", userId)
-    .order("starts_at", { ascending: false });
-  if (error) {
-    logger.warn("getcompetitionsfororganiser_failed", { err: formatErrorForLog(error) });
-    return [];
-  }
-  return (data ?? []) as CompetitionSummary[];
+  return readMany<CompetitionSummary>(
+    supabase
+      .from("competitions")
+      .select("id, name, description, starts_at, ends_at, status, organiser_id")
+      .eq("organiser_id", userId)
+      .order("starts_at", { ascending: false }),
+    "getcompetitionsfororganiser_failed",
+  );
 }
 
 /** Gyms linked to a competition. Joined with the gym's name + slug. */
@@ -97,17 +95,15 @@ export async function getCompetitionCategories(
   supabase: Supabase,
   competitionId: string
 ): Promise<CompetitionCategory[]> {
-  const { data, error } = await supabase
-    .from("competition_categories")
-    .select("id, competition_id, name, display_order")
-    .eq("competition_id", competitionId)
-    .order("display_order", { ascending: true })
-    .order("name", { ascending: true });
-  if (error) {
-    logger.warn("getcompetitioncategories_failed", { err: formatErrorForLog(error) });
-    return [];
-  }
-  return (data ?? []) as CompetitionCategory[];
+  return readMany<CompetitionCategory>(
+    supabase
+      .from("competition_categories")
+      .select("id, competition_id, name, display_order")
+      .eq("competition_id", competitionId)
+      .order("display_order", { ascending: true })
+      .order("name", { ascending: true }),
+    "getcompetitioncategories_failed",
+  );
 }
 
 /**
@@ -119,17 +115,15 @@ export async function getMyCompetitionParticipation(
   competitionId: string,
   userId: string
 ): Promise<{ category_id: string | null } | null> {
-  const { data, error } = await supabase
-    .from("competition_participants")
-    .select("category_id")
-    .eq("competition_id", competitionId)
-    .eq("user_id", userId)
-    .maybeSingle();
-  if (error) {
-    logger.warn("getmycompetitionparticipation_failed", { err: formatErrorForLog(error) });
-    return null;
-  }
-  return data ?? null;
+  return readSingle<{ category_id: string | null }>(
+    supabase
+      .from("competition_participants")
+      .select("category_id")
+      .eq("competition_id", competitionId)
+      .eq("user_id", userId)
+      .maybeSingle(),
+    "getmycompetitionparticipation_failed",
+  );
 }
 
 export interface CompetitionVenueStats {
@@ -152,7 +146,7 @@ export async function getCompetitionVenueStats(
   supabase: Supabase,
   competitionId: string
 ): Promise<CompetitionVenueStats[]> {
-  return rpcMany<CompetitionVenueStats>(
+  return readMany<CompetitionVenueStats>(
     supabase.rpc("get_competition_venue_stats", { p_competition_id: competitionId }),
     "getcompetitionvenuestats_failed",
   );
@@ -181,7 +175,7 @@ export async function getCompetitionLeaderboard(
     zones: number;
     points: number;
   };
-  const rows = await rpcMany<Raw>(
+  const rows = await readMany<Raw>(
     supabase.rpc("get_competition_leaderboard", {
       p_competition_id: competitionId,
       p_category_id: categoryId ?? undefined,
