@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Button, showToast } from "@/components/ui";
+import { Button, SegmentedControl, showToast } from "@/components/ui";
 import {
   createSet,
   updateSet,
@@ -13,10 +13,7 @@ import {
 import { toDateInput, fromDateInput } from "./date-input";
 import styles from "./setForm.module.scss";
 
-// Tuple is both the type-level union and the runtime list — no
-// `as Scale[]` cast needed when iterating.
-const SCALES = ["v", "font", "points"] as const;
-type Scale = typeof SCALES[number];
+type Scale = "v" | "font" | "points";
 type Status = "draft" | "live" | "archived";
 
 // Upper bound for the grade slider per scale. Source of truth for the
@@ -161,24 +158,16 @@ export function SetForm({ mode, gymId, set }: Props) {
 
       <fieldset className={styles.fieldset}>
         <legend className={styles.label}>Grading scale</legend>
-        <div className={styles.scaleRow}>
-          {SCALES.map((id) => (
-            <label
-              key={id}
-              className={`${styles.scaleChip} ${scale === id ? styles.scaleChipActive : ""}`}
-            >
-              <input
-                type="radio"
-                name="scale"
-                value={id}
-                checked={scale === id}
-                onChange={() => handleScaleChange(id)}
-                className={styles.visuallyHidden}
-              />
-              {id === "v" ? "V-scale" : id === "font" ? "Font" : "Points only"}
-            </label>
-          ))}
-        </div>
+        <SegmentedControl
+          options={[
+            { value: "v", label: "V-scale" },
+            { value: "font", label: "Font" },
+            { value: "points", label: "Points only" },
+          ]}
+          value={scale}
+          onChange={handleScaleChange}
+          ariaLabel="Grading scale"
+        />
       </fieldset>
 
       {scale !== "points" && (

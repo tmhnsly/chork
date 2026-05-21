@@ -42,58 +42,6 @@
   color: var(--mono-text-low-contrast);
 }
 
-// ── Grading scale chips ───────────────────────────
-.scaleRow {
-  display: flex;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-}
-
-.scaleChip {
-  @include type.typography(label);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: var(--size-touch-target);
-  padding: 0 var(--space-4);
-  border-radius: var(--radius-full);
-  background: var(--mono-subtle-bg);
-  color: var(--mono-text-low-contrast);
-  border: 1px solid var(--mono-border);
-  cursor: pointer;
-  transition:
-    background var(--duration-fast) var(--ease-out),
-    color      var(--duration-fast) var(--ease-out),
-    border-color var(--duration-fast) var(--ease-out);
-
-  &:hover {
-    background: var(--mono-bg);
-    color: var(--mono-text);
-  }
-}
-
-.scaleChipActive {
-  background: var(--accent-bg);
-  color: var(--accent-text);
-  border-color: var(--accent-border-subtle);
-
-  &:hover {
-    background: var(--accent-bg);
-    color: var(--accent-text);
-  }
-}
-
-.visuallyHidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip-path: inset(50%);
-  border: 0;
-}
-
 .checkboxField {
   @include type.typography(body);
   display: flex;

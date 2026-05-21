@@ -20,6 +20,7 @@ export { LeaderboardRow } from "./LeaderboardRow/LeaderboardRow";
 export type { LeaderboardRowData } from "./LeaderboardRow/LeaderboardRow";
 export { ZoneHoldRow } from "./ZoneHoldRow/ZoneHoldRow";
 export { SetMeta } from "./SetMeta";
+export { SegmentedControl } from "./SegmentedControl";
 export { TabPills } from "./TabPills";
 export type { TabPillOption } from "./TabPills";
 export { shimmerStyles } from "./Shimmer";
