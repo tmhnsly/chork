@@ -58,6 +58,16 @@ Every gym-scoped row carries a `gym_id`. RLS enforces isolation using
 `is_gym_member(gym_id)` / `is_gym_admin(gym_id)` SECURITY DEFINER
 helpers — app code never filters by gym manually.
 
+**New tables need an explicit Data API grant — RLS is not enough.**
+Supabase is dropping the auto-grant for new `public` tables (enforced
+on this project from **2026-10-30**; existing tables keep their grants).
+The table-level `GRANT` decides whether `anon` / `authenticated` can
+reach the table at all via supabase-js / realtime; RLS only filters
+*rows* once it's reachable. Every new table read from the client must
+`grant … to authenticated` (scoped to its RLS) in the same migration —
+see the convention + template in `docs/migrations.md`. Tables touched
+only inside SECURITY DEFINER RPCs need no grant.
+
 ### Auth
 
 Supabase Auth + `@supabase/ssr`. Middleware caches the onboarded flag

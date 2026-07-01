@@ -64,6 +64,28 @@ Regenerate types after any apply: `npx supabase gen types typescript --project-i
 - **Filename pattern**: `<zero-padded-number>_<snake_case_summary>.sql`
 - **Every new table gets RLS enabled in the same migration that creates it.**
   No "add RLS later" migrations — they're a guaranteed foot-gun
+- **Every new table reached from the client gets an explicit Data API
+  grant in the same migration.** Supabase is retiring the auto-grant
+  that exposed new `public` tables to `anon` / `authenticated` —
+  **enforced on this project from 2026-10-30** (existing tables keep
+  their grants; only tables created after the cutoff are affected).
+  The table-level `GRANT` decides whether a role can reach the table at
+  all via supabase-js / realtime; RLS only filters *rows* once it's
+  reachable — they're independent layers. Without the grant a new table
+  fails with `42501 permission denied` / `PGRST205 "Could not find the
+  table … in the schema cache"`, and realtime delivers no events. Scope
+  the grant to the table's RLS policies — no project table targets
+  `anon` (public reads go through service-role `*_cached` RPCs), so the
+  default is `authenticated` only:
+  ```sql
+  grant select, insert, update, delete on table public.thing to authenticated;
+  ```
+  Exceptions: a table touched **only** inside SECURITY DEFINER RPCs
+  (never `.from(...)`, never a realtime subscription) needs no table
+  grant — the definer runs as owner. A realtime-subscribed table needs
+  at minimum `grant select … to authenticated`. This mirrors the
+  function rule below: functions are already future-proof because every
+  one ships an explicit `grant execute`; tables now need the same care
 - **Every FK column gets an index.** Supabase lint 0001
 - **Every SECURITY DEFINER function sets `search_path = ''`.** Prevents
   schema injection. Every new one must also have explicit
