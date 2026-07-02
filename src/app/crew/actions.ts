@@ -2,65 +2,21 @@
 
 import { revalidateTag } from "next/cache";
 import { requireSignedIn } from "@/lib/auth";
-import { formatError, formatErrorForLog } from "@/lib/errors";
-import { notify } from "@/lib/notify";
+import { formatError } from "@/lib/errors";
 import {
+  acceptCrewInvite as acceptCrewInviteLifecycle,
   sendCrewInvite as sendCrewInviteLifecycle,
   transferCrewOwnership as transferCrewOwnershipLifecycle,
 } from "@/lib/data/crew-lifecycle";
-import { revalidateUserProfile } from "@/lib/cache/revalidate";
+import {
+  revalidateCrewMembers,
+  revalidateUserProfile,
+} from "@/lib/cache/revalidate";
 import { UUID_RE } from "@/lib/validation";
 import { enforce as enforceRateLimit } from "@/lib/rate-limit";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/database.types";
 
-import { logger } from "@/lib/logger";
 import { tags } from "@/lib/cache/tags";
 import type { ActionResult } from "@/lib/action-result";
-
-/**
- * Fan-out tag invalidation: bust crew:{id} + every active member's
- * user:{uid}:crews tag. Pass extra ids (e.g. just-removed leaver)
- * via `extraUserIds` since they no longer appear in crew_members.
- */
-async function revalidateCrewMembers(
-  supabase: SupabaseClient<Database>,
-  crewId: string,
-  extraUserIds: string[] = [],
-) {
-  revalidateTag(tags.crew(crewId), "max");
-  const { data: members, error } = await supabase
-    .from("crew_members")
-    .select("user_id")
-    .eq("crew_id", crewId)
-    .eq("status", "active");
-  // Log instead of silently swallowing — without this, a failed
-  // member-fetch leaves remaining crew members' `userCrews` tags
-  // un-busted and the only evidence is a stale /crew/[id] page for
-  // up to 60s. The fan-out continues with whatever we have so the
-  // partial bust isn't blocked by transient network noise.
-  if (error) {
-    logger.warn("revalidateCrewMembers_failed", {
-      crewId,
-      err: formatErrorForLog(error),
-    });
-  }
-  const seen = new Set<string>();
-  if (Array.isArray(members)) {
-    for (const m of members) {
-      if (m.user_id && !seen.has(m.user_id)) {
-        revalidateTag(tags.userCrews(m.user_id), "max");
-        seen.add(m.user_id);
-      }
-    }
-  }
-  for (const uid of extraUserIds) {
-    if (!seen.has(uid)) {
-      revalidateTag(tags.userCrews(uid), "max");
-      seen.add(uid);
-    }
-  }
-}
 
 // ────────────────────────────────────────────────────────────────
 // Create / manage crews
@@ -164,56 +120,13 @@ export async function acceptCrewInvite(crewMemberId: string): Promise<ActionResu
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId } = auth;
 
-  try {
-    // Flip status first, returning the updated row — the conditional
-    // `.eq("status", "pending")` means the row comes back only if
-    // the invite was still pending at the exact moment of the update.
-    // If someone cancelled the invite (or it was never ours), the
-    // returning row is empty and we exit without firing phantom
-    // notifications. Previously we read, then wrote, leaving a TOCTOU
-    // window where a cancel landed in between and we'd still push
-    // "accepted" to the inviter.
-    const { data: invite, error } = await supabase
-      .from("crew_members")
-      .update({ status: "active" })
-      .eq("id", crewMemberId)
-      .eq("user_id", userId)
-      .eq("status", "pending")
-      .select("invited_by, crew_id, crew:crew_id (name)")
-      .maybeSingle();
-    if (error) return { error: formatError(error) };
-    if (!invite) return { error: "Invite not found." };
-
-    if (invite?.invited_by && invite.invited_by !== userId) {
-      try {
-        const { data: accepterRow } = await supabase
-          .from("profiles")
-          .select("username")
-          .eq("id", userId)
-          .maybeSingle();
-        const crewName = Array.isArray(invite.crew)
-          ? invite.crew[0]?.name
-          : invite.crew?.name;
-        await notify({
-          kind: "crew_invite_accepted",
-          recipient: invite.invited_by,
-          actor: userId,
-          crewId: invite.crew_id,
-          crewName: crewName ?? "a crew",
-          accepterUsername: accepterRow?.username ?? "someone",
-        });
-      } catch (err) {
-        logger.warn("crew_accept_push_dispatch_failed", { err: formatErrorForLog(err) });
-      }
-    }
-
-    if (invite?.crew_id) {
-      await revalidateCrewMembers(supabase, invite.crew_id);
-    }
-    return { success: true };
-  } catch (err) {
-    return { error: formatError(err) };
-  }
+  const result = await acceptCrewInviteLifecycle({
+    supabase,
+    actorId: userId,
+    crewMemberId,
+  });
+  if ("error" in result) return { error: result.error };
+  return { success: true };
 }
 
 export async function declineCrewInvite(crewMemberId: string): Promise<ActionResult> {
@@ -251,8 +164,12 @@ export async function declineCrewInvite(crewMemberId: string): Promise<ActionRes
     if (error) return { error: formatError(error) };
 
     if (invite?.crew_id && deleted && deleted.length > 0) {
-      revalidateTag(tags.crew(invite.crew_id), "max");
-      revalidateTag(tags.userCrews(userId), "max");
+      // Shared crew + userCrews pair via the fan-out helper. The
+      // decliner never appears in the active roster, so pass them via
+      // extraUserIds to bust their pending-invite banner.
+      await revalidateCrewMembers(supabase, invite.crew_id, [userId]);
+      // The inviter's notification state is outside the crew fan-out —
+      // keep that extra tag inline at this call site.
       if (invite.invited_by && invite.invited_by !== userId) {
         revalidateTag(tags.userNotifications(invite.invited_by), "max");
       }
@@ -307,8 +224,10 @@ export async function leaveCrew(crewId: string): Promise<ActionResult> {
             "You created this crew — transfer it or remove the other members first.",
         };
       case "crew_deleted":
-        revalidateTag(tags.crew(crewId), "max");
-        revalidateTag(tags.userCrews(userId), "max");
+        // Crew row is already gone, so the helper's member fetch finds
+        // no rows — this resolves to the same crew + leaver userCrews
+        // pair as before, through the one shared code path.
+        await revalidateCrewMembers(supabase, crewId, [userId]);
         return { success: true };
       case "left":
         // Leaver no longer in crew_members; pass them via extraUserIds so

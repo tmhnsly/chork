@@ -3,7 +3,12 @@ import type { Database } from "@/lib/database.types";
 
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
-import { readMany } from "./read";
+import { one, readMany } from "./read";
+import {
+  normaliseRankedRows,
+  type RankedRow,
+  type RawRankedRow,
+} from "./leaderboard-helpers";
 type Supabase = SupabaseClient<Database>;
 
 // ────────────────────────────────────────────────────────────────
@@ -37,18 +42,12 @@ export interface CrewMember {
   joined_at: string;
 }
 
-export interface CrewLeaderboardRow {
-  user_id: string;
-  username: string;
-  name: string;
-  avatar_url: string;
-  /** Null for members with zero points on the selected set. */
-  rank: number | null;
-  sends: number;
-  flashes: number;
-  zones: number;
-  points: number;
-}
+/**
+ * Crew leaderboard row — exactly the shared ranked-row shape (see
+ * leaderboard-helpers.ts). `rank` is null for members with zero
+ * points on the selected set.
+ */
+export type CrewLeaderboardRow = RankedRow;
 
 export interface CrewActivityEvent {
   route_log_id: string;
@@ -108,7 +107,7 @@ export async function getMyCrews(
   }
 
   const crewRows = (memberRows ?? []).flatMap((row) => {
-    const c = Array.isArray(row.crews) ? row.crews[0] : row.crews;
+    const c = one(row.crews);
     return c ? [c] : [];
   });
   if (crewRows.length === 0) return [];
@@ -155,7 +154,7 @@ export async function getPendingCrewInvites(
       invited_by,
       created_at,
       crews:crew_id (name),
-      inviter:invited_by (username)
+      inviter:profiles!invited_by (username)
     `)
     .eq("user_id", userId)
     .eq("status", "pending")
@@ -167,8 +166,8 @@ export async function getPendingCrewInvites(
   }
 
   return (data ?? []).flatMap((row) => {
-    const crew = Array.isArray(row.crews) ? row.crews[0] : row.crews;
-    const inviter = Array.isArray(row.inviter) ? row.inviter[0] : row.inviter;
+    const crew = one(row.crews);
+    const inviter = one(row.inviter);
     if (!crew || !inviter) return [];
     return [{
       id: row.id,
@@ -235,7 +234,7 @@ export async function getCrewMembers(
       status,
       created_at,
       user_id,
-      profiles:user_id (username, name, avatar_url)
+      profiles:profiles!user_id (username, name, avatar_url)
     `)
     .eq("crew_id", crewId)
     .eq("status", "active")
@@ -247,7 +246,7 @@ export async function getCrewMembers(
   }
 
   return (data ?? []).flatMap((row) => {
-    const prof = Array.isArray(row.profiles) ? row.profiles[0] : row.profiles;
+    const prof = one(row.profiles);
     if (!prof) return [];
     return [{
       user_id: row.user_id,
@@ -268,18 +267,7 @@ export async function getCrewLeaderboard(
   limit = 50,
   offset = 0
 ): Promise<CrewLeaderboardRow[]> {
-  type Raw = {
-    user_id: string;
-    username: string;
-    name: string;
-    avatar_url: string;
-    rank: number | string | null;
-    sends: number;
-    flashes: number;
-    zones: number;
-    points: number;
-  };
-  const rows = await readMany<Raw>(
+  const rows = await readMany<RawRankedRow>(
     supabase.rpc("get_crew_leaderboard", {
       p_crew_id: crewId,
       p_set_id: setId,
@@ -288,17 +276,7 @@ export async function getCrewLeaderboard(
     }),
     "getcrewleaderboard_failed",
   );
-  return rows.map((r) => ({
-    user_id: r.user_id,
-    username: r.username,
-    name: r.name,
-    avatar_url: r.avatar_url,
-    rank: r.rank === null ? null : Number(r.rank),
-    sends: r.sends,
-    flashes: r.flashes,
-    zones: r.zones,
-    points: r.points,
-  }));
+  return normaliseRankedRows(rows);
 }
 
 /**
@@ -365,7 +343,7 @@ export async function getAllLiveSets(
       starts_at,
       ends_at,
       gym_id,
-      gyms:gym_id (name)
+      gyms:gyms!gym_id (name)
     `)
     .eq("status", "live")
     .order("starts_at", { ascending: false })
@@ -377,7 +355,7 @@ export async function getAllLiveSets(
   }
 
   return (data ?? []).flatMap((row) => {
-    const gym = Array.isArray(row.gyms) ? row.gyms[0] : row.gyms;
+    const gym = one(row.gyms);
     if (!gym) return [];
     return [{
       set_id: row.id,

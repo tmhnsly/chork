@@ -5,6 +5,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
 import { tags } from "@/lib/cache/tags";
+import { logger } from "@/lib/logger";
+import { formatErrorForLog } from "@/lib/errors";
 type Supabase = SupabaseClient<Database>;
 
 /**
@@ -33,6 +35,58 @@ export async function revalidateUserProfile(
     .maybeSingle();
   if (data?.username) {
     revalidateTag(tags.userByUsername(data.username), "max");
+  }
+}
+
+/**
+ * Fan-out tag invalidation for a crew mutation: bust `crew:{id}` plus
+ * every active member's `user:{uid}:crews` tag.
+ *
+ * Crew mutations change what *other* members see (roster, member
+ * counts, /crew picker cards), so the userCrews bust has to fan out
+ * across the whole active roster — busting only the actor's tag
+ * leaves everyone else's crew surfaces stale for up to 60s.
+ *
+ * `extraUserIds` covers users who no longer (or never did) appear in
+ * crew_members — the member who just left, was removed, or declined —
+ * so their own crews tag busts alongside the remaining active set.
+ *
+ * A failed member fetch is logged, never silently swallowed — without
+ * the log line the only evidence is a stale /crew/[id] page. The
+ * fan-out continues with whatever rows we have (plus extraUserIds) so
+ * transient network noise doesn't block the partial bust.
+ */
+export async function revalidateCrewMembers(
+  supabase: Supabase,
+  crewId: string,
+  extraUserIds: string[] = [],
+): Promise<void> {
+  revalidateTag(tags.crew(crewId), "max");
+  const { data: members, error } = await supabase
+    .from("crew_members")
+    .select("user_id")
+    .eq("crew_id", crewId)
+    .eq("status", "active");
+  if (error) {
+    logger.warn("revalidateCrewMembers_failed", {
+      crewId,
+      err: formatErrorForLog(error),
+    });
+  }
+  const seen = new Set<string>();
+  if (Array.isArray(members)) {
+    for (const m of members) {
+      if (m.user_id && !seen.has(m.user_id)) {
+        revalidateTag(tags.userCrews(m.user_id), "max");
+        seen.add(m.user_id);
+      }
+    }
+  }
+  for (const uid of extraUserIds) {
+    if (!seen.has(uid)) {
+      revalidateTag(tags.userCrews(uid), "max");
+      seen.add(uid);
+    }
   }
 }
 

@@ -6,6 +6,8 @@ import { formatError, formatErrorForLog } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { notify } from "@/lib/notify";
 import { tags } from "@/lib/cache/tags";
+import { revalidateCrewMembers } from "@/lib/cache/revalidate";
+import { one } from "./read";
 
 type Supabase = SupabaseClient<Database>;
 type LifecycleResult = { ok: true } | { error: string };
@@ -100,6 +102,71 @@ export async function sendCrewInvite(
   }
 }
 
+interface AcceptInviteArgs {
+  supabase: Supabase;
+  actorId: string;
+  crewMemberId: string;
+}
+
+/**
+ * Execute the "accept a crew invite" transaction.
+ *
+ * Steps: conditional status flip (pending → active) returning the
+ * updated row → notify the inviter → bust crew member tags. The
+ * `.eq("status", "pending")` predicate on the UPDATE means the row
+ * comes back only if the invite was still pending at the exact moment
+ * of the write — if someone cancelled the invite (or it was never
+ * ours), the returning row is empty and we exit without firing
+ * phantom notifications. A previous read-then-write flow left a
+ * TOCTOU window where a cancel landed in between and we'd still push
+ * "accepted" to the inviter. Caller is responsible for input
+ * validation + auth before reaching this function.
+ */
+export async function acceptCrewInvite(
+  args: AcceptInviteArgs,
+): Promise<LifecycleResult> {
+  const { supabase, actorId, crewMemberId } = args;
+  try {
+    const { data: invite, error } = await supabase
+      .from("crew_members")
+      .update({ status: "active" })
+      .eq("id", crewMemberId)
+      .eq("user_id", actorId)
+      .eq("status", "pending")
+      .select("invited_by, crew_id, crew:crew_id (name)")
+      .maybeSingle();
+    if (error) return { error: formatError(error) };
+    if (!invite) return { error: "Invite not found." };
+
+    if (invite.invited_by && invite.invited_by !== actorId) {
+      try {
+        const { data: accepterRow } = await supabase
+          .from("profiles")
+          .select("username")
+          .eq("id", actorId)
+          .maybeSingle();
+        await notify({
+          kind: "crew_invite_accepted",
+          recipient: invite.invited_by,
+          actor: actorId,
+          crewId: invite.crew_id,
+          crewName: one(invite.crew)?.name ?? "a crew",
+          accepterUsername: accepterRow?.username ?? "someone",
+        });
+      } catch (err) {
+        logger.warn("crew_accept_push_dispatch_failed", { err: formatErrorForLog(err) });
+      }
+    }
+
+    if (invite.crew_id) {
+      await revalidateCrewMembers(supabase, invite.crew_id);
+    }
+    return { ok: true };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
+
 interface TransferOwnershipArgs {
   supabase: Supabase;
   actorId: string;
@@ -174,19 +241,5 @@ export async function transferCrewOwnership(
     return { ok: true };
   } catch (err) {
     return { error: formatError(err) };
-  }
-}
-
-async function revalidateCrewMembers(supabase: Supabase, crewId: string) {
-  revalidateTag(tags.crew(crewId), "max");
-  const { data: members } = await supabase
-    .from("crew_members")
-    .select("user_id")
-    .eq("crew_id", crewId)
-    .eq("status", "active");
-  if (Array.isArray(members)) {
-    for (const m of members) {
-      if (m.user_id) revalidateTag(tags.userCrews(m.user_id), "max");
-    }
   }
 }
