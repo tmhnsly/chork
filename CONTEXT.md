@@ -27,6 +27,28 @@ dispatch is a no-op (self-skip). Implemented by `notify(event)` in
 Examples: `crew_invite_received`, `crew_invite_accepted`,
 `crew_ownership_transferred`. Future: comment likes, friend requests.
 
+## Notification kind
+
+The per-kind identity of a Notification: its payload shape, its push
+copy, and its in-app copy, co-located in one definition-table entry in
+`src/lib/data/notification-kinds.ts` (same shape as the error-copy
+tables in `src/lib/errors.ts`). `notify()` renders push copy from the
+table; `NotificationsSheet` renders in-app copy from the same entry.
+Adding a kind = one table entry + the DB check constraint (migration
+033). The kind union is derived from the table keys, so a missing
+entry is a type error, not a runtime fallback.
+
+## Scoring ladder
+
+The points formula: flash = 4, 2-try = 3, 3-try = 2, 4+-try = 1,
+incomplete = 0, plus 1 if zone. One concept, two canonical homes —
+`computePoints()` in `src/lib/data/logs.ts` (TypeScript) and
+`public.compute_points(attempts, completed, zone)` (SQL, migration
+063). Every scoring surface (Chorkboard, crew leaderboard, competition
+standings, jam leaderboard, `user_set_stats`) derives from one of
+these two; nothing else may inline the ladder. A scoring change is one
+edit in each home.
+
 ## Announcement
 
 A broadcast push with no per-recipient log row, no opt-out category,

@@ -20,7 +20,7 @@ groups called **crews**.
 - `pnpm dev` — dev server
 - `pnpm build` — production build (CI equivalent)
 - `pnpm test --run` — vitest, should stay green on every commit
-- `pnpm next lint` — CI-blocking. `react-hooks/purity` +
+- `pnpm lint` (`eslint .`) — CI-blocking. `react-hooks/purity` +
   `react-hooks/set-state-in-effect` are both active; treat as errors
 - `pnpm storybook` — port 6006
 - `npx supabase db push` — apply pending migrations to the linked project
@@ -146,7 +146,7 @@ Quick reference:
 - `completeRoute` defers badge eval via `after()` from `next/server`
   — action returns as soon as the log + activity event are written
 - `AuthProvider` reads a localStorage profile cache on mount (1h TTL,
-  key `chork-profile-cache-v1`). NavBar paints in its full state on
+  key `chork-profile-cache-v2`). NavBar paints in its full state on
   the first hydration cycle when warm — no brand-only-then-personalised
   flash. Background validates with Supabase + updates if changed
 
@@ -334,7 +334,10 @@ navbar + home indicator), max-width, and centering.
 
 - **Points are never stored.** Derive via `computePoints(log)` in
   `src/lib/data/logs.ts`. Formula: flash=4, 2=3, 3=2, 4+=1,
-  incomplete=0, + 1 if zone
+  incomplete=0, + 1 if zone. SQL mirrors it via
+  `public.compute_points(attempts, completed, zone)` (migration 063)
+  — never inline the ladder in TS or SQL; a scoring change is one
+  edit in each of those two homes
 - **Flash is derived.** `attempts === 1 && completed === true`
 - **Attempt counts are private** — never show raw attempts to other
   users. Points are public
