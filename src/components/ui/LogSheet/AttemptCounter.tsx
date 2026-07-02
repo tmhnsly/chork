@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { FaMinus, FaPlus } from "react-icons/fa6";
-import { RollingNumber } from "@/components/RollingNumber/RollingNumber";
+import { RollingNumber } from "@/components/ui/RollingNumber/RollingNumber";
 import styles from "./attemptCounter.module.scss";
 
 interface Props {

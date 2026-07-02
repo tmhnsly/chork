@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { FaInfinity } from "react-icons/fa6";
-import { ActivityRings } from "@/components/ActivityRings/ActivityRings";
+import { ActivityRings } from "@/components/ui/ActivityRings/ActivityRings";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { StatsWidget } from "@/components/ui/StatsWidget/StatsWidget";
 import type { RouteLog } from "@/lib/data";

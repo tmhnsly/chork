@@ -2,7 +2,7 @@ import { FaChartColumn } from "react-icons/fa6";
 import type { GymStats } from "@/lib/data/leaderboard-queries";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { SetMeta } from "@/components/ui";
-import { CountUpNumber } from "@/components/CountUpNumber/CountUpNumber";
+import { CountUpNumber } from "@/components/ui/CountUpNumber/CountUpNumber";
 import styles from "./gymStatsStrip.module.scss";
 
 interface Props {

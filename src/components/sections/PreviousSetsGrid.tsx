@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ActivityRings } from "@/components/ActivityRings/ActivityRings";
+import { ActivityRings } from "@/components/ui/ActivityRings/ActivityRings";
 import { SetDetailSheet } from "./SetDetailSheet";
 import { BrandDivider } from "@/components/ui/BrandDivider";
 import type { Route, RouteLog } from "@/lib/data";

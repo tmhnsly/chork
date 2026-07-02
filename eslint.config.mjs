@@ -29,9 +29,7 @@ const config = [
     //
     // Feature folders (Crew, Achievements, RouteLogSheet, …) should not
     // import from sibling feature folders directly — lift to ui/ or to
-    // a shared parent component instead. Allowlist holds the atomic
-    // visualisation primitives that ARE shared by design (named like
-    // features but architecturally generic).
+    // a shared parent component instead.
     files: ["src/components/**/*.{ts,tsx}"],
     ignores: [
       "src/components/ui/**",
@@ -53,13 +51,6 @@ const config = [
                 "!@/components/ui/**",
                 "!@/components/motion/**",
                 "!@/components/landing/**",
-                // ActivityRings / CountUpNumber / RollingNumber are
-                // shared rendering primitives that haven't been moved
-                // into components/ui/ yet. The exclusions stay until
-                // they're either consolidated or relocated.
-                "!@/components/ActivityRings/**",
-                "!@/components/CountUpNumber/**",
-                "!@/components/RollingNumber/**",
               ],
               message:
                 "Cross-feature component import. Lift to a shared parent (props/callbacks) or extract to components/ui/ instead.",

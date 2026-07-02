@@ -1,6 +1,6 @@
-import { ActivityRings } from "@/components/ActivityRings/ActivityRings";
+import { ActivityRings } from "@/components/ui/ActivityRings/ActivityRings";
 import { BrandDivider } from "@/components/ui/BrandDivider";
-import { CountUpNumber } from "@/components/CountUpNumber/CountUpNumber";
+import { CountUpNumber } from "@/components/ui/CountUpNumber/CountUpNumber";
 import { shimmerStyles } from "@/components/ui";
 import styles from "./ringStatsRow.module.scss";
 
