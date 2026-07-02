@@ -9,7 +9,12 @@
 // from the migrations, the compile errors land here, not scattered
 // across every call site.
 
-export type JamGradingScale = "v" | "font" | "custom" | "points";
+import type { GradingScaleWithCustom } from "./grade-label";
+
+// The scale union lives in grade-label.ts (the single source of truth
+// for grade → label resolution); this alias keeps jam call sites on
+// their domain-local name.
+export type JamGradingScale = GradingScaleWithCustom;
 export type JamStatus = "live" | "ended";
 
 export interface Jam {

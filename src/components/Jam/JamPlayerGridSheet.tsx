@@ -6,7 +6,7 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import { ClimberPeekHeader, SheetBody } from "@/components/ui";
 import { SendGridTile } from "@/components/ui/SendGridTile/SendGridTile";
 import { deriveTileState } from "@/lib/data/logs";
-import { formatGrade } from "@/lib/data/grade-label";
+import { makeGradeLabeller } from "@/lib/data/grade-label";
 import type {
   JamLog,
   JamPlayerView,
@@ -50,11 +50,10 @@ export function JamPlayerGridSheet({
   gradingScale,
   onClose,
 }: Props) {
-  const gradeLabelByOrdinal = useMemo(() => {
-    const map = new Map<number, string>();
-    for (const g of grades) map.set(g.ordinal, g.label);
-    return map;
-  }, [grades]);
+  const labelForGrade = useMemo(
+    () => makeGradeLabeller(gradingScale, grades),
+    [gradingScale, grades],
+  );
 
   const username = player.username ?? "unknown";
   const displayName = player.display_name?.trim() || username || "Climber";
@@ -95,12 +94,7 @@ export function JamPlayerGridSheet({
           {routes.map((route) => {
             const log = logs.get(logKey(player.user_id, route.id)) ?? null;
             const state = deriveTileState(log);
-            const gradeLabel =
-              route.grade !== null && route.grade !== undefined
-                ? gradingScale === "custom"
-                  ? gradeLabelByOrdinal.get(route.grade)
-                  : formatGrade(route.grade, gradingScale) ?? undefined
-                : undefined;
+            const gradeLabel = labelForGrade(route.grade);
             return (
               <SendGridTile
                 key={route.id}

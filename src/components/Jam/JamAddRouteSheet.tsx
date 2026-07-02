@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { FaFlag } from "react-icons/fa6";
 import { BottomSheet, Button, SheetBody, TabPills, ToggleRow } from "@/components/ui";
 import type { TabPillOption } from "@/components/ui";
-import { gradeLabels } from "@/lib/data/grade-label";
+import { gradeOptions } from "@/lib/data/grade-label";
 import type { JamGradingScale, JamRoute } from "@/lib/data/jam-types";
 import styles from "./jamAddRouteSheet.module.scss";
 
@@ -53,17 +53,14 @@ export function JamAddRouteSheet({
   const options = useMemo<TabPillOption<number | null>[]>(() => {
     if (pointsOnly) return [];
     const ungraded: TabPillOption<number | null> = { value: null, label: "Ungraded" };
-    if (gradingScale === "custom") {
-      return [ungraded, ...grades.map((g) => ({ value: g.ordinal, label: g.label }))];
-    }
-    const allLabels = gradeLabels(gradingScale, 30);
-    const lo = minGrade ?? 0;
-    const hi = maxGrade ?? allLabels.length - 1;
-    const result: TabPillOption<number | null>[] = [ungraded];
-    for (let i = lo; i <= hi; i++) {
-      if (allLabels[i]) result.push({ value: i, label: allLabels[i] });
-    }
-    return result;
+    return [
+      ungraded,
+      ...gradeOptions(gradingScale, {
+        customGrades: grades,
+        min: minGrade,
+        max: maxGrade,
+      }),
+    ];
   }, [pointsOnly, gradingScale, grades, minGrade, maxGrade]);
 
   function handleSubmit() {
