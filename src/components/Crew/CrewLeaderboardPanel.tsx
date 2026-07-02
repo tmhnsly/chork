@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { createBrowserSupabase } from "@/lib/supabase/client";
+import { useClientResource } from "@/hooks/use-client-resource";
 import { UserAvatar, shimmerStyles } from "@/components/ui";
 import {
   getCrewLeaderboard,
@@ -36,26 +37,14 @@ export function CrewLeaderboardPanel({
     initialSetId ?? liveSets[0]?.set_id ?? null,
   );
 
-  // Keyed cache — re-enters loading state on set change without
-  // tripping `set-state-in-effect`.
-  const [cache, setCache] = useState<{
-    key: string;
-    rows: CrewLeaderboardRow[];
-  } | null>(null);
-
-  const queryKey = `${crewId}|${selectedSetId ?? ""}`;
-  const rows = cache?.key === queryKey ? cache.rows : null;
-
-  useEffect(() => {
-    if (!selectedSetId) return;
-    let cancelled = false;
-    (async () => {
-      const supabase = createBrowserSupabase();
-      const data = await getCrewLeaderboard(supabase, crewId, selectedSetId);
-      if (!cancelled) setCache({ key: queryKey, rows: data });
-    })();
-    return () => { cancelled = true; };
-  }, [crewId, selectedSetId, queryKey]);
+  // Keyed fetch — re-enters loading state (rows === null) on set
+  // change without tripping `set-state-in-effect`. No live set ⇒
+  // disabled, skeleton stays up.
+  const { data: rows } = useClientResource<CrewLeaderboardRow[]>(
+    `${crewId}|${selectedSetId ?? ""}`,
+    () => getCrewLeaderboard(createBrowserSupabase(), crewId, selectedSetId!),
+    { enabled: selectedSetId !== null },
+  );
 
   return (
     <section className={styles.section} aria-label="Crew leaderboard">

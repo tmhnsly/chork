@@ -20,6 +20,7 @@ import { removePushSubscription } from "@/app/(app)/push-actions";
 import { unsubscribeDevice } from "./push/client";
 import { DEFAULT_THEME, setThemeStore } from "./theme-store";
 import { mutationQueue } from "./offline/mutation-queue";
+import { createLocalStorageStore } from "./local-storage-store";
 import type { Profile } from "./data/types";
 
 import { logger } from "@/lib/logger";
@@ -66,78 +67,27 @@ interface ProfileCacheEntry {
   cachedAt: number;
 }
 
-function readProfileCache(): ProfileCacheEntry | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(PROFILE_CACHE_KEY);
-    if (!raw) return null;
-    const entry = JSON.parse(raw) as ProfileCacheEntry;
-    if (!entry?.profile?.id) return null;
-    if (Date.now() - entry.cachedAt > PROFILE_CACHE_TTL_MS) return null;
-    return entry;
-  } catch {
-    return null;
-  }
-}
+// ── External store bridge for the localStorage cache ─────
+// `createLocalStorageStore` owns the whole contract: SSR-safe null
+// snapshot, per-raw-string memoisation (useSyncExternalStore needs
+// referentially stable snapshots), TTL + structural validation on
+// read, try/catch tolerance for blocked storage, and the same-tab
+// custom event ("chork-profile-cache") that the native `storage`
+// event — other tabs only — doesn't cover.
+const profileCacheStore = createLocalStorageStore<ProfileCacheEntry>(
+  PROFILE_CACHE_KEY,
+  {
+    eventName: "chork-profile-cache",
+    isValid: (entry) => !!entry?.profile?.id,
+    ttlMs: PROFILE_CACHE_TTL_MS,
+    timestampOf: (entry) => entry.cachedAt,
+  },
+);
 
 function writeProfileCache(profile: Profile | null, isAdmin: boolean): void {
-  if (typeof window === "undefined") return;
-  try {
-    if (!profile) {
-      window.localStorage.removeItem(PROFILE_CACHE_KEY);
-    } else {
-      const entry: ProfileCacheEntry = { profile, isAdmin, cachedAt: Date.now() };
-      window.localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify(entry));
-    }
-  } catch {
-    // localStorage can throw under quota / private mode — silently
-    // skip; bootstrap falls back to the network path.
-  }
-  // Cross-tab sync: notify in-tab subscribers (useSyncExternalStore's
-  // `subscribe` listens to this event). The native `storage` event
-  // fires for OTHER tabs only, not the one that wrote, so a
-  // hand-rolled event covers the same-tab case.
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new Event("chork-profile-cache"));
-  }
-}
-
-// ── External store bridge for the localStorage cache ─────
-// Using `useSyncExternalStore` keeps SSR + client-initial render
-// identical (both see `null` via `getServerSnapshot`) while post-
-// mount client renders see the cached entry via `getSnapshot`.
-// No setState-in-effect required to hydrate from localStorage.
-
-function subscribeToProfileCache(callback: () => void): () => void {
-  if (typeof window === "undefined") return () => {};
-  window.addEventListener("storage", callback);
-  window.addEventListener("chork-profile-cache", callback);
-  return () => {
-    window.removeEventListener("storage", callback);
-    window.removeEventListener("chork-profile-cache", callback);
-  };
-}
-
-// `useSyncExternalStore` expects reference equality for no-op ticks.
-// Memoise the parsed result per raw string so a re-read of the same
-// storage value returns the same object reference.
-let cachedRaw: string | null = null;
-let cachedEntry: ProfileCacheEntry | null = null;
-function getProfileCacheSnapshot(): ProfileCacheEntry | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(PROFILE_CACHE_KEY);
-    if (raw === cachedRaw) return cachedEntry;
-    cachedRaw = raw;
-    cachedEntry = raw ? readProfileCache() : null;
-    return cachedEntry;
-  } catch {
-    return null;
-  }
-}
-
-function getProfileCacheServerSnapshot(): null {
-  return null;
+  profileCacheStore.write(
+    profile ? { profile, isAdmin, cachedAt: Date.now() } : null,
+  );
 }
 
 interface AuthContextValue {
@@ -168,9 +118,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // in localStorage. No hydration mismatch, no setState-in-effect
   // for hydration.
   const cacheEntry = useSyncExternalStore(
-    subscribeToProfileCache,
-    getProfileCacheSnapshot,
-    getProfileCacheServerSnapshot,
+    profileCacheStore.subscribe,
+    profileCacheStore.getSnapshot,
+    profileCacheStore.getServerSnapshot,
   );
 
   // Local override state — holds values from the async bootstrap +

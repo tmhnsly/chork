@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { createBrowserSupabase } from "@/lib/supabase/client";
+import { useClientResource } from "@/hooks/use-client-resource";
 import { getCompetitionLeaderboard, type CompetitionLeaderboardRow } from "@/lib/data/competition-queries";
 import { UserAvatar, shimmerStyles, TabPills, type TabPillOption } from "@/components/ui";
 import { toAvatarUser } from "@/lib/data/leaderboard-helpers";
@@ -26,28 +27,14 @@ export function CompetitionLeaderboard({
   currentUserId,
 }: Props) {
   const [categoryId, setCategoryId] = useState<string | null>(null);
-  // Keyed cache: `queryKey` tags which filter the current rows belong
-  // to. When it doesn't match the live filter, we derive `rows = null`
-  // so the widget re-enters its loading state — avoids a synchronous
-  // `setState(null)` inside the effect, which trips Next 15's
-  // react-hooks/set-state-in-effect rule.
-  const [cache, setCache] = useState<{
-    queryKey: string;
-    rows: CompetitionLeaderboardRow[];
-  } | null>(null);
-
-  const queryKey = `${competitionId}|${categoryId ?? ""}`;
-  const rows = cache?.queryKey === queryKey ? cache.rows : null;
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const supabase = createBrowserSupabase();
-      const data = await getCompetitionLeaderboard(supabase, competitionId, categoryId);
-      if (!cancelled) setCache({ queryKey, rows: data });
-    })();
-    return () => { cancelled = true; };
-  }, [competitionId, categoryId, queryKey]);
+  // Keyed fetch — the hook derives the loading state (rows === null)
+  // from a key mismatch, so switching category re-enters the skeleton
+  // without any setState-in-effect dance.
+  const { data: rows } = useClientResource<CompetitionLeaderboardRow[]>(
+    `${competitionId}|${categoryId ?? ""}`,
+    () =>
+      getCompetitionLeaderboard(createBrowserSupabase(), competitionId, categoryId),
+  );
 
   const pills = useMemo<TabPillOption<string | null>[]>(() => {
     if (categories.length === 0) return [];

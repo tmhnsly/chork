@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { FaBolt, FaFlag } from "react-icons/fa6";
+import { createResourceCache, useClientResource } from "@/hooks/use-client-resource";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import {
   ClimberPeekHeader,
@@ -27,31 +27,10 @@ function tileStateFromSanitised(log: SanitisedLog | undefined): TileState {
 // Opening the same climber's sheet twice in a row shouldn't fire
 // two network requests. 30s TTL catches the common "tap to peek,
 // close, tap again" flow without serving stale data during a busy
-// session where climbers are logging sends.
-interface CacheEntry {
-  logs: SanitisedLog[];
-  at: number;
-}
-const CLIMBER_SHEET_TTL = 30_000;
-const climberSheetCache = new Map<string, CacheEntry>();
-
-function cacheKey(userId: string, setId: string): string {
-  return `${userId}:${setId}`;
-}
-
-function readCache(userId: string, setId: string): SanitisedLog[] | null {
-  const entry = climberSheetCache.get(cacheKey(userId, setId));
-  if (!entry) return null;
-  if (Date.now() - entry.at > CLIMBER_SHEET_TTL) {
-    climberSheetCache.delete(cacheKey(userId, setId));
-    return null;
-  }
-  return entry.logs;
-}
-
-function writeCache(userId: string, setId: string, logs: SanitisedLog[]): void {
-  climberSheetCache.set(cacheKey(userId, setId), { logs, at: Date.now() });
-}
+// session where climbers are logging sends. The hook seeds from
+// this module-level cache synchronously on mount, so a re-open
+// inside the TTL shows the grid instantly with no loading shimmer.
+const climberSheetCache = createResourceCache<SanitisedLog[]>({ ttlMs: 30_000 });
 
 interface Props {
   entry: LeaderboardEntry;
@@ -64,30 +43,18 @@ interface Props {
 }
 
 export function ClimberSheet({ entry, setId, routes, onClose }: Props) {
-  // Seed from cache synchronously so a re-open inside the TTL shows
-  // the grid instantly with no loading shimmer.
-  const cached = setId ? readCache(entry.user_id, setId) : null;
-  const [logs, setLogs] = useState<SanitisedLog[] | null>(cached);
-  const [loading, setLoading] = useState(setId !== null && cached === null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!setId) return;
-    if (readCache(entry.user_id, setId)) return; // fresh cache hit, skip fetch
-    let cancelled = false;
-    fetchClimberSheetLogs(entry.user_id, setId).then((result) => {
-      if (cancelled) return;
-      if ("error" in result) {
-        setError(result.error);
-        setLoading(false);
-        return;
-      }
-      writeCache(entry.user_id, setId, result.logs);
-      setLogs(result.logs);
-      setLoading(false);
-    });
-    return () => { cancelled = true; };
-  }, [entry.user_id, setId]);
+  const { data: logs, loading, error } = useClientResource<SanitisedLog[]>(
+    `${entry.user_id}:${setId ?? ""}`,
+    async () => {
+      // `enabled` guards the null case — setId is always set here.
+      const result = await fetchClimberSheetLogs(entry.user_id, setId!);
+      if ("error" in result) throw new Error(result.error);
+      return result.logs;
+    },
+    { enabled: setId !== null, cache: climberSheetCache },
+  );
+  const errorMessage =
+    error == null ? null : error instanceof Error ? error.message : String(error);
 
   const logByRoute = logs ? new Map(logs.map((l) => [l.route_id, l])) : null;
 
@@ -155,9 +122,9 @@ export function ClimberSheet({ entry, setId, routes, onClose }: Props) {
             })}
           </div>
         )}
-        {!loading && error && (
+        {!loading && errorMessage && (
           <p className={styles.empty}>
-            Couldn&apos;t load send grid. {error}
+            Couldn&apos;t load send grid. {errorMessage}
           </p>
         )}
         {setId && routes.length === 0 && (

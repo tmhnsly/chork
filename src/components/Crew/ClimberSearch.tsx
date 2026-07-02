@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { FaUserPlus, FaPlus, FaCheck } from "react-icons/fa6";
+import { useClientResource } from "@/hooks/use-client-resource";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { SearchField, SheetBody, UserAvatar, shimmerStyles, showToast } from "@/components/ui";
 import { createBrowserSupabase } from "@/lib/supabase/client";
@@ -44,34 +45,18 @@ export function ClimberSearch({ currentUserId, myCrews, onCreateCrew, autoFocus 
   // invoke transitions — only child components do via their own hook.
   const [pending, _startTransition] = useTransition();
 
-  // Keyed cache — tagging rows with the query they belong to lets us
-  // derive the loading state from a mismatch instead of calling
-  // setResults(null) inside the effect (Next 15 set-state-in-effect).
-  const [cache, setCache] = useState<{
-    key: string;
-    rows: UserSearchResult[];
-  } | null>(null);
-
   const q = query.trim();
   const queryKey = q.length >= 2 ? q : "";
-  const results = queryKey && cache?.key === queryKey ? cache.rows : null;
 
-  // Debounced search — fire 250ms after the last keystroke. Queries
+  // Debounced keyed search — fires 250ms after the last keystroke;
+  // loading derives from the key mismatch (results === null). Queries
   // under 2 chars never fire; the "start typing" empty state renders
-  // via queryKey === "".
-  useEffect(() => {
-    if (!queryKey) return;
-    let cancelled = false;
-    const t = window.setTimeout(async () => {
-      const supabase = createBrowserSupabase();
-      const rows = await searchClimbersForInvite(supabase, queryKey, currentUserId);
-      if (!cancelled) setCache({ key: queryKey, rows });
-    }, 250);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(t);
-    };
-  }, [queryKey, currentUserId]);
+  // via the disabled key "".
+  const { data: results, mutate } = useClientResource<UserSearchResult[]>(
+    queryKey,
+    (key) => searchClimbersForInvite(createBrowserSupabase(), key, currentUserId),
+    { enabled: queryKey !== "", debounceMs: 250 },
+  );
 
   const emptyState = useMemo(() => {
     if (query.trim().length < 2) return null;
@@ -124,17 +109,12 @@ export function ClimberSearch({ currentUserId, myCrews, onCreateCrew, autoFocus 
           onCreateCrew={onCreateCrew}
           onSent={() => {
             setActiveTarget(null);
-            setCache((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    rows: prev.rows.map((r) =>
-                      r.user_id === activeTarget.user_id
-                        ? { ...r, has_pending_invite: true }
-                        : r,
-                    ),
-                  }
-                : prev,
+            mutate((rows) =>
+              rows.map((r) =>
+                r.user_id === activeTarget.user_id
+                  ? { ...r, has_pending_invite: true }
+                  : r,
+              ),
             );
           }}
         />

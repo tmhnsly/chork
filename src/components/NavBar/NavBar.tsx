@@ -2,8 +2,8 @@
 
 import {
   useEffect,
-  useState,
   useCallback,
+  useMemo,
   useRef,
   useLayoutEffect,
   useSyncExternalStore,
@@ -24,42 +24,33 @@ import { ChorkMark } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { getPendingCrewInviteCount } from "@/lib/data/crew-queries";
+import { useClientResource } from "@/hooks/use-client-resource";
+import {
+  createLocalStorageStore,
+  type LocalStorageStore,
+} from "@/lib/local-storage-store";
 import styles from "./navBar.module.scss";
 
 // Badge acknowledgement is client-side only: a user seeing the Crew tab
 // clears the badge until a NEW invite arrives past the acknowledged
 // count. Persisted in localStorage keyed by userId so multi-account
-// usage on one device stays correct.
+// usage on one device stays correct. The store bridges localStorage
+// into useSyncExternalStore — `storage` covers other tabs, the custom
+// "chork-crew-ack" event covers same-tab writes.
 const CREW_ACK_KEY_PREFIX = "chork-crew-invites-ack:";
 
-// useSyncExternalStore-friendly read of the acknowledged invite count.
-// Subscribes to the `storage` event so changes from other tabs propagate,
-// and dispatches a synthetic event when we write from this tab.
-function subscribeToStorage(callback: () => void): () => void {
-  window.addEventListener("storage", callback);
-  window.addEventListener("chork-crew-ack", callback);
-  return () => {
-    window.removeEventListener("storage", callback);
-    window.removeEventListener("chork-crew-ack", callback);
-  };
-}
-
-function writeAckCount(userId: string, value: number): void {
-  try {
-    window.localStorage.setItem(CREW_ACK_KEY_PREFIX + userId, String(value));
-  } catch {
-    // localStorage may be blocked — noop
+const ackStores = new Map<string, LocalStorageStore<number>>();
+function getAckStore(userId: string): LocalStorageStore<number> {
+  let store = ackStores.get(userId);
+  if (!store) {
+    store = createLocalStorageStore<number>(CREW_ACK_KEY_PREFIX + userId, {
+      eventName: "chork-crew-ack",
+      parse: (raw) => Number.parseInt(raw, 10) || 0,
+      serialize: String,
+    });
+    ackStores.set(userId, store);
   }
-  window.dispatchEvent(new Event("chork-crew-ack"));
-}
-
-function readAckCount(userId: string): number {
-  try {
-    const stored = window.localStorage.getItem(CREW_ACK_KEY_PREFIX + userId);
-    return stored ? Number.parseInt(stored, 10) || 0 : 0;
-  } catch {
-    return 0;
-  }
+  return store;
 }
 
 // Sliding pill highlight: measures whichever tab carries
@@ -228,14 +219,15 @@ function AuthenticatedNav({
 
   // Acknowledged count is read from localStorage via an external
   // store — avoids setState-in-effect warnings and keeps multi-tab
-  // acks in sync through the `storage` event.
-  const ackCount = useSyncExternalStore(
-    subscribeToStorage,
-    () => readAckCount(userId),
-    () => 0 // server snapshot — badge is invisible during SSR
-  );
-
-  const [pendingCount, setPendingCount] = useState<number>(0);
+  // acks in sync through the `storage` event. Server snapshot is
+  // null (badge invisible during SSR).
+  const ackStore = useMemo(() => getAckStore(userId), [userId]);
+  const ackCount =
+    useSyncExternalStore(
+      ackStore.subscribe,
+      ackStore.getSnapshot,
+      ackStore.getServerSnapshot,
+    ) ?? 0;
 
   // Pull the live pending-invite count. We re-fetch on initial mount
   // and whenever the user lands on / leaves the /crew route — those
@@ -243,21 +235,17 @@ function AuthenticatedNav({
   // change (they either accept / decline, or a new invite has been
   // queued while they were off-tab). Re-firing on every page nav
   // (home → leaderboard → profile) was wasted Supabase bandwidth.
+  // `keepPreviousData` keeps the last count showing while a route
+  // change refetches, so the badge never flashes to zero. Data access
+  // goes through the lib/data/ helper (CLAUDE.md); the browser client
+  // is created in the fetcher because NavBar is "use client".
   const isOnCrew = pathname.startsWith("/crew");
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      // Data access goes through the lib/data/ helper rather than
-      // direct supabase chains in components (CLAUDE.md). The browser
-      // client is created here because NavBar is "use client" — the
-      // helper is structural and accepts whichever client the caller
-      // passes.
-      const supabase = createBrowserSupabase();
-      const count = await getPendingCrewInviteCount(supabase, userId);
-      if (!cancelled) setPendingCount(count);
-    })();
-    return () => { cancelled = true; };
-  }, [userId, isOnCrew]);
+  const { data: pendingData } = useClientResource<number>(
+    `crew-invites|${userId}|${isOnCrew}`,
+    () => getPendingCrewInviteCount(createBrowserSupabase(), userId),
+    { keepPreviousData: true },
+  );
+  const pendingCount = pendingData ?? 0;
 
   // When the user lands on /crew, flush the acknowledgement to match
   // the current pending count. Any new invites after this point will
@@ -265,8 +253,8 @@ function AuthenticatedNav({
   const ackIfOnCrew = useCallback(() => {
     if (!crewActive) return;
     if (pendingCount === ackCount) return;
-    writeAckCount(userId, pendingCount);
-  }, [crewActive, pendingCount, ackCount, userId]);
+    ackStore.write(pendingCount);
+  }, [crewActive, pendingCount, ackCount, ackStore]);
 
   useEffect(() => { ackIfOnCrew(); }, [ackIfOnCrew]);
 

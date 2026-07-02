@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useClientResource } from "@/hooks/use-client-resource";
 import { FaMagnifyingGlass, FaCheck } from "react-icons/fa6";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { SheetBody, shimmerStyles, showToast } from "@/components/ui";
@@ -42,29 +43,28 @@ interface Props {
 export function GymSwitcherSheet({ open, onClose, activeGymId }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [gyms, setGyms] = useState<GymListing[] | null>(null);
   const [query, setQuery] = useState("");
 
-  useEffect(() => {
-    if (!open || gyms !== null) return;
-    let cancelled = false;
-    (async () => {
+  // Fetch once on first open; the settled result is kept for the
+  // session (constant key ⇒ never refetched). Errors degrade to an
+  // empty list inside the fetcher, exactly as before.
+  const { data: gyms } = useClientResource<GymListing[]>(
+    "gym-listings",
+    async () => {
       const supabase = createBrowserSupabase();
       const { data, error } = await supabase
         .from("gyms")
         .select("id, name, slug, city, country")
         .eq("is_listed", true)
         .order("name");
-      if (cancelled) return;
       if (error) {
         logger.warn("gym_listing_failed", { err: formatErrorForLog(error) });
-        setGyms([]);
-        return;
+        return [];
       }
-      setGyms(data ?? []);
-    })();
-    return () => { cancelled = true; };
-  }, [open, gyms]);
+      return data ?? [];
+    },
+    { enabled: open },
+  );
 
   const filtered = useMemo(() => {
     if (!gyms) return null;
