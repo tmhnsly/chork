@@ -1,6 +1,5 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   FaBell,
@@ -28,18 +27,8 @@ import { InstallPwaSheet } from "@/components/InstallPwa/InstallPwaSheet";
 /* eslint-enable no-restricted-imports */
 import { useAuth } from "@/lib/auth-context";
 import { useTheme, THEME_META, type ThemeName } from "@/lib/theme";
-import { savePushSubscription, removePushSubscription } from "@/app/(app)/push-actions";
-import { setAllowCrewInvites } from "@/app/crew/actions";
-import { updatePushCategory, type PushCategoryKey } from "@/lib/user-actions";
-import {
-  isStandalonePwa,
-  pushSupported,
-  readPushStatus,
-  subscribeDevice,
-  unsubscribeDevice,
-  type PushStatus,
-} from "@/lib/push/client";
-import { showToast } from "@/components/ui";
+import type { PushCategoryKey } from "@/lib/user-actions";
+import { useSettingsState } from "./useSettingsState";
 import styles from "./settingsSheet.module.scss";
 
 interface Props {
@@ -55,122 +44,25 @@ interface Props {
  *
  * Admin entry moved out: admins see an Admin tab in the bottom nav
  * (NavBar) instead of a row buried in this sheet.
+ *
+ * All local state (sub-panel routing + optimistic toggle mirrors)
+ * lives in `useSettingsState` / `settingsReducer` — this component
+ * is JSX + prop bridging only.
  */
 export function SettingsSheet({ open, onClose }: Props) {
   const { profile, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
 
-  const [editOpen, setEditOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [gymSwitcherOpen, setGymSwitcherOpen] = useState(false);
-  const [installSheetOpen, setInstallSheetOpen] = useState(false);
-  const [themeOpen, setThemeOpen] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
-
-  // Per-category opt-in flags. Seed from profile + mirror optimistic
-  // toggles locally so taps respond instantly.
-  const [notifFlags, setNotifFlags] = useState<Record<PushCategoryKey, boolean>>({
-    invite_received: profile?.push_invite_received ?? true,
-    invite_accepted: profile?.push_invite_accepted ?? true,
-    ownership_changed: profile?.push_ownership_changed ?? true,
-  });
-  const [lastNotifProfile, setLastNotifProfile] = useState<string | null>(
-    profile ? notifSignature(profile) : null,
-  );
-  if (profile) {
-    const sig = notifSignature(profile);
-    if (sig !== lastNotifProfile) {
-      setLastNotifProfile(sig);
-      setNotifFlags({
-        invite_received: profile.push_invite_received,
-        invite_accepted: profile.push_invite_accepted,
-        ownership_changed: profile.push_ownership_changed,
-      });
-    }
-  }
-
-  const [allowInvites, setAllowInvites] = useState<boolean>(
-    profile?.allow_crew_invites ?? true,
-  );
-  const [lastProfileFlag, setLastProfileFlag] = useState<boolean | null>(
-    profile?.allow_crew_invites ?? null,
-  );
-  if (profile && profile.allow_crew_invites !== lastProfileFlag) {
-    setLastProfileFlag(profile.allow_crew_invites);
-    setAllowInvites(profile.allow_crew_invites);
-  }
-
-  const [pushStatus, setPushStatus] = useState<PushStatus | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    readPushStatus().then((s) => { if (!cancelled) setPushStatus(s); });
-    return () => { cancelled = true; };
-  }, []);
-
-  const handleToggleAllowInvites = useCallback(async () => {
-    const next = !allowInvites;
-    setAllowInvites(next);
-    const res = await setAllowCrewInvites(next);
-    if ("error" in res) {
-      setAllowInvites(!next);
-      showToast(res.error, "error");
-      return;
-    }
-    showToast(next ? "Crew invites on" : "Crew invites off", "info");
-  }, [allowInvites]);
-
-  const handleTogglePush = useCallback(async () => {
-    if (pushStatus !== "subscribed" && !isStandalonePwa()) {
-      setInstallSheetOpen(true);
-      return;
-    }
-    if (pushStatus === "subscribed") {
-      const { endpoint } = await unsubscribeDevice();
-      if (endpoint) {
-        const res = await removePushSubscription(endpoint);
-        if ("error" in res) {
-          showToast(res.error, "error");
-          return;
-        }
-      }
-      setPushStatus("granted");
-      showToast("Notifications off", "info");
-      return;
-    }
-
-    const result = await subscribeDevice();
-    if ("error" in result) {
-      showToast(result.error, "error");
-      return;
-    }
-    const res = await savePushSubscription(result);
-    if ("error" in res) {
-      showToast(res.error, "error");
-      return;
-    }
-    setPushStatus("subscribed");
-    showToast("Notifications on", "success");
-  }, [pushStatus]);
-
-  const handleToggleNotif = useCallback(
-    async (category: PushCategoryKey) => {
-      const next = !notifFlags[category];
-      setNotifFlags((prev) => ({ ...prev, [category]: next }));
-      const res = await updatePushCategory(category, next);
-      if ("error" in res) {
-        setNotifFlags((prev) => ({ ...prev, [category]: !next }));
-        showToast(res.error, "error");
-      }
-    },
-    [notifFlags],
-  );
-
-  const pushMenuVisible =
-    pushSupported() &&
-    pushStatus !== null &&
-    pushStatus !== "unsupported" &&
-    pushStatus !== "denied";
+  const {
+    state,
+    pushMenuVisible,
+    openPanel,
+    closePanel,
+    handleToggleAllowInvites,
+    handleTogglePush,
+    handleToggleNotif,
+  } = useSettingsState(profile);
+  const { activePanel, allowInvites, notifFlags, pushStatus } = state;
 
   return (
     <>
@@ -179,7 +71,7 @@ export function SettingsSheet({ open, onClose }: Props) {
           <button
             type="button"
             className={styles.item}
-            onClick={() => setEditOpen(true)}
+            onClick={() => openPanel("edit")}
           >
             <FaPen aria-hidden className={styles.icon} />
             <span className={styles.label}>Edit profile</span>
@@ -188,7 +80,7 @@ export function SettingsSheet({ open, onClose }: Props) {
           <button
             type="button"
             className={styles.item}
-            onClick={() => setGymSwitcherOpen(true)}
+            onClick={() => openPanel("gym-switcher")}
           >
             <FaRightLeft aria-hidden className={styles.icon} />
             <span className={styles.label}>Change gym</span>
@@ -230,7 +122,7 @@ export function SettingsSheet({ open, onClose }: Props) {
             <button
               type="button"
               className={styles.item}
-              onClick={() => setNotifOpen(true)}
+              onClick={() => openPanel("notifications")}
             >
               <FaBell aria-hidden className={styles.icon} />
               <span className={styles.label}>Notifications</span>
@@ -241,7 +133,7 @@ export function SettingsSheet({ open, onClose }: Props) {
           <button
             type="button"
             className={styles.item}
-            onClick={() => setThemeOpen(true)}
+            onClick={() => openPanel("theme")}
           >
             <FaPalette aria-hidden className={styles.icon} />
             <span className={styles.label}>Theme</span>
@@ -274,7 +166,7 @@ export function SettingsSheet({ open, onClose }: Props) {
           <button
             type="button"
             className={`${styles.item} ${styles.itemDanger}`}
-            onClick={() => setDeleteOpen(true)}
+            onClick={() => openPanel("delete")}
           >
             <FaTrash aria-hidden className={styles.icon} />
             <span className={styles.label}>Delete account</span>
@@ -283,8 +175,8 @@ export function SettingsSheet({ open, onClose }: Props) {
       </BottomSheet>
 
       <BottomSheet
-        open={notifOpen}
-        onClose={() => setNotifOpen(false)}
+        open={activePanel === "notifications"}
+        onClose={closePanel}
         title="Notifications"
         description="Pick which pushes you'd like to receive"
       >
@@ -307,8 +199,8 @@ export function SettingsSheet({ open, onClose }: Props) {
       </BottomSheet>
 
       <BottomSheet
-        open={themeOpen}
-        onClose={() => setThemeOpen(false)}
+        open={activePanel === "theme"}
+        onClose={closePanel}
         title="Theme"
       >
         <div className={styles.list}>
@@ -346,21 +238,21 @@ export function SettingsSheet({ open, onClose }: Props) {
         <>
           <EditProfileDialog
             user={profile}
-            open={editOpen}
-            onOpenChange={setEditOpen}
+            open={activePanel === "edit"}
+            onOpenChange={(o) => (o ? openPanel("edit") : closePanel())}
           />
           <DeleteAccountDialog
-            open={deleteOpen}
-            onOpenChange={setDeleteOpen}
+            open={activePanel === "delete"}
+            onOpenChange={(o) => (o ? openPanel("delete") : closePanel())}
           />
           <GymSwitcherSheet
-            open={gymSwitcherOpen}
-            onClose={() => setGymSwitcherOpen(false)}
+            open={activePanel === "gym-switcher"}
+            onClose={closePanel}
             activeGymId={profile.active_gym_id ?? null}
           />
           <InstallPwaSheet
-            open={installSheetOpen}
-            onClose={() => setInstallSheetOpen(false)}
+            open={activePanel === "install"}
+            onClose={closePanel}
           />
         </>
       )}
@@ -368,26 +260,8 @@ export function SettingsSheet({ open, onClose }: Props) {
   );
 }
 
-// ── Local helpers ──────────────────────────────────────
-// Three-bool signature of the current profile's notification prefs
-// — used to detect when a profile refresh should reseed the local
-// optimistic flags without reaching for a useEffect.
-interface NotifProfile {
-  push_invite_received: boolean;
-  push_invite_accepted: boolean;
-  push_ownership_changed: boolean;
-}
-function notifSignature(p: NotifProfile): string {
-  return [
-    p.push_invite_received,
-    p.push_invite_accepted,
-    p.push_ownership_changed,
-  ].join("|");
-}
-
 const NOTIF_ROWS: { category: PushCategoryKey; label: string }[] = [
   { category: "invite_received", label: "New crew invite" },
   { category: "invite_accepted", label: "Invite accepted" },
   { category: "ownership_changed", label: "Made crew creator" },
 ];
-

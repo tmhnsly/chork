@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useReducer, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
   FaPlus,
@@ -20,6 +20,13 @@ import { gradeLabels } from "@/lib/data/grade-label";
 import type { JamGradingScale, SavedScale } from "@/lib/data/jam-types";
 import { createJamAction } from "@/app/jam/actions";
 import { JAM_SCALE_LABEL } from "./jam-scale-label";
+import {
+  buildCreateJamPayload,
+  canSubmit as deriveCanSubmit,
+  createJamReducer,
+  initialCreateJamState,
+  MAX_CUSTOM_GRADES,
+} from "./createJamReducer";
 import styles from "./createJamForm.module.scss";
 
 interface Props {
@@ -42,58 +49,35 @@ export function CreateJamForm({ savedScales }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
-  const [name, setName] = useState("");
-  const [location, setLocation] = useState("");
-  const [scale, setScale] = useState<ScaleTab>("v");
+  // All form state lives in the pure reducer — `scale` is the
+  // state-machine key, and canSubmit / the submit payload derive
+  // from state in ONE place (createJamReducer.ts).
+  const [state, dispatch] = useReducer(
+    createJamReducer,
+    undefined,
+    initialCreateJamState,
+  );
+  const {
+    name,
+    location,
+    scale,
+    vRange,
+    fontRange,
+    customGrades,
+    newGradeInput,
+    saveScale,
+    scaleName,
+  } = state;
 
-  // V / Font — stored as numeric index. Default to a common range
-  // (V0→V8 or 3→7A) so climbers can move on without thinking.
-  const [vRange, setVRange] = useState<[number, number]>([0, 8]);
-  const [fontRange, setFontRange] = useState<[number, number]>([0, 10]);
-
-  // Custom grades — ordered easiest→hardest. Add via the input, drag-
-  // free reorder via the arrow buttons (no library, no drag handlers).
-  const [customGrades, setCustomGrades] = useState<string[]>([]);
-  const [newGradeInput, setNewGradeInput] = useState("");
-  const [saveScale, setSaveScale] = useState(false);
-  const [scaleName, setScaleName] = useState("");
-
-  const canSubmit = useMemo(() => {
-    if (pending) return false;
-    if (scale === "custom") return customGrades.length > 0;
-    // v / font / points — no extra validation beyond the picker.
-    return true;
-  }, [pending, scale, customGrades.length]);
+  const canSubmit = deriveCanSubmit(state, pending);
 
   function addCustomGrade() {
-    const label = newGradeInput.trim();
-    if (!label) return;
-    if (customGrades.length >= 50) {
+    if (!newGradeInput.trim()) return;
+    if (customGrades.length >= MAX_CUSTOM_GRADES) {
       showToast("Max 50 grades", "error");
       return;
     }
-    setCustomGrades((prev) => [...prev, label]);
-    setNewGradeInput("");
-  }
-
-  function removeCustomGrade(index: number) {
-    setCustomGrades((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  function moveCustomGrade(index: number, delta: number) {
-    setCustomGrades((prev) => {
-      const target = index + delta;
-      if (target < 0 || target >= prev.length) return prev;
-      const next = [...prev];
-      [next[index], next[target]] = [next[target], next[index]];
-      return next;
-    });
-  }
-
-  function applySavedScale(saved: SavedScale) {
-    setCustomGrades(saved.grades.map((g) => g.label));
-    setScaleName(saved.name);
-    setSaveScale(false);
+    dispatch({ type: "add-grade" });
   }
 
   function handleSubmit(e: React.FormEvent) {
@@ -101,18 +85,7 @@ export function CreateJamForm({ savedScales }: Props) {
     if (!canSubmit) return;
 
     startTransition(async () => {
-      const result = await createJamAction({
-        name: name.trim() || null,
-        location: location.trim() || null,
-        gradingScale: scale,
-        minGrade: scale === "v" ? vRange[0] : scale === "font" ? fontRange[0] : null,
-        maxGrade: scale === "v" ? vRange[1] : scale === "font" ? fontRange[1] : null,
-        customGrades: scale === "custom" ? customGrades : null,
-        saveScaleName:
-          scale === "custom" && saveScale && scaleName.trim()
-            ? scaleName.trim()
-            : null,
-      });
+      const result = await createJamAction(buildCreateJamPayload(state));
       if ("error" in result) {
         showToast(result.error, "error");
         return;
@@ -132,7 +105,7 @@ export function CreateJamForm({ savedScales }: Props) {
           value={name}
           maxLength={80}
           placeholder="e.g. Friday sesh"
-          onChange={(e) => setName(e.target.value)}
+          onChange={(e) => dispatch({ type: "set-name", value: e.target.value })}
         />
       </label>
 
@@ -144,7 +117,9 @@ export function CreateJamForm({ savedScales }: Props) {
           value={location}
           maxLength={120}
           placeholder="e.g. Fontainebleau, The garage"
-          onChange={(e) => setLocation(e.target.value)}
+          onChange={(e) =>
+            dispatch({ type: "set-location", value: e.target.value })
+          }
         />
       </label>
 
@@ -154,7 +129,7 @@ export function CreateJamForm({ savedScales }: Props) {
         <SegmentedControl<ScaleTab>
           options={SCALE_OPTIONS}
           value={scale}
-          onChange={setScale}
+          onChange={(next) => dispatch({ type: "set-scale", scale: next })}
           ariaLabel="Grading scale"
         />
         {scale === "points" && (
@@ -172,7 +147,7 @@ export function CreateJamForm({ savedScales }: Props) {
             labels={V_LABELS}
             min={vRange[0]}
             max={vRange[1]}
-            onChange={(min, max) => setVRange([min, max])}
+            onChange={(min, max) => dispatch({ type: "set-v-range", min, max })}
           />
         </fieldset>
       )}
@@ -183,7 +158,9 @@ export function CreateJamForm({ savedScales }: Props) {
             labels={FONT_LABELS}
             min={fontRange[0]}
             max={fontRange[1]}
-            onChange={(min, max) => setFontRange([min, max])}
+            onChange={(min, max) =>
+              dispatch({ type: "set-font-range", min, max })
+            }
           />
         </fieldset>
       )}
@@ -197,7 +174,7 @@ export function CreateJamForm({ savedScales }: Props) {
                   key={s.id}
                   type="button"
                   className={styles.savedPill}
-                  onClick={() => applySavedScale(s)}
+                  onClick={() => dispatch({ type: "apply-saved-scale", saved: s })}
                 >
                   {s.name}
                 </button>
@@ -212,7 +189,9 @@ export function CreateJamForm({ savedScales }: Props) {
               value={newGradeInput}
               maxLength={40}
               placeholder="e.g. Red Circuit"
-              onChange={(e) => setNewGradeInput(e.target.value)}
+              onChange={(e) =>
+                dispatch({ type: "set-new-grade-input", value: e.target.value })
+              }
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
@@ -245,7 +224,9 @@ export function CreateJamForm({ savedScales }: Props) {
                       <button
                         type="button"
                         className={styles.gradeIconBtn}
-                        onClick={() => moveCustomGrade(i, -1)}
+                        onClick={() =>
+                          dispatch({ type: "move-grade", index: i, delta: -1 })
+                        }
                         disabled={i === 0}
                         aria-label="Move up"
                       >
@@ -254,7 +235,9 @@ export function CreateJamForm({ savedScales }: Props) {
                       <button
                         type="button"
                         className={styles.gradeIconBtn}
-                        onClick={() => moveCustomGrade(i, 1)}
+                        onClick={() =>
+                          dispatch({ type: "move-grade", index: i, delta: 1 })
+                        }
                         disabled={i === customGrades.length - 1}
                         aria-label="Move down"
                       >
@@ -263,7 +246,9 @@ export function CreateJamForm({ savedScales }: Props) {
                       <button
                         type="button"
                         className={styles.gradeIconBtn}
-                        onClick={() => removeCustomGrade(i)}
+                        onClick={() =>
+                          dispatch({ type: "remove-grade", index: i })
+                        }
                         aria-label="Remove"
                       >
                         <FaXmark aria-hidden />
@@ -277,7 +262,9 @@ export function CreateJamForm({ savedScales }: Props) {
                 title="Save this scale"
                 detail="Reuse it next jam without re-entering the grades."
                 checked={saveScale}
-                onChange={setSaveScale}
+                onChange={(checked) =>
+                  dispatch({ type: "set-save-scale", value: checked })
+                }
               />
 
               {saveScale && (
@@ -289,7 +276,9 @@ export function CreateJamForm({ savedScales }: Props) {
                     value={scaleName}
                     maxLength={40}
                     placeholder="e.g. The garage board"
-                    onChange={(e) => setScaleName(e.target.value)}
+                    onChange={(e) =>
+                      dispatch({ type: "set-scale-name", value: e.target.value })
+                    }
                     required
                   />
                 </label>
