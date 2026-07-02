@@ -1,6 +1,7 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
 @use "mixins/input" as input;
+@use "mixins/collapse";
 
 // Shell (overlay, content panel, handle, drag) lives in BottomSheet.
 // This module only owns route-log-specific content styles.
@@ -90,7 +91,10 @@
 .controls {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  // No flex gap — the zone-hold row and grade slider live inside
+  // animated `.collapse` wrappers, and a gap around a zero-height
+  // wrapper would leave dead space. Spacing comes from the
+  // `.collapseInnerPad*` modifiers inside the animated content.
   padding-bottom: var(--space-3);
   flex-shrink: 0;
 }
@@ -129,23 +133,20 @@
   transform: rotate(180deg);
 }
 
-// Animated drawer. Switched from `grid-template-rows: 0fr → 1fr`
-// to `height: 0 → auto` under `interpolate-size: allow-keywords`
-// (set on :root in globals). Chrome's layout engine composites the
-// latter much more cheaply — grid recalc per frame was what made
-// this drawer noticeably laggy on first open.
+// Animated drawer. Cross-browser strategy (grid-rows baseline for
+// iOS Safari, `interpolate-size` height upgrade for Chromium) lives
+// in `mixins/_collapse.scss` — never inline a bare `height: 0 →
+// auto` transition; without interpolate-size it snaps.
 .betaDrawer {
-  height: 0;
-  overflow: hidden;
-  transition: height var(--duration-normal) var(--ease-out);
+  @include collapse.root;
 }
 
 .betaDrawerOpen {
-  height: auto;
+  @include collapse.open;
 }
 
 .betaDrawerInner {
-  // No longer needed as a grid child, but kept for visual grouping.
+  @include collapse.inner;
 }
 
 .betaContent {
@@ -171,20 +172,19 @@
   color: var(--mono-solid);
 }
 
-// Post-beta form sits below the drawer. Same `height: 0 → auto`
-// trick as the beta drawer above.
+// Post-beta form sits below the drawer. Same collapse mixin as the
+// drawer above. (The zone-hold row and grade slider use the shared
+// `ui/Collapse` component for the identical pattern.)
 .postFormWrap {
-  height: 0;
-  overflow: hidden;
-  transition: height var(--duration-normal) var(--ease-out);
+  @include collapse.root;
 }
 
 .postFormVisible {
-  height: auto;
+  @include collapse.open;
 }
 
 .postFormInner {
-  // Placeholder — kept for structural symmetry, no style needed.
+  @include collapse.inner;
 }
 
 .postFormWrap .commentForm {

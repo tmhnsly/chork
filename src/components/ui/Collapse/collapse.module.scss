@@ -1,0 +1,21 @@
+@use "mixins/collapse";
+
+.root {
+  @include collapse.root;
+}
+
+.open {
+  @include collapse.open;
+}
+
+.inner {
+  @include collapse.inner;
+}
+
+.padTop {
+  padding-top: var(--space-3);
+}
+
+.padBottom {
+  padding-bottom: var(--space-3);
+}

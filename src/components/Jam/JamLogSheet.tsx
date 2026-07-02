@@ -7,6 +7,7 @@ import {
   AttemptCounter,
   BottomSheet,
   Button,
+  Collapse,
   CompletedRow,
   LogSheetHeader,
   SheetActions,
@@ -15,7 +16,7 @@ import {
 } from "@/components/ui";
 import { BrandDivider } from "@/components/ui/BrandDivider";
 import { useDebouncedFlush } from "@/hooks/use-debounced-flush";
-import { formatGrade } from "@/lib/data/grade-label";
+import { makeGradeLabeller } from "@/lib/data/grade-label";
 import type { JamRoute, JamLog, JamGradingScale } from "@/lib/data/jam-types";
 import styles from "./jamLogSheet.module.scss";
 
@@ -119,13 +120,10 @@ export function JamLogSheet({
   // prop into state inside an effect and the rare drift isn't
   // worth the keyed-cache gymnastics.
 
-  const gradeLabel = useMemo(() => {
-    if (route.grade === null || route.grade === undefined) return null;
-    if (gradingScale === "custom") {
-      return grades.find((g) => g.ordinal === route.grade)?.label ?? null;
-    }
-    return formatGrade(route.grade, gradingScale);
-  }, [route.grade, gradingScale, grades]);
+  const gradeLabel = useMemo(
+    () => makeGradeLabeller(gradingScale, grades)(route.grade),
+    [route.grade, gradingScale, grades],
+  );
 
   // What the climber would earn if they completed at this attempt
   // count right now (the "Send now → N pts" preview). The actual
@@ -234,12 +232,18 @@ export function JamLogSheet({
         />
 
         <div className={styles.controls}>
-          {route.has_zone && !completed && (
-            <ZoneHoldRow
-              checked={zone}
-              onCheckedChange={handleZoneToggle}
-              hasAttempts={attempts > 0}
-            />
+          {/* Kept mounted inside an animated collapse (inert while
+              closed) so completing animates the swap instead of
+              unmounting the row in place — same fix as the gym
+              RouteLogSheet. */}
+          {route.has_zone && (
+            <Collapse open={!completed} padBottom>
+              <ZoneHoldRow
+                checked={zone}
+                onCheckedChange={handleZoneToggle}
+                hasAttempts={attempts > 0}
+              />
+            </Collapse>
           )}
 
           {completed ? (

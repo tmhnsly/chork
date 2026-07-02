@@ -1,0 +1,53 @@
+// Animated expand/collapse for content of unknown height.
+//
+// Baseline is the `grid-template-rows: 0fr → 1fr` trick — it
+// interpolates on every modern engine, including iOS Safari, which
+// is Chork's primary PWA platform. Under
+// `interpolate-size: allow-keywords` (Chromium-only today, set on
+// :root in `app/body.scss`) we upgrade to `height: 0 → auto`,
+// which Chrome composites much more cheaply — per-frame grid recalc
+// made the beta drawer noticeably laggy on first open.
+//
+// The height trick must NEVER ship as the only path: without
+// interpolate-size a `height` transition to `auto` doesn't
+// interpolate at all, the content snaps, and the snap reads as a
+// layout jump (this exact bug shipped in the route-completion flow).
+//
+// Usage — a wrapper element and exactly one inner element:
+//   .drawer       { @include collapse.root; }
+//   .drawerOpen   { @include collapse.open; }
+//   .drawerInner  { @include collapse.inner; }
+// Spacing between the collapsible row and its siblings belongs
+// INSIDE the inner element (padding), never as parent flex `gap` —
+// a gap around a zero-height wrapper leaves dead space behind.
+
+@mixin root($duration: var(--duration-normal), $ease: var(--ease-out)) {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows $duration $ease;
+
+  @supports (interpolate-size: allow-keywords) {
+    display: block;
+    height: 0;
+    overflow: hidden;
+    transition: height $duration $ease;
+  }
+}
+
+@mixin open {
+  grid-template-rows: 1fr;
+
+  @supports (interpolate-size: allow-keywords) {
+    height: auto;
+  }
+}
+
+@mixin inner {
+  min-height: 0;
+  overflow: hidden;
+
+  @supports (interpolate-size: allow-keywords) {
+    min-height: initial;
+    overflow: visible;
+  }
+}

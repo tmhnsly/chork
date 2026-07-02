@@ -6,6 +6,7 @@ export { Banner } from "./Banner";
 export { Button } from "./Button";
 export { ClimberPeekHeader } from "./ClimberPeek/ClimberPeekHeader";
 export { LinkButton } from "./LinkButton";
+export { Collapse } from "./Collapse/Collapse";
 export { ConfirmInline } from "./ConfirmInline";
 export { HorizontalScroller } from "./HorizontalScroller";
 export { SheetActions } from "./SheetActions";

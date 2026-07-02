@@ -96,8 +96,11 @@ export function CommentThread({
   // in after the sheet's first paint — see the historical comment in
   // RouteLogSheet for the regression this prevents.
   const commentsReady = commentsLoaded && !loadingComments;
+  // Deliberately NOT gated on betaExpanded: the natural flow is
+  // "read the existing beta, then add yours" — hiding the form the
+  // moment the drawer opened forced a collapse-first detour.
   const showPostForm =
-    commentsReady && isCompleted && setActive && !hasOwnComment && !betaExpanded;
+    commentsReady && isCompleted && setActive && !hasOwnComment;
 
   async function handlePostSubmit() {
     if (!navigator.onLine) {
@@ -246,6 +249,12 @@ export function CommentThread({
               onChange={(e) => setCommentBody(e.target.value)}
               disabled={posting || !showPostForm}
               tabIndex={showPostForm ? 0 : -1}
+              // Server rejects >500 chars (comment-actions) — stop the
+              // climber at the same bound instead of erroring on post.
+              maxLength={500}
+              enterKeyHint="send"
+              autoComplete="off"
+              autoCapitalize="sentences"
             />
             <button
               type="submit"

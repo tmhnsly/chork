@@ -10,7 +10,9 @@
 .controls {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  // No flex gap — the zone row sits inside a `ui/Collapse`, and a
+  // gap around a zero-height wrapper leaves dead space. Its spacing
+  // comes from the Collapse `padBottom` inside the animated content.
   padding-bottom: var(--space-3);
   flex-shrink: 0;
 }

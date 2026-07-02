@@ -172,7 +172,17 @@ export function useRouteLogState({
   });
 
   // ── Initial hydrate (grade + comments + likedIds) ──
+  // One-shot per route. `cachedData` changes identity again while the
+  // sheet is open (our own fetch writes back through onCacheRouteData,
+  // and the grade-vote flush refreshes the cache) — re-running the
+  // hydrate then would REPLACE the live comment thread: pagination
+  // collapses back to page 1, optimistic likes revert, and the beta
+  // drawer visibly flashes. The cache write is for the NEXT open of
+  // this route, never a live replace of the current one.
+  const hydratedRouteRef = useRef<string | null>(null);
   useEffect(() => {
+    if (hydratedRouteRef.current === route.id) return;
+    hydratedRouteRef.current = route.id;
     if (cachedData) {
       dispatch({ type: "hydrate-route-data", data: cachedData, gradingScale });
       return;

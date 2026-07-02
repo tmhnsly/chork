@@ -4,6 +4,7 @@ import { PointsPreview } from "./PointsPreview";
 import { CommentThread } from "./CommentThread";
 import {
   AttemptCounter,
+  Collapse,
   CompletedRow,
   LogSheetHeader,
   ZoneHoldRow,
@@ -127,16 +128,20 @@ export function RouteLogSheet({
       />
 
       <div className={styles.controls}>
-        {/* Zone hold — only shown pre-send. Once the route is
-            completed, the toggle is disabled anyway; we surface
-            the claimed zone as a chip next to the "Sent / Flashed"
-            badge instead so the sheet stays tight. */}
-        {route.has_zone && !isCompleted && (
-          <ZoneHoldRow
-            checked={zoneValue}
-            onCheckedChange={handleZoneToggle}
-            hasAttempts={state.attempts > 0}
-          />
+        {/* Zone hold — open pre-send only. Once the route is
+            completed the claimed zone surfaces as a chip next to
+            the "Sent / Flashed" badge instead, so this row
+            collapses. It stays MOUNTED inside an animated collapse
+            wrapper (inert while closed) — unmounting it in place
+            made completion read as a layout jump. */}
+        {route.has_zone && (
+          <Collapse open={!isCompleted} padBottom>
+            <ZoneHoldRow
+              checked={zoneValue}
+              onCheckedChange={handleZoneToggle}
+              hasAttempts={state.attempts > 0}
+            />
+          </Collapse>
         )}
 
         {/* Complete / Undo */}
@@ -156,16 +161,22 @@ export function RouteLogSheet({
           </Button>
         )}
 
-        {/* Grade slider (post-completion only). Hidden entirely
+        {/* Grade slider — opens post-completion. Hidden entirely
             for points-only sets where the admin has opted out of
-            climber-side grading. */}
-        {isCompleted && !gradingDisabled && (
-          <GradeSlider
-            value={state.gradeVote}
-            scale={gradingScale}
-            maxGrade={maxGrade}
-            onChange={handleGradeVote}
-          />
+            climber-side grading. Kept mounted in the same animated
+            collapse pattern as the zone row; the key re-seeds the
+            slider's internal enabled/grade state when completion
+            flips, preserving the old unmount-reset semantics. */}
+        {!gradingDisabled && (
+          <Collapse open={isCompleted} padTop>
+            <GradeSlider
+              key={`${route.id}:${isCompleted}`}
+              value={state.gradeVote}
+              scale={gradingScale}
+              maxGrade={maxGrade}
+              onChange={handleGradeVote}
+            />
+          </Collapse>
         )}
       </div>
 
