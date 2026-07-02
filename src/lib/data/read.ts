@@ -57,6 +57,22 @@ export async function readSingle<T>(
   return data as T;
 }
 
+/**
+ * Flatten a Supabase to-one embedded relation.
+ *
+ * Arity invariant: supabase-js materialises an embedded to-one
+ * relation (`.select("*, gyms:gym_id (…)")`) as either a single
+ * object OR a single-element array, depending on the relationship
+ * arity it infers from the schema — and `null` when the join found
+ * nothing. Callers should never branch on that: `one()` collapses
+ * all shapes to `T | null`.
+ */
+export function one<T>(embed: T | T[] | null | undefined): T | null {
+  if (embed == null) return null;
+  if (Array.isArray(embed)) return embed[0] ?? null;
+  return embed;
+}
+
 export async function readMany<T>(
   promise: PromiseLike<ReadResult>,
   failureTag: string,

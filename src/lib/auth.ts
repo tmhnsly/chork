@@ -9,6 +9,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
 import { AUTH_REQUIRED_ERROR } from "./auth-errors";
 import { UUID_RE } from "./validation";
+import { one } from "./data/read";
 import { enforce as enforceRateLimit, type LimiterKey as RateLimitKey } from "./rate-limit";
 
 type AuthSuccess = {
@@ -181,9 +182,7 @@ export async function requireAdminOfRoute(
       sets: { gym_id: string } | { gym_id: string }[];
     }>();
   if (!routeRow) return { error: "Route not found." };
-  const gymId = Array.isArray(routeRow.sets)
-    ? routeRow.sets[0]?.gym_id
-    : routeRow.sets?.gym_id;
+  const gymId = one(routeRow.sets)?.gym_id;
   if (!gymId) return { error: "Route not found." };
   const auth = await requireGymAdmin(gymId);
   if ("error" in auth) return { error: auth.error };

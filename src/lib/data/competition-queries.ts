@@ -3,7 +3,12 @@ import type { Database } from "@/lib/database.types";
 
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
-import { readMany, readSingle } from "./read";
+import { one, readMany, readSingle } from "./read";
+import {
+  normaliseRankedRows,
+  type RankedRow,
+  type RawRankedRow,
+} from "./leaderboard-helpers";
 type Supabase = SupabaseClient<Database>;
 
 export interface CompetitionSummary {
@@ -37,18 +42,9 @@ export interface CompetitionParticipant {
   category_id: string | null;
 }
 
-export interface CompetitionLeaderboardRow {
-  user_id: string;
-  username: string;
-  name: string;
-  avatar_url: string;
+export type CompetitionLeaderboardRow = RankedRow & {
   category_id: string | null;
-  rank: number;
-  sends: number;
-  flashes: number;
-  zones: number;
-  points: number;
-}
+};
 
 /** Every competition the caller organises — newest first. */
 export async function getCompetitionsForOrganiser(
@@ -79,7 +75,7 @@ export async function getCompetitionGyms(
     return [];
   }
   return (data ?? []).flatMap((row) => {
-    const gym = Array.isArray(row.gyms) ? row.gyms[0] : row.gyms;
+    const gym = one(row.gyms);
     if (!gym) return [];
     return [{
       competition_id: row.competition_id,
@@ -163,19 +159,7 @@ export async function getCompetitionLeaderboard(
   // Supabase's generated `.rpc()` signature treats optional parameters
   // as `string | undefined`; our callers pass `string | null` to mirror
   // the SQL default. Coerce null → undefined at the boundary.
-  type Raw = {
-    user_id: string;
-    username: string;
-    name: string;
-    avatar_url: string;
-    category_id: string | null;
-    rank: number | string;
-    sends: number;
-    flashes: number;
-    zones: number;
-    points: number;
-  };
-  const rows = await readMany<Raw>(
+  const rows = await readMany<RawRankedRow & { category_id: string | null }>(
     supabase.rpc("get_competition_leaderboard", {
       p_competition_id: competitionId,
       p_category_id: categoryId ?? undefined,
@@ -184,16 +168,5 @@ export async function getCompetitionLeaderboard(
     }),
     "getcompetitionleaderboard_failed",
   );
-  return rows.map((r) => ({
-    user_id: r.user_id,
-    username: r.username,
-    name: r.name,
-    avatar_url: r.avatar_url,
-    category_id: r.category_id,
-    rank: Number(r.rank),
-    sends: r.sends,
-    flashes: r.flashes,
-    zones: r.zones,
-    points: r.points,
-  }));
+  return normaliseRankedRows(rows);
 }

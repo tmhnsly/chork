@@ -6,7 +6,7 @@ import type { RouteLog, ActivityEventWithRoute } from "./types";
 
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
-import { readMany } from "./read";
+import { one, readMany } from "./read";
 
 type Supabase = SupabaseClient<Database>;
 
@@ -80,7 +80,7 @@ export async function getAllRouteDataForUserInGym(
   };
 
   const logs: UserLogInGym[] = (logsResult.data ?? []).map((r: LogRow) => {
-    const route = Array.isArray(r.routes) ? r.routes[0] : r.routes;
+    const route = one(r.routes);
     return {
       route_id: r.route_id,
       set_id: route?.set_id ?? "",

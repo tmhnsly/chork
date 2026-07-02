@@ -4,6 +4,7 @@ import {
   validateUsername,
   UUID_RE,
   isUuid,
+  isValidGradeVote,
   escapeLikePattern,
 } from "./validation";
 
@@ -87,6 +88,30 @@ describe("isUuid", () => {
   it("matches the same shapes as UUID_RE", () => {
     expect(isUuid("550e8400-e29b-41d4-a716-446655440000")).toBe(true);
     expect(isUuid("not-a-uuid")).toBe(false);
+  });
+});
+
+describe("isValidGradeVote", () => {
+  it("accepts null — no vote is a valid state", () => {
+    expect(isValidGradeVote(null)).toBe(true);
+  });
+
+  it("accepts integers across the full 0..30 range (migration 014)", () => {
+    expect(isValidGradeVote(0)).toBe(true);
+    expect(isValidGradeVote(10)).toBe(true);
+    expect(isValidGradeVote(11)).toBe(true); // rejected by the pre-014 clamp
+    expect(isValidGradeVote(30)).toBe(true);
+  });
+
+  it("rejects out-of-range values", () => {
+    expect(isValidGradeVote(-1)).toBe(false);
+    expect(isValidGradeVote(31)).toBe(false);
+  });
+
+  it("rejects non-integers", () => {
+    expect(isValidGradeVote(3.5)).toBe(false);
+    expect(isValidGradeVote(Number.NaN)).toBe(false);
+    expect(isValidGradeVote(Number.POSITIVE_INFINITY)).toBe(false);
   });
 });
 

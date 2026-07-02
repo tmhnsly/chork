@@ -10,7 +10,8 @@ import {
 } from "@/lib/data/mutations";
 import type { RouteLog, ActivityEventType } from "@/lib/data";
 import { formatError } from "@/lib/errors";
-import { UUID_RE } from "@/lib/validation";
+import { UUID_RE, isValidGradeVote } from "@/lib/validation";
+import { isFlash } from "@/lib/data/logs";
 import { buildBadgeContext } from "@/lib/achievements/context";
 import { evaluateAndPersistAchievements } from "@/lib/achievements/evaluate";
 import type { BadgeDefinition } from "@/lib/badges";
@@ -49,21 +50,15 @@ export async function completeRoute(
 ): Promise<LogResult> {
   if (logId !== undefined && !UUID_RE.test(logId)) return { error: "Invalid log" };
   if (!Number.isInteger(attempts) || attempts < 1 || attempts > 999) return { error: "Invalid attempts" };
-  // Grade bound matches the DB constraint relaxed in migration 014
-  // (0..30 covers V/Font/points scales). The previous 0..10 clamp
-  // pre-dated that relaxation; raw votes 11..30 were rejected here
-  // even though the DB would happily accept them.
-  if (gradeVote !== null && (!Number.isInteger(gradeVote) || gradeVote < 0 || gradeVote > 30)) {
-    return { error: "Invalid grade" };
-  }
+  if (!isValidGradeVote(gradeVote)) return { error: "Invalid grade" };
   const gate = await gateClimberMutation(routeId, "route");
   if ("error" in gate) return gate;
   const { supabase, userId, gymId } = gate;
 
-  const isFlash = attempts === 1;
+  const flashed = isFlash({ attempts, completed: true });
 
   try {
-    const eventType: ActivityEventType = isFlash ? "flashed" : "completed";
+    const eventType: ActivityEventType = flashed ? "flashed" : "completed";
     const [log] = await Promise.all([
       upsertRouteLog(supabase, userId, routeId, {
         attempts,
@@ -170,13 +165,7 @@ export async function updateGradeVote(
   logId: string
 ): Promise<LogResult> {
   if (!UUID_RE.test(logId)) return { error: "Invalid log" };
-  // Grade bound matches the DB constraint relaxed in migration 014
-  // (0..30 covers V/Font/points scales). The previous 0..10 clamp
-  // pre-dated that relaxation; raw votes 11..30 were rejected here
-  // even though the DB would happily accept them.
-  if (gradeVote !== null && (!Number.isInteger(gradeVote) || gradeVote < 0 || gradeVote > 30)) {
-    return { error: "Invalid grade" };
-  }
+  if (!isValidGradeVote(gradeVote)) return { error: "Invalid grade" };
   const gate = await gateClimberMutation(routeId, "route");
   if ("error" in gate) return gate;
   const { supabase, userId, gymId } = gate;

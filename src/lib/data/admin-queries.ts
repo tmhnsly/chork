@@ -12,7 +12,7 @@ import type { Database } from "@/lib/database.types";
 
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
-import { readMany, readSingle } from "./read";
+import { one, readMany, readSingle } from "./read";
 type Supabase = SupabaseClient<Database>;
 
 export interface AdminGymSummary {
@@ -66,7 +66,7 @@ export async function getAdminGymsForUser(
   }
 
   return (data ?? []).flatMap((row) => {
-    const gym = Array.isArray(row.gyms) ? row.gyms[0] : row.gyms;
+    const gym = one(row.gyms);
     if (!gym) return [];
     return [{
       id: gym.id,

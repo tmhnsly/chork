@@ -12,6 +12,7 @@ import {
   type ActivityEventType,
   type GymRole,
 } from "./types";
+import { one } from "./read";
 
 /**
  * ── Error contract ────────────────────────────────────────────────
@@ -77,18 +78,12 @@ export async function upsertRouteLog(
 }
 
 /**
- * The supabase client returns the joined `routes` either as an object
- * or a single-element array depending on the relationship arity it
- * infers — flatten to a top-level set_id string so call sites don't
+ * Flatten the joined `routes` embed (see `one()` in read.ts for the
+ * arity invariant) to a top-level set_id string so call sites don't
  * branch.
  */
 function flattenSetId(row: RouteLog & { routes?: { set_id: string } | { set_id: string }[] | null }): UpsertedRouteLog {
-  const routes = row.routes;
-  const setId = routes
-    ? Array.isArray(routes)
-      ? routes[0]?.set_id ?? null
-      : routes.set_id ?? null
-    : null;
+  const setId = one(row.routes)?.set_id ?? null;
   // Strip the join column from the returned shape so callers see a
   // flat RouteLog + set_id.
   const { routes: _drop, ...rest } = row;

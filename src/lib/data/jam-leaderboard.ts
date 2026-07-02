@@ -3,6 +3,7 @@ import type {
   JamLog,
   JamPlayerView,
 } from "./jam-types";
+import { computePoints, isFlash } from "./logs";
 
 /**
  * Derive a live jam leaderboard from the current player set + log
@@ -13,9 +14,9 @@ import type {
  * `end_jam`.
  *
  * Points formula: flash=4, 2-try=3, 3-try=2, 4+=1, incomplete=0,
- * + 1 if zone. Identical to `computePoints` in `logs.ts` but
- * inlined here to avoid the extra function call inside the hot
- * per-log loop.
+ * + 1 if zone — MUST match the `get_jam_leaderboard` RPC. Scoring
+ * delegates to `computePoints` in `logs.ts`, the single TS source
+ * of that ladder.
  *
  * Tiebreak order: points desc, flashes desc, sends desc,
  * last_send_at asc nulls last. Rank uses dense_rank semantics so
@@ -37,22 +38,11 @@ export function computeJamLeaderboard(
     for (const log of logs.values()) {
       if (log.user_id !== p.user_id) continue;
       attempts += log.attempts;
-      if (log.zone) {
-        zones += 1;
-        points += 1;
-      }
+      if (log.zone) zones += 1;
+      points += computePoints(log);
       if (log.completed) {
         sends += 1;
-        if (log.attempts === 1) {
-          flashes += 1;
-          points += 4;
-        } else if (log.attempts === 2) {
-          points += 3;
-        } else if (log.attempts === 3) {
-          points += 2;
-        } else {
-          points += 1;
-        }
+        if (isFlash(log)) flashes += 1;
         if (
           log.completed_at
           && (!lastSendAt || log.completed_at > lastSendAt)

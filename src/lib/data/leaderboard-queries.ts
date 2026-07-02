@@ -7,18 +7,7 @@ import { createCachedContextClient } from "@/lib/supabase/server";
 import type { LeaderboardEntry } from "./types";
 import { tags } from "@/lib/cache/tags";
 import { readMany, readSingle } from "./read";
-
-type RawLeaderboardRow = {
-  user_id: string;
-  username: string;
-  name: string;
-  avatar_url: string;
-  rank: number | string | null;
-  sends: number;
-  flashes: number;
-  zones: number;
-  points: number;
-};
+import { normaliseRankedRows, type RawRankedRow } from "./leaderboard-helpers";
 
 /**
  * Leaderboard + gym-stats queries.
@@ -59,7 +48,7 @@ export async function getLeaderboardNeighbourhood(
   userId: string,
   setId: string | null,
 ): Promise<LeaderboardEntry[]> {
-  const rows = await readMany<RawLeaderboardRow>(
+  const rows = await readMany<RawRankedRow>(
     supabase.rpc("get_leaderboard_neighbourhood", {
       p_gym_id: gymId,
       p_user_id: userId,
@@ -67,7 +56,7 @@ export async function getLeaderboardNeighbourhood(
     }),
     "getleaderboardneighbourhood_failed",
   );
-  return normaliseLeaderboardRows(rows);
+  return normaliseRankedRows(rows);
 }
 
 /** Fetch the user's own row. Returns null if unranked. */
@@ -77,7 +66,7 @@ export async function getLeaderboardUserRow(
   userId: string,
   setId: string | null,
 ): Promise<LeaderboardEntry | null> {
-  const rows = await readMany<RawLeaderboardRow>(
+  const rows = await readMany<RawRankedRow>(
     supabase.rpc("get_leaderboard_user_row", {
       p_gym_id: gymId,
       p_user_id: userId,
@@ -85,7 +74,7 @@ export async function getLeaderboardUserRow(
     }),
     "getleaderboarduserrow_failed",
   );
-  const normalised = normaliseLeaderboardRows(rows);
+  const normalised = normaliseRankedRows(rows);
   return normalised[0] ?? null;
 }
 
@@ -124,11 +113,11 @@ export function getLeaderboardCached(
             p_limit: limit,
             p_offset: offset,
           });
-      const rows = await readMany<RawLeaderboardRow>(
+      const rows = await readMany<RawRankedRow>(
         promise,
         "getleaderboardcached_failed",
       );
-      return normaliseLeaderboardRows(rows);
+      return normaliseRankedRows(rows);
     },
     {
       tags: setId
@@ -180,26 +169,4 @@ export function getGymStatsV2Cached(
     },
   );
   return fn();
-}
-
-// ── Helpers ──────────────────────────────────────
-
-/** Normalise RPC rows — rank comes back as bigint (string in JSON). */
-function normaliseLeaderboardRows(
-  rows: Array<{
-    user_id: string;
-    username: string;
-    name: string;
-    avatar_url: string;
-    rank: number | string | null;
-    sends: number;
-    flashes: number;
-    zones: number;
-    points: number;
-  }>,
-): LeaderboardEntry[] {
-  return rows.map((r) => ({
-    ...r,
-    rank: r.rank === null ? null : Number(r.rank),
-  }));
 }

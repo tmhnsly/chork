@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { computeJamLeaderboard } from "./jam-leaderboard";
+import { computePoints } from "./logs";
 import type { JamLog, JamPlayerView } from "./jam-types";
 
 function mkPlayer(user_id: string, username: string): JamPlayerView {
@@ -148,5 +149,44 @@ describe("computeJamLeaderboard", () => {
       ]),
     );
     expect(rows[0].user_id).toBe("flashed");
+  });
+});
+
+describe("computeJamLeaderboard × computePoints — scoring cross-check", () => {
+  // Shared fixtures spanning every rung of the ladder, run through
+  // BOTH scoring paths. Pins the "must match the get_jam_leaderboard
+  // RPC" invariant: flash=4, 2-try=3, 3-try=2, 4+=1, incomplete=0,
+  // +1 zone (independent of completion — zone-on-incomplete=1).
+  const fixtures: Array<{ log: JamLog; expected: number }> = [
+    { log: mkLog("u1", "flash", 1, true), expected: 4 },
+    { log: mkLog("u1", "two-try", 2, true), expected: 3 },
+    { log: mkLog("u1", "three-try", 3, true), expected: 2 },
+    { log: mkLog("u1", "four-try", 4, true), expected: 1 },
+    { log: mkLog("u1", "many-try", 17, true), expected: 1 },
+    { log: mkLog("u1", "project", 5, false), expected: 0 },
+    { log: mkLog("u1", "flash-zone", 1, true, true), expected: 5 },
+    { log: mkLog("u1", "send-zone", 3, true, true), expected: 3 },
+    { log: mkLog("u1", "zone-only", 2, false, true), expected: 1 },
+  ];
+
+  it("computePoints pins each rung of the ladder", () => {
+    for (const { log, expected } of fixtures) {
+      expect(computePoints(log), `route ${log.jam_route_id}`).toBe(expected);
+    }
+  });
+
+  it("computeJamLeaderboard's per-log accumulation agrees with computePoints", () => {
+    const rows = computeJamLeaderboard(
+      [mkPlayer("u1", "a")],
+      logsMap(fixtures.map((f) => f.log)),
+    );
+    const viaComputePoints = fixtures.reduce(
+      (sum, f) => sum + computePoints(f.log),
+      0,
+    );
+    expect(rows[0].points).toBe(viaComputePoints);
+    expect(rows[0].points).toBe(
+      fixtures.reduce((sum, f) => sum + f.expected, 0),
+    );
   });
 });

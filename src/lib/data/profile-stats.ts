@@ -5,6 +5,7 @@
  */
 
 import type { RouteLog } from "./types";
+import { computePoints, isFlash } from "./logs";
 
 export interface AllTimeAggregates {
   sends: number;
@@ -38,21 +39,14 @@ export function computeAllTimeAggregates(logs: LogForAggregates[]): AllTimeAggre
     // "Attempts" label.
     totalAttempts += log.attempts;
 
-    // Zone bonus is independent of completion — a climber who got the
-    // zone hold but didn't top the boulder still earns the +1.
-    if (log.zone) points += 1;
+    // computePoints owns the whole ladder, including the +1 zone
+    // bonus that applies independent of completion.
+    points += computePoints(log);
 
     if (!log.completed) continue;
 
     sends += 1;
-    if (log.attempts === 1) flashes += 1;
-
-    // Send points. Mirrors computePoints(); inlined to avoid a
-    // potential cycle between logs.ts and profile-stats.ts.
-    if (log.attempts === 1) points += 4;
-    else if (log.attempts === 2) points += 3;
-    else if (log.attempts === 3) points += 2;
-    else points += 1;
+    if (isFlash(log)) flashes += 1;
   }
 
   return {

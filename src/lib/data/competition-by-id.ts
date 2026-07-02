@@ -12,6 +12,7 @@ import type {
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
 import { tags } from "@/lib/cache/tags";
+import { one } from "./read";
 /**
  * Single competition by id. Server-only — lives here (not in
  * competition-queries.ts) so the cached-context client chain doesn't
@@ -64,7 +65,7 @@ export const getCompetitionGymsCached = cache(
           return [];
         }
         return (data ?? []).flatMap((row) => {
-          const gym = Array.isArray(row.gyms) ? row.gyms[0] : row.gyms;
+          const gym = one(row.gyms);
           if (!gym) return [];
           return [{
             competition_id: row.competition_id,

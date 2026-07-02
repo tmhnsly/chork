@@ -41,6 +41,18 @@ export function isUuid(value: unknown): value is string {
 }
 
 /**
+ * Grade vote bound check. `null` (no vote) is valid; otherwise the
+ * vote must be an integer in 0..30 — matching the DB constraint
+ * relaxed in migration 014 (0..30 covers V / Font / points scales).
+ * The previous 0..10 clamp pre-dated that relaxation; raw votes
+ * 11..30 were rejected app-side even though the DB accepted them.
+ */
+export function isValidGradeVote(gradeVote: number | null): boolean {
+  if (gradeVote === null) return true;
+  return Number.isInteger(gradeVote) && gradeVote >= 0 && gradeVote <= 30;
+}
+
+/**
  * Escape Postgres LIKE / ILIKE pattern metacharacters in a user-supplied
  * search input. Without this, a climber typing "50%" turns into a
  * wildcard scan; "_a" matches every two-letter combo starting with "a".
