@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { Fragment, useEffect, useMemo, useRef, useTransition } from "react";
 import Link from "next/link";
+import { useClientResource } from "@/hooks/use-client-resource";
+import type { IconType } from "react-icons";
 import {
   FaUserPlus,
   FaCheck,
@@ -12,12 +14,12 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import { PendingInvitesCard } from "@/components/ui/PendingInvitesCard";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import type { PendingInvite } from "@/lib/data/crew-queries";
-import type {
-  NotificationRow,
-  CrewInviteReceivedPayload,
-  CrewInviteAcceptedPayload,
-  CrewOwnershipTransferredPayload,
-} from "@/lib/data/notifications";
+import type { NotificationRow } from "@/lib/data/notifications";
+import {
+  renderNotificationInApp,
+  type NotificationIcon,
+  type NotificationSegment,
+} from "@/lib/data/notification-kinds";
 import {
   markAllNotificationsRead,
   dismissNotification,
@@ -57,22 +59,20 @@ export function NotificationsSheet({
   onClose,
 }: Props) {
   const [, startTransition] = useTransition();
-  const [notifications, setNotifications] = useState<NotificationRow[]>([]);
-  const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => {
-    if (!open || loaded) return;
-    let cancelled = false;
-    fetchNotifications().then((result) => {
-      if (cancelled) return;
-      if ("error" in result) return;
-      setNotifications(result.rows);
-      setLoaded(true);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [open, loaded]);
+  // Lazy-load on first open (constant key + `enabled: open`); the
+  // settled list is kept for the sheet's lifetime, so re-opens don't
+  // refetch. A failed load retries on the next open.
+  const { data, mutate } = useClientResource<NotificationRow[]>(
+    "notifications",
+    async () => {
+      const result = await fetchNotifications();
+      if ("error" in result) throw new Error(result.error);
+      return result.rows;
+    },
+    { enabled: open },
+  );
+  const notifications = data ?? [];
 
   // Track whether we've already marked-read for THIS open cycle.
   // Without this, the effect re-fires whenever `unreadCount` changes
@@ -96,8 +96,10 @@ export function NotificationsSheet({
   }, [open, unreadCount]);
 
   // Loading state derived from open + load status — no setState dance,
-  // satisfies react-hooks/set-state-in-effect.
-  const showLoading = open && !loaded;
+  // satisfies react-hooks/set-state-in-effect. `data === null` covers
+  // both in-flight and failed loads (a failed load keeps "Loading…"
+  // up, exactly like the old `loaded` flag).
+  const showLoading = open && data === null;
 
   if (!open) return null;
 
@@ -133,7 +135,7 @@ export function NotificationsSheet({
                   key={n.id}
                   row={n}
                   onDismissed={(id) =>
-                    setNotifications((prev) => prev.filter((r) => r.id !== id))
+                    mutate((prev) => prev.filter((r) => r.id !== id))
                   }
                 />
               ))}
@@ -146,6 +148,36 @@ export function NotificationsSheet({
 }
 
 // ── Per-row rendering ─────────────────────────────────
+
+// Exhaustive over the table's icon keys — a new `NotificationIcon`
+// value in notification-kinds.ts fails the build here until it gets
+// a component. Kinds that reuse an existing key need nothing.
+const KIND_ICONS: Record<NotificationIcon, IconType> = {
+  "user-plus": FaUserPlus,
+  check: FaCheck,
+  crown: FaCrown,
+};
+
+/**
+ * Generic segment → JSX mapping. Per-kind copy lives as structured
+ * data in the kind table; this is the only place segments become
+ * markup. `user` segments get the `@` prefix here (domain rule:
+ * usernames always display with `@`).
+ */
+function SegmentedTitle({ segments }: { segments: NotificationSegment[] }) {
+  return (
+    <>
+      {segments.map((s, i) =>
+        s.type === "text" ? (
+          <Fragment key={i}>{s.text}</Fragment>
+        ) : (
+          <strong key={i}>{s.type === "user" ? `@${s.username}` : s.name}</strong>
+        ),
+      )}
+    </>
+  );
+}
+
 function NotificationRowView({
   row,
   onDismissed,
@@ -160,71 +192,24 @@ function NotificationRowView({
   // an open sheet showing recent items the difference is invisible.
   const when = useMemo(() => relative(row.created_at), [row.created_at]);
 
-  switch (row.kind) {
-    case "crew_invite_received":
-      return (
-        <Row
-          row={row}
-          icon={<FaUserPlus />}
-          href={`/crew`}
-          title={
-            <>
-              <strong>
-                @{(row.payload as CrewInviteReceivedPayload).inviter_username}
-              </strong>{" "}
-              invited you to{" "}
-              <strong>
-                {(row.payload as CrewInviteReceivedPayload).crew_name}
-              </strong>
-            </>
-          }
-          when={when}
-          onDismissed={onDismissed}
-        />
-      );
-    case "crew_invite_accepted":
-      return (
-        <Row
-          row={row}
-          icon={<FaCheck />}
-          href={`/crew/${(row.payload as CrewInviteAcceptedPayload).crew_id}`}
-          title={
-            <>
-              <strong>
-                @{(row.payload as CrewInviteAcceptedPayload).accepter_username}
-              </strong>{" "}
-              joined{" "}
-              <strong>
-                {(row.payload as CrewInviteAcceptedPayload).crew_name}
-              </strong>
-            </>
-          }
-          when={when}
-          onDismissed={onDismissed}
-        />
-      );
-    case "crew_ownership_transferred":
-      return (
-        <Row
-          row={row}
-          icon={<FaCrown />}
-          href={`/crew/${(row.payload as CrewOwnershipTransferredPayload).crew_id}`}
-          title={
-            <>
-              <strong>
-                @{(row.payload as CrewOwnershipTransferredPayload).from_username}
-              </strong>{" "}
-              made you the creator of{" "}
-              <strong>
-                {(row.payload as CrewOwnershipTransferredPayload).crew_name}
-              </strong>
-            </>
-          }
-          when={when}
-          onDismissed={onDismissed}
-        />
-      );
-  }
+  // Single typed seam: the kind table narrows payload by kind. An
+  // unknown/future kind (DB constraint newer than this bundle)
+  // returns null — skip the row gracefully rather than guess at copy.
+  const content = renderNotificationInApp(row.kind, row.payload);
+  if (!content) return null;
+
+  const Icon = KIND_ICONS[content.icon];
+
+  return (
+    <Row
+      row={row}
+      icon={<Icon />}
+      href={content.href}
+      title={<SegmentedTitle segments={content.segments} />}
+      when={when}
+      onDismissed={onDismissed}
+    />
+  );
 }
 
 function Row({

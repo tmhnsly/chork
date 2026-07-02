@@ -5,41 +5,26 @@ import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
 import { asJsonShape } from "./json-shape";
 import { readMany } from "./read";
+import type {
+  NotificationKind,
+  NotificationPayload,
+} from "./notification-kinds";
 type Supabase = SupabaseClient<Database>;
 
 /**
- * Notification kinds. Kept as a closed TS union so each kind has
- * a typed payload shape downstream; DB check constraint mirrors
- * the same set (migration 033).
+ * Kind union + payload shapes live in `./notification-kinds` — the
+ * per-kind definition table that also owns each kind's push and
+ * in-app renders. Re-exported here so existing importers keep one
+ * module path for notification data types. DB check constraint
+ * mirrors the same kind set (migration 033).
  */
-export type NotificationKind =
-  | "crew_invite_received"
-  | "crew_invite_accepted"
-  | "crew_ownership_transferred";
-
-export interface CrewInviteReceivedPayload {
-  crew_id: string;
-  crew_name: string;
-  invite_id: string;
-  inviter_username: string;
-}
-
-export interface CrewInviteAcceptedPayload {
-  crew_id: string;
-  crew_name: string;
-  accepter_username: string;
-}
-
-export interface CrewOwnershipTransferredPayload {
-  crew_id: string;
-  crew_name: string;
-  from_username: string;
-}
-
-export type NotificationPayload =
-  | CrewInviteReceivedPayload
-  | CrewInviteAcceptedPayload
-  | CrewOwnershipTransferredPayload;
+export type {
+  NotificationKind,
+  NotificationPayload,
+  CrewInviteReceivedPayload,
+  CrewInviteAcceptedPayload,
+  CrewOwnershipTransferredPayload,
+} from "./notification-kinds";
 
 export interface NotificationRow<P = NotificationPayload> {
   id: string;
