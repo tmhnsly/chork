@@ -120,19 +120,6 @@ export const hasUpstash =
   !!validated.UPSTASH_REDIS_REST_URL && !!validated.UPSTASH_REDIS_REST_TOKEN;
 
 /**
- * True when VAPID keys are configured. Push helpers short-circuit
- * when false — push is best-effort and graceful-no-op is fine.
- */
-export const hasVapid =
-  !!validated.NEXT_PUBLIC_VAPID_PUBLIC_KEY && !!validated.VAPID_PRIVATE_KEY;
-
-/**
- * True when Sentry is configured. If you add a new Sentry feature
- * that should no-op without keys, gate it on this.
- */
-export const hasSentry = !!validated.NEXT_PUBLIC_SENTRY_DSN;
-
-/**
  * True when the cookie-signing secret is set. When false, the
  * `sign`/`verify` helpers in `cookie-sign.ts` fall through (sign =
  * pass-through, verify = accept-as-is) so dev flows don't require

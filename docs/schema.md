@@ -1,7 +1,11 @@
 # Supabase schema
 
-Current state as of migration 035. For the historical sequence, see
-`docs/migrations.md`.
+> **STALE** — last comprehensively updated at migration 035. The live
+> schema is well beyond it (jams 041–056, hardening 063–068 not reflected
+> here). Treat `supabase/migrations` + the generated `database.types.ts`
+> as source of truth until this is rewritten.
+
+For the historical sequence, see `docs/migrations.md`.
 
 Types regenerated via:
 ```bash

@@ -3,9 +3,13 @@
 Companion doc for the Jams feature. Read `docs/architecture.md` +
 `docs/schema.md` first; this file only describes the net delta.
 
-Everything below is pre-build — nothing in this doc has been
-implemented yet. The plan is organised so each section can be
-reviewed and built independently in the order listed at the end.
+> **HISTORICAL — Jams has SHIPPED** (migrations 041–056, a full `/jam`
+> route tree + component set). This file is the original pre-build plan,
+> kept for context; it is NOT current. Read the code + `supabase/migrations`,
+> with `docs/architecture.md` as the live reference.
+
+The plan is organised so each section can be reviewed and built
+independently in the order listed at the end.
 
 ---
 

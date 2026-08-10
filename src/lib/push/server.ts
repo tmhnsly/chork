@@ -36,11 +36,6 @@ function configure(): boolean {
   return true;
 }
 
-/** True when VAPID is configured. Caller can skip dispatch otherwise. */
-export function pushEnabled(): boolean {
-  return configure();
-}
-
 export interface PushPayload {
   title: string;
   body: string;

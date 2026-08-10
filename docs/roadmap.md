@@ -77,9 +77,9 @@ Platform hardening:
 
 ## Infrastructure (before scaling)
 
-- [ ] Rate limiting on server actions (Vercel WAF or edge
-      middleware with sliding window)
-- [ ] Error monitoring (Sentry or similar)
+- [x] Rate limiting on server actions (Upstash sliding-window,
+      `src/lib/rate-limit.ts`)
+- [x] Error monitoring (Sentry — `sentry.{client,server,edge}.config.ts`)
 - [ ] Database connection pooling (Supabase config verify)
 - [ ] Scheduled backups verified restorable
 
@@ -89,7 +89,7 @@ Platform hardening:
       `venue_gym_id` on sets)
 - [ ] Invite email delivery for `gym_invites` (current flow
       produces a link; email plumbing ships with the SMTP task above)
-- [ ] Avatar uploads via Supabase Storage
+- [x] Avatar uploads via Supabase Storage (magic-byte validated)
 - [ ] Route QR codes (scan to open route-log sheet)
 - [ ] Comment threading UI (`parent_id` exists in schema)
 
