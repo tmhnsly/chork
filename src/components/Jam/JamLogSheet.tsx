@@ -17,6 +17,7 @@ import {
 import { BrandDivider } from "@/components/ui/BrandDivider";
 import { useDebouncedFlush } from "@/hooks/use-debounced-flush";
 import { makeGradeLabeller } from "@/lib/data/grade-label";
+import { computePoints } from "@/lib/data/logs";
 import type { JamRoute, JamLog, JamGradingScale } from "@/lib/data/jam-types";
 import styles from "./jamLogSheet.module.scss";
 
@@ -129,12 +130,19 @@ export function JamLogSheet({
   // count right now (the "Send now → N pts" preview). The actual
   // earned points follow the same formula — when `completed` is
   // already true the preview and the stored value match.
-  const sendPoints = useMemo(() => {
-    if (attempts === 0) return 0;
-    const base =
-      attempts === 1 ? 4 : attempts === 2 ? 3 : attempts === 3 ? 2 : 1;
-    return base + (zone ? 1 : 0);
-  }, [attempts, zone]);
+  // Points via the single-source ladder (`computePoints`) — never the
+  // inlined formula. Mirrors the wall sheet's PointsPreview convention:
+  // the completed figure INCLUDES the zone bonus, while the mid-attempt
+  // preview EXCLUDES it and surfaces a separate "+1 zone" chip, so a
+  // zone route never double-counts (the number PLUS the chip).
+  const earnedPoints = useMemo(
+    () => computePoints({ attempts, completed: true, zone }),
+    [attempts, zone],
+  );
+  const previewPoints = useMemo(
+    () => computePoints({ attempts, completed: true, zone: false }),
+    [attempts],
+  );
 
   const isCurrentFlash = completed && attempts === 1;
 
@@ -179,7 +187,7 @@ export function JamLogSheet({
 
   const pointsPreview: ReactNode = completed ? (
     <>
-      <span className={styles.ptsValue}>{sendPoints}</span> pts
+      <span className={styles.ptsValue}>{earnedPoints}</span> pts
     </>
   ) : attempts === 0 ? (
     "\u00A0"
@@ -189,7 +197,7 @@ export function JamLogSheet({
       <span
         className={`${styles.ptsValue} ${attempts === 1 ? styles.ptsValueFlash : ""}`}
       >
-        {sendPoints} pts
+        {previewPoints} pts
       </span>
       {attempts === 1 && <FaBolt className={styles.ptsFlash} />}
       {zone && <span className={styles.ptsZone}>+1 zone</span>}

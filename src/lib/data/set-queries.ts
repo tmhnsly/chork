@@ -24,6 +24,11 @@ export function getCurrentSet(gymId: string): Promise<RouteSet | null> {
           .select("*")
           .eq("gym_id", id)
           .eq("status", "live")
+          // Belt-and-braces: "one live set per gym" is a convention, not
+          // a DB constraint. If two ever coexist (e.g. a failed archive
+          // during quick-create), deterministically prefer the newest so
+          // the Wall doesn't flip between them across cache refreshes.
+          .order("starts_at", { ascending: false })
           .limit(1)
           .maybeSingle(),
         "getcurrentset_failed",

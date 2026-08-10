@@ -820,7 +820,7 @@ export type Database = {
           points: number
           rank: number
           sends: number
-          user_id: string
+          user_id: string | null
           username: string
           zones: number
         }
@@ -834,7 +834,7 @@ export type Database = {
           points: number
           rank: number
           sends: number
-          user_id: string
+          user_id?: string | null
           username: string
           zones: number
         }
@@ -848,7 +848,7 @@ export type Database = {
           points?: number
           rank?: number
           sends?: number
-          user_id?: string
+          user_id?: string | null
           username?: string
           zones?: number
         }
@@ -1945,10 +1945,6 @@ export type Database = {
       }
       is_active_crew_member: { Args: { p_crew_id: string }; Returns: boolean }
       is_admin_of_route: { Args: { p_route_id: string }; Returns: boolean }
-      is_blocking: {
-        Args: { p_blocked: string; p_blocker: string }
-        Returns: boolean
-      }
       is_competition_organiser: {
         Args: { p_competition_id: string }
         Returns: boolean

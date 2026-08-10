@@ -147,6 +147,18 @@ describe("completeRoute", () => {
     expect(gateClimberMutation).not.toHaveBeenCalled();
   });
 
+  it("accepts an empty-string logId (first-ever completion) via the create branch", async () => {
+    const { client, calls } = mockSupabase({
+      "table:route_logs": { data: logRow(), error: null },
+      "table:activity_events": { data: { id: "evt1" }, error: null },
+    });
+    await primeAuth(client);
+    const { completeRoute } = await import("./route-log-actions");
+    const result = await completeRoute(ROUTE_1, 2, null, false, "");
+    expect(result).toMatchObject({ success: true });
+    expect(calls.some((c) => c.table === "route_logs" && c.method === "upsert")).toBe(true);
+  });
+
   it("rejects out-of-range attempts (0, 1000, non-integer)", async () => {
     const { completeRoute } = await import("./route-log-actions");
     expect(await completeRoute(ROUTE_1, 0, null, false)).toEqual({ error: "Invalid attempts" });
@@ -320,6 +332,23 @@ describe("updateAttempts", () => {
     const { gateClimberMutation } = await import("@/lib/auth");
     expect(await updateAttempts(ROUTE_1, 2, "nope")).toEqual({ error: "Invalid log" });
     expect(gateClimberMutation).not.toHaveBeenCalled();
+  });
+
+  it("treats an empty-string logId as create (first-ever log on a fresh route)", async () => {
+    // "" is the optimistic sentinel the client sends before the server
+    // mints an id (createOptimisticLog id:""). It must fall through to
+    // the upsert (create) branch keyed on (user_id, route_id), NOT be
+    // rejected as a malformed id — the regression this guards against
+    // blocked logging the very first attempt on any route.
+    const { client, calls } = mockSupabase({
+      "table:route_logs": { data: logRow({ completed: false, attempts: 1 }), error: null },
+    });
+    await primeAuth(client);
+    const { updateAttempts } = await import("./route-log-actions");
+    const result = await updateAttempts(ROUTE_1, 1, "");
+    expect(result).toMatchObject({ success: true, log: expect.objectContaining({ id: LOG_1 }) });
+    expect(calls.some((c) => c.table === "route_logs" && c.method === "upsert")).toBe(true);
+    expect(calls.some((c) => c.table === "route_logs" && c.method === "update")).toBe(false);
   });
 
   it("rejects out-of-range attempts (-1, 1000, non-integer)", async () => {

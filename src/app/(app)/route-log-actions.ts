@@ -25,7 +25,11 @@ export async function updateAttempts(
   attempts: number,
   logId?: string
 ): Promise<LogResult> {
-  if (logId !== undefined && !UUID_RE.test(logId)) return { error: "Invalid log" };
+  // `""` is the optimistic sentinel the client sends before the server
+  // mints a real id (createOptimisticLog id:""). Treat any falsy value
+  // as "no id → create", matching upsertRouteLog's `if (existingLogId)`
+  // branch. Only a truthy-but-malformed id is a validation error.
+  if (logId && !UUID_RE.test(logId)) return { error: "Invalid log" };
   if (!Number.isInteger(attempts) || attempts < 0 || attempts > 999) return { error: "Invalid attempts" };
   const gate = await gateClimberMutation(routeId, "route");
   if ("error" in gate) return gate;
@@ -48,7 +52,11 @@ export async function completeRoute(
   zone: boolean,
   logId?: string
 ): Promise<LogResult> {
-  if (logId !== undefined && !UUID_RE.test(logId)) return { error: "Invalid log" };
+  // `""` is the optimistic sentinel the client sends before the server
+  // mints a real id (createOptimisticLog id:""). Treat any falsy value
+  // as "no id → create", matching upsertRouteLog's `if (existingLogId)`
+  // branch. Only a truthy-but-malformed id is a validation error.
+  if (logId && !UUID_RE.test(logId)) return { error: "Invalid log" };
   if (!Number.isInteger(attempts) || attempts < 1 || attempts > 999) return { error: "Invalid attempts" };
   if (!isValidGradeVote(gradeVote)) return { error: "Invalid grade" };
   const gate = await gateClimberMutation(routeId, "route");
@@ -116,7 +124,11 @@ export async function uncompleteRoute(
   routeId: string,
   logId?: string
 ): Promise<LogResult> {
-  if (logId !== undefined && !UUID_RE.test(logId)) return { error: "Invalid log" };
+  // `""` is the optimistic sentinel the client sends before the server
+  // mints a real id (createOptimisticLog id:""). Treat any falsy value
+  // as "no id → create", matching upsertRouteLog's `if (existingLogId)`
+  // branch. Only a truthy-but-malformed id is a validation error.
+  if (logId && !UUID_RE.test(logId)) return { error: "Invalid log" };
   const gate = await gateClimberMutation(routeId, "route");
   if ("error" in gate) return gate;
   const { supabase, userId, gymId } = gate;
@@ -145,7 +157,11 @@ export async function toggleZone(
   zone: boolean,
   logId?: string
 ): Promise<LogResult> {
-  if (logId !== undefined && !UUID_RE.test(logId)) return { error: "Invalid log" };
+  // `""` is the optimistic sentinel the client sends before the server
+  // mints a real id (createOptimisticLog id:""). Treat any falsy value
+  // as "no id → create", matching upsertRouteLog's `if (existingLogId)`
+  // branch. Only a truthy-but-malformed id is a validation error.
+  if (logId && !UUID_RE.test(logId)) return { error: "Invalid log" };
   const gate = await gateClimberMutation(routeId, "route");
   if ("error" in gate) return gate;
   const { supabase, userId, gymId } = gate;

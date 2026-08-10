@@ -42,11 +42,15 @@ export async function createSet(
     // unambiguously "the live set". The trigger on `sets` derives
     // `active = (status = 'live')`, so old readers of `active` still
     // see the right value after the status flip.
-    await supabase
+    const { error: archiveError } = await supabase
       .from("sets")
       .update({ status: "archived" })
       .eq("gym_id", gymId)
       .eq("status", "live");
+    // Abort if the archive failed — inserting the new live set anyway
+    // would leave the gym with two live sets, and getCurrentSet would
+    // then pick one non-deterministically.
+    if (archiveError) return { error: formatError(archiveError) };
 
     // Create the new set
     const { data: set, error: setError } = await supabase

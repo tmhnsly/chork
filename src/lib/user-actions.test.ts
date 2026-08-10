@@ -178,3 +178,60 @@ describe("updatePushCategory", () => {
     });
   });
 });
+
+// ────────────────────────────────────────────────────────────────
+// deleteAccount
+// ────────────────────────────────────────────────────────────────
+describe("deleteAccount", () => {
+  it("surfaces auth failure", async () => {
+    const { requireSignedIn } = await import("./auth");
+    vi.mocked(requireSignedIn).mockResolvedValue({ error: "Not signed in" } as never);
+    const { deleteAccount } = await import("./user-actions");
+    expect(await deleteAccount()).toEqual({ error: "Not signed in" });
+  });
+
+  it("hands an owned crew to its longest-standing active member before deleting the account", async () => {
+    const HEIR = "22222222-2222-2222-2222-222222222222";
+    const CREW = "33333333-3333-3333-3333-333333333333";
+    const { requireSignedIn } = await import("./auth");
+    vi.mocked(requireSignedIn).mockResolvedValue({ userId: USER_A } as never);
+
+    const calls: { table: string; method: string; args: unknown[] }[] = [];
+    const deleteUser = vi.fn(async () => ({ error: null }));
+    const service = {
+      from: (table: string) => {
+        const b: Record<string, unknown> = {};
+        for (const m of ["select", "update", "eq", "neq", "order", "limit", "maybeSingle"]) {
+          b[m] = (...args: unknown[]) => {
+            calls.push({ table, method: m, args });
+            return b;
+          };
+        }
+        // crews SELECT → one owned crew; crew_members lookup → the heir.
+        b.then = (onF: (v: SbResult) => unknown) =>
+          Promise.resolve(
+            table === "crews" ? { data: [{ id: CREW }] } : { data: { user_id: HEIR } },
+          ).then(onF);
+        return b;
+      },
+      auth: { admin: { deleteUser } },
+    };
+    const { createServiceClient } = await import("./supabase/server");
+    vi.mocked(createServiceClient).mockReturnValue(service as never);
+
+    const { deleteAccount } = await import("./user-actions");
+    expect(await deleteAccount()).toEqual({ success: true });
+
+    // Invariant: ownership is transferred to the heir, and only THEN is
+    // the account deleted — otherwise the cascade wipes the crew for all.
+    expect(
+      calls.some(
+        (c) =>
+          c.table === "crews" &&
+          c.method === "update" &&
+          (c.args[0] as { created_by?: string })?.created_by === HEIR,
+      ),
+    ).toBe(true);
+    expect(deleteUser).toHaveBeenCalledWith(USER_A);
+  });
+});
