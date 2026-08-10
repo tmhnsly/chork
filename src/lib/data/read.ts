@@ -47,7 +47,11 @@ export async function readSingle<T>(
 ): Promise<T | null> {
   const { data, error } = await promise;
   if (error) {
-    logger.warn(failureTag, { err: formatErrorForLog(error) });
+    // logger.error (stderr) → Vercel's Errors bucket, so a real read
+    // failure is visible to the team even though the render path degrades
+    // to a neutral fallback (an outage and "genuinely empty" look the same
+    // to the user, but must NOT look the same in the logs).
+    logger.error(failureTag, { err: formatErrorForLog(error) });
     return null;
   }
   if (data == null) return null;
@@ -79,7 +83,11 @@ export async function readMany<T>(
 ): Promise<T[]> {
   const { data, error } = await promise;
   if (error) {
-    logger.warn(failureTag, { err: formatErrorForLog(error) });
+    // logger.error (stderr) → Vercel's Errors bucket, so a real read
+    // failure is visible to the team even though the render path degrades
+    // to a neutral fallback (an outage and "genuinely empty" look the same
+    // to the user, but must NOT look the same in the logs).
+    logger.error(failureTag, { err: formatErrorForLog(error) });
     return [];
   }
   if (!Array.isArray(data)) return [];

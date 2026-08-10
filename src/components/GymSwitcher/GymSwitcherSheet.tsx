@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useClientResource } from "@/hooks/use-client-resource";
+import { Button } from "@/components/ui/Button";
 import { FaMagnifyingGlass, FaCheck } from "react-icons/fa6";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { SheetBody, shimmerStyles, showToast } from "@/components/ui";
@@ -48,7 +49,7 @@ export function GymSwitcherSheet({ open, onClose, activeGymId }: Props) {
   // Fetch once on first open; the settled result is kept for the
   // session (constant key ⇒ never refetched). Errors degrade to an
   // empty list inside the fetcher, exactly as before.
-  const { data: gyms } = useClientResource<GymListing[]>(
+  const { data: gyms, error, reload } = useClientResource<GymListing[]>(
     "gym-listings",
     async () => {
       const supabase = createBrowserSupabase();
@@ -58,8 +59,10 @@ export function GymSwitcherSheet({ open, onClose, activeGymId }: Props) {
         .eq("is_listed", true)
         .order("name");
       if (error) {
-        logger.warn("gym_listing_failed", { err: formatErrorForLog(error) });
-        return [];
+        // Throw so useClientResource surfaces a retryable error state
+        // rather than a misleading empty "No gyms" list.
+        logger.error("gym_listing_failed", { err: formatErrorForLog(error) });
+        throw error;
       }
       return data ?? [];
     },
@@ -108,7 +111,14 @@ export function GymSwitcherSheet({ open, onClose, activeGymId }: Props) {
           />
         </div>
 
-        {filtered === null ? (
+        {error ? (
+          <div className={styles.empty}>
+            Couldn&apos;t load gyms.{" "}
+            <Button variant="ghost" onClick={reload}>
+              Retry
+            </Button>
+          </div>
+        ) : filtered === null ? (
           <ul className={styles.list} aria-busy="true">
             {[0, 1, 2, 3].map((i) => (
               <li key={i} className={`${styles.row} ${shimmerStyles.skeleton}`} />

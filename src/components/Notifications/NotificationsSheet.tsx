@@ -12,6 +12,7 @@ import {
 } from "react-icons/fa6";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { PendingInvitesCard } from "@/components/ui/PendingInvitesCard";
+import { Button } from "@/components/ui/Button";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import type { PendingInvite } from "@/lib/data/crew-queries";
 import type { NotificationRow } from "@/lib/data/notifications";
@@ -63,7 +64,7 @@ export function NotificationsSheet({
   // Lazy-load on first open (constant key + `enabled: open`); the
   // settled list is kept for the sheet's lifetime, so re-opens don't
   // refetch. A failed load retries on the next open.
-  const { data, mutate } = useClientResource<NotificationRow[]>(
+  const { data, error, reload, mutate } = useClientResource<NotificationRow[]>(
     "notifications",
     async () => {
       const result = await fetchNotifications();
@@ -122,7 +123,14 @@ export function NotificationsSheet({
 
         <section className={styles.section} aria-label="Recent activity">
           <h2 className={styles.sectionHeading}>Activity</h2>
-          {showLoading ? (
+          {error ? (
+            <div className={styles.empty}>
+              Couldn&apos;t load activity.{" "}
+              <Button variant="ghost" onClick={reload}>
+                Retry
+              </Button>
+            </div>
+          ) : showLoading ? (
             <p className={styles.empty}>Loading…</p>
           ) : notifications.length === 0 ? (
             <p className={styles.empty}>

@@ -83,7 +83,15 @@ export async function proxy(request: NextRequest) {
   // Unauthed: auth + public routes are fine, everything else → login.
   if (!isAuthenticated) {
     if (isAuthRoute || isPublic) return response;
-    return NextResponse.redirect(new URL("/login", request.url));
+    // Preserve the intended destination so login can bounce the visitor
+    // back after signing in (the ?next= flow is already wired end-to-end
+    // in login-form / login/actions). Same-origin pathname only.
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set(
+      "next",
+      request.nextUrl.pathname + request.nextUrl.search,
+    );
+    return NextResponse.redirect(loginUrl);
   }
 
   // Authed from here on. Resolve onboarded state via the cookie
