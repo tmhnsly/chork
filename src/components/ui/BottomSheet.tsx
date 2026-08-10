@@ -87,10 +87,14 @@ export function BottomSheet({
             size === "tall" ? styles.contentTall : "",
           ].filter(Boolean).join(" ")}
           onOpenAutoFocus={(e) => {
-            // Prevent Radix's default first-focusable grab — it
-            // caused a phantom keyboard-focus ring on the close
-            // button every time a pointer user tapped to open.
+            // Radix's default grabs the first focusable (the close
+            // button), which flashed a phantom keyboard-focus ring for
+            // pointer users. But fully suppressing focus left screen
+            // readers never announcing the sheet opened. Instead, move
+            // focus to the dialog container itself: AT announces it, and
+            // a non-interactive div shows no button-style ring.
             e.preventDefault();
+            (e.currentTarget as HTMLElement | null)?.focus();
           }}
           onInteractOutside={(e) => {
             if (disableOutsideClose) e.preventDefault();

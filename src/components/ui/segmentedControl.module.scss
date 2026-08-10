@@ -18,7 +18,8 @@
   padding: 0 var(--space-4);
   border: none;
   background: transparent;
-  color: var(--mono-solid);
+  // Step 11 for the inactive segment label (step 9 is a fill, not text).
+  color: var(--mono-text-low-contrast);
   cursor: pointer;
   border-radius: var(--radius-full);
   -webkit-tap-highlight-color: transparent;

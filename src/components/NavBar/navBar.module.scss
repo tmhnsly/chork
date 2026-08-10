@@ -178,7 +178,9 @@
   // Board / Crew / Jam / Profile / Admin) fit inside a ~360px
   // viewport without label clipping. Desktop breathes back out.
   padding: var(--space-1) var(--space-3);
-  color: var(--mono-solid);
+  // Step 11 (low-contrast text) for the inactive tab label — step 9
+  // (--mono-solid) is a solid-fill tone, never a text colour.
+  color: var(--mono-text-low-contrast);
   text-decoration: none;
   border-radius: var(--radius-full);
   transition: none;

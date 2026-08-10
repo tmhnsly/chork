@@ -20,6 +20,10 @@
 // Title bar sits sticky at the top so long content slides under it
 // (that's what the backdrop blur is actually blurring).
 .content {
+  // Focused programmatically on open (BottomSheet onOpenAutoFocus) so AT
+  // announces the sheet — the container itself needs no visible ring;
+  // keyboard users get one on the first real control (close button).
+  outline: none;
   @include surface.glass; // thick material (70% default)
   box-shadow: var(--shadow-xl);
   display: flex;
