@@ -89,45 +89,39 @@ describe("createGymMembership", () => {
 });
 
 describe("toggleCommentLike", () => {
-  it("deletes existing like and decrements count", async () => {
-    const { createServiceClient } = await import("@/lib/supabase/server");
-    const serviceMock = createMockSupabase();
-    serviceMock._resolveWith({ data: 4, error: null });
-    vi.mocked(createServiceClient).mockReturnValue(serviceMock as never);
-
+  it("deletes the like row and returns the trigger-maintained count", async () => {
+    // comments.likes is maintained by the comment_likes trigger
+    // (migration 068), not an RPC — the action just re-reads the count.
     const userMock = createMockSupabase();
-    // First call: maybeSingle returns existing like
-    userMock._resolveWith({ data: { id: "like1" }, error: null });
+    userMock._resolveWith({ data: { id: "like1", likes: 4 }, error: null });
 
     const { toggleCommentLike } = await import("./mutations");
     const result = await toggleCommentLike(userMock as never, "user1", "comment1", "gym1");
 
-    expect(result.liked).toBe(false);
+    expect(result).toEqual({ liked: false, likes: 4 });
     expect(userMock.delete).toHaveBeenCalled();
-    expect(serviceMock.rpc).toHaveBeenCalledWith(
-      "increment_comment_likes",
-      { p_comment_id: "comment1", p_delta: -1 }
-    );
   });
 
-  it("inserts new like and increments count", async () => {
-    const { createServiceClient } = await import("@/lib/supabase/server");
-    const serviceMock = createMockSupabase();
-    serviceMock._resolveWith({ data: 6, error: null });
-    vi.mocked(createServiceClient).mockReturnValue(serviceMock as never);
-
+  it("inserts the like row and returns the trigger-maintained count", async () => {
     const userMock = createMockSupabase();
-    // maybeSingle returns null (no existing like)
     userMock._resolveWith({ data: null, error: null });
 
     const { toggleCommentLike } = await import("./mutations");
     const result = await toggleCommentLike(userMock as never, "user1", "comment1", "gym1");
 
     expect(result.liked).toBe(true);
-    expect(userMock.insert).toHaveBeenCalled();
-    expect(serviceMock.rpc).toHaveBeenCalledWith(
-      "increment_comment_likes",
-      { p_comment_id: "comment1", p_delta: 1 }
+    expect(userMock.insert).toHaveBeenCalledWith(
+      expect.objectContaining({ user_id: "user1", comment_id: "comment1", gym_id: "gym1" }),
     );
+  });
+
+  it("throws instead of guessing when the like-state read is blocked", async () => {
+    const userMock = createMockSupabase();
+    userMock._resolveWith({ data: null, error: { message: "RLS" } });
+
+    const { toggleCommentLike } = await import("./mutations");
+    await expect(
+      toggleCommentLike(userMock as never, "user1", "comment1", "gym1"),
+    ).rejects.toBeTruthy();
   });
 });

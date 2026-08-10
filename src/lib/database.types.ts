@@ -1939,10 +1939,6 @@ export type Database = {
           zone_only: number
         }[]
       }
-      increment_comment_likes: {
-        Args: { p_comment_id: string; p_delta: number }
-        Returns: number
-      }
       is_active_crew_member: { Args: { p_crew_id: string }; Returns: boolean }
       is_admin_of_route: { Args: { p_route_id: string }; Returns: boolean }
       is_competition_organiser: {

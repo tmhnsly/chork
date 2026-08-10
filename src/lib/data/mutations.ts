@@ -147,58 +147,37 @@ export async function toggleCommentLike(
   // updating the counter. Bail out with a useful error instead.
   if (readError) throw readError;
 
-  const service = createServiceClient();
-
+  // comments.likes is maintained atomically by the comment_likes
+  // AFTER INSERT/DELETE trigger (migration 068): the row change and the
+  // counter move commit together in one statement, and cascade-deleted
+  // likes decrement correctly (fixing the old app-RPC-only drift). We
+  // just mirror the row change, then re-read the authoritative count.
   if (existing) {
-    // Race-safe unlike: two concurrent unlikes (e.g. two tabs) both
-    // read the same `existing` row, both fire delete-by-id. The first
-    // delete affects 1 row, the second affects 0 — and without
-    // checking the count both would fire `increment_comment_likes(-1)`,
-    // double-decrementing the counter below the true row count.
-    //
-    // `select("id")` after delete returns the actually-deleted rows;
-    // only fire the RPC when this caller's delete was the one that
-    // removed the row.
-    const { data: deleted, error: deleteError } = await supabase
+    const { error: deleteError } = await supabase
       .from("comment_likes")
       .delete()
-      .eq("id", existing.id)
-      .select("id");
+      .eq("id", existing.id);
     if (deleteError) throw deleteError;
-
-    if (!deleted || deleted.length === 0) {
-      // Another client removed the row first. Re-read the current
-      // counter so the caller's UI ends up consistent.
-      const { data: comment } = await supabase
-        .from("comments")
-        .select("likes")
-        .eq("id", commentId)
-        .maybeSingle();
-      return { liked: false, likes: comment?.likes ?? 0 };
-    }
-
-    // Atomic decrement — no race condition
-    const { data: newLikes, error: rpcError } = await service
-      .rpc("increment_comment_likes", { p_comment_id: commentId, p_delta: -1 });
-    if (rpcError) throw rpcError;
-
-    return { liked: false, likes: newLikes ?? 0 };
+    const { data: comment } = await supabase
+      .from("comments")
+      .select("likes")
+      .eq("id", commentId)
+      .maybeSingle();
+    return { liked: false, likes: comment?.likes ?? 0 };
   }
 
-  // Like-direction race is already covered by the
-  // `unique(user_id, comment_id)` constraint on comment_likes — the
-  // second concurrent insert throws and we exit before the RPC fires.
+  // The unique(user_id, comment_id) constraint makes a double-like race
+  // throw on the second insert rather than double-count.
   const { error: insertError } = await supabase
     .from("comment_likes")
     .insert({ user_id: userId, comment_id: commentId, gym_id: gymId });
   if (insertError) throw insertError;
-
-  // Atomic increment — no race condition
-  const { data: newLikes, error: rpcError } = await service
-    .rpc("increment_comment_likes", { p_comment_id: commentId, p_delta: 1 });
-  if (rpcError) throw rpcError;
-
-  return { liked: true, likes: newLikes ?? 0 };
+  const { data: comment } = await supabase
+    .from("comments")
+    .select("likes")
+    .eq("id", commentId)
+    .maybeSingle();
+  return { liked: true, likes: comment?.likes ?? 0 };
 }
 
 // ── Activity events ────────────────────────────────

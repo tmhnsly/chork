@@ -28,11 +28,18 @@ export async function revalidateUserProfile(
   userId: string,
 ): Promise<void> {
   revalidateTag(tags.userProfile(userId), "max");
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("profiles")
     .select("username")
     .eq("id", userId)
     .maybeSingle();
+  if (error) {
+    // Don't silently leave the by-username cache stale on a transient
+    // failure — log it, matching the sibling revalidateCrewMembers.
+    logger.warn("revalidate_user_profile_username_lookup_failed", {
+      err: formatErrorForLog(error),
+    });
+  }
   if (data?.username) {
     revalidateTag(tags.userByUsername(data.username), "max");
   }
