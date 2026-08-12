@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { useClientResource } from "@/hooks/use-client-resource";
-import { UserAvatar, shimmerStyles } from "@/components/ui";
+import { Button, UserAvatar, shimmerStyles } from "@/components/ui";
 import {
   getCrewLeaderboard,
   type ActiveSetOption,
@@ -40,7 +40,7 @@ export function CrewLeaderboardPanel({
   // Keyed fetch — re-enters loading state (rows === null) on set
   // change without tripping `set-state-in-effect`. No live set ⇒
   // disabled, skeleton stays up.
-  const { data: rows } = useClientResource<CrewLeaderboardRow[]>(
+  const { data: rows, error, reload } = useClientResource<CrewLeaderboardRow[]>(
     `${crewId}|${selectedSetId ?? ""}`,
     () => getCrewLeaderboard(createBrowserSupabase(), crewId, selectedSetId!),
     { enabled: selectedSetId !== null },
@@ -68,7 +68,14 @@ export function CrewLeaderboardPanel({
         </select>
       </label>
 
-      {rows === null ? (
+      {error ? (
+        <div className={styles.empty}>
+          Couldn&apos;t load the leaderboard.{" "}
+          <Button variant="ghost" onClick={reload}>
+            Retry
+          </Button>
+        </div>
+      ) : rows === null ? (
         <ul className={styles.list} aria-busy="true">
           {[0, 1, 2, 3].map((i) => (
             <li key={i} className={`${styles.row} ${shimmerStyles.skeleton}`} />

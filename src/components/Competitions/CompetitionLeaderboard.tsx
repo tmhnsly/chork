@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { useClientResource } from "@/hooks/use-client-resource";
 import { getCompetitionLeaderboard, type CompetitionLeaderboardRow } from "@/lib/data/competition-queries";
-import { UserAvatar, shimmerStyles, TabPills, type TabPillOption } from "@/components/ui";
+import { Button, UserAvatar, shimmerStyles, TabPills, type TabPillOption } from "@/components/ui";
 import { toAvatarUser } from "@/lib/data/leaderboard-helpers";
 import type { CompetitionCategory } from "@/lib/data/competition-queries";
 import styles from "./competitionLeaderboard.module.scss";
@@ -30,7 +30,7 @@ export function CompetitionLeaderboard({
   // Keyed fetch — the hook derives the loading state (rows === null)
   // from a key mismatch, so switching category re-enters the skeleton
   // without any setState-in-effect dance.
-  const { data: rows } = useClientResource<CompetitionLeaderboardRow[]>(
+  const { data: rows, error, reload } = useClientResource<CompetitionLeaderboardRow[]>(
     `${competitionId}|${categoryId ?? ""}`,
     () =>
       getCompetitionLeaderboard(createBrowserSupabase(), competitionId, categoryId),
@@ -55,7 +55,14 @@ export function CompetitionLeaderboard({
         />
       )}
 
-      {rows === null ? (
+      {error ? (
+        <div className={styles.empty}>
+          Couldn&apos;t load the leaderboard.{" "}
+          <Button variant="ghost" onClick={reload}>
+            Retry
+          </Button>
+        </div>
+      ) : rows === null ? (
         <ul className={styles.list} aria-busy="true">
           {[0, 1, 2, 3, 4].map((i) => (
             <li key={i} className={`${styles.row} ${shimmerStyles.skeleton}`} />

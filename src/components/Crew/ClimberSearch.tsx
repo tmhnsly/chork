@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { FaUserPlus, FaPlus, FaCheck } from "react-icons/fa6";
 import { useClientResource } from "@/hooks/use-client-resource";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { SearchField, SheetBody, UserAvatar, shimmerStyles, showToast } from "@/components/ui";
+import { Button, SearchField, SheetBody, UserAvatar, shimmerStyles, showToast } from "@/components/ui";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import {
   searchClimbersForInvite,
@@ -52,7 +52,7 @@ export function ClimberSearch({ currentUserId, myCrews, onCreateCrew, autoFocus 
   // loading derives from the key mismatch (results === null). Queries
   // under 2 chars never fire; the "start typing" empty state renders
   // via the disabled key "".
-  const { data: results, mutate } = useClientResource<UserSearchResult[]>(
+  const { data: results, error, reload, mutate } = useClientResource<UserSearchResult[]>(
     queryKey,
     (key) => searchClimbersForInvite(createBrowserSupabase(), key, currentUserId),
     { enabled: queryKey !== "", debounceMs: 250 },
@@ -79,7 +79,14 @@ export function ClimberSearch({ currentUserId, myCrews, onCreateCrew, autoFocus 
         />
         <p className={styles.hint}>Type a display name or @username.</p>
 
-        {results === null && query.trim().length >= 2 ? (
+        {error && query.trim().length >= 2 ? (
+          <div className={styles.empty}>
+            Search failed.{" "}
+            <Button variant="ghost" onClick={reload}>
+              Retry
+            </Button>
+          </div>
+        ) : results === null && query.trim().length >= 2 ? (
           <ul className={styles.list} aria-busy="true">
             {[0, 1, 2].map((i) => (
               <li key={i} className={`${styles.row} ${shimmerStyles.skeleton}`} />
