@@ -20,28 +20,38 @@ export function PendingInvitesCard({ invites }: Props) {
   function handleAccept(invite: PendingInvite) {
     setWorking(invite.id);
     startTransition(async () => {
-      const res = await acceptCrewInvite(invite.id);
-      setWorking(null);
-      if ("error" in res) {
-        showToast(res.error, "error");
-        return;
+      try {
+        const res = await acceptCrewInvite(invite.id);
+        if ("error" in res) {
+          showToast(res.error, "error");
+          return;
+        }
+        showToast(`Joined ${invite.crew_name}`, "success");
+        router.refresh();
+      } catch {
+        showToast("Something went wrong — try again", "error");
+      } finally {
+        setWorking(null);
       }
-      showToast(`Joined ${invite.crew_name}`, "success");
-      router.refresh();
     });
   }
 
   function handleDecline(invite: PendingInvite) {
     setWorking(invite.id);
     startTransition(async () => {
-      const res = await declineCrewInvite(invite.id);
-      setWorking(null);
-      if ("error" in res) {
-        showToast(res.error, "error");
-        return;
+      try {
+        const res = await declineCrewInvite(invite.id);
+        if ("error" in res) {
+          showToast(res.error, "error");
+          return;
+        }
+        showToast(`Declined ${invite.crew_name}`, "info");
+        router.refresh();
+      } catch {
+        showToast("Something went wrong — try again", "error");
+      } finally {
+        setWorking(null);
       }
-      showToast(`Declined ${invite.crew_name}`, "info");
-      router.refresh();
     });
   }
 

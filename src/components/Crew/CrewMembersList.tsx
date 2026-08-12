@@ -40,14 +40,18 @@ export function CrewMembersList({
 
   function handleLeave() {
     startTransition(async () => {
-      const res = await leaveCrew(crew.id);
-      if ("error" in res) {
-        showToast(res.error, "error");
-        return;
+      try {
+        const res = await leaveCrew(crew.id);
+        if ("error" in res) {
+          showToast(res.error, "error");
+          return;
+        }
+        showToast("Left crew", "info");
+        setConfirmLeave(false);
+        // Page revalidates on leave; parent rerenders without this crew.
+      } catch {
+        showToast("Something went wrong — try again", "error");
       }
-      showToast("Left crew", "info");
-      setConfirmLeave(false);
-      // Page revalidates on leave; parent rerenders without this crew.
     });
   }
 
@@ -55,13 +59,17 @@ export function CrewMembersList({
     if (!transferTarget) return;
     const target = transferTarget;
     startTransition(async () => {
-      const res = await transferCrewOwnership(crew.id, target.user_id);
-      if ("error" in res) {
-        showToast(res.error, "error");
-        return;
+      try {
+        const res = await transferCrewOwnership(crew.id, target.user_id);
+        if ("error" in res) {
+          showToast(res.error, "error");
+          return;
+        }
+        showToast(`@${target.username} is now the crew creator`, "success");
+        setTransferTarget(null);
+      } catch {
+        showToast("Something went wrong — try again", "error");
       }
-      showToast(`@${target.username} is now the crew creator`, "success");
-      setTransferTarget(null);
     });
   }
 

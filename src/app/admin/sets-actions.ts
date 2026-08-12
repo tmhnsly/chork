@@ -105,6 +105,19 @@ export async function updateSet(
   const auth = await requireGymAdmin(setRow.gym_id);
   if ("error" in auth) return { error: auth.error };
 
+  // A set can't go live with no routes — that's an empty Wall, plus a
+  // "new set is live" push for nothing. Guard BEFORE applying the flip.
+  const goingLive = setRow.status !== "live" && form.status === "live";
+  if (goingLive) {
+    const { count } = await service
+      .from("routes")
+      .select("id", { count: "exact", head: true })
+      .eq("set_id", setId);
+    if (!count || count < 1) {
+      return { error: "Add at least one route before publishing this set." };
+    }
+  }
+
   const result = await updateAdminSet(auth.supabase, setId, {
     name: form.name?.trim() || null,
     startsAt: form.startsAt,
@@ -123,7 +136,7 @@ export async function updateSet(
   // distinction from per-recipient Notifications. announce() dispatch
   // is background + best-effort; the user-id fetch is awaited here so
   // we can size the fan-out + skip the call when no climbers exist.
-  if (setRow.status !== "live" && form.status === "live") {
+  if (goingLive) {
     try {
       const [userIds, gym] = await Promise.all([
         getGymClimberUserIds(setRow.gym_id),

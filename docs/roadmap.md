@@ -85,6 +85,15 @@ Platform hardening:
 
 ## Next up
 
+- [ ] **Jams — UX/robustness overhaul.** Shipped half-baked; the feature
+      works but doesn't hang together yet. Known gaps (audit 2026-08-10):
+      live-player realtime never dispatched (`set-players` reducer action is
+      unused, so friends who join mid-jam don't appear until reload); no
+      leave-jam UI (server `leaveJam` is ready, no call site); ending a jam
+      gives no signal to other open sessions; offline queue only retries
+      `TypeError` (silent data loss on any other failure); add/edit/end-route
+      and end-jam have no error handling; live leaderboard caps at 5 of 20.
+      Needs one coherent pass, not piecemeal fixes.
 - [ ] Closing-event UI (data model in place — `closing_event` +
       `venue_gym_id` on sets)
 - [ ] Invite email delivery for `gym_invites` (current flow

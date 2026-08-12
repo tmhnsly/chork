@@ -23,16 +23,22 @@ export function CreateCrewSheet({ open, onClose, onCreated }: Props) {
     e.preventDefault();
     if (!name.trim()) return;
     startTransition(async () => {
-      const res = await createCrew(name);
-      if ("error" in res) {
-        showToast(res.error, "error");
-        return;
+      try {
+        const res = await createCrew(name);
+        if ("error" in res) {
+          showToast(res.error, "error");
+          return;
+        }
+        showToast(`Created ${name.trim()}`, "success");
+        setName("");
+        onCreated(res.crewId);
+        onClose();
+        router.refresh();
+      } catch {
+        // A thrown (vs discriminated {error}) rejection — e.g. the
+        // transport dropping on gym wifi — must still surface, not vanish.
+        showToast("Something went wrong — try again", "error");
       }
-      showToast(`Created ${name.trim()}`, "success");
-      setName("");
-      onCreated(res.crewId);
-      onClose();
-      router.refresh();
     });
   }
 

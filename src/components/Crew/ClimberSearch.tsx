@@ -207,14 +207,19 @@ function CrewPickerSheet({
   function handlePickCrew(crew: Crew) {
     setWorkingId(crew.id);
     startTransition(async () => {
-      const res = await inviteToCrew(crew.id, target.user_id);
-      setWorkingId(null);
-      if ("error" in res) {
-        showToast(res.error, "error");
-        return;
+      try {
+        const res = await inviteToCrew(crew.id, target.user_id);
+        if ("error" in res) {
+          showToast(res.error, "error");
+          return;
+        }
+        showToast(`Invited @${target.username} to ${crew.name}`, "success");
+        onSent();
+      } catch {
+        showToast("Something went wrong — try again", "error");
+      } finally {
+        setWorkingId(null);
       }
-      showToast(`Invited @${target.username} to ${crew.name}`, "success");
-      onSent();
     });
   }
 
