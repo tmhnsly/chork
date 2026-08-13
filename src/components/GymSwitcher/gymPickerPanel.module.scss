@@ -4,7 +4,18 @@
 @use "mixins/input" as input;
 @use "mixins/state" as state;
 
-// Body rhythm comes from the `<SheetBody>` primitive.
+// This pane owns its own vertical rhythm. It used to sit inside a
+// `<SheetBody>`, which supplied it; as a slide-in pane it doesn't, and
+// without this the search field, the gymless row, the rule and the gym
+// list inherited the settings menu's 4px list gap — right for flush
+// menu rows, far too tight for a field and a run of card rows.
+//
+// Two levels on purpose: `--space-3` between the pane's sections, and
+// `--space-2` between rows inside the list, so a list reads as one
+// block rather than as more sections.
+.panel {
+  @include layout.stack(var(--space-3));
+}
 
 .heading {
   @include type.typography(card-title);
@@ -101,8 +112,9 @@
 // two are different kinds of answer — "no gym" isn't one more entry
 // in the list — so they get a rule between them rather than sitting
 // in the same run of rows.
+// No margin — the pane's stack owns the spacing either side, so the
+// rule sits on the same rhythm as everything else.
 .gymlessDivider {
   height: 1px;
-  margin: var(--space-2) 0;
   background: var(--mono-border-subtle);
 }

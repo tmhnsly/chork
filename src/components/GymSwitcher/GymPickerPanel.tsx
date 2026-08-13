@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useClientResource } from "@/hooks/use-client-resource";
 import { Button } from "@/components/ui/Button";
 import { FaMagnifyingGlass, FaCheck } from "react-icons/fa6";
-import { shimmerStyles, showToast } from "@/components/ui";
+import { ConfirmInline, shimmerStyles, showToast } from "@/components/ui";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { switchActiveGym, clearActiveGym } from "@/app/(app)/membership-actions";
 import styles from "./gymPickerPanel.module.scss";
@@ -54,6 +54,10 @@ export function GymPickerPanel({ open, onClose, activeGymId }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [query, setQuery] = useState("");
+  // Leaving is reversible — the membership survives — but it does
+  // take the wall and board away, so it gets an explicit opt-in
+  // rather than firing on the first tap.
+  const [confirmingGymless, setConfirmingGymless] = useState(false);
 
   // Fetch once on first open; the settled result is kept for the
   // session (constant key ⇒ never refetched). Errors degrade to an
@@ -110,6 +114,10 @@ export function GymPickerPanel({ open, onClose, activeGymId }: Props) {
       onClose();
       return;
     }
+    setConfirmingGymless(true);
+  }
+
+  function confirmGymless() {
     startTransition(async () => {
       const res = await clearActiveGym();
       if ("error" in res) {
@@ -130,8 +138,33 @@ export function GymPickerPanel({ open, onClose, activeGymId }: Props) {
     });
   }
 
+  // Confirm takes over the whole pane rather than sitting above the
+  // list. Leaving is a decision about the pane's own subject, so
+  // leaving the catalogue tappable underneath would invite a stray
+  // tap on a gym while the question is still on screen.
+  if (confirmingGymless) {
+    return (
+      <ConfirmInline
+        prompt={
+          <>
+            Step out of gym mode? The wall and board for your gym will
+            disappear until you pick it again. Jams, crews and your
+            climbing history all stay exactly as they are.
+          </>
+        }
+        confirmLabel="Step out"
+        cancelLabel="Stay"
+        confirmVariant="primary"
+        pending={pending}
+        pendingLabel="Clearing…"
+        onConfirm={confirmGymless}
+        onCancel={() => setConfirmingGymless(false)}
+      />
+    );
+  }
+
   return (
-    <>
+    <div className={styles.panel}>
         <div className={styles.searchWrap}>
           <FaMagnifyingGlass className={styles.searchIcon} aria-hidden />
           <input
@@ -207,6 +240,6 @@ export function GymPickerPanel({ open, onClose, activeGymId }: Props) {
             })}
           </ul>
         )}
-    </>
+    </div>
   );
 }
