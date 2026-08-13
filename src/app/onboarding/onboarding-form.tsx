@@ -6,7 +6,7 @@ import { FaCheck, FaSpinner } from "react-icons/fa6";
 import { useAuth } from "@/lib/auth-context";
 import { useUsernameValidation } from "@/hooks/use-username-validation";
 import { RevealText } from "@/components/motion";
-import { FormField, InputError, Button, showToast, shimmerStyles } from "@/components/ui";
+import { FormField, InputError, Button, showToast, shimmerStyles, Username } from "@/components/ui";
 import { completeOnboarding, fetchListedGyms } from "./actions";
 import type { Gym } from "@/lib/data";
 import { withTimeout } from "@/lib/async";
@@ -134,7 +134,7 @@ export function OnboardingForm() {
           <div className={styles.confirmDetails}>
             <div className={styles.confirmRow}>
               <span className={styles.confirmLabel}>Username</span>
-              <span className={styles.confirmValue}>@{username}</span>
+              <Username username={username} className={styles.confirmValue} />
             </div>
             {displayName && (
               <div className={styles.confirmRow}>

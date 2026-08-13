@@ -6,7 +6,7 @@ import { requireSignedIn } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getJamSummaryForUser } from "@/lib/data/jam-queries";
 import { PageHeader } from "@/components/motion";
-import { UserAvatar } from "@/components/ui";
+import { UserAvatar, Username } from "@/components/ui";
 import styles from "./summary.module.scss";
 
 interface Props {
@@ -74,9 +74,10 @@ export default async function JamSummaryPage({ params, searchParams }: Props) {
               {winner.display_name || winner.username}
             </span>
             {winner.display_name && winner.username && (
-              <span className={styles.winnerHandle}>
-                @{winner.username}
-              </span>
+              <Username
+                username={winner.username}
+                className={styles.winnerHandle}
+              />
             )}
           </div>
           <div className={styles.winnerStats}>
@@ -110,7 +111,7 @@ export default async function JamSummaryPage({ params, searchParams }: Props) {
                 <span className={styles.playerName}>
                   {p.display_name || p.username}
                 </span>
-                <span className={styles.playerHandle}>@{p.username}</span>
+                <Username username={p.username} className={styles.playerHandle} />
               </div>
               <div className={styles.playerStats}>
                 <span>{p.sends} sends</span>

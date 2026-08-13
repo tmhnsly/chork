@@ -13,6 +13,7 @@ import {
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { PendingInvitesCard } from "@/components/ui/PendingInvitesCard";
 import { Button } from "@/components/ui/Button";
+import { Username } from "@/components/ui/Username";
 import { formatDistanceToNow, parseISO } from "date-fns";
 import type { PendingInvite } from "@/lib/data/crew-queries";
 import type { NotificationRow } from "@/lib/data/notifications";
@@ -169,8 +170,10 @@ const KIND_ICONS: Record<NotificationIcon, IconType> = {
 /**
  * Generic segment → JSX mapping. Per-kind copy lives as structured
  * data in the kind table; this is the only place segments become
- * markup. `user` segments get the `@` prefix here (domain rule:
- * usernames always display with `@`).
+ * markup. `user` segments render through `<Username>`, which owns the
+ * `@` prefix (domain rule: usernames always display with `@`) and the
+ * break points, so a long handle wraps here the same way it does on
+ * the leaderboard rather than splitting mid-word in a narrow sheet.
  */
 function SegmentedTitle({ segments }: { segments: NotificationSegment[] }) {
   return (
@@ -179,7 +182,9 @@ function SegmentedTitle({ segments }: { segments: NotificationSegment[] }) {
         s.type === "text" ? (
           <Fragment key={i}>{s.text}</Fragment>
         ) : (
-          <strong key={i}>{s.type === "user" ? `@${s.username}` : s.name}</strong>
+          <strong key={i}>
+            {s.type === "user" ? <Username username={s.username} /> : s.name}
+          </strong>
         ),
       )}
     </>

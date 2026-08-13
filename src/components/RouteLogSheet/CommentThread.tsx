@@ -12,7 +12,7 @@ import {
   FaRegHeart,
 } from "react-icons/fa6";
 import { EditCommentForm } from "./EditCommentForm";
-import { shimmerStyles, showToast, UserAvatar } from "@/components/ui";
+import { shimmerStyles, showToast, UserAvatar, Username } from "@/components/ui";
 import type { Comment } from "@/lib/data";
 import styles from "./routeLogSheet.module.scss";
 
@@ -342,7 +342,7 @@ function CommentRow({
               doesn't collapse during edit — prevents sibling rows
               shifting. */}
           <Link href={`/u/${username}`} className={styles.commentAuthor}>
-            @{username}
+            <Username username={username} />
           </Link>
           {isEditing ? (
             <EditCommentForm

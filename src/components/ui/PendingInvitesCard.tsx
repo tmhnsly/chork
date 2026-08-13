@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { FaCheck, FaXmark } from "react-icons/fa6";
 import { showToast } from "@/components/ui";
+import { Username } from "./Username";
 import type { PendingInvite } from "@/lib/data/crew-queries";
 import { acceptCrewInvite, declineCrewInvite } from "@/app/crew/actions";
 import styles from "./pendingInvitesCard.module.scss";
@@ -68,7 +69,10 @@ export function PendingInvitesCard({ invites }: Props) {
               <div className={styles.rowText}>
                 <span className={styles.crewName}>{invite.crew_name}</span>
                 <span className={styles.rowMeta}>
-                  from <strong>@{invite.invited_by_username}</strong>
+                  from{" "}
+                  <strong>
+                    <Username username={invite.invited_by_username} />
+                  </strong>
                 </span>
               </div>
               <div className={styles.actions}>

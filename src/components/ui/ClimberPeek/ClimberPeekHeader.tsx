@@ -66,7 +66,7 @@ export function ClimberPeekHeader({ user, trailing, stats }: Props) {
           <UserAvatar user={user} size="rowLg" />
           <span className={styles.identityText}>
             <span className={styles.displayName}>
-              {user.name?.trim() || `@${user.username}`}
+              {user.name?.trim() || <Username username={user.username} />}
             </span>
             {user.name?.trim() && (
               <Username username={user.username} className={styles.handle} />

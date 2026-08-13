@@ -185,7 +185,10 @@ export function CrewMembersList({
         {transferTarget && (
           <div className={styles.confirmBody}>
             <p className={styles.confirmText}>
-              <span className={styles.confirmCrew}>@{transferTarget.username}</span>{" "}
+              <Username
+                username={transferTarget.username}
+                className={styles.confirmCrew}
+              />{" "}
               will take over as the creator of{" "}
               <span className={styles.confirmCrew}>{crew.name}</span>. You&apos;ll
               stay a regular member until you leave.
