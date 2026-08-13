@@ -5,14 +5,20 @@
  *   • `isValidTheme` is a strict subset check;
  *   • `THEME_META` is non-empty and every entry has both swatches;
  *   • IDs in `THEME_META` match the `ThemeName` union (catches drift
- *     between the settings picker and the union).
+ *     between the settings picker and the union);
+ *   • `resetTheme` clears both the in-memory value and the stored
+ *     one, so signing out can't leave your palette on a shared phone.
  */
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   THEME_META,
   DEFAULT_THEME,
+  STORAGE_KEY,
   isValidTheme,
   syncThemeFromProfile,
+  resetTheme,
+  setThemeStore,
+  subscribe,
   getSnapshot,
   getServerSnapshot,
   type ThemeName,
@@ -79,5 +85,64 @@ describe("syncThemeFromProfile", () => {
 describe("getServerSnapshot", () => {
   it("always returns the default (SSR safety)", () => {
     expect(getServerSnapshot()).toBe(DEFAULT_THEME);
+  });
+});
+
+describe("resetTheme", () => {
+  // The theme belongs to the climber, not the device. These pin the
+  // shared-phone case: sign out, hand the phone over, and the next
+  // person must not be looking at your palette.
+  const nonDefault = THEME_META.find((m) => m.id !== DEFAULT_THEME)!.id;
+
+  it("drops back to the default palette", () => {
+    setThemeStore(nonDefault);
+    expect(getSnapshot()).toBe(nonDefault);
+    resetTheme();
+    expect(getSnapshot()).toBe(DEFAULT_THEME);
+  });
+
+  it("forgets the stored preference so it can't come back on reload", () => {
+    // The module reads localStorage on load, so clearing the in-memory
+    // value alone would let the old theme reappear on the next visit.
+    //
+    // The unit project runs in node, and the store wraps every storage
+    // call in try/catch — so without a stub this assertion would pass
+    // vacuously against a ReferenceError that never surfaced.
+    const store = new Map<string, string>();
+    vi.stubGlobal("window", {
+      localStorage: {
+        getItem: (k: string) => store.get(k) ?? null,
+        setItem: (k: string, v: string) => void store.set(k, v),
+        removeItem: (k: string) => void store.delete(k),
+      },
+    });
+
+    try {
+      setThemeStore(nonDefault);
+      expect(store.get(STORAGE_KEY)).toBe(nonDefault);
+      resetTheme();
+      expect(store.has(STORAGE_KEY)).toBe(false);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("is safe to call when already on the default", () => {
+    resetTheme();
+    expect(() => resetTheme()).not.toThrow();
+    expect(getSnapshot()).toBe(DEFAULT_THEME);
+  });
+
+  it("notifies subscribers so the UI repaints", () => {
+    // Without this the `<html data-theme>` attribute keeps the old
+    // palette until something else happens to re-render.
+    setThemeStore(nonDefault);
+    let calls = 0;
+    const unsubscribe = subscribe(() => {
+      calls += 1;
+    });
+    resetTheme();
+    unsubscribe();
+    expect(calls).toBe(1);
   });
 });

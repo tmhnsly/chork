@@ -138,6 +138,32 @@ export function syncThemeFromProfile(
 }
 
 /**
+ * Drop back to the default palette and forget the stored preference.
+ *
+ * Called when auth resolves to "signed out". The theme is a property
+ * of the climber, not of the device: `setThemeStore` persists to
+ * localStorage so a reload keeps the palette, which meant a sign-out
+ * left the previous climber's theme applied — and on a shared phone
+ * the next person to sign in saw it until their own profile loaded.
+ *
+ * Clearing the key as well as the in-memory value is what stops it
+ * coming back: the module-level bootstrap below reads localStorage on
+ * every load, so leaving the key behind would re-apply the old theme
+ * on the next visit even after this reset.
+ */
+export function resetTheme(): void {
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // Private browsing / storage disabled — the in-memory reset below
+    // still applies for this session.
+  }
+  if (currentTheme === DEFAULT_THEME) return;
+  currentTheme = DEFAULT_THEME;
+  listeners.forEach((fn) => fn());
+}
+
+/**
  * Write the theme attribute to `<html>`. `default` clears the
  * attribute so the bare `:root` styles take over.
  */

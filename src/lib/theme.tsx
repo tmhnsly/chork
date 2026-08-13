@@ -6,6 +6,7 @@ import {
   applyTheme,
   getServerSnapshot,
   getSnapshot,
+  resetTheme,
   setThemeStore,
   subscribe,
   syncThemeFromProfile,
@@ -26,14 +27,28 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const { profile } = useAuth();
+  const { profile, isLoading } = useAuth();
+  const signedIn = !!profile;
 
   // Bridge: when the auth profile resolves (or a theme change syncs
   // back from another device) push it into the local store so this
-  // tab matches the persisted preference.
+  // tab matches the persisted preference. Signing out drops back to
+  // the default palette — the theme belongs to the climber, not the
+  // device.
+  //
+  // `isLoading` is the reason this can't just branch on `profile`.
+  // Before the bootstrap resolves, `profile` is legitimately null for
+  // a signed-IN climber too, so resetting on every null would flash
+  // the default palette on each reload before snapping back. Waiting
+  // for auth to settle makes null mean "signed out" and nothing else.
   useEffect(() => {
+    if (isLoading) return;
+    if (!signedIn) {
+      resetTheme();
+      return;
+    }
     syncThemeFromProfile(profile?.theme);
-  }, [profile?.theme]);
+  }, [profile?.theme, signedIn, isLoading]);
 
   // Effect updates an external system (the DOM `<html>` attribute)
   // in response to the store's value.
