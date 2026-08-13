@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useClientResource } from "@/hooks/use-client-resource";
+import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/Button";
 import { FaMagnifyingGlass, FaCheck } from "react-icons/fa6";
 import { ConfirmInline, shimmerStyles, showToast } from "@/components/ui";
@@ -52,6 +53,11 @@ interface Props {
  */
 export function GymPickerPanel({ open, onClose, activeGymId }: Props) {
   const router = useRouter();
+  // NavBar renders from the auth context's profile, not from the
+  // server shell, so a gym change has to push through here too —
+  // otherwise the tabs stay on the old variant until the cached
+  // profile next revalidates.
+  const { refreshProfile } = useAuth();
   const [pending, startTransition] = useTransition();
   const [query, setQuery] = useState("");
   // Leaving is reversible — the membership survives — but it does
@@ -105,6 +111,7 @@ export function GymPickerPanel({ open, onClose, activeGymId }: Props) {
       }
       showToast("Switched gym", "success");
       onClose();
+      await refreshProfile();
       router.refresh();
     });
   }
@@ -126,6 +133,7 @@ export function GymPickerPanel({ open, onClose, activeGymId }: Props) {
       }
       showToast("Gym cleared", "success");
       onClose();
+      await refreshProfile();
       // Push *and* refresh, both needed for different reasons. The
       // push moves them off a page that no longer applies — the Wall
       // and Board bounce gymless climbers to /jam anyway. The refresh
