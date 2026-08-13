@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidateTag } from "next/cache";
+import { cookies } from "next/headers";
 import { revalidateUserProfile } from "@/lib/cache/revalidate";
 import { requireAuth, requireSignedIn } from "@/lib/auth";
 import { formatError } from "@/lib/errors";
@@ -116,6 +117,33 @@ export async function leaveCompetition(
 // ────────────────────────────────────────────────────────────────
 
 /**
+ * Drop the nav-shell cookie so middleware re-derives it from the
+ * profile on the next request.
+ *
+ * `chork-auth-shell` tells `NavBarShell` which nav to paint on first
+ * byte. Middleware only reads the profile to set it while the
+ * `chork-onboarded` cookie is cold; once that goes warm — permanently,
+ * after onboarding — it derives `hasGym` from the *existing* shell
+ * cookie instead. That makes the value self-perpetuating: changing
+ * your gym could never change it, because it only ever agreed with
+ * itself.
+ *
+ * The visible symptom was the nav flashing on reload — the server
+ * painted the stale shell, then the client hydrated from the real
+ * profile and swapped the tabs underneath you.
+ *
+ * Deleting it here rather than adding a profile read to middleware:
+ * middleware runs on every navigation and CLAUDE.md keeps Supabase
+ * queries out of that path. This costs one read, once, only after the
+ * gym actually changes. Same pattern `login/actions.ts` already uses
+ * when a session starts.
+ */
+async function invalidateNavShell(): Promise<void> {
+  const jar = await cookies();
+  jar.delete("chork-auth-shell");
+}
+
+/**
  * Switch the signed-in climber's active gym. If they aren't already a
  * member of the target gym, a `climber` membership is created first so
  * subsequent RLS checks against `is_gym_member` succeed. Previous
@@ -174,6 +202,7 @@ export async function switchActiveGym(
       .eq("id", userId);
     if (profErr) return { error: formatError(profErr) };
 
+    await invalidateNavShell();
     await revalidateUserProfile(supabase, userId);
     return { success: true, gymId };
   } catch (err) {
@@ -217,6 +246,7 @@ export async function clearActiveGym(): Promise<ActionResult<{ gymId: null }>> {
       .eq("id", userId);
     if (error) return { error: formatError(error) };
 
+    await invalidateNavShell();
     await revalidateUserProfile(supabase, userId);
     return { success: true, gymId: null };
   } catch (err) {

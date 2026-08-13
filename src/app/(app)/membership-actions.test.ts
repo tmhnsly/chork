@@ -4,6 +4,10 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // Module mocks
 // ────────────────────────────────────────────────────────────────
 vi.mock("next/cache", () => ({ revalidateTag: vi.fn(), revalidatePath: vi.fn() }));
+const cookieDelete = vi.fn();
+vi.mock("next/headers", () => ({
+  cookies: vi.fn(async () => ({ delete: cookieDelete, get: vi.fn(), set: vi.fn() })),
+}));
 vi.mock("@/lib/cache/revalidate", () => ({ revalidateUserProfile: vi.fn() }));
 vi.mock("@/lib/auth", () => ({
   requireAuth: vi.fn(),
@@ -58,6 +62,7 @@ async function primeSignedIn(supabase: unknown) {
 
 beforeEach(() => {
   vi.resetAllMocks();
+  cookieDelete.mockClear();
 });
 
 describe("clearActiveGym", () => {
@@ -113,6 +118,23 @@ describe("clearActiveGym", () => {
     expect(res).toHaveProperty("error");
     // 42501 is a known code, so the raw Postgres text must not leak.
     expect((res as { error: string }).error).not.toContain("permission denied");
+  });
+
+  it("drops the nav-shell cookie so the nav can't paint the stale variant", async () => {
+    // `chork-auth-shell` decides which nav renders on first byte.
+    // Middleware only re-derives it from the profile while the
+    // `chork-onboarded` cookie is cold; once warm it reads the shell
+    // cookie's own previous value, so the cookie can never disagree
+    // with itself and a gym change alone never updated it. The visible
+    // result was the nav flashing on reload — server painted the stale
+    // shell, client hydrated and swapped the tabs underneath.
+    const { client } = mockSupabase();
+    await primeSignedIn(client);
+
+    const { clearActiveGym } = await import("./membership-actions");
+    await clearActiveGym();
+
+    expect(cookieDelete).toHaveBeenCalledWith("chork-auth-shell");
   });
 
   it("busts the profile cache so the nav drops to its gymless variant", async () => {
@@ -182,6 +204,16 @@ describe("switchActiveGym", () => {
 
     const upsert = calls.find((c) => c.table === "gym_memberships" && c.method === "upsert");
     expect(upsert?.args[1]).toMatchObject({ ignoreDuplicates: true });
+  });
+
+  it("drops the nav-shell cookie so the nav can't paint the stale variant", async () => {
+    const { client } = mockSupabase({ "table:gyms": { data: { id: GYM_1 }, error: null } });
+    await primeSignedIn(client);
+
+    const { switchActiveGym } = await import("./membership-actions");
+    await switchActiveGym(GYM_1);
+
+    expect(cookieDelete).toHaveBeenCalledWith("chork-auth-shell");
   });
 
   it("keeps previous memberships when switching", async () => {
