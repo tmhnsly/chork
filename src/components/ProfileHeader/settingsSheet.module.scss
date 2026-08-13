@@ -61,16 +61,74 @@
   font-size: var(--size-icon-xs);
 }
 
-.swatch {
-  display: inline-block;
-  width: var(--size-dot);
-  height: var(--size-dot);
-  border-radius: var(--radius-full);
-  border: 1px solid var(--mono-border-subtle);
-  // `--swatch` carries the per-palette colour from THEME_META — set
-  // by the component as a CSS pass-through so the sheet's CSS module
-  // doesn't have to know about each theme's hex.
-  background: var(--swatch, transparent);
+// ── Theme picker ─────────────────────────────────────────────
+// Two columns rather than a list of rows. The complaint the previews
+// fix is "I can't tell what I'm choosing without applying it", and
+// half of that is being able to compare them — stacked full-width
+// rows put the first and last option a scroll apart.
+.themeList {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+  // Carries `paneIn` itself rather than sharing `.pane`, whose
+  // `layout.stack` would override the grid — same specificity, and
+  // `.pane` is declared later in this file, so it would win.
+  animation: paneIn var(--duration-normal) var(--ease-out);
+}
+
+.themeItem {
+  @include focus.ring;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-3);
+  background: none;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    background: var(--mono-bg-hover);
+  }
+
+  // The selected palette gets an accent ring in the *current* theme,
+  // not in its own — it marks which row is active, so it belongs to
+  // the app's chrome rather than to the preview it sits on.
+  &[aria-pressed="true"] {
+    border-color: var(--accent-border);
+    background: var(--accent-bg);
+  }
+}
+
+.themeText {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.themeLabel {
+  @include type.typography(body);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--mono-text);
+}
+
+// Fixed slot so the label doesn't shift sideways when the tick
+// appears on the selected option.
+.themeCheck {
+  display: inline-flex;
+  width: 1em;
+  flex-shrink: 0;
+  color: var(--accent-text-low-contrast);
+}
+
+.themeHint {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
 }
 
 .divider {

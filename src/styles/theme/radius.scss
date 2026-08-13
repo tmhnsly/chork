@@ -11,6 +11,7 @@
   //   border-radius: var(--radius-inner-3-4);
   //
   // Naming: --radius-inner-{outer step}-{gap step}
+  --radius-inner-3-2: max(0px, calc(var(--radius-3) - var(--space-2)));
   --radius-inner-3-3: max(0px, calc(var(--radius-3) - var(--space-3)));
   --radius-inner-3-4: max(0px, calc(var(--radius-3) - var(--space-4)));
   --radius-inner-4-3: max(0px, calc(var(--radius-4) - var(--space-3)));

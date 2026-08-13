@@ -3,12 +3,15 @@
  *   • `syncThemeFromProfile` never renders an unknown theme name on
  *     `<html>` — anything invalid resolves to the default;
  *   • `isValidTheme` is a strict subset check;
- *   • `THEME_META` is non-empty and every entry has both swatches;
+ *   • `THEME_META` and `colors.scss` declare the same palettes, in
+ *     both directions;
  *   • IDs in `THEME_META` match the `ThemeName` union (catches drift
  *     between the settings picker and the union);
  *   • an absent / invalid profile theme resolves to the default, so
  *     signing out can't leave your palette on a shared phone.
  */
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it, expect } from "vitest";
 import {
   THEME_META,
@@ -22,7 +25,7 @@ import {
   type ThemeName,
 } from "./theme-store";
 
-const KNOWN_THEMES: ThemeName[] = ["default", "slate", "sand", "gray", "mauve", "sage"];
+const KNOWN_THEMES: ThemeName[] = ["default", "blue", "violet", "pink"];
 
 describe("THEME_META", () => {
   it("includes the default theme", () => {
@@ -30,13 +33,44 @@ describe("THEME_META", () => {
     expect(THEME_META.some((t) => t.id === DEFAULT_THEME)).toBe(true);
   });
 
-  it("every entry carries two non-empty swatches", () => {
+  it("every theme has a matching block in colors.scss", () => {
+    // The union, the picker and the stylesheet have to agree. A theme
+    // in `THEME_META` with no CSS behind it renders as the palette of
+    // whatever it inherits from — silently, and only for the climbers
+    // who picked it. Cheaper to fail here than to hear about it.
+    const css = readFileSync(
+      join(process.cwd(), "src/styles/theme/colors.scss"),
+      "utf8",
+    );
     for (const meta of THEME_META) {
-      expect(meta.swatches).toHaveLength(2);
-      for (const s of meta.swatches) {
-        expect(typeof s).toBe("string");
-        expect(s.length).toBeGreaterThan(0);
-      }
+      expect(css, `no [data-theme="${meta.id}"] block in colors.scss`)
+        .toContain(`[data-theme="${meta.id}"]`);
+    }
+  });
+
+  it("declares no palette the union doesn't know about", () => {
+    // The other direction: an orphaned block is dead CSS shipped to
+    // every page, and usually the leftover of a rename.
+    const css = readFileSync(
+      join(process.cwd(), "src/styles/theme/colors.scss"),
+      "utf8",
+    );
+    // Anchored to column 0 so it matches selectors only — the file's
+    // own docblock mentions `[data-theme="<name>"]` when explaining
+    // how to add a theme, and that is not a declaration.
+    const declared = [...css.matchAll(/^\[data-theme="([^"]+)"\]/gm)].map(
+      (m) => m[1],
+    );
+    expect(declared.length).toBeGreaterThan(0);
+    for (const name of new Set(declared)) {
+      expect(KNOWN_THEMES).toContain(name as ThemeName);
+    }
+  });
+
+  it("gives every theme a label and a hint", () => {
+    for (const meta of THEME_META) {
+      expect(meta.label.length).toBeGreaterThan(0);
+      expect(meta.hint.length).toBeGreaterThan(0);
     }
   });
 

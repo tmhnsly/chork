@@ -1,12 +1,8 @@
 /*
  * Theme palette system.
  *
- * Chork exposes three user-selectable themes. Each swaps the MONO
- * (gray) base + ACCENT scale; flash (amber) and error (red) stay
- * fixed across themes so semantic colours never drift (warning amber
- * = flash everywhere, red = destructive everywhere). The ZONE scale
- * is overridable per theme because it sits visually next to the
- * accent and needs to breathe.
+ * Chork exposes four user-selectable themes. Each swaps the MONO
+ * (gray) base + ACCENT scale.
  *
  * Themes swap MONO and ACCENT only. FLASH (amber) and ZONE (teal)
  * are brand-fixed so "flash = amber" and "zone claimed = teal" read
@@ -14,19 +10,28 @@
  * stylistic choice. Error (red) and warning (orange) are also fixed
  * for the same reason.
  *
- * Themes are applied by setting `data-theme="<name>"` on `<html>`.
- * The default theme is the bare `:root`, so the first paint (before
- * hydration) always renders the brand palette.
+ * Themes are applied by setting `data-theme="<name>"` on `<html>`,
+ * but every theme — including the default — is also addressable as a
+ * `[data-theme]` block, so a palette can be scoped to a subtree.
+ * That's how the settings picker previews all four at once and how
+ * another climber's profile renders in their palette.
+ *
+ * The default is additionally declared on bare `:root`, so the first
+ * paint (before hydration) already renders the brand palette.
  *
  * To add a new theme:
- *   1. Add `@use "@radix-ui/colors/<scale>.css"` + dark variant below.
- *   2. Declare a new `[data-theme="<name>"]` block and call each
+ *   1. Check the accent doesn't collide with a reserved hue — see
+ *      "WHY FOUR AND NOT FIVE" by the theme table below. This is the
+ *      step that matters; the rest is mechanical.
+ *   2. Add `@use "@radix-ui/colors/<scale>.css"` + dark variant below.
+ *   3. Declare a new `[data-theme="<name>"]` block and call each
  *      `*-scale` mixin with the chosen Radix scale names.
- *   3. Override `--accent-on-solid` per Radix's light/dark foreground
+ *   4. Override `--accent-on-solid` per Radix's light/dark foreground
  *      guidance (light-bg scales like lime/amber/yellow → dark text;
- *      dark-bg scales like iris/tomato → white text).
- *   4. Add the theme to `ThemeName` in `src/lib/theme.tsx` and the
- *      picker in the settings menu.
+ *      dark-bg scales like blue/violet/pink → white text).
+ *   5. Add the theme to `ThemeName` + `THEME_META` in
+ *      `src/lib/theme-store.ts`. The picker renders from that table,
+ *      so it needs no edit of its own.
  *
  * Radix color scale usage (unchanged from before):
  *
@@ -46,33 +51,27 @@
 
 /* ── Radix imports — every scale any theme may reference ─────── */
 // ── Mono (gray-scale) imports ────────────────────────────────
-// Radix ships six gray scales; we surface one theme per scale.
-@use "@radix-ui/colors/gray.css";
-@use "@radix-ui/colors/gray-dark.css";
-@use "@radix-ui/colors/mauve.css";
-@use "@radix-ui/colors/mauve-dark.css";
-@use "@radix-ui/colors/slate.css";
-@use "@radix-ui/colors/slate-dark.css";
-@use "@radix-ui/colors/sage.css";
-@use "@radix-ui/colors/sage-dark.css";
+// One gray per theme, chosen by Radix's pairing guide for that
+// theme's accent hue. Only the four in use are imported — an unused
+// scale is 24 custom properties of dead weight in every page's CSS.
 @use "@radix-ui/colors/olive.css";
 @use "@radix-ui/colors/olive-dark.css";
-@use "@radix-ui/colors/sand.css";
-@use "@radix-ui/colors/sand-dark.css";
+@use "@radix-ui/colors/slate.css";
+@use "@radix-ui/colors/slate-dark.css";
+@use "@radix-ui/colors/mauve.css";
+@use "@radix-ui/colors/mauve-dark.css";
+@use "@radix-ui/colors/gray.css";
+@use "@radix-ui/colors/gray-dark.css";
 
 // ── Accent imports — paired per Radix palette composition guide.
 @use "@radix-ui/colors/lime.css";
 @use "@radix-ui/colors/lime-dark.css";
-@use "@radix-ui/colors/iris.css";
-@use "@radix-ui/colors/iris-dark.css";
-@use "@radix-ui/colors/tomato.css";
-@use "@radix-ui/colors/tomato-dark.css";
+@use "@radix-ui/colors/blue.css";
+@use "@radix-ui/colors/blue-dark.css";
 @use "@radix-ui/colors/violet.css";
 @use "@radix-ui/colors/violet-dark.css";
-@use "@radix-ui/colors/plum.css";
-@use "@radix-ui/colors/plum-dark.css";
-@use "@radix-ui/colors/jade.css";
-@use "@radix-ui/colors/jade-dark.css";
+@use "@radix-ui/colors/pink.css";
+@use "@radix-ui/colors/pink-dark.css";
 
 @use "@radix-ui/colors/teal.css";
 @use "@radix-ui/colors/teal-dark.css";
@@ -228,13 +227,58 @@
   --overlay-media-fg: #fff;
   --overlay-media-track: rgb(255 255 255 / 0.3);
 }
+/*
+ * ── The theme table ──────────────────────────────────────────
+ *
+ * Four themes, and the accent is what separates them. There used to
+ * be six, built to the rule "one theme per Radix gray scale". That
+ * rule is why they looked alike: Radix's grays (gray / mauve / slate
+ * / sage / olive / sand) are *designed* to be near-identical, tinted
+ * a few degrees toward an accent they're meant to sit under. They
+ * were never going to carry the difference on their own. Worse, the
+ * accents had drifted into a cluster — iris, violet and plum are all
+ * blue-purple, so three of the six read as the same theme.
+ *
+ * So the accent leads now, and each one is picked to be unmistakable
+ * against the other three. The gray follows from Radix's pairing
+ * guide for that hue, which is the job Radix actually designed the
+ * grays for.
+ *
+ * WHY FOUR AND NOT FIVE
+ *
+ * The app has already spent most of the colour wheel on meaning, and
+ * a theme accent may not collide with any of it:
+ *
+ *   amber   flash, and the podium's gold
+ *   teal    zone claimed
+ *   red     destructive / error
+ *   orange  warning
+ *   bronze  the podium's third place
+ *   grays   silver, and every surface in the UI
+ *
+ * That leaves four comfortable slots: lime, blue, violet, pink. A
+ * fifth would have to be indigo (a second blue), purple or plum (a
+ * second violet), grass or green (a second green, and too near teal),
+ * or crimson (too near red) — every one of which rebuilds the exact
+ * problem this replaces. Four genuinely different beats five where
+ * two are twins.
+ *
+ * This matters most on the wall: a send tile is accent, a flash is
+ * amber, a zone is teal and an untouched route is mono, all in one
+ * grid. An accent that reads as any of those doesn't just look
+ * muddy, it makes the grid ambiguous.
+ */
 
 /*
- * ── Theme: Default (olive + lime) ─────────────────────────────
- * Applied on bare `:root` so pre-hydration HTML already uses the
- * brand palette.
+ * ── Theme: Chork (olive + lime) ───────────────────────────────
+ * The brand. Also declared on bare `:root` so pre-hydration HTML
+ * already renders it, and named explicitly so it can be scoped to a
+ * subtree like any other theme — which is what lets the settings
+ * picker preview it, and what makes another climber's profile render
+ * in Chork rather than in whatever the viewer happens to be using.
  */
-:root {
+:root,
+[data-theme="default"] {
   @include mono-scale(olive);
   @include accent-scale(lime);
   @include zone-scale(teal);
@@ -255,13 +299,14 @@
 }
 
 /*
- * ── Theme: Slate (slate + iris) ───────────────────────────────
- * Cool, technical feel. Iris step 9 is a dark scale → white fg.
- * Zone swaps to jade so it doesn't read as muddy next to iris.
+ * ── Theme: Blue (slate + blue) ────────────────────────────────
+ * Cool and technical. Radix pairs blue with slate. Blue step 9 is a
+ * dark scale → white fg. Replaces the old Slate theme, whose iris
+ * accent sat too close to the violet and plum ones.
  */
-[data-theme="slate"] {
+[data-theme="blue"] {
   @include mono-scale(slate);
-  @include accent-scale(iris);
+  @include accent-scale(blue);
   @include zone-scale(teal);
   @include flash-scale(amber);
   @include warning-scale(orange);
@@ -269,37 +314,18 @@
 
   --accent-on-solid: #fff;
 
-  --focus-ring: var(--iris-8);
+  --focus-ring: var(--blue-8);
   --brand: var(--accent-solid);
   --brand-text: var(--accent-text-low-contrast);
 }
 
 /*
- * ── Theme: Sand (sand + tomato) ───────────────────────────────
- * Warm, earthy. Tomato step 9 is a dark scale → white fg. Zone
- * stays teal — strong enough against sand to remain legible.
+ * ── Theme: Violet (mauve + violet) ────────────────────────────
+ * Radix pairs violet with mauve, a warm gray. Violet step 9 is a
+ * dark scale → white fg.
  */
-[data-theme="sand"] {
-  @include mono-scale(sand);
-  @include accent-scale(tomato);
-  @include zone-scale(teal);
-  @include flash-scale(amber);
-  @include warning-scale(orange);
-  @include error-scale(red);
-
-  --accent-on-solid: #fff;
-
-  --focus-ring: var(--tomato-8);
-  --brand: var(--accent-solid);
-  --brand-text: var(--accent-text-low-contrast);
-}
-
-/*
- * ── Theme: Gray (gray + violet) ───────────────────────────────
- * Pure neutral. Violet step 9 is dark → white fg.
- */
-[data-theme="gray"] {
-  @include mono-scale(gray);
+[data-theme="violet"] {
+  @include mono-scale(mauve);
   @include accent-scale(violet);
   @include zone-scale(teal);
   @include flash-scale(amber);
@@ -314,12 +340,17 @@
 }
 
 /*
- * ── Theme: Mauve (mauve + plum) ───────────────────────────────
- * Warm neutral. Plum step 9 is dark → white fg.
+ * ── Theme: Pink (gray + pink) ─────────────────────────────────
+ * The one warm accent the palette can afford, and far enough from
+ * red to never be mistaken for a destructive action — Radix pink is
+ * magenta, red is orange-red. Sits on pure gray rather than mauve so
+ * it doesn't share a base with Violet; the two are neighbours on the
+ * wheel and the neutral keeps them apart. Pink step 9 is a dark
+ * scale → white fg.
  */
-[data-theme="mauve"] {
-  @include mono-scale(mauve);
-  @include accent-scale(plum);
+[data-theme="pink"] {
+  @include mono-scale(gray);
+  @include accent-scale(pink);
   @include zone-scale(teal);
   @include flash-scale(amber);
   @include warning-scale(orange);
@@ -327,27 +358,7 @@
 
   --accent-on-solid: #fff;
 
-  --focus-ring: var(--plum-8);
-  --brand: var(--accent-solid);
-  --brand-text: var(--accent-text-low-contrast);
-}
-
-/*
- * ── Theme: Sage (sage + jade) ─────────────────────────────────
- * Green-tinted neutral with a deeper jade accent. Jade step 9 is
- * a dark scale → white fg.
- */
-[data-theme="sage"] {
-  @include mono-scale(sage);
-  @include accent-scale(jade);
-  @include zone-scale(teal);
-  @include flash-scale(amber);
-  @include warning-scale(orange);
-  @include error-scale(red);
-
-  --accent-on-solid: #fff;
-
-  --focus-ring: var(--jade-8);
+  --focus-ring: var(--pink-8);
   --brand: var(--accent-solid);
   --brand-text: var(--accent-text-low-contrast);
 }

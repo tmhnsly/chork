@@ -12,58 +12,33 @@
  */
 import "client-only";
 
-export type ThemeName =
-  | "default"
-  | "slate"
-  | "sand"
-  | "gray"
-  | "mauve"
-  | "sage";
+export type ThemeName = "default" | "blue" | "violet" | "pink";
 
 export interface ThemeMeta {
   id: ThemeName;
   label: string;
   hint: string;
-  swatches: [string, string];
 }
 
+/**
+ * The four palettes, in picker order.
+ *
+ * `hint` names the two Radix scales rather than describing a mood.
+ * The preview beside each row shows what the palette actually looks
+ * like, so the text's job is to be precise, not evocative.
+ *
+ * There is no swatch field any more. Two dots couldn't answer "what
+ * will my app look like" — which is why picking a theme used to mean
+ * applying it, closing the sheet, looking, and going back in.
+ * `<ThemePreview>` renders a real fragment of the wall in each
+ * palette instead, scoped with `data-theme`, so all four can be
+ * compared side by side without changing anything.
+ */
 export const THEME_META: ThemeMeta[] = [
-  {
-    id: "default",
-    label: "Chork",
-    hint: "Olive · Lime",
-    swatches: ["var(--olive-9)", "var(--lime-9)"],
-  },
-  {
-    id: "slate",
-    label: "Slate",
-    hint: "Slate · Iris",
-    swatches: ["var(--slate-9)", "var(--iris-9)"],
-  },
-  {
-    id: "sand",
-    label: "Sand",
-    hint: "Sand · Tomato",
-    swatches: ["var(--sand-9)", "var(--tomato-9)"],
-  },
-  {
-    id: "gray",
-    label: "Gray",
-    hint: "Gray · Violet",
-    swatches: ["var(--gray-9)", "var(--violet-9)"],
-  },
-  {
-    id: "mauve",
-    label: "Mauve",
-    hint: "Mauve · Plum",
-    swatches: ["var(--mauve-9)", "var(--plum-9)"],
-  },
-  {
-    id: "sage",
-    label: "Sage",
-    hint: "Sage · Jade",
-    swatches: ["var(--sage-9)", "var(--jade-9)"],
-  },
+  { id: "default", label: "Chork", hint: "Olive · Lime" },
+  { id: "blue", label: "Blue", hint: "Slate · Blue" },
+  { id: "violet", label: "Violet", hint: "Mauve · Violet" },
+  { id: "pink", label: "Pink", hint: "Gray · Pink" },
 ];
 
 export const DEFAULT_THEME: ThemeName = "default";

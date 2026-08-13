@@ -32,3 +32,4 @@ export { ToastProvider, showToast, showAchievementToast } from "./Toast";
 export { UserAvatar } from "./UserAvatar";
 export { Username } from "./Username";
 export { AVATAR_SIZES, type AvatarSize } from "./avatar-sizes";
+export { ThemePreview } from "./ThemePreview/ThemePreview";

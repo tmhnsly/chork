@@ -17,6 +17,7 @@ import {
   FaChevronLeft,
 } from "react-icons/fa6";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { ThemePreview } from "@/components/ui/ThemePreview/ThemePreview";
 // SettingsSheet is intentionally a roll-up of feature-owned dialogs.
 // Each dialog stays in its own feature folder; this surface composes
 // them into one entry point.
@@ -245,31 +246,31 @@ export function SettingsSheet({ open, onClose }: Props) {
         )}
 
         {sliding === "theme" && (
-        <div className={`${styles.list} ${styles.pane}`}>
+        <div className={styles.themeList}>
           {THEME_META.map((t) => (
             <button
               key={t.id}
               type="button"
-              className={styles.item}
+              className={styles.themeItem}
+              // The button is the control; the preview inside it is
+              // decoration, so the accessible name and checked state
+              // live here rather than on the artwork.
+              aria-pressed={theme === t.id}
               onClick={() => {
                 setTheme(t.id as ThemeName);
               }}
             >
-              {theme === t.id ? (
-                <FaCheck aria-hidden className={styles.icon} />
-              ) : (
-                <span className={styles.icon} aria-hidden />
-              )}
-              <span className={styles.label}>{t.label}</span>
-              <span className={styles.trailing}>
-                {t.swatches.map((c, i) => (
-                  <span
-                    key={i}
-                    className={styles.swatch}
-                    style={{ "--swatch": c } as React.CSSProperties}
-                    aria-hidden
-                  />
-                ))}
+              <ThemePreview theme={t.id} />
+              <span className={styles.themeText}>
+                <span className={styles.themeLabel}>
+                  {theme === t.id ? (
+                    <FaCheck aria-hidden className={styles.themeCheck} />
+                  ) : (
+                    <span className={styles.themeCheck} aria-hidden />
+                  )}
+                  {t.label}
+                </span>
+                <span className={styles.themeHint}>{t.hint}</span>
               </span>
             </button>
           ))}
