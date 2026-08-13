@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { useClientResource } from "@/hooks/use-client-resource";
-import { Button, UserAvatar, shimmerStyles } from "@/components/ui";
+import { Button, UserAvatar, shimmerStyles, Username } from "@/components/ui";
 import {
   getCrewLeaderboard,
   type ActiveSetOption,
@@ -112,7 +112,7 @@ export function CrewLeaderboardPanel({
                     size="row"
                   />
                   <div className={styles.rowText}>
-                    <span className={styles.rowName}>@{r.username}</span>
+                    <Username username={r.username} className={styles.rowName} />
                     {r.name && <span className={styles.rowSub}>{r.name}</span>}
                   </div>
                   <div className={styles.rowStats}>

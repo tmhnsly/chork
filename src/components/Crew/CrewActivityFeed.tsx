@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { FaBolt, FaFlag, FaCheck } from "react-icons/fa6";
-import { UserAvatar } from "@/components/ui";
+import { UserAvatar, Username } from "@/components/ui";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import {
   getCrewActivityFeed,
@@ -146,7 +146,7 @@ function FeedRow({ event }: { event: CrewActivityEvent }) {
       />
       <div className={styles.rowText}>
         <div className={styles.line1}>
-          <span className={styles.handle}>@{event.username}</span>
+          <Username username={event.username} className={styles.handle} />
           {badge}
         </div>
         <div className={styles.line2}>

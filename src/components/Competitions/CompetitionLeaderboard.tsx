@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { useClientResource } from "@/hooks/use-client-resource";
 import { getCompetitionLeaderboard, type CompetitionLeaderboardRow } from "@/lib/data/competition-queries";
-import { Button, UserAvatar, shimmerStyles, TabPills, type TabPillOption } from "@/components/ui";
+import { Button, UserAvatar, shimmerStyles, TabPills, type TabPillOption, Username } from "@/components/ui";
 import { toAvatarUser } from "@/lib/data/leaderboard-helpers";
 import type { CompetitionCategory } from "@/lib/data/competition-queries";
 import styles from "./competitionLeaderboard.module.scss";
@@ -82,7 +82,7 @@ export function CompetitionLeaderboard({
               <span className={styles.rank}>#{r.rank}</span>
               <UserAvatar user={toAvatarUser(r)} size="row" />
               <div className={styles.rowText}>
-                <span className={styles.rowName}>@{r.username}</span>
+                <Username username={r.username} className={styles.rowName} />
                 {r.name && <span className={styles.rowSub}>{r.name}</span>}
               </div>
               <div className={styles.rowStats}>

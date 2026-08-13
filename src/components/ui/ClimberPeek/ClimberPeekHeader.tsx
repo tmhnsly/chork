@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { UserAvatar } from "../UserAvatar";
 import styles from "./climberPeekHeader.module.scss";
+import { Username } from "../Username";
 
 interface AvatarUser {
   id: string;
@@ -68,7 +69,7 @@ export function ClimberPeekHeader({ user, trailing, stats }: Props) {
               {user.name?.trim() || `@${user.username}`}
             </span>
             {user.name?.trim() && (
-              <span className={styles.handle}>@{user.username}</span>
+              <Username username={user.username} className={styles.handle} />
             )}
           </span>
         </Link>

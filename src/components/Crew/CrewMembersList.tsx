@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { FaUserPlus, FaRightFromBracket, FaCrown } from "react-icons/fa6";
-import { UserAvatar, Button, showToast } from "@/components/ui";
+import { UserAvatar, Button, showToast, Username } from "@/components/ui";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { ClimberSearch } from "./ClimberSearch";
 import { leaveCrew, transferCrewOwnership } from "@/app/crew/actions";
@@ -106,7 +106,7 @@ export function CrewMembersList({
                     size="row"
                   />
                   <div className={styles.rowText}>
-                    <span className={styles.rowName}>@{m.username}</span>
+                    <Username username={m.username} className={styles.rowName} />
                     {m.name && <span className={styles.rowSub}>{m.name}</span>}
                   </div>
                   {isRowCreator && (

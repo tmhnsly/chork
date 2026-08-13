@@ -3,6 +3,7 @@ import { FaTrophy, FaCrown } from "react-icons/fa6";
 import { format, parseISO } from "date-fns";
 import type { JamHistoryRow } from "@/lib/data/jam-types";
 import styles from "./jamHistoryList.module.scss";
+import { Username } from "@/components/ui";
 
 interface Props {
   jams: JamHistoryRow[];
@@ -55,7 +56,7 @@ function JamHistoryRow({ jam }: { jam: JamHistoryRow }) {
           </span>
         )}
         {!jam.user_is_winner && jam.winner_username && (
-          <span className={styles.winnerHandle}>@{jam.winner_username}</span>
+          <Username username={jam.winner_username} className={styles.winnerHandle} />
         )}
       </div>
     </Link>

@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { FaBolt } from "react-icons/fa6";
 import { UserAvatar } from "../UserAvatar";
 import styles from "./leaderboardRow.module.scss";
+import { Username } from "../Username";
 
 /**
  * Minimal shape a leaderboard row needs to render. Deliberately
@@ -68,7 +69,7 @@ export function LeaderboardRow({
         size="row"
       />
       <div className={styles.identity}>
-        <span className={styles.username}>@{username}</span>
+        <Username username={username} className={styles.username} />
         {entry.name && <span className={styles.name}>{entry.name}</span>}
       </div>
       <div className={styles.stats}>

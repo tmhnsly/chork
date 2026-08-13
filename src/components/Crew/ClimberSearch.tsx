@@ -4,7 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { FaUserPlus, FaPlus, FaCheck } from "react-icons/fa6";
 import { useClientResource } from "@/hooks/use-client-resource";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { Button, SearchField, SheetBody, UserAvatar, shimmerStyles, showToast } from "@/components/ui";
+import { Button, SearchField, SheetBody, UserAvatar, shimmerStyles, showToast, Username } from "@/components/ui";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import {
   searchClimbersForInvite,
@@ -159,7 +159,7 @@ function ResultRow({
         size="row"
       />
       <div className={styles.rowText}>
-        <span className={styles.rowName}>@{result.username}</span>
+        <Username username={result.username} className={styles.rowName} />
         {result.name && <span className={styles.rowSub}>{result.name}</span>}
         {result.active_gym_name && (
           <span className={styles.rowGym}>{result.active_gym_name}</span>

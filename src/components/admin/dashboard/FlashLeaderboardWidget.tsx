@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { WidgetCard } from "./WidgetCard";
-import { UserAvatar } from "@/components/ui";
+import { UserAvatar, Username } from "@/components/ui";
 import { FaBolt } from "react-icons/fa6";
 import type { FlashLeader } from "@/lib/data/dashboard-queries";
 import styles from "./flashLeaderboardWidget.module.scss";
@@ -35,7 +35,7 @@ export function FlashLeaderboardWidget({ leaders }: Props) {
                 }}
                 size="row"
               />
-              <span className={styles.handle}>@{row.username}</span>
+              <Username username={row.username} className={styles.handle} />
               <span className={styles.count}>
                 <FaBolt aria-hidden /> {row.flash_count}
               </span>

@@ -1,7 +1,7 @@
 "use client";
 
 import { FaCrown } from "react-icons/fa6";
-import { UserAvatar } from "@/components/ui";
+import { UserAvatar, Username } from "@/components/ui";
 import type { LeaderboardEntry } from "@/lib/data";
 import { toAvatarUser } from "@/lib/data/leaderboard-helpers";
 import styles from "./podium.module.scss";
@@ -67,7 +67,7 @@ function Slot({ entry, place, currentUserId, onPress, active }: SlotProps) {
         <UserAvatar user={toAvatarUser(entry)} size={avatarSize} priority />
         <span className={styles.medal} aria-hidden>{place}</span>
       </div>
-      <span className={styles.username}>@{entry.username}</span>
+      <Username username={entry.username} className={styles.username} />
       <span className={styles.points}>{entry.points} pts</span>
       <div className={styles.plinth} aria-hidden="true">
         <span className={styles.placeLabel}>{place}</span>
