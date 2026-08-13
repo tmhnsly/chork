@@ -1,5 +1,5 @@
 /**
- * Seed 20 parody-climber profiles into a gym's current set for UX
+ * Seed 50 parody-climber profiles into a gym's current set for UX
  * testing. Each climber gets a randomised set of route_logs
  * (attempts / completed / zone / grade_vote) so the leaderboard,
  * chorkboard and profile pages have realistic data to render.
@@ -29,7 +29,7 @@ const supabase = createClient(
 
 const SEED_DOMAIN = "chork.test";
 
-// 20 parodies of real climbers / climbing YouTubers. Names chosen so
+// 50 parodies of real climbers / climbing YouTubers. Names chosen so
 // a real climber's fans will recognise the reference without any
 // chance of the seed data being mistaken for the real person.
 const SEED_CLIMBERS = [
@@ -53,6 +53,36 @@ const SEED_CLIMBERS = [
   { username: "laura_rogabeata",     name: "Laura Rogabeata" },
   { username: "shauna_coxisted",     name: "Shauna Coxisted" },
   { username: "jim_helping",         name: "Jim Helping" },
+  { username: "janja_garnbrat",      name: "Janja Garnbrat" },
+  { username: "akiyo_nogucci",       name: "Akiyo Nogucci" },
+  { username: "tomoa_nagasaki",      name: "Tomoa Nagasaki" },
+  { username: "stefano_ghisolfizz",  name: "Stefano Ghisolfizz" },
+  { username: "alex_megnos",         name: "Alex Megnos" },
+  { username: "margo_hazey",         name: "Margo Hazey" },
+  { username: "ashima_shirashimmy",  name: "Ashima Shirashimmy" },
+  { username: "brooke_rabootoo",     name: "Brooke Rabootoo" },
+  { username: "natalia_grossmam",    name: "Natalia Grossmam" },
+  { username: "colin_duffle",        name: "Colin Duffle" },
+  { username: "nathaniel_coalman",   name: "Nathaniel Coalman" },
+  { username: "kai_lightning",       name: "Kai Lightning" },
+  { username: "sean_bailiff",        name: "Sean Bailiff" },
+  { username: "jesse_grouper",       name: "Jesse Grouper" },
+  { username: "anna_hazelnought",    name: "Anna Hazelnought" },
+  { username: "toby_robots",         name: "Toby Robots" },
+  { username: "hamish_mcarcher",     name: "Hamish McArcher" },
+  { username: "molly_thumpson",      name: "Molly Thumpson-Smith" },
+  { username: "will_bossy",          name: "Will Bossy" },
+  { username: "aidan_robotts",       name: "Aidan Robotts" },
+  { username: "mejdi_shellac",       name: "Mejdi Shellac" },
+  { username: "sorato_anorak",       name: "Sorato Anorak" },
+  { username: "oriane_bertoni",      name: "Oriane Bertoni" },
+  { username: "camilla_macaroni",    name: "Camilla Macaroni" },
+  { username: "bassa_mayhem",        name: "Bassa Mayhem" },
+  { username: "yannick_floaty",      name: "Yannick Floaty" },
+  { username: "seb_boing",           name: "Seb Boing" },
+  { username: "dave_mccloud",        name: "Dave McCloud" },
+  { username: "nina_willpower",      name: "Nina Willpower" },
+  { username: "jimmy_webbed",        name: "Jimmy Webbed" },
 ];
 
 function rand<T>(arr: T[]): T {
