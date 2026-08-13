@@ -154,10 +154,11 @@ export function RouteLogSheet({
         ) : (
           <Button
             onClick={handleMarkComplete}
-            disabled={state.attempts < 1 || !set.active || state.completing}
+            disabled={state.attempts < 1 || !set.active}
+            loading={state.completing}
             fullWidth
           >
-            {state.completing ? "Saving..." : "Mark as complete"}
+            Mark as complete
           </Button>
         )}
 

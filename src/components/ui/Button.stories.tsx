@@ -44,5 +44,23 @@ export const Danger: Story = {
 };
 
 export const Disabled: Story = {
-  args: { variant: "primary", children: "Saving...", disabled: true },
+  args: { variant: "primary", children: "Save changes", disabled: true },
+};
+
+export const Loading: Story = {
+  args: { variant: "primary", children: "Save changes", loading: true },
+};
+
+/**
+ * The point of the loading state: the button is exactly as wide
+ * loading as it is at rest. Compare the two — any difference is the
+ * layout shift this prop exists to remove.
+ */
+export const LoadingKeepsItsWidth: Story = {
+  render: () => (
+    <div style={{ display: "flex", flexDirection: "column", gap: "1rem", alignItems: "flex-start" }}>
+      <Button>Send confirmation email</Button>
+      <Button loading>Send confirmation email</Button>
+    </div>
+  ),
 };

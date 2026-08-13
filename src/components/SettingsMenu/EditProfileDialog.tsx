@@ -256,9 +256,9 @@ function EditProfileBody({ user, onClose }: BodyProps) {
             <Button
               variant="ghost"
               onClick={handleChangeEmail}
-              disabled={emailSaving}
+              loading={emailSaving}
             >
-              {emailSaving ? "Sending confirmation…" : "Send confirmation email"}
+              Send confirmation email
             </Button>
           )}
         </label>
@@ -268,17 +268,23 @@ function EditProfileBody({ user, onClose }: BodyProps) {
           <Button
             variant="ghost"
             onClick={handleResetPassword}
-            disabled={resettingPw || !currentEmail}
+            disabled={!currentEmail}
+            loading={resettingPw}
             fullWidth
           >
-            {resettingPw ? "Sending reset link…" : "Reset password"}
+            Reset password
           </Button>
         </div>
       </div>
 
       <SheetActions>
-        <Button onClick={handleSave} disabled={submitting || uploading} fullWidth>
-          {submitting ? "Saving..." : "Save changes"}
+        <Button
+          onClick={handleSave}
+          disabled={uploading}
+          loading={submitting}
+          fullWidth
+        >
+          Save changes
         </Button>
         <Button variant="ghost" onClick={() => onClose()} fullWidth>
           Cancel

@@ -63,10 +63,11 @@ export function DeleteAccountDialog({ open, onOpenChange }: Props) {
         <Button
           variant="danger"
           onClick={handleDelete}
-          disabled={!confirmed || deleting}
+          disabled={!confirmed}
+          loading={deleting}
           fullWidth
         >
-          {deleting ? "Deleting..." : "Delete my account"}
+          Delete my account
         </Button>
         <Button variant="ghost" onClick={() => onOpenChange(false)} fullWidth>
           Cancel

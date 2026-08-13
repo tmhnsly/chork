@@ -147,8 +147,8 @@ export function CreateSetForm({ gymId }: Props) {
           </div>
         )}
 
-        <Button type="submit" disabled={submitting} fullWidth>
-          {submitting ? "Creating..." : "Create set"}
+        <Button type="submit" loading={submitting} fullWidth>
+          Create set
         </Button>
       </form>
     </div>

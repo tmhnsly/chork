@@ -379,12 +379,8 @@ export function LoginForm() {
             </div>
           )}
 
-          <Button type="submit" disabled={submitting} fullWidth>
-            {submitting
-              ? "Loading..."
-              : mode === "sign-in"
-                ? "Sign in"
-                : "Create account"}
+          <Button type="submit" loading={submitting} fullWidth>
+            {mode === "sign-in" ? "Sign in" : "Create account"}
           </Button>
         </form>
 

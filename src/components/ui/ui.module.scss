@@ -78,6 +78,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  // Anchors the loading spinner, which is absolutely positioned over
+  // the hidden label so the button keeps its resting width.
+  position: relative;
   gap: var(--space-2);
   min-height: var(--size-touch-target);
   padding: 0 var(--space-4);
@@ -105,6 +108,50 @@
     width: 1em;
     height: 1em;
     flex-shrink: 0;
+  }
+}
+
+// ── Loading state ────────────────────────────────────────────────
+// The label keeps its box (`visibility: hidden` still occupies
+// layout, unlike `display: none`) so the button can't change size
+// mid-submit. The spinner is laid over the whole button rather than
+// placed in the flow, for the same reason.
+.btnLabelHidden {
+  visibility: hidden;
+  // The label may itself be a flex row of icon + text; mirroring the
+  // parent's gap keeps the reserved width identical to the resting
+  // state rather than collapsing the gaps.
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.btnSpinner {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+
+  > svg {
+    width: 1em;
+    height: 1em;
+    animation: btn-spin var(--duration-spin) linear infinite;
+  }
+}
+
+// Loops are their own axis in the token scale — `--duration-spin`,
+// not a state-change duration. See CLAUDE.md "Transitions".
+@keyframes btn-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btnSpinner > svg {
+    // Still communicates "busy" via aria-busy and the dimmed label;
+    // the rotation itself is the part that's unwelcome.
+    animation: none;
   }
 }
 
