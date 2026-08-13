@@ -31,6 +31,17 @@ export interface LeaderboardEntry {
   points: number;
 }
 
+/**
+ * A neighbourhood row, which additionally knows where it sits in the
+ * paged board. `rank` can't answer that: `dense_rank()` gives tied
+ * climbers the same rank, so `rank - 1` drifts from the true offset
+ * as soon as the board has a tie. See migration 074.
+ */
+export interface NeighbourhoodEntry extends LeaderboardEntry {
+  /** 0-based offset into the paged board — matches the RPCs' `p_offset`. */
+  board_position: number;
+}
+
 // ── Types with joined data ─────────────────────────
 
 export type Comment = Tables["comments"]["Row"] & {

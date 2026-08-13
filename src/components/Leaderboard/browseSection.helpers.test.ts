@@ -6,11 +6,19 @@ import {
   seedCache,
   type RowCache,
 } from "./browseSection.helpers";
-import type { LeaderboardEntry } from "@/lib/data";
+import type { NeighbourhoodEntry } from "@/lib/data";
 
-const stubRow = (rank: number): LeaderboardEntry => ({
-  user_id: `u${rank}`,
-  username: `u${rank}`,
+/**
+ * `board_position` defaults to `rank - 1` because that IS the truth on
+ * a board with no ties. The tie cases below pass it explicitly, which
+ * is the whole point: the two only diverge once ranks repeat.
+ */
+const stubRow = (
+  rank: number,
+  board_position = rank - 1,
+): NeighbourhoodEntry => ({
+  user_id: `u${rank}-${board_position}`,
+  username: `u${rank}-${board_position}`,
   name: `U ${rank}`,
   avatar_url: "",
   rank,
@@ -18,12 +26,13 @@ const stubRow = (rank: number): LeaderboardEntry => ({
   flashes: 0,
   zones: 0,
   points: 0,
+  board_position,
 });
 
 describe("computeInitialOffset", () => {
-  it("anchors on the first neighbourhood row's rank", () => {
+  it("anchors on the first neighbourhood row's board position", () => {
     const rows = [stubRow(8), stubRow(9), stubRow(10), stubRow(11), stubRow(12)];
-    // First row rank 8 → offset 7 (rank-1)
+    // First row sits at board_position 7
     expect(computeInitialOffset(rows, 10)).toBe(7);
   });
 
@@ -43,14 +52,30 @@ describe("computeInitialOffset", () => {
     expect(computeInitialOffset([], 6)).toBe(TOP_LIMIT);
   });
 
-  it("falls back to TOP_LIMIT when first row has no rank", () => {
-    const rows: LeaderboardEntry[] = [{ ...stubRow(0), rank: null }];
+  it("falls back to TOP_LIMIT when the first row has no board position", () => {
+    const rows = [
+      { ...stubRow(8), board_position: undefined } as unknown as NeighbourhoodEntry,
+    ];
     expect(computeInitialOffset(rows, 8)).toBe(TOP_LIMIT);
+  });
+
+  it("anchors past a tie using position, not rank", () => {
+    // Two climbers tie at rank 20, so everyone below sits one offset
+    // lower than their rank implies. Anchoring on `rank - 1` would
+    // start the window a row late and misalign every fetched page.
+    const rows = [
+      stubRow(21, 21),
+      stubRow(22, 22),
+      stubRow(23, 23),
+    ];
+    expect(computeInitialOffset(rows, 21)).toBe(21);
+    // `rank - 1` would have said 20 — the bug this replaced.
+    expect(computeInitialOffset(rows, 21)).not.toBe(20);
   });
 });
 
 describe("seedCache", () => {
-  it("keys rows by offset (rank − 1)", () => {
+  it("keys rows by board position", () => {
     const rows = [stubRow(8), stubRow(9), stubRow(10)];
     const cache = seedCache(rows);
     expect(cache[7]?.rank).toBe(8);
@@ -59,10 +84,40 @@ describe("seedCache", () => {
     expect(cache[6]).toBeUndefined();
   });
 
-  it("skips rows with a null rank", () => {
-    const rows: LeaderboardEntry[] = [
+  it("gives tied climbers distinct offsets", () => {
+    // `dense_rank()` hands both of these rank 20. Keyed by `rank - 1`
+    // the second overwrote the first at offset 19, leaving offset 20
+    // free for `fetchRange` to fill with a row that was already cached
+    // elsewhere — so the window rendered the same climber twice.
+    const rows = [stubRow(20, 19), stubRow(20, 20), stubRow(21, 21)];
+    const cache = seedCache(rows);
+
+    expect(Object.keys(cache)).toHaveLength(3);
+    expect(cache[19]?.user_id).toBe("u20-19");
+    expect(cache[20]?.user_id).toBe("u20-20");
+    expect(cache[21]?.rank).toBe(21);
+  });
+
+  it("never maps two offsets to the same climber", () => {
+    // The rendered symptom, asserted directly: a 51-climber board with
+    // three tied ranks must still produce one cache entry per climber.
+    const rows = [
+      stubRow(39, 38),
+      stubRow(40, 39),
+      stubRow(40, 40),
+      stubRow(41, 41),
+      stubRow(42, 42),
+    ];
+    const cache = seedCache(rows);
+    const ids = Object.values(cache).map((r) => r.user_id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids).toHaveLength(5);
+  });
+
+  it("skips rows with no board position", () => {
+    const rows = [
       stubRow(8),
-      { ...stubRow(0), rank: null },
+      { ...stubRow(9), board_position: undefined } as unknown as NeighbourhoodEntry,
     ];
     const cache = seedCache(rows);
     expect(Object.keys(cache)).toHaveLength(1);

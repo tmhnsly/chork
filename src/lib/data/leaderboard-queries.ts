@@ -4,7 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../database.types";
 import { cachedQuery } from "@/lib/cache/cached";
 import { createCachedContextClient } from "@/lib/supabase/server";
-import type { LeaderboardEntry } from "./types";
+import type { LeaderboardEntry, NeighbourhoodEntry } from "./types";
 import { tags } from "@/lib/cache/tags";
 import { readMany, readSingle } from "./read";
 import { normaliseRankedRows, type RawRankedRow } from "./leaderboard-helpers";
@@ -47,8 +47,8 @@ export async function getLeaderboardNeighbourhood(
   gymId: string,
   userId: string,
   setId: string | null,
-): Promise<LeaderboardEntry[]> {
-  const rows = await readMany<RawRankedRow>(
+): Promise<NeighbourhoodEntry[]> {
+  const rows = await readMany<RawRankedRow & { board_position: number }>(
     supabase.rpc("get_leaderboard_neighbourhood", {
       p_gym_id: gymId,
       p_user_id: userId,

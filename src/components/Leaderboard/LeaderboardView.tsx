@@ -20,7 +20,7 @@ import { GymStatsStrip } from "./GymStatsStrip";
 import { ScoringBreakdown } from "./ScoringBreakdown";
 import { InviteCard } from "./InviteCard";
 import { PageHeader } from "@/components/motion";
-import type { LeaderboardEntry, Route } from "@/lib/data";
+import type { LeaderboardEntry, NeighbourhoodEntry, Route } from "@/lib/data";
 import type { GymStats } from "@/lib/data/leaderboard-queries";
 import { fetchLeaderboardTab } from "@/app/leaderboard/actions";
 import styles from "./leaderboardView.module.scss";
@@ -28,7 +28,7 @@ import styles from "./leaderboardView.module.scss";
 export interface TabData {
   top: LeaderboardEntry[];
   userRow: LeaderboardEntry | null;
-  neighbourhood: LeaderboardEntry[];
+  neighbourhood: NeighbourhoodEntry[];
 }
 
 type Tab = "set" | "all";

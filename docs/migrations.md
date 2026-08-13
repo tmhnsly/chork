@@ -65,6 +65,9 @@ Regenerate types after any apply: `npx supabase gen types typescript --project-i
 | 069 | `lock_new_trigger_fns.sql` | Locks down `guard_crew_member_update` (067) and `sync_comment_likes` (068) — trigger bodies fire as the table owner and are never called directly, so direct EXECUTE is revoked |
 | 070 | `auto_publish_requires_routes.sql` | `auto_publish_due_sets` skips routeless drafts, mirroring the app-side guard in `updateSet`'s publish path — a scheduled draft reaching its start time with no routes would have published an empty Wall |
 | 071 | `auto_archive_ended_sets.sql` | The missing counterpart to 015/070: moves `live` → `archived` once `ends_at` passes, on the same 5-minute cron. Without it a set stayed live indefinitely, so `/admin` read LIVE while climbers read SET ENDED off the same row — and `route_logs` inserts stayed open against it |
+| 072 | `membership_visibility.sql` | Two own-rows-only SELECT policies that the app legitimately read *across* users, so both features silently returned nothing. `crews` widened to any membership row (a pending invitee couldn't read the crew's name, so the invite vanished from /crew); `gym_memberships` widened to `is_gym_member(gym_id)` (the target-climber checks in `fetchClimberLogs` / `fetchSetPlacement` could never pass) |
+| 073 | `route_log_gym_integrity.sql` | Insert policy now also requires `sets.gym_id = route_logs.gym_id` — it verified you belonged to the named gym and that the set was live, but never that the *route* belonged to that gym, so a multi-gym climber could land a log on the wrong board |
+| 074 | `neighbourhood_board_position.sql` | `get_leaderboard_neighbourhood` returns `board_position` (0-based `row_number` over `(rank, username)`, the paging RPCs' own ordering). `dense_rank()` makes rank a label not a position, so `rank - 1` drifted from the true offset past the first tie and BrowseSection cached the same climber at two offsets — the board rendered duplicate rows |
 
 ---
 

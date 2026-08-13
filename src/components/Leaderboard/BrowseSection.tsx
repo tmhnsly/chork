@@ -5,7 +5,7 @@ import { FaChevronUp, FaChevronDown } from "react-icons/fa6";
 import { showToast } from "@/components/ui";
 import { LeaderboardList } from "./LeaderboardList";
 import { fetchLeaderboardPage } from "@/app/leaderboard/actions";
-import type { LeaderboardEntry } from "@/lib/data";
+import type { LeaderboardEntry, NeighbourhoodEntry } from "@/lib/data";
 import {
   TOP_LIMIT,
   BROWSE_WINDOW,
@@ -18,8 +18,12 @@ import {
 import styles from "./browseSection.module.scss";
 
 interface Props {
-  /** Initial rows from server-side neighbourhood fetch. */
-  initialRows: LeaderboardEntry[];
+  /**
+   * Initial rows from the server-side neighbourhood fetch. Typed as
+   * NeighbourhoodEntry because seeding the offset cache needs
+   * `board_position` — `rank` can't supply it (see migration 074).
+   */
+  initialRows: NeighbourhoodEntry[];
   /** Caller's rank — drives the initial window centre. */
   userRank: number;
   /** "set" tab → set id; "all" tab → null. */

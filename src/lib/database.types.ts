@@ -1771,6 +1771,7 @@ export type Database = {
         Args: { p_gym_id: string; p_set_id?: string; p_user_id: string }
         Returns: {
           avatar_url: string
+          board_position: number
           flashes: number
           name: string
           points: number

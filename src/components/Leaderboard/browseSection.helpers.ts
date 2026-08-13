@@ -1,6 +1,11 @@
-import type { LeaderboardEntry } from "@/lib/data";
+import type { LeaderboardEntry, NeighbourhoodEntry } from "@/lib/data";
 
-/** Cache keyed by absolute offset (= rank − 1). */
+/**
+ * Cache keyed by absolute offset into the board — the same `p_offset`
+ * the paging RPCs take. Deliberately NOT `rank - 1`: `dense_rank()`
+ * gives tied climbers a shared rank, so rank is a label, not a
+ * position, and the two drift apart from the first tie onward.
+ */
 export type RowCache = Record<number, LeaderboardEntry>;
 
 /**
@@ -20,15 +25,25 @@ export const BROWSE_WINDOW = 5;
 export const PREFETCH_BUFFER = BROWSE_WINDOW * 2;
 
 /**
- * Seed a cache from a list of leaderboard entries with ranks.
- * Rows without a numeric rank (unranked user fallbacks) are skipped
- * since they don't correspond to any offset in the board.
+ * Seed a cache from the server-fetched neighbourhood rows.
+ *
+ * Keyed on `board_position`, which the RPC computes as a `row_number`
+ * over the board's real ordering (migration 074). This used to key on
+ * `rank - 1`, which is only the same thing while every rank is unique:
+ * once two climbers tie they share a rank, every row below them sits
+ * one offset lower than its rank suggests, and the seeded rows land on
+ * offsets that `fetchRange` then fills with *different* rows. The same
+ * climber ended up cached at two offsets and the window rendered them
+ * twice.
+ *
+ * Rows without a numeric position are skipped — they don't correspond
+ * to any offset in the board.
  */
-export function seedCache(rows: LeaderboardEntry[]): RowCache {
+export function seedCache(rows: NeighbourhoodEntry[]): RowCache {
   const seeded: RowCache = {};
   for (const row of rows) {
-    if (typeof row.rank === "number") {
-      seeded[row.rank - 1] = row;
+    if (typeof row.board_position === "number") {
+      seeded[row.board_position] = row;
     }
   }
   return seeded;
@@ -72,13 +87,18 @@ export function firstMissingRange(
  *   ranks 1-5 from the podium / main list.
  */
 export function computeInitialOffset(
-  initialRows: LeaderboardEntry[],
+  initialRows: NeighbourhoodEntry[],
   userRank: number,
 ): number {
   if (initialRows.length === 0) {
+    // No neighbourhood to anchor on. `userRank` is the only signal
+    // left and it over-estimates the offset once the board has ties,
+    // so this is a best guess — but BrowseSection only renders when
+    // the neighbourhood came back non-empty, so it's unreachable in
+    // practice. Kept as a safe fallback rather than a throw.
     return Math.max(TOP_LIMIT, userRank - Math.floor(BROWSE_WINDOW / 2) - 1);
   }
-  const first = initialRows[0]?.rank;
-  if (typeof first === "number") return Math.max(TOP_LIMIT, first - 1);
+  const first = initialRows[0]?.board_position;
+  if (typeof first === "number") return Math.max(TOP_LIMIT, first);
   return TOP_LIMIT;
 }
