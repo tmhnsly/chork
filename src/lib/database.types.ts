@@ -809,6 +809,48 @@ export type Database = {
           },
         ]
       }
+      jam_summary_grades: {
+        Row: {
+          flashes: number
+          grade: number
+          jam_summary_id: string
+          sends: number
+          user_id: string
+          zones: number
+        }
+        Insert: {
+          flashes?: number
+          grade: number
+          jam_summary_id: string
+          sends?: number
+          user_id: string
+          zones?: number
+        }
+        Update: {
+          flashes?: number
+          grade?: number
+          jam_summary_id?: string
+          sends?: number
+          user_id?: string
+          zones?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jam_summary_grades_jam_summary_id_fkey"
+            columns: ["jam_summary_id"]
+            isOneToOne: false
+            referencedRelation: "jam_summaries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jam_summary_grades_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jam_summary_players: {
         Row: {
           attempts: number
@@ -820,6 +862,7 @@ export type Database = {
           points: number
           rank: number
           sends: number
+          ungraded_sends: number
           user_id: string | null
           username: string
           zones: number
@@ -834,6 +877,7 @@ export type Database = {
           points: number
           rank: number
           sends: number
+          ungraded_sends?: number
           user_id?: string | null
           username: string
           zones: number
@@ -848,6 +892,7 @@ export type Database = {
           points?: number
           rank?: number
           sends?: number
+          ungraded_sends?: number
           user_id?: string | null
           username?: string
           zones?: number
