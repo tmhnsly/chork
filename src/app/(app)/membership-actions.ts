@@ -162,3 +162,46 @@ export async function switchActiveGym(
     return { error: formatError(err) };
   }
 }
+
+/**
+ * Step out of gym mode — clears `profiles.active_gym_id` while leaving
+ * every `gym_memberships` row in place.
+ *
+ * Gymless is a first-class state, not a degraded one: Chork's core is
+ * running your own comps anywhere via jams, and the wall/board are the
+ * extra layer for gyms that have adopted it. Onboarding already lets a
+ * climber finish without a gym; this is the missing return path for
+ * someone who moves away from a Chork gym and wants the wall and board
+ * to stop following them around.
+ *
+ * The membership deliberately survives:
+ *
+ *   • `route_logs` SELECT is gated on `is_gym_member(gym_id)`, so
+ *     dropping it would hide the climber's own history at that gym
+ *     from their own profile — data intact, silently unreadable.
+ *   • `switchActiveGym` already preserves previous memberships, so
+ *     leaving behaves the same way as switching.
+ *   • Re-picking the gym is then instant, with no re-join.
+ *
+ * They stay on that gym's all-time board (fair — they did climb
+ * there) and drop off the current-set board on its own once the set
+ * rolls over, since set boards only count logs in that set.
+ */
+export async function clearActiveGym(): Promise<ActionResult<{ gymId: null }>> {
+  const auth = await requireSignedIn();
+  if ("error" in auth) return { error: auth.error };
+  const { supabase, userId } = auth;
+
+  try {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ active_gym_id: null })
+      .eq("id", userId);
+    if (error) return { error: formatError(error) };
+
+    await revalidateUserProfile(supabase, userId);
+    return { success: true, gymId: null };
+  } catch (err) {
+    return { error: formatError(err) };
+  }
+}
