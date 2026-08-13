@@ -24,6 +24,20 @@ export function getCurrentSet(gymId: string): Promise<RouteSet | null> {
           .select("*")
           .eq("gym_id", id)
           .eq("status", "live")
+          // A live set that has passed its end date is not current.
+          // `auto_archive_ended_sets` (migration 071) flips those to
+          // `archived`, but it runs on a 5-minute cron and writes
+          // straight to the DB, so it can neither close that window
+          // nor bust this cache. Filtering here makes the boundary
+          // exact regardless — and if the cron is ever unscheduled,
+          // this is what stops a months-dead set being served as the
+          // Wall (which is what happened before 071: a set stayed
+          // live 99 days past its end, still accepting logs).
+          //
+          // `"now"` is a Postgres timestamp literal evaluated at
+          // query time, deliberately not `new Date()` — a JS clock
+          // would be frozen into the 60s cache entry at fill time.
+          .gt("ends_at", "now")
           // Belt-and-braces: "one live set per gym" is a convention, not
           // a DB constraint. If two ever coexist (e.g. a failed archive
           // during quick-create), deterministically prefer the newest so
