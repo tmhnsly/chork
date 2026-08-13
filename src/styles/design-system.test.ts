@@ -212,11 +212,20 @@ describe("layout", () => {
     ).toEqual([]);
   });
 
-  it("never hardcodes a px breakpoint", () => {
+  it("never hardcodes a breakpoint, in any unit", () => {
+    // `px` alone isn't enough: onboarding had `@media (min-width: 30rem)`
+    // — an ad-hoc breakpoint a few px off `cq.split` — which sailed past
+    // a px-only check. Width media queries carry a number in *some*
+    // unit, so match the unit rather than one spelling of it.
     expect(
-      hits(allScss, /@media[^{]*[0-9]+px/, (p) => notTokenLayer(p) || notMarketing(p)),
-      "Use `bp.tablet` / `bp.desktop` for page layout, `cq.*` for " +
-        "components. Six ad-hoc values (480/600/720px) drifted here before.",
+      hits(
+        allScss,
+        /@media[^{]*\((min|max)-width:[^)]*[0-9]/,
+        (p) => notTokenLayer(p) || notMarketing(p),
+      ),
+      "Use `bp.tablet` / `bp.desktop` for page layout and `cq.*` for " +
+        "components. Both live in the mixin layer so a breakpoint is " +
+        "named once, not re-guessed per file.",
     ).toEqual([]);
   });
 });
