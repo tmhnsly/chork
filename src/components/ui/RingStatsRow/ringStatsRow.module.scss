@@ -87,12 +87,30 @@
   align-self: center;
 }
 
-// Shimmer placeholder for an in-flight rank fetch. Height matches the
-// rendered `.totalsValue` so nothing shifts when the number arrives;
-// width sized for the typical `#N`/`#NN` footprint.
-.rankLoading {
+// Both Place states — the shimmer and the resolved `#N` — carry this
+// alongside `.totalsValue`, so the width is booked once at the value's
+// own font size and neither state can resize the cell.
+//
+// The shimmer used to be `2.5ch` while the loaded value is `#` plus
+// one or two tabular digits, so the two were never the same width and
+// the cell resized under whichever was widest — shimmer, label, or
+// number, depending on the rank. That moved the divider and the points
+// cell beside it every time a rank landed.
+//
+// `3ch` covers `#` + two digits, i.e. every rank up to #99. A
+// three-digit rank widens the cell once on arrival; that needs 100+
+// climbers ranked on one set, and the alternative is dead space on
+// every board that doesn't. Sits on `.totalsValue` because `ch` has to
+// resolve against the number's size, not the cell's inherited one.
+.rankValue {
   display: inline-block;
-  width: 2.5ch;
+  min-width: 3ch;
+}
+
+// Shimmer placeholder for an in-flight rank fetch. Height matches the
+// rendered text; `.rankValue` above supplies the width, so an empty
+// span still occupies the resolved number's box.
+.rankLoading {
   height: 1em;
   border-radius: var(--radius-1);
 }

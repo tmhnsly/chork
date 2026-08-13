@@ -115,12 +115,12 @@ export function RingStatsRow({
             <BrandDivider className={styles.totalsSep} variant="bar" />
             <div className={`${styles.totalsCell} ${styles.totalsCellMuted}`}>
               {rank != null ? (
-                <span className={styles.totalsValue}>
+                <span className={`${styles.totalsValue} ${styles.rankValue}`}>
                   #<CountUpNumber value={rank} />
                 </span>
               ) : (
                 <span
-                  className={`${styles.totalsValue} ${styles.rankLoading} ${shimmerStyles.skeleton}`}
+                  className={`${styles.totalsValue} ${styles.rankValue} ${styles.rankLoading} ${shimmerStyles.skeleton}`}
                   aria-label="Loading place"
                 />
               )}
