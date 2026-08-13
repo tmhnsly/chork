@@ -162,6 +162,28 @@ describe("switchActiveGym", () => {
     expect(update?.args[0]).toEqual({ active_gym_id: GYM_1 });
   });
 
+  it("adds the membership with DO NOTHING, never DO UPDATE", async () => {
+    // The bug this pins: `gym_memberships` has SELECT/INSERT/DELETE
+    // policies and deliberately no UPDATE policy — nothing about a
+    // membership is meant to change once created. A DO UPDATE upsert
+    // needs both INSERT and UPDATE permission, so as soon as the row
+    // already existed RLS denied the whole statement and the action
+    // bailed before touching the profile.
+    //
+    // Net effect: switching worked once for a brand-new gym (a pure
+    // INSERT) and silently failed for every gym the climber had
+    // joined before — which is every gym they'd previously switched
+    // to. `ignoreDuplicates` makes it ON CONFLICT DO NOTHING.
+    const { client, calls } = mockSupabase({ "table:gyms": { data: { id: GYM_1 }, error: null } });
+    await primeSignedIn(client);
+
+    const { switchActiveGym } = await import("./membership-actions");
+    await switchActiveGym(GYM_1);
+
+    const upsert = calls.find((c) => c.table === "gym_memberships" && c.method === "upsert");
+    expect(upsert?.args[1]).toMatchObject({ ignoreDuplicates: true });
+  });
+
   it("keeps previous memberships when switching", async () => {
     // Switching parks the old gym rather than leaving it, for the same
     // reason clearing does — the climber keeps reading their history.

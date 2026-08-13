@@ -118,10 +118,15 @@ export function GymPickerPanel({ open, onClose, activeGymId }: Props) {
       }
       showToast("Gym cleared", "success");
       onClose();
-      // The Wall and Board redirect gymless climbers to /jam, and the
-      // nav drops to its gymless variant — push rather than refresh so
-      // they land somewhere that exists instead of being bounced.
+      // Push *and* refresh, both needed for different reasons. The
+      // push moves them off a page that no longer applies — the Wall
+      // and Board bounce gymless climbers to /jam anyway. The refresh
+      // busts the client router cache so the layout re-renders: NavBar
+      // is a server component, and with `staleTimes.dynamic = 60` a
+      // push alone left the gym-variant nav (Wall / Board / Admin) on
+      // screen for up to a minute after the gym was gone.
       router.push("/jam");
+      router.refresh();
     });
   }
 

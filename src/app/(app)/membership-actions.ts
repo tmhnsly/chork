@@ -144,10 +144,28 @@ export async function switchActiveGym(
       .maybeSingle();
     if (gymErr || !gym) return { error: "Gym not found" };
 
-    // Ensure membership exists — upsert keeps switching idempotent.
+    // Ensure membership exists. `ignoreDuplicates` makes this
+    // ON CONFLICT DO **NOTHING** rather than DO UPDATE — load-bearing,
+    // not a micro-optimisation.
+    //
+    // `gym_memberships` has SELECT, INSERT and DELETE policies and no
+    // UPDATE policy, by design: nothing about a membership is meant to
+    // change once created. A DO UPDATE upsert needs both INSERT and
+    // UPDATE permission, so the moment the row already existed RLS
+    // denied the whole statement and the action bailed before ever
+    // reaching the profile update.
+    //
+    // That made switching fail for any gym the climber had joined
+    // before — which is every gym they'd previously switched to. The
+    // first switch to a brand-new gym worked (a pure INSERT) and every
+    // switch back silently didn't. There is nothing to update here
+    // anyway: the row's existence *is* the membership.
     const { error: memErr } = await supabase
       .from("gym_memberships")
-      .upsert({ user_id: userId, gym_id: gymId }, { onConflict: "user_id,gym_id" });
+      .upsert(
+        { user_id: userId, gym_id: gymId },
+        { onConflict: "user_id,gym_id", ignoreDuplicates: true },
+      );
     if (memErr) return { error: formatError(memErr) };
 
     const { error: profErr } = await supabase

@@ -404,6 +404,35 @@ navbar + home indicator), max-width, and centering.
   Never clock time, hours, am/pm. Privacy-first so climbers can't
   infer when mates are physically at the gym
 
+### A gym is optional — gymless is a first-class state
+
+Chork's core is that anyone can run their own comp anywhere via a
+**jam** — at a gym, outdoors, on a home wall. The Wall and Chorkboard
+are the *extra* layer for gyms that have adopted Chork, not the
+baseline. Never write code that assumes `profile.active_gym_id` is
+set.
+
+- `requireSignedIn()` for anything that works without a gym (jams,
+  crews, profiles, notifications). `requireAuth()` **only** for
+  genuinely gym-scoped surfaces — it fails with "No gym selected"
+- Gymless routing already exists: `/` and `/leaderboard` redirect to
+  `/jam`, NavBar drops to its gymless variant (Crew / Jam / Profile),
+  and the profile page guards its gym sections. Onboarding can be
+  completed without a gym
+- **Leaving a gym parks it, never severs it.** `clearActiveGym` nulls
+  `active_gym_id` and keeps the `gym_memberships` row, because
+  `route_logs` SELECT is gated on `is_gym_member(gym_id)` — dropping
+  the membership would make the climber's own history at that gym
+  unreadable to them. `switchActiveGym` preserves old memberships for
+  the same reason
+- A departed climber stays on that gym's **all-time** board (they did
+  climb there) and falls off the **current-set** board on its own,
+  since set boards only count logs in that set
+
+Known gap: `activity_events` is only written by gym-wall sends and
+comments, so a gymless climber produces nothing for the crew feed.
+Decided direction is one event per jam, parked pending the crew rework.
+
 ### Crews replaced follows
 
 The follow / followers feature was ripped out in migration 020 and
