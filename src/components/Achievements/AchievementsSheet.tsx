@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { FaCheck, FaLock } from "react-icons/fa6";
 import { format, parseISO } from "date-fns";
 import { BottomSheet } from "@/components/ui/BottomSheet";
@@ -82,17 +82,32 @@ export function AchievementsSheet({ badges, open, onClose }: Props) {
     return badges.filter((b) => b.badge.category === filter);
   }, [badges, filter]);
 
+  // Switching filter swaps the whole list underneath the pinned pill
+  // row, but the sheet keeps its scroll offset. Scrolled halfway down
+  // a long "All" list, picking a short category left the sheet parked
+  // past the end of the new list — reading as empty until you scrolled
+  // back up. Reset on change rather than in an effect: the tab press
+  // is the event that invalidates the position.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const changeFilter = (next: Filter) => {
+    setFilter(next);
+    // Jump, don't animate — a tab should feel immediate, and smooth
+    // scrolling a long list makes the new content arrive late.
+    scrollRef.current?.scrollTo({ top: 0 });
+  };
+
   return (
     <BottomSheet
       open={open}
       onClose={onClose}
       title="Achievements"
       description="All achievements and your progress"
+      scrollRef={scrollRef}
       subheader={
         <TabPills
           options={filterOptions}
           value={filter}
-          onChange={setFilter}
+          onChange={changeFilter}
           ariaLabel="Filter achievements"
           layout="wrap"
         />

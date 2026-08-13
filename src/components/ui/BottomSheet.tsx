@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
 import { FaXmark } from "react-icons/fa6";
@@ -39,6 +39,15 @@ interface Props {
   /** Prevent closing when clicking outside (default: false). */
   disableOutsideClose?: boolean;
   /**
+   * Ref to the sheet's scrolling element. The body doesn't scroll —
+   * the panel itself does — so a sheet that swaps its own content
+   * (tabs, filters) has no way to reach the scroll position without
+   * this. Use it to reset to the top when the content underneath the
+   * sticky chrome changes; leaving a fresh list scrolled to where the
+   * last one was reads as an empty or half-loaded list.
+   */
+  scrollRef?: Ref<HTMLDivElement>;
+  /**
    * Vertical size variant:
    *   • "default" caps at 90svh and shrinks to content below that.
    *   • "tall"    caps just below the top safe-area inset so a
@@ -70,6 +79,7 @@ export function BottomSheet({
   subheader,
   disableOutsideClose = false,
   size = "default",
+  scrollRef,
   children,
 }: Props) {
   return (
@@ -82,6 +92,7 @@ export function BottomSheet({
       <Dialog.Portal>
         <Dialog.Overlay className={styles.overlay} />
         <Dialog.Content
+          ref={scrollRef}
           className={[
             styles.content,
             size === "tall" ? styles.contentTall : "",
