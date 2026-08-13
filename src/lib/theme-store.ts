@@ -66,7 +66,6 @@ export const THEME_META: ThemeMeta[] = [
   },
 ];
 
-export const STORAGE_KEY = "chork-theme";
 export const DEFAULT_THEME: ThemeName = "default";
 
 type Listener = () => void;
@@ -77,17 +76,23 @@ export function isValidTheme(t: string | null | undefined): t is ThemeName {
   return !!t && THEME_META.some((meta) => meta.id === t);
 }
 
-// Client-only bootstrap — runs once at module evaluation in the
-// browser so the first `getSnapshot()` already reflects the stored
-// value. On the server this branch is skipped entirely.
-if (typeof window !== "undefined") {
-  try {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    if (isValidTheme(stored)) currentTheme = stored;
-  } catch {
-    // Private browsing / storage disabled — stick with the default.
-  }
-}
+// This store deliberately does NOT persist.
+//
+// The theme belongs to the climber, so `profiles.theme` is the single
+// source of truth and the signed-in profile is the only thing that
+// can set it. It used to be mirrored into a `chork-theme` localStorage
+// key as well, which made the palette a property of the *device*: it
+// outlived the session, so signing out left your palette on the login
+// screen and on whoever signed in next. That needed a sign-out reset
+// to paper over — and one existed, in `signOut()` — but the reset only
+// covered the deliberate sign-out path, not an expired session or a
+// sign-out in another tab.
+//
+// Deriving from the profile removes the whole class of problem instead
+// of handling its cases: no profile, no theme. The `AuthProvider`
+// profile cache (which already carries `theme`, and is already dropped
+// on sign-out) supplies it on the first client render, so a warm start
+// still paints the right palette without a second copy to keep in step.
 
 export function subscribe(listener: Listener): () => void {
   listeners.add(listener);
@@ -104,62 +109,39 @@ export function getServerSnapshot(): ThemeName {
   return DEFAULT_THEME;
 }
 
+/**
+ * Apply a theme locally, for immediate feedback while the picker is
+ * open. The server write-back is `setTheme()` in `theme.tsx`; this is
+ * only the local half.
+ */
 export function setThemeStore(next: ThemeName): void {
   if (next === currentTheme) return;
   currentTheme = next;
-  try {
-    window.localStorage.setItem(STORAGE_KEY, next);
-  } catch {
-    // Same tolerance as the read path.
-  }
   listeners.forEach((fn) => fn());
 }
 
 /**
- * Bridge entry — fed by the auth profile once it loads. Updates the
- * local store to match the persisted preference WITHOUT firing the
- * server write-back that `setTheme()` does. Safe to call repeatedly
- * and with unknown / stale DB values (invalid inputs are ignored).
+ * Bridge entry — fed by the auth profile whenever it resolves or
+ * changes. This is the ONLY thing that decides which palette is in
+ * effect once auth has settled.
+ *
+ * Anything that isn't a valid theme name — a signed-out `undefined`,
+ * a stale or hand-edited DB value — resolves to the default rather
+ * than being ignored. "No valid climber preference" and "the default
+ * palette" are the same state, so signing out needs no separate reset
+ * path; the profile going away is the reset.
+ *
+ * Callers must wait for auth to settle before calling this. A
+ * pre-bootstrap profile is legitimately null for a signed-IN climber
+ * too, and acting on that null would flash the default palette on
+ * every page load before snapping back.
  */
 export function syncThemeFromProfile(
   profileTheme: string | null | undefined,
 ): void {
-  if (!isValidTheme(profileTheme)) return;
-  if (profileTheme === currentTheme) return;
-  currentTheme = profileTheme;
-  try {
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_KEY, currentTheme);
-    }
-  } catch {
-    // ignore
-  }
-  listeners.forEach((fn) => fn());
-}
-
-/**
- * Drop back to the default palette and forget the stored preference.
- *
- * Called when auth resolves to "signed out". The theme is a property
- * of the climber, not of the device: `setThemeStore` persists to
- * localStorage so a reload keeps the palette, which meant a sign-out
- * left the previous climber's theme applied — and on a shared phone
- * the next person to sign in saw it until their own profile loaded.
- *
- * Clearing the key as well as the in-memory value is what stops it
- * coming back: the module-level bootstrap below reads localStorage on
- * every load, so leaving the key behind would re-apply the old theme
- * on the next visit even after this reset.
- */
-export function resetTheme(): void {
-  try {
-    window.localStorage.removeItem(STORAGE_KEY);
-  } catch {
-    // Private browsing / storage disabled — the in-memory reset below
-    // still applies for this session.
-  }
-  if (currentTheme === DEFAULT_THEME) return;
-  currentTheme = DEFAULT_THEME;
+  const next = isValidTheme(profileTheme) ? profileTheme : DEFAULT_THEME;
+  if (next === currentTheme) return;
+  currentTheme = next;
   listeners.forEach((fn) => fn());
 }
 

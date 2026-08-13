@@ -6,7 +6,6 @@ import {
   applyTheme,
   getServerSnapshot,
   getSnapshot,
-  resetTheme,
   setThemeStore,
   subscribe,
   syncThemeFromProfile,
@@ -27,28 +26,20 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const { profile, isLoading } = useAuth();
-  const signedIn = !!profile;
+  const { profile, isLoading, refreshProfile } = useAuth();
 
-  // Bridge: when the auth profile resolves (or a theme change syncs
-  // back from another device) push it into the local store so this
-  // tab matches the persisted preference. Signing out drops back to
-  // the default palette — the theme belongs to the climber, not the
-  // device.
+  // The signed-in profile is the only input. No profile — signed out,
+  // or a stale value in the column — means the default palette, so
+  // there's no separate sign-out reset to remember to call.
   //
-  // `isLoading` is the reason this can't just branch on `profile`.
-  // Before the bootstrap resolves, `profile` is legitimately null for
-  // a signed-IN climber too, so resetting on every null would flash
-  // the default palette on each reload before snapping back. Waiting
-  // for auth to settle makes null mean "signed out" and nothing else.
+  // Gated on `isLoading` because a pre-bootstrap profile is
+  // legitimately null for a signed-IN climber too; acting on that null
+  // would flash the default palette on every page load before snapping
+  // back. Once auth settles, null means signed out and nothing else.
   useEffect(() => {
     if (isLoading) return;
-    if (!signedIn) {
-      resetTheme();
-      return;
-    }
     syncThemeFromProfile(profile?.theme);
-  }, [profile?.theme, signedIn, isLoading]);
+  }, [profile?.theme, isLoading]);
 
   // Effect updates an external system (the DOM `<html>` attribute)
   // in response to the store's value.
@@ -56,8 +47,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     applyTheme(theme);
   }, [theme]);
 
-  // Public setter — local store + DB persistence (fire-and-forget;
-  // failures don't unwind the local change).
+  // Public setter — paint locally at once, then persist.
+  //
+  // `refreshProfile()` is not optional now that the profile is the
+  // source of truth. `updateThemePreference` writes the column and
+  // revalidates the *server* caches, but leaves the client profile
+  // (and the localStorage copy behind it) holding the old value — so
+  // the next load would read the stale theme back out and undo the
+  // change until the background validation caught up. Pulling the
+  // profile forward keeps the one source coherent.
+  //
+  // Persistence stays fire-and-forget: a failed write leaves the
+  // palette applied for this session and corrects itself on the next
+  // load, which beats yanking the theme back out from under a tap.
   const setTheme = useCallback((next: ThemeName) => {
     setThemeStore(next);
     if (!profile?.id) return;
@@ -65,11 +67,12 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       try {
         const { updateThemePreference } = await import("@/lib/user-actions");
         await updateThemePreference(next);
+        await refreshProfile();
       } catch (err) {
         logger.warn("theme_persist_failed", { err: formatErrorForLog(err) });
       }
     })();
-  }, [profile?.id]);
+  }, [profile?.id, refreshProfile]);
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme }}>

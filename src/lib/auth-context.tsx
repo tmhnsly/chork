@@ -18,7 +18,6 @@ import { showToast } from "@/components/ui";
 import { signOutAction } from "@/app/login/actions";
 import { removePushSubscription } from "@/app/(app)/push-actions";
 import { unsubscribeDevice } from "./push/client";
-import { DEFAULT_THEME, setThemeStore } from "./theme-store";
 import { mutationQueue } from "./offline/mutation-queue";
 import { createLocalStorageStore } from "./local-storage-store";
 import type { Profile } from "./data/types";
@@ -411,10 +410,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // can't re-hydrate a signed-in nav after navigation.
       writeProfileCache(null, false);
 
-      // Reset the palette on shared devices so the login screen
-      // doesn't carry the previous user's theme before the next
-      // bootstrap picks up the default.
-      setThemeStore(DEFAULT_THEME);
+      // No theme reset needed here. The palette derives from
+      // `profile.theme`, so dropping the profile above is the reset —
+      // and it covers the paths this line never did, like an expired
+      // session or a sign-out in another tab.
 
       // Tell the Service Worker to flush every named cache so the
       // post-signout shell fetches fresh HTML + static assets.
