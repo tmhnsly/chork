@@ -4,6 +4,25 @@ import { PageHeader } from "@/components/motion";
 import { Button } from "@/components/ui";
 import styles from "./terms.module.scss";
 
+/**
+ * Prerendered at build time and served from the CDN — no function
+ * invocation, so this page never pays a serverless cold start.
+ *
+ * It needs the directive rather than qualifying automatically because
+ * `NavBarShell` sits in the root layout and calls `cookies()`, which
+ * opts *every* route into dynamic rendering. Under `force-static`,
+ * `cookies()` returns empty instead of forcing that, so the shared
+ * chrome stops dragging static content onto the server.
+ *
+ * The trade-off is confined to the nav: with no cookie to read,
+ * `NavBarShell` paints its unauthed shell on first byte and the client
+ * corrects it on hydration from the profile cache. That's the pop-in
+ * the cookie indirection exists to prevent, and it's the right trade
+ * here — this page has no per-user content, is rarely a session's
+ * entry point, and a CDN hit beats a cold start by seconds.
+ */
+export const dynamic = "force-static";
+
 export const metadata = {
   title: "Terms of Service - Chork",
   description:
