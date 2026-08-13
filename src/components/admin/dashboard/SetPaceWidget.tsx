@@ -1,14 +1,15 @@
-"use client";
-
-import { useState } from "react";
 import { FaGaugeSimpleHigh } from "react-icons/fa6";
 import { WidgetCard } from "./WidgetCard";
 import type { SetOverview } from "@/lib/data/dashboard-queries";
-import type { AdminSetSummary } from "@/lib/data/admin-queries";
 import styles from "./setPaceWidget.module.scss";
 
 interface Props {
-  activeSet: AdminSetSummary;
+  /**
+   * Both halves of the pace comparison. `activeSet` used to be passed
+   * too, purely so this component could do its own date arithmetic —
+   * migration 075 moved that into the RPC, so the set is no longer
+   * needed here.
+   */
   overview: SetOverview | null;
 }
 
@@ -24,14 +25,8 @@ interface Props {
  * read; tighter modelling would need climber-level data the
  * dashboard isn't allowed to leak anyway.
  */
-export function SetPaceWidget({ activeSet, overview }: Props) {
-  // `Date.now()` in a render body trips `react-hooks/purity` (the rule
-  // CLAUDE.md warns about). Pin a mount-time "now" via lazy state —
-  // the pace readout doesn't need sub-minute freshness, so capturing
-  // at first paint is fine. Not worth threading a server-computed
-  // timestamp down through AdminDashboard just for this one widget.
-  const [nowMs] = useState(() => Date.now());
-  const totals = computeTotals(activeSet, overview, nowMs);
+export function SetPaceWidget({ overview }: Props) {
+  const totals = computeTotals(overview);
 
   return (
     <WidgetCard
@@ -98,19 +93,27 @@ interface Totals {
   verdictHint: string;
 }
 
-function computeTotals(
-  set: AdminSetSummary,
-  overview: SetOverview | null,
-  nowMs: number,
-): Totals {
-  const startMs = Date.parse(set.starts_at);
-  const endMs = Date.parse(set.ends_at);
-  const span = Math.max(1, endMs - startMs);
-  const timePct = Math.max(0, Math.min(100, ((nowMs - startMs) / span) * 100));
-
-  const daysRemaining =
-    overview?.days_remaining ??
-    Math.max(0, Math.ceil((endMs - nowMs) / (24 * 60 * 60 * 1000)));
+/**
+ * Both halves of the comparison now come from the same RPC, and both
+ * are derived from Postgres's clock.
+ *
+ * `timePct` used to be computed here from a `Date.now()` captured in
+ * a lazy `useState`. That passes `react-hooks/purity` but still runs
+ * on the server and again on the client, at different instants, so
+ * the two percentages disagreed in their far decimals and React
+ * logged a hydration mismatch on every admin load. It also compared a
+ * Node clock against a Postgres one, which can drift independently —
+ * wrong beyond the hydration symptom. Migration 075 moved it into
+ * `get_set_overview` alongside `days_remaining`, which was already
+ * computed in SQL for exactly this reason.
+ *
+ * Both values are null when the overview RPC returns nothing; the
+ * widget reads as an empty pace rather than inventing one from a
+ * clock the server doesn't share.
+ */
+function computeTotals(overview: SetOverview | null): Totals {
+  const timePct = overview?.time_elapsed_pct ?? 0;
+  const daysRemaining = overview?.days_remaining ?? null;
 
   const sendsPct =
     overview && overview.max_possible_sends > 0

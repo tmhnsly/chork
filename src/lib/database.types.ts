@@ -1853,6 +1853,7 @@ export type Database = {
           days_remaining: number
           max_possible_sends: number
           send_completion_pct: number
+          time_elapsed_pct: number
           total_routes: number
           total_sends: number
         }[]

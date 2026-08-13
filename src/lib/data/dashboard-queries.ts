@@ -19,6 +19,12 @@ export interface SetOverview {
   send_completion_pct: number;
   days_remaining: number | null;
   active_climber_count: number;
+  /**
+   * How far through the set's lifespan we are, 0..100, or null when
+   * the set has no dates. Computed from Postgres `now()` (migration
+   * 075) rather than in React — see `SetPaceWidget`.
+   */
+  time_elapsed_pct: number | null;
 }
 
 export async function getSetOverview(

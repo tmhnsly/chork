@@ -90,7 +90,7 @@ export function AdminDashboard({
           </div>
 
           <div className={styles.wide}>
-            <SetPaceWidget activeSet={activeSet} overview={overview} />
+            <SetPaceWidget overview={overview} />
           </div>
 
           <FlashRateWidget routes={topRoutes} />
