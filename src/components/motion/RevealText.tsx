@@ -16,9 +16,17 @@ interface Props {
  * Reveals text segment-by-segment with a staggered slide-up animation.
  * Pure CSS — uses clip-path to mask each segment and a keyframe to slide it in.
  *
- * Splits on spaces and divider characters (default: `_`).
- * Dividers are kept attached to the following segment so they render inline.
- * Example: "@slab_slob" → ["@", "slab_", "slob"]
+ * Splits on spaces and divider characters (default: `_`), with the
+ * divider kept on the END of the segment before it.
+ * Example: "@slab_slob" → ["@slab_", "slob"]
+ *
+ * Each segment is its own inline-block, so segment boundaries are also
+ * the only places a line may break. That makes the split a layout
+ * decision as much as an animation one, and it must match the rule
+ * `usernameChunks` uses in `src/lib/data/username-display.ts` — the
+ * profile header renders a handle through here while every other
+ * surface renders it through `<Username>`, and one handle should not
+ * break two different ways depending on which screen you're on.
  */
 export function RevealText({ text, className, as: Tag = "h1", delay = 0, dividers = "_" }: Props) {
   const segments = splitSegments(text, dividers);
@@ -48,35 +56,39 @@ interface Segment {
   trailing: string;
 }
 
-/** Split text into animated segments on spaces and divider characters. */
-function splitSegments(text: string, dividers: string): Segment[] {
+/**
+ * Split text into animated segments on spaces and divider characters.
+ *
+ * Matching, rather than splitting on a delimiter, is what keeps the
+ * divider attached to the segment before it. A previous version split
+ * on `[_@]` and kept the delimiters as segments of their own, which
+ * made both the `@` and the `_` free-standing inline-blocks: at 280px
+ * a handle with no underscore rendered "@" alone on the first line,
+ * and an underscored one could stand a bare "_" on a line by itself.
+ * The `@` is no longer a boundary at all, and a divider run ends the
+ * segment it belongs to — a line ending "@emil_" reads as continuing,
+ * where "@emil" looks like the whole handle.
+ */
+export function splitSegments(text: string, dividers = "_"): Segment[] {
   const results: Segment[] = [];
-  // Build regex: split on spaces or before/after divider chars
-  // e.g. "@slab_slob" → ["@", "slab", "_", "slob"]
   const escaped = dividers.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  // Two capture groups so BOTH dividers and whitespace survive the split.
-  // Without capturing the whitespace branch, spaces are dropped and
+  // Three alternatives, in order: a run up to and including its
+  // trailing divider(s), a run with no divider, or whitespace. The
+  // whitespace branch matters — without it spaces are dropped and
   // multi-word titles like "The Wall" collapse to "TheWall".
-  const pattern = new RegExp(`([${escaped}@])|( +)`, "g");
+  const pattern = new RegExp(`[^ ${escaped}]*[${escaped}]+|[^ ${escaped}]+| +`, "g");
 
-  // Split and keep delimiters
-  const parts = text.split(pattern).filter((p) => p !== undefined && p !== "");
-
-  let i = 0;
-  while (i < parts.length) {
-    const part = parts[i];
-
-    if (part.match(/^ +$/)) {
-      // Whitespace — attach as trailing to previous segment
+  for (const [part] of text.matchAll(pattern)) {
+    if (/^ +$/.test(part)) {
+      // Whitespace — attach as trailing to the previous segment so it
+      // survives into the render.
       if (results.length > 0) {
-        results[results.length - 1].trailing = part;
+        results[results.length - 1].trailing += part;
       }
-      i++;
       continue;
     }
 
     results.push({ text: part, trailing: "" });
-    i++;
   }
 
   return results;
