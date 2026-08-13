@@ -14,11 +14,17 @@
 }
 
 // ── Toggle row (has padding) ──────────────────────
+// Matches `ZoneHoldRow` exactly — same min-height, same padding. The
+// two are the same kind of card row, stacked in the same sheet, and
+// were 44px and 52px respectively: close enough to look like a
+// mistake rather than a distinction, and it left the toggle sitting
+// lower than the one directly above it.
 .toggleRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-3);
+  min-height: var(--size-touch-target);
+  padding: var(--space-2) var(--space-3);
 }
 
 .toggleLabel {

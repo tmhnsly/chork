@@ -5,6 +5,7 @@ import { RingStatsRow } from "@/components/ui/RingStatsRow/RingStatsRow";
 import { RouteChart } from "@/components/ui/RouteChart/RouteChart";
 import { SendGridTile } from "@/components/ui/SendGridTile/SendGridTile";
 import styles from "./sendsGrid.module.scss";
+import { RING_SIZES } from "@/components/ui/ActivityRings/ring-sizes";
 
 const PLACEHOLDER_COUNT = 14;
 
@@ -44,7 +45,7 @@ export function SendsGridSkeleton() {
           points={0}
           totalRoutes={PLACEHOLDER_COUNT}
           zoneCompletions={0}
-          size={72}
+          size={RING_SIZES.card}
         />
         <RouteChart
           logs={EMPTY_LOGS}

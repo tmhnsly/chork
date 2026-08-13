@@ -7,6 +7,7 @@ import { BrandDivider } from "@/components/ui/BrandDivider";
 import type { Route, RouteLog } from "@/lib/data";
 import type { BadgeDefinition } from "@/lib/badges";
 import styles from "./previousSetsGrid.module.scss";
+import { RING_SIZES } from "@/components/ui/ActivityRings/ring-sizes";
 
 export type SetCellLog = Pick<RouteLog, "attempts" | "completed" | "zone">;
 
@@ -125,7 +126,7 @@ function SetTile({ set, onOpen }: TileProps) {
 
   const content = (
     <>
-      <ActivityRings rings={rings} size={72} />
+      <ActivityRings rings={rings} size={RING_SIZES.card} />
       <span className={styles.label}>{set.label}</span>
       {set.isActive && <span className={styles.activeTag}>Current</span>}
     </>

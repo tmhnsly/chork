@@ -230,6 +230,25 @@ describe("layout", () => {
   });
 });
 
+describe("rings", () => {
+  it("never passes a pixel number to ActivityRings or RingStatsRow", () => {
+    const bad: string[] = [];
+    for (const { path, text } of tsx) {
+      if (path.endsWith("ring-sizes.ts")) continue;
+      const re = /<(ActivityRings|RingStatsRow)\b[\s\S]{0,600}?\/>/g;
+      for (const m of text.matchAll(re)) {
+        if (/size=\{\s*[0-9]/.test(m[0])) bad.push(path);
+      }
+    }
+    expect(
+      bad,
+      "Use a rung from `RING_SIZES` — preview / compact / card. Ring " +
+        "sizes were 72, 72, 56 and a fourth about to be added, all raw, " +
+        "which is how avatars ended up at 32, 36 and 40 for the same job.",
+    ).toEqual([]);
+  });
+});
+
 describe("avatars", () => {
   it("never passes a pixel number to UserAvatar", () => {
     expect(

@@ -1,6 +1,7 @@
 "use client";
 
 import { ActivityRings } from "@/components/ui/ActivityRings/ActivityRings";
+import { RING_SIZES } from "@/components/ui/ActivityRings/ring-sizes";
 import type { ThemeName } from "@/lib/theme-store";
 import styles from "./themePreview.module.scss";
 
@@ -48,7 +49,7 @@ export function ThemePreview({ theme, className }: Props) {
               { value: 0.4, color: "var(--flash-solid)" },
               { value: 0.25, color: "var(--success-solid)" },
             ]}
-            size={40}
+            size={RING_SIZES.preview}
             className={styles.rings}
           />
           <span className={styles.stat}>

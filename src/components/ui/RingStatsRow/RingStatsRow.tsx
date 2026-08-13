@@ -1,4 +1,5 @@
 import { ActivityRings } from "@/components/ui/ActivityRings/ActivityRings";
+import { RING_SIZES } from "@/components/ui/ActivityRings/ring-sizes";
 import { BrandDivider } from "@/components/ui/BrandDivider";
 import { CountUpNumber } from "@/components/ui/CountUpNumber/CountUpNumber";
 import { shimmerStyles } from "@/components/ui";
@@ -37,7 +38,7 @@ interface Props {
    * previous-sets drawer). Ignored when `rank` resolves to a number.
    */
   rankLoading?: boolean;
-  /** Ring size in px */
+  /** Ring size — pass a rung from `RING_SIZES`, not a literal. */
   size?: number;
 }
 
@@ -64,7 +65,7 @@ export function RingStatsRow({
   maxPoints,
   rank,
   rankLoading = false,
-  size = 72,
+  size = RING_SIZES.card,
 }: Props) {
   const completionRate = totalRoutes ? completions / totalRoutes : 1;
   const flashRate = completions > 0 ? flashes / completions : 0;

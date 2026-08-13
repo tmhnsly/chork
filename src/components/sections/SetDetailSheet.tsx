@@ -10,6 +10,7 @@ import { pointsPerSend } from "@/lib/data/profile-stats";
 import { fetchSetPlacement } from "@/app/u/[username]/actions";
 import type { SetCell } from "./PreviousSetsGrid";
 import styles from "./setDetailSheet.module.scss";
+import { RING_SIZES } from "@/components/ui/ActivityRings/ring-sizes";
 
 const EM_DASH = "\u2014";
 
@@ -76,7 +77,7 @@ export function SetDetailSheet({ set, userId, onClose }: Props) {
           maxPoints={set.maxPoints}
           rank={rank}
           rankLoading={rankLoading}
-          size={72}
+          size={RING_SIZES.card}
         />
 
         {/* Secondary stats — Total pts already reads on the RingStatsRow

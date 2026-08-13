@@ -1,5 +1,6 @@
 "use client";
 
+import { RING_SIZES } from "./ring-sizes";
 import styles from "./activityRings.module.scss";
 
 interface Ring {
@@ -12,7 +13,7 @@ interface Ring {
 interface Props {
   /** Outer ring first, inner ring last */
   rings: Ring[];
-  /** Size in px */
+  /** Size in px — use a rung from `RING_SIZES`, not a literal. */
   size?: number;
   className?: string;
 }
@@ -29,7 +30,7 @@ const TRACK_COLOR = "var(--mono-bg)";
  * element's resting `strokeDashoffset` value become the end frame.
  * No `useEffect` / `setState` bounce needed to kick the animation.
  */
-export function ActivityRings({ rings, size = 72, className }: Props) {
+export function ActivityRings({ rings, size = RING_SIZES.card, className }: Props) {
   const strokeWidth = size * 0.1;
   const gap = strokeWidth * 0.4;
   const center = size / 2;

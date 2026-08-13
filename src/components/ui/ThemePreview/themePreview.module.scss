@@ -81,13 +81,12 @@
 // grid uses. The bare `.tile` is an untouched route.
 .tile {
   display: block;
-  // Square, like PunchTile.
+  // Square and unrounded, exactly like the real `SendGridTile` —
+  // "PunchTile stays square" (CLAUDE.md). An earlier version rounded
+  // these, which needed a hand-picked radius to avoid rendering as
+  // circles at this size; matching the wall removes both the
+  // roundness and the number behind it.
   aspect-ratio: 1;
-  // Proportional rather than a `--radius-*` step, because this is a
-  // miniature: a fixed 6px on a 14px tile is 43% of its width and
-  // renders as a circle. A percentage keeps the squircle the same
-  // shape at whatever size the preview ends up.
-  border-radius: 20%;
   background: var(--mono-bg);
 }
 

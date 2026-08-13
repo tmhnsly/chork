@@ -14,7 +14,7 @@ interface Props {
 
 /**
  * Post-completion row: "Sent" or "Flashed" badge on the left
- * (optionally joined by a "Zone" chip), Undo button on the right.
+ * (optionally joined by a "Zone" chip), "Undo send" on the right.
  * Matches the Mark-as-complete button's slot height so the layout
  * above the controls block doesn't breathe when the user completes
  * or undoes a route.
@@ -40,8 +40,13 @@ export function CompletedRow({ isFlash, hasZone = false, onUndo, disabled }: Pro
           </span>
         )}
       </div>
+      {/* "Undo" alone doesn't say what it undoes — next to a
+          "Flashed" badge it could plausibly mean the flash, the zone,
+          or the attempt count. Naming the send matches the badge
+          beside it and the "Mark as complete" button it replaced, and
+          holds for a flash too, since a flash is a send. */}
       <Button variant="ghost" onClick={onUndo} disabled={disabled}>
-        Undo
+        Undo send
       </Button>
     </div>
   );

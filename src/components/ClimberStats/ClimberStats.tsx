@@ -5,6 +5,7 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import { StatsWidget } from "@/components/ui/StatsWidget/StatsWidget";
 import type { RouteLog } from "@/lib/data";
 import styles from "./climberStats.module.scss";
+import { RING_SIZES } from "@/components/ui/ActivityRings/ring-sizes";
 
 export interface AllTimeExtras {
   /** 0–1 fraction, null if no sends */
@@ -86,7 +87,7 @@ export function ClimberStats({
         <div className={styles.allTimeHeader}>
           <ActivityRings
             rings={[{ value: flashRate, color: "var(--flash-solid)" }]}
-            size={56}
+            size={RING_SIZES.compact}
           />
           <div className={styles.allTimeStats}>
             <div className={styles.allTimeStat}>
