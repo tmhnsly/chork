@@ -1,23 +1,23 @@
-// Miniature of the send grid, painted in one palette.
+@use "mixins/typography" as type;
+
+// Miniature of the current-set card, painted in one palette.
 //
-// Every colour below is a semantic token, never a Radix scale
-// directly, so the preview is wired up exactly the way the real wall
-// is. That's what makes it honest: if a future theme breaks the
-// contrast between a send and a flash, it breaks here too, in the
-// picker, where it's visible before anyone applies it.
+// Every colour is a semantic token, never a Radix scale directly, so
+// the preview is wired exactly the way the real card is. That's what
+// makes it honest: a palette that breaks the contrast between a send
+// and a flash breaks it here too, in the picker, before it's applied.
 
 .root {
   display: block;
   // Paints its own background because it carries `data-theme` — the
-  // preview is a window into another palette, so it can't inherit the
-  // surrounding one.
+  // preview is a window into another palette, so it must not inherit
+  // the surrounding one.
   background: var(--mono-app-bg);
   border: 1px solid var(--mono-border-subtle);
   border-radius: var(--radius-3);
   padding: var(--space-2);
   // Fills its grid column. The previews are the point of this screen,
-  // so they get the width — a thumbnail small enough to sit beside a
-  // label would be back to guessing what the palette does.
+  // so they get the width.
   width: 100%;
 }
 
@@ -30,30 +30,45 @@
   padding: var(--space-2);
 }
 
-.header {
+.top {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
-// Stand-ins for a heading and a stat chip. Bars rather than lorem
-// text: at this size real words would be illegible noise, and the
-// point is the colour relationship, not the copy.
-.title {
-  display: block;
-  height: 0.5em;
-  width: 55%;
-  border-radius: var(--radius-full);
-  background: var(--mono-text);
+.rings {
+  flex-shrink: 0;
 }
 
-.pill {
-  display: block;
-  height: 0.5em;
-  width: 20%;
-  border-radius: var(--radius-full);
-  background: var(--accent-solid);
+.stat {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+// Pushed to the right edge, the way the real card puts points
+// opposite the rings.
+.points {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  margin-left: auto;
+  min-width: 0;
+}
+
+.statLabel {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.statValue {
+  @include type.typography(number, $step: lg);
+  color: var(--accent-text);
+}
+
+.pointsValue {
+  @include type.typography(number, $step: lg);
+  color: var(--mono-text);
 }
 
 .tiles {
@@ -62,21 +77,20 @@
   gap: var(--space-1);
 }
 
+// The tile states from CLAUDE.md's palette, in the tokens the real
+// grid uses. The bare `.tile` is an untouched route.
 .tile {
   display: block;
   // Square, like PunchTile.
   aspect-ratio: 1;
   // Proportional rather than a `--radius-*` step, because this is a
-  // miniature: a fixed 6px on a 14px tile is 43% of its width, which
-  // renders as a circle and stops reading as a wall. A percentage
-  // keeps the squircle looking the same shape at whatever size the
-  // preview ends up.
+  // miniature: a fixed 6px on a 14px tile is 43% of its width and
+  // renders as a circle. A percentage keeps the squircle the same
+  // shape at whatever size the preview ends up.
   border-radius: 20%;
+  background: var(--mono-bg);
 }
 
-// The four states from CLAUDE.md's tile palette, in the same tokens
-// the real grid uses: completed = accent, flash = flash, attempted =
-// mono, untouched = the empty surface.
 .sent {
   background: var(--accent-solid);
 }
@@ -87,12 +101,4 @@
 
 .attempted {
   background: var(--mono-solid);
-}
-
-.untouched {
-  background: var(--mono-bg);
-  // Zone marker — teal underline on an otherwise empty tile, matching
-  // the wall. Included because zone is the state most at risk from a
-  // badly chosen accent, so the preview has to show it.
-  border-bottom: 2px solid var(--success-solid);
 }

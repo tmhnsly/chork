@@ -119,7 +119,7 @@ export function SettingsSheet({ open, onClose }: Props) {
         {/* One pane at a time. Rendering both would size the sheet to
             the taller of them and leave dead space under the shorter. */}
         {sliding === null && (
-        <div className={`${styles.list} ${styles.pane}`} style={{ "--pane-from": "-12%" } as React.CSSProperties}>
+        <div className={`${styles.list} ${styles.pane}`}>
           <button
             type="button"
             className={styles.item}

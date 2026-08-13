@@ -70,10 +70,6 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: var(--space-3);
-  // Carries `paneIn` itself rather than sharing `.pane`, whose
-  // `layout.stack` would override the grid — same specificity, and
-  // `.pane` is declared later in this file, so it would win.
-  animation: paneIn var(--duration-normal) var(--ease-out);
 }
 
 .themeItem {
@@ -171,27 +167,14 @@
 // Only the active pane is rendered, which is what keeps the sheet's
 // height honest: two panes side by side in a track would size the
 // sheet to the taller of them and leave dead space under the shorter.
+// Deliberately no entry animation. Panes used to slide in, and the
+// menu and the sub-panels came from opposite sides — which read as a
+// bug rather than as direction. Even done consistently it was wrong
+// here: the sheet itself already animates open, so animating its
+// contents again means the thing you came to read arrives last. A
+// settings list should simply be there.
 .pane {
   @include layout.stack(var(--space-1));
-  // `--pane-from` is the entry offset, flipped by the component so a
-  // pane pushed in from the menu slides in from the right and a
-  // return to the menu slides in from the left. A small offset, not a
-  // full width: only one pane exists at a time, so a full-width slide
-  // would drag a band of empty sheet across the screen.
-  animation: paneIn var(--duration-normal) var(--ease-out);
-}
-
-@keyframes paneIn {
-  from {
-    opacity: 0;
-    transform: translateX(var(--pane-from, 12%));
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pane {
-    animation: none;
-  }
 }
 
 // ── Sheet chrome: back button + panel title ─────────
