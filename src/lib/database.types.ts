@@ -1478,6 +1478,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      auto_archive_ended_sets: { Args: never; Returns: number }
       auto_publish_due_sets: { Args: never; Returns: number }
       bump_invite_rate_limit: { Args: never; Returns: boolean }
       compute_points: {

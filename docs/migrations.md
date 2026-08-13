@@ -57,6 +57,14 @@ Regenerate types after any apply: `npx supabase gen types typescript --project-i
 | 043 | `jam_rpcs_nullable_args.sql` | Redeclare `create_jam` / `add_jam_route` / `update_jam_route` / `upsert_jam_log` with explicit `default null` on every optional parameter. No behaviour change — just propagates nullability into `supabase gen types` output so the app layer doesn't have to coerce null → empty string at every call site |
 | 055 | `jam_realtime_and_summary_gate.sql` | Add `jam_routes` / `jam_logs` / `jam_players` to the `supabase_realtime` publication + `REPLICA IDENTITY FULL` so `postgres_changes` events actually fire for the three tables `use-jam-realtime.ts` subscribes to (cures "routes / scores don't update live without refresh"). Also move the jam-summary access gate INSIDE `get_jam_summary_for_user` via the explicit `p_user_id` arg — the page used to run two anon RLS pre-flights that transiently 404'd on the fresh-redirect after `end_jam` because `auth.uid()` briefly resolves NULL through the user's JWT. Page now trusts the hydrator's null-return as "not authorised" |
 | 063 | `compute_points_fn.sql` | `public.compute_points(attempts, completed, zone)` — immutable single source of truth for the scoring ladder (mirrors `computePoints()` in `src/lib/data/logs.ts`). Recreates all nine live formula-bearing functions on top of it (`get_leaderboard_*` ×4, `get_user_set_stats`, `sync_user_set_stats`, `get_user_all_time_stats`, `end_jam`, `get_jam_leaderboard`). Unifies the `attempts >= 4` vs bare-`completed` 1-point edge on the TS semantics |
+| 064 | `quick_win_hardening.sql` | Audit 2026-08-10 quick wins: fixes the live `jam_summary_players` deletion bomb plus assorted low-risk, non-breaking corrections surfaced by the full audit |
+| 065 | `deletion_path_integrity.sql` | Direction A. `sync_user_set_stats()` DELETE branch made update-only so it can't re-insert a stats row against an already-deleted user |
+| 066 | `grant_discipline.sql` | Direction B. Replaces the legacy blanket auto-grant (full CRUD to `anon` + `authenticated`) with explicit per-table grants scoped to each table's RLS — RLS is no longer the only gate |
+| 067 | `rls_tighten.sql` | Direction B. Blocks repointing a `crew_members` row into another crew via a trigger (WITH CHECK can't see OLD), plus further policy tightening |
+| 068 | `comment_likes_integrity.sql` | Direction C. `comments.likes` was maintained only by the `increment_comment_likes` RPC alongside a separate `comment_likes` row — replaced with a trigger so the counter can't drift from the rows |
+| 069 | `lock_new_trigger_fns.sql` | Locks down `guard_crew_member_update` (067) and `sync_comment_likes` (068) — trigger bodies fire as the table owner and are never called directly, so direct EXECUTE is revoked |
+| 070 | `auto_publish_requires_routes.sql` | `auto_publish_due_sets` skips routeless drafts, mirroring the app-side guard in `updateSet`'s publish path — a scheduled draft reaching its start time with no routes would have published an empty Wall |
+| 071 | `auto_archive_ended_sets.sql` | The missing counterpart to 015/070: moves `live` → `archived` once `ends_at` passes, on the same 5-minute cron. Without it a set stayed live indefinitely, so `/admin` read LIVE while climbers read SET ENDED off the same row — and `route_logs` inserts stayed open against it |
 
 ---
 
@@ -115,6 +123,32 @@ npx supabase db push
 npx supabase gen types typescript --project-id cfyagiwtzrgfjtwaevlh \
   > src/lib/database.types.ts
 ```
+
+### Apply with `db push`, never the dashboard
+
+Pasting a migration into the dashboard SQL Editor applies the DDL but
+stamps the history table with its own timestamped version, which no
+local file can match. Migrations 064–070 went that way, leaving seven
+orphan remote rows and seven local files the CLI thought were pending —
+`db push` then refused to run at all with `LegacyDbPushMissingLocalError`.
+
+If it happens again, the two halves are reconciled with (no schema
+change — this only rewrites the history table):
+
+```bash
+# Tell it the local files are already applied
+npx supabase migration repair --status applied 064 065 066
+
+# Drop the orphan dashboard-stamped rows
+npx supabase migration repair --status reverted 20260810111645
+
+# Confirm: every row should have both a local and a remote version
+npx supabase migration list
+```
+
+Pair orphan rows to local files by time before repairing — the remote
+timestamp is UTC at apply, so it lands seconds-to-minutes before the
+matching commit in BST. Don't rely on the counts matching.
 
 If types are missing a column / RPC, the TS compiler will fail at the
 call site rather than a cryptic runtime error. That failure is the
