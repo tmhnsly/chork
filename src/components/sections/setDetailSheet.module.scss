@@ -11,18 +11,6 @@
   gap: var(--space-3);
 }
 
-.headerText {
-  @include layout.stack(var(--space-1));
-  min-width: 0;
-}
-
-.label {
-  @include type.typography(card-title);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .activeTag {
   @include type.typography(label);
   color: var(--accent-text-low-contrast);

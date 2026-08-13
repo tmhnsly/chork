@@ -50,12 +50,16 @@ export function SetDetailSheet({ set, userId, onClose }: Props) {
       description={`Stats for ${set.label}`}
     >
       <SheetBody gap={5}>
-        <header className={styles.header}>
-          <div className={styles.headerText}>
-            <span className={styles.label}>{set.label}</span>
-            {set.isActive && <span className={styles.activeTag}>Current set</span>}
-          </div>
-        </header>
+        {/* The sheet's title bar already shows `set.label`, so the
+            body only carries what the title bar can't: whether this
+            is the set currently on the wall. Repeating the date range
+            directly under itself was the sheet saying the same thing
+            twice before any of the stats got a look in. */}
+        {set.isActive && (
+          <header className={styles.header}>
+            <span className={styles.activeTag}>Current set</span>
+          </header>
+        )}
 
         {/* Ring stats — rank sits next to points on the right so the
             header stays clean and the placement reads as one unit. */}
