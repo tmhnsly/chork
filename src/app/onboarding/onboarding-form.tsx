@@ -9,6 +9,7 @@ import { RevealText } from "@/components/motion";
 import { FormField, InputError, Button, showToast, shimmerStyles } from "@/components/ui";
 import { completeOnboarding, fetchListedGyms } from "./actions";
 import type { Gym } from "@/lib/data";
+import { withTimeout } from "@/lib/async";
 import styles from "./onboarding.module.scss";
 
 type GymChoice = "unchosen" | "has-chork" | "no-chork";
@@ -97,7 +98,16 @@ export function OnboardingForm() {
         setStep("form");
         return;
       }
-      await refreshProfile();
+      // Best-effort cache freshen so the reloaded home paints the
+      // personalised nav immediately. Bounded + swallowed — it must
+      // NEVER block the redirect: a hung getUser()/profile fetch here
+      // left the form spinning forever with onboarding already saved.
+      // The full reload below re-bootstraps auth from scratch anyway.
+      try {
+        await withTimeout(refreshProfile(), 2500, "onboarding-refresh");
+      } catch {
+        // ignore — the reload re-fetches the profile
+      }
       // Hard nav — `router.push("/")` kept failing to redirect because
       // middleware state (the onboarded cookie) and the RSC cache
       // didn't always line up by the time the client re-navigated.
