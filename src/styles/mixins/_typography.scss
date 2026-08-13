@@ -48,9 +48,10 @@
 @use "sass:list";
 @use "sass:map";
 
-// Every rung on the scale, smallest first. Used to reject typos in
-// `$step` at compile time rather than emitting `var(--text-2xs)` and
-// letting it fail silently as an invalid custom property at runtime.
+// Every rung a caller may request, smallest first. Checked at compile
+// time so a typo (`$step: xxl`) is an error rather than a silently
+// invalid `var(--text-xxl)` at runtime. `icon-label` is deliberately
+// absent — see the restricted-rung note in `theme/typography.scss`.
 $_steps: xs, sm, md, lg, xl, 2xl, 3xl, 4xl, 5xl;
 
 $_typography: (
