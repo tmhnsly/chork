@@ -111,7 +111,10 @@
 
 .manageIcon {
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-base);
+  // Was `var(--text-base)` — a token that has never existed, so the
+  // declaration was invalid and the glyph silently fell back to the
+  // inherited size. An icon should size off the icon scale anyway.
+  font-size: var(--size-icon-md);
   flex-shrink: 0;
 }
 

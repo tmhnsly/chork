@@ -1,6 +1,8 @@
 @use "mixins/typography" as type;
+@use "mixins/focus" as focus;
 @use "mixins/surfaces" as surface;
 @use "mixins/layout" as layout;
+@use "mixins/breakpoints" as bp;
 
 .screen {
   min-height: 100dvh;
@@ -33,7 +35,7 @@
   box-sizing: border-box;
 }
 
-@media (min-width: 768px) {
+@include bp.tablet {
   .hero {
     margin-inline: auto;
   }
@@ -54,7 +56,6 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.1;
 }
 
 .metaRow {
@@ -65,7 +66,7 @@
 }
 
 .metaChip {
-  @include type.typography(meta);
+  @include type.typography(meta, $step: xs);
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
@@ -73,7 +74,6 @@
   border-radius: var(--radius-full);
   background: var(--mono-bg);
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-xs);
 }
 
 // Code chip — tappable affordance to open the share sheet.
@@ -89,7 +89,6 @@
   background: var(--accent-bg);
   color: var(--accent-text);
   border: 1px solid var(--accent-border-subtle);
-  letter-spacing: 0.1em;
   cursor: pointer;
   transition:
     background var(--duration-fast) var(--ease-out),
@@ -99,17 +98,12 @@
     border-color: var(--accent-border);
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--accent-border);
-    outline-offset: 2px;
-  }
+  @include focus.ring;
 }
 
 .codeLabel {
+  @include type.typography(label);
   color: var(--accent-text-low-contrast);
-  font-size: var(--text-2xs);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
 .menuButton {
@@ -130,10 +124,7 @@
     border-color: var(--accent-border);
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--accent-border);
-    outline-offset: 2px;
-  }
+  @include focus.ring;
 }
 
 // ── Leaderboard strip ──────────────────────────────
@@ -153,7 +144,7 @@
   list-style: none;
 }
 
-@media (min-width: 768px) {
+@include bp.tablet {
   .leaderboardStrip {
     margin-inline: auto;
   }
@@ -215,8 +206,5 @@
     transform: scale(0.94);
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--accent-on-solid);
-    outline-offset: 2px;
-  }
+  @include focus.ring(var(--accent-on-solid));
 }

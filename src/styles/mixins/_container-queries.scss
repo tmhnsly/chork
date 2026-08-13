@@ -1,16 +1,50 @@
 // Container-query breakpoints — component-scoped, width-based.
 // Usage: @use 'mixins/container-queries' as cq; then @include cq.medium { ... }
 //
-// Requires the ancestor to set:
+// Requires the ancestor to set BOTH:
 //   container-type: inline-size;
 //   container-name: tile;
+//
+// ── The name is not optional ────────────────────────────────────
+// Every mixin here queries `@container tile`. A container declared
+// with `container-type` alone is unnamed and no mixin can address it
+// — the query silently matches nothing and the rule never applies.
+// `SectionCard` had exactly that for a long time, which is why panels
+// inside a card reached for viewport media queries instead.
+//
+// ── Only name what descendants should query ─────────────────────
+// Because every container shares the one name, `@container tile`
+// binds to the NEAREST named ancestor. Naming a small inner box —
+// an avatar, a grid tile — would shadow the card around it for
+// everything inside. So containers that exist purely to give their
+// own children `cqi` units (UserAvatar, SendGridTile, DemoTile,
+// ProfileHeader, PageHeader) are deliberately left unnamed: `cqi`
+// resolves against the nearest container regardless of name, so they
+// work as intended without joining the query namespace.
+//
+// Name a container when descendants need `cq.*` against it. Leave it
+// unnamed when it only needs to provide `cqi`.
 $_small: 290px;
 $_medium: 340px;
 $_large: 640px;
 $_xlarge: 900px;
 
+// Point at which a two-up form row or a side-by-side action pair has
+// room to sit on one line. Six admin components expressed this with
+// viewport media queries at 480px and 600px — which is the wrong
+// question: a form row cares how much space *it* has, not how wide
+// the window is. Same form in a narrow admin panel wants to stack
+// even on a desktop viewport.
+$_split: 28rem; // 448px
+
 @mixin small {
   @container tile (min-width: #{$_small}) {
+    @content;
+  }
+}
+
+@mixin split {
+  @container tile (min-width: #{$_split}) {
     @content;
   }
 }

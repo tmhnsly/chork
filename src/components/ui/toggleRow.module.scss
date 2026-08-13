@@ -1,4 +1,5 @@
 @use "mixins/typography" as type;
+@use "mixins/focus" as focus;
 
 // ── ToggleRow — labelled row with an iOS-style switch on the right.
 //
@@ -30,8 +31,8 @@
   display: inline-flex;
   flex-shrink: 0;
   color: var(--mono-text-low-contrast);
-  width: 1.125rem;
-  height: 1.125rem;
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
 }
 
 .labelStack {
@@ -46,21 +47,22 @@
 }
 
 .detail {
-  @include type.typography(meta);
+  @include type.typography(meta, $step: xs);
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-xs);
   margin-top: var(--space-1);
 }
 
 // ── CSS-only iOS-style switch driven by an `<input type="checkbox">`.
 //
-// Width / height / thumb dimensions are intentionally pixel-pinned —
-// the 44×26 outer + 22px thumb + 2px offsets are the canonical iOS
-// proportions and the proportions don't survive tokenisation cleanly.
+// Dimensions come from the shared `--switch-*` tokens rather than
+// being pinned here. The mechanics differ from `mixins/toggle` (this
+// one is a bare checkbox, that one drives Radix `data-state`), but
+// the *visual* must not — they were 44×26 and 42×24, and a climber
+// meets both switches inside a single session.
 .switch {
   appearance: none;
-  width: 44px;
-  height: 26px;
+  width: var(--switch-w);
+  height: var(--switch-h);
   border-radius: var(--radius-full);
   background: var(--mono-solid);
   position: relative;
@@ -71,10 +73,10 @@
   &::before {
     content: "";
     position: absolute;
-    top: 2px;
-    left: 2px;
-    width: 22px;
-    height: 22px;
+    top: var(--switch-pad);
+    left: var(--switch-pad);
+    width: var(--switch-thumb);
+    height: var(--switch-thumb);
     border-radius: var(--radius-full);
     background: var(--mono-app-bg);
     box-shadow: var(--shadow-sm);
@@ -86,13 +88,10 @@
   }
 
   &:checked::before {
-    transform: translateX(18px);
+    transform: translateX(var(--switch-travel));
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--accent-border);
-    outline-offset: 2px;
-  }
+  @include focus.ring;
 }
 
 // When the switch is on, the icon picks up the accent so the row's

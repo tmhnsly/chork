@@ -3,13 +3,13 @@
 .chart {
   display: flex;
   flex-direction: column;
-  gap: 2px; // tight coupling between bars and zone dots
+  gap: var(--space-0-5); // tight coupling between bars and zone dots
 }
 
 .bars {
   display: flex;
   align-items: flex-end;
-  gap: 2px;
+  gap: var(--space-0-5);
   height: var(--space-16);
 }
 
@@ -74,7 +74,7 @@
 // ── Zone dots ──────────────────────────────────────
 .dots {
   display: flex;
-  gap: 2px;
+  gap: var(--space-0-5);
 }
 
 .dot {
@@ -99,17 +99,15 @@
 // keeps the number under its bar.
 .labels {
   display: flex;
-  gap: 2px;
+  gap: var(--space-0-5);
   margin-top: var(--space-1);
 }
 
 .label {
-  @include type.typography(number);
+  @include type.typography(number, $step: xs);
   flex: 1;
   min-width: 0;
-  font-size: var(--text-2xs);
   color: var(--mono-text-low-contrast);
   text-align: center;
   font-variant-numeric: tabular-nums;
-  line-height: 1;
 }

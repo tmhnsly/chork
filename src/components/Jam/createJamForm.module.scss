@@ -1,7 +1,9 @@
 @use "mixins/typography" as type;
+@use "mixins/focus" as focus;
 @use "mixins/layout" as layout;
 @use "mixins/input" as input;
 @use "mixins/surfaces" as surface;
+@use "mixins/state" as state;
 
 // Single source of truth for vertical rhythm. Sections sit at
 // `--space-6` apart from each other (generous Apple-Settings
@@ -26,8 +28,6 @@
 .label {
   @include type.typography(label);
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-2xs);
-  letter-spacing: 0.08em;
   text-transform: uppercase;
   display: block;
   padding: 0;
@@ -50,9 +50,8 @@
 }
 
 .scaleHint {
-  @include type.typography(meta);
+  @include type.typography(meta, $step: xs);
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-xs);
   margin: 0;
 }
 
@@ -82,9 +81,8 @@
 }
 
 .stepperLabel {
-  @include type.typography(label);
+  @include type.typography(label, $step: sm);
   color: var(--mono-text);
-  font-size: var(--text-sm);
 }
 
 .stepperControl {
@@ -119,20 +117,15 @@
   }
 
   &:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
+    @include state.disabled;
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--accent-border);
-    outline-offset: 2px;
-  }
+  @include focus.ring;
 }
 
 .stepperValue {
-  @include type.typography(number);
+  @include type.typography(number, $step: xl);
   color: var(--accent-text);
-  font-size: var(--text-xl);
   font-variant-numeric: tabular-nums;
   min-width: 3.5rem;
   text-align: center;
@@ -151,9 +144,8 @@
 }
 
 .rangeSummary {
-  @include type.typography(meta);
+  @include type.typography(meta, $step: xs);
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-xs);
   margin: 0;
   text-align: center;
 }
@@ -171,9 +163,8 @@
 }
 
 .savedLabel {
-  @include type.typography(meta);
+  @include type.typography(meta, $step: xs);
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-xs);
 }
 
 .savedPill {
@@ -183,7 +174,6 @@
   background: var(--accent-subtle-bg);
   color: var(--accent-text);
   @include type.typography(label);
-  font-size: var(--text-xs);
   cursor: pointer;
 
   &:hover {
@@ -215,15 +205,13 @@
   }
 
   &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+    @include state.disabled;
   }
 }
 
 .gradeHint {
-  @include type.typography(meta);
+  @include type.typography(meta, $step: xs);
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-xs);
   margin: 0;
 }
 
@@ -249,7 +237,6 @@
 .gradeOrdinal {
   @include type.typography(label);
   color: var(--accent-text);
-  font-size: var(--text-xs);
   min-width: 1.5rem;
 }
 
@@ -282,7 +269,6 @@
   }
 
   &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+    @include state.disabled;
   }
 }

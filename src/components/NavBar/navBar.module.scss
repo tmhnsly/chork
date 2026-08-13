@@ -108,7 +108,6 @@
 // Desktop-only when authenticated (tabs take priority on mobile)
 .brandText {
   @include type.typography(label);
-  font-size: var(--text-xs);
   display: none;
 
   @include bp.desktop {
@@ -119,7 +118,6 @@
 // Always visible — used in unauth/loading states
 .brandTextVisible {
   @include type.typography(label);
-  font-size: var(--text-xs);
 }
 
 // ── Tab items ─────────────────────────────────────
@@ -212,7 +210,7 @@
 }
 
 .tabIcon {
-  font-size: var(--size-icon-sm);
+  font-size: var(--size-icon-xl);
 }
 
 // Wrapper for icon + badge on tabs that carry a notification count.
@@ -242,24 +240,26 @@
   position: absolute;
   top: calc(var(--space-1) * -0.5);
   right: calc(var(--space-1) * -0.75);
-  min-width: 1rem;
-  height: 1rem;
-  padding: 0 0.25rem;
+  min-width: var(--size-badge);
+  height: var(--size-badge);
+  padding: 0 var(--space-1);
   background: var(--accent-solid);
   color: var(--accent-on-solid);
   border-radius: var(--radius-full);
   border: 2px solid var(--mono-bg);
-  @include type.typography(label);
-  font-size: 0.625rem;
-  line-height: 1;
+  // Same rung as the tab label it sits on — a badge that out-sized
+  // its own label read as the loudest thing in the bar.
+  @include type.typography(icon-label);
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
 .tabLabel {
-  @include type.typography(label);
-  font-size: var(--text-2xs);
+  // 10px, not the 12px `label` floor — the tab's icon carries the
+  // meaning and the word confirms it, which is the one case that
+  // licenses going below the reading floor. Apple HIG tab bar spec.
+  @include type.typography(icon-label);
   // Icons keep the tab's inherited step-9 mono tint (a muted fill
   // colour), but the label takes the step-11 text token so it's
   // properly readable — lighter in dark mode, darker in light mode.

@@ -68,7 +68,7 @@ export function CrewDetailView({
                   name: m.name,
                   avatar_url: m.avatar_url,
                 }}
-                size={32}
+                size="stack"
               />
             </span>
           ))}

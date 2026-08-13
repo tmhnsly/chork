@@ -1,6 +1,7 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
 @use "mixins/breakpoints" as bp;
+@use "mixins/brand-dot" as dot;
 
 .hero {
   position: relative;
@@ -78,7 +79,7 @@
 
 // ── Typography ─────────────────────────────────────
 .headline {
-  @include type.typography(display);
+  @include type.typography(display, $step: 5xl);
   // No single colour on the headline — each sentence span owns its
   // tier below. Keep the display typography inheritance so word
   // metrics stay identical between the two halves.
@@ -114,28 +115,7 @@
 // Baseline-aligned + a small left nudge so it reads as punctuation
 // rather than a free-floating bullet.
 .dot {
-  display: inline-block;
-  width: 0.3em;
-  height: 0.3em;
-  margin-left: 0.1em;
-  vertical-align: baseline;
-  border-radius: 50%;
-  background: var(--brand);
-  transform: scale(0);
-  // Fire after the headline words finish revealing — second sentence
-  // last word lands ~1.05s in, give it a beat then pop the dot.
-  animation: dotPop 0.35s var(--ease-out-expo) 1.15s forwards;
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-    transform: scale(1);
-  }
-}
-
-@keyframes dotPop {
-  to {
-    transform: scale(1);
-  }
+  @include dot.mark;
 }
 
 .subheadline {

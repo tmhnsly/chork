@@ -212,6 +212,21 @@
   --bronze-on-solid: #fff; /* bronze step 9 is dark — white fg reads cleanly */
 
   --toggle-thumb: #fff;
+
+  /* Scrim laid over user-uploaded imagery — the hover state on the
+     avatar picker, and anything similar later. Fixed dark across
+     every theme on purpose: the controls that sit on top of it are
+     always white, so a theme-following scrim would put white on
+     white in a light palette.
+
+     This is why `surface.scrim` can't serve here — that one tints
+     with `--mono-app-bg` so it can dim the app's own surfaces, which
+     is the opposite requirement. Kept as literal rgba because there
+     is no Radix step for "black at 40%", and inlining it at the call
+     site is what CLAUDE.md's raw-value rule is aimed at. */
+  --overlay-media: rgb(0 0 0 / 0.4);
+  --overlay-media-fg: #fff;
+  --overlay-media-track: rgb(255 255 255 / 0.3);
 }
 
 /*

@@ -33,7 +33,7 @@
 }
 
 .title {
-  @include type.typography(page-title);
+  @include type.typography(display, $step: 3xl);
 }
 
 .subtitle {
@@ -76,7 +76,7 @@
 
 .usernameStatusSpinner {
   color: var(--mono-text-low-contrast);
-  animation: usernameSpin 0.9s linear infinite;
+  animation: usernameSpin var(--duration-spin) linear infinite;
 }
 
 .usernameStatusOk {
@@ -162,8 +162,7 @@
 }
 
 .gymChoiceTitle {
-  @include type.typography(card-title);
-  font-size: var(--text-md);
+  @include type.typography(card-title, $step: md);
   color: var(--mono-text);
 }
 

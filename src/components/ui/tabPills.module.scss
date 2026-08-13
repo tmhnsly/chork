@@ -1,5 +1,6 @@
 @use "mixins/typography" as type;
 @use "mixins/focus";
+@use "mixins/state" as state;
 
 // Horizontal pill-tab row. Scrolls when overflowed; scrollbar hidden
 // so the affordance is visual overflow + swipe, matching the native
@@ -57,8 +58,7 @@
   }
 
   &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+    @include state.disabled;
   }
 }
 
@@ -76,8 +76,7 @@
 // Count badge alongside the label (e.g. "Sends 6") — reads as
 // supplementary context, not the primary label.
 .count {
-  @include type.typography(number);
-  font-size: var(--text-2xs);
+  @include type.typography(number, $step: xs);
   color: var(--mono-text-low-contrast);
   padding: 0 var(--space-1);
   min-width: 1.25rem;

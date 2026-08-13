@@ -62,7 +62,7 @@ export function ClimberPeekHeader({ user, trailing, stats }: Props) {
           className={styles.identityLink}
           aria-label={`Go to @${user.username}'s profile`}
         >
-          <UserAvatar user={user} size={44} />
+          <UserAvatar user={user} size="rowLg" />
           <span className={styles.identityText}>
             <span className={styles.displayName}>
               {user.name?.trim() || `@${user.username}`}

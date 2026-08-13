@@ -17,8 +17,7 @@
 }
 
 .number {
-  @include type.typography(number);
-  font-size: var(--text-sm);
+  @include type.typography(number, $step: sm);
   color: var(--mono-text-low-contrast);
 }
 
@@ -38,8 +37,7 @@
 }
 
 .value {
-  @include type.typography(number);
-  font-size: var(--text-sm);
+  @include type.typography(number, $step: sm);
   color: var(--mono-text);
   min-width: 2.5rem;
   text-align: right;

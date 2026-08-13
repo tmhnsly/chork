@@ -1,0 +1,40 @@
+// The brand dot — the lime full-stop that lands after a headline on
+// the marketing surfaces.
+//
+// Usage: @use 'mixins/brand-dot' as dot;
+//   .dot { @include dot.mark; }
+//
+// Extracted because the landing hero and the /gyms hero carried
+// byte-identical copies: same `em` sizing, same keyframes, same
+// 0.35s / 1.15s timing, and a comment on each pointing at the other
+// asking that they be kept in step. Two surfaces meant to share one
+// brand gesture were free to drift apart on any edit.
+//
+// The delay is the load-bearing number. It has to land after the
+// headline's word-by-word reveal finishes — the last word settles
+// around 1.05s in — so the dot reads as the sentence's full stop
+// rather than as a separate element arriving. Retiming RevealText
+// means retiming this.
+@mixin mark {
+  display: inline-block;
+  width: 0.3em; // `em` so it tracks the headline's clamped size
+  height: 0.3em;
+  margin-left: 0.1em;
+  vertical-align: baseline;
+  border-radius: var(--radius-full);
+  background: var(--brand);
+  transform: scale(0);
+  animation: brandDotPop var(--duration-dot-pop) var(--ease-out-expo)
+    var(--delay-dot-pop) forwards;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transform: scale(1);
+  }
+}
+
+@keyframes brandDotPop {
+  to {
+    transform: scale(1);
+  }
+}

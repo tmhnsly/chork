@@ -21,7 +21,7 @@
   border-radius: var(--radius-full);
   background: var(--accent-bg);
   color: var(--accent-text-low-contrast);
-  font-size: var(--text-lg);
+  font-size: var(--size-icon-md);
   flex-shrink: 0;
 }
 
@@ -34,14 +34,12 @@
 }
 
 .heading {
-  @include type.typography(card-title);
-  font-size: var(--text-md);
+  @include type.typography(card-title, $step: md);
   color: var(--mono-text);
 }
 
 .body {
-  @include type.typography(body);
-  font-size: var(--text-sm);
+  @include type.typography(body, $step: sm);
   color: var(--mono-text-low-contrast);
 }
 

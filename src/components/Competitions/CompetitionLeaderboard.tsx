@@ -80,7 +80,7 @@ export function CompetitionLeaderboard({
               className={`${styles.row} ${r.user_id === currentUserId ? styles.rowSelf : ""}`}
             >
               <span className={styles.rank}>#{r.rank}</span>
-              <UserAvatar user={toAvatarUser(r)} size={40} />
+              <UserAvatar user={toAvatarUser(r)} size="row" />
               <div className={styles.rowText}>
                 <span className={styles.rowName}>@{r.username}</span>
                 {r.name && <span className={styles.rowSub}>{r.name}</span>}

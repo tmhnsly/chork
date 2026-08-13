@@ -96,7 +96,7 @@
   display: flex;
   user-select: none;
   touch-action: none;
-  padding: 2px;
+  padding: var(--space-0-5);
   height: 6px;
   background: transparent;
   transition: background var(--duration-fast) var(--ease-out);

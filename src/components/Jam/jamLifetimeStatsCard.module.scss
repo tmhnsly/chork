@@ -15,9 +15,7 @@
 }
 
 .headerValue {
-  @include type.typography(number);
-  font-size: var(--text-2xl);
-  line-height: 1;
+  @include type.typography(number, $step: 2xl);
   color: var(--mono-text);
   display: inline-flex;
   align-items: center;
@@ -31,7 +29,6 @@
 .headerLabel {
   @include type.typography(label);
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-2xs);
 }
 
 // ── Five-cell stats grid ────────────────────────
@@ -51,9 +48,7 @@
 }
 
 .cellValue {
-  @include type.typography(number);
-  font-size: var(--text-lg);
-  line-height: 1.1;
+  @include type.typography(number, $step: lg);
   color: var(--mono-text);
   display: inline-flex;
   align-items: center;
@@ -66,6 +61,5 @@
 
 .cellLabel {
   @include type.typography(label);
-  font-size: var(--text-2xs);
   color: var(--mono-text-low-contrast);
 }

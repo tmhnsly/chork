@@ -21,7 +21,6 @@
 
 .label {
   @include type.typography(label);
-  font-size: var(--text-xs);
   color: var(--mono-text-low-contrast);
 }
 
@@ -30,16 +29,13 @@
 .zoneLabel   { color: var(--success-text-low-contrast); }
 
 .value {
-  @include type.typography(number);
-  font-size: var(--text-lg);
+  @include type.typography(number, $step: lg);
   // Italic bold numerals on the heading face overhang their line
   // box; 1.1 was shaving the tops inside SectionCard's overflow
   // clip. 1.25 gives them breathing room without widening the row.
-  line-height: 1.25;
 
   small {
     @include type.typography(label);
-    font-size: var(--text-xs);
     margin-left: var(--space-1);
     font-style: normal;
     color: inherit;
@@ -72,16 +68,13 @@
 // (`N` + small `/M`) so the two numbers across the row read as the
 // same visual pattern.
 .totalsValue {
-  @include type.typography(number);
-  font-size: var(--text-2xl);
+  @include type.typography(number, $step: 2xl);
   // Same reasoning as `.value` — italic bold glyphs need a taller
   // line box than 1.0 or they get shaved by the card's overflow.
-  line-height: 1.2;
   color: var(--mono-text);
 
   small {
     @include type.typography(label);
-    font-size: var(--text-xs);
     margin-left: var(--space-1);
     font-style: normal;
     color: var(--mono-text-low-contrast);
@@ -106,7 +99,6 @@
 
 .totalsLabel {
   @include type.typography(label);
-  font-size: var(--text-xs);
   color: var(--mono-text-low-contrast);
 }
 

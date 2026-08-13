@@ -19,18 +19,14 @@
 }
 
 .actionHeading {
-  @include type.typography(card-title);
+  @include type.typography(card-title, $step: xl);
   color: var(--mono-text);
-  font-size: var(--text-xl);
-  line-height: 1.15;
   margin: 0;
 }
 
 .actionLede {
-  @include type.typography(body);
+  @include type.typography(body, $step: sm);
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-sm);
-  line-height: 1.5;
   margin: 0;
 }
 
@@ -62,8 +58,6 @@
 .historyHeading {
   @include type.typography(label);
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-xs);
-  letter-spacing: 0.08em;
   margin: 0;
 }
 
@@ -103,16 +97,14 @@
 }
 
 .emptyTitle {
-  @include type.typography(card-title);
-  font-size: var(--text-md);
+  @include type.typography(card-title, $step: md);
   color: var(--mono-text);
   margin: 0;
 }
 
 .emptyLede {
-  @include type.typography(body);
+  @include type.typography(body, $step: sm);
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-sm);
   margin: 0;
   max-width: 32ch;
 }

@@ -65,7 +65,7 @@ export function LeaderboardRow({
           name: entry.name ?? "",
           avatar_url: entry.avatarUrl ?? "",
         }}
-        size={36}
+        size="row"
       />
       <div className={styles.identity}>
         <span className={styles.username}>@{username}</span>

@@ -2,6 +2,12 @@
 
 :root {
   // ── Spacing scale ───────────────────────────────
+  // Half-step below the base rung. Exists for tight coupling inside a
+  // compound unit — the two lines of a name/handle stack, chart bars
+  // against their zone dots — where --space-1 (4px) reads as a gap
+  // between separate things rather than one thing. Seven components
+  // had reached for a bare `2px` before this existed.
+  --space-0-5: 0.125rem;
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -22,11 +28,71 @@
   // ── Component sizes ─────────────────────────────
   --size-touch-target: 2.75rem;   // 44px — WAI minimum
   --size-fab: 3.5rem;             // 56px — floating action button (Material spec)
-  --size-avatar-sm: 1.5rem;       // 24px
-  --size-avatar-md: 2.25rem;      // 36px
-  --size-avatar-lg: 6rem;         // 96px
-  --size-icon-xs: 1.125rem;       // 18px
-  --size-icon-sm: 1.5rem;         // 24px
+  // ── Avatar rungs ──────────────────────────────────────────────
+  // Mirrors AVATAR_SIZES in `components/ui/avatar-sizes.ts`, which is
+  // the source of truth (next/image needs real numbers). These exist
+  // for surfaces that size a circle without rendering a <UserAvatar>:
+  // loading skeletons and the "+N" pill on an avatar stack. Keeping
+  // them in step is enforced by `avatar-sizes.test.ts` — change one
+  // and the test tells you about the other.
+  //
+  // Named by role, not size: a list row is `row` everywhere, so the
+  // 32/36/40-for-the-same-thing spread cannot come back.
+  --size-avatar-stack: 2rem;      // 32px — overlapping stacks, +N pill
+  --size-avatar-row: 2.5rem;      // 40px — list rows
+  --size-avatar-rowLg: 2.75rem;   // 44px — climber peek header
+  --size-avatar-podium: 4rem;     // 64px — podium 2nd / 3rd
+  --size-avatar-hero: 4.5rem;     // 72px — profile header, edit dialog
+  --size-avatar-podiumWin: 5.5rem; // 88px — podium winner
+
+  // Overlap between adjacent avatars in a stack. Was -12px on the
+  // crew card and -10px on the crew detail view, for the same visual.
+  --avatar-stack-overlap: 0.75rem; // 12px
+
+  // ── Switch ────────────────────────────────────────────────────
+  // The app shipped two switches: 42×24 with a 20px thumb (route log,
+  // grade slider) and 44×26 with a 22px thumb (admin, jam forms).
+  // Same control, two sizes, and a climber met both in one session.
+  // Unified here at 44×26 — the wider track reaches the 44px tap
+  // target on its own, where the narrower one needed a transparent
+  // pseudo-element to fake a compliant hit area.
+  --switch-w: 2.75rem;          // 44px
+  --switch-h: 1.625rem;         // 26px
+  --switch-thumb: 1.375rem;     // 22px
+  --switch-pad: var(--space-0-5); // 2px
+  // Derived, so the thumb always lands flush against the far edge —
+  // the travel distance used to be a hand-computed literal that had
+  // to be re-derived by hand whenever a dimension moved.
+  --switch-travel: calc(
+    var(--switch-w) - var(--switch-thumb) - var(--switch-pad) * 2
+  );
+  // ── Icon rungs ────────────────────────────────────────────────
+  // For a glyph rendered at a fixed size of its own. Two rungs used
+  // to exist (18px, 24px) and eighteen icons sized themselves off
+  // the *text* scale instead — `font-size: var(--text-sm)` on a
+  // chevron — because the icon scale had no rung to reach for. Same
+  // missing-rung failure as the label preset and the avatar sizes.
+  //
+  // Values are taken from what those sites already rendered at, so
+  // adopting the scale changes nothing on screen; the win is that
+  // the next icon has somewhere to go. Worth consolidating once
+  // someone can compare them side by side.
+  //
+  // An icon that should track the text beside it is a different
+  // case — those stay in `em` (`font-size: 0.85em`) and must not be
+  // converted to a rung.
+  --size-icon-xs: 0.875rem;       // 14px — inline chevrons, compact rows
+  --size-icon-sm: 1rem;           // 16px — badge glyphs
+  --size-icon-md: 1.125rem;       // 18px — standard list-row icon
+  --size-icon-lg: 1.25rem;        // 20px — control glyph, medallion
+  --size-icon-xl: 1.5rem;         // 24px — nav tab, primary action
+  --size-icon-2xl: 1.875rem;      // 30px — section hero
+  --size-icon-3xl: 3rem;          // 48px — empty-state hero
+
+  // Smallest circular chip that has to hold text — nav tab count
+  // badges. Sized to the `icon-label` rung (10px) it carries, which
+  // is the same rung as the tab label beside it.
+  --size-badge: 1rem;             // 16px
 
   // ── Content max-widths ──────────────────────────
   // These are upper bounds — content fills available space until it hits the cap.

@@ -16,19 +16,11 @@
 .codeLabel {
   @include type.typography(label);
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-xs);
-  letter-spacing: 0.08em;
 }
 
 .code {
-  // Outfit bold (non-italic) keeps a 6-character join code readable
-  // at a glance — italic + wide-tracking made ambiguous glyphs like
-  // G/C and K/X harder to distinguish.
-  font-family: var(--font-heading);
-  font-weight: var(--weight-bold);
-  font-size: var(--text-5xl);
+  @include type.typography(code);
   color: var(--accent-text);
-  letter-spacing: 0.15em;
 }
 
 .codeActions {
@@ -54,11 +46,10 @@
   padding: var(--space-3);
   background: #ffffff;
   border-radius: var(--radius-2);
-  line-height: 0;
+  line-height: var(--leading-collapse);
 }
 
 .qrCaption {
-  @include type.typography(meta);
+  @include type.typography(meta, $step: xs);
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-xs);
 }

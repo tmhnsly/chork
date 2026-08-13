@@ -39,8 +39,7 @@ button.row {
 }
 
 .rank {
-  @include type.typography(number);
-  font-size: var(--text-md);
+  @include type.typography(number, $step: md);
   min-width: var(--space-7);
   text-align: center;
   color: var(--mono-text-low-contrast);
@@ -59,8 +58,7 @@ button.row {
 }
 
 .username {
-  @include type.typography(label);
-  font-size: var(--text-sm);
+  @include type.typography(label, $step: sm);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -86,8 +84,7 @@ button.row {
 }
 
 .points {
-  @include type.typography(number);
-  font-size: var(--text-lg);
+  @include type.typography(number, $step: lg);
   color: var(--mono-text);
 }
 

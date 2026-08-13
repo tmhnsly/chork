@@ -1,102 +1,194 @@
-// Typography preset mixin — enforce consistent text roles across components.
-// Usage: @use 'mixins/typography' as type; then @include type.typography(card-title);
+// Typography presets — the only sanctioned way to set type in Chork.
 //
-// Each preset defines size, leading, weight, tracking, family,
-// and optional transform / style (italic).
-// Family maps: heading → --font-heading (Outfit), body → --font-body (Inter).
+// Usage: @use 'mixins/typography' as type;
+//        .cardHeading { @include type.typography(card-title); }
 //
-// Italic surfaces use --font-display-italic (Bricolage Grotesque) so the
-// glyphs come from a real italic font instead of a browser-skewed
-// upright. Outfit ships no italic on Google Fonts; the synth-italic
-// overhang past the advance-width box was the root cause of the
-// recurring iOS RevealText right-edge clipping.
+// ── Two axes, not one ───────────────────────────────────────────
+// Type here has a **role** and a **step**, and they are independent —
+// the same shape Radix Themes uses for `<Text size="2" weight="bold">`.
+//
+//   role  the voice: family, weight, italic, uppercase
+//   step  the scale rung: size + line-height + letter-spacing, locked
+//         together and never separable
+//
+// Fusing them was the original mistake. `number` shipped as a
+// 24px-only preset, but a stat in a compact admin widget genuinely is
+// 14px and a hero counter genuinely is 36px — so 57 call sites kept
+// the role and overrode the size, and every one of them silently
+// inherited 24px's leading and tracking at the wrong scale. Same story
+// for `display` at 14 sites.
+//
+// Passing `$step` fixes that: you move to another rung and the whole
+// trio moves with you.
+//
+//   @include type.typography(number);              // preset default
+//   @include type.typography(number, $step: lg);   // same voice, 18px
+//
+// What a caller still must never do is set `font-size`, `line-height`,
+// `letter-spacing`, `font-weight` or `font-family` by hand. Choosing a
+// step is sanctioned; choosing metrics is not.
+//
+// ── Preset-level overrides ──────────────────────────────────────
+// `leading: none|tight|ui` — for single-line roles whose box height
+//                     matters more than their reading rhythm. A step's
+//                     leading is the right gap between consecutive
+//                     lines of prose; a stat numeral, a hero title and
+//                     a button label are each one line sitting in a
+//                     cell, and step leading only pads them.
+// `tracking: code`  — for join codes, which need far more air than any
+//                     text step would ever want.
+//
+// Both live in the preset table below, reviewable in one place. A
+// component may never name either.
+//
+// Uppercase presets get `--tracking-caps-{step}` added automatically.
+// Caps have no ascenders or descenders separating one glyph from the
+// next, so they need air on top of the step — but only at small sizes,
+// which is why the modifier is per-step and zero above `lg`.
+@use "sass:list";
 @use "sass:map";
 
+// Every rung on the scale, smallest first. Used to reject typos in
+// `$step` at compile time rather than emitting `var(--text-2xs)` and
+// letting it fail silently as an invalid custom property at runtime.
+$_steps: xs, sm, md, lg, xl, 2xl, 3xl, 4xl, 5xl;
+
 $_typography: (
-  // Large display heading — "PUNCH CARD", page heroes. Bold italic uppercase.
+  // Large display heading — "PUNCH CARD", page heroes. Every page
+  // title in the app uses this one; there are no exceptions.
   display: (
-    size: var(--text-5xl),
-    leading: var(--leading-tight),
+    step: 5xl,
+    leading: tight,
     weight: var(--weight-black),
-    tracking: var(--tracking-tight),
     family: var(--font-heading),
     transform: uppercase,
     style: italic,
   ),
-  // Page-level heading
-  page-title: (
-    size: var(--text-3xl),
-    leading: var(--leading-tight),
-    weight: var(--weight-bold),
-    tracking: var(--tracking-tight),
-    family: var(--font-heading),
-  ),
   // Card / section heading
   card-title: (
-    size: var(--text-lg),
-    leading: var(--leading-snug),
+    step: lg,
     weight: var(--weight-bold),
-    tracking: var(--tracking-tight),
     family: var(--font-heading),
   ),
-  // Large numeric displays — "14/20", "65%". Italic to match display.
+  // Numeric displays — "14/20", "65%". Italic to match display.
+  // Expect `$step` on most call sites: this role spans a compact
+  // admin widget stat (sm) to a hero counter (4xl). 2xl is only the
+  // default, not the common case.
   number: (
-    size: var(--text-2xl),
-    leading: var(--leading-tight),
+    step: 2xl,
+    leading: tight,
     weight: var(--weight-bold),
-    tracking: var(--tracking-tight),
     family: var(--font-heading),
     style: italic,
   ),
-  // Uppercase labels — "CURRENT SESSION", "FLASH RATE", "COMPLETED"
+  // Uppercase labels — "CURRENT SESSION", "FLASH RATE", "COMPLETED".
+  // 12px, the floor for text that has to be read.
   label: (
-    size: var(--text-xs),
-    leading: var(--leading-snug),
+    step: xs,
     weight: var(--weight-semibold),
-    tracking: var(--tracking-wide),
+    family: var(--font-heading),
+    transform: uppercase,
+  ),
+  // A word captioning a glyph — bottom-nav tab labels today, and any
+  // future toolbar or icon button on the same terms. Sits on the
+  // restricted `icon-label` rung (10px, Apple HIG) that `$_steps`
+  // refuses to hand out, so this preset is the sole route to it.
+  // The condition is load-bearing: a persistent icon must carry the
+  // meaning on its own. No icon, no rung.
+  icon-label: (
+    step: icon-label,
+    leading: none,
+    weight: var(--weight-semibold),
     family: var(--font-heading),
     transform: uppercase,
   ),
   // Default body text
   body: (
-    size: var(--text-md),
-    leading: var(--leading-normal),
+    step: md,
     weight: var(--weight-regular),
-    tracking: var(--tracking-normal),
     family: var(--font-body),
   ),
   // Timestamps, secondary info
   meta: (
-    size: var(--text-sm),
-    leading: var(--leading-normal),
+    step: sm,
     weight: var(--weight-medium),
-    tracking: var(--tracking-normal),
     family: var(--font-body),
   ),
-  // Button text
+  // Button text. Opts out of the step's leading — a button's height is
+  // set by its padding and tap target, and step leading would fight it.
   button: (
-    size: var(--text-sm),
-    leading: var(--leading-snug),
+    step: sm,
     weight: var(--weight-semibold),
-    tracking: var(--tracking-normal),
     family: var(--font-body),
+    leading: ui,
   ),
+  // Jam join code — the big "JX3K8M" on the share sheet, and the
+  // join-code input at `$step: 3xl`. Deliberately *not* the `number`
+  // preset: italic makes a six-character code hard to read fast, and
+  // the wide tracking keeps G/C and K/X distinct when someone is
+  // reading a code off a friend's phone.
+  code: (
+    step: 5xl,
+    leading: tight,
+    weight: var(--weight-bold),
+    family: var(--font-heading),
+    transform: uppercase,
+    tracking: code,
+  )
 );
 
-@mixin typography($preset) {
+// $step overrides the preset's default rung. Size, leading and
+// tracking all move together — that is the whole point of the
+// parameter, and why it is safe to expose when a raw `font-size`
+// override is not.
+@mixin typography($preset, $step: null) {
   $p: map.get($_typography, $preset);
 
   @if $p == null {
-    @error "Unknown typography preset: #{$preset}";
+    @error "Unknown typography preset: #{$preset}. "
+         + "Add one to $_typography rather than setting font "
+         + "properties at the call site.";
   }
 
-  font-family: map.get($p, family);
-  font-size: map.get($p, size);
-  line-height: map.get($p, leading);
-  font-weight: map.get($p, weight);
-  letter-spacing: map.get($p, tracking);
+  // Validate what the *caller* asked for, not what we resolve to. A
+  // preset is allowed to default to a restricted rung (`icon-label`,
+  // 10px) that no call site may request for itself.
+  @if $step and not list.index($_steps, $step) {
+    @error "Unknown or restricted type step: #{$step}. "
+         + "Requestable steps: #{$_steps}.";
+  }
+
+  @if not $step {
+    $step: map.get($p, step);
+  }
 
   $transform: map.get($p, transform);
+
+  font-family: map.get($p, family);
+  font-weight: map.get($p, weight);
+  font-size: var(--text-#{$step});
+
+  // Leading: the step's, unless the preset opted out structurally.
+  $leading: map.get($p, leading);
+  @if $leading {
+    line-height: var(--leading-#{$leading});
+  } @else {
+    line-height: var(--leading-#{$step});
+  }
+
+  // Tracking: the step's, plus the caps modifier when uppercase.
+  // A preset may replace it outright (join codes) but never a caller.
+  $tracking: map.get($p, tracking);
+  @if $tracking {
+    letter-spacing: var(--tracking-#{$tracking});
+  } @else if $transform == uppercase {
+    letter-spacing: calc(
+      var(--tracking-#{$step}) + var(--tracking-caps-#{$step})
+    );
+  } @else {
+    letter-spacing: var(--tracking-#{$step});
+  }
+
   @if $transform {
     text-transform: $transform;
   }

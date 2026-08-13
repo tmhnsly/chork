@@ -11,4 +11,17 @@
   --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.08);
   --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.16), 0 2px 4px rgba(0, 0, 0, 0.08);
   --shadow-xl: 0 8px 32px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.08);
+
+  // Drop-shadow for a solid glyph sitting on a coloured surface — the
+  // podium crown. Stronger than --shadow-sm because it has to read
+  // against an accent fill rather than a neutral card.
+  --shadow-glyph: 0 1px 2px rgb(0 0 0 / 0.3);
+
+  // Skeleton pulse glow. The `color-mix` lives here, at the token
+  // layer, for the same reason `surface.scrim`'s does: CLAUDE.md bans
+  // ad-hoc mixing in component SCSS, not the existence of a mixed
+  // value. Radix has no "border-hover at 35%" step, and importing six
+  // themes' worth of alpha scales for one decorative glow would cost
+  // more bundle than the glow is worth.
+  --skeleton-glow: color-mix(in srgb, var(--mono-border-hover) 35%, transparent);
 }

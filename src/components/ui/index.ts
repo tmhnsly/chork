@@ -30,3 +30,4 @@ export { ToggleRow } from "./ToggleRow";
 export { shimmerStyles } from "./Shimmer";
 export { ToastProvider, showToast, showAchievementToast } from "./Toast";
 export { UserAvatar } from "./UserAvatar";
+export { AVATAR_SIZES, type AvatarSize } from "./avatar-sizes";

@@ -12,9 +12,8 @@
 }
 
 .heading {
-  @include type.typography(display);
+  @include type.typography(display, $step: 3xl);
   color: var(--accent-text);
-  font-size: var(--text-3xl);
 }
 
 .lede {

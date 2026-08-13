@@ -25,15 +25,12 @@
 }
 
 .section p {
-  @include type.typography(body);
-  font-size: var(--text-sm);
+  @include type.typography(body, $step: sm);
   color: var(--mono-text-low-contrast);
-  line-height: var(--leading-normal);
 }
 
 .list {
-  @include type.typography(body);
-  font-size: var(--text-sm);
+  @include type.typography(body, $step: sm);
   color: var(--mono-text-low-contrast);
   padding-left: var(--space-5);
   display: flex;

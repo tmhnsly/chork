@@ -29,9 +29,7 @@
 }
 
 .codeDigit {
-  @include type.typography(display);
-  font-size: var(--text-5xl);
-  line-height: 1;
+  @include type.typography(display, $step: 5xl);
 }
 
 .codeBolt {

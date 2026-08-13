@@ -9,7 +9,14 @@
   gap: var(--space-5);
   border-radius: var(--radius-3);
   padding: var(--space-4);
+  // Named, not just typed. The containment was already here, but an
+  // unnamed container can't be addressed by `@container tile (…)` —
+  // which is every `mixins/container-queries` helper — so panels
+  // inside a card had no way to query the card and reached for
+  // viewport media queries instead. Naming it costs nothing (the
+  // `contain` behaviour is unchanged) and makes the card queryable.
   container-type: inline-size;
+  container-name: tile;
 }
 
 .header {
@@ -38,7 +45,7 @@
   align-items: center;
   justify-content: center;
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-sm);
+  font-size: var(--size-icon-xs);
 }
 
 .title {
@@ -53,7 +60,6 @@
 
 .meta {
   @include type.typography(label);
-  font-size: var(--text-xs);
   color: var(--mono-text-low-contrast);
   text-align: right;
 }

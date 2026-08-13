@@ -24,14 +24,8 @@
 
 .codeInput {
   @include input.field;
-  // Use heading Outfit + bold weight for the code; italic (number
-  // preset) makes 6-char codes like "JX3K8M" hard to read fast.
-  font-family: var(--font-heading);
-  font-weight: var(--weight-bold);
-  font-size: var(--text-3xl);
-  letter-spacing: 0.2em;
+  @include type.typography(code, $step: 3xl);
   text-align: center;
-  text-transform: uppercase;
 }
 
 .codeActions {
@@ -41,10 +35,9 @@
 }
 
 .error {
-  @include type.typography(meta);
+  @include type.typography(meta, $step: sm);
   color: var(--error-text);
   margin: 0;
-  font-size: var(--text-sm);
 }
 
 // ── Preview card ──────────────────────────────────
@@ -63,13 +56,10 @@
 .eyebrow {
   @include type.typography(label);
   color: var(--accent-text-low-contrast);
-  font-size: var(--text-2xs);
-  letter-spacing: 0.08em;
 }
 
 .previewTitle {
-  @include type.typography(card-title);
-  font-size: var(--text-xl);
+  @include type.typography(card-title, $step: xl);
   color: var(--mono-text);
   margin: 0;
 }
@@ -95,21 +85,18 @@
   dt {
     @include type.typography(label);
     color: var(--mono-text-low-contrast);
-    font-size: var(--text-xs);
   }
 
   dd {
-    @include type.typography(body);
+    @include type.typography(body, $step: sm);
     color: var(--mono-text);
     margin: 0;
-    font-size: var(--text-sm);
   }
 }
 
 .mono {
-  @include type.typography(meta);
+  @include type.typography(meta, $step: xs);
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-xs);
 }
 
 // Trailing icon on the "Join jam" CTA — pushes to the right edge

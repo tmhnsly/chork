@@ -1,0 +1,41 @@
+// Shared interaction-state treatments.
+// Usage: @use 'mixins/state' as state;
+//   .myButton { &:disabled { @include state.disabled; } }
+//
+// ── Why not `opacity` ───────────────────────────────────────────
+// Disabled controls in this app were dimmed with `opacity`, at five
+// different values (0.35 / 0.4 / 0.5 / 0.6) across thirteen files.
+// Two problems, beyond the inconsistency:
+//
+//   1. Opacity scales an element's contrast toward whatever is behind
+//      it. A label that met AA at full strength does not at 40%, and
+//      nothing in the stylesheet says so — the number looks harmless.
+//      CLAUDE.md's "never dim text via opacity" rule is this.
+//   2. It dims everything inside uniformly — text, icon, border,
+//      focus ring — so a disabled control can lose its focus
+//      indicator while still being reachable by keyboard in some
+//      states.
+//
+// Naming the state with tokens instead keeps the contrast decision
+// visible and reviewable. `--mono-solid` (step 9) as a text colour is
+// the one exception CLAUDE.md carves out, and this is that case.
+
+// Filled controls — buttons with a background of their own. Wins over
+// the variant's own `background` on specificity (`.btnPrimary:disabled`
+// beats `.btnPrimary`), so it neutralises accent and danger fills too:
+// a 60%-opacity accent button still reads as pressable, a grey one
+// does not.
+@mixin disabled {
+  cursor: not-allowed;
+  color: var(--mono-solid);
+  background: var(--mono-bg);
+  border-color: var(--mono-border-subtle);
+}
+
+// Bare controls — icon buttons and inline actions that sit directly on
+// a row and have no fill to neutralise. Giving these a plate would
+// invent a surface that isn't there when enabled.
+@mixin disabled-bare {
+  cursor: not-allowed;
+  color: var(--mono-solid);
+}

@@ -104,7 +104,7 @@ export default async function JamSummaryPage({ params, searchParams }: Props) {
                   name: p.display_name,
                   avatar_url: p.avatar_url ?? "",
                 }}
-                size={36}
+                size="row"
               />
               <div className={styles.playerIdentity}>
                 <span className={styles.playerName}>

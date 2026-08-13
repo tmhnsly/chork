@@ -4,7 +4,6 @@ import { FaCrown } from "react-icons/fa6";
 import { UserAvatar } from "@/components/ui";
 import type { LeaderboardEntry } from "@/lib/data";
 import { toAvatarUser } from "@/lib/data/leaderboard-helpers";
-import { PODIUM_AVATAR_SIZE_FIRST, PODIUM_AVATAR_SIZE_RUNNER_UP } from "./podium-constants";
 import styles from "./podium.module.scss";
 
 interface Props {
@@ -59,7 +58,7 @@ function Slot({ entry, place, currentUserId, onPress, active }: SlotProps) {
     active ? styles.slotActive : "",
   ].filter(Boolean).join(" ");
 
-  const avatarSize = place === 1 ? PODIUM_AVATAR_SIZE_FIRST : PODIUM_AVATAR_SIZE_RUNNER_UP;
+  const avatarSize = place === 1 ? "podiumWin" : "podium";
 
   const content = (
     <>

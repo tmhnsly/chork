@@ -147,7 +147,6 @@
   @include type.typography(body);
   color: var(--mono-text-low-contrast);
   max-width: 28ch;
-  line-height: 1.5;
 }
 
 // Inline emphasis for the actual email address inside the body copy.
@@ -198,7 +197,6 @@
   @include type.typography(meta);
   color: var(--mono-text-low-contrast);
   max-width: 32ch;
-  line-height: 1.5;
 }
 
 .confirmUseDifferent {

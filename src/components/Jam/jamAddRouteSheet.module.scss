@@ -26,7 +26,6 @@
 // Helper line beneath an input — quieter than the label, sets
 // expectation about the field without competing visually.
 .hint {
-  @include type.typography(meta);
+  @include type.typography(meta, $step: xs);
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-xs);
 }

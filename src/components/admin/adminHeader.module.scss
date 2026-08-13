@@ -11,11 +11,9 @@
 
 .roleBadge {
   @include type.typography(label);
-  font-size: var(--text-2xs);
   padding: var(--space-1) var(--space-2);
   background: var(--accent-bg);
   color: var(--accent-text);
   border-radius: var(--radius-full);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
 }

@@ -2,6 +2,7 @@
 @use "mixins/typography" as type;
 @use "mixins/surfaces" as surface;
 @use "mixins/input" as input;
+@use "mixins/container-queries" as cq;
 
 .form {
   @include layout.stack(var(--space-4));
@@ -13,11 +14,11 @@
 
 .row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: var(--space-3);
 
-  @media (max-width: 480px) {
-    grid-template-columns: 1fr;
+  @include cq.split {
+    grid-template-columns: 1fr 1fr;
   }
 }
 

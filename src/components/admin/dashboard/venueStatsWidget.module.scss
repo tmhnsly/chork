@@ -52,26 +52,22 @@
 }
 
 .sends {
-  @include type.typography(number);
-  font-size: var(--text-sm);
+  @include type.typography(number, $step: sm);
   color: var(--accent-text);
 }
 
 .flashes {
-  @include type.typography(number);
-  font-size: var(--text-sm);
+  @include type.typography(number, $step: sm);
   color: var(--flash-text);
 }
 
 .sets {
-  @include type.typography(number);
-  font-size: var(--text-sm);
+  @include type.typography(number, $step: sm);
   color: var(--mono-text);
 }
 
 .label {
   @include type.typography(label);
-  font-size: var(--text-2xs);
   color: var(--mono-text-low-contrast);
   margin-left: var(--space-1);
 }

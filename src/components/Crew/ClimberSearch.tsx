@@ -156,7 +156,7 @@ function ResultRow({
           name: result.name,
           avatar_url: result.avatar_url,
         }}
-        size={40}
+        size="row"
       />
       <div className={styles.rowText}>
         <span className={styles.rowName}>@{result.username}</span>

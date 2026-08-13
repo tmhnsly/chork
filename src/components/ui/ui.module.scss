@@ -2,6 +2,7 @@
 @use "mixins/layout" as layout;
 @use "mixins/input" as input;
 @use "mixins/focus";
+@use "mixins/state" as state;
 
 // ── Form field ──────────────────────────────────────
 .field {
@@ -88,8 +89,7 @@
     color var(--duration-fast) var(--ease-out);
 
   &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+    @include state.disabled;
   }
 
   // Inline SVG children (react-icons, inline marks) carry a baseline

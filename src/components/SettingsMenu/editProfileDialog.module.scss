@@ -41,11 +41,11 @@
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-full);
-  background: rgba(0, 0, 0, 0.4);
-  color: white;
-  font-size: var(--text-lg);
+  background: var(--overlay-media);
+  color: var(--overlay-media-fg);
+  font-size: var(--size-icon-md);
   opacity: 0;
-  transition: opacity 0.1s var(--ease-out);
+  transition: opacity var(--duration-instant) var(--ease-out);
 
   .avatarBtn:hover &,
   .avatarBtn:focus-visible & {
@@ -54,12 +54,12 @@
 }
 
 .spinner {
-  width: 1.25rem;
-  height: 1.25rem;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top-color: white;
+  width: var(--size-icon-md);
+  height: var(--size-icon-md);
+  border: 2px solid var(--overlay-media-track);
+  border-top-color: var(--overlay-media-fg);
   border-radius: var(--radius-full);
-  animation: spin 0.6s linear infinite;
+  animation: spin var(--duration-spin) linear infinite;
 }
 
 @keyframes spin {

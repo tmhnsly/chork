@@ -33,9 +33,9 @@
   transition: width var(--duration-normal) var(--ease-out);
   // Slight inset so the sends fill reads as a separate layer
   // sitting on top of the time fill rather than merging into it.
-  top: 2px;
-  bottom: 2px;
-  left: 2px;
+  top: var(--space-0-5);
+  bottom: var(--space-0-5);
+  left: var(--space-0-5);
   border-radius: var(--radius-full);
 }
 
@@ -53,22 +53,18 @@
 
 .statLabel {
   @include type.typography(label);
-  font-size: var(--text-2xs);
   color: var(--mono-text-low-contrast);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 .statValue {
-  @include type.typography(number);
-  font-size: var(--text-xl);
+  @include type.typography(number, $step: xl);
   color: var(--mono-text);
   margin: 0;
 }
 
 .statMeta {
-  @include type.typography(meta);
-  font-size: var(--text-2xs);
+  @include type.typography(meta, $step: xs);
   color: var(--mono-text-low-contrast);
   margin: 0;
 }

@@ -21,8 +21,7 @@
 }
 
 .number {
-  @include type.typography(number);
-  font-size: var(--text-xl);
+  @include type.typography(number, $step: xl);
   color: var(--mono-text);
   min-width: 2ch;
   text-align: center;
@@ -41,14 +40,12 @@
 }
 
 .secondary {
-  @include type.typography(meta);
-  font-size: var(--text-2xs);
+  @include type.typography(meta, $step: xs);
   color: var(--mono-text-low-contrast);
 }
 
 .flag {
   @include type.typography(label);
-  font-size: var(--text-2xs);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-full);
   background: var(--error-bg);

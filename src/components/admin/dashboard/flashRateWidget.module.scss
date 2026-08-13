@@ -10,10 +10,8 @@
 }
 
 .number {
-  @include type.typography(number);
-  font-size: var(--text-4xl);
+  @include type.typography(number, $step: 4xl);
   color: var(--flash-text);
-  line-height: 1.1;
 }
 
 .meta {
@@ -40,20 +38,16 @@
 
 .bucketLabel {
   @include type.typography(label);
-  font-size: var(--text-2xs);
   color: var(--mono-text-low-contrast);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
 }
 
 .bucketCount {
-  @include type.typography(meta);
-  font-size: var(--text-2xs);
+  @include type.typography(meta, $step: xs);
   color: var(--mono-text-low-contrast);
 }
 
 .bucketRate {
-  @include type.typography(number);
-  font-size: var(--text-lg);
+  @include type.typography(number, $step: lg);
   color: var(--flash-text);
 }

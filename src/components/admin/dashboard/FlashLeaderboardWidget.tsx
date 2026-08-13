@@ -33,7 +33,7 @@ export function FlashLeaderboardWidget({ leaders }: Props) {
                   name: "",
                   avatar_url: row.avatar_url,
                 }}
-                size={32}
+                size="row"
               />
               <span className={styles.handle}>@{row.username}</span>
               <span className={styles.count}>

@@ -1,6 +1,7 @@
 @use "mixins/layout" as layout;
 @use "mixins/typography" as type;
 @use "mixins/surfaces" as surface;
+@use "mixins/state" as state;
 
 .list {
   @include layout.stack(var(--space-2));
@@ -42,7 +43,6 @@
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  font-size: var(--text-2xs);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-full);
 }
@@ -64,7 +64,6 @@
 
 .line3 {
   @include type.typography(label);
-  font-size: var(--text-2xs);
   color: var(--mono-text-low-contrast);
 }
 
@@ -90,5 +89,5 @@
     color: var(--mono-text);
   }
 
-  &:disabled { opacity: 0.5; cursor: not-allowed; }
+  &:disabled { @include state.disabled-bare; }
 }

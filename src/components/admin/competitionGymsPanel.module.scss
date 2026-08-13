@@ -1,6 +1,8 @@
 @use "mixins/layout" as layout;
 @use "mixins/typography" as type;
 @use "mixins/input" as input;
+@use "mixins/state" as state;
+@use "mixins/container-queries" as cq;
 
 .empty {
   @include type.typography(body);
@@ -48,17 +50,19 @@
   }
 
   &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+    @include state.disabled;
   }
 }
 
 .linkRow {
   display: flex;
+  flex-direction: column;
   gap: var(--space-2);
 
-  @media (max-width: 480px) {
-    flex-direction: column;
+  // Queries the enclosing SectionCard, not the viewport — the same
+  // panel stacks correctly in a narrow column on a wide screen.
+  @include cq.split {
+    flex-direction: row;
   }
 }
 

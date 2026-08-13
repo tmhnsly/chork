@@ -142,7 +142,7 @@ function FeedRow({ event }: { event: CrewActivityEvent }) {
           name: "",
           avatar_url: event.avatar_url,
         }}
-        size={36}
+        size="row"
       />
       <div className={styles.rowText}>
         <div className={styles.line1}>

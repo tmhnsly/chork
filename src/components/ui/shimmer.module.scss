@@ -15,10 +15,10 @@
 //   `.fadeIn`       — apply to real content when swapping in.
 
 // The 0→0 stop can use plain `transparent` — a 0%-opacity mix of
-// anything resolves to the same thing. The 50% stop keeps its
-// color-mix because there's no Radix token for "border-hover at
-// 35% alpha"; this is a local glow tint, not a surface/text use of
-// the color-mix sidestep that CLAUDE.md bans.
+// anything resolves to the same thing. The 50% stop pulls
+// `--skeleton-glow` from the token layer; the mix that produces it
+// lives in `theme/surfaces.scss` next to `surface.scrim`'s, which is
+// where CLAUDE.md's rule wants it rather than open-coded here.
 @keyframes skeletonGlow {
   0%, 100% {
     opacity: 0.7;
@@ -27,7 +27,7 @@
   50% {
     opacity: 1;
     box-shadow: 0 0 16px 0
-      color-mix(in srgb, var(--mono-border-hover) 35%, transparent);
+      var(--skeleton-glow);
   }
 }
 
@@ -44,7 +44,7 @@
   // circular, line skeletons are radius-1 — each surface keeps its
   // shape so the placeholder reads as "this thing, loading" rather
   // than "an unrelated rounded box".
-  animation: skeletonGlow 2s ease-in-out infinite;
+  animation: skeletonGlow var(--duration-shimmer) ease-in-out infinite;
 
   // Everything inside melts into the pulse.
   * {
@@ -69,7 +69,7 @@
   margin: var(--space-1) 0;
   background: var(--mono-bg-hover);
   border-radius: var(--radius-2);
-  animation: skeletonGlow 2s ease-in-out infinite;
+  animation: skeletonGlow var(--duration-shimmer) ease-in-out infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;

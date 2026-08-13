@@ -1,7 +1,11 @@
 @use "mixins/layout" as layout;
+@use "mixins/container-queries" as cq;
 
 .wrapper {
   @include layout.stack(var(--space-4));
+  // Query container for the widget grid below.
+  container-type: inline-size;
+  container-name: tile;
 }
 
 .tabRow {
@@ -17,7 +21,9 @@
   grid-template-columns: 1fr;
   gap: var(--space-4);
 
-  @media (min-width: 720px) {
+  // Widgets need more room before pairing up than a form row does,
+  // so this keeps its own threshold rather than using `cq.split`.
+  @include cq.at(45rem) {
     grid-template-columns: 1fr 1fr;
   }
 }

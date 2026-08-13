@@ -109,7 +109,7 @@ export function CrewLeaderboardPanel({
                       name: r.name,
                       avatar_url: r.avatar_url,
                     }}
-                    size={40}
+                    size="row"
                   />
                   <div className={styles.rowText}>
                     <span className={styles.rowName}>@{r.username}</span>

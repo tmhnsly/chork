@@ -21,9 +21,13 @@
   gap: var(--space-4);
 }
 
+// Same rung the real header's <UserAvatar size="hero"> renders at.
+// Previously a hand-copied 4.5rem with a comment pointing at the
+// number it had to match — the two could drift apart silently, and
+// drifting apart is precisely the layout shift described above.
 .avatar {
-  width: 4.5rem;  // matches `<UserAvatar size={72}>`
-  height: 4.5rem;
+  width: var(--size-avatar-hero);
+  height: var(--size-avatar-hero);
   border-radius: var(--radius-full);
   flex-shrink: 0;
 }

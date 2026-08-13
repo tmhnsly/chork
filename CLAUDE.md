@@ -231,16 +231,48 @@ Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
 Completed = accent (lime) · Flash = flash (amber) · Attempted = mono
 (olive) · Zone / points = success (teal)
 
-### Page titles
+### Type: role × step (Radix Themes model)
+
+Two independent axes, never fused:
+
+- **role** — family, weight, italic, uppercase. The preset name
+- **step** — `xs`…`5xl`. Carries size **+ line-height + letter-spacing**
+  as one unit, per Radix's scale (tracking tightens as size grows:
+  `+0.0025em` at 12px → `-0.02em` at 48px)
+
+```scss
+@include type.typography(number);            // preset default step
+@include type.typography(number, $step: lg); // same role, 18px
+```
+
+Passing `$step` moves all three metrics together — that is why it's
+safe to expose when a bare `font-size` override is not. A caller must
+never set `font-size` / `line-height` / `letter-spacing` /
+`font-weight` / `font-family`. Need something the presets don't
+cover? Add a preset to `mixins/_typography.scss`.
+
+- **Uppercase presets add `--tracking-caps` automatically.** Never
+  hand-add tracking to caps
+- **12px (`--text-xs`) is the floor for text that gets read**,
+  matching Radix
+- **One rung sits below it: `icon-label` (10px, Apple HIG tab bar).**
+  Only for a word captioning a glyph, where a persistent icon carries
+  the meaning and the label confirms it. No icon → not available.
+  Enforced: the step is absent from `$_steps`, so `$step: icon-label`
+  is a compile error; the `icon-label` preset is the only route in
+- Preset-level overrides — `leading: ui` (buttons) and
+  `tracking: code` (join codes) — live in the preset table only
 
 Every page title uses `@include type.typography(display)` +
 `color: var(--mono-text)`. One rule, zero exceptions.
 
 ### Transitions
 
-- 0.1s for interactive feedback
+- `--duration-instant` (0.1s) for interactive feedback
 - `--duration-fast` (0.2s) for state changes
 - `--duration-normal` (0.4s) for position / height / bar growth
+- Loops are a separate axis — `--duration-spin`, `--duration-shimmer`.
+  Don't borrow a state-change duration for something that never ends
 - Navbar uses `transition: none` for instant tab response
 
 ### Animation library policy
@@ -283,11 +315,24 @@ navbar + home indicator), max-width, and centering.
   every rule; the inline attribute is just a value pipe for the one
   thing that has to be dynamic. Never set `width`, `color`,
   `background`, etc. directly via `style={{...}}`
-- Container queries for components, media queries for page layout only
-- Typography via `@include type.typography(preset)` — never set font
-  properties manually
+- Container queries for components, media queries for page layout only.
+  **A container must be named** — `container-type` alone can't be
+  addressed by the `cq.*` mixins, which all query `@container tile`.
+  `SectionCard` is named `tile`, so anything inside a card can use
+  `cq.split` / `cq.at()` rather than reaching for the viewport
+- Typography via `@include type.typography(role, $step)` — never set
+  font properties manually. See "Type: role × step" above
 - Spacing + colour via design tokens — no raw values unless captured
   in a shared constants module with a written reason
+- **Avatars: `<UserAvatar size="row">`, never a pixel number.** The
+  scale is named by role (`stack` / `row` / `rowLg` / `podium` /
+  `hero` / `podiumWin`) in `components/ui/avatar-sizes.ts`, mirrored
+  to `--size-avatar-*` for skeletons and "+N" pills. `avatar-sizes.test.ts`
+  pins the two together — a skeleton that drifts from its real avatar
+  is a layout shift on hand-off
+- **Disabled state via `state.disabled` / `state.disabled-bare`** —
+  never `opacity`. Dimming scales contrast toward the background, so
+  an AA-compliant control silently stops being one
 - 44×44 minimum tap targets, 8px spacing between them
 - No `any` — strict TypeScript throughout
 - Server components by default; `"use client"` only when needed
@@ -420,6 +465,19 @@ Vitest-based. See `docs/testing.md` for patterns. Key rules:
   number.** Assert invariants, not implementation details
 - Privacy contracts get explicit anti-regression tests (e.g.
   `relativeDay` has tests asserting no clock-time output)
+- **Design-system rules are enforced by tests, not review.**
+  `src/styles/design-system.test.ts` greps the SCSS and TSX for raw
+  letter-spacing / line-height / px font-sizes, opacity-dimmed
+  disabled states, viewport media queries inside components,
+  hardcoded breakpoints, open-coded `color-mix` / `rgba` /
+  `cubic-bezier`, hand-rolled focus rings and numeric
+  `<UserAvatar size>`. Each failure names the rung to use instead.
+  **A rule you can't satisfy means a missing token — add the token
+  rather than widening an exemption.** Marketing surfaces
+  (`components/landing/`, `app/gyms/`) are exempt from the size and
+  rhythm rules only, pending the homepage refresh.
+  `avatar-sizes.test.ts` separately pins the TS avatar map to its CSS
+  tokens
 - Server actions get tests for: input validation, auth failure, each
   distinct user-visible error path, friendly-error mapping
 - Fixtures must be realistic — Postgres errors need a `code` field,

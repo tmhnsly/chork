@@ -21,7 +21,7 @@
   height: 5rem;
   border-radius: var(--radius-full);
   font-size: var(--text-3xl);
-  line-height: 1;
+  line-height: var(--leading-none);
   background: var(--mono-bg);
   border: 1px solid var(--mono-border);
   color: var(--mono-text-low-contrast);
@@ -60,8 +60,7 @@
 // Name uses the `typography(number)` preset (bold italic heading
 // face) — matches the "bold italic" headline feel elsewhere.
 .name {
-  @include type.typography(number);
-  font-size: var(--text-3xl);
+  @include type.typography(number, $step: 3xl);
   color: var(--mono-text);
   margin: 0;
   text-wrap: balance;
@@ -134,8 +133,7 @@
 }
 
 .progressLabel {
-  @include type.typography(number);
-  font-size: var(--text-md);
+  @include type.typography(number, $step: md);
   color: var(--mono-text);
   text-align: center;
   font-variant-numeric: tabular-nums;

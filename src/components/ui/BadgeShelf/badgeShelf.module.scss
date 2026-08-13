@@ -25,8 +25,7 @@
 }
 
 .count {
-  @include type.typography(number);
-  font-size: var(--text-lg);
+  @include type.typography(number, $step: lg);
   color: var(--accent-text);
   background: transparent;
   border: none;
@@ -41,7 +40,6 @@
 
   small {
     @include type.typography(label);
-    font-size: var(--text-xs);
     margin-left: var(--space-1);
     font-style: normal;
     color: var(--accent-text-low-contrast);
@@ -98,8 +96,8 @@
   width: 3.5rem;
   height: 3.5rem;
   border-radius: var(--radius-full);
-  font-size: var(--text-xl);
-  line-height: 1;
+  font-size: var(--size-icon-lg);
+  line-height: var(--leading-none);
   background: var(--mono-bg);
   border: 1px solid var(--mono-border);
   color: var(--mono-text-low-contrast);
@@ -111,11 +109,8 @@
 
 .name {
   @include type.typography(label);
-  font-size: var(--text-2xs);
-  line-height: var(--leading-snug);
   color: var(--mono-text-low-contrast);
   text-align: center;
-  overflow-wrap: anywhere;
   hyphens: auto;
   text-wrap: balance;
   // Match the circle's width so the text's natural centre lines up
@@ -124,16 +119,13 @@
   // to wrap without letting the text extend past the circle and
   // look off-centre from the icon.
   width: 3.5rem;
-}
-
-// Number-pair icon text ("1,2" etc.) — use the display typography
-// so it reads as a badge mark rather than body text.
-.iconText {
-  @include type.typography(display);
-  font-size: var(--text-md);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-  line-height: 1;
+  // Deliberately NOT `overflow-wrap: anywhere`. At the old 10px this
+  // box fit "THUNDER"; at the 12px reading floor it doesn't, and
+  // `anywhere` is a last-resort break that will happily split a word
+  // mid-glyph — the shelf rendered "THUNDE R SHOCK" and "CENTUR Y".
+  // A whole word spilling a couple of px into the slot's dead space
+  // reads better than a broken one.
+  overflow-wrap: normal;
 }
 
 // ── Earned ─────────────────────────────────────────
@@ -202,6 +194,5 @@
   background: transparent;
   border: 1px dashed var(--mono-border);
   color: var(--mono-text-low-contrast);
-  @include type.typography(number);
-  font-size: var(--text-md);
+  @include type.typography(number, $step: md);
 }

@@ -1,3 +1,4 @@
+@use "mixins/state" as state;
 // Shared switch toggle styles matching Radix Switch primitive.
 // Usage: @use 'mixins/toggle' as toggle;
 //   .mySwitch { @include toggle.root; }
@@ -5,12 +6,12 @@
 
 @mixin root {
   position: relative;
-  width: 2.625rem;    // 42px visual
-  height: 1.5rem;     // 24px visual
+  width: var(--switch-w);
+  height: var(--switch-h);
   border-radius: var(--radius-full);
   background: var(--mono-border);
   border: none;
-  padding: 2px;
+  padding: var(--switch-pad);
   cursor: pointer;
   flex-shrink: 0;
   transition: background var(--duration-fast) var(--ease-out);
@@ -18,33 +19,38 @@
   // Extend the hit area to ≥44×44 without changing the visual — a
   // transparent pseudo-element captures taps around the pill.
   // Fixes flaky zone-toggle taps on mobile (AHIG minimum touch target).
+  // The track is already 44 wide, so this now only adds height.
   &::before {
     content: "";
     position: absolute;
-    inset: calc((var(--size-touch-target) - 1.5rem) / -2)
-           calc((var(--size-touch-target) - 2.625rem) / -2);
+    inset: calc((var(--size-touch-target) - var(--switch-h)) / -2)
+           calc((var(--size-touch-target) - var(--switch-w)) / -2);
   }
 
   &[data-state="checked"] {
     background: var(--accent-solid);
   }
 
+  // Full treatment, not `disabled-bare`: a switch has no text, so its
+  // track background *is* the state. Neutralising the track is what
+  // makes a disabled switch read as disabled — and it lands after the
+  // `[data-state="checked"]` rule at equal specificity, so it also
+  // wins over the accent fill on a checked-but-disabled switch.
   &:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+    @include state.disabled;
   }
 }
 
 @mixin thumb {
   display: block;
-  width: 1.25rem;     // 20px
-  height: 1.25rem;    // 20px
+  width: var(--switch-thumb);
+  height: var(--switch-thumb);
   border-radius: var(--radius-full);
   background: var(--toggle-thumb);
   transition: transform var(--duration-fast) var(--ease-out);
   will-change: transform;
 
   &[data-state="checked"] {
-    transform: translateX(1.125rem); // 18px
+    transform: translateX(var(--switch-travel));
   }
 }

@@ -66,8 +66,8 @@
   width: 3rem;
   height: 3rem;
   border-radius: var(--radius-full);
-  font-size: var(--text-xl);
-  line-height: 1;
+  font-size: var(--size-icon-lg);
+  line-height: var(--leading-none);
   background: var(--mono-bg);
   border: 1px solid var(--mono-border);
   color: var(--mono-text);
@@ -77,22 +77,18 @@
 .achievementBody {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-0-5);
   min-width: 0;
 }
 
 .achievementEyebrow {
   @include type.typography(label);
-  font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-wide);
   color: var(--mono-text-low-contrast);
   text-transform: uppercase;
 }
 
 .achievementName {
-  @include type.typography(display);
-  font-size: var(--text-md);
-  line-height: var(--leading-tight);
+  @include type.typography(display, $step: md);
   color: var(--mono-text);
 }
 

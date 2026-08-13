@@ -6,8 +6,7 @@
 
 // Rank chip rendered into the header's trailing slot.
 .rankChip {
-  @include type.typography(number);
-  font-size: var(--text-md);
+  @include type.typography(number, $step: md);
   padding: var(--space-1) var(--space-3);
   background: var(--accent-bg);
   color: var(--accent-text);

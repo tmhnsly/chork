@@ -103,7 +103,7 @@ export function CrewMembersList({
                       name: m.name,
                       avatar_url: m.avatar_url,
                     }}
-                    size={40}
+                    size="row"
                   />
                   <div className={styles.rowText}>
                     <span className={styles.rowName}>@{m.username}</span>

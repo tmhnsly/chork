@@ -36,7 +36,7 @@ export function CrewCard({ crew, memberPreview }: Props) {
                 name: m.name,
                 avatar_url: m.avatar_url,
               }}
-              size={36}
+              size="stack"
             />
           </span>
         ))}

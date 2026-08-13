@@ -334,7 +334,7 @@ function CommentRow({
               name: author?.name ?? "",
               avatar_url: author?.avatar_url ?? "",
             }}
-            size={32}
+            size="row"
           />
         </Link>
         <div className={styles.commentContent}>

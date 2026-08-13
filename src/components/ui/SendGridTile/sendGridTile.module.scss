@@ -42,8 +42,8 @@
   @include type.italic-display;
   font-weight: var(--weight-black);
   font-size: 40cqi;
-  line-height: 1;
-  letter-spacing: var(--tracking-tight);
+  line-height: var(--leading-none);
+  letter-spacing: var(--tracking-5xl);
   text-align: center;
 }
 
@@ -87,7 +87,7 @@
   top: 8cqi;
   left: 8cqi;
   font-size: 18cqi;
-  line-height: 1;
+  line-height: var(--leading-none);
   color: var(--mono-solid);
 
   .completed & { color: var(--accent-on-solid); }
@@ -102,7 +102,7 @@
   right: 8cqi;
   font-size: 20cqi;
   color: var(--flash-on-solid);
-  line-height: 1;
+  line-height: var(--leading-none);
 }
 
 // ── Grade overlay ───────────────────────────────────
@@ -113,8 +113,7 @@
   font-family: var(--font-heading);
   font-weight: var(--weight-bold);
   font-size: 16cqi;
-  line-height: 1;
-
+  line-height: var(--leading-none);
   .completed & { color: var(--accent-on-solid); }
   .flash &     { color: var(--flash-on-solid); }
 }

@@ -1,5 +1,6 @@
 @use "mixins/layout" as layout;
 @use "mixins/focus";
+@use "mixins/state" as state;
 
 // Vertical stack: up button → 5 rows → down button. The buttons
 // flank the list so the nudge direction is unambiguous without
@@ -42,7 +43,6 @@
   }
 
   &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
+    @include state.disabled;
   }
 }

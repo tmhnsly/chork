@@ -13,9 +13,7 @@
 }
 
 .value {
-  @include type.typography(number);
-  font-size: var(--text-2xl);
-  line-height: 1.1;
+  @include type.typography(number, $step: 2xl);
   color: var(--mono-text);
 }
 
@@ -23,7 +21,6 @@
 
 .label {
   @include type.typography(label);
-  font-size: var(--text-2xs);
   color: var(--mono-text-low-contrast);
 }
 

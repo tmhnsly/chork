@@ -80,6 +80,5 @@
 .copyright {
   @include type.typography(label);
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-xs);
   margin-top: var(--space-2);
 }

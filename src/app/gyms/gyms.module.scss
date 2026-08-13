@@ -1,6 +1,7 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
 @use "mixins/breakpoints" as bp;
+@use "mixins/brand-dot" as dot;
 
 // Editorial sport-magazine layout — oversized lime numerics, hairline
 // dividers between sections, and two full-bleed bands (manifesto +
@@ -29,8 +30,6 @@
 .sectionEyebrow {
   @include type.typography(label);
   color: var(--accent-text);
-  font-size: var(--text-xs);
-  letter-spacing: 0.12em;
   margin: 0 0 var(--space-6);
 }
 
@@ -47,8 +46,6 @@
 .eyebrow {
   @include type.typography(label);
   color: var(--accent-text);
-  font-size: var(--text-xs);
-  letter-spacing: 0.12em;
 }
 
 // Display italic hero headline — splits across two colour tiers so
@@ -56,7 +53,7 @@
 // the reader needing a separate sub-head. Line-height tight to let
 // two lines stack as one dense visual block on mobile.
 .title {
-  @include type.typography(display);
+  @include type.typography(display, $step: 5xl);
   color: var(--mono-text);
   font-size: clamp(var(--text-4xl), 9vw, var(--text-5xl));
   line-height: 0.98;
@@ -78,32 +75,12 @@
 // surfaces. Sized in `em` so it tracks the clamped display size;
 // pops in once the reveal finishes (delay matches heroSection).
 .dot {
-  display: inline-block;
-  width: 0.3em;
-  height: 0.3em;
-  margin-left: 0.1em;
-  vertical-align: baseline;
-  border-radius: 50%;
-  background: var(--brand);
-  transform: scale(0);
-  animation: dotPop 0.35s var(--ease-out-expo) 1.15s forwards;
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-    transform: scale(1);
-  }
-}
-
-@keyframes dotPop {
-  to {
-    transform: scale(1);
-  }
+  @include dot.mark;
 }
 
 .lede {
-  @include type.typography(body);
+  @include type.typography(body, $step: lg);
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-lg);
   max-width: 54ch;
   line-height: 1.55;
   margin: 0;
@@ -196,13 +173,12 @@
 }
 
 .benefitNumber {
-  @include type.typography(number);
+  @include type.typography(number, $step: 5xl);
   // Step 12 (text), not step 9 (solid) — CLAUDE.md: solid is for
   // fills, not text. Bold numbers still read in the accent palette.
   color: var(--accent-text);
   font-size: clamp(var(--text-4xl), 7vw, var(--text-5xl));
   line-height: 0.9;
-  letter-spacing: var(--tracking-tight);
 }
 
 .benefitText {
@@ -218,7 +194,7 @@
 }
 
 .benefitTitle {
-  @include type.typography(card-title);
+  @include type.typography(card-title, $step: 3xl);
   color: var(--mono-text);
   font-size: clamp(var(--text-xl), 4vw, var(--text-3xl));
   line-height: 1.1;
@@ -227,9 +203,8 @@
 }
 
 .benefitBody {
-  @include type.typography(body);
+  @include type.typography(body, $step: md);
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-md);
   line-height: 1.6;
   margin: 0;
 }
@@ -252,7 +227,7 @@
 }
 
 .manifestoText {
-  @include type.typography(display);
+  @include type.typography(display, $step: 5xl);
   color: var(--mono-text);
   font-size: clamp(var(--text-3xl), 8vw, var(--text-5xl));
   line-height: 0.95;
@@ -293,9 +268,8 @@
 }
 
 .valuesLede {
-  @include type.typography(body);
+  @include type.typography(body, $step: md);
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-md);
   max-width: 58ch;
   line-height: 1.55;
   margin: 0;
@@ -379,18 +353,16 @@
 }
 
 .valueTitle {
-  @include type.typography(card-title);
+  @include type.typography(card-title, $step: lg);
   color: var(--mono-text);
-  font-size: var(--text-lg);
   line-height: 1.2;
   margin: 0;
   max-width: 20ch;
 }
 
 .valueBody {
-  @include type.typography(body);
+  @include type.typography(body, $step: sm);
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-sm);
   line-height: 1.55;
   margin: 0;
   max-width: 36ch;
@@ -418,9 +390,8 @@
 }
 
 .processLede {
-  @include type.typography(body);
+  @include type.typography(body, $step: md);
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-md);
   max-width: 58ch;
   line-height: 1.55;
   margin: 0;
@@ -454,24 +425,20 @@
 }
 
 .processNumber {
-  @include type.typography(number);
+  @include type.typography(number, $step: 3xl);
   color: var(--accent-text);
-  font-size: var(--text-3xl);
   line-height: 1;
-  letter-spacing: var(--tracking-tight);
 }
 
 .processTitle {
-  @include type.typography(card-title);
+  @include type.typography(card-title, $step: lg);
   color: var(--mono-text);
-  font-size: var(--text-lg);
   margin: 0;
 }
 
 .processBody {
-  @include type.typography(body);
+  @include type.typography(body, $step: sm);
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-sm);
   line-height: 1.55;
   max-width: 32ch;
   margin: 0;
@@ -501,7 +468,7 @@
 }
 
 .finalCtaHeading {
-  @include type.typography(display);
+  @include type.typography(display, $step: 5xl);
   color: var(--accent-on-solid);
   font-size: clamp(var(--text-3xl), 7vw, var(--text-5xl));
   line-height: 1;
@@ -510,9 +477,8 @@
 }
 
 .finalCtaBody {
-  @include type.typography(body);
+  @include type.typography(body, $step: md);
   color: var(--accent-on-solid);
-  font-size: var(--text-md);
   max-width: 42ch;
   margin: 0;
 }

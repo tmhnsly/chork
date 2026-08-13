@@ -194,7 +194,7 @@ function EditProfileBody({ user, onClose }: BodyProps) {
           disabled={uploading}
           aria-label={uploading ? "Uploading photo" : "Change profile photo"}
         >
-          <UserAvatar user={user} size={72} />
+          <UserAvatar user={user} size="hero" />
           <span className={styles.avatarOverlay}>
             {uploading ? <span className={styles.spinner} /> : <FaCamera />}
           </span>

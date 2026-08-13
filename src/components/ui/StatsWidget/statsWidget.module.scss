@@ -10,8 +10,6 @@
 // "[#N] CURRENT SET · Reset MMM d · Gym". Styled as a number so it
 // stands out against the uppercase heading without feeling bolted on.
 .rankIcon {
-  @include type.typography(number);
-  font-size: var(--text-md);
+  @include type.typography(number, $step: md);
   color: var(--accent-text);
-  line-height: 1;
 }

@@ -1,13 +1,13 @@
 @use "mixins/layout" as layout;
 @use "mixins/typography" as type;
+@use "mixins/focus" as focus;
 
 .list {
   @include layout.stack(var(--space-1));
 }
 
 .item {
-  @include type.typography(body);
-  font-size: var(--text-sm);
+  @include type.typography(body, $step: sm);
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -30,15 +30,12 @@
     background: var(--mono-bg-hover);
   }
 
-  &:focus-visible {
-    outline: 2px solid var(--accent-border);
-    outline-offset: -2px;
-  }
+  @include focus.ring-inset;
 }
 
 .icon {
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-sm);
+  font-size: var(--size-icon-xs);
   flex-shrink: 0;
   width: 1.25rem;
   display: inline-flex;
@@ -53,15 +50,15 @@
 .trailing {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-0-5);
   margin-left: auto;
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-2xs);
+  font-size: var(--text-xs);
 }
 
 .chevron {
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-sm);
+  font-size: var(--size-icon-xs);
 }
 
 .swatch {

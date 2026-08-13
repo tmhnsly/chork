@@ -16,8 +16,7 @@
 // side icons are present. Each slot reserves a mirrored portion of
 // the row so flanking glyphs never push the digit off-axis.
 .routeNumber {
-  @include type.typography(display);
-  font-size: var(--text-5xl);
+  @include type.typography(display, $step: 5xl);
   color: var(--accent-text);
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -28,15 +27,14 @@
 
 .numberText {
   display: inline-block;
-  line-height: 1;
+  line-height: var(--leading-none);
 }
 
 .numberSlot {
   display: inline-flex;
   align-items: center;
   font-size: 0.6em;
-  line-height: 1;
-
+  line-height: var(--leading-none);
   &:first-child { justify-content: flex-end; }
   &:last-child  { justify-content: flex-start; }
 }

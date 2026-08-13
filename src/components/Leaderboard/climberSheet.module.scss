@@ -9,8 +9,7 @@
 // Rank chip rendered into the header's trailing slot. Pill-shaped,
 // accent-tinted, big enough to read at a glance.
 .rankBadge {
-  @include type.typography(number);
-  font-size: var(--text-md);
+  @include type.typography(number, $step: md);
   padding: var(--space-1) var(--space-3);
   background: var(--accent-bg);
   color: var(--accent-text);

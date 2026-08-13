@@ -7,8 +7,7 @@
 }
 
 .body {
-  @include type.typography(body);
-  font-size: var(--text-sm);
+  @include type.typography(body, $step: sm);
   color: var(--mono-text-low-contrast);
 
   strong {

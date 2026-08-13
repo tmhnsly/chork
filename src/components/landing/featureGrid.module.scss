@@ -307,8 +307,8 @@ $tile-min-h: 17.5rem;
 }
 
 .flashPts {
-  @include type.typography(label);
-  font-size: clamp(var(--text-2xs), 3cqi, var(--text-sm));
+  @include type.typography(label, $step: sm);
+  font-size: clamp(var(--text-xs), 3cqi, var(--text-sm));
   padding: 2px clamp(8px, 2.5cqi, 12px);
   border-radius: var(--radius-full);
   background: var(--flash-solid);
@@ -423,7 +423,7 @@ $tile-min-h: 17.5rem;
 }
 
 .plinthNum {
-  @include type.typography(number);
+  @include type.typography(number, $step: lg);
   font-size: clamp(var(--text-sm), 3.5cqi, var(--text-lg));
   color: var(--mono-text);
   opacity: 0.6;
@@ -469,7 +469,7 @@ $tile-min-h: 17.5rem;
   @include type.italic-display;
   font-weight: var(--weight-black);
   font-size: clamp(10px, 3cqi, 14px);
-  letter-spacing: var(--tracking-tight);
+  letter-spacing: var(--tracking-sm);
   line-height: 1;
 }
 
@@ -486,7 +486,7 @@ $tile-min-h: 17.5rem;
   @include type.italic-display;
   font-weight: var(--weight-black);
   font-size: clamp(10px, 3cqi, 14px);
-  letter-spacing: var(--tracking-tight);
+  letter-spacing: var(--tracking-sm);
   line-height: 1;
   transform: translateX(-50%);
   z-index: 4;
@@ -772,7 +772,6 @@ $tile-min-h: 17.5rem;
   color: var(--error-on-solid);
   @include type.typography(label);
   font-size: clamp(9px, 2.4cqi, 12px);
-  letter-spacing: var(--tracking-wide);
 }
 
 .jamPlayers {
@@ -838,7 +837,7 @@ $tile-min-h: 17.5rem;
   font-weight: var(--weight-black);
   font-size: clamp(10px, 2.8cqi, 14px);
   line-height: 1;
-  letter-spacing: var(--tracking-tight);
+  letter-spacing: var(--tracking-sm);
 }
 
 .jamRouteName {
@@ -913,7 +912,6 @@ $tile-min-h: 17.5rem;
   @include type.typography(label);
   font-size: clamp(10px, 2.8cqi, 13px);
   color: var(--mono-text);
-  letter-spacing: var(--tracking-wide);
   opacity: 0;
   transform: translateY(6px);
   animation: crewNameCycle 12s ease-in-out infinite;
@@ -1152,7 +1150,7 @@ $tile-min-h: 17.5rem;
   background: var(--mono-bg);
   border: 1px solid var(--mono-border-subtle);
   border-radius: var(--radius-3);
-  @include type.typography(meta);
+  @include type.typography(meta, $step: md);
   font-size: clamp(var(--text-xs), 3cqi, var(--text-md));
   color: var(--mono-text);
 }
@@ -1269,14 +1267,13 @@ $tile-min-h: 17.5rem;
   @include type.italic-display;
   font-weight: var(--weight-black);
   font-size: clamp(14px, 4cqi, 20px);
-  letter-spacing: var(--tracking-tight);
+  letter-spacing: var(--tracking-xl);
   line-height: 1;
 }
 
 .zonePtsUnit {
   @include type.typography(label);
   font-size: clamp(8px, 2cqi, 10px);
-  letter-spacing: var(--tracking-wide);
 }
 
 @keyframes zoneFlagWave {

@@ -1,30 +1,169 @@
+/*
+ * Type scale — Radix Themes structure.
+ *
+ * The rule: **a size step owns its line-height and letter-spacing.**
+ * You pick a step; leading and tracking come with it. They are not
+ * three independent choices, because treating them as independent is
+ * what produced the drift this scale replaced (twenty hand-eyeballed
+ * `letter-spacing` values across the app, with *larger* text somehow
+ * carrying *wider* tracking — the opposite of every typographic rule).
+ *
+ * Values follow Radix Themes' scale, which tightens tracking as size
+ * grows: +0.0025em at 12px through -0.02em at 48px. Optical sizing —
+ * small text needs air between glyphs, large text needs it removed.
+ * https://www.radix-ui.com/themes/docs/theme/typography
+ *
+ * Consumers should not read these tokens directly. Use
+ * `@include type.typography(<preset>)` from `mixins/_typography.scss`,
+ * which resolves the whole trio from one step name. Reading
+ * `--tracking-lg` by hand is the thing this file exists to prevent.
+ *
+ * ── Scale floor ──────────────────────────────────────────────
+ * `--text-xs` (12px) is the floor for **reading** text, matching
+ * Radix. A `--text-2xs` (10px) was in use at 54 sites — nearly all
+ * stat captions and section eyebrows on step-11 (low-contrast) text,
+ * which made them the least readable text in the app. Uppercase
+ * removes ascender/descender cues, so 10px caps read worse than
+ * 10px sentence case. Those collapsed into `--text-xs`.
+ *
+ * ── The one rung below the floor ─────────────────────────────
+ * `--text-icon-label` (10px) is for a word that captions a glyph,
+ * and nothing else. The justification is Apple's and it is narrow:
+ * a tab bar item's icon carries the meaning, and the label
+ * reinforces it. Nobody *reads* "BOARD" to work out where they are
+ * — they recognise the trophy and the word confirms it. HIG puts
+ * tab bar labels at 10pt for that reason while holding 11pt as the
+ * floor for everything else.
+ *
+ * That test is the whole rule, and the name states it: if there is
+ * no persistent icon carrying the meaning independently, this rung
+ * is not available to you. Text that is the sole carrier of its own
+ * meaning never qualifies, however tight the space — which is what
+ * the 54 collapsed sites got wrong.
+ *
+ * Named for the condition rather than the surface on purpose. It is
+ * used only by the bottom nav today, but a toolbar or an icon
+ * button with a caption would qualify on the same grounds, and a
+ * `--text-nav` would have sent that person off to invent
+ * `--text-toolbar` next to it.
+ *
+ * Enforced, not merely documented: `icon-label` is deliberately
+ * absent from `$_steps` in `mixins/_typography.scss`, so
+ * `$step: icon-label` is a compile error at any call site. It is
+ * reachable only as the `icon-label` preset's own default.
+ */
 :root {
   /* font families */
   --font-heading: var(--font-outfit, "Outfit", system-ui, sans-serif);
   --font-body: var(--font-inter, "Inter", system-ui, sans-serif);
 
-  --text-2xs: 0.625rem;
-  --text-xs: 0.75rem;
-  --text-sm: 0.875rem;
-  --text-md: 1rem;
-  --text-lg: 1.125rem;
-  --text-xl: 1.25rem;
-  --text-2xl: 1.5rem;
-  --text-3xl: 1.875rem;
-  --text-4xl: 2.25rem;
-  --text-5xl: 3rem;
+  /* ── Step: size / leading / tracking ────────────────────────
+   * Leading is unitless so it scales with any inherited size.
+   * Radix publishes leading in px against a fixed size; the ratio
+   * is carried over (e.g. step 1 = 12px/16px → 1.333).
+   */
+  /* Restricted — a word captioning a glyph, never standalone text.
+     See "The one rung below the floor" above. Tracking runs wider
+     than step xs because 10px caps need the extra separation. */
+  --text-icon-label: 0.625rem; /* 10px — Apple HIG tab bar item label */
+  --leading-icon-label: 1.2;
+  --tracking-icon-label: 0.01em;
 
-  --leading-tight: 1.1;
-  --leading-snug: 1.25;
-  --leading-normal: 1.45;
+  --text-xs: 0.75rem; /* 12px — Radix step 1 */
+  --leading-xs: 1.333;
+  --tracking-xs: 0.0025em;
 
+  --text-sm: 0.875rem; /* 14px — Radix step 2 */
+  --leading-sm: 1.429;
+  --tracking-sm: 0em;
+
+  --text-md: 1rem; /* 16px — Radix step 3 */
+  --leading-md: 1.5;
+  --tracking-md: 0em;
+
+  --text-lg: 1.125rem; /* 18px — Radix step 4 */
+  --leading-lg: 1.444;
+  --tracking-lg: -0.0025em;
+
+  --text-xl: 1.25rem; /* 20px — Radix step 5 */
+  --leading-xl: 1.4;
+  --tracking-xl: -0.005em;
+
+  --text-2xl: 1.5rem; /* 24px — Radix step 6 */
+  --leading-2xl: 1.25;
+  --tracking-2xl: -0.00625em;
+
+  --text-3xl: 1.875rem; /* 30px — between Radix steps 7 and 8 */
+  --leading-3xl: 1.286;
+  --tracking-3xl: -0.0075em;
+
+  --text-4xl: 2.25rem; /* 36px — Radix step 8 */
+  --leading-4xl: 1.143;
+  --tracking-4xl: -0.01em;
+
+  --text-5xl: 3rem; /* 48px — between Radix steps 8 and 9 */
+  --leading-5xl: 1.1;
+  --tracking-5xl: -0.02em;
+
+  /* ── Tracking modifiers ─────────────────────────────────────
+   * Added on top of the step's tracking, never instead of it.
+   */
+
+  /* Uppercase needs air the step tracking doesn't provide — caps have
+     no ascenders or descenders to separate one glyph from the next.
+     Applied automatically by any preset with `transform: uppercase`,
+     so no call site sets it by hand.
+
+     Per-step, not flat. The separation problem is a small-text
+     problem: at 12px the glyphs are close enough that losing the
+     ascenders genuinely hurts, and at 48px they aren't. A flat
+     +0.06em shipped briefly and pushed `display` from -0.02em to
+     +0.04em — page titles and the profile username visibly sprawled.
+     Above `lg` the step tracking already reads correctly for caps, so
+     the modifier goes to zero and large headings keep their tight
+     negative tracking. */
+  --tracking-caps-icon-label: 0.06em;
+  --tracking-caps-xs: 0.06em;
+  --tracking-caps-sm: 0.04em;
+  --tracking-caps-md: 0.02em;
+  --tracking-caps-lg: 0.01em;
+  --tracking-caps-xl: 0em;
+  --tracking-caps-2xl: 0em;
+  --tracking-caps-3xl: 0em;
+  --tracking-caps-4xl: 0em;
+  --tracking-caps-5xl: 0em;
+
+  /* Join codes (`JX3K8M`). Wide enough that G/C and K/X stay
+     distinct when someone is reading a code off a friend's phone.
+     Far past what any text preset would want — hence its own
+     modifier rather than a step value. */
+  --tracking-code: 0.15em;
+
+  /* ── Weights ────────────────────────────────────────────────── */
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
   --weight-bold: 700;
   --weight-black: 900;
 
-  --tracking-tight: -0.02em;
-  --tracking-normal: 0em;
-  --tracking-wide: 0.06em;
+  /* ── Structural leading ─────────────────────────────────────
+   * A step's leading is a *reading* rhythm — the right gap between
+   * consecutive lines of prose. Most type in this app isn't prose:
+   * a stat numeral, a hero title and a button label are each one
+   * line whose box height is set by the cell around them, and step
+   * leading only pads them.
+   *
+   * So single-line roles opt out here. This is a closed set — only
+   * presets may name one, never a component. Twelve components had
+   * hand-set `line-height` under a preset before these existed, and
+   * they agreed with each other to within 0.05.
+   */
+  /* Collapses the line box entirely. Not a reading value — it exists
+     for a wrapper whose only child is an inline image, where the
+     inherited line box would otherwise add descender space under it
+     (the QR frame on the jam share sheet). */
+  --leading-collapse: 0;
+  --leading-none: 1; /* glyph or numeral centred in a fixed box */
+  --leading-tight: 1.1; /* single-line display + numerals */
+  --leading-ui: 1.25; /* buttons, compact chrome */
 }

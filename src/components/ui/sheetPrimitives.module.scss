@@ -48,9 +48,8 @@
 }
 
 .confirmPrompt {
-  @include type.typography(body);
+  @include type.typography(body, $step: sm);
   color: var(--mono-text);
-  font-size: var(--text-sm);
 
   // Most consumers pass a `<p>` with the confirmation copy — apply
   // the body typography to its rendered children so the prompt

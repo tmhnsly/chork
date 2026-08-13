@@ -1,6 +1,7 @@
 @use "mixins/layout" as layout;
 @use "mixins/typography" as type;
 @use "mixins/surfaces" as surface;
+@use "mixins/state" as state;
 
 .card {
   @include surface.card;
@@ -66,7 +67,7 @@
   cursor: pointer;
   transition: filter var(--duration-fast) var(--ease-out);
 
-  &:disabled { opacity: 0.4; cursor: not-allowed; }
+  &:disabled { @include state.disabled-bare; }
   &:hover    { filter: brightness(0.95); }
 }
 

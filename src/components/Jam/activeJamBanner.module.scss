@@ -33,7 +33,7 @@
   border-radius: var(--radius-full);
   background: var(--accent-solid);
   color: var(--accent-on-solid);
-  font-size: var(--text-lg);
+  font-size: var(--size-icon-md);
 }
 
 .body {
@@ -47,24 +47,19 @@
 .eyebrow {
   @include type.typography(label);
   color: var(--accent-text-low-contrast);
-  font-size: var(--text-2xs);
-  letter-spacing: 0.08em;
 }
 
 .title {
-  @include type.typography(card-title);
+  @include type.typography(card-title, $step: md);
   color: var(--mono-text);
-  font-size: var(--text-md);
-  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .meta {
-  @include type.typography(meta);
+  @include type.typography(meta, $step: xs);
   color: var(--mono-text-low-contrast);
-  font-size: var(--text-xs);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -80,5 +75,4 @@
   background: var(--accent-solid);
   color: var(--accent-on-solid);
   @include type.typography(label);
-  font-size: var(--text-xs);
 }
