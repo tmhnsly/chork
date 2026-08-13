@@ -75,7 +75,7 @@ export default async function UserProfilePage({ params }: Props) {
           Gymless profiles skip them. ProfileAchievementsSection is
           rendered in both cases — achievements span gym + jam
           activity once badges are gym-agnostic. */}
-      {gymId && (
+      {gymId ? (
         <Suspense fallback={<ProfileStatsSkeleton />}>
           <ProfileStats
             userId={profileUser.id}
@@ -83,6 +83,16 @@ export default async function UserProfilePage({ params }: Props) {
             createdAt={profileUser.created_at}
             isOwnProfile={isOwnProfile}
           />
+        </Suspense>
+      ) : (
+        /* Gymless: jams take the slot gym stats would occupy, so every
+           profile leads with a stats row sourced from whatever that
+           climber actually does. Without this a gymless profile opened
+           on achievements and buried the jam record at the bottom —
+           the wrong way round when running your own comps anywhere is
+           the point of the app, not the fallback. */
+        <Suspense fallback={null}>
+          <ProfileJamsSection userId={profileUser.id} isOwnProfile={isOwnProfile} />
         </Suspense>
       )}
 
@@ -121,10 +131,13 @@ export default async function UserProfilePage({ params }: Props) {
 
       {/* Jam history — public within the app. Self-hides when the
           climber has no jams on record so first-time visitors see
-          a quiet profile. */}
-      <Suspense fallback={null}>
-        <ProfileJamsSection userId={profileUser.id} isOwnProfile={isOwnProfile} />
-      </Suspense>
+          a quiet profile. Gymless profiles render this higher up
+          instead, in the gym-stats slot. */}
+      {gymId && (
+        <Suspense fallback={null}>
+          <ProfileJamsSection userId={profileUser.id} isOwnProfile={isOwnProfile} />
+        </Suspense>
+      )}
     </main>
   );
 }
