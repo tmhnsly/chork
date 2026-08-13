@@ -597,6 +597,30 @@ client.
 
 ---
 
+## Hosting regions
+
+`vercel.json` pins functions to **`arn1` (Stockholm)** because the
+Supabase project lives in **`eu-north-1` (Stockholm)**. They must stay
+together — if the database ever moves, move this with it.
+
+Functions defaulted to `iad1` (US East) while the database was in
+Stockholm, so every server-side query crossed the Atlantic at roughly
+90-110ms round trip. A page render makes several Supabase calls, and
+each uncached one paid that toll, on every request rather than only on
+a cold start.
+
+Co-locating with the database rather than with the users is the right
+way round here: a visitor makes **one** request to the function, but
+the function makes **many** calls to Postgres. Putting it in `lhr1`
+(London) would shave ~30ms off the user's single hop and add ~30ms to
+each of the N queries behind it. `arn1` drops the query hop to
+near-zero and costs UK visitors a few tens of ms once.
+
+Worth re-checking if the audience ever stops being UK/EU-centric, or
+if server rendering stops being query-heavy.
+
+---
+
 ## Bundle hygiene
 
 A few infrastructural calls keep the client bundle small without
