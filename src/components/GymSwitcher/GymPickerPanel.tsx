@@ -5,11 +5,10 @@ import { useRouter } from "next/navigation";
 import { useClientResource } from "@/hooks/use-client-resource";
 import { Button } from "@/components/ui/Button";
 import { FaMagnifyingGlass, FaCheck } from "react-icons/fa6";
-import { BottomSheet } from "@/components/ui/BottomSheet";
-import { SheetBody, shimmerStyles, showToast } from "@/components/ui";
+import { shimmerStyles, showToast } from "@/components/ui";
 import { createBrowserSupabase } from "@/lib/supabase/client";
-import { switchActiveGym } from "@/app/(app)/membership-actions";
-import styles from "./gymSwitcherSheet.module.scss";
+import { switchActiveGym, clearActiveGym } from "@/app/(app)/membership-actions";
+import styles from "./gymPickerPanel.module.scss";
 
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
@@ -27,21 +26,31 @@ interface GymListing {
 }
 
 interface Props {
+  /**
+   * Whether the pane is the settings sheet's active panel. Gates the
+   * gym-list fetch so a closed pane costs nothing.
+   */
   open: boolean;
+  /** Called after a successful switch so the sheet can close. */
   onClose: () => void;
   /** The user's currently active gym id — ticked in the list. */
   activeGymId: string | null;
 }
 
 /**
- * Searchable gym picker. Fetches the full listed-gym catalogue on open
- * (once, cached for the session — the list is small enough and the
- * RLS check on `is_listed = true` is a trivial index hit).
+ * Searchable gym picker — a *pane* inside the settings sheet, not a
+ * sheet of its own. It used to render its own `BottomSheet`, which
+ * stacked a second dialog on top of Settings; the sheet now slides
+ * between panes instead, so this component owns only its content.
  *
- * Selection fires the `switchActiveGym` server action which updates
+ * Fetches the full listed-gym catalogue on open (once, cached for the
+ * session — the list is small and the `is_listed = true` check is a
+ * trivial index hit).
+ *
+ * Selection fires `switchActiveGym`, which updates
  * `profiles.active_gym_id` and adds a climber membership if needed.
  */
-export function GymSwitcherSheet({ open, onClose, activeGymId }: Props) {
+export function GymPickerPanel({ open, onClose, activeGymId }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [query, setQuery] = useState("");
@@ -96,9 +105,28 @@ export function GymSwitcherSheet({ open, onClose, activeGymId }: Props) {
     });
   }
 
+  function handleGoGymless() {
+    if (activeGymId === null) {
+      onClose();
+      return;
+    }
+    startTransition(async () => {
+      const res = await clearActiveGym();
+      if ("error" in res) {
+        showToast(res.error, "error");
+        return;
+      }
+      showToast("Gym cleared", "success");
+      onClose();
+      // The Wall and Board redirect gymless climbers to /jam, and the
+      // nav drops to its gymless variant — push rather than refresh so
+      // they land somewhere that exists instead of being bounced.
+      router.push("/jam");
+    });
+  }
+
   return (
-    <BottomSheet open={open} onClose={onClose} title="Change gym" description="Pick the gym you're climbing at today">
-      <SheetBody padBottom="none">
+    <>
         <div className={styles.searchWrap}>
           <FaMagnifyingGlass className={styles.searchIcon} aria-hidden />
           <input
@@ -110,6 +138,27 @@ export function GymSwitcherSheet({ open, onClose, activeGymId }: Props) {
             autoFocus
           />
         </div>
+
+        {/* Gymless sits above the catalogue, not buried at the end of
+            it: jams-anywhere is the product, and a gym is the optional
+            extra. Never filtered out by the search box for the same
+            reason. */}
+        <button
+          type="button"
+          className={`${styles.row} ${activeGymId === null ? styles.rowActive : ""}`}
+          onClick={handleGoGymless}
+          disabled={pending}
+        >
+          <span className={styles.rowText}>
+            <span className={styles.rowName}>Not at a Chork gym</span>
+            <span className={styles.rowMeta}>Jams and crews still work</span>
+          </span>
+          {activeGymId === null && (
+            <FaCheck className={styles.activeIcon} aria-label="No active gym" />
+          )}
+        </button>
+
+        <div className={styles.gymlessDivider} />
 
         {error ? (
           <div className={styles.empty}>
@@ -153,7 +202,6 @@ export function GymSwitcherSheet({ open, onClose, activeGymId }: Props) {
             })}
           </ul>
         )}
-      </SheetBody>
-    </BottomSheet>
+    </>
   );
 }

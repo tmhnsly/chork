@@ -89,6 +89,11 @@
   --size-icon-2xl: 1.875rem;      // 30px — section hero
   --size-icon-3xl: 3rem;          // 48px — empty-state hero
 
+  // Small status dot — the nav tab's unread pip, the profile header's
+  // notification pip, the theme swatch in settings. Three sites had
+  // 8px, 8px and 10px for the same mark.
+  --size-dot: 0.5rem;             // 8px
+
   // Smallest circular chip that has to hold text — nav tab count
   // badges. Sized to the `icon-label` rung (10px) it carries, which
   // is the same rung as the tab label beside it.

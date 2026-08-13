@@ -37,7 +37,7 @@
   color: var(--mono-text-low-contrast);
   font-size: var(--size-icon-xs);
   flex-shrink: 0;
-  width: 1.25rem;
+  width: var(--size-icon-lg);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -63,8 +63,8 @@
 
 .swatch {
   display: inline-block;
-  width: 10px;
-  height: 10px;
+  width: var(--size-dot);
+  height: var(--size-dot);
   border-radius: var(--radius-full);
   border: 1px solid var(--mono-border-subtle);
   // `--swatch` carries the per-palette colour from THEME_META — set
@@ -101,4 +101,80 @@
     color: var(--error-on-solid);
     .icon { color: var(--error-on-solid); }
   }
+}
+
+// ── Sliding panel shell ─────────────────────────────
+// Settings used to mount seven Radix dialogs at once — itself plus a
+// sheet or dialog per panel — and opening one stacked a second
+// surface on top of the first. Now there is one sheet and one pane
+// visible at a time, so the stack is flat and the sheet keeps its
+// place on screen.
+//
+// Only the active pane is rendered, which is what keeps the sheet's
+// height honest: two panes side by side in a track would size the
+// sheet to the taller of them and leave dead space under the shorter.
+.pane {
+  @include layout.stack(var(--space-1));
+  // `--pane-from` is the entry offset, flipped by the component so a
+  // pane pushed in from the menu slides in from the right and a
+  // return to the menu slides in from the left. A small offset, not a
+  // full width: only one pane exists at a time, so a full-width slide
+  // would drag a band of empty sheet across the screen.
+  animation: paneIn var(--duration-normal) var(--ease-out);
+}
+
+@keyframes paneIn {
+  from {
+    opacity: 0;
+    transform: translateX(var(--pane-from, 12%));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pane {
+    animation: none;
+  }
+}
+
+// ── Sheet chrome: back button + panel title ─────────
+.panelBar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.backBtn {
+  @include focus.ring;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  // Full tap target while staying visually tight to the title — the
+  // negative inline start pulls the glyph back to the sheet's gutter
+  // so the button's padding doesn't read as an indent.
+  width: var(--size-touch-target);
+  height: var(--size-touch-target);
+  margin-inline-start: calc(var(--space-3) * -1);
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--mono-text-low-contrast);
+  font-size: var(--size-icon-md);
+  cursor: pointer;
+  border-radius: var(--radius-full);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    color: var(--mono-text);
+  }
+}
+
+.panelTitle {
+  @include type.typography(card-title);
+  color: var(--mono-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

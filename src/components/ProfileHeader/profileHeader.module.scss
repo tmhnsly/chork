@@ -95,8 +95,8 @@
   position: absolute;
   top: 6px;
   right: 6px;
-  width: 8px;
-  height: 8px;
+  width: var(--size-dot);
+  height: var(--size-dot);
   border-radius: var(--radius-full);
   background: var(--flash-solid);
   border: 2px solid var(--mono-app-bg);

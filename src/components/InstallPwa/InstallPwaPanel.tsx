@@ -2,13 +2,7 @@
 
 import { useMemo } from "react";
 import { FaApple, FaAndroid, FaArrowUpFromBracket, FaEllipsisVertical, FaPlus } from "react-icons/fa6";
-import { BottomSheet } from "@/components/ui/BottomSheet";
 import styles from "./installPwaSheet.module.scss";
-
-interface Props {
-  open: boolean;
-  onClose: () => void;
-}
 
 type Platform = "ios" | "android" | "other";
 
@@ -32,17 +26,11 @@ function detectPlatform(): Platform {
  * — web push only fires reliably from an installed PWA on iOS, so
  * gating behind install gives the best outcome across platforms.
  */
-export function InstallPwaSheet({ open, onClose }: Props) {
+export function InstallPwaPanel() {
   const platform = useMemo(() => detectPlatform(), []);
 
   return (
-    <BottomSheet
-      open={open}
-      onClose={onClose}
-      title="Install Chork"
-      description="Add Chork to your home screen to turn on notifications"
-    >
-      <div className={styles.sheet}>
+    <div className={styles.sheet}>
         <p className={styles.lede}>
           Notifications run through an installed app. Add Chork to your
           home screen and open it from there to turn them on.
@@ -85,7 +73,6 @@ export function InstallPwaSheet({ open, onClose }: Props) {
             </ol>
           </section>
         )}
-      </div>
-    </BottomSheet>
+    </div>
   );
 }

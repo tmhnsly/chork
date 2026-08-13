@@ -96,3 +96,13 @@
   @include type.typography(body);
   color: var(--mono-text-low-contrast);
 }
+
+// Separates the gymless choice from the gym catalogue below it. The
+// two are different kinds of answer — "no gym" isn't one more entry
+// in the list — so they get a rule between them rather than sitting
+// in the same run of rows.
+.gymlessDivider {
+  height: 1px;
+  margin: var(--space-2) 0;
+  background: var(--mono-border-subtle);
+}

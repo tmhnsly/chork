@@ -14,6 +14,7 @@ import {
   FaRightFromBracket,
   FaTrash,
   FaChevronRight,
+  FaChevronLeft,
 } from "react-icons/fa6";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 // SettingsSheet is intentionally a roll-up of feature-owned dialogs.
@@ -22,18 +23,37 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 /* eslint-disable no-restricted-imports */
 import { EditProfileDialog } from "@/components/SettingsMenu/EditProfileDialog";
 import { DeleteAccountDialog } from "@/components/SettingsMenu/DeleteAccountDialog";
-import { GymSwitcherSheet } from "@/components/GymSwitcher/GymSwitcherSheet";
-import { InstallPwaSheet } from "@/components/InstallPwa/InstallPwaSheet";
+import { GymPickerPanel } from "@/components/GymSwitcher/GymPickerPanel";
+import { InstallPwaPanel } from "@/components/InstallPwa/InstallPwaPanel";
 /* eslint-enable no-restricted-imports */
 import { useAuth } from "@/lib/auth-context";
 import { useTheme, THEME_META, type ThemeName } from "@/lib/theme";
 import type { PushCategoryKey } from "@/lib/user-actions";
 import { useSettingsState } from "./useSettingsState";
+import type { SettingsPanel } from "./settingsReducer";
 import styles from "./settingsSheet.module.scss";
 
 interface Props {
   open: boolean;
   onClose: () => void;
+}
+
+/** Human title per pane, also used as the sheet's accessible name. */
+const PANEL_TITLES: Record<SettingsPanel, string> = {
+  edit: "Edit profile",
+  delete: "Delete account",
+  "gym-switcher": "Change gym",
+  install: "Install Chork",
+  theme: "Theme",
+  notifications: "Notifications",
+};
+
+/** Panes that render inline and slide; the rest stay modal dialogs. */
+const SLIDING_PANELS = ["gym-switcher", "install", "theme", "notifications"] as const;
+type SlidingPanel = (typeof SLIDING_PANELS)[number];
+
+function isSliding(panel: SettingsPanel | null): panel is SlidingPanel {
+  return (SLIDING_PANELS as readonly (string | null)[]).includes(panel);
 }
 
 /**
@@ -64,10 +84,41 @@ export function SettingsSheet({ open, onClose }: Props) {
   } = useSettingsState(profile);
   const { activePanel, allowInvites, notifFlags, pushStatus } = state;
 
+  const sliding = isSliding(activePanel) ? activePanel : null;
+
+  // Closing the sheet also drops the pane, so re-opening always lands
+  // on the menu rather than wherever the climber left off.
+  function handleSheetClose() {
+    closePanel();
+    onClose();
+  }
+
   return (
     <>
-      <BottomSheet open={open} onClose={onClose} title="Settings">
-        <div className={styles.list}>
+      <BottomSheet
+        open={open}
+        onClose={handleSheetClose}
+        title={sliding ? PANEL_TITLES[sliding] : "Settings"}
+        titleSlot={
+          sliding ? (
+            <div className={styles.panelBar}>
+              <button
+                type="button"
+                className={styles.backBtn}
+                onClick={closePanel}
+                aria-label="Back to settings"
+              >
+                <FaChevronLeft />
+              </button>
+              <span className={styles.panelTitle}>{PANEL_TITLES[sliding]}</span>
+            </div>
+          ) : undefined
+        }
+      >
+        {/* One pane at a time. Rendering both would size the sheet to
+            the taller of them and leave dead space under the shorter. */}
+        {sliding === null && (
+        <div className={`${styles.list} ${styles.pane}`} style={{ "--pane-from": "-12%" } as React.CSSProperties}>
           <button
             type="button"
             className={styles.item}
@@ -172,15 +223,10 @@ export function SettingsSheet({ open, onClose }: Props) {
             <span className={styles.label}>Delete account</span>
           </button>
         </div>
-      </BottomSheet>
+        )}
 
-      <BottomSheet
-        open={activePanel === "notifications"}
-        onClose={closePanel}
-        title="Notifications"
-        description="Pick which pushes you'd like to receive"
-      >
-        <div className={styles.list}>
+        {sliding === "notifications" && (
+        <div className={`${styles.list} ${styles.pane}`}>
           {NOTIF_ROWS.map((row) => (
             <button
               key={row.category}
@@ -196,14 +242,10 @@ export function SettingsSheet({ open, onClose }: Props) {
             </button>
           ))}
         </div>
-      </BottomSheet>
+        )}
 
-      <BottomSheet
-        open={activePanel === "theme"}
-        onClose={closePanel}
-        title="Theme"
-      >
-        <div className={styles.list}>
+        {sliding === "theme" && (
+        <div className={`${styles.list} ${styles.pane}`}>
           {THEME_META.map((t) => (
             <button
               key={t.id}
@@ -232,8 +274,29 @@ export function SettingsSheet({ open, onClose }: Props) {
             </button>
           ))}
         </div>
+        )}
+
+        {sliding === "gym-switcher" && profile && (
+          <div className={styles.pane}>
+            <GymPickerPanel
+              open
+              onClose={handleSheetClose}
+              activeGymId={profile.active_gym_id ?? null}
+            />
+          </div>
+        )}
+
+        {sliding === "install" && (
+          <div className={styles.pane}>
+            <InstallPwaPanel />
+          </div>
+        )}
       </BottomSheet>
 
+      {/* Edit and Delete stay modal rather than sliding. A form with
+          its own submit, and a destructive confirm, both want to be
+          dismissible on their own terms — sliding them into the menu
+          would make "back" ambiguous mid-edit. */}
       {profile && (
         <>
           <EditProfileDialog
@@ -244,15 +307,6 @@ export function SettingsSheet({ open, onClose }: Props) {
           <DeleteAccountDialog
             open={activePanel === "delete"}
             onOpenChange={(o) => (o ? openPanel("delete") : closePanel())}
-          />
-          <GymSwitcherSheet
-            open={activePanel === "gym-switcher"}
-            onClose={closePanel}
-            activeGymId={profile.active_gym_id ?? null}
-          />
-          <InstallPwaSheet
-            open={activePanel === "install"}
-            onClose={closePanel}
           />
         </>
       )}
