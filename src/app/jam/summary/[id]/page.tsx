@@ -7,6 +7,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getJamSummaryForUser } from "@/lib/data/jam-queries";
 import { PageHeader } from "@/components/motion";
 import { UserAvatar, Username } from "@/components/ui";
+import { ShareResultButton } from "@/components/Jam/ShareResultButton";
 import styles from "./summary.module.scss";
 
 interface Props {
@@ -61,6 +62,14 @@ export default async function JamSummaryPage({ params, searchParams }: Props) {
         ]
           .filter(Boolean)
           .join(" · ")}
+      />
+
+      {/* Straight after the header, above the board: the moment a
+          result lands is when someone wants to send it, and burying
+          the share below the standings loses that impulse. */}
+      <ShareResultButton
+        summaryId={id}
+        label={summary.name?.trim() || "Match"}
       />
 
       {winner && (

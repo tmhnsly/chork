@@ -1,57 +1,10 @@
 import { ImageResponse } from "next/og";
+import { loadGoogleFont } from "@/lib/og-fonts";
 
 export const alt =
   "Chork — Climb it. Log it. Top it. Join for free at chork.app.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
-
-// Fetch a single weight of a Google Font, subsetted to the exact glyphs
-// we render. Subsetting keeps each request tiny (~2-3 kb) so the OG
-// image builds fast even on a cold Vercel invocation.
-//
-// Two Google-Fonts quirks handled here:
-//
-//  1. The CSS2 API picks the font format based on User-Agent. Without
-//     a UA (or with a modern one) it returns `.woff2`, which Satori
-//     does not support. A legacy Firefox UA forces it to return a
-//     format Satori CAN parse — historically `.ttf`, today typically
-//     `.woff` for most families. Both are fine for Satori.
-//
-//  2. Outfit (our brand display family) ships ONLY upright weights on
-//     Google Fonts — no italic variant. Requesting `ital,wght@1,…`
-//     returns HTTP 400 "Font family not found". So we only ever
-//     request upright here; faux-italic on the design side is done
-//     via `transform: skewX(...)` in the JSX.
-async function loadGoogleFont(
-  family: string,
-  weight: number,
-  text: string,
-): Promise<ArrayBuffer> {
-  const spec = `${family}:wght@${weight}`;
-  const css = await (
-    await fetch(
-      `https://fonts.googleapis.com/css2?family=${encodeURIComponent(
-        spec,
-      )}&text=${encodeURIComponent(text)}`,
-      {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:10.0) Gecko/20100101 Firefox/10.0",
-        },
-      },
-    )
-  ).text();
-  const match = css.match(
-    /src:\s*url\((.+?)\)\s*format\('(?:opentype|truetype|woff)'\)/,
-  );
-  if (!match) {
-    throw new Error(
-      `font fetch failed: ${family} ${weight} — no matching @font-face src in response`,
-    );
-  }
-  const res = await fetch(match[1]);
-  return res.arrayBuffer();
-}
 
 export default async function OpengraphImage() {
   // Union of every glyph rendered below — lets Google Fonts return a

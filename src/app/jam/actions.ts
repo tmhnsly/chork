@@ -9,6 +9,9 @@ import { evaluateAndPersistAchievements } from "@/lib/achievements/evaluate";
 import type { JamGradingScale, JamRoute } from "@/lib/data/jam-types";
 
 import { logger } from "@/lib/logger";
+import { env } from "@/lib/env";
+import { getJamSummaryForUser } from "@/lib/data/jam-queries";
+import { mintShareToken } from "@/lib/data/shared-result";
 
 // Jam writes go through SECURITY DEFINER RPCs (migrations 041 + 042)
 // invoked directly below — is_jam_player / auth.uid() authorisation
@@ -309,4 +312,35 @@ export async function endJamAction(
   } catch (err) {
     return { error: formatError(err) };
   }
+}
+
+// ── Share a finished result ───────────────────────
+
+/**
+ * Mint (or re-fetch) the public link for a finished match result.
+ *
+ * Authorisation is `getJamSummaryForUser`, the same participant gate
+ * the summary page uses — it returns null for anyone who wasn't
+ * there, and that null is the whole check. Deliberately not a second
+ * bespoke gate: one audited path, not two that must agree.
+ *
+ * Idempotent by construction (see `mintShareToken`), so a result has
+ * one canonical URL however many people share it.
+ */
+export async function shareResultAction(
+  summaryId: string,
+): Promise<{ error: string } | { url: string }> {
+  const auth = await gateSignedInMutation(summaryId, "result");
+  if ("error" in auth) return { error: auth.error };
+
+  const service = createServiceClient();
+  const bundle = await getJamSummaryForUser(service, summaryId, auth.userId);
+  // Null = not found OR not a participant. Collapsed on purpose so a
+  // guessed id can't distinguish the two.
+  if (!bundle) return { error: "Result not found." };
+
+  const token = await mintShareToken(summaryId);
+  if (!token) return { error: "Couldn't create a share link — try again." };
+
+  return { url: `${env.SITE_URL}/r/${token}` };
 }

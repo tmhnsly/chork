@@ -759,6 +759,7 @@ export type Database = {
           name: string | null
           payload: Json
           player_count: number
+          share_token: string | null
           started_at: string
           winner_user_id: string | null
         }
@@ -774,6 +775,7 @@ export type Database = {
           name?: string | null
           payload: Json
           player_count: number
+          share_token?: string | null
           started_at: string
           winner_user_id?: string | null
         }
@@ -789,6 +791,7 @@ export type Database = {
           name?: string | null
           payload?: Json
           player_count?: number
+          share_token?: string | null
           started_at?: string
           winner_user_id?: string | null
         }
