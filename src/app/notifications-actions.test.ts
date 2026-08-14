@@ -11,33 +11,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
 vi.mock("@/lib/auth", () => ({ requireSignedIn: vi.fn() }));
 
-type SbResult = { data?: unknown; error?: { code?: string; message?: string } | null };
-
-function makeChain(resolve: () => Promise<SbResult> | SbResult) {
-  const builder: Record<string, unknown> = {};
-  const chain: (...args: unknown[]) => typeof builder = () => builder;
-  const methods = ["select", "insert", "update", "delete", "eq", "is", "order", "limit"];
-  for (const m of methods) (builder[m] as unknown) = chain;
-  builder.then = (onFulfilled: (v: SbResult) => unknown) =>
-    Promise.resolve(resolve()).then(onFulfilled);
-  return builder;
-}
-
-function mockSupabase(results: Record<string, SbResult> = {}) {
-  return {
-    from: (table: string) =>
-      makeChain(() => results[`table:${table}`] ?? { data: null }),
-    // `markAllNotificationsRead` now routes through the
-    // `mark_all_notifications_read(uuid)` RPC added in migration 053
-    // (server-authoritative `now()` stamp). The stub keys by
-    // `rpc:<fn_name>` so tests can pin per-RPC results the same way
-    // they pin per-table ones.
-    rpc: (name: string) => {
-      const result = results[`rpc:${name}`] ?? { data: null };
-      return Promise.resolve(result);
-    },
-  };
-}
+// `markAllNotificationsRead` routes through the
+// `mark_all_notifications_read(uuid)` RPC added in migration 053
+// (server-authoritative `now()` stamp) — primed via `rpc:<fn_name>`
+// keys the same way tables use `table:<name>`.
+import { createMockSupabase } from "@/test/mock-supabase";
 
 const USER_A = "11111111-1111-1111-1111-111111111111";
 const NOTIF_1 = "cccccccc-cccc-cccc-cccc-cccccccccccc";
@@ -57,7 +35,7 @@ describe("markAllNotificationsRead", () => {
   it("returns success when the update lands", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "rpc:mark_all_notifications_read": { data: 1, error: null },
       }) as never,
       userId: USER_A,
@@ -69,7 +47,7 @@ describe("markAllNotificationsRead", () => {
   it("surfaces a friendly message on permission denial", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "rpc:mark_all_notifications_read": {
           data: null,
           error: { code: "42501", message: "blocked" },
@@ -104,7 +82,7 @@ describe("dismissNotification", () => {
   it("returns success on delete", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "table:notifications": { data: null, error: null },
       }) as never,
       userId: USER_A,
@@ -116,7 +94,7 @@ describe("dismissNotification", () => {
   it("surfaces a friendly message on permission denial", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "table:notifications": { data: null, error: { code: "42501", message: "blocked" } },
       }) as never,
       userId: USER_A,

@@ -3,20 +3,10 @@
  * admin gate that replaces the cosmetic gym_memberships.role check.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-
-type SbResult = { data?: unknown; error?: unknown };
+import { createMockSupabase, type SbResult } from "@/test/mock-supabase";
 
 function scriptedSupabase(result: SbResult) {
-  const builder: Record<string, unknown> = {};
-  const chain: (...args: unknown[]) => typeof builder = () => builder;
-  for (const m of ["from", "select", "eq", "maybeSingle", "order"]) {
-    (builder[m] as unknown) = chain;
-  }
-  builder.then = (onFulfilled: (v: SbResult) => unknown) =>
-    Promise.resolve(result).then(onFulfilled);
-  return {
-    from: () => builder,
-  };
+  return createMockSupabase({ "table:gym_admins": result });
 }
 
 const USER_A = "11111111-1111-1111-1111-111111111111";

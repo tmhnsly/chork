@@ -6,35 +6,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-type SbResult = { data?: unknown; error?: unknown };
-
-function makeChain(resolve: () => SbResult) {
-  const builder: Record<string, unknown> = {};
-  const chain: (...args: unknown[]) => typeof builder = () => builder;
-  const methods = [
-    "select", "eq", "neq", "in", "or", "order", "limit", "range",
-    "maybeSingle", "single",
-  ];
-  for (const m of methods) (builder[m] as unknown) = chain;
-  builder.then = (onFulfilled: (v: SbResult) => unknown) =>
-    Promise.resolve(resolve()).then(onFulfilled);
-  return builder;
-}
-
-type Script = Array<{ table?: string; rpc?: string; result: SbResult }>;
-
-function scriptedSupabase(script: Script) {
-  let i = 0;
-  const next = (): SbResult => {
-    const step = script[Math.min(i, script.length - 1)];
-    i += 1;
-    return step?.result ?? { data: null };
-  };
-  return {
-    from: (_table: string) => makeChain(next),
-    rpc: (_name: string) => makeChain(next),
-  };
-}
+import { createMockSupabase } from "@/test/mock-supabase";
 
 const USER_A = "11111111-1111-1111-1111-111111111111";
 const USER_B = "22222222-2222-2222-2222-222222222222";
@@ -50,37 +22,33 @@ beforeEach(() => {
 // ────────────────────────────────────────────────────────────────
 describe("getMyCrews", () => {
   it("returns [] when the caller has no active membership", async () => {
-    const sb = scriptedSupabase([{ result: { data: [] } }]);
+    const sb = createMockSupabase({ "table:crew_members": { data: [] } });
     const { getMyCrews } = await import("./crew-queries");
     expect(await getMyCrews(sb as never, USER_A)).toEqual([]);
   });
 
   it("flattens crew join rows, tallies members per crew, sorts oldest → newest", async () => {
-    const sb = scriptedSupabase([
-      {
-        result: {
-          data: [
-            {
-              crew_id: CREW_2,
-              crews: { id: CREW_2, name: "Beta", created_by: USER_A, created_at: "2026-02-01" },
-            },
-            {
-              crew_id: CREW_1,
-              crews: { id: CREW_1, name: "Alpha", created_by: USER_A, created_at: "2026-01-01" },
-            },
-          ],
-        },
+    const sb = createMockSupabase({
+      "table:crew_members": {
+        data: [
+          {
+            crew_id: CREW_2,
+            crews: { id: CREW_2, name: "Beta", created_by: USER_A, created_at: "2026-02-01" },
+          },
+          {
+            crew_id: CREW_1,
+            crews: { id: CREW_1, name: "Alpha", created_by: USER_A, created_at: "2026-01-01" },
+          },
+        ],
       },
       // get_crew_member_counts RPC — one row per crew with count
-      {
-        result: {
-          data: [
-            { crew_id: CREW_1, count: 2 },
-            { crew_id: CREW_2, count: 1 },
-          ],
-        },
+      "rpc:get_crew_member_counts": {
+        data: [
+          { crew_id: CREW_1, count: 2 },
+          { crew_id: CREW_2, count: 1 },
+        ],
       },
-    ]);
+    });
     const { getMyCrews } = await import("./crew-queries");
     const result = await getMyCrews(sb as never, USER_A);
     expect(result).toEqual([
@@ -92,28 +60,26 @@ describe("getMyCrews", () => {
   it("treats `crews` as an array and takes the first when supabase returns one", async () => {
     // Supabase's typing sometimes unwraps a one-row join as an array.
     // The mapper handles both shapes.
-    const sb = scriptedSupabase([
-      {
-        result: {
-          data: [
-            {
-              crew_id: CREW_1,
-              crews: [{ id: CREW_1, name: "Alpha", created_by: USER_A, created_at: "2026-01-01" }],
-            },
-          ],
-        },
+    const sb = createMockSupabase({
+      "table:crew_members": {
+        data: [
+          {
+            crew_id: CREW_1,
+            crews: [{ id: CREW_1, name: "Alpha", created_by: USER_A, created_at: "2026-01-01" }],
+          },
+        ],
       },
-      { result: { data: [{ crew_id: CREW_1, count: 1 }] } },
-    ]);
+      "rpc:get_crew_member_counts": { data: [{ crew_id: CREW_1, count: 1 }] },
+    });
     const { getMyCrews } = await import("./crew-queries");
     const result = await getMyCrews(sb as never, USER_A);
     expect(result[0]).toMatchObject({ id: CREW_1, name: "Alpha", member_count: 1 });
   });
 
   it("returns [] on DB error — never throws", async () => {
-    const sb = scriptedSupabase([
-      { result: { data: null, error: { message: "rls" } } },
-    ]);
+    const sb = createMockSupabase({
+      "table:crew_members": { data: null, error: { message: "rls" } },
+    });
     const { getMyCrews } = await import("./crew-queries");
     expect(await getMyCrews(sb as never, USER_A)).toEqual([]);
   });
@@ -124,36 +90,36 @@ describe("getMyCrews", () => {
 // ────────────────────────────────────────────────────────────────
 describe("getPendingCrewInvites", () => {
   it("returns [] on error", async () => {
-    const sb = scriptedSupabase([{ result: { data: null, error: { message: "rls" } } }]);
+    const sb = createMockSupabase({
+      "table:crew_members": { data: null, error: { message: "rls" } },
+    });
     const { getPendingCrewInvites } = await import("./crew-queries");
     expect(await getPendingCrewInvites(sb as never, USER_A)).toEqual([]);
   });
 
   it("drops rows missing either crew or inviter (join failures)", async () => {
-    const sb = scriptedSupabase([
-      {
-        result: {
-          data: [
-            {
-              id: "inv1",
-              crew_id: CREW_1,
-              invited_by: USER_B,
-              created_at: "2026-01-01",
-              crews: null,
-              inviter: { username: "b" },
-            },
-            {
-              id: "inv2",
-              crew_id: CREW_1,
-              invited_by: USER_B,
-              created_at: "2026-01-01",
-              crews: { name: "Alpha" },
-              inviter: null,
-            },
-          ],
-        },
+    const sb = createMockSupabase({
+      "table:crew_members": {
+        data: [
+          {
+            id: "inv1",
+            crew_id: CREW_1,
+            invited_by: USER_B,
+            created_at: "2026-01-01",
+            crews: null,
+            inviter: { username: "b" },
+          },
+          {
+            id: "inv2",
+            crew_id: CREW_1,
+            invited_by: USER_B,
+            created_at: "2026-01-01",
+            crews: { name: "Alpha" },
+            inviter: null,
+          },
+        ],
       },
-    ]);
+    });
     const { getPendingCrewInvites } = await import("./crew-queries");
     const result = await getPendingCrewInvites(sb as never, USER_A);
     expect(result).toEqual([]);
@@ -165,7 +131,7 @@ describe("getPendingCrewInvites", () => {
 // ────────────────────────────────────────────────────────────────
 describe("getCrewCountForUser", () => {
   it("returns 0 when no rows", async () => {
-    const sb = scriptedSupabase([{ result: { data: [] } }]);
+    const sb = createMockSupabase({ "table:crew_members": { data: [] } });
     const { getCrewCountForUser } = await import("./crew-queries");
     expect(await getCrewCountForUser(sb as never, USER_A)).toBe(0);
   });

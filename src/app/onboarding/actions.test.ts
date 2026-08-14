@@ -68,11 +68,10 @@ describe("completeOnboarding", () => {
     vi.mocked(createGymMembership).mockImplementation(async () => {
       callOrder.push("membership");
     });
-    mock.update = vi.fn(() => {
+    mock.prime("table:profiles", () => {
       callOrder.push("profile");
-      return mock;
+      return { data: null, error: null };
     });
-    mock._resolveWith({ data: null, error: null });
 
     const { completeOnboarding } = await import("./actions");
     await completeOnboarding("validuser", "Tom", "11111111-2222-3333-4444-555555555555");
@@ -96,6 +95,8 @@ describe("completeOnboarding", () => {
 
     expect(result).toHaveProperty("error");
     // Verify delete was called for rollback
-    expect(mock.delete).toHaveBeenCalled();
+    expect(
+      mock.calls.some((c) => c.source === "gym_memberships" && c.method === "delete"),
+    ).toBe(true);
   });
 });

@@ -17,10 +17,15 @@ describe("upsertRouteLog", () => {
     const { upsertRouteLog } = await import("./mutations");
     await upsertRouteLog(mock as never, "user1", "route1", { attempts: 3 }, "log1", "gym1");
 
-    expect(mock.update).toHaveBeenCalled();
-    expect(mock.eq).toHaveBeenCalledWith("id", "log1");
-    expect(mock.eq).toHaveBeenCalledWith("user_id", "user1");
-    expect(mock.eq).toHaveBeenCalledWith("gym_id", "gym1");
+    expect(
+      mock.calls.some((c) => c.source === "route_logs" && c.method === "update"),
+    ).toBe(true);
+    const eqArgs = mock.calls
+      .filter((c) => c.source === "route_logs" && c.method === "eq")
+      .map((c) => c.args);
+    expect(eqArgs).toContainEqual(["id", "log1"]);
+    expect(eqArgs).toContainEqual(["user_id", "user1"]);
+    expect(eqArgs).toContainEqual(["gym_id", "gym1"]);
   });
 
   it("throws when gymId is missing on update path", async () => {
@@ -47,10 +52,13 @@ describe("upsertRouteLog", () => {
     const { upsertRouteLog } = await import("./mutations");
     await upsertRouteLog(mock as never, "user1", "route1", { attempts: 1 }, undefined, "gym1");
 
-    expect(mock.upsert).toHaveBeenCalledWith(
-      expect.objectContaining({ user_id: "user1", route_id: "route1", gym_id: "gym1" }),
-      { onConflict: "user_id,route_id" }
+    const upsert = mock.calls.find(
+      (c) => c.source === "route_logs" && c.method === "upsert",
     );
+    expect(upsert?.args).toEqual([
+      expect.objectContaining({ user_id: "user1", route_id: "route1", gym_id: "gym1" }),
+      { onConflict: "user_id,route_id" },
+    ]);
   });
 
   it("throws on Supabase error", async () => {
@@ -82,9 +90,10 @@ describe("createGymMembership", () => {
     // insert is void on success - just verify it doesn't throw
     await createGymMembership(mock as never, "user1", "gym1");
 
-    expect(mock.insert).toHaveBeenCalledWith(
-      expect.objectContaining({ role: "climber" })
+    const insert = mock.calls.find(
+      (c) => c.source === "gym_memberships" && c.method === "insert",
     );
+    expect(insert?.args).toEqual([expect.objectContaining({ role: "climber" })]);
   });
 });
 
@@ -99,7 +108,9 @@ describe("toggleCommentLike", () => {
     const result = await toggleCommentLike(userMock as never, "user1", "comment1", "gym1");
 
     expect(result).toEqual({ liked: false, likes: 4 });
-    expect(userMock.delete).toHaveBeenCalled();
+    expect(
+      userMock.calls.some((c) => c.source === "comment_likes" && c.method === "delete"),
+    ).toBe(true);
   });
 
   it("inserts the like row and returns the trigger-maintained count", async () => {
@@ -110,9 +121,12 @@ describe("toggleCommentLike", () => {
     const result = await toggleCommentLike(userMock as never, "user1", "comment1", "gym1");
 
     expect(result.liked).toBe(true);
-    expect(userMock.insert).toHaveBeenCalledWith(
-      expect.objectContaining({ user_id: "user1", comment_id: "comment1", gym_id: "gym1" }),
+    const insert = userMock.calls.find(
+      (c) => c.source === "comment_likes" && c.method === "insert",
     );
+    expect(insert?.args).toEqual([
+      expect.objectContaining({ user_id: "user1", comment_id: "comment1", gym_id: "gym1" }),
+    ]);
   });
 
   it("throws instead of guessing when the like-state read is blocked", async () => {

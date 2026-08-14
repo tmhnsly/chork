@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createMockSupabase } from "@/test/mock-supabase";
 
 // ────────────────────────────────────────────────────────────────
 // Module mocks
@@ -41,49 +42,11 @@ vi.mock("@/lib/auth", () => {
   return { requireAuth, gateClimberMutation };
 });
 
-// ────────────────────────────────────────────────────────────────
-// Supabase client mock — thenable chain proxy with call recording
-// ────────────────────────────────────────────────────────────────
-// Same shape as src/app/crew/actions.test.ts, extended to record every
-// chained call (table + method + args) so tests can assert WHICH
-// tables were written and with what payload. Postgres error fixtures
-// carry a `code` field — `formatError` branches on it, so a bare
-// `message` string would silently skip the friendly mapping.
-
-type SbError = { code?: string; message?: string; details?: string; hint?: string };
-type SbResult = { data?: unknown; error?: SbError | null };
-type RecordedCall = { table: string; method: string; args: unknown[] };
-
-function makeChain(
-  table: string,
-  resolve: () => SbResult,
-  calls: RecordedCall[],
-) {
-  const builder: Record<string, unknown> = {};
-  const methods = [
-    "select", "insert", "update", "delete", "upsert",
-    "eq", "neq", "in", "or", "order", "limit",
-    "maybeSingle", "single",
-  ];
-  for (const m of methods) {
-    builder[m] = (...args: unknown[]) => {
-      calls.push({ table, method: m, args });
-      return builder;
-    };
-  }
-  builder.then = (onFulfilled: (v: SbResult) => unknown) =>
-    Promise.resolve(resolve()).then(onFulfilled);
-  return builder;
-}
-
-function mockSupabase(results: Record<string, SbResult> = {}) {
-  const calls: RecordedCall[] = [];
-  const client = {
-    from: (table: string) =>
-      makeChain(table, () => results[`table:${table}`] ?? { data: null, error: null }, calls),
-  };
-  return { client, calls };
-}
+// Supabase double: shared harness (`createMockSupabase`) — records
+// every chained call (source + method + args) so tests can assert
+// WHICH tables were written and with what payload. Postgres error
+// fixtures carry a `code` field — `formatError` branches on it, so a
+// bare `message` string would silently skip the friendly mapping.
 
 const USER_A = "11111111-1111-4111-8111-111111111111";
 const GYM_1 = "22222222-2222-4222-8222-222222222222";
@@ -148,15 +111,15 @@ describe("completeRoute", () => {
   });
 
   it("accepts an empty-string logId (first-ever completion) via the create branch", async () => {
-    const { client, calls } = mockSupabase({
+    const sb = createMockSupabase({
       "table:route_logs": { data: logRow(), error: null },
       "table:activity_events": { data: { id: "evt1" }, error: null },
     });
-    await primeAuth(client);
+    await primeAuth(sb);
     const { completeRoute } = await import("./route-log-actions");
     const result = await completeRoute(ROUTE_1, 2, null, false, "");
     expect(result).toMatchObject({ success: true });
-    expect(calls.some((c) => c.table === "route_logs" && c.method === "upsert")).toBe(true);
+    expect(sb.calls.some((c) => c.source === "route_logs" && c.method === "upsert")).toBe(true);
   });
 
   it("rejects out-of-range attempts (0, 1000, non-integer)", async () => {
@@ -185,26 +148,27 @@ describe("completeRoute", () => {
   });
 
   it("writes BOTH the route log and the activity event, and busts the route-log tags", async () => {
-    const { client, calls } = mockSupabase({
+    const sb = createMockSupabase({
       "table:route_logs": { data: logRow(), error: null },
       "table:activity_events": {
         data: { id: "evt1", user_id: USER_A, route_id: ROUTE_1, type: "completed", gym_id: GYM_1 },
         error: null,
       },
     });
-    await primeAuth(client);
+    await primeAuth(sb);
 
     const { completeRoute } = await import("./route-log-actions");
     const { revalidateRouteLogTags } = await import("@/lib/cache/revalidate");
     const result = await completeRoute(ROUTE_1, 2, null, false);
 
     expect(result).toMatchObject({ success: true, log: expect.objectContaining({ id: LOG_1 }) });
-    // The joined routes embed is flattened to a top-level set_id.
-    expect((result as { log: { set_id: string } }).log.set_id).toBe(SET_1);
+    // The joined routes embed is flattened to a top-level set_id —
+    // and `LogResult` says so, so no cast is needed to read it.
+    expect("log" in result && result.log.set_id).toBe(SET_1);
 
     // Invariant: a send is TWO writes — the log row and the feed event.
-    expect(calls.some((c) => c.table === "route_logs" && c.method === "upsert")).toBe(true);
-    expect(calls.some((c) => c.table === "activity_events" && c.method === "insert")).toBe(true);
+    expect(sb.calls.some((c) => c.source === "route_logs" && c.method === "upsert")).toBe(true);
+    expect(sb.calls.some((c) => c.source === "activity_events" && c.method === "insert")).toBe(true);
 
     // Invariant: leaderboard + user-stats tags bust together via the
     // shared helper — forgetting either leaves 60s of stale UI.
@@ -212,42 +176,42 @@ describe("completeRoute", () => {
   });
 
   it("derives flash (attempts=1 + completed) into the activity event type", async () => {
-    const { client, calls } = mockSupabase({
+    const sb = createMockSupabase({
       "table:route_logs": { data: logRow({ attempts: 1 }), error: null },
       "table:activity_events": { data: { id: "evt1" }, error: null },
     });
-    await primeAuth(client);
+    await primeAuth(sb);
 
     const { completeRoute } = await import("./route-log-actions");
     await completeRoute(ROUTE_1, 1, null, false);
 
-    const insert = calls.find((c) => c.table === "activity_events" && c.method === "insert");
+    const insert = sb.calls.find((c) => c.source === "activity_events" && c.method === "insert");
     expect(insert?.args[0]).toMatchObject({ type: "flashed", user_id: USER_A, route_id: ROUTE_1, gym_id: GYM_1 });
   });
 
   it("logs a plain 'completed' event for 2+ attempts (flash is derived, never stored)", async () => {
-    const { client, calls } = mockSupabase({
+    const sb = createMockSupabase({
       "table:route_logs": { data: logRow({ attempts: 3 }), error: null },
       "table:activity_events": { data: { id: "evt1" }, error: null },
     });
-    await primeAuth(client);
+    await primeAuth(sb);
 
     const { completeRoute } = await import("./route-log-actions");
     await completeRoute(ROUTE_1, 3, null, false);
 
-    const insert = calls.find((c) => c.table === "activity_events" && c.method === "insert");
+    const insert = sb.calls.find((c) => c.source === "activity_events" && c.method === "insert");
     expect(insert?.args[0]).toMatchObject({ type: "completed" });
   });
 
   it("maps a 42501 RLS rejection on the log write to the friendly permission message", async () => {
-    const { client } = mockSupabase({
+    const sb = createMockSupabase({
       "table:route_logs": {
         data: null,
         error: { code: "42501", message: "new row violates row-level security policy" },
       },
       "table:activity_events": { data: { id: "evt1" }, error: null },
     });
-    await primeAuth(client);
+    await primeAuth(sb);
 
     const { completeRoute } = await import("./route-log-actions");
     const result = await completeRoute(ROUTE_1, 2, null, false);
@@ -255,14 +219,14 @@ describe("completeRoute", () => {
   });
 
   it("maps a 23503 FK violation on the activity-event write to the friendly message", async () => {
-    const { client } = mockSupabase({
+    const sb = createMockSupabase({
       "table:route_logs": { data: logRow(), error: null },
       "table:activity_events": {
         data: null,
         error: { code: "23503", message: "insert violates foreign key constraint" },
       },
     });
-    await primeAuth(client);
+    await primeAuth(sb);
 
     const { completeRoute } = await import("./route-log-actions");
     const result = await completeRoute(ROUTE_1, 2, null, false);
@@ -270,11 +234,11 @@ describe("completeRoute", () => {
   });
 
   it("carries newly-earned badges on the result when evaluation returns some", async () => {
-    const { client } = mockSupabase({
+    const sb = createMockSupabase({
       "table:route_logs": { data: logRow(), error: null },
       "table:activity_events": { data: { id: "evt1" }, error: null },
     });
-    await primeAuth(client);
+    await primeAuth(sb);
     const { buildBadgeContext } = await import("@/lib/achievements/context");
     const { evaluateAndPersistAchievements } = await import("@/lib/achievements/evaluate");
     vi.mocked(buildBadgeContext).mockResolvedValue({} as never);
@@ -287,11 +251,11 @@ describe("completeRoute", () => {
   });
 
   it("omits earnedBadges entirely when nothing new was earned", async () => {
-    const { client } = mockSupabase({
+    const sb = createMockSupabase({
       "table:route_logs": { data: logRow(), error: null },
       "table:activity_events": { data: { id: "evt1" }, error: null },
     });
-    await primeAuth(client);
+    await primeAuth(sb);
     const { buildBadgeContext } = await import("@/lib/achievements/context");
     const { evaluateAndPersistAchievements } = await import("@/lib/achievements/evaluate");
     vi.mocked(buildBadgeContext).mockResolvedValue({} as never);
@@ -304,11 +268,11 @@ describe("completeRoute", () => {
   });
 
   it("still returns success when badge evaluation blows up (side-effect isolation)", async () => {
-    const { client } = mockSupabase({
+    const sb = createMockSupabase({
       "table:route_logs": { data: logRow(), error: null },
       "table:activity_events": { data: { id: "evt1" }, error: null },
     });
-    await primeAuth(client);
+    await primeAuth(sb);
     const { buildBadgeContext } = await import("@/lib/achievements/context");
     vi.mocked(buildBadgeContext).mockRejectedValue(new Error("badge context boom"));
     // The action catches + logs; silence the expected console.error.
@@ -340,15 +304,15 @@ describe("updateAttempts", () => {
     // the upsert (create) branch keyed on (user_id, route_id), NOT be
     // rejected as a malformed id — the regression this guards against
     // blocked logging the very first attempt on any route.
-    const { client, calls } = mockSupabase({
+    const sb = createMockSupabase({
       "table:route_logs": { data: logRow({ completed: false, attempts: 1 }), error: null },
     });
-    await primeAuth(client);
+    await primeAuth(sb);
     const { updateAttempts } = await import("./route-log-actions");
     const result = await updateAttempts(ROUTE_1, 1, "");
     expect(result).toMatchObject({ success: true, log: expect.objectContaining({ id: LOG_1 }) });
-    expect(calls.some((c) => c.table === "route_logs" && c.method === "upsert")).toBe(true);
-    expect(calls.some((c) => c.table === "route_logs" && c.method === "update")).toBe(false);
+    expect(sb.calls.some((c) => c.source === "route_logs" && c.method === "upsert")).toBe(true);
+    expect(sb.calls.some((c) => c.source === "route_logs" && c.method === "update")).toBe(false);
   });
 
   it("rejects out-of-range attempts (-1, 1000, non-integer)", async () => {
@@ -366,10 +330,10 @@ describe("updateAttempts", () => {
   });
 
   it("returns the updated log WITHOUT busting route-log tags (optimistic UI owns attempts)", async () => {
-    const { client } = mockSupabase({
+    const sb = createMockSupabase({
       "table:route_logs": { data: logRow({ completed: false, attempts: 4 }), error: null },
     });
-    await primeAuth(client);
+    await primeAuth(sb);
 
     const { updateAttempts } = await import("./route-log-actions");
     const { revalidateRouteLogTags } = await import("@/lib/cache/revalidate");
@@ -382,13 +346,13 @@ describe("updateAttempts", () => {
   });
 
   it("maps a DB error through formatError", async () => {
-    const { client } = mockSupabase({
+    const sb = createMockSupabase({
       "table:route_logs": {
         data: null,
         error: { code: "23514", message: "check constraint violated" },
       },
     });
-    await primeAuth(client);
+    await primeAuth(sb);
     const { updateAttempts } = await import("./route-log-actions");
     expect(await updateAttempts(ROUTE_1, 4, LOG_1)).toEqual({ error: "That value isn't allowed." });
   });
@@ -411,7 +375,7 @@ describe("uncompleteRoute", () => {
   });
 
   it("clears the log, deletes completion events, and busts the tags", async () => {
-    const { client, calls } = mockSupabase({
+    const sb = createMockSupabase({
       "table:route_logs": {
         data: logRow({ completed: false, completed_at: null, grade_vote: null }),
         error: null,
@@ -419,29 +383,29 @@ describe("uncompleteRoute", () => {
     });
     // deleteCompletionEvents goes through the service-role client —
     // hand it a second recording proxy.
-    const service = mockSupabase({ "table:activity_events": { data: null, error: null } });
+    const service = createMockSupabase({ "table:activity_events": { data: null, error: null } });
     const { createServiceClient } = await import("@/lib/supabase/server");
-    vi.mocked(createServiceClient).mockReturnValue(service.client as never);
-    await primeAuth(client);
+    vi.mocked(createServiceClient).mockReturnValue(service as never);
+    await primeAuth(sb);
 
     const { uncompleteRoute } = await import("./route-log-actions");
     const { revalidateRouteLogTags } = await import("@/lib/cache/revalidate");
     const result = await uncompleteRoute(ROUTE_1, LOG_1);
 
     expect(result).toMatchObject({ success: true });
-    expect(calls.some((c) => c.table === "route_logs" && c.method === "update")).toBe(true);
-    expect(service.calls.some((c) => c.table === "activity_events" && c.method === "delete")).toBe(true);
+    expect(sb.calls.some((c) => c.source === "route_logs" && c.method === "update")).toBe(true);
+    expect(service.calls.some((c) => c.source === "activity_events" && c.method === "delete")).toBe(true);
     expect(revalidateRouteLogTags).toHaveBeenCalledWith(SET_1, USER_A);
   });
 
   it("maps a 42501 on the update to the friendly permission message", async () => {
-    const { client } = mockSupabase({
+    const sb = createMockSupabase({
       "table:route_logs": { data: null, error: { code: "42501", message: "RLS" } },
     });
-    const service = mockSupabase({ "table:activity_events": { data: null, error: null } });
+    const service = createMockSupabase({ "table:activity_events": { data: null, error: null } });
     const { createServiceClient } = await import("@/lib/supabase/server");
-    vi.mocked(createServiceClient).mockReturnValue(service.client as never);
-    await primeAuth(client);
+    vi.mocked(createServiceClient).mockReturnValue(service as never);
+    await primeAuth(sb);
 
     const { uncompleteRoute } = await import("./route-log-actions");
     expect(await uncompleteRoute(ROUTE_1, LOG_1)).toEqual({
@@ -467,10 +431,10 @@ describe("toggleZone", () => {
   });
 
   it("returns the updated log on success", async () => {
-    const { client } = mockSupabase({
+    const sb = createMockSupabase({
       "table:route_logs": { data: logRow({ zone: true, completed: false }), error: null },
     });
-    await primeAuth(client);
+    await primeAuth(sb);
     const { toggleZone } = await import("./route-log-actions");
     const result = await toggleZone(ROUTE_1, true, LOG_1);
     expect(result).toMatchObject({ success: true, log: expect.objectContaining({ zone: true }) });
@@ -493,35 +457,35 @@ describe("updateGradeVote", () => {
   });
 
   it("writes the vote and busts the per-route grade tag", async () => {
-    const { client, calls } = mockSupabase({
+    const sb = createMockSupabase({
       "table:route_logs": { data: logRow({ grade_vote: 5 }), error: null },
     });
-    await primeAuth(client);
+    await primeAuth(sb);
 
     const { updateGradeVote } = await import("./route-log-actions");
     const { revalidateTag } = await import("next/cache");
     const result = await updateGradeVote(ROUTE_1, 5, LOG_1);
 
     expect(result).toMatchObject({ success: true, log: expect.objectContaining({ grade_vote: 5 }) });
-    expect(calls.some((c) => c.table === "route_logs" && c.method === "update")).toBe(true);
+    expect(sb.calls.some((c) => c.source === "route_logs" && c.method === "update")).toBe(true);
     const bustedTags = vi.mocked(revalidateTag).mock.calls.map((c) => c[0]);
     expect(bustedTags).toContain(`route:${ROUTE_1}:grade`);
   });
 
   it("accepts null to clear a vote", async () => {
-    const { client } = mockSupabase({
+    const sb = createMockSupabase({
       "table:route_logs": { data: logRow({ grade_vote: null }), error: null },
     });
-    await primeAuth(client);
+    await primeAuth(sb);
     const { updateGradeVote } = await import("./route-log-actions");
     expect(await updateGradeVote(ROUTE_1, null, LOG_1)).toMatchObject({ success: true });
   });
 
   it("maps a DB error through formatError", async () => {
-    const { client } = mockSupabase({
+    const sb = createMockSupabase({
       "table:route_logs": { data: null, error: { code: "PGRST116", message: "0 rows" } },
     });
-    await primeAuth(client);
+    await primeAuth(sb);
     const { updateGradeVote } = await import("./route-log-actions");
     expect(await updateGradeVote(ROUTE_1, 5, LOG_1)).toEqual({ error: "Not found." });
   });

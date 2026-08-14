@@ -8,38 +8,11 @@ import {
   sendCrewInvite,
   transferCrewOwnership,
 } from "./crew-lifecycle";
+import { createMockSupabase } from "@/test/mock-supabase";
 
 const USER_A = "11111111-1111-1111-1111-111111111111";
 const USER_B = "22222222-2222-2222-2222-222222222222";
 const CREW_1 = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
-
-// Chainable Supabase mock — same pattern as actions.test.ts.
-type SbResult = { data?: unknown; error?: { code?: string; message?: string } | null };
-
-function makeChain(resolve: () => SbResult) {
-  const builder: Record<string, unknown> = {};
-  const chain: (...args: unknown[]) => typeof builder = () => builder;
-  for (const m of ["select", "insert", "update", "delete", "eq", "maybeSingle", "single"]) {
-    builder[m] = chain;
-  }
-  builder.then = (onFulfilled: (v: SbResult) => unknown) =>
-    Promise.resolve(resolve()).then(onFulfilled);
-  return builder;
-}
-
-function makeSupabase(opts: {
-  rateLimit?: boolean | null;
-  results?: Record<string, SbResult | (() => SbResult)>;
-}) {
-  return {
-    rpc: () => makeChain(() => ({ data: opts.rateLimit ?? true })),
-    from: (table: string) =>
-      makeChain(() => {
-        const r = opts.results?.[`table:${table}`];
-        return typeof r === "function" ? r() : (r ?? { data: null });
-      }),
-  } as never;
-}
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -51,7 +24,9 @@ beforeEach(() => {
 
 describe("sendCrewInvite", () => {
   it("rejects when bump_invite_rate_limit returns false", async () => {
-    const supabase = makeSupabase({ rateLimit: false });
+    const supabase = createMockSupabase({
+      "rpc:bump_invite_rate_limit": { data: false },
+    }) as never;
     const result = await sendCrewInvite({
       supabase,
       actorId: USER_A,
@@ -66,9 +41,9 @@ describe("sendCrewInvite", () => {
   });
 
   it("rejects when target profile is missing", async () => {
-    const supabase = makeSupabase({
-      results: { "table:profiles": { data: null } },
-    });
+    const supabase = createMockSupabase({
+      "table:profiles": { data: null },
+    }) as never;
     const result = await sendCrewInvite({
       supabase,
       actorId: USER_A,
@@ -79,9 +54,9 @@ describe("sendCrewInvite", () => {
   });
 
   it("rejects when the target has opted out of invites", async () => {
-    const supabase = makeSupabase({
-      results: { "table:profiles": { data: { allow_crew_invites: false } } },
-    });
+    const supabase = createMockSupabase({
+      "table:profiles": { data: { allow_crew_invites: false } },
+    }) as never;
     const result = await sendCrewInvite({
       supabase,
       actorId: USER_A,
@@ -92,13 +67,11 @@ describe("sendCrewInvite", () => {
   });
 
   it("maps unique-violation (23505) to the dedup error message", async () => {
-    const supabase = makeSupabase({
-      results: {
-        "table:profiles": { data: { allow_crew_invites: true, username: "alice" } },
-        "table:crew_members": { data: null, error: { code: "23505", message: "dup" } },
-        "table:crews": { data: { name: "Tuesday Crew" } },
-      },
-    });
+    const supabase = createMockSupabase({
+      "table:profiles": { data: { allow_crew_invites: true, username: "alice" } },
+      "table:crew_members": { data: null, error: { code: "23505", message: "dup" } },
+      "table:crews": { data: { name: "Tuesday Crew" } },
+    }) as never;
     const result = await sendCrewInvite({
       supabase,
       actorId: USER_A,
@@ -113,13 +86,11 @@ describe("sendCrewInvite", () => {
   });
 
   it("happy path: dispatches notification + busts crew + userCrews tags", async () => {
-    const supabase = makeSupabase({
-      results: {
-        "table:profiles": { data: { allow_crew_invites: true, username: "alice" } },
-        "table:crew_members": { data: { id: "invite-1" }, error: null },
-        "table:crews": { data: { name: "Tuesday Crew" } },
-      },
-    });
+    const supabase = createMockSupabase({
+      "table:profiles": { data: { allow_crew_invites: true, username: "alice" } },
+      "table:crew_members": { data: { id: "invite-1" }, error: null },
+      "table:crews": { data: { name: "Tuesday Crew" } },
+    }) as never;
     const result = await sendCrewInvite({
       supabase,
       actorId: USER_A,
@@ -141,22 +112,21 @@ describe("sendCrewInvite", () => {
       }),
     );
 
+    // No cache busts: crew surfaces are read per-request (reader-first
+    // rule, cache/tags.ts).
     const { revalidateTag } = await import("next/cache");
-    expect(revalidateTag).toHaveBeenCalledWith(`crew:${CREW_1}`, "max");
-    expect(revalidateTag).toHaveBeenCalledWith(`user:${USER_A}:crews`, "max");
+    expect(revalidateTag).not.toHaveBeenCalled();
   });
 
   it("still returns ok if notify dispatch fails — invite row already written", async () => {
     const { notify } = await import("@/lib/notify");
     vi.mocked(notify).mockRejectedValueOnce(new Error("dispatcher boom"));
 
-    const supabase = makeSupabase({
-      results: {
-        "table:profiles": { data: { allow_crew_invites: true } },
-        "table:crew_members": { data: { id: "invite-1" }, error: null },
-        "table:crews": { data: { name: "X" } },
-      },
-    });
+    const supabase = createMockSupabase({
+      "table:profiles": { data: { allow_crew_invites: true } },
+      "table:crew_members": { data: { id: "invite-1" }, error: null },
+      "table:crews": { data: { name: "X" } },
+    }) as never;
     const result = await sendCrewInvite({
       supabase,
       actorId: USER_A,
@@ -176,9 +146,9 @@ describe("acceptCrewInvite", () => {
     // The UPDATE carries `.eq("status", "pending")` — a concurrently
     // cancelled invite returns no row, and we must NOT push a phantom
     // "accepted" notification to the inviter.
-    const supabase = makeSupabase({
-      results: { "table:crew_members": { data: null } },
-    });
+    const supabase = createMockSupabase({
+      "table:crew_members": { data: null },
+    }) as never;
     const result = await acceptCrewInvite({
       supabase,
       actorId: USER_A,
@@ -190,11 +160,9 @@ describe("acceptCrewInvite", () => {
   });
 
   it("maps a DB error on the flip to a friendly message", async () => {
-    const supabase = makeSupabase({
-      results: {
-        "table:crew_members": { data: null, error: { code: "42501", message: "rls" } },
-      },
-    });
+    const supabase = createMockSupabase({
+      "table:crew_members": { data: null, error: { code: "42501", message: "rls" } },
+    }) as never;
     const result = await acceptCrewInvite({
       supabase,
       actorId: USER_A,
@@ -203,19 +171,17 @@ describe("acceptCrewInvite", () => {
     expect(result).toEqual({ error: "You don't have permission to do that." });
   });
 
-  it("happy path: notifies the inviter + busts crew tag", async () => {
-    const supabase = makeSupabase({
-      results: {
-        "table:crew_members": {
-          data: {
-            invited_by: USER_B,
-            crew_id: CREW_1,
-            crew: { name: "Tuesday Crew" },
-          },
+  it("happy path: notifies the inviter", async () => {
+    const supabase = createMockSupabase({
+      "table:crew_members": {
+        data: {
+          invited_by: USER_B,
+          crew_id: CREW_1,
+          crew: { name: "Tuesday Crew" },
         },
-        "table:profiles": { data: { username: "alice" } },
       },
-    });
+      "table:profiles": { data: { username: "alice" } },
+    }) as never;
     const result = await acceptCrewInvite({
       supabase,
       actorId: USER_A,
@@ -234,19 +200,14 @@ describe("acceptCrewInvite", () => {
         accepterUsername: "alice",
       }),
     );
-
-    const { revalidateTag } = await import("next/cache");
-    expect(revalidateTag).toHaveBeenCalledWith(`crew:${CREW_1}`, "max");
   });
 
   it("skips dispatch when the returning row has no inviter, still ok", async () => {
-    const supabase = makeSupabase({
-      results: {
-        "table:crew_members": {
-          data: { invited_by: null, crew_id: CREW_1, crew: null },
-        },
+    const supabase = createMockSupabase({
+      "table:crew_members": {
+        data: { invited_by: null, crew_id: CREW_1, crew: null },
       },
-    });
+    }) as never;
     const result = await acceptCrewInvite({
       supabase,
       actorId: USER_A,
@@ -261,14 +222,12 @@ describe("acceptCrewInvite", () => {
     const { notify } = await import("@/lib/notify");
     vi.mocked(notify).mockRejectedValueOnce(new Error("dispatcher boom"));
 
-    const supabase = makeSupabase({
-      results: {
-        "table:crew_members": {
-          data: { invited_by: USER_B, crew_id: CREW_1, crew: { name: "X" } },
-        },
-        "table:profiles": { data: { username: "alice" } },
+    const supabase = createMockSupabase({
+      "table:crew_members": {
+        data: { invited_by: USER_B, crew_id: CREW_1, crew: { name: "X" } },
       },
-    });
+      "table:profiles": { data: { username: "alice" } },
+    }) as never;
     const result = await acceptCrewInvite({
       supabase,
       actorId: USER_A,
@@ -284,9 +243,9 @@ describe("acceptCrewInvite", () => {
 
 describe("transferCrewOwnership", () => {
   it("rejects when the crew is missing", async () => {
-    const supabase = makeSupabase({
-      results: { "table:crews": { data: null } },
-    });
+    const supabase = createMockSupabase({
+      "table:crews": { data: null },
+    }) as never;
     const result = await transferCrewOwnership({
       supabase,
       actorId: USER_A,
@@ -297,11 +256,9 @@ describe("transferCrewOwnership", () => {
   });
 
   it("rejects when caller isn't the current creator", async () => {
-    const supabase = makeSupabase({
-      results: {
-        "table:crews": { data: { created_by: "different-user" } },
-      },
-    });
+    const supabase = createMockSupabase({
+      "table:crews": { data: { created_by: "different-user" } },
+    }) as never;
     const result = await transferCrewOwnership({
       supabase,
       actorId: USER_A,
@@ -314,12 +271,10 @@ describe("transferCrewOwnership", () => {
   });
 
   it("rejects when target isn't an active member", async () => {
-    const supabase = makeSupabase({
-      results: {
-        "table:crews": { data: { created_by: USER_A } },
-        "table:crew_members": { data: null },
-      },
-    });
+    const supabase = createMockSupabase({
+      "table:crews": { data: { created_by: USER_A } },
+      "table:crew_members": { data: null },
+    }) as never;
     const result = await transferCrewOwnership({
       supabase,
       actorId: USER_A,
@@ -331,14 +286,12 @@ describe("transferCrewOwnership", () => {
     });
   });
 
-  it("happy path: updates created_by, dispatches notification, busts members", async () => {
-    const supabase = makeSupabase({
-      results: {
-        "table:crews": { data: { created_by: USER_A, name: "Tuesday Crew" } },
-        "table:crew_members": { data: { id: "row-1" } },
-        "table:profiles": { data: { username: "alice" } },
-      },
-    });
+  it("happy path: updates created_by, dispatches notification", async () => {
+    const supabase = createMockSupabase({
+      "table:crews": { data: { created_by: USER_A, name: "Tuesday Crew" } },
+      "table:crew_members": { data: { id: "row-1" } },
+      "table:profiles": { data: { username: "alice" } },
+    }) as never;
     const result = await transferCrewOwnership({
       supabase,
       actorId: USER_A,
@@ -358,8 +311,5 @@ describe("transferCrewOwnership", () => {
         fromUsername: "alice",
       }),
     );
-
-    const { revalidateTag } = await import("next/cache");
-    expect(revalidateTag).toHaveBeenCalledWith(`crew:${CREW_1}`, "max");
   });
 });

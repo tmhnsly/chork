@@ -13,28 +13,7 @@ vi.mock("next/cache", () => ({
   revalidateTag: vi.fn(),
 }));
 
-type SbResult = { data?: unknown; error?: unknown };
-
-function makeChain(resolve: () => SbResult) {
-  const builder: Record<string, unknown> = {};
-  const chain: (...args: unknown[]) => typeof builder = () => builder;
-  const methods = [
-    "select", "eq", "neq", "in", "or", "order", "limit", "range",
-    "maybeSingle", "single",
-  ];
-  for (const m of methods) (builder[m] as unknown) = chain;
-  builder.then = (onFulfilled: (v: SbResult) => unknown) =>
-    Promise.resolve(resolve()).then(onFulfilled);
-  return builder;
-}
-
-function scriptedSupabase(results: SbResult[]) {
-  let i = 0;
-  return {
-    from: (_table: string) =>
-      makeChain(() => results[Math.min(i++, results.length - 1)] ?? { data: null }),
-  };
-}
+import { createMockSupabase } from "@/test/mock-supabase";
 
 const USER_A = "11111111-1111-1111-1111-111111111111";
 const COMP_1 = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
@@ -48,7 +27,9 @@ beforeEach(() => {
 // ────────────────────────────────────────────────────────────────
 describe("getCompetitionById", () => {
   it("returns null on error — never throws upstream", async () => {
-    const sb = scriptedSupabase([{ data: null, error: { message: "rls" } }]);
+    const sb = createMockSupabase({
+      "table:competitions": { data: null, error: { message: "rls" } },
+    });
     vi.doMock("@/lib/supabase/server", () => ({
       createCachedContextClient: () => sb,
     }));
@@ -67,7 +48,7 @@ describe("getCompetitionById", () => {
       status: "live",
       organiser_id: USER_A,
     };
-    const sb = scriptedSupabase([{ data: row }]);
+    const sb = createMockSupabase({ "table:competitions": { data: row } });
     vi.doMock("@/lib/supabase/server", () => ({
       createCachedContextClient: () => sb,
     }));
@@ -82,7 +63,9 @@ describe("getCompetitionById", () => {
 // ────────────────────────────────────────────────────────────────
 describe("getCompetitionsForOrganiser", () => {
   it("returns [] on error", async () => {
-    const sb = scriptedSupabase([{ data: null, error: { message: "rls" } }]);
+    const sb = createMockSupabase({
+      "table:competitions": { data: null, error: { message: "rls" } },
+    });
     const { getCompetitionsForOrganiser } = await import("./competition-queries");
     expect(await getCompetitionsForOrganiser(sb as never, USER_A)).toEqual([]);
   });
@@ -99,7 +82,7 @@ describe("getCompetitionsForOrganiser", () => {
         organiser_id: USER_A,
       },
     ];
-    const sb = scriptedSupabase([{ data: rows }]);
+    const sb = createMockSupabase({ "table:competitions": { data: rows } });
     const { getCompetitionsForOrganiser } = await import("./competition-queries");
     expect(await getCompetitionsForOrganiser(sb as never, USER_A)).toEqual(rows);
   });
@@ -110,14 +93,14 @@ describe("getCompetitionsForOrganiser", () => {
 // ────────────────────────────────────────────────────────────────
 describe("getCompetitionGyms", () => {
   it("drops rows where the gym join didn't resolve", async () => {
-    const sb = scriptedSupabase([
-      {
+    const sb = createMockSupabase({
+      "table:competition_gyms": {
         data: [
           { competition_id: COMP_1, gym_id: "g1", gyms: { name: "Yonder", slug: "yonder" } },
           { competition_id: COMP_1, gym_id: "g2", gyms: null },
         ],
       },
-    ]);
+    });
     const { getCompetitionGyms } = await import("./competition-queries");
     expect(await getCompetitionGyms(sb as never, COMP_1)).toEqual([
       { competition_id: COMP_1, gym_id: "g1", gym_name: "Yonder", gym_slug: "yonder" },
@@ -125,8 +108,8 @@ describe("getCompetitionGyms", () => {
   });
 
   it("unwraps the `gyms` property if supabase returns it as a single-element array", async () => {
-    const sb = scriptedSupabase([
-      {
+    const sb = createMockSupabase({
+      "table:competition_gyms": {
         data: [
           {
             competition_id: COMP_1,
@@ -135,7 +118,7 @@ describe("getCompetitionGyms", () => {
           },
         ],
       },
-    ]);
+    });
     const { getCompetitionGyms } = await import("./competition-queries");
     expect(await getCompetitionGyms(sb as never, COMP_1)).toEqual([
       { competition_id: COMP_1, gym_id: "g1", gym_name: "Yonder", gym_slug: "yonder" },
@@ -148,7 +131,9 @@ describe("getCompetitionGyms", () => {
 // ────────────────────────────────────────────────────────────────
 describe("getMyCompetitionParticipation", () => {
   it("returns null when the caller hasn't joined", async () => {
-    const sb = scriptedSupabase([{ data: null }]);
+    const sb = createMockSupabase({
+      "table:competition_participants": { data: null },
+    });
     const { getMyCompetitionParticipation } = await import("./competition-queries");
     expect(
       await getMyCompetitionParticipation(sb as never, COMP_1, USER_A),

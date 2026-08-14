@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createMockSupabase } from "@/test/mock-supabase";
 
 // ────────────────────────────────────────────────────────────────
 // Module mocks
@@ -13,41 +14,6 @@ vi.mock("@/lib/auth", () => ({
   requireAuth: vi.fn(),
   requireSignedIn: vi.fn(),
 }));
-
-// ────────────────────────────────────────────────────────────────
-// Supabase chain proxy — records table + method + args so a test can
-// assert WHICH tables were touched, not just that the call resolved.
-// That matters here: the whole point of `clearActiveGym` is the write
-// it must *not* perform.
-// ────────────────────────────────────────────────────────────────
-type SbError = { code?: string; message?: string; details?: string; hint?: string };
-type SbResult = { data?: unknown; error?: SbError | null };
-type RecordedCall = { table: string; method: string; args: unknown[] };
-
-function makeChain(table: string, resolve: () => SbResult, calls: RecordedCall[]) {
-  const builder: Record<string, unknown> = {};
-  for (const m of [
-    "select", "insert", "update", "delete", "upsert",
-    "eq", "neq", "in", "order", "limit", "maybeSingle", "single",
-  ]) {
-    builder[m] = (...args: unknown[]) => {
-      calls.push({ table, method: m, args });
-      return builder;
-    };
-  }
-  builder.then = (onFulfilled: (v: SbResult) => unknown) =>
-    Promise.resolve(resolve()).then(onFulfilled);
-  return builder;
-}
-
-function mockSupabase(results: Record<string, SbResult> = {}) {
-  const calls: RecordedCall[] = [];
-  const client = {
-    from: (table: string) =>
-      makeChain(table, () => results[`table:${table}`] ?? { data: null, error: null }, calls),
-  };
-  return { client, calls };
-}
 
 const USER_A = "11111111-1111-4111-8111-111111111111";
 const GYM_1 = "22222222-2222-4222-8222-222222222222";
@@ -67,19 +33,19 @@ beforeEach(() => {
 
 describe("clearActiveGym", () => {
   it("nulls active_gym_id for the caller", async () => {
-    const { client, calls } = mockSupabase();
-    await primeSignedIn(client);
+    const sb = createMockSupabase();
+    await primeSignedIn(sb);
 
     const { clearActiveGym } = await import("./membership-actions");
     const res = await clearActiveGym();
 
     expect(res).toEqual({ success: true, gymId: null });
 
-    const update = calls.find((c) => c.table === "profiles" && c.method === "update");
+    const update = sb.calls.find((c) => c.source === "profiles" && c.method === "update");
     expect(update?.args[0]).toEqual({ active_gym_id: null });
     // Scoped to the caller — never a blanket update.
     expect(
-      calls.some((c) => c.table === "profiles" && c.method === "eq" && c.args[0] === "id"),
+      sb.calls.some((c) => c.source === "profiles" && c.method === "eq" && c.args[0] === "id"),
     ).toBe(true);
   });
 
@@ -89,13 +55,13 @@ describe("clearActiveGym", () => {
     // the climber's own history at that gym unreadable to them —
     // data intact, silently gone from their profile. Leaving must
     // only park the gym, never sever it.
-    const { client, calls } = mockSupabase();
-    await primeSignedIn(client);
+    const sb = createMockSupabase();
+    await primeSignedIn(sb);
 
     const { clearActiveGym } = await import("./membership-actions");
     await clearActiveGym();
 
-    expect(calls.filter((c) => c.table === "gym_memberships")).toEqual([]);
+    expect(sb.calls.filter((c) => c.source === "gym_memberships")).toEqual([]);
   });
 
   it("returns the auth error when signed out", async () => {
@@ -107,10 +73,10 @@ describe("clearActiveGym", () => {
   });
 
   it("maps a Postgres failure to a friendly error", async () => {
-    const { client } = mockSupabase({
+    const sb = createMockSupabase({
       "table:profiles": { error: { code: "42501", message: "permission denied" } },
     });
-    await primeSignedIn(client);
+    await primeSignedIn(sb);
 
     const { clearActiveGym } = await import("./membership-actions");
     const res = await clearActiveGym();
@@ -128,8 +94,8 @@ describe("clearActiveGym", () => {
     // with itself and a gym change alone never updated it. The visible
     // result was the nav flashing on reload — server painted the stale
     // shell, client hydrated and swapped the tabs underneath.
-    const { client } = mockSupabase();
-    await primeSignedIn(client);
+    const sb = createMockSupabase();
+    await primeSignedIn(sb);
 
     const { clearActiveGym } = await import("./membership-actions");
     await clearActiveGym();
@@ -138,49 +104,49 @@ describe("clearActiveGym", () => {
   });
 
   it("busts the profile cache so the nav drops to its gymless variant", async () => {
-    const { client } = mockSupabase();
-    await primeSignedIn(client);
+    const sb = createMockSupabase();
+    await primeSignedIn(sb);
 
     const { clearActiveGym } = await import("./membership-actions");
     await clearActiveGym();
 
     const { revalidateUserProfile } = await import("@/lib/cache/revalidate");
-    expect(revalidateUserProfile).toHaveBeenCalledWith(client, USER_A);
+    expect(revalidateUserProfile).toHaveBeenCalledWith(sb, USER_A);
   });
 });
 
 describe("switchActiveGym", () => {
   it("rejects a non-uuid before touching the database", async () => {
-    const { client, calls } = mockSupabase();
-    await primeSignedIn(client);
+    const sb = createMockSupabase();
+    await primeSignedIn(sb);
 
     const { switchActiveGym } = await import("./membership-actions");
     expect(await switchActiveGym("not-a-uuid")).toEqual({ error: "Invalid gym" });
-    expect(calls).toEqual([]);
+    expect(sb.calls).toEqual([]);
   });
 
   it("refuses a gym that isn't listed", async () => {
     // The lookup filters `is_listed = true`, so an unlisted gym comes
     // back as no row — indistinguishable from a bad id, and both are
     // "Gym not found" rather than leaking which.
-    const { client } = mockSupabase({ "table:gyms": { data: null, error: null } });
-    await primeSignedIn(client);
+    const sb = createMockSupabase({ "table:gyms": { data: null, error: null } });
+    await primeSignedIn(sb);
 
     const { switchActiveGym } = await import("./membership-actions");
     expect(await switchActiveGym(GYM_1)).toEqual({ error: "Gym not found" });
   });
 
   it("upserts a membership then repoints the active gym", async () => {
-    const { client, calls } = mockSupabase({ "table:gyms": { data: { id: GYM_1 }, error: null } });
-    await primeSignedIn(client);
+    const sb = createMockSupabase({ "table:gyms": { data: { id: GYM_1 }, error: null } });
+    await primeSignedIn(sb);
 
     const { switchActiveGym } = await import("./membership-actions");
     expect(await switchActiveGym(GYM_1)).toEqual({ success: true, gymId: GYM_1 });
 
-    const upsert = calls.find((c) => c.table === "gym_memberships" && c.method === "upsert");
+    const upsert = sb.calls.find((c) => c.source === "gym_memberships" && c.method === "upsert");
     expect(upsert?.args[0]).toEqual({ user_id: USER_A, gym_id: GYM_1 });
 
-    const update = calls.find((c) => c.table === "profiles" && c.method === "update");
+    const update = sb.calls.find((c) => c.source === "profiles" && c.method === "update");
     expect(update?.args[0]).toEqual({ active_gym_id: GYM_1 });
   });
 
@@ -196,19 +162,19 @@ describe("switchActiveGym", () => {
     // INSERT) and silently failed for every gym the climber had
     // joined before — which is every gym they'd previously switched
     // to. `ignoreDuplicates` makes it ON CONFLICT DO NOTHING.
-    const { client, calls } = mockSupabase({ "table:gyms": { data: { id: GYM_1 }, error: null } });
-    await primeSignedIn(client);
+    const sb = createMockSupabase({ "table:gyms": { data: { id: GYM_1 }, error: null } });
+    await primeSignedIn(sb);
 
     const { switchActiveGym } = await import("./membership-actions");
     await switchActiveGym(GYM_1);
 
-    const upsert = calls.find((c) => c.table === "gym_memberships" && c.method === "upsert");
+    const upsert = sb.calls.find((c) => c.source === "gym_memberships" && c.method === "upsert");
     expect(upsert?.args[1]).toMatchObject({ ignoreDuplicates: true });
   });
 
   it("drops the nav-shell cookie so the nav can't paint the stale variant", async () => {
-    const { client } = mockSupabase({ "table:gyms": { data: { id: GYM_1 }, error: null } });
-    await primeSignedIn(client);
+    const sb = createMockSupabase({ "table:gyms": { data: { id: GYM_1 }, error: null } });
+    await primeSignedIn(sb);
 
     const { switchActiveGym } = await import("./membership-actions");
     await switchActiveGym(GYM_1);
@@ -219,12 +185,12 @@ describe("switchActiveGym", () => {
   it("keeps previous memberships when switching", async () => {
     // Switching parks the old gym rather than leaving it, for the same
     // reason clearing does — the climber keeps reading their history.
-    const { client, calls } = mockSupabase({ "table:gyms": { data: { id: GYM_1 }, error: null } });
-    await primeSignedIn(client);
+    const sb = createMockSupabase({ "table:gyms": { data: { id: GYM_1 }, error: null } });
+    await primeSignedIn(sb);
 
     const { switchActiveGym } = await import("./membership-actions");
     await switchActiveGym(GYM_1);
 
-    expect(calls.some((c) => c.table === "gym_memberships" && c.method === "delete")).toBe(false);
+    expect(sb.calls.some((c) => c.source === "gym_memberships" && c.method === "delete")).toBe(false);
   });
 });

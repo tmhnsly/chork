@@ -1,0 +1,29 @@
+{
+  // Typecheck the test suite + its shared harness.
+  //
+  // The base config excludes `**/*.test.ts` and `src/test/**` so that
+  // `next build` never walks them. That exclusion also meant no test
+  // file was ever typechecked by anything: vitest transpiles without
+  // typechecking, so a broken fixture or a drifted harness signature
+  // only surfaced as a confusing runtime failure — or not at all, on
+  // a branch the assertions didn't reach.
+  //
+  // That got sharper when `src/test/mock-supabase.ts` became shared
+  // infrastructure (every server-action test builds its client from
+  // it). A load-bearing module deserves the same type discipline as
+  // the code it stands in for.
+  //
+  // Run via `pnpm typecheck:test`. Kept separate from the base config
+  // rather than relaxing its `exclude`, so the production build's
+  // file set is unchanged.
+  "extends": "./tsconfig.json",
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next"
+  ]
+}

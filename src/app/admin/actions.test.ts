@@ -5,11 +5,12 @@
  * want every action to at minimum reject unauthed callers and
  * malformed input before touching Supabase.
  *
- * Mocks mirror the pattern in `src/app/crew/actions.test.ts` —
- * thenable chain builder resolved per table/RPC, individual module
- * mocks for auth + external side-effects (createGymWithOwner etc).
+ * Supabase double: shared harness (`createMockSupabase`), plus
+ * individual module mocks for auth + external side-effects
+ * (createGymWithOwner etc).
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createMockSupabase } from "@/test/mock-supabase";
 
 // The dynamic `await import("./actions")` inside each test pulls in
 // the full admin actions dep graph (database.types, supabase clients,
@@ -31,21 +32,6 @@ vi.mock("@/lib/auth", () => ({
   requireCompetitionOrganiserOrGymAdmin: vi.fn(),
   gateGymAdminMutation: vi.fn(),
 }));
-vi.mock("@/lib/data/admin-mutations", () => ({
-  createGymWithOwner: vi.fn(),
-  acceptGymInvite: vi.fn(),
-  createAdminSet: vi.fn(),
-  updateAdminSet: vi.fn(),
-  quickSetupRoutes: vi.fn(),
-  updateAdminRoute: vi.fn(),
-  setRouteTags: vi.fn(),
-  createCompetition: vi.fn(),
-  updateCompetition: vi.fn(),
-  linkGymToCompetition: vi.fn(),
-  unlinkGymFromCompetition: vi.fn(),
-  createCompetitionCategory: vi.fn(),
-  deleteCompetitionCategory: vi.fn(),
-}));
 vi.mock("@/lib/supabase/server", () => ({
   createServiceClient: vi.fn(),
 }));
@@ -65,45 +51,6 @@ vi.mock("@/lib/push/server", () => ({
 vi.mock("@/lib/rate-limit", () => ({
   enforce: vi.fn(() => Promise.resolve({ ok: true })),
 }));
-
-// ────────────────────────────────────────────────────────────────
-// Chainable Supabase mock (matches the pattern in crew actions)
-// ────────────────────────────────────────────────────────────────
-
-type SbResult = {
-  data?: unknown;
-  error?: { code?: string; message?: string } | null;
-  count?: number;
-};
-
-function makeChain(resolve: () => SbResult) {
-  const builder: Record<string, unknown> = {};
-  const chain: (...args: unknown[]) => typeof builder = () => builder;
-  const methods = [
-    "select", "insert", "update", "delete", "upsert",
-    "eq", "neq", "in", "or", "gte", "lt", "order", "limit",
-    "maybeSingle", "single",
-  ];
-  for (const m of methods) (builder[m] as unknown) = chain;
-  builder.then = (onFulfilled: (v: SbResult) => unknown) =>
-    Promise.resolve(resolve()).then(onFulfilled);
-  return builder;
-}
-
-function mockSupabase(results: Record<string, SbResult> = {}) {
-  return {
-    from: (table: string) =>
-      makeChain(() => results[`table:${table}`] ?? { data: null }),
-    auth: {
-      admin: {
-        getUserById: vi.fn(async (id: string) => ({
-          data: { user: { id, email: `${id}@chork.test` } },
-          error: null,
-        })),
-      },
-    },
-  };
-}
 
 const USER_A = "11111111-1111-1111-1111-111111111111";
 const GYM_1 = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
@@ -168,11 +115,11 @@ describe("signupGym", () => {
   it("returns the created gym id on success", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
-      supabase: mockSupabase() as never,
+      supabase: createMockSupabase({
+        "rpc:create_gym_with_owner_tx": { data: GYM_1, error: null },
+      }) as never,
       userId: USER_A,
     });
-    const { createGymWithOwner } = await import("@/lib/data/admin-mutations");
-    vi.mocked(createGymWithOwner).mockResolvedValue({ gymId: GYM_1 });
 
     const { signupGym } = await import("./actions");
     expect(await signupGym(baseForm)).toEqual({ success: true, gymId: GYM_1 });
@@ -202,7 +149,7 @@ describe("sendAdminInvite", () => {
   it("rejects owner invites from non-owners", async () => {
     const { gateGymAdminMutation } = await import("@/lib/auth");
     vi.mocked(gateGymAdminMutation).mockResolvedValue({
-      supabase: mockSupabase() as never,
+      supabase: createMockSupabase() as never,
       userId: USER_A,
       gymId: GYM_1,
       isOwner: false,
@@ -216,7 +163,7 @@ describe("sendAdminInvite", () => {
   it("surfaces the invite URL on success", async () => {
     const { gateGymAdminMutation } = await import("@/lib/auth");
     vi.mocked(gateGymAdminMutation).mockResolvedValue({
-      supabase: mockSupabase({ "table:gym_invites": { data: null, error: null } }) as never,
+      supabase: createMockSupabase({ "table:gym_invites": { data: null, error: null } }) as never,
       userId: USER_A,
       gymId: GYM_1,
       isOwner: true,
@@ -249,7 +196,7 @@ describe("cancelAdminInvite", () => {
     // existence doesn't leak to non-admins.
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
-      supabase: mockSupabase({ "table:gym_invites": { data: [], error: null } }) as never,
+      supabase: createMockSupabase({ "table:gym_invites": { data: [], error: null } }) as never,
       userId: "u1",
     });
     const { cancelAdminInvite } = await import("./actions");
@@ -332,16 +279,183 @@ describe("createSet", () => {
   it("returns the created set id on success", async () => {
     const { gateGymAdminMutation } = await import("@/lib/auth");
     vi.mocked(gateGymAdminMutation).mockResolvedValue({
-      supabase: mockSupabase() as never,
+      supabase: createMockSupabase({
+        "table:sets": { data: { id: SET_1 }, error: null },
+      }) as never,
       userId: USER_A,
       gymId: GYM_1,
       isOwner: true,
     });
-    const { createAdminSet } = await import("@/lib/data/admin-mutations");
-    vi.mocked(createAdminSet).mockResolvedValue({ setId: SET_1 });
 
     const { createSet } = await import("./actions");
     expect(await createSet(form)).toEqual({ success: true, setId: SET_1 });
+  });
+
+  it("does NOT touch the incumbent when creating a draft", async () => {
+    const { gateGymAdminMutation } = await import("@/lib/auth");
+    const sb = createMockSupabase({
+      "table:sets": { data: { id: SET_1 }, error: null },
+    });
+    vi.mocked(gateGymAdminMutation).mockResolvedValue({
+      supabase: sb as never,
+      userId: USER_A,
+      gymId: GYM_1,
+      isOwner: true,
+    });
+
+    const { createSet } = await import("./actions");
+    await createSet(form); // status: "draft"
+    const updates = sb.calls.filter(
+      (c) => c.source === "sets" && c.method === "update",
+    );
+    expect(updates).toEqual([]);
+  });
+
+  it("creating a LIVE set archives the incumbent first (one live set per gym)", async () => {
+    const { gateGymAdminMutation } = await import("@/lib/auth");
+    const sb = createMockSupabase({
+      "table:sets": { data: { id: SET_1 }, error: null },
+    });
+    vi.mocked(gateGymAdminMutation).mockResolvedValue({
+      supabase: sb as never,
+      userId: USER_A,
+      gymId: GYM_1,
+      isOwner: true,
+    });
+
+    const { createSet } = await import("./actions");
+    // A live set needs routes (see the guard test below), so the
+    // quick-create shape is the one that can go straight to live.
+    expect(
+      await createSet({
+        ...form,
+        status: "live",
+        routes: { count: 2, zoneRouteNumbers: [] },
+      }),
+    ).toEqual({ success: true, setId: SET_1 });
+
+    // The demotion runs against the caller's gym, filtered to live
+    // rows, BEFORE the insert.
+    const update = sb.calls.find(
+      (c) => c.source === "sets" && c.method === "update",
+    );
+    const insertIdx = sb.calls.findIndex(
+      (c) => c.source === "sets" && c.method === "insert",
+    );
+    expect(update?.args[0]).toEqual({ status: "archived" });
+    expect(sb.calls.indexOf(update!)).toBeLessThan(insertIdx);
+    const eqArgs = sb.calls
+      .filter((c) => c.source === "sets" && c.method === "eq")
+      .map((c) => c.args);
+    expect(eqArgs).toContainEqual(["gym_id", GYM_1]);
+    expect(eqArgs).toContainEqual(["status", "live"]);
+  });
+
+  it("quick-create seeds numbered routes with zone flags in the same action", async () => {
+    const { gateGymAdminMutation } = await import("@/lib/auth");
+    const sb = createMockSupabase({
+      "table:sets": { data: { id: SET_1 }, error: null },
+      "table:routes": { data: null, error: null },
+    });
+    vi.mocked(gateGymAdminMutation).mockResolvedValue({
+      supabase: sb as never,
+      userId: USER_A,
+      gymId: GYM_1,
+      isOwner: true,
+    });
+
+    const { createSet } = await import("./actions");
+    const res = await createSet({
+      ...form,
+      status: "live",
+      routes: { count: 3, zoneRouteNumbers: [2, 99] }, // 99 out of range → dropped
+    });
+    expect(res).toEqual({ success: true, setId: SET_1 });
+
+    const insert = sb.calls.find(
+      (c) => c.source === "routes" && c.method === "insert",
+    );
+    expect(insert?.args[0]).toEqual([
+      { set_id: SET_1, number: 1, has_zone: false },
+      { set_id: SET_1, number: 2, has_zone: true },
+      { set_id: SET_1, number: 3, has_zone: false },
+    ]);
+  });
+
+  it("refuses to publish straight to live with no routes (empty Wall guard)", async () => {
+    // Mirrors updateSet's go-live guard. Without it, /admin/sets/new →
+    // "Publish" archived the gym's incumbent live set AND left a live
+    // set with zero routes — a blank Wall for every climber.
+    const { gateGymAdminMutation } = await import("@/lib/auth");
+    const sb = createMockSupabase({
+      "table:sets": { data: { id: SET_1 }, error: null },
+    });
+    vi.mocked(gateGymAdminMutation).mockResolvedValue({
+      supabase: sb as never,
+      userId: USER_A,
+      gymId: GYM_1,
+      isOwner: true,
+    });
+
+    const { createSet } = await import("./actions");
+    expect(await createSet({ ...form, status: "live" })).toEqual({
+      error: "Add at least one route before publishing this set.",
+    });
+    // And it must bail BEFORE archiving the incumbent.
+    expect(sb.calls.filter((c) => c.source === "sets")).toEqual([]);
+  });
+
+  it("announces to the gym when a set is created straight to live", async () => {
+    // Same domain event as publishing a draft, so it gets the same
+    // Announcement. Only the home-page quick-create reaches this path
+    // (it seeds routes in the same call).
+    const { getGymClimberUserIds } = await import("@/lib/push/server");
+    vi.mocked(getGymClimberUserIds).mockResolvedValue([USER_A]);
+    const { gateGymAdminMutation } = await import("@/lib/auth");
+    vi.mocked(gateGymAdminMutation).mockResolvedValue({
+      supabase: createMockSupabase({
+        "table:sets": { data: { id: SET_1 }, error: null },
+        "table:routes": { data: null, error: null },
+      }) as never,
+      userId: USER_A,
+      gymId: GYM_1,
+      isOwner: true,
+    });
+
+    const { createSet } = await import("./actions");
+    await createSet({
+      ...form,
+      status: "live",
+      routes: { count: 2, zoneRouteNumbers: [] },
+    });
+    expect(getGymClimberUserIds).toHaveBeenCalledWith(GYM_1);
+  });
+
+  it("does NOT announce when the set is created as a draft", async () => {
+    const { getGymClimberUserIds } = await import("@/lib/push/server");
+    const { gateGymAdminMutation } = await import("@/lib/auth");
+    vi.mocked(gateGymAdminMutation).mockResolvedValue({
+      supabase: createMockSupabase({
+        "table:sets": { data: { id: SET_1 }, error: null },
+      }) as never,
+      userId: USER_A,
+      gymId: GYM_1,
+      isOwner: true,
+    });
+
+    const { createSet } = await import("./actions");
+    await createSet(form); // status: "draft"
+    expect(getGymClimberUserIds).not.toHaveBeenCalled();
+  });
+
+  it("rejects a route count outside 1..100", async () => {
+    const { createSet } = await import("./actions");
+    expect(
+      await createSet({
+        ...form,
+        routes: { count: 0, zoneRouteNumbers: [] },
+      }),
+    ).toEqual({ error: "Route count must be between 1 and 100." });
   });
 });
 
@@ -350,14 +464,13 @@ describe("createSet", () => {
 // Smoke-check they at least reject malformed ids.
 // ────────────────────────────────────────────────────────────────
 describe("set status shortcuts", () => {
-  it.each([
-    ["archiveSet" as const, "archived"],
-    ["publishSet" as const, "live"],
-    ["unpublishSet" as const, "draft"],
-  ])("%s rejects malformed set ids", async (fn) => {
-    const mod = await import("./actions");
-    expect(await mod[fn]("not-a-uuid")).toHaveProperty("error");
-  });
+  it.each(["archiveSet", "publishSet", "unpublishSet"] as const)(
+    "%s rejects malformed set ids",
+    async (fn) => {
+      const mod = await import("./actions");
+      expect(await mod[fn]("not-a-uuid")).toHaveProperty("error");
+    },
+  );
 });
 
 // ────────────────────────────────────────────────────────────────
@@ -378,7 +491,7 @@ describe("updateRoute", () => {
     const { requireAdminOfRoute } = await import("@/lib/auth");
     vi.mocked(requireAdminOfRoute).mockResolvedValueOnce({
       auth: {
-        supabase: mockSupabase() as never,
+        supabase: createMockSupabase() as never,
         userId: USER_A,
         gymId: GYM_1,
         isOwner: true,
@@ -389,5 +502,132 @@ describe("updateRoute", () => {
     expect(await updateRoute(ROUTE_1, { number: 1000 })).toEqual({
       error: "Route number must be between 1 and 999.",
     });
+  });
+});
+
+// ────────────────────────────────────────────────────────────────
+// updateSet — the most consequential admin mutation, and until
+// 2026-08 the only untested one. Its go-live branch guards the Wall
+// (route-count check + incumbent demote + Announcement fan-out) and
+// its patch builder decides what a "Save changes" actually writes.
+// ────────────────────────────────────────────────────────────────
+describe("updateSet", () => {
+  /** Wire the service-role pre-read (set row + route count) and the
+   *  admin's own client used for the writes. */
+  async function primeUpdate(
+    setRow: Record<string, unknown> | null,
+    routeCount = 1,
+  ) {
+    const { createServiceClient } = await import("@/lib/supabase/server");
+    const service = createMockSupabase({
+      "table:sets": { data: setRow },
+      "table:routes": { data: [], error: null, count: routeCount },
+    });
+    vi.mocked(createServiceClient).mockReturnValue(service as never);
+
+    const sb = createMockSupabase({ "table:sets": { data: null, error: null } });
+    const { requireGymAdmin } = await import("@/lib/auth");
+    vi.mocked(requireGymAdmin).mockResolvedValue({
+      supabase: sb as never,
+      userId: USER_A,
+      gymId: GYM_1,
+      isOwner: true,
+    });
+    return sb;
+  }
+
+  const liveRow = {
+    gym_id: GYM_1,
+    status: "live",
+    name: "Spring",
+    starts_at: "2026-04-01",
+    ends_at: "2026-05-01",
+  };
+
+  it("rejects a malformed set id before any read", async () => {
+    const { updateSet } = await import("./actions");
+    expect(await updateSet("nope", { name: "x" })).toEqual({ error: "Invalid set." });
+  });
+
+  it("errors when the set doesn't exist", async () => {
+    await primeUpdate(null);
+    const { updateSet } = await import("./actions");
+    expect(await updateSet(SET_1, { name: "x" })).toEqual({ error: "Set not found." });
+  });
+
+  it("validates the patch — max grade out of range is rejected", async () => {
+    // Regression: this path validated NOTHING but the set id, so the
+    // client `<input max={30}>` was the only guard on the value.
+    await primeUpdate(liveRow);
+    const { updateSet } = await import("./actions");
+    expect(await updateSet(SET_1, { maxGrade: 9999 })).toEqual({
+      error: "Max grade must be between 0 and 30.",
+    });
+  });
+
+  it("validates the RESULTING range, not just supplied fields", async () => {
+    // Moving only startsAt past the STORED ends_at must fail.
+    await primeUpdate(liveRow);
+    const { updateSet } = await import("./actions");
+    expect(await updateSet(SET_1, { startsAt: "2026-06-01" })).toEqual({
+      error: "End date must be on or after the start date.",
+    });
+  });
+
+  it("a field-only edit leaves status untouched — never unpublishes a live set", async () => {
+    // The bug this pins: SetForm's "Save changes" sent status:"draft"
+    // unconditionally, so editing a live set's name emptied the Wall
+    // for the whole gym. The action must only patch supplied keys.
+    const sb = await primeUpdate(liveRow);
+    const { updateSet } = await import("./actions");
+    expect(await updateSet(SET_1, { name: "Renamed" })).toEqual({ success: true });
+
+    const update = sb.calls.find(
+      (c) => c.source === "sets" && c.method === "update",
+    );
+    expect(update?.args[0]).toEqual({ name: "Renamed" });
+    expect(update?.args[0]).not.toHaveProperty("status");
+  });
+
+  it("refuses to publish a set with no routes", async () => {
+    await primeUpdate({ ...liveRow, status: "draft" }, 0);
+    const { updateSet } = await import("./actions");
+    expect(await updateSet(SET_1, { status: "live" })).toEqual({
+      error: "Add at least one route before publishing this set.",
+    });
+  });
+
+  it("publishing demotes any OTHER live set in the gym, excluding itself", async () => {
+    const sb = await primeUpdate({ ...liveRow, status: "draft" }, 3);
+    const { updateSet } = await import("./actions");
+    expect(await updateSet(SET_1, { status: "live" })).toEqual({ success: true });
+
+    const eqArgs = sb.calls
+      .filter((c) => c.source === "sets" && c.method === "eq")
+      .map((c) => c.args);
+    expect(eqArgs).toContainEqual(["gym_id", GYM_1]);
+    expect(eqArgs).toContainEqual(["status", "live"]);
+    // `.neq("id", setId)` is what stops it archiving the set it is
+    // in the middle of publishing.
+    const neq = sb.calls.find((c) => c.source === "sets" && c.method === "neq");
+    expect(neq?.args).toEqual(["id", SET_1]);
+  });
+
+  it("announces the draft → live transition to the gym's climbers", async () => {
+    const { getGymClimberUserIds } = await import("@/lib/push/server");
+    vi.mocked(getGymClimberUserIds).mockResolvedValue([USER_A]);
+    await primeUpdate({ ...liveRow, status: "draft" }, 2);
+
+    const { updateSet } = await import("./actions");
+    await updateSet(SET_1, { status: "live" });
+    expect(getGymClimberUserIds).toHaveBeenCalledWith(GYM_1);
+  });
+
+  it("does NOT announce when the set was already live", async () => {
+    const { getGymClimberUserIds } = await import("@/lib/push/server");
+    await primeUpdate(liveRow, 2);
+    const { updateSet } = await import("./actions");
+    await updateSet(SET_1, { name: "Renamed" });
+    expect(getGymClimberUserIds).not.toHaveBeenCalled();
   });
 });
