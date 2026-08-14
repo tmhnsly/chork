@@ -76,7 +76,11 @@ test.describe("smoke", () => {
   });
 
   test("OpenGraph image is served", async ({ request }) => {
-    const res = await request.get("/og-image.png");
+    // `/opengraph-image`, not `/og-image.png` — the image comes from
+    // `src/app/opengraph-image.tsx` via Next's file convention, which
+    // owns the route name. The old path never existed, so this test
+    // had been asserting a 404 was a 200 and failing ever since.
+    const res = await request.get("/opengraph-image");
     expect(res.status()).toBe(200);
     expect(res.headers()["content-type"]).toBe("image/png");
   });

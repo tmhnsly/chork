@@ -261,10 +261,23 @@
   // licenses going below the reading floor. Apple HIG tab bar spec.
   @include type.typography(icon-label);
   // Icons keep the tab's inherited step-9 mono tint (a muted fill
-  // colour), but the label takes the step-11 text token so it's
-  // properly readable — lighter in dark mode, darker in light mode.
-  // Active tabs override via `.tabActive` below to use brand text.
-  color: var(--mono-text-low-contrast);
+  // colour); the label takes the step-12 text token.
+  //
+  // Step 11 (the "low contrast" text rung) is what this used to be,
+  // and axe caught it failing WCAG AA on the landing page in light
+  // mode: 4.31:1 against a required 4.5:1. Two things stack up here.
+  // The label is 10px, so it needs the small-text 4.5:1 threshold
+  // with no headroom to give. And the bar is `glass(65%)`, so its
+  // effective background is a blend with whatever page sits behind
+  // it — which means no step-11 value is safe everywhere, only on
+  // the pages that happen to be light enough. Raising the glass
+  // opacity would fix the landing page and leave the next dark
+  // surface to fail.
+  //
+  // Step 12 is contrast-safe against any of it. Active tabs still
+  // read as active: they get the accent colour and the pill, which
+  // is what distinguished them anyway.
+  color: var(--mono-text);
 }
 
 .tabActive .tabLabel {
