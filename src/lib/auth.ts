@@ -7,7 +7,7 @@ import {
 } from "./supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
-import { AUTH_REQUIRED_ERROR } from "./auth-errors";
+import { AUTH_REQUIRED_ERROR, NO_GYM_ERROR } from "./auth-errors";
 import { UUID_RE } from "./validation";
 import { one } from "./data/read";
 import { enforce as enforceRateLimit, type LimiterKey as RateLimitKey } from "./rate-limit";
@@ -49,7 +49,7 @@ export async function requireAuth(): Promise<AuthSuccess | AuthFailure> {
   }
 
   if (!profile.active_gym_id) {
-    return { error: "No gym selected" };
+    return { error: NO_GYM_ERROR };
   }
 
   return { supabase, userId: profile.id, gymId: profile.active_gym_id };
@@ -195,6 +195,53 @@ type SignedInSuccess = {
 };
 
 /**
+ * Cross-gym scope gate for read actions that expose another climber's
+ * data: verifies the set belongs to the caller's gym AND the target
+ * user is a member of that gym.
+ *
+ * The set check alone isn't enough: if a target user once logged on a
+ * route that has since moved between gyms (or any shared-set edge
+ * case), a gym-A caller could enumerate gym-B climber UUIDs and read
+ * their sanitised logs. Both checks together are the defence.
+ *
+ * This 20-line block used to live copy-pasted in
+ * `fetchClimberSheetLogs` and `fetchSetPlacement`, coupled only by a
+ * comment ("Same defence as…") — a drift here is a cross-gym data
+ * exposure, so it gets one auditable home (see CLAUDE.md
+ * "Security-first review").
+ *
+ * Runs on the caller's RLS-scoped client — no service role needed;
+ * both lookups are within the caller's own gym visibility.
+ */
+export async function requireSameGymScope(
+  supabase: SupabaseClient<Database>,
+  callerGymId: string,
+  setId: string,
+  targetUserId: string,
+): Promise<{ ok: true } | AuthFailure> {
+  const { data: setRow, error: setError } = await supabase
+    .from("sets")
+    .select("gym_id")
+    .eq("id", setId)
+    .maybeSingle();
+  if (setError || !setRow || setRow.gym_id !== callerGymId) {
+    return { error: "Set not found" };
+  }
+
+  const { data: membership } = await supabase
+    .from("gym_memberships")
+    .select("user_id")
+    .eq("user_id", targetUserId)
+    .eq("gym_id", callerGymId)
+    .maybeSingle();
+  if (!membership) {
+    return { error: "Climber not in this gym" };
+  }
+
+  return { ok: true };
+}
+
+/**
  * Confirms the caller is the organiser of the given competition.
  * Reads `competitions.organiser_id` via the service role since the
  * RLS policy on `competitions` is membership-scoped, not organiser-
@@ -325,6 +372,39 @@ export async function gateGymAdminMutation(
 ): Promise<AdminAuthSuccess | AuthFailure> {
   if (!UUID_RE.test(gymId)) return { error: `Invalid ${resourceLabel}` };
   const auth = await requireGymAdmin(gymId);
+  if ("error" in auth) return { error: auth.error };
+  if (options.rateLimit !== null) {
+    const rl = await enforceRateLimit(options.rateLimit, auth.userId);
+    if (!rl.ok) return { error: rl.error };
+  }
+  return auth;
+}
+
+/**
+ * Third sibling: the gate for signed-in (gymless-safe) mutations —
+ * jams, and any future write that must work without an active gym
+ * (see CLAUDE.md "A gym is optional").
+ *
+ *   1. UUID-validate `resourceId` when one is supplied (`null` for
+ *      actions like createJam that validate a payload instead; the
+ *      label feeds the user-facing error string).
+ *   2. `requireSignedIn` — NOT `requireAuth`; gymless climbers are
+ *      first-class here.
+ *   3. Rate-limit, ON by default (`mutationsWrite`). This default is
+ *      the point: before this gate existed, every jam write action
+ *      re-typed the requireSignedIn prelude by hand and all seven
+ *      skipped the rate limit entirely. Pass `null` only with a
+ *      written reason.
+ */
+export async function gateSignedInMutation(
+  resourceId: string | null,
+  resourceLabel: string,
+  options: { rateLimit: RateLimitKey | null } = { rateLimit: "mutationsWrite" },
+): Promise<SignedInSuccess | AuthFailure> {
+  if (resourceId !== null && !UUID_RE.test(resourceId)) {
+    return { error: `Invalid ${resourceLabel}` };
+  }
+  const auth = await requireSignedIn();
   if ("error" in auth) return { error: auth.error };
   if (options.rateLimit !== null) {
     const rl = await enforceRateLimit(options.rateLimit, auth.userId);
