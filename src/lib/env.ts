@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { validateEnv, formatEnvIssues } from "./env-validate";
 
 /**
  * Typed, runtime-validated env schema.
@@ -15,12 +15,17 @@ import { z } from "zod";
  * 2. **Gate optional features cleanly.** Push, rate-limiting, and
  *    observability are all opt-in — a fresh clone of the repo should
  *    boot without Upstash / Sentry / VAPID keys. Those vars are
- *    `.optional()` here, and callers check for presence before wiring
+ *    optional here, and callers check for presence before wiring
  *    the feature in.
  *
  * Usage: `import { env } from "@/lib/env"` and read `env.SITE_URL` etc.
  * Never reach into `process.env` directly — if it's not in this schema,
  * add it here first so the type surface stays documented.
+ *
+ * The rules live in `env-validate.ts` as a pure function. This module
+ * is reachable from client code (`auth-context.tsx` reads
+ * `env.SITE_URL`), so whatever it imports ships to the browser — which
+ * is why the validation is hand-rolled rather than a schema library.
  */
 // When this module loads in the browser, non-NEXT_PUBLIC_ env vars
 // are correctly `undefined` — Next only inlines NEXT_PUBLIC_* vars
@@ -30,37 +35,6 @@ import { z } from "zod";
 // otherwise the `env` module throws in a client component that just
 // wanted to read `env.SITE_URL`.
 const isServer = typeof window === "undefined";
-
-const schema = z.object({
-  // Required — the app cannot start without these
-  NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
-  // Server-only secret. On the client it's legitimately absent (and
-  // any code that tries to read it from the client is a bug elsewhere
-  // — `createServiceClient` has its own `import "server-only"` guard).
-  SUPABASE_SERVICE_ROLE_KEY: isServer
-    ? z.string().min(1)
-    : z.string().optional(),
-  NEXT_PUBLIC_SITE_URL: z.string().url(),
-
-  // Optional — feature-gated. Each consumer checks for presence.
-  // Required to enable signed middleware cookies. 32 bytes hex = 64
-  // chars. Generate with `openssl rand -hex 32`. When unset the
-  // middleware falls back to unsigned cookies (same as before signing
-  // was introduced) so local dev doesn't need to set this to boot.
-  CHORK_COOKIE_SECRET: z.string().length(64).optional(),
-  NEXT_PUBLIC_VAPID_PUBLIC_KEY: z.string().optional(),
-  VAPID_PRIVATE_KEY: z.string().optional(),
-  VAPID_SUBJECT: z.string().optional(),
-  UPSTASH_REDIS_REST_URL: z.string().url().optional(),
-  UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
-  NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
-  SENTRY_AUTH_TOKEN: z.string().optional(),
-
-  // Set by the Next/Node runtime — typed for completeness so
-  // consumers have a documented way to branch on dev vs prod.
-  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-});
 
 // We explicitly read each key via `process.env.<NAME>` (rather than
 // `process.env`) so Next's static replacement works for every
@@ -82,19 +56,12 @@ const raw = {
   NODE_ENV: process.env.NODE_ENV,
 };
 
-const parsed = schema.safeParse(raw);
+const parsed = validateEnv(raw, isServer);
 
-if (!parsed.success) {
+if (!parsed.ok) {
   // Fail in a shape that's legible in build logs: one line per broken
-  // key with the validation message. Better than Zod's default
-  // stringify which buries the signal in a nested tree.
-  const issues = parsed.error.issues
-    .map((i) => `  • ${i.path.join(".")}: ${i.message}`)
-    .join("\n");
-  throw new Error(
-    `Invalid or missing environment variables:\n${issues}\n` +
-      "See src/lib/env.ts for the full schema.",
-  );
+  // key with the validation message.
+  throw new Error(formatEnvIssues(parsed.issues));
 }
 
 const validated = parsed.data;
