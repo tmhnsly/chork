@@ -1,0 +1,118 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+@use "mixins/surfaces" as surface;
+
+// Public result page. Seen mostly by people who don't have the app
+// yet, arriving from a group chat — so it reads top-to-bottom as
+// result → who won → standings → one way in.
+.page {
+  @include layout.page;
+  @include layout.stack(var(--space-6));
+}
+
+.header {
+  @include layout.stack(var(--space-1));
+}
+
+.eyebrow {
+  @include type.typography(label);
+  color: var(--accent-text);
+}
+
+.title {
+  @include type.typography(display);
+  color: var(--mono-text);
+}
+
+.meta {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+// ── Winner ────────────────────────────────────────
+.winner {
+  @include surface.card;
+  @include layout.stack(var(--space-1));
+  align-items: center;
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+}
+
+.crown {
+  color: var(--flash-solid);
+  font-size: var(--size-icon-xl);
+}
+
+.winnerName {
+  @include type.typography(card-title);
+  color: var(--mono-text);
+}
+
+.winnerScore {
+  @include type.typography(number);
+  color: var(--accent-text);
+}
+
+// ── Standings ─────────────────────────────────────
+.list {
+  @include layout.stack(var(--space-2));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.row {
+  @include surface.card;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  min-height: var(--size-touch-target);
+}
+
+.rank {
+  @include type.typography(number);
+  color: var(--mono-text-low-contrast);
+  min-width: var(--space-6);
+}
+
+.name {
+  @include type.typography(label);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  color: var(--mono-text);
+  min-width: 0;
+}
+
+.handle {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+.points {
+  @include type.typography(number);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  color: var(--mono-text);
+}
+
+.pointsLabel {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+// ── Way in ────────────────────────────────────────
+.cta {
+  @include surface.card;
+  @include layout.stack(var(--space-3));
+  align-items: center;
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+}
+
+.ctaLede {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+}
