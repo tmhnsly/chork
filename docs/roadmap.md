@@ -75,6 +75,23 @@ Platform hardening:
 - [ ] Google OAuth (add back)
 - [ ] Apple Sign In
 
+## Known fragility
+
+- [ ] **Production builds depend on fonts.gstatic.com.**
+      `src/app/layout.tsx` uses `next/font/google` (Archivo), and both
+      OG image routes fetch a Google font at request time via
+      `src/lib/og-fonts.ts`. A build that can't reach Google fails
+      outright — this happened on 2026-08-14, when the deploy for
+      `732983b` died on "module not found" for the Archivo CSS while
+      the preview build of the identical tree had succeeded two
+      minutes earlier. A retrigger fixed it, which is the tell.
+
+      Self-host the font files instead: drop the woff2s in `public/`
+      and use `next/font/local`. Removes a third-party dependency from
+      the deploy path and from every OG render, and is faster on both.
+      Cheap, and worth doing before launch rather than after the first
+      failed deploy someone else notices.
+
 ## Infrastructure (before scaling)
 
 - [x] Rate limiting on server actions (Upstash sliding-window,
