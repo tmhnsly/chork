@@ -54,9 +54,10 @@ const ROUTE_1 = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const LOG_1 = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 const SET_1 = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 
-/** A realistic route_logs row as returned by the upsert's
- *  `select("*, routes!inner(set_id)")` — the embed is what lets the
- *  action bust the right set leaderboard without a second query. */
+/** A realistic route_logs row as returned by the upsert. `set_id` is
+ *  a real column since migration 080 — filled by the trigger in 081,
+ *  never by the client — which is what lets the action bust the right
+ *  set leaderboard without a second query. */
 function logRow(overrides: Record<string, unknown> = {}) {
   return {
     id: LOG_1,
@@ -70,7 +71,7 @@ function logRow(overrides: Record<string, unknown> = {}) {
     zone: false,
     created_at: "2026-07-01T00:00:00.000Z",
     updated_at: "2026-07-01T00:00:00.000Z",
-    routes: { set_id: SET_1 },
+    set_id: SET_1,
     ...overrides,
   };
 }

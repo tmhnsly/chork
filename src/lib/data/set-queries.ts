@@ -97,6 +97,11 @@ export const getAllSets = cache(
     // In-memory filter — callers pass their profile's `created_at` to
     // hide sets that finished before they joined. Filter runs on the
     // capped 200-row result so it's a few-microseconds linear scan.
-    return sinceIso ? all.filter((s) => s.ends_at >= sinceIso) : all;
+    // `ends_at` is nullable since the convergence (a Match runs until
+    // someone ends it). A set with no end can't have finished before
+    // the climber joined, so it always survives the filter.
+    return sinceIso
+      ? all.filter((s) => s.ends_at === null || s.ends_at >= sinceIso)
+      : all;
   },
 );

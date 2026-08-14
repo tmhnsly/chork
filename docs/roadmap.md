@@ -170,6 +170,29 @@ vocabulary these decisions produced.
       container while it's free, and rename `jam*` → `match*` in the
       same pass.
 
+      **Phase 1 landed 2026-08-14** (migrations 080 + 081). `sets` now
+      hosts both owners, `route_logs` carries a trigger-derived
+      `set_id`, `set_players` + `is_set_player` / `can_read_set` exist,
+      and every sets/routes/route_logs policy is a two-branch superset
+      of what it was. Purely additive: `jam_*` is untouched and still
+      the only thing the app reads. Safe to apply because `jams` /
+      `jam_routes` / `jam_logs` were verified empty in production
+      first — the convergence is structural, with nothing to backfill.
+
+      **Still open, in order:**
+
+      - [ ] Point the Match UI at `sets` / `routes` / `route_logs` and
+            drop `jam_*`. This is where the parallel scoring actually
+            dies; until it happens the second implementation is still
+            the live one.
+      - [ ] Join-by-code flow against `sets.code` (the column exists,
+            nothing writes it yet).
+      - [ ] Retire `jam_summaries` — but note the share card (shipped)
+            reads `share_token` off it, so that moves to whatever
+            replaces it rather than being deleted with it.
+      - [ ] Rename `jam*` → `match*` across code and DB, last, when
+            nothing is reading the old names.
+
 - [ ] **Guest players (the growth unlock).** Joining is the thirty
       seconds in which one climber recruits another, and today it
       costs install → sign up → code. `jam_players.user_id` is NOT

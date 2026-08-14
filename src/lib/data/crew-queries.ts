@@ -346,6 +346,11 @@ export async function getAllLiveSets(
       gyms:gyms!gym_id (name)
     `)
     .eq("status", "live")
+    // Gym Sets only. `sets` hosts climber-run Matches since the
+    // convergence (migration 080), and a crew leaderboard filters by
+    // the gym's set of the week — someone's Tuesday Match is not an
+    // option here.
+    .eq("owner_kind", "gym")
     .order("starts_at", { ascending: false })
     .limit(50);
 
@@ -356,7 +361,10 @@ export async function getAllLiveSets(
 
   return (data ?? []).flatMap((row) => {
     const gym = one(row.gyms);
-    if (!gym) return [];
+    // gym_id / ends_at are nullable on the table now (a Match has
+    // neither); the owner_kind filter means these are always present
+    // here, and the guard makes that true for the type as well.
+    if (!gym || !row.gym_id || !row.ends_at) return [];
     return [{
       set_id: row.id,
       set_name: row.name,

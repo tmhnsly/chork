@@ -91,16 +91,25 @@ One open invite per `(gym_id, email)`.
 
 ### sets
 
+One table, two owners (migration 080). A gym Set and a climber-run
+**Match** are the same container at different settings — see
+CONTEXT.md. `owner_kind` says which, and `sets_owner_shape_ck`
+enforces that each kind carries its own identity fields.
+
 | Field            | Type                 | Notes |
 |---|---|---|
-| `gym_id`         | uuid FK              | Required |
+| `owner_kind`     | text                 | `gym` (default) / `climber`. A Match is `climber` |
+| `gym_id`         | uuid FK nullable     | Required when `owner_kind = 'gym'`. A Match MAY still name one — that's the venue, not the owner |
+| `host_id`        | uuid FK nullable     | Required when `owner_kind = 'climber'` |
+| `code`           | text nullable        | 6 chars, `[A-HJ-NP-Z2-9]` — read aloud across a mat. Match only; unique |
 | `name`           | text nullable        | Display name; falls back to date range |
-| `status`         | text                 | `draft` / `live` / `archived`. Source of truth |
+| `status`         | text                 | `draft` / `live` / `archived`. Source of truth. `archived` also means "finished" for a Match |
 | `active`         | boolean              | Derived from `status = 'live'` by trigger — legacy readers only |
 | `starts_at`      | timestamptz          | |
-| `ends_at`        | timestamptz          | |
-| `grading_scale`  | text                 | `v` / `font` / `points` |
-| `max_grade`      | smallint             | 0..30. Bounds the climber-side grade slider |
+| `ends_at`        | timestamptz nullable | Null = open-ended (a Match runs until it's ended) |
+| `grading_scale`  | text                 | `v` / `font` / `points` / `custom` (`custom` is Match-only) |
+| `max_grade`      | smallint nullable    | 0..30. Bounds the climber-side grade slider. Null on a custom scale |
+| `min_grade`      | smallint nullable    | 0..30 |
 | `competition_id` | uuid FK nullable     | Links to `competitions` |
 | `closing_event`  | boolean              | Final-round flag |
 | `venue_gym_id`   | uuid FK nullable     | Where the closing event is held |
@@ -108,33 +117,67 @@ One open invite per `(gym_id, email)`.
 Scheduled auto-publish: `pg_cron` runs `auto_publish_due_sets()` every
 5 min, flipping `draft → live` for any set with `starts_at <= now()`.
 
+**The gym admin surface must gate on `owner_kind`, not on `gym_id`.**
+Nobody is a "gym admin" of a Match, and a Match may name a gym as its
+venue — so `requireAdminOfSet` refuses anything that isn't
+`owner_kind = 'gym'`, returning not-found rather than forbidden so
+ids can't be probed.
+
 ### routes
 
-| Field         | Type          | Notes |
+| Field         | Type              | Notes |
 |---|---|---|
-| `set_id`      | uuid FK       | |
-| `number`      | integer       | Must be `> 0`. Unique within a set |
-| `has_zone`    | boolean       | |
-| `setter_name` | text nullable | Internal only; never shown to climbers |
+| `set_id`      | uuid FK           | |
+| `number`      | integer           | Must be `> 0`. Unique within a set |
+| `has_zone`    | boolean           | |
+| `setter_name` | text nullable     | Internal only; never shown to climbers |
+| `description` | text nullable     | ≤ 240 chars. Match routes are added live ("blue crimps, arête") |
+| `added_by`    | uuid FK nullable  | Who added it — Match routes only |
+| `grade`       | smallint nullable | 0..30. Per-route grade, for Matches that don't inherit a Set-wide scale |
 
 Unique `(set_id, number)`.
+
+Any active player of a live Match may insert AND update its routes —
+deliberately collaborative, see CONTEXT.md "Match". Gym routes still
+come only from the admin surface under `is_gym_admin`.
 
 ### route_logs
 
 One per user per route. Upserted in place.
 
-| Field          | Type        | Notes |
+| Field          | Type             | Notes |
 |---|---|---|
-| `user_id`      | uuid FK     | |
-| `route_id`     | uuid FK     | |
-| `gym_id`       | uuid FK     | Denormalised for RLS (no joins) |
-| `attempts`     | integer ≥ 0 | Private to the user |
-| `completed`    | boolean     | |
-| `completed_at` | timestamptz | Set when completed |
-| `grade_vote`   | smallint    | 0..30. Null if no vote. Bound relaxed from the original 0..10 in migration 014 |
-| `zone`         | boolean     | |
+| `user_id`      | uuid FK          | |
+| `route_id`     | uuid FK          | |
+| `set_id`       | uuid FK          | Denormalised for RLS. **Derived by trigger, never client-supplied** (migration 081) |
+| `gym_id`       | uuid FK nullable | Denormalised for RLS (no joins). Null on a Match log |
+| `attempts`     | integer ≥ 0      | Private to the user |
+| `completed`    | boolean          | |
+| `completed_at` | timestamptz      | Set when completed |
+| `grade_vote`   | smallint         | 0..30. Null if no vote. Bound relaxed from the original 0..10 in migration 014 |
+| `zone`         | boolean          | |
 
-Unique `(user_id, route_id)`. Indexed on `user_id`, `(route_id, completed)`, `gym_id`.
+Unique `(user_id, route_id)`. Indexed on `user_id`, `(route_id, completed)`, `gym_id`, `set_id`.
+
+Read access is two-branch: a gym log (`gym_id is not null`) needs gym
+membership, a Match log needs `is_set_player(set_id)`. The gym branch
+is first because it's the hot path. `set-id-integrity.test.ts` pins
+both the trigger and the rule that no app code writes `set_id`.
+
+### set_players
+
+Who is in a Match. Gym Sets don't use it — membership there is
+`gym_memberships`.
+
+| Field       | Type        | Notes |
+|---|---|---|
+| `set_id`    | uuid FK     | PK part 1, cascades |
+| `user_id`   | uuid FK     | PK part 2, cascades |
+| `joined_at` | timestamptz | |
+| `left_at`   | timestamptz | Null = active. Leaving parks the row, same reasoning as gym memberships |
+| `is_host`   | boolean     | |
+
+Insert is self-only — you join a Match, you are never added to one.
 
 ### user_set_stats
 
@@ -381,6 +424,10 @@ anon, public`. Access is gated inside each function (typically
 
 - `is_gym_member(gym_id)`
 - `is_gym_admin(gym_id)` — reads `gym_admins`, NOT `gym_memberships.role`
+- `is_set_player(set_id)` — active (`left_at is null`) row in `set_players`
+- `can_read_set(set_id)` — the two access models in one place: gym
+  member of a gym Set, or player of a Match. Use this rather than
+  re-writing the branch in each policy
 - `is_gym_owner(gym_id)` — reads `gym_admins.role = 'owner'`
 - `is_competition_organiser(competition_id)`
 - `is_admin_of_route(route_id)` — `gym_admins` lookup via route → set → gym

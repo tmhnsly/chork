@@ -6,7 +6,7 @@ import type { RouteLog, ActivityEventWithRoute } from "./types";
 
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
-import { one, readMany } from "./read";
+import { readMany } from "./read";
 
 type Supabase = SupabaseClient<Database>;
 
@@ -18,8 +18,8 @@ export async function getLogsBySetForUser(
   return readMany<RouteLog>(
     supabase
       .from("route_logs")
-      .select("*, routes!inner(set_id)")
-      .eq("routes.set_id", setId)
+      .select("*")
+      .eq("set_id", setId)
       .eq("user_id", userId),
     "getlogsbysetforuser_failed",
   );
@@ -47,17 +47,17 @@ export async function getAllRouteDataForUserInGym(
   if (setIds.length === 0) return { logs: [], totalRoutesInGym: 0 };
 
   const [logsResult, routesResult] = await Promise.all([
-    // Inner-join `routes` and constrain by `set_id` IN setIds so logs
-    // from sets the caller filtered out (e.g. sets that ended before
-    // the climber's account existed) don't leak into the aggregates.
-    // Without this filter, `uniqueRoutesAttempted` could exceed
-    // `totalRoutesInGym` — a "20/14 coverage" bug on long-history gyms.
+    // Constrained by `set_id` IN setIds so logs from sets the caller
+    // filtered out (e.g. sets that ended before the climber's account
+    // existed) don't leak into the aggregates. Without this filter,
+    // `uniqueRoutesAttempted` could exceed `totalRoutesInGym` — a
+    // "20/14 coverage" bug on long-history gyms.
     supabase
       .from("route_logs")
-      .select("route_id, attempts, completed, zone, routes!inner(set_id)")
+      .select("route_id, set_id, attempts, completed, zone")
       .eq("user_id", userId)
       .eq("gym_id", gymId)
-      .in("routes.set_id", setIds),
+      .in("set_id", setIds),
     supabase
       .from("routes")
       .select("id", { count: "exact", head: true })
@@ -71,27 +71,11 @@ export async function getAllRouteDataForUserInGym(
     logger.warn("getallroutedataforuseringym_count_failed", { err: formatErrorForLog(routesResult.error) });
   }
 
-  type LogRow = {
-    route_id: string;
-    attempts: number;
-    completed: boolean;
-    zone: boolean;
-    routes: { set_id: string } | { set_id: string }[] | null;
-  };
-
-  const logs: UserLogInGym[] = (logsResult.data ?? []).map((r: LogRow) => {
-    const route = one(r.routes);
-    return {
-      route_id: r.route_id,
-      set_id: route?.set_id ?? "",
-      attempts: r.attempts,
-      completed: r.completed,
-      zone: r.zone,
-    };
-  }).filter((l) => l.set_id !== "");
-
   return {
-    logs,
+    // `set_id` is NOT NULL and trigger-derived (migration 081), so
+    // the row shape already IS `UserLogInGym` — no flattening, and
+    // no "drop the ones whose join missed" guard to get wrong.
+    logs: logsResult.data ?? [],
     totalRoutesInGym: routesResult.count ?? 0,
   };
 }

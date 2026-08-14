@@ -9,10 +9,16 @@ import { differenceInCalendarDays, format, parseISO } from "date-fns";
  * history cards, and the leaderboard all render the same label.
  */
 export function formatSetLabel(
-  set: { name?: string | null; starts_at: string; ends_at: string }
+  set: { name?: string | null; starts_at: string; ends_at: string | null }
 ): string {
   const trimmed = set.name?.trim();
   if (trimmed) return trimmed;
+  // A Match has no fixed end (`sets.ends_at` went nullable in the
+  // convergence), so it labels as an open-ended date rather than a
+  // range with a missing half.
+  if (!set.ends_at) {
+    return `${format(parseISO(set.starts_at), "MMM d").toUpperCase()} –`;
+  }
   return [
     format(parseISO(set.starts_at), "MMM d").toUpperCase(),
     format(parseISO(set.ends_at), "MMM d").toUpperCase(),
@@ -34,7 +40,9 @@ export function formatSetLabel(
  * maths against. Calendar-day diff is intentional (not hour-precise)
  * — matches how climbers think about set length.
  */
-export function formatSetResetCountdown(endsAtISO: string): string {
+export function formatSetResetCountdown(endsAtISO: string | null): string {
+  // No end date = a Match, which runs until someone ends it.
+  if (!endsAtISO) return "open";
   const days = differenceInCalendarDays(parseISO(endsAtISO), new Date());
   if (days < 0) return "ended";
   if (days === 0) return "today";

@@ -97,7 +97,12 @@ export function createOptimisticLog(fields: {
   id: string;
   user_id: string;
   route_id: string;
-  gym_id: string;
+  /** The Set this route belongs to. Required since the convergence:
+   *  every log has one, and it's what the Match access branch keys
+   *  on (migration 080). */
+  set_id: string;
+  /** Null on a Match — those have no gym. */
+  gym_id: string | null;
   attempts: number;
   completed: boolean;
   grade_vote?: number | null;

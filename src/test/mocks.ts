@@ -11,6 +11,13 @@ export function mockRouteSet(overrides: Partial<RouteSet> & { id: string; gym_id
     starts_at: "2026-04-07T00:00:00Z",
     ends_at: "2026-05-04T00:00:00Z",
     active: true,
+    // Convergence columns (migration 080). A fixture is a GYM Set by
+    // default — a Match would set owner_kind "climber" plus host_id
+    // and code.
+    owner_kind: "gym",
+    host_id: null,
+    code: null,
+    min_grade: null,
     // Columns added in migration 014 — defaults mirror the SQL defaults so
     // fixtures stay valid whether callers override or not.
     name: null,
@@ -28,6 +35,11 @@ export function mockRouteSet(overrides: Partial<RouteSet> & { id: string; gym_id
 
 export function mockRoute(overrides: Partial<Route> & { id: string; set_id: string; number: number }): Route {
   return {
+    // Convergence columns (migration 080) — a Match route adds a
+    // free-text description, its own grade, and who added it.
+    description: null,
+    added_by: null,
+    grade: null,
     has_zone: false,
     setter_name: null,
     // Populated by the trigger in migration 026; mocks default to a
@@ -48,6 +60,9 @@ export function mockRouteLog(overrides: Partial<RouteLog> & { id: string; user_i
     grade_vote: null,
     zone: false,
     gym_id: "gym_001",
+    // Every log belongs to a Set (migration 080). In production a
+    // trigger derives this from the route; a fixture states it.
+    set_id: "set_001",
     created_at: DEFAULT_DATE,
     updated_at: DEFAULT_DATE,
     ...overrides,
