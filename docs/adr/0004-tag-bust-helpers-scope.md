@@ -1,6 +1,6 @@
 # ADR 0004 — Tag-bust helpers extract only for non-obvious coupling
 
-**Status:** Accepted, 2026-05-21
+**Status:** Accepted, 2026-05-21. **Amended 2026-08-14** — see addendum at the end: the premise behind `revalidateRouteLogTags`' two-tag coupling turned out to be half-phantom, and `revalidateCrewMembers` was deleted outright.
 **Context links:** session that proposed it (architecture-improvement skill, round 2)
 
 ## Decision
@@ -35,3 +35,36 @@ The signal is "are you coupling tags whose together-ness is non-obvious?" not "d
 ## Counter-evidence that would reopen this
 
 - The route-comments tag accumulates a sibling (e.g. a `route:{id}:reactions` tag that also needs busting on comment mutations). The set-of-tags-to-bust grows past 1, the coupling becomes non-obvious, helper earns its keep.
+
+## Addendum (2026-08-14) — the reader-first correction
+
+An architecture audit checked every tag this ADR reasons about against
+the actual `cachedQuery` registrations and found the invariant this
+ADR protects was partly phantom:
+
+- `user:{uid}:stats` — busted by `revalidateRouteLogTags`, **never
+  registered on any cached read**. The "60-second window of stale UI"
+  this ADR cites could not occur; per-user stats are read uncached by
+  design (they vary per caller). The bust was retired.
+- `crew:{id}` + `user:{uid}:crews` — same: no reader anywhere, and
+  `revalidateCrewMembers` performed a live `crew_members` SELECT per
+  crew mutation purely to fan out no-op busts. The helper was deleted.
+
+What survives, and why:
+
+- **`revalidateRouteLogTags(setId, userId)` stays** — with one live
+  tag (`set:{id}:leaderboard`, conditional on `setId`). This ADR's
+  "keep the conditional inside the helper" rule carries it, and the
+  helper is deliberately kept as the seam where a future per-user
+  stats cache re-adds its tag in one edit. The `userId` parameter is
+  retained (unused) for that reason.
+- **`revalidateUserProfile` stays** — its real work was always the
+  uid → username lookup feeding the `user:username-{u}:profile` bust;
+  the dead `user:{uid}:profile` line was dropped.
+
+New rule, enforced by `src/lib/cache/tags.test.ts`: **a tag may only
+exist alongside a live cached reader** (reader-first). The decision
+procedure in "How to apply" now has a step zero: before reasoning
+about whether coupled busts deserve a helper, verify each tag in the
+set actually has a `cachedQuery` registration — coupling between
+no-ops is not coupling.

@@ -9,30 +9,24 @@ import { unstable_cache } from "next/cache";
  *   gym:{id}:active-set         — set goes live / ends in a gym
  *   set:{id}:routes             — route edits within a set
  *   set:{id}:leaderboard        — any route_log change affecting set rank
- *   user:{id}:profile           — profile row edits (username, theme, etc)
- *   user:{id}:stats             — this user's user_set_stats changed
- *   user:{id}:crews             — crew membership changed for this user
- *   user:{id}:jams              — jam history changed for this user
- *   user:{id}:notifications     — new / read notifications for this user
- *   crew:{id}                   — crew row or member set edits
+ *   route:{id}:grade            — a grade vote landed on the route
+ *   route:{id}:comments         — comment mutations on the route
+ *   user:username-{u}:profile   — profile row edits (username, theme, etc)
  *   gyms:listed                 — a gym's is_listed flag changed
  *   competition:{id}            — competition row or relations changed
+ *
+ * Every member here has a live `cachedQuery({ tags: [...] })` reader —
+ * see the reader-first rule in tags.ts. Extend this union only in the
+ * same change that registers the new tag on a cached read.
  */
 export type Tag =
   | `gym:${string}`
   | `gym:${string}:active-set`
-  | `gym:${string}:stats-all-time`
   | `set:${string}:routes`
   | `set:${string}:leaderboard`
   | `route:${string}:grade`
   | `route:${string}:comments`
-  | `user:${string}:profile`
   | `user:username-${string}:profile`
-  | `user:${string}:stats`
-  | `user:${string}:crews`
-  | `user:${string}:jams`
-  | `user:${string}:notifications`
-  | `crew:${string}`
   | `gyms:listed`
   | `competition:${string}`;
 

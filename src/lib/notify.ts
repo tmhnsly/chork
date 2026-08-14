@@ -1,9 +1,7 @@
 import "server-only";
-import { revalidateTag } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/server";
 import { toJson } from "@/lib/data/json-shape";
 import { sendPushInBackground } from "@/lib/push/server";
-import { tags } from "@/lib/cache/tags";
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
 import {
@@ -17,8 +15,12 @@ import {
  * One call per domain event. Owns:
  *   - persistent log row insert (notify_user RPC, service-role)
  *   - push dispatch (best-effort, opt-out filtered by category)
- *   - userNotifications tag bust
  *   - self-skip when actor === recipient
+ *
+ * No cache bust: the NotificationsSheet reads via an uncached server
+ * action (`fetchNotifications`), so there is no tagged entry to
+ * invalidate. If the inbox ever gains a `cachedQuery` reader, its tag
+ * bust belongs here (see the reader-first rule in cache/tags.ts).
  *
  * Per-kind identity (payload shape, push copy, in-app copy) lives in
  * the definition table in `@/lib/data/notification-kinds` — this
@@ -66,7 +68,14 @@ export async function notify(event: NotifyEvent): Promise<void> {
     // to `PushCategory` — a drifted value fails the build right here.
     sendPushInBackground(
       [event.recipient],
-      { title: push.title, body: push.body, url: push.url },
+      {
+        title: push.title,
+        body: push.body,
+        url: push.url,
+        // Per-kind tag: two crew invites coalesce in the tray, but an
+        // invite and an ownership change stay separate entries.
+        tag: `chork-${event.kind}`,
+      },
       { category: push.category },
     );
   } catch (err) {
@@ -75,6 +84,4 @@ export async function notify(event: NotifyEvent): Promise<void> {
       err: formatErrorForLog(err),
     });
   }
-
-  revalidateTag(tags.userNotifications(event.recipient), "max");
 }

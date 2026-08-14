@@ -1,12 +1,9 @@
 import "server-only";
-import { revalidateTag } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { formatError, formatErrorForLog } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { notify } from "@/lib/notify";
-import { tags } from "@/lib/cache/tags";
-import { revalidateCrewMembers } from "@/lib/cache/revalidate";
 import { one } from "./read";
 
 type Supabase = SupabaseClient<Database>;
@@ -15,9 +12,14 @@ type LifecycleResult = { ok: true } | { error: string };
 /**
  * Crew lifecycle orchestration. Each function owns the multi-step
  * transaction for one domain operation: pre-flight reads, mutation,
- * notification dispatch, cache busting. Server actions stay as thin
- * shells around boundary concerns (input validation, auth, rate
- * limits) and delegate the actual work here.
+ * notification dispatch. Server actions stay as thin shells around
+ * boundary concerns (input validation, auth, rate limits) and
+ * delegate the actual work here.
+ *
+ * No cache busting: every crew surface is read per-request (no
+ * `cachedQuery` entries) — see the reader-first rule in
+ * cache/tags.ts. When crew reads gain a cached entry, the busts
+ * belong at the end of each lifecycle function here.
  *
  * See CONTEXT.md "Notification" — these orchestrations all emit one
  * notification per recipient via `notify()`.
@@ -35,9 +37,9 @@ interface SendInviteArgs {
  *
  * Steps: SQL rate-limit (bump_invite_rate_limit) → block + opt-out
  * check on the target → insert pending crew_members row → dispatch
- * notification → bust crew + actor's userCrews tags. Caller is
- * responsible for input validation, auth, the self-invite check,
- * and any edge-layer rate-limit before reaching this function.
+ * notification. Caller is responsible for input validation, auth,
+ * the self-invite check, and any edge-layer rate-limit before
+ * reaching this function.
  */
 export async function sendCrewInvite(
   args: SendInviteArgs,
@@ -94,8 +96,6 @@ export async function sendCrewInvite(
       logger.warn("crew_invite_dispatch_failed", { err: formatErrorForLog(err) });
     }
 
-    revalidateTag(tags.crew(crewId), "max");
-    revalidateTag(tags.userCrews(actorId), "max");
     return { ok: true };
   } catch (err) {
     return { error: formatError(err) };
@@ -112,7 +112,7 @@ interface AcceptInviteArgs {
  * Execute the "accept a crew invite" transaction.
  *
  * Steps: conditional status flip (pending → active) returning the
- * updated row → notify the inviter → bust crew member tags. The
+ * updated row → notify the inviter. The
  * `.eq("status", "pending")` predicate on the UPDATE means the row
  * comes back only if the invite was still pending at the exact moment
  * of the write — if someone cancelled the invite (or it was never
@@ -158,9 +158,6 @@ export async function acceptCrewInvite(
       }
     }
 
-    if (invite.crew_id) {
-      await revalidateCrewMembers(supabase, invite.crew_id);
-    }
     return { ok: true };
   } catch (err) {
     return { error: formatError(err) };
@@ -178,9 +175,9 @@ interface TransferOwnershipArgs {
  * Execute the "hand crew ownership to another active member" transaction.
  *
  * Steps: verify caller is current creator → verify target is an active
- * member → UPDATE crews.created_by → dispatch notification → bust crew
- * member tags. Caller validates input + auth + the self-transfer check
- * before reaching this function.
+ * member → UPDATE crews.created_by → dispatch notification. Caller
+ * validates input + auth + the self-transfer check before reaching
+ * this function.
  */
 export async function transferCrewOwnership(
   args: TransferOwnershipArgs,
@@ -237,7 +234,6 @@ export async function transferCrewOwnership(
       logger.warn("crew_transfer_push_dispatch_failed", { err: formatErrorForLog(err) });
     }
 
-    await revalidateCrewMembers(supabase, crewId);
     return { ok: true };
   } catch (err) {
     return { error: formatError(err) };

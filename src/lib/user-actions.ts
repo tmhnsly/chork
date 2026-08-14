@@ -80,7 +80,6 @@ export async function updateProfile(
       .eq("id", userId);
 
     if (error) return { error: formatError(error) };
-    revalidateTag(tags.userProfile(userId), "max");
     // The new username's by-username cache entry busts directly; the
     // old one needs an explicit bust on rename. revalidateUserProfile
     // would re-look-up but we already have both names in scope.
