@@ -63,32 +63,44 @@ export function SetForm({ mode, gymId, set }: Props) {
     setMaxGrade(SCALE_MAX_DEFAULT[next]);
   }
 
-  function handleSubmit(publishing: boolean) {
+  /**
+   * Save the form's fields. Never changes status — create always
+   * writes a draft, edit leaves status alone. Publishing is a
+   * separate, explicit action (`handleStatusAction`).
+   */
+  function handleSubmit() {
     return (e?: React.FormEvent) => {
       e?.preventDefault();
       startTransition(async () => {
-        const payload = {
+        const fields = {
           gymId,
           name,
           startsAt: fromDateInput(startsAt),
           endsAt: fromDateInput(endsAt),
           gradingScale: scale,
           maxGrade,
-          status: publishing ? ("live" as const) : ("draft" as const),
           closingEvent,
         };
 
         if (mode === "create") {
-          const res = await createSet(payload);
+          const res = await createSet({ ...fields, status: "draft" as const });
           if ("error" in res) {
             showToast(res.error, "error");
             return;
           }
-          showToast(publishing ? "Set published" : "Draft saved", "success");
+          showToast("Draft saved", "success");
           router.push("/admin/sets");
           router.refresh();
         } else if (set) {
-          const res = await updateSet(set.id, payload);
+          // Deliberately NO `status` here. Editing a set's fields must
+          // never move it between draft/live/archived — those
+          // transitions have their own buttons (handleStatusAction).
+          // This used to send `status: "draft"` unconditionally, so
+          // "Save changes" on a LIVE set silently unpublished it and
+          // emptied the Wall for the whole gym. `updateSet` only
+          // patches keys the caller supplies, so omitting it is the
+          // fix.
+          const res = await updateSet(set.id, fields);
           if ("error" in res) {
             showToast(res.error, "error");
             return;
@@ -117,7 +129,7 @@ export function SetForm({ mode, gymId, set }: Props) {
   }
 
   return (
-    <form className={styles.form} onSubmit={handleSubmit(false)}>
+    <form className={styles.form} onSubmit={handleSubmit()}>
       <label className={styles.field}>
         <span className={styles.label}>Name (optional)</span>
         <input
@@ -200,23 +212,26 @@ export function SetForm({ mode, gymId, set }: Props) {
 
       <div className={styles.actions}>
         {mode === "create" ? (
+          // Draft only. A live set with no routes is an empty Wall,
+          // and this form has no route input — so publishing from
+          // here could never succeed. The flow is: save draft → add
+          // routes in the routes editor → Publish from the edit page
+          // (which announces to the gym). The home-page quick-create
+          // is the one path that goes straight to live, because it
+          // seeds routes in the same call.
           <>
             <Button type="submit" disabled={pending} variant="secondary">
               {pending ? "Saving…" : "Save draft"}
             </Button>
-            <Button
-              type="button"
-              disabled={pending}
-              onClick={handleSubmit(true)}
-            >
-              {pending ? "Publishing…" : "Publish"}
-            </Button>
+            <span className={styles.hint}>
+              Add routes after saving, then publish.
+            </span>
           </>
         ) : set ? (
           <EditActions
             status={set.status}
             pending={pending}
-            onSaveDraft={handleSubmit(false)}
+            onSaveDraft={handleSubmit()}
             onPublish={() => handleStatusAction(publishSet, "Set published")}
             onUnpublish={() => handleStatusAction(unpublishSet, "Set moved to draft")}
             onArchive={() => handleStatusAction(archiveSet, "Set archived")}
