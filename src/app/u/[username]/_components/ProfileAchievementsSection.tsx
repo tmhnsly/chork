@@ -1,4 +1,4 @@
-import { createServerSupabase } from "@/lib/supabase/server";
+import { createServerSupabase, createServiceClient } from "@/lib/supabase/server";
 import { getProfileSummary } from "@/lib/data/profile-queries";
 import { getEarnedAchievements } from "@/lib/data/achievement-queries";
 import { getAllSets } from "@/lib/data/set-queries";
@@ -46,7 +46,7 @@ export async function ProfileAchievementsSection({ userId, gymId, createdAt }: P
     getProfileSummary(supabase, userId, gymId),
     getEarnedAchievements(supabase, userId),
     getAllSets(gymId, createdAt),
-    getJamAchievementContext(supabase, userId),
+    getJamAchievementContext(createServiceClient(), userId),
   ]);
 
   const activeSet = allSets.find((s) => s.active) ?? null;

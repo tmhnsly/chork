@@ -134,13 +134,16 @@ vocabulary these decisions produced.
       Cheap to fix now (nothing built); annoying once 076 has data
       behind it. Everything else in that header still stands.
 
-- [ ] **Match result share card.** The single highest-leverage growth
-      feature, and small. When a Set ends, produce an image + link
-      worth pasting into the group chat: winner, placements, the
-      numbers, a join code. Works before any social graph exists,
-      feeds the channel climbers already use, and turns the
-      trophy/placement moment we already decided on into recruitment.
-      Build this before any in-app feed.
+- [x] **Match result share card.** *(Shipped 2026-08-14.)* When a Set
+      ends, `/r/<token>` renders the result and unfurls in a group
+      chat: winner, placements, the numbers. The token is a
+      capability minted only when a participant taps Share, read
+      through the service client, so nothing is granted to `anon` and
+      unshared results stay private. Attempts are absent from the
+      payload by construction, not filtered out.
+
+      Still to add: a join code on the card, so a reader can act on
+      it rather than only admire it.
 
 ### Need a design pass first
 
@@ -151,10 +154,17 @@ vocabulary these decisions produced.
       full rewrite explicitly on the table — the only user is Tom, so
       this is the cheapest it will ever be.
 
-      Sequence it, don't big-bang it: **unify the log + scoring layer
-      first** (reversible, and it deletes `scoring-parity.test.ts`'s
-      reason to exist by leaving one implementation instead of two
-      that must agree), **then the containers**.
+      Sequence it, don't big-bang it: **unify the log layer first**
+      (reversible), **then the containers**.
+
+      ⚠️ An earlier version of this line said the convergence would
+      delete `scoring-parity.test.ts`'s reason to exist. That was
+      wrong, and phase 2b proved it: scoring was never duplicated
+      across jam and gym — both already went through `computePoints`
+      in TS and `compute_points` in SQL. The TS↔SQL parity
+      requirement comes from recomputing the live board client-side
+      from realtime events, which is orthogonal to this work and
+      survives it.
 
       What it deletes: parallel scoring, parallel leaderboards,
       duplicate row types, and the whole collapse-to-summary
@@ -203,29 +213,59 @@ vocabulary these decisions produced.
       stats. Latent since 080. Look for that shape again when
       widening anything else gymless.
 
-      **Still open, in order:**
+      **Phase 2b landed 2026-08-14** (migrations 085–088). The Match
+      UI now runs entirely on the converged tables. `jam_*` is no
+      longer read by anything in `src/`.
 
-      - [ ] Point the Match UI at the new RPCs and drop `jam_*`. Note
-            the scope is smaller than it looks: logging needs no new
-            code at all (`upsertRouteLog` already serves both), and
-            scoring is already single-sourced through
-            `compute_points` / `computePoints`. What actually merges
-            is the containers, the row types (`JamLog` → `RouteLog`
-            etc.) and the realtime channel.
-      - [ ] Realtime: `use-jam-realtime` listens to `jam_routes` /
-            `jam_logs` / `jam_players` filtered by `jam_id`. The
-            converged equivalents need adding to the
-            `supabase_realtime` publication with `REPLICA IDENTITY
-            FULL`, filtered on `set_id` — and `route_logs` is a much
-            busier table, so the filter matters more than it did.
-      - [ ] Offline queue: `registry.ts` hard-imports
-            `upsertJamLogAction`. Re-point it at the shared route-log
-            action rather than porting a second entry.
-      - [ ] Retire `jam_summaries` — but note the share card (shipped)
-            reads `share_token` off it, so that moves to whatever
-            replaces it rather than being deleted with it.
-      - [ ] Rename `jam*` → `match*` across code and DB, last, when
-            nothing is reading the old names.
+      What actually moved, and what didn't:
+
+      - Logging did NOT become "no code" as phase 1 predicted. It
+        needs one RPC after all, for `completed_at` alone — its value
+        depends on the row's previous state, and a plain upsert
+        restamps it, which reorders tied climbers because
+        `last_send_at` is the board's fourth tiebreak.
+      - Scoring never was duplicated: `computeJamLeaderboard` already
+        delegated to `computePoints`, and the SQL side to
+        `compute_points`. The TS↔SQL parity requirement is inherent
+        to recomputing the live board client-side, not to the
+        jam/gym split, so `scoring-parity.test.ts` keeps earning its
+        keep. The earlier note here overstated that.
+      - What did die: the summary collapse. `end_jam`'s 110 lines,
+        `jam_summaries` / `jam_summary_players` / `jam_summary_grades`
+        as a read path, and the `row_number()` vs `dense_rank()` tie
+        divergence — one `match_standings` now ranks history, the
+        live board and the shared card alike.
+      - The share card's seam held exactly as designed: only the two
+        function bodies in `shared-result.ts` changed, and previously
+        shared links keep resolving.
+
+      Verified by an 11-case integration suite that runs against the
+      real database (`match-state.integration.test.ts`), including
+      the negative cases the convergence makes newly important —
+      Match writes must not reach the gym wall now that they share
+      `routes` and `route_logs`.
+
+      087 is the one to remember: 080 wrote the Match route UPDATE
+      policy `using`-only, so a player could repoint a route's
+      `set_id` at a gym's Set. The same audit found `route_logs`
+      UPDATE had carried a `user_id = auth.uid()` check and nothing
+      else since long before this work — the owner of a log could
+      rewrite its `gym_id` onto any gym's board. Migration 073 fixed
+      that for inserts; nobody checked the edit path.
+
+      **Still open:**
+
+      - [ ] Drop the `jam_*` tables and their RPCs. Nothing reads them
+            now, so this is a deletion, not a migration — but leave a
+            gap between "unused" and "gone" in case something surfaces.
+      - [ ] Rename `jam*` → `match*` across the code: files, routes
+            (`/jam` → `/match`), types, the 7 badge keys and their
+            persisted `user_achievements` rows. Deliberately left
+            last so the data-source swap stayed reviewable on its own.
+            The badge keys are the fiddly part — they're stored.
+      - [ ] `jam_summary_grades` was write-only even before this and
+            is now unwritten. Decide whether per-grade breakdown is a
+            feature (it pairs with the grades graph below) or deletion.
 
 - [ ] **Guest players (the growth unlock).** Joining is the thirty
       seconds in which one climber recruits another, and today it

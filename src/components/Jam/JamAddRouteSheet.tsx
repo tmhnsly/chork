@@ -40,7 +40,7 @@ export function JamAddRouteSheet({
   pending,
 }: Props) {
   const [description, setDescription] = useState(route?.description ?? "");
-  const [grade, setGrade] = useState<number | null>(route?.grade ?? null);
+  const [grade, setGrade] = useState<number | null>(route?.declared_grade ?? null);
   const [hasZone, setHasZone] = useState(route?.has_zone ?? false);
 
   const pointsOnly = gradingScale === "points";

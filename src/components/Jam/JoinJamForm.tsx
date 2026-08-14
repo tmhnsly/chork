@@ -54,7 +54,7 @@ export function JoinJamForm({ initialCode }: Props) {
       const supabase = createBrowserSupabase();
       const result = await lookupJamByCode(supabase, key);
       if (!result) throw new Error("No jam found for that code");
-      if (result.status === "ended") {
+      if (result.status === "archived") {
         throw new Error("That jam has already ended");
       }
       if (result.at_cap) {
@@ -74,12 +74,12 @@ export function JoinJamForm({ initialCode }: Props) {
   function handleJoin() {
     if (!lookup) return;
     startTransition(async () => {
-      const result = await joinJamAction(lookup.jam_id);
+      const result = await joinJamAction(lookup.set_id);
       if ("error" in result) {
         showToast(result.error, "error");
         return;
       }
-      router.push(`/jam/${lookup.jam_id}`);
+      router.push(`/jam/${lookup.set_id}`);
     });
   }
 

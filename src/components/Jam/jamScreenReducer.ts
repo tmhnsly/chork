@@ -25,7 +25,7 @@ import { visibleAttempts } from "@/lib/data/logs";
 export interface JamLocalState {
   routes: JamRoute[];
   players: JamPlayerView[];
-  /** Logs keyed by `${user_id}:${jam_route_id}` for O(1) upsert / remove. */
+  /** Logs keyed by `${user_id}:${route_id}` for O(1) upsert / remove. */
   logs: Map<string, JamLog>;
   panel: JamPanel;
 }
@@ -69,7 +69,7 @@ export function initJamState(initialState: JamState): JamLocalState {
     players: initialState.players,
     logs: new Map(
       initialState.my_logs.map((log) => [
-        logKey(log.user_id, log.jam_route_id),
+        logKey(log.user_id, log.route_id),
         log,
       ]),
     ),
@@ -113,7 +113,7 @@ export function jamReducer(
           ? action.log
           : { ...action.log, attempts: visibleAttempts(action.log, false) };
       const logs = new Map(state.logs);
-      logs.set(logKey(log.user_id, log.jam_route_id), log);
+      logs.set(logKey(log.user_id, log.route_id), log);
       return { ...state, logs };
     }
     case "remove-log": {

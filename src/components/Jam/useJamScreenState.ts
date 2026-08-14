@@ -54,7 +54,7 @@ export function useJamScreenState({
         dispatch({
           type: "remove-log",
           userId: evt.old.user_id,
-          routeId: evt.old.jam_route_id,
+          routeId: evt.old.route_id,
         });
       } else {
         // The reducer sanitises other players' raw attempt counts —
@@ -84,7 +84,7 @@ export function useJamScreenState({
   const myLogByRouteId = useMemo(() => {
     const map = new Map<string, JamLog>();
     for (const log of state.logs.values()) {
-      if (log.user_id === userId) map.set(log.jam_route_id, log);
+      if (log.user_id === userId) map.set(log.route_id, log);
     }
     return map;
   }, [state.logs, userId]);
@@ -171,8 +171,8 @@ export function useJamScreenState({
         viewerId: userId,
         log: {
           id: previous?.id ?? `optimistic-${route.id}`,
-          jam_id: initialState.jam.id,
-          jam_route_id: route.id,
+          set_id: initialState.jam.id,
+          route_id: route.id,
           user_id: userId,
           attempts: payload.attempts,
           completed: payload.completed,
@@ -190,7 +190,7 @@ export function useJamScreenState({
         // we're offline (or the network dies mid-request) so the
         // climber's local tile flip sticks and the server write
         // replays on reconnect. The server-side RPC is idempotent
-        // on (user_id, jam_route_id) so replays never duplicate.
+        // on (user_id, route_id) so replays never duplicate.
         const result = await upsertJamLogOffline({
           jamRouteId: route.id,
           attempts: payload.attempts,

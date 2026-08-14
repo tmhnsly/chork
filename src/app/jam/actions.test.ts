@@ -140,7 +140,7 @@ describe("createJamAction", () => {
     // Regression: points jams used to fall into the custom-grades
     // branch and always return "Add at least one custom grade".
     const sb = await mockSignedIn({
-      "rpc:create_jam": { data: [{ id: JAM_1, code: "ABCDEF" }], error: null },
+      "rpc:create_match": { data: [{ id: JAM_1, code: "ABCDEF" }], error: null },
     });
 
     const { createJamAction } = await import("./actions");
@@ -149,7 +149,7 @@ describe("createJamAction", () => {
     });
     expect(result).toEqual({ id: JAM_1, code: "ABCDEF" });
 
-    const rpc = sb.calls.find((c) => c.source === "create_jam");
+    const rpc = sb.calls.find((c) => c.source === "create_match");
     expect(rpc?.args[0]).toEqual(
       expect.objectContaining({
         p_grading_scale: "points",
@@ -162,7 +162,7 @@ describe("createJamAction", () => {
 
   it("accepts a V-scale jam with valid bounds", async () => {
     await mockSignedIn({
-      "rpc:create_jam": { data: [{ id: JAM_1, code: "ABCDEF" }], error: null },
+      "rpc:create_match": { data: [{ id: JAM_1, code: "ABCDEF" }], error: null },
     });
 
     const { createJamAction } = await import("./actions");
@@ -176,7 +176,7 @@ describe("createJamAction", () => {
 
   it("maps an RPC failure to a friendly error", async () => {
     await mockSignedIn({
-      "rpc:create_jam": {
+      "rpc:create_match": {
         data: null,
         error: { code: "42501", message: "rls denies" },
       },
@@ -233,17 +233,17 @@ describe("joinJamAction", () => {
     expect(await joinJamAction(JAM_1)).toEqual({ error: AUTH_REQUIRED });
   });
 
-  it("joins via the add_jam_player RPC on success", async () => {
+  it("joins via the join_match RPC on success", async () => {
     const sb = await mockSignedIn();
     const { joinJamAction } = await import("./actions");
     expect(await joinJamAction(JAM_1)).toEqual({ ok: true });
-    const rpc = sb.calls.find((c) => c.source === "add_jam_player");
-    expect(rpc?.args[0]).toEqual({ p_jam_id: JAM_1 });
+    const rpc = sb.calls.find((c) => c.source === "join_match");
+    expect(rpc?.args[0]).toEqual({ p_set_id: JAM_1 });
   });
 
   it("maps an RPC failure (jam full / ended) to a friendly error", async () => {
     await mockSignedIn({
-      "rpc:add_jam_player": {
+      "rpc:join_match": {
         data: null,
         error: { code: "23514", message: "jam is full" },
       },
@@ -267,11 +267,19 @@ describe("leaveJamAction", () => {
     expect(await leaveJamAction(JAM_1)).toEqual({ error: AUTH_REQUIRED });
   });
 
-  it("leaves via the leave_jam RPC on success", async () => {
+  // Leaving parks the row via RLS rather than an RPC — `set_players`
+  // update is `user_id = auth.uid()` on both sides, which is the whole
+  // rule. See the note on leaveJamAction.
+  it("parks the player row rather than deleting it", async () => {
     const sb = await mockSignedIn();
     const { leaveJamAction } = await import("./actions");
     expect(await leaveJamAction(JAM_1)).toEqual({ ok: true });
-    expect(sb.calls.some((c) => c.source === "leave_jam")).toBe(true);
+    const call = sb.calls.find((c) => c.source === "set_players");
+    expect(call).toBeTruthy();
+    const update = sb.calls.find((c) => c.method === "update");
+    // A timestamp, not a delete: the history has to stay readable.
+    expect(update?.args[0]).toMatchObject({ left_at: expect.any(String) });
+    expect(sb.calls.some((c) => c.method === "delete")).toBe(false);
   });
 });
 
@@ -293,7 +301,7 @@ describe("addJamRouteAction", () => {
   it("returns the created route row so the client can upsert without waiting on realtime", async () => {
     const route = { id: ROUTE_1, jam_id: JAM_1, number: 1 };
     await mockSignedIn({
-      "rpc:add_jam_route": { data: route, error: null },
+      "rpc:add_match_route": { data: route, error: null },
     });
     const { addJamRouteAction } = await import("./actions");
     expect(await addJamRouteAction({ jamId: JAM_1 })).toEqual({ route });
@@ -301,7 +309,7 @@ describe("addJamRouteAction", () => {
 
   it("maps an RPC failure to a friendly error", async () => {
     await mockSignedIn({
-      "rpc:add_jam_route": {
+      "rpc:add_match_route": {
         data: null,
         error: { code: "42501", message: "not a player" },
       },
@@ -329,9 +337,9 @@ describe("updateJamRouteAction", () => {
   });
 
   it("returns the updated route row on success", async () => {
-    const route = { id: ROUTE_1, jam_id: JAM_1, number: 1 };
+    const route = { id: ROUTE_1, set_id: JAM_1, number: 1 };
     await mockSignedIn({
-      "rpc:update_jam_route": { data: route, error: null },
+      "table:routes": { data: route, error: null },
     });
     const { updateJamRouteAction } = await import("./actions");
     expect(await updateJamRouteAction({ routeId: ROUTE_1 })).toEqual({ route });
@@ -397,9 +405,9 @@ describe("upsertJamLogAction", () => {
     // Must match withOfflineQueue's synthetic shape exactly — callers
     // check `"error" in result` identically for both paths.
     expect(result).toEqual({ success: true, log: null });
-    const rpc = sb.calls.find((c) => c.source === "upsert_jam_log");
+    const rpc = sb.calls.find((c) => c.source === "upsert_match_log");
     expect(rpc?.args[0]).toEqual({
-      p_jam_route_id: ROUTE_1,
+      p_route_id: ROUTE_1,
       p_attempts: 2,
       p_completed: true,
       p_zone: true,
@@ -408,7 +416,7 @@ describe("upsertJamLogAction", () => {
 
   it("maps an RPC failure to a friendly error", async () => {
     await mockSignedIn({
-      "rpc:upsert_jam_log": {
+      "rpc:upsert_match_log": {
         data: null,
         error: { code: "42501", message: "not a player" },
       },
@@ -438,17 +446,20 @@ describe("endJamAction", () => {
     expect(await endJamAction(JAM_1)).toEqual({ error: AUTH_REQUIRED });
   });
 
-  it("returns the summary id on success", async () => {
+  // The result is addressed by SET id now — there is no summary row
+  // to mint an id for. A finished Match is an archived Set, so the id
+  // the caller already holds IS the result's address.
+  it("returns the set id on success", async () => {
     await mockSignedIn({
-      "rpc:end_jam_as_player": { data: "summary-1", error: null },
+      "rpc:end_match": { data: null, error: null },
     });
     const { endJamAction } = await import("./actions");
-    expect(await endJamAction(JAM_1)).toEqual({ summaryId: "summary-1" });
+    expect(await endJamAction(JAM_1)).toEqual({ summaryId: JAM_1 });
   });
 
   it("maps an RPC failure to a friendly error without running housekeeping", async () => {
     await mockSignedIn({
-      "rpc:end_jam_as_player": {
+      "rpc:end_match": {
         data: null,
         error: { code: "42501", message: "not a player" },
       },

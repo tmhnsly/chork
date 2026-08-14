@@ -4,7 +4,7 @@ import { format, parseISO } from "date-fns";
 import { FaCrown, FaArrowLeft } from "react-icons/fa6";
 import { requireSignedIn } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getJamSummaryForUser } from "@/lib/data/jam-queries";
+import { getJamStateForUser } from "@/lib/data/jam-queries";
 import { PageHeader } from "@/components/motion";
 import { UserAvatar, Username } from "@/components/ui";
 import { ShareResultButton } from "@/components/Jam/ShareResultButton";
@@ -21,44 +21,61 @@ export default async function JamSummaryPage({ params, searchParams }: Props) {
   const auth = await requireSignedIn();
   if ("error" in auth) redirect("/login");
 
+  // `id` is the SET id. Since the convergence there is no summary to
+  // address separately: a finished Match is an archived Set, and this
+  // page reads the very rows the live board read. That is what keeps
+  // a tied result ranked the same here as it was a second earlier —
+  // the old `end_jam` wrote summary ranks with `row_number()` while
+  // the board used `dense_rank()`, so the two could disagree.
+  //
   // Service-role hydrator — gates on participation internally using
-  // the explicit `p_user_id` (migration 055). A null return means
-  // "summary not found OR caller is neither host nor a
-  // summary_player"; both collapse to 404 so URL-guess enumeration
-  // can't distinguish the two and leak summary existence.
+  // the explicit `p_user_id`. A null return means "not found OR
+  // caller was never a player"; both collapse to 404 so URL-guess
+  // enumeration can't distinguish the two.
   //
   // The gate used to live here as two anon pre-flight RLS queries,
   // but both relied on `auth.uid()` flowing through the user's JWT
   // — which transiently resolves NULL on the SSR fetch that fires
-  // immediately after `end_jam` commits and `router.push` runs.
-  // That was the reliable "ending a jam 404s" root cause: the gate
-  // failed on the very request it was meant to pass. Moved into
-  // the RPC (SECURITY DEFINER, explicit uid) so the gate runs
-  // against ground-truth regardless of JWT timing.
+  // immediately after ending and `router.push` runs. That was the
+  // reliable "ending a jam 404s" root cause: the gate failed on the
+  // very request it was meant to pass. Keep it in the RPC.
   const service = createServiceClient();
-  const bundle = await getJamSummaryForUser(service, id, auth.userId);
-  if (!bundle) notFound();
-  const { summary, players } = bundle;
+  const state = await getJamStateForUser(service, id, auth.userId);
+  if (!state) notFound();
+  const summary = state.jam;
+  const players = state.leaderboard;
 
-  const winner = players.find((p) => p.is_winner);
+  // Rank 1 IS the win, and dense_rank means a tie shares it — so a
+  // drawn Match shows both winners rather than picking one.
+  const winner = players.find((p) => p.rank === 1);
+  const endedAt = summary.ends_at;
+  const durationSeconds = endedAt
+    ? Math.max(
+        0,
+        Math.round(
+          (parseISO(endedAt).getTime() - parseISO(summary.starts_at).getTime())
+            / 1000,
+        ),
+      )
+    : 0;
 
   return (
     <main className={styles.page}>
       <div className={styles.topRow}>
         <Link href="/jam" className={styles.backLink}>
-          <FaArrowLeft aria-hidden /> Jams
+          <FaArrowLeft aria-hidden /> Matches
         </Link>
         {fresh && (
-          <span className={styles.freshBadge}>Jam complete</span>
+          <span className={styles.freshBadge}>Match complete</span>
         )}
       </div>
 
       <PageHeader
-        title={summary.name?.trim() || "Untitled jam"}
+        title={summary.name?.trim() || "Untitled match"}
         subtitle={[
           summary.location,
-          format(parseISO(summary.ended_at), "d MMM yyyy"),
-          formatDuration(summary.duration_seconds),
+          endedAt ? format(parseISO(endedAt), "d MMM yyyy") : null,
+          formatDuration(durationSeconds),
         ]
           .filter(Boolean)
           .join(" · ")}
@@ -101,26 +118,34 @@ export default async function JamSummaryPage({ params, searchParams }: Props) {
           Final board
         </h2>
         <ol className={styles.playerList}>
-          {players.map((p, i) => (
+          {players.map((p, i) => {
+            // The old summary denormalised names at end time, so a
+            // deleted account kept its label. Reading live rows means
+            // the join can miss — show the placeholder rather than an
+            // empty row, so the standings stay complete.
+            const username = p.username ?? "unknown";
+            return (
             <li
-              key={p.user_id ?? `deleted-${p.rank}-${i}`}
+              key={p.user_id || `unknown-${p.rank}-${i}`}
               className={styles.playerRow}
             >
               <span className={styles.playerRank}>#{p.rank}</span>
               <UserAvatar
                 user={{
                   id: p.user_id ?? "",
-                  username: p.username,
-                  name: p.display_name,
+                  username,
+                  // Falls back to the handle so the avatar still gets
+                  // an initial to draw, matching the name shown below.
+                  name: p.display_name ?? username,
                   avatar_url: p.avatar_url ?? "",
                 }}
                 size="row"
               />
               <div className={styles.playerIdentity}>
                 <span className={styles.playerName}>
-                  {p.display_name || p.username}
+                  {p.display_name || username}
                 </span>
-                <Username username={p.username} className={styles.playerHandle} />
+                <Username username={username} className={styles.playerHandle} />
               </div>
               <div className={styles.playerStats}>
                 <span>{p.sends} sends</span>
@@ -128,7 +153,8 @@ export default async function JamSummaryPage({ params, searchParams }: Props) {
                 <span className={styles.playerPoints}>{p.points} pts</span>
               </div>
             </li>
-          ))}
+            );
+          })}
         </ol>
       </section>
     </main>

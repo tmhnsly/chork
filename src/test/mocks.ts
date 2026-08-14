@@ -22,6 +22,8 @@ export function mockRouteSet(overrides: Partial<RouteSet> & { id: string; gym_id
     // and ends on its schedule rather than on inactivity.
     location: null,
     last_activity_at: null,
+    // Migration 085 — null until a player taps Share.
+    share_token: null,
     // Columns added in migration 014 — defaults mirror the SQL defaults so
     // fixtures stay valid whether callers override or not.
     name: null,
