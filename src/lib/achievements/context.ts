@@ -23,6 +23,7 @@ import { getAllSets } from "@/lib/data/set-queries";
 import { getRoutesBySetIds } from "@/lib/data/route-queries";
 import { getAllRouteDataForUserInGym } from "@/lib/data/route-log-queries";
 import { computeAllTimeAggregates } from "@/lib/data/profile-stats";
+import { createServiceClient } from "@/lib/supabase/server";
 import { getJamAchievementContext } from "@/lib/data/jam-queries";
 import type { JamAchievementContext } from "@/lib/data/jam-types";
 import { emptyGymFold, foldGymSets, type GymSetFold } from "./fold";
@@ -68,9 +69,17 @@ export async function buildBadgeContext(
   userId: string,
   gymId: string | null
 ): Promise<BadgeContext | null> {
-  // Pull jam context always — it feeds progress totals + condition
+  // Pull Match context always — it feeds progress totals + condition
   // badges regardless of whether the caller has a gym.
-  const jamAchievements = await getJamAchievementContext(supabase, userId);
+  //
+  // Service client, not the caller's: `get_match_achievement_context`
+  // takes its subject explicitly and is revoked from `authenticated`,
+  // because this runs for OTHER users too (the post-Match evaluation
+  // re-scores every participant).
+  const jamAchievements = await getJamAchievementContext(
+    createServiceClient(),
+    userId,
+  );
 
   if (!gymId) return assemble(jamAchievements, emptyGymFold(), null);
 

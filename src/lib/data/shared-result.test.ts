@@ -31,59 +31,71 @@ describe("getSharedResult", () => {
   });
 
   it("returns null for a token that resolves to nothing", async () => {
-    await primeService({ "table:jam_summaries": { data: null } });
+    await primeService({ "rpc:get_public_match_result": { data: null } });
     const { getSharedResult } = await import("./shared-result");
     expect(await getSharedResult(TOKEN)).toBeNull();
   });
 
   it("looks the result up BY TOKEN, never by id", async () => {
     // The token is the whole capability — an id-keyed lookup here
-    // would make every summary walkable.
+    // would make every result walkable.
     const sb = await primeService({
-      "table:jam_summaries": {
+      "rpc:get_public_match_result": {
         data: {
-          id: SUMMARY_1,
           name: "Tuesday",
           location: "Yonder",
           ended_at: "2026-08-13T20:00:00Z",
           player_count: 3,
+          players: [],
         },
       },
-      "table:jam_summary_players": { data: [] },
     });
     const { getSharedResult } = await import("./shared-result");
     await getSharedResult(TOKEN);
 
-    const eqArgs = sb.calls
-      .filter((c) => c.source === "jam_summaries" && c.method === "eq")
-      .map((c) => c.args);
-    expect(eqArgs).toContainEqual(["share_token", TOKEN]);
+    const call = sb.calls.find((c) => c.source === "get_public_match_result");
+    expect(call?.args[0]).toEqual({ p_token: TOKEN });
+  });
+
+  it("returns null for a Match that has not finished", async () => {
+    // A live Match has no end date, and no business being rendered as
+    // a "result" to anyone holding the link.
+    await primeService({
+      "rpc:get_public_match_result": {
+        data: {
+          name: "Still going",
+          location: null,
+          ended_at: null,
+          player_count: 2,
+          players: [{ rank: 1, display_name: "Alice", username: "alice", points: 4, sends: 1, flashes: 1, zones: 0, is_winner: true }],
+        },
+      },
+    });
+    const { getSharedResult } = await import("./shared-result");
+    expect(await getSharedResult(TOKEN)).toBeNull();
   });
 
   it("maps players in rank order with the public fields", async () => {
     await primeService({
-      "table:jam_summaries": {
+      "rpc:get_public_match_result": {
         data: {
-          id: SUMMARY_1,
           name: "Tuesday",
           location: "Yonder",
           ended_at: "2026-08-13T20:00:00Z",
           player_count: 2,
+          players: [
+            {
+              rank: 1,
+              display_name: "Alice",
+              username: "alice",
+              points: 24,
+              sends: 6,
+              flashes: 3,
+              zones: 2,
+              is_winner: true,
+            },
+          ],
         },
-      },
-      "table:jam_summary_players": {
-        data: [
-          {
-            rank: 1,
-            display_name: "Alice",
-            username: "alice",
-            points: 24,
-            sends: 6,
-            flashes: 3,
-            zones: 2,
-            is_winner: true,
-          },
-        ],
       },
     });
     const { getSharedResult } = await import("./shared-result");
@@ -105,9 +117,10 @@ describe("getSharedResult", () => {
 describe("public result never exposes attempts", () => {
   // Anyone holding the link can read whatever this returns, and raw
   // attempt counts are owner-only (CONTEXT.md "Attempt privacy").
-  // `jam_summary_players.attempts` EXISTS on the row, so the guard is
-  // that we never select it — which a `select("*")` or a helpful
-  // "add attempts to the card" would quietly undo.
+  // `get_public_match_result` does not return the column at all, and
+  // this pins the TS side of that: a helpful "add attempts to the
+  // card" would have to name it here first. The SQL side is pinned by
+  // attempt-privacy.test.ts.
   const source = readFileSync(
     join(process.cwd(), "src/lib/data/shared-result.ts"),
     "utf8",
@@ -129,30 +142,28 @@ describe("public result never exposes attempts", () => {
 
   it("omits attempts from the returned player shape", async () => {
     await primeService({
-      "table:jam_summaries": {
+      "rpc:get_public_match_result": {
         data: {
-          id: SUMMARY_1,
           name: null,
           location: null,
           ended_at: "2026-08-13T20:00:00Z",
           player_count: 1,
+          players: [
+            {
+              rank: 1,
+              display_name: "Alice",
+              username: "alice",
+              points: 4,
+              sends: 1,
+              flashes: 1,
+              zones: 0,
+              is_winner: true,
+              // Even if a row somehow carried it, it must not survive
+              // mapping onto the public shape.
+              attempts: 17,
+            },
+          ],
         },
-      },
-      "table:jam_summary_players": {
-        data: [
-          {
-            rank: 1,
-            display_name: "Alice",
-            username: "alice",
-            points: 4,
-            sends: 1,
-            flashes: 1,
-            zones: 0,
-            is_winner: true,
-            // Even if the row carries it, it must not survive mapping.
-            attempts: 17,
-          },
-        ],
       },
     });
     const { getSharedResult } = await import("./shared-result");
@@ -166,7 +177,7 @@ describe("mintShareToken", () => {
   it("returns the existing token rather than minting a second", async () => {
     // One canonical URL per result, however many people share it.
     const sb = await primeService({
-      "table:jam_summaries": { data: { share_token: "already-minted-token" } },
+      "table:sets": { data: { share_token: "already-minted-token" } },
     });
     const { mintShareToken } = await import("./shared-result");
     expect(await mintShareToken(SUMMARY_1)).toBe("already-minted-token");
@@ -178,7 +189,7 @@ describe("mintShareToken", () => {
 
   it("mints and stores an unguessable token when there is none", async () => {
     const sb = await primeService({
-      "table:jam_summaries": { data: { share_token: null }, error: null },
+      "table:sets": { data: { share_token: null }, error: null },
     });
     const { mintShareToken } = await import("./shared-result");
     const token = await mintShareToken(SUMMARY_1);
@@ -190,7 +201,7 @@ describe("mintShareToken", () => {
 
   it("returns null when the write fails, so no link is handed out", async () => {
     await primeService({
-      "table:jam_summaries": [
+      "table:sets": [
         { data: { share_token: null } },
         { data: null, error: { code: "23505", message: "dup" } },
       ],

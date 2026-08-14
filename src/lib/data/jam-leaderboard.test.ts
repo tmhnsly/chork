@@ -16,16 +16,16 @@ function mkPlayer(user_id: string, username: string): JamPlayerView {
 
 function mkLog(
   user_id: string,
-  jam_route_id: string,
+  route_id: string,
   attempts: number,
   completed: boolean,
   zone = false,
   completed_at: string | null = null,
 ): JamLog {
   return {
-    id: `${user_id}-${jam_route_id}`,
-    jam_id: "jam-1",
-    jam_route_id,
+    id: `${user_id}-${route_id}`,
+    set_id: "jam-1",
+    route_id,
     user_id,
     attempts,
     completed,
@@ -38,7 +38,7 @@ function mkLog(
 
 function logsMap(logs: JamLog[]): Map<string, JamLog> {
   const m = new Map<string, JamLog>();
-  for (const l of logs) m.set(`${l.user_id}:${l.jam_route_id}`, l);
+  for (const l of logs) m.set(`${l.user_id}:${l.route_id}`, l);
   return m;
 }
 
@@ -171,7 +171,7 @@ describe("computeJamLeaderboard × computePoints — scoring cross-check", () =>
 
   it("computePoints pins each rung of the ladder", () => {
     for (const { log, expected } of fixtures) {
-      expect(computePoints(log), `route ${log.jam_route_id}`).toBe(expected);
+      expect(computePoints(log), `route ${log.route_id}`).toBe(expected);
     }
   });
 

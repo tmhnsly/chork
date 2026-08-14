@@ -11,10 +11,10 @@ import type { JamLog, JamPlayerView, JamRoute, JamState } from "@/lib/data/jam-t
 function mkRoute(id: string, number: number, overrides: Partial<JamRoute> = {}): JamRoute {
   return {
     id,
-    jam_id: "jam-1",
+    set_id: "jam-1",
     number,
     description: null,
-    grade: null,
+    declared_grade: null,
     has_zone: false,
     added_by: null,
     created_at: "2026-04-01T00:00:00Z",
@@ -33,11 +33,11 @@ function mkPlayer(user_id: string, username: string): JamPlayerView {
   };
 }
 
-function mkLog(user_id: string, jam_route_id: string, overrides: Partial<JamLog> = {}): JamLog {
+function mkLog(user_id: string, route_id: string, overrides: Partial<JamLog> = {}): JamLog {
   return {
-    id: `${user_id}-${jam_route_id}`,
-    jam_id: "jam-1",
-    jam_route_id,
+    id: `${user_id}-${route_id}`,
+    set_id: "jam-1",
+    route_id,
     user_id,
     attempts: 1,
     completed: true,

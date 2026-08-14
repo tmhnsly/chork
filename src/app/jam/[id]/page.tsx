@@ -39,11 +39,11 @@ export default async function JamRoomPage({ params }: Props) {
   const service = createServiceClient();
   let initialState = await getJamStateForUser(service, id, auth.userId);
   if (!initialState) {
-    // add_jam_player errors for ended / full / deleted jams — fall
-    // through to the join screen, which doubles as the "this jam
+    // join_match errors for ended / full / missing Matches — fall
+    // through to the join screen, which doubles as the "this match
     // isn't available" surface.
-    const { error: joinError } = await auth.supabase.rpc("add_jam_player", {
-      p_jam_id: id,
+    const { error: joinError } = await auth.supabase.rpc("join_match", {
+      p_set_id: id,
     });
     if (!joinError) {
       initialState = await getJamStateForUser(service, id, auth.userId);

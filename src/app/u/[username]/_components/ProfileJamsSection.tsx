@@ -1,4 +1,4 @@
-import { createServerSupabase } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { getUserJams } from "@/lib/data/jam-queries";
 import { computeJamLifetimeStats } from "@/lib/data/jam-stats";
 import { JamHistoryList } from "@/components/Jam/JamHistoryList";
@@ -41,8 +41,12 @@ interface Props {
  * cheap enough to be a non-issue.
  */
 export async function ProfileJamsSection({ userId, isOwnProfile }: Props) {
-  const supabase = await createServerSupabase();
-  const jams = await getUserJams(supabase, userId, { limit: MAX_JAMS_FETCH });
+  // Service-role: `get_match_history` takes its subject explicitly and
+  // is revoked from `authenticated`, because a profile shows someone
+  // ELSE's history — there is no `auth.uid()` answer to "whose". The
+  // page has already resolved which profile is being viewed.
+  const service = createServiceClient();
+  const jams = await getUserJams(service, userId, { limit: MAX_JAMS_FETCH });
 
   if (jams.length === 0) return null;
 

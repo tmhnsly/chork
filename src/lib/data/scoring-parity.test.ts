@@ -148,8 +148,8 @@ describe("computeJamLeaderboard implements the SQL tiebreak", () => {
     `${uid}:${routeId}`,
     {
       id: `${uid}:${routeId}`,
-      jam_id: "jam-1",
-      jam_route_id: routeId,
+      set_id: "jam-1",
+      route_id: routeId,
       user_id: uid,
       attempts: 1,
       completed: true,

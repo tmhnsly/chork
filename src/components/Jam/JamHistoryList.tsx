@@ -21,7 +21,7 @@ export function JamHistoryList({ jams }: Props) {
   return (
     <ul className={styles.list}>
       {jams.map((jam) => (
-        <li key={jam.summary_id}>
+        <li key={jam.set_id}>
           <JamHistoryRow jam={jam} />
         </li>
       ))}
@@ -36,7 +36,7 @@ function JamHistoryRow({ jam }: { jam: JamHistoryRow }) {
     jam.player_count === 1 ? "1 player" : `${jam.player_count} players`;
 
   return (
-    <Link href={`/jam/summary/${jam.summary_id}`} className={styles.row}>
+    <Link href={`/jam/summary/${jam.set_id}`} className={styles.row}>
       <div className={styles.body}>
         <span className={styles.title}>{name}</span>
         <span className={styles.meta}>

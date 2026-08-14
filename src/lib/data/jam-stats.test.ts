@@ -4,8 +4,7 @@ import { computeJamLifetimeStats } from "./jam-stats";
 
 function makeJam(overrides: Partial<JamHistoryRow> = {}): JamHistoryRow {
   return {
-    summary_id: "summary-1",
-    jam_id: "jam-1",
+    set_id: "match-1",
     name: null,
     location: null,
     ended_at: "2026-01-01T00:00:00Z",

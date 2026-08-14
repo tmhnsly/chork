@@ -1376,6 +1376,7 @@ export type Database = {
           min_grade: number | null
           name: string | null
           owner_kind: string
+          share_token: string | null
           starts_at: string
           status: string
           updated_at: string
@@ -1398,6 +1399,7 @@ export type Database = {
           min_grade?: number | null
           name?: string | null
           owner_kind?: string
+          share_token?: string | null
           starts_at: string
           status?: string
           updated_at?: string
@@ -1420,6 +1422,7 @@ export type Database = {
           min_grade?: number | null
           name?: string | null
           owner_kind?: string
+          share_token?: string | null
           starts_at?: string
           status?: string
           updated_at?: string
@@ -1740,6 +1743,7 @@ export type Database = {
           min_grade: number | null
           name: string | null
           owner_kind: string
+          share_token: string | null
           starts_at: string
           status: string
           updated_at: string
@@ -1777,6 +1781,17 @@ export type Database = {
           location: string
           name: string
           player_count: number
+        }[]
+      }
+      get_active_match_for_user: {
+        Args: { p_user_id: string }
+        Returns: {
+          code: string
+          joined_at: string
+          location: string
+          name: string
+          player_count: number
+          set_id: string
         }[]
       }
       get_all_time_overview: {
@@ -2075,6 +2090,40 @@ export type Database = {
           zones: number
         }[]
       }
+      get_match_achievement_context: {
+        Args: { p_user_id: string }
+        Returns: {
+          match_total_flashes: number
+          match_total_points: number
+          match_total_sends: number
+          matches_hosted: number
+          matches_played: number
+          matches_won: number
+          max_iron_crew_pair_count: number
+          max_players_in_won_match: number
+          unique_coplayers: number
+        }[]
+      }
+      get_match_history: {
+        Args: { p_before?: string; p_limit?: number; p_user_id: string }
+        Returns: {
+          duration_seconds: number
+          ended_at: string
+          location: string
+          name: string
+          player_count: number
+          set_id: string
+          started_at: string
+          user_flashes: number
+          user_is_winner: boolean
+          user_points: number
+          user_rank: number
+          user_sends: number
+          winner_display_name: string
+          winner_user_id: string
+          winner_username: string
+        }[]
+      }
       get_match_leaderboard: {
         Args: { p_set_id: string; p_viewer_id?: string }
         Returns: {
@@ -2099,6 +2148,7 @@ export type Database = {
         Args: { p_gym_id: string; p_user_id: string }
         Returns: Json
       }
+      get_public_match_result: { Args: { p_token: string }; Returns: Json }
       get_route_grade: {
         Args: { p_route_id: string }
         Returns: {
@@ -2279,6 +2329,19 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: number
       }
+      match_standings: {
+        Args: { p_set_id: string }
+        Returns: {
+          attempts: number
+          flashes: number
+          last_send_at: string
+          points: number
+          rank: number
+          sends: number
+          user_id: string
+          zones: number
+        }[]
+      }
       notify_user: {
         Args: { p_kind: string; p_payload?: Json; p_user_id: string }
         Returns: string
@@ -2363,6 +2426,34 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "jam_logs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      upsert_match_log: {
+        Args: {
+          p_attempts?: number
+          p_completed?: boolean
+          p_route_id: string
+          p_zone?: boolean
+        }
+        Returns: {
+          attempts: number
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          grade_vote: number | null
+          gym_id: string | null
+          id: string
+          route_id: string
+          set_id: string
+          updated_at: string
+          user_id: string
+          zone: boolean
+        }
+        SetofOptions: {
+          from: "*"
+          to: "route_logs"
           isOneToOne: true
           isSetofReturn: false
         }

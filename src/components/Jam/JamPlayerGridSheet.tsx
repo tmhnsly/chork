@@ -94,7 +94,7 @@ export function JamPlayerGridSheet({
           {routes.map((route) => {
             const log = logs.get(logKey(player.user_id, route.id)) ?? null;
             const state = deriveTileState(log);
-            const gradeLabel = labelForGrade(route.grade);
+            const gradeLabel = labelForGrade(route.declared_grade);
             return (
               <SendGridTile
                 key={route.id}

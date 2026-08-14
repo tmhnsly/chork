@@ -1,9 +1,17 @@
-// Jam reads. All go through Postgres RPCs defined in migrations
-// 041 + 042 — no client-side aggregation, no raw row joins.
+// Match reads. All go through Postgres RPCs (migrations 084–086) —
+// no client-side aggregation, no raw row joins.
 //
 // Errors swallow + log + fall back to neutral values (null / []) to
 // match the read contract in `docs/architecture.md`. Callers render
 // "absent" the same as "failed" so no try/catch is needed upstream.
+//
+// Several of these are **service-role only**, because they take their
+// subject as an argument rather than reading `auth.uid()`. That is
+// deliberate on two counts: a client must not be able to ask about
+// someone else, and reading `auth.uid()` inside a SECURITY DEFINER
+// body flaked under stale JWTs on SSR (it silently treated the caller
+// as a stranger — see the `getJamState` → `getJamStateForUser` note in
+// migration 048). Auth happens at the Next page level first.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../database.types";
@@ -11,14 +19,11 @@ import { formatErrorForLog } from "../errors";
 import { JAM_CODE_RE } from "../validation";
 import type {
   ActiveJamSummary,
-  Jam,
   JamAchievementContext,
   JamHistoryRow,
   JamState,
-  JamSummaryBundle,
   JoinJamLookup,
   SavedScale,
-  UserAllTimeStats,
 } from "./jam-types";
 
 import { logger } from "@/lib/logger";
@@ -26,81 +31,50 @@ import { asJsonShape, asJsonShapeArray } from "./json-shape";
 import { readSingle, readMany } from "./read";
 type Client = SupabaseClient<Database>;
 
-// NOTE: the legacy `getJamState` wrapper was removed — it relied on
-// `auth.uid()` inside a SECURITY DEFINER body, which flaked under
-// stale JWTs on SSR and silently returned null. Use
-// `getJamStateForUser` (service-role variant, see below) for any
-// SSR / background fetch; callers on the client can subscribe via
-// `useJamRealtime` and the initial SSR payload.
-
-// Fetch a jam row directly. Used by pages that need metadata before
-// dispatching an action (e.g. the /jam/[id] server component
-// fetching ahead of the client hydrator).
-export async function getJamById(
-  supabase: Client,
-  jamId: string,
-): Promise<Jam | null> {
-  return readSingle<Jam>(
-    supabase.from("jams").select("*").eq("id", jamId).maybeSingle(),
-    "getjambyid_failed",
-  );
-}
-
-export async function getActiveJamForUser(
-  supabase: Client,
-): Promise<ActiveJamSummary | null> {
-  return readSingle<ActiveJamSummary>(
-    supabase.rpc("get_active_jam_for_user"),
-    "getactivejamforuser_failed",
-  );
-}
-
 /**
- * Service-role variant — takes the user id explicitly so the caller
- * can come in via `createServiceClient()` when they've already
- * authenticated via `requireSignedIn`. Avoids the `auth.uid()`-
- * inside-a-DEFINER dance that can flake if the JWT is stale at the
- * instant of a SSR render.
- *
- * Auth happens at the Next page level — **do not** call this from
- * a public surface. The RPC is revoked from anon + authenticated.
+ * The resume banner's "you're in a Match right now". Service-role;
+ * pass the caller's own id after `requireSignedIn`.
  */
 export async function getActiveJamForUserById(
   service: Client,
   userId: string,
 ): Promise<ActiveJamSummary | null> {
   return readSingle<ActiveJamSummary>(
-    service.rpc("get_active_jam_for_user_by_id", { p_user_id: userId }),
-    "getactivejamforuserbyid_failed",
+    service.rpc("get_active_match_for_user", { p_user_id: userId }),
+    "getactivematchforuser_failed",
   );
 }
 
 /**
- * Service-role hydrator for the /jam/[id] page. Takes an explicit
- * user id rather than reading `auth.uid()` inside a SECURITY DEFINER
- * function, which made the legacy `getJamState` flaky under stale
- * JWTs (legitimate resumes redirected to /jam/join).
+ * The whole room for one viewer: Match, grades, routes, players, the
+ * caller's own logs, and the board. Non-players resolve to null and
+ * the caller redirects.
  *
- * Auth happens at the Next page level via `requireSignedIn` before
- * this is called — the RPC is revoked from everyone but service_role.
- * Non-player user ids resolve to null; caller redirects.
+ * Also serves a finished Match — the result page reads the same rows
+ * the live board does, which is the point of the convergence. There
+ * is no separate summary to hydrate.
  */
 export async function getJamStateForUser(
   service: Client,
-  jamId: string,
+  setId: string,
   userId: string,
 ): Promise<JamState | null> {
-  const { data, error } = await service.rpc("get_jam_state_for_user", {
-    p_jam_id: jamId,
+  const { data, error } = await service.rpc("get_match_state_for_user", {
+    p_set_id: setId,
     p_user_id: userId,
   });
   if (error) {
-    logger.warn("getjamstateforuser_failed", { err: formatErrorForLog(error) });
+    logger.warn("getmatchstateforuser_failed", { err: formatErrorForLog(error) });
     return null;
   }
   return data == null ? null : asJsonShape<JamState>(data);
 }
 
+/**
+ * Pre-join preview. Runs on the caller's own client — the code IS the
+ * invitation, and you cannot be a player yet, so this is the one Match
+ * read that isn't membership-gated.
+ */
 export async function lookupJamByCode(
   supabase: Client,
   code: string,
@@ -108,19 +82,20 @@ export async function lookupJamByCode(
   const normalised = code.trim().toUpperCase();
   if (!JAM_CODE_RE.test(normalised)) return null;
   return readSingle<JoinJamLookup>(
-    supabase.rpc("join_jam_by_code", { p_code: normalised }),
-    "lookupjambycode_failed",
+    supabase.rpc("lookup_match_by_code", { p_code: normalised }),
+    "lookupmatchbycode_failed",
   );
 }
 
+/** Finished Matches the user played, newest first. Service-role. */
 export async function getUserJams(
-  supabase: Client,
+  service: Client,
   userId: string,
   options: { limit?: number; before?: string | null } = {},
 ): Promise<JamHistoryRow[]> {
   const { limit = 20, before = null } = options;
   return readMany<JamHistoryRow>(
-    supabase.rpc("get_user_jams", {
+    service.rpc("get_match_history", {
       p_user_id: userId,
       p_limit: limit,
       // `p_before` is `timestamptz default null` server-side; the
@@ -128,35 +103,8 @@ export async function getUserJams(
       // our domain `null` through to match.
       p_before: before ?? undefined,
     }),
-    "getuserjams_failed",
+    "getmatchhistory_failed",
   );
-}
-
-/**
- * Service-role hydrator for `/jam/summary/[id]`. Takes an explicit
- * user id rather than reading `auth.uid()` inside a SECURITY DEFINER
- * function (the mask over private attempt counts would otherwise
- * treat the caller as a stranger under a stale JWT and silently
- * zero their OWN count — same class of bug as the earlier
- * `getJamState` → `getJamStateForUser` migration).
- *
- * The RPC is revoked from anon + authenticated; the page must
- * call it via `createServiceClient()` after `requireSignedIn`.
- */
-export async function getJamSummaryForUser(
-  service: Client,
-  summaryId: string,
-  userId: string,
-): Promise<JamSummaryBundle | null> {
-  const { data, error } = await service.rpc("get_jam_summary_for_user", {
-    p_summary_id: summaryId,
-    p_user_id: userId,
-  });
-  if (error) {
-    logger.warn("getjamsummaryforuser_failed", { err: formatErrorForLog(error) });
-    return null;
-  }
-  return data == null ? null : asJsonShape<JamSummaryBundle>(data);
 }
 
 export async function getUserSavedScales(
@@ -168,16 +116,6 @@ export async function getUserSavedScales(
     return [];
   }
   return asJsonShapeArray<SavedScale>(data);
-}
-
-export async function getUserAllTimeStats(
-  supabase: Client,
-  userId: string,
-): Promise<UserAllTimeStats | null> {
-  return readSingle<UserAllTimeStats>(
-    supabase.rpc("get_user_all_time_stats", { p_user_id: userId }),
-    "getuseralltimestats_failed",
-  );
 }
 
 // Neutral default used whenever the RPC fails or returns no rows.
@@ -197,13 +135,43 @@ function emptyJamAchievementContext(): JamAchievementContext {
   };
 }
 
+/**
+ * Badge context. Service-role.
+ *
+ * The RPC speaks `match_*`; the badge engine and every stored
+ * achievement key still speak `jam_*`. Mapping here rather than
+ * renaming outward keeps this change a data-source swap — the badge
+ * rename rides along with the code rename later, where it can be done
+ * with the persisted `user_achievements` rows in view.
+ */
 export async function getJamAchievementContext(
-  supabase: Client,
+  service: Client,
   userId: string,
 ): Promise<JamAchievementContext> {
-  const row = await readSingle<JamAchievementContext>(
-    supabase.rpc("get_jam_achievement_context", { p_user_id: userId }),
-    "getjamachievementcontext_failed",
+  const row = await readSingle<{
+    matches_played: number;
+    matches_won: number;
+    matches_hosted: number;
+    max_players_in_won_match: number;
+    unique_coplayers: number;
+    max_iron_crew_pair_count: number;
+    match_total_flashes: number;
+    match_total_sends: number;
+    match_total_points: number;
+  }>(
+    service.rpc("get_match_achievement_context", { p_user_id: userId }),
+    "getmatchachievementcontext_failed",
   );
-  return row ?? emptyJamAchievementContext();
+  if (!row) return emptyJamAchievementContext();
+  return {
+    jams_played: row.matches_played,
+    jams_won: row.matches_won,
+    jams_hosted: row.matches_hosted,
+    max_players_in_won_jam: row.max_players_in_won_match,
+    unique_coplayers: row.unique_coplayers,
+    max_iron_crew_pair_count: row.max_iron_crew_pair_count,
+    jam_total_flashes: row.match_total_flashes,
+    jam_total_sends: row.match_total_sends,
+    jam_total_points: row.match_total_points,
+  };
 }

@@ -20,7 +20,7 @@ export function ActiveJamBanner({ jam }: Props) {
 
   return (
     <Link
-      href={`/jam/${jam.jam_id}`}
+      href={`/jam/${jam.set_id}`}
       className={styles.banner}
       aria-label={`Resume ${name}`}
     >

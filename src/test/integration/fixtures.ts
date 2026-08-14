@@ -33,8 +33,8 @@ export async function createTestUser(service: Service): Promise<{
   // Ensure the profile row the trigger wrote has a username so the
   // integration suite doesn't have to run the onboarding flow. Any
   // follow-up update that depends on the profile row existing (e.g.
-  // `create_jam` reading `host_display_name`) then has something to
-  // read.
+  // `lookup_match_by_code` reading `host_display_name`) then has
+  // something to read.
   await service
     .from("profiles")
     .update({ username: `int_${suffix.slice(0, 12)}`, onboarded: true })
@@ -48,8 +48,9 @@ export async function deleteTestUser(
   userId: string,
 ): Promise<void> {
   // `auth.admin.deleteUser` cascades to the profiles row via the FK
-  // on `profiles.id`. jam_players rows with this user_id are removed
-  // separately by `cleanupJam`.
+  // on `profiles.id`, and `set_players` cascades from there. Callers
+  // still delete their Matches first: deleting the SET is what
+  // removes its routes and logs.
   await service.auth.admin.deleteUser(userId).catch(() => {
     // Best effort — a partial-cleanup run shouldn't fail the suite.
   });
@@ -71,33 +72,4 @@ export async function signInAsUser(
     password,
   });
   if (error) throw new Error(`signInAsUser failed: ${error.message}`);
-}
-
-/**
- * Remove every row that belongs to `jamId` in the order dictated by
- * the FK graph. `jam_summaries` is intentionally NOT touched — if
- * the test left a summary row behind, that's a finding worth seeing
- * in the DB, not silently wiped. Tests that explicitly end a jam
- * pass `alsoDropSummary` to opt in.
- */
-export async function cleanupJam(
-  service: Service,
-  jamId: string,
-  opts: { alsoDropSummary?: boolean } = {},
-): Promise<void> {
-  if (opts.alsoDropSummary) {
-    const { data: summaries } = await service
-      .from("jam_summaries")
-      .select("id")
-      .eq("jam_id", jamId);
-    for (const s of summaries ?? []) {
-      await service.from("jam_summary_players").delete().eq("jam_summary_id", s.id);
-    }
-    await service.from("jam_summaries").delete().eq("jam_id", jamId);
-  }
-  await service.from("jam_logs").delete().eq("jam_id", jamId);
-  await service.from("jam_routes").delete().eq("jam_id", jamId);
-  await service.from("jam_grades").delete().eq("jam_id", jamId);
-  await service.from("jam_players").delete().eq("jam_id", jamId);
-  await service.from("jams").delete().eq("id", jamId);
 }

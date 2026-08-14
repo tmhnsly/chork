@@ -45,7 +45,7 @@ export function JamGrid({
       {routes.map((route) => {
         const log = myLogs.get(route.id) ?? null;
         const state = deriveTileState(log);
-        const gradeLabel = labelForGrade(route.grade);
+        const gradeLabel = labelForGrade(route.declared_grade);
         return (
           <JamTileButton
             key={route.id}

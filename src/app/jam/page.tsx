@@ -27,24 +27,22 @@ const RECENT_JAMS_LIMIT = 5;
  *   2. Start / Join primary CTAs.
  *   3. Recent jams — a compact history list.
  *
- * All reads happen server-side through the jam RPCs; the client gets
+ * All reads happen server-side through the Match RPCs; the client gets
  * a fully-rendered page on first byte.
  */
 export default async function JamPage() {
   const auth = await requireSignedIn();
   if ("error" in auth) redirect("/login");
-  const { supabase, userId } = auth;
+  const { userId } = auth;
 
-  // Fetch in parallel. Active-jam banner data comes through a service-
-  // role RPC with the user id passed explicitly (matches `/jam/[id]`'s
-  // hydrator so the banner can't point at a jam the page can't
-  // actually load — both paths resolve membership the same way).
-  // History list stays on the user-authed client since its RLS path
-  // has proven stable.
+  // Both go through service-role RPCs that take the user id
+  // explicitly, so the banner can't point at a Match the page can't
+  // actually load — both paths resolve membership the same way.
+  // `requireSignedIn` above is what authorises the user id we pass.
   const service = createServiceClient();
   const [activeJam, recentJams] = await Promise.all([
     getActiveJamForUserById(service, userId),
-    getUserJams(supabase, userId, { limit: RECENT_JAMS_LIMIT }),
+    getUserJams(service, userId, { limit: RECENT_JAMS_LIMIT }),
   ]);
 
   return (

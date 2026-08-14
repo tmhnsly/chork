@@ -136,8 +136,8 @@ export function JamLogSheet({
   // worth the keyed-cache gymnastics.
 
   const gradeLabel = useMemo(
-    () => makeGradeLabeller(gradingScale, grades)(route.grade),
-    [route.grade, gradingScale, grades],
+    () => makeGradeLabeller(gradingScale, grades)(route.declared_grade),
+    [route.declared_grade, gradingScale, grades],
   );
 
   // What the climber would earn if they completed at this attempt
