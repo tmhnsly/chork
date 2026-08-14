@@ -423,9 +423,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // userId filter gates replays; awaiting was what introduced
       // the throw-path that skipped navigation when IndexedDB
       // glitched.
+      //
+      // `flushThenClear` (not a bare clear) gives unsynced sends a
+      // bounded chance to reach the server before the shared-device
+      // wipe takes them. Still fire-and-forget, so navigation is
+      // unaffected either way.
       if (outgoingUserId) {
         void mutationQueue
-          .clearForUser(outgoingUserId)
+          .flushThenClear(outgoingUserId)
           .catch((err) =>
             logger.warn("signout_queue_clear_failed", { err: formatErrorForLog(err) }),
           );

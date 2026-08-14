@@ -198,3 +198,75 @@ describe("MutationQueue flush", () => {
     expect(fakeDb.entries.size).toBe(1);
   });
 });
+
+// ────────────────────────────────────────────────────────────────
+// Data-loss paths. Every case here is a way a climber's logged send
+// could vanish; none of them had coverage before 2026-08.
+// ────────────────────────────────────────────────────────────────
+describe("MutationQueue data-loss guards", () => {
+  it("enqueue reports FALSE when no user resolves — the caller must not claim success", async () => {
+    const { queue, fakeDb } = await loadQueue();
+    queue.setCurrentUserResolver(async () => null);
+
+    const queued = await queue.enqueue({
+      action: "completeRoute",
+      args: ["r1", 2, null, false],
+      routeId: "r1",
+    });
+
+    expect(queued).toBe(false);
+    expect(fakeDb.entries.size).toBe(0);
+  });
+
+  it("count() is scoped to the current user, matching flush's scope", async () => {
+    // Regression: count() counted the whole store while flush only ran
+    // the signed-in user's entries, so another user's preserved queue
+    // showed as "Syncing N changes…" forever on a shared device.
+    const { queue, fakeDb } = await loadQueue();
+    fakeDb.entries.set("other", {
+      id: "other",
+      userId: "user-b",
+      action: "completeRoute",
+      args: [],
+      routeId: "r9",
+      createdAt: 1,
+      retries: 0,
+    });
+
+    queue.setCurrentUserResolver(async () => "user-a");
+    expect(await queue.count()).toBe(0);
+
+    queue.setCurrentUserResolver(async () => "user-b");
+    expect(await queue.count()).toBe(1);
+  });
+
+  it("logs an error when a mutation is dropped after exhausting retries", async () => {
+    // Dropping is silent to the climber — their send is simply gone —
+    // so it must at least be observable in Sentry.
+    const { logger } = await import("@/lib/logger");
+    const errorSpy = vi.spyOn(logger, "error").mockImplementation(() => {});
+
+    const { queue, fakeDb } = await loadQueue();
+    queue.setCurrentUserResolver(async () => "user-a");
+    fakeDb.entries.set("doomed", {
+      id: "doomed",
+      userId: "user-a",
+      action: "completeRoute",
+      args: ["r1", 2, null, false],
+      routeId: "r1",
+      createdAt: 1,
+      // Already at the limit: the next failure drops it.
+      retries: 2,
+    });
+
+    queue.setActionRunner((async () => ({ error: "Invalid attempts" })) as never);
+    await queue.flush();
+
+    expect(fakeDb.entries.size).toBe(0);
+    expect(errorSpy).toHaveBeenCalledWith(
+      "offline_queue_dropped_mutation",
+      expect.objectContaining({ action: "completeRoute", routeId: "r1" }),
+    );
+    errorSpy.mockRestore();
+  });
+});
