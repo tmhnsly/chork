@@ -50,6 +50,14 @@
  */
 
 /* ── Radix imports — every scale any theme may reference ─────── */
+//
+// The `*-dark.css` half of each pair is what makes dark mode work:
+// those files declare `.dark, .dark-theme { --scale-1: … }`, and the
+// `.dark` class is written onto <html> by next-themes
+// (`<ThemeProvider attribute="class">` in src/app/providers.tsx).
+// That selector appears nowhere in this repo — dropping either side
+// of that pairing leaves the app light-only with no error.
+// design-system.test.ts pins both halves.
 // ── Mono (gray-scale) imports ────────────────────────────────
 // One gray per theme, chosen by Radix's pairing guide for that
 // theme's accent hue. Only the four in use are imported — an unused

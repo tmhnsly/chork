@@ -216,6 +216,13 @@ Quick reference:
 Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
 
 - Both light + dark must work — never override OS preference
+- **Two orthogonal theme systems, don't conflate them.** Light/dark is
+  a `class` on `<html>` written by `next-themes`
+  (`<ThemeProvider attribute="class">` in `providers.tsx`); the
+  `.dark` selector it targets lives inside Radix's `*-dark.css`, not
+  in `src/styles`. Palette is `data-theme` via our own store. Changing
+  that one prop makes the app light-only with no build error —
+  `design-system.test.ts` pins both halves
 - **Four user-selectable palettes** (Chork / Blue / Violet / Pink).
   Each is a `[data-theme="…"]` block in
   `src/styles/theme/colors.scss` that re-maps `--mono-*` and

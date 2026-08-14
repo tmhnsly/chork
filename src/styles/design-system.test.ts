@@ -336,3 +336,38 @@ describe("tab semantics", () => {
     ).toEqual([]);
   });
 });
+
+describe("light/dark mechanism", () => {
+  // Light/dark works through a coupling with no representation in
+  // this repo: next-themes writes `class="dark"` on <html>, and the
+  // matching `.dark` selector lives inside Radix's `*-dark.css`
+  // files. Grep src/styles for `.dark` and you get nothing.
+  //
+  // Either half can be removed without a build error or a failing
+  // test, leaving the app silently light-only. These two pin the
+  // halves to each other.
+  it("next-themes still supplies the .dark class", () => {
+    const providers = readFileSync(
+      join(SRC, "app", "providers.tsx"),
+      "utf8",
+    );
+    expect(
+      /<ThemeProvider[^>]*attribute="class"/.test(providers),
+      'Dark mode depends on next-themes writing class="dark" on <html>, ' +
+        "which is what Radix's *-dark.css selectors react to. Changing " +
+        "this attribute makes the app light-only.",
+    ).toBe(true);
+  });
+
+  it("the Radix dark scales are still imported", () => {
+    const colors = readFileSync(
+      join(SRC, "styles", "theme", "colors.scss"),
+      "utf8",
+    );
+    expect(
+      /@use "@radix-ui\/colors\/[a-z]+-dark\.css"/.test(colors),
+      "The *-dark.css files carry the `.dark` selector. Without them " +
+        "the class next-themes writes matches nothing.",
+    ).toBe(true);
+  });
+});
