@@ -41,6 +41,47 @@ export interface GymStatsBuckets {
 
 // ── Per-request reads ─────────────────────────────
 
+export interface LeaderboardTabData {
+  top: LeaderboardEntry[];
+  userRow: LeaderboardEntry | null;
+  neighbourhood: NeighbourhoodEntry[];
+}
+
+/** Podium + first neighbourhood rows shown before "browse all". */
+export const LEADERBOARD_TOP_LIMIT = 5;
+
+/**
+ * The one assembly rule for a Chorkboard tab: top-N (shared cache),
+ * the caller's own row, and the rank-neighbourhood, fetched in one
+ * parallel wave.
+ *
+ * Neighbourhood runs unconditionally — waiting on `userRow.rank >
+ * topLimit` before firing costs 50–100 ms of serial latency for
+ * mid-ranked viewers, while for top-N viewers the ~5 wasted rows are
+ * deduped by LeaderboardView. The RPC itself returns [] for unranked
+ * climbers (its anchor CTE is empty at zero points), so no
+ * rank-null guard is needed here either.
+ *
+ * Both the page (first paint) and `fetchLeaderboardTab` (tab switch)
+ * assemble through this function. They used to each own a copy of
+ * the rule with different guards — the outputs happened to agree,
+ * but nothing would have failed when they stopped agreeing.
+ */
+export async function getLeaderboardTabData(
+  supabase: Supabase,
+  gymId: string,
+  userId: string,
+  setId: string | null,
+  topLimit: number = LEADERBOARD_TOP_LIMIT,
+): Promise<LeaderboardTabData> {
+  const [top, userRow, neighbourhood] = await Promise.all([
+    getLeaderboardCached(gymId, setId, topLimit, 0),
+    getLeaderboardUserRow(supabase, gymId, userId, setId),
+    getLeaderboardNeighbourhood(supabase, gymId, userId, setId),
+  ]);
+  return { top, userRow, neighbourhood };
+}
+
 /** Fetch 5 rows centred on the user's rank. Empty array if user has no climbs. */
 export async function getLeaderboardNeighbourhood(
   supabase: Supabase,

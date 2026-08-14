@@ -7,11 +7,16 @@ import { computePoints, isFlash } from "./logs";
 
 /**
  * Derive a live jam leaderboard from the current player set + log
- * map. Mirrors the server-side `get_jam_leaderboard` RPC
- * (migration 041) exactly — points formula, tiebreak order, and
- * dense_rank semantics all match — so the live leaderboard on a
- * running jam never desyncs with the final summary computed by
- * `end_jam`.
+ * map. Mirrors the server-side `get_jam_leaderboard` RPC (latest
+ * body: migration 063) exactly — points formula, tiebreak order, and
+ * dense_rank semantics all match. scoring-parity.test.ts pins both
+ * homes together.
+ *
+ * Known divergence, on purpose for now: `end_jam` writes summary
+ * ranks with `row_number()` (ties broken arbitrarily), so a tied
+ * live board and the persisted summary can disagree on ties. Tie
+ * handling in summaries (shared rank? shared win?) is a product
+ * decision parked with the jams overhaul — see docs/roadmap.md.
  *
  * Points formula: flash=4, 2-try=3, 3-try=2, 4+=1, incomplete=0,
  * + 1 if zone — MUST match the `get_jam_leaderboard` RPC. Scoring
@@ -79,15 +84,19 @@ export function computeJamLeaderboard(
     return 0;
   });
 
+  // dense_rank: ties share a rank and the next distinct tuple takes
+  // rank+1 (no gaps). `rank = i + 1` here would be SQL rank() — after
+  // a tie the live board would show "3rd" where the RPC says "2nd".
+  // scoring-parity.test.ts pins this against get_jam_leaderboard.
   let prevKey = "";
   let rank = 0;
-  for (let i = 0; i < rows.length; i++) {
-    const key = `${rows[i].points}|${rows[i].flashes}|${rows[i].sends}|${rows[i].last_send_at ?? ""}`;
+  for (const row of rows) {
+    const key = `${row.points}|${row.flashes}|${row.sends}|${row.last_send_at ?? ""}`;
     if (key !== prevKey) {
-      rank = i + 1;
+      rank += 1;
       prevKey = key;
     }
-    rows[i].rank = rank;
+    row.rank = rank;
   }
   return rows;
 }

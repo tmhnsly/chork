@@ -1,11 +1,11 @@
-import { format, parseISO } from "date-fns";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getAllSets } from "@/lib/data/set-queries";
 import { getRoutesBySet, getRoutesBySetIds } from "@/lib/data/route-queries";
 import { getAllRouteDataForUserInGym } from "@/lib/data/route-log-queries";
-import type { Route } from "@/lib/data";
+import type { Route, RouteSet } from "@/lib/data";
 import { computeMaxPoints } from "@/lib/data";
-import { visibleAttempts } from "@/lib/data/logs";
+import { computePoints, isFlash, visibleAttempts } from "@/lib/data/logs";
+import { formatSetLabel } from "@/lib/data/set-label";
 import { evaluateBadgesForSet } from "@/lib/badges";
 import { PreviousSetsGrid } from "@/components/sections/PreviousSetsGrid";
 import type { SetCell, SetCellLog } from "@/components/sections/PreviousSetsGrid";
@@ -27,13 +27,6 @@ interface SetStats {
   flashes: number;
   points: number;
   zones: number;
-}
-
-function formatSetLabel(starts: string, ends: string) {
-  return [
-    format(parseISO(starts), "MMM d").toUpperCase(),
-    format(parseISO(ends), "MMM d").toUpperCase(),
-  ].join(" – ");
 }
 
 export async function PreviousSetsSection({ userId, gymId, createdAt, isOwnProfile }: Props) {
@@ -61,18 +54,12 @@ export async function PreviousSetsSection({ userId, gymId, createdAt, isOwnProfi
   const logsBySet = new Map<string, typeof routeData.logs>();
   for (const log of routeData.logs) {
     const stats = statsBySet.get(log.set_id) ?? { completions: 0, flashes: 0, points: 0, zones: 0 };
-    if (log.zone) {
-      stats.zones++;
-      stats.points += 1;
-    }
+    if (log.zone) stats.zones++;
     if (log.completed) {
       stats.completions++;
-      if (log.attempts === 1) stats.flashes++;
-      if (log.attempts === 1) stats.points += 4;
-      else if (log.attempts === 2) stats.points += 3;
-      else if (log.attempts === 3) stats.points += 2;
-      else stats.points += 1;
+      if (isFlash(log)) stats.flashes++;
     }
+    stats.points += computePoints(log);
     statsBySet.set(log.set_id, stats);
 
     const arr = logsBySet.get(log.set_id) ?? [];
@@ -81,7 +68,7 @@ export async function PreviousSetsSection({ userId, gymId, createdAt, isOwnProfi
   }
 
   function buildSetCell(
-    setRecord: { id: string; starts_at: string; ends_at: string },
+    setRecord: RouteSet,
     routes: Route[],
     isActive: boolean,
   ): SetCell {
@@ -115,7 +102,7 @@ export async function PreviousSetsSection({ userId, gymId, createdAt, isOwnProfi
       if (log.zone) zoneClaimed.add(num);
       if (!log.completed) continue;
       completed.add(num);
-      if (log.attempts === 1) flashed.add(num);
+      if (isFlash(log)) flashed.add(num);
     }
     const badgesForSet = evaluateBadgesForSet({
       completed,
@@ -127,7 +114,7 @@ export async function PreviousSetsSection({ userId, gymId, createdAt, isOwnProfi
 
     return {
       id: setRecord.id,
-      label: formatSetLabel(setRecord.starts_at, setRecord.ends_at),
+      label: formatSetLabel(setRecord),
       isActive,
       // For visitors, the "attempted but uncompleted" signal leaks raw
       // activity. Drop that clause off-profile; zone + completion counts

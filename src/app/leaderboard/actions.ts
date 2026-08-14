@@ -1,49 +1,32 @@
 "use server";
 
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, requireSameGymScope } from "@/lib/auth";
 import { getLogsBySetForUser } from "@/lib/data/route-log-queries";
 import {
   getLeaderboardCached,
-  getLeaderboardNeighbourhood,
-  getLeaderboardUserRow,
+  getLeaderboardTabData,
+  type LeaderboardTabData,
 } from "@/lib/data/leaderboard-queries";
 import { UUID_RE } from "@/lib/validation";
 import type { LeaderboardEntry } from "@/lib/data";
 
-const TOP_LIMIT = 5;
 const PAGE_LIMIT = 10;
 
-interface TabData {
-  top: LeaderboardEntry[];
-  userRow: LeaderboardEntry | null;
-  neighbourhood: LeaderboardEntry[];
-}
-
-/** Fetch initial data for a tab — top 5, user's row, and neighbourhood if needed. */
+/** Fetch initial data for a tab — top 5, user's row, and neighbourhood. */
 export async function fetchLeaderboardTab(
   setId: string | null
-): Promise<{ data: TabData } | { error: string }> {
+): Promise<{ data: LeaderboardTabData } | { error: string }> {
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId, gymId } = auth;
 
   // requireAuth above guarantees gymId === profile.active_gym_id —
   // the user is implicitly a member, so the cached helpers (which
-  // skip the per-call membership check) are safe here.
-  const [top, userRow] = await Promise.all([
-    getLeaderboardCached(gymId, setId, TOP_LIMIT, 0),
-    getLeaderboardUserRow(supabase, gymId, userId, setId),
-  ]);
-
-  const userOutsideTop = userRow === null
-    ? true
-    : userRow.rank === null || userRow.rank > TOP_LIMIT;
-
-  const neighbourhood = userOutsideTop && userRow?.rank !== null
-    ? await getLeaderboardNeighbourhood(supabase, gymId, userId, setId)
-    : [];
-
-  return { data: { top, userRow, neighbourhood } };
+  // skip the per-call membership check) are safe here. Assembly rule
+  // lives in getLeaderboardTabData, shared with the page's first
+  // paint.
+  const data = await getLeaderboardTabData(supabase, gymId, userId, setId);
+  return { data };
 }
 
 /**
@@ -101,30 +84,11 @@ export async function fetchClimberSheetLogs(
   if ("error" in auth) return { error: auth.error };
   const { supabase, gymId } = auth;
 
-  // Verify the set belongs to the caller's gym (prevents cross-gym leak)
-  const { data: setRow, error: setError } = await supabase
-    .from("sets")
-    .select("gym_id")
-    .eq("id", setId)
-    .maybeSingle();
-  if (setError || !setRow || setRow.gym_id !== gymId) {
-    return { error: "Set not found" };
-  }
-
-  // Verify the *target* user is also a member of this gym. The set
-  // check alone isn't enough: if a target user once logged on a route
-  // that has since moved between gyms (or any shared-set edge case), a
-  // gym-A caller could enumerate gym-B climber UUIDs and read their
-  // sanitised logs. Same defence as fetchSetPlacement (u/[username]/actions.ts).
-  const { data: membership } = await supabase
-    .from("gym_memberships")
-    .select("user_id")
-    .eq("user_id", climberUserId)
-    .eq("gym_id", gymId)
-    .maybeSingle();
-  if (!membership) {
-    return { error: "Climber not in this gym" };
-  }
+  // Cross-gym scope gate — set belongs to caller's gym AND target is
+  // a member of it. One auditable home in auth.ts, shared with
+  // fetchSetPlacement (u/[username]/actions.ts).
+  const scope = await requireSameGymScope(supabase, gymId, setId, climberUserId);
+  if ("error" in scope) return { error: scope.error };
 
   const rawLogs = await getLogsBySetForUser(supabase, setId, climberUserId);
 

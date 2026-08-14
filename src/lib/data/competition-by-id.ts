@@ -3,16 +3,18 @@ import "server-only";
 import { cache } from "react";
 import { cachedQuery } from "@/lib/cache/cached";
 import { createCachedContextClient } from "@/lib/supabase/server";
-import type {
-  CompetitionSummary,
-  CompetitionGymLink,
-  CompetitionCategory,
+import {
+  competitionCategoriesQuery,
+  competitionGymsQuery,
+  shapeCompetitionGyms,
+  type CompetitionSummary,
+  type CompetitionGymLink,
+  type CompetitionCategory,
 } from "./competition-queries";
 
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
 import { tags } from "@/lib/cache/tags";
-import { one } from "./read";
 /**
  * Single competition by id. Server-only — lives here (not in
  * competition-queries.ts) so the cached-context client chain doesn't
@@ -56,24 +58,12 @@ export const getCompetitionGymsCached = cache(
       ["competition-gyms", competitionId],
       async (id: string): Promise<CompetitionGymLink[]> => {
         const supabase = createCachedContextClient();
-        const { data, error } = await supabase
-          .from("competition_gyms")
-          .select("competition_id, gym_id, gyms:gym_id (name, slug)")
-          .eq("competition_id", id);
+        const { data, error } = await competitionGymsQuery(supabase, id);
         if (error) {
           logger.warn("getcompetitiongymscached_failed", { err: formatErrorForLog(error) });
           return [];
         }
-        return (data ?? []).flatMap((row) => {
-          const gym = one(row.gyms);
-          if (!gym) return [];
-          return [{
-            competition_id: row.competition_id,
-            gym_id: row.gym_id,
-            gym_name: gym.name,
-            gym_slug: gym.slug,
-          }];
-        });
+        return shapeCompetitionGyms(data);
       },
       { tags: [tags.competition(competitionId)], revalidate: 300 },
     );
@@ -92,12 +82,7 @@ export const getCompetitionCategoriesCached = cache(
       ["competition-categories", competitionId],
       async (id: string): Promise<CompetitionCategory[]> => {
         const supabase = createCachedContextClient();
-        const { data, error } = await supabase
-          .from("competition_categories")
-          .select("id, competition_id, name, display_order")
-          .eq("competition_id", id)
-          .order("display_order", { ascending: true })
-          .order("name", { ascending: true });
+        const { data, error } = await competitionCategoriesQuery(supabase, id);
         if (error) {
           logger.warn("getcompetitioncategoriescached_failed", { err: formatErrorForLog(error) });
           return [];
