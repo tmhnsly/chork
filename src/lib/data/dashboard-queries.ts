@@ -131,23 +131,6 @@ export async function getZoneSendRatio(
 }
 
 // ── G. Community grade distribution ───────────────
-export interface GradeDistributionRow {
-  route_id: string;
-  number: number;
-  grade: number;
-  vote_count: number;
-}
-
-export async function getCommunityGradeDistribution(
-  supabase: Supabase,
-  setId: string
-): Promise<GradeDistributionRow[]> {
-  return readMany<GradeDistributionRow>(
-    supabase.rpc("get_community_grade_distribution", { p_set_id: setId }),
-    "getcommunitygradedistribution_failed",
-  );
-}
-
 // ── H. Setter breakdown ───────────────────────────
 export interface SetterBreakdownRow {
   setter_name: string;

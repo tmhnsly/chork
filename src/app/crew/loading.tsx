@@ -3,9 +3,13 @@ import styles from "./crew.module.scss";
 import loadingStyles from "./loading.module.scss";
 
 /**
- * Route-level loading boundary for /crew. Collapsed to card-shaped
- * blocks per section so the layout stays stable when the real feed /
- * leaderboard resolve — no staggered item-by-item pop-in.
+ * Route-level loading boundary for /crew — the crew PICKER
+ * (avatar-stack cards, pending invites, zero-state hero).
+ *
+ * It previously rendered "Loading activity feed" + "Loading
+ * leaderboard", which is the shape of `/crew/[id]`, the detail view.
+ * That route now has its own boundary; this one matches the page it
+ * actually covers.
  */
 export default function CrewLoading() {
   return (
@@ -15,8 +19,9 @@ export default function CrewLoading() {
         <div className={`${loadingStyles.sub} ${shimmerStyles.skeleton}`} />
       </header>
 
-      <CardSkeleton height="12rem" ariaLabel="Loading activity feed" />
-      <CardSkeleton height="16rem" ariaLabel="Loading leaderboard" />
+      {/* Crew cards — the picker's main content. */}
+      <CardSkeleton height="7rem" ariaLabel="Loading your crews" />
+      <CardSkeleton height="7rem" />
     </main>
   );
 }
