@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { tabId } from "./tab-ids";
 import styles from "./tabPills.module.scss";
 
 export interface TabPillOption<T extends string | number | null> {
@@ -32,6 +33,19 @@ interface Props<T extends string | number | null> {
    */
   layout?: "scroll" | "wrap";
   className?: string;
+  /**
+   * Id of the panel this control switches between. Set it when the
+   * pills drive a region of content (the panel needs
+   * `role="tabpanel"`, `id={panelId}`, `tabIndex={0}` and
+   * `aria-labelledby={tabId(panelId, value)}`); omit it for a filter,
+   * which is what most uses are.
+   *
+   * Without a panel, `role="tab"` announces "tab 1 of 4, selected"
+   * and then offers nowhere to move to — so the no-panel form renders
+   * a toggle-button group instead. See SegmentedControl for the full
+   * reasoning; the two controls share this contract.
+   */
+  panelId?: string;
 }
 
 /**
@@ -54,10 +68,13 @@ export function TabPills<T extends string | number | null>({
   ariaLabel,
   layout = "scroll",
   className,
+  panelId,
 }: Props<T>) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const asTabs = panelId !== undefined;
 
   function handleKeyDown(e: React.KeyboardEvent, i: number) {
+    if (!asTabs) return;
     if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
     e.preventDefault();
     const dir = e.key === "ArrowRight" ? 1 : -1;
@@ -73,7 +90,7 @@ export function TabPills<T extends string | number | null>({
 
   return (
     <div
-      role="tablist"
+      role={asTabs ? "tablist" : "group"}
       aria-label={ariaLabel}
       className={[
         styles.row,
@@ -89,10 +106,13 @@ export function TabPills<T extends string | number | null>({
           <button
             key={String(opt.value ?? "__null")}
             ref={(el) => { refs.current[i] = el; }}
-            role="tab"
             type="button"
-            aria-selected={selected}
-            tabIndex={selected ? 0 : -1}
+            role={asTabs ? "tab" : undefined}
+            id={asTabs ? tabId(panelId, opt.value) : undefined}
+            aria-selected={asTabs ? selected : undefined}
+            aria-controls={asTabs ? panelId : undefined}
+            aria-pressed={asTabs ? undefined : selected}
+            tabIndex={asTabs ? (selected ? 0 : -1) : undefined}
             disabled={opt.disabled}
             className={`${styles.pill} ${selected ? styles.pillActive : ""}`}
             onClick={() => onChange(opt.value)}

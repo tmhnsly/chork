@@ -295,3 +295,44 @@ describe("interactive nesting", () => {
     ).toEqual([]);
   });
 });
+
+describe("tab semantics", () => {
+  // `role="tab"` is a promise: AT announces "tab 2 of 3, selected"
+  // and expects somewhere to move to. Ten surfaces made that promise
+  // with no `role="tabpanel"` and no `aria-controls` anywhere in the
+  // repo, because both tab controls hardcoded the role whether or not
+  // the caller had a panel.
+  //
+  // Both now take an optional `panelId` and fall back to a
+  // toggle-button group (role="group" + aria-pressed) without one, so
+  // the roles are only emitted when they're true. This pins that:
+  // outside those two primitives, nothing hand-rolls a tab role.
+  const TAB_PRIMITIVES = ["components/ui/SegmentedControl", "components/ui/TabPills"];
+
+  it("only the shared controls emit role=tab", () => {
+    const bad = tsx
+      .filter(({ path }) => !TAB_PRIMITIVES.some((p) => path.startsWith(p)))
+      .filter(({ text }) => /role=["']tab["']|role=\{["']tab["']\}/.test(text))
+      .map(({ path }) => path);
+    expect(
+      bad,
+      "Use <SegmentedControl> / <TabPills>. They render the tabs " +
+        "pattern only when given a `panelId`, and a toggle group " +
+        "otherwise — so the role always matches reality.",
+    ).toEqual([]);
+  });
+
+  it("every tabpanel is wired to a tab control", () => {
+    // A panel with no `aria-labelledby` is the other half of the same
+    // break: the tab points at the panel but the panel names nothing.
+    const bad = tsx
+      .filter(({ text }) => /role=["']tabpanel["']/.test(text))
+      .filter(({ text }) => !/aria-labelledby=/.test(text))
+      .map(({ path }) => path);
+    expect(
+      bad,
+      "A role=tabpanel needs aria-labelledby={tabId(panelId, value)} " +
+        "so it names the tab that selected it.",
+    ).toEqual([]);
+  });
+});
