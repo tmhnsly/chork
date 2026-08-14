@@ -2,13 +2,10 @@
 
 import { revalidateTag } from "next/cache";
 import { requireAdminOfRoute, requireAdminOfSet } from "@/lib/auth";
-import {
-  quickSetupRoutes,
-  setRouteTags,
-  updateAdminRoute,
-} from "@/lib/data/admin-mutations";
+import { formatError } from "@/lib/errors";
 import { UUID_RE } from "@/lib/validation";
 import { tags } from "@/lib/cache/tags";
+import type { Database } from "@/lib/database.types";
 
 import type { ActionResult } from "@/lib/action-result";
 
@@ -42,15 +39,28 @@ export async function quickSetupSetRoutes(form: {
   const gate = await requireAdminOfSet(form.setId);
   if ("error" in gate) return { error: gate.error };
 
-  const result = await quickSetupRoutes(gate.auth.supabase, {
-    setId: form.setId,
-    count: form.count,
-    zoneRouteNumbers: form.zoneRouteNumbers.filter((n) => Number.isInteger(n) && n > 0 && n <= form.count),
-  });
-  if ("error" in result) return { error: result.error };
+  // Idempotent on re-run — existing (set_id, number) rows are
+  // untouched thanks to the unique constraint on routes(set_id,
+  // number) + upsert onConflict. Zone flags are re-applied on every
+  // call so admins can quickly correct a miscount.
+  const zoneSet = new Set(
+    form.zoneRouteNumbers.filter(
+      (n) => Number.isInteger(n) && n > 0 && n <= form.count,
+    ),
+  );
+  const rows = Array.from({ length: form.count }, (_, i) => ({
+    set_id: form.setId,
+    number: i + 1,
+    has_zone: zoneSet.has(i + 1),
+  }));
+
+  const { error, count } = await gate.auth.supabase
+    .from("routes")
+    .upsert(rows, { onConflict: "set_id,number", count: "exact" });
+  if (error) return { error: formatError(error) };
 
   revalidateTag(tags.setRoutes(form.setId), "max");
-  return { success: true, created: result.created };
+  return { success: true, created: count ?? rows.length };
 }
 
 export async function updateRoute(
@@ -73,8 +83,17 @@ export async function updateRoute(
     form.setterName = trimmed || null;
   }
 
-  const result = await updateAdminRoute(gate.auth.supabase, routeId, form);
-  if ("error" in result) return { error: result.error };
+  type RouteUpdate = Database["public"]["Tables"]["routes"]["Update"];
+  const patch: RouteUpdate = {};
+  if (form.number !== undefined) patch.number = form.number;
+  if (form.hasZone !== undefined) patch.has_zone = form.hasZone;
+  if (form.setterName !== undefined) patch.setter_name = form.setterName;
+
+  const { error } = await gate.auth.supabase
+    .from("routes")
+    .update(patch)
+    .eq("id", routeId);
+  if (error) return { error: formatError(error) };
 
   revalidateTag(tags.setRoutes(gate.routeRow.set_id), "max");
   revalidateTag(tags.routeGrade(routeId), "max");
@@ -98,8 +117,15 @@ export async function updateRouteTags(
     return { error: "Invalid tag list." };
   }
 
-  const result = await setRouteTags(gate.auth.supabase, routeId, tagIds);
-  if ("error" in result) return { error: result.error };
+  // set_route_tags_tx (migration 060): read + delete + insert happen
+  // in one transaction with a FOR UPDATE lock on the route, and the
+  // RPC re-checks is_admin_of_route via SECURITY DEFINER — the DB
+  // refuses an unauthorised tag overwrite even without the app gate.
+  const { error } = await gate.auth.supabase.rpc("set_route_tags_tx", {
+    p_route_id: routeId,
+    p_tag_ids: tagIds,
+  });
+  if (error) return { error: formatError(error) };
 
   revalidateTag(tags.setRoutes(gate.routeRow.set_id), "max");
   return { success: true };

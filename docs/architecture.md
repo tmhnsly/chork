@@ -15,17 +15,28 @@ enforcement auditable and mocks trivial.
 ```
 Server component / server action
         │
-        ├── (reads)    src/lib/data/queries.ts
+        ├── (reads)    src/lib/data/<surface>-queries.ts
         ├── (admin r.) src/lib/data/admin-queries.ts
         ├── (crew r.)  src/lib/data/crew-queries.ts
-        ├── (admin w.) src/lib/data/admin-mutations.ts
-        └── (writes)   src/lib/data/mutations.ts
+        └── (writes)   src/lib/data/mutations.ts, crew-lifecycle.ts,
+                       or inline in the owning server action
                                 │
                                 └── Supabase client (RLS applies)
 ```
 
 **Rule**: if you reach for a raw Supabase call from a component, you're
 doing it wrong — add a helper instead.
+
+**Writes and the deletion test.** A `*-mutations.ts` module earns its
+keep only when a write has more than one caller or carries real
+orchestration (`mutations.ts` upsert semantics, `crew-lifecycle.ts`
+flows). Single-caller pass-through wrappers do not: `admin-mutations.ts`
+(13 functions, 13 callers, 1:1) and `jam-mutations.ts` (7 RPC
+wrappers) were inlined into their owning server actions in 2026-08 —
+each wrapper's interface was as large as its body, and the layer had
+grown a third error contract that leaked raw `error.message` to the
+client. Admin + jam writes now live inline in their action, next to
+the gate, validation, and tag busts they belong with.
 
 ### Passing `supabase` as first arg
 
@@ -63,17 +74,19 @@ cached read is safe to share.
 - `src/lib/supabase/server.ts` has `import "server-only"` at the
   top — any attempt to import it from a `"use client"` file errors
   at build time
-- `src/lib/data/queries.ts` is also marked `"server-only"` where
+- The `*-queries.ts` modules are marked `"server-only"` where
   needed. Query helpers that need to run in the browser (e.g.
-  `getCrewActivityFeed` paging) are called with a browser client
+  `getCrewActivityFeed` paging) are called with a browser client;
+  a module written *for* the browser takes the `*.client.ts` suffix
+  (see `gym-queries.client.ts`)
 - If you need the same shape of data in both contexts, inline the
   query in the client component rather than importing a server-only
   helper
 
 ### Read vs mutation error contract
 
-Codified at the top of `src/lib/data/read.ts`, `src/lib/data/mutations.ts`,
-and `src/lib/data/admin-mutations.ts`.
+Codified at the top of `src/lib/data/read.ts` and
+`src/lib/data/mutations.ts`.
 
 **Reads** (`*-queries.ts`) swallow Postgres errors, log to console,
 return a neutral fallback (`null` / `[]`). Render paths handle
@@ -82,9 +95,12 @@ Concentrated in `readSingle` / `readMany` helpers.
 
 **Mutations** follow one of two contracts depending on the kind of
 failure the function can produce. Both are valid; pick the one that
-matches the failure mode.
+matches the failure mode. In both, **every Postgres error that
+reaches the client goes through `formatError`** — never raw
+`error.message`, which can echo constraint names or row fragments
+(info disclosure; see `src/lib/errors.ts`).
 
-#### Throw contract (`mutations.ts`, `jam-mutations.ts`)
+#### Throw contract (`mutations.ts`)
 
 Used by climber-side writes (route logs, comments, comment likes,
 activity events) where Postgres errors are unexpected — a constraint
@@ -96,24 +112,23 @@ top-level try/catch.
 - Caller (server action) wraps the call in `try { ... } catch (err)
   { return { error: formatError(err) } }`.
 
-#### Discriminated-return contract (`admin-mutations.ts`, `crew-lifecycle.ts`)
+#### Discriminated-return contract (`crew-lifecycle.ts`, inline action writes)
 
-Used by admin + lifecycle writes that produce **known, user-facing
-business errors** — duplicate slug, expired invite, rate-limit
-exceeded, "you're already a member". The user needs a friendly,
-specific message; routing those through `formatError` would lose
-the specificity that makes the message actionable.
+Used by writes that produce **known, user-facing business errors** —
+duplicate slug, expired invite, rate-limit exceeded, "you're already
+a member". The user needs a friendly, specific message; routing
+those through `formatError` would lose the specificity that makes
+the message actionable.
 
-- Mutation: `return { error: "That gym slug is already taken." }` for
-  business errors; only truly unexpected Postgres errors throw and
-  bubble.
-- Caller: `if ("error" in result) return { error: result.error }`.
-  No try/catch — the discriminated union does the narrowing.
+- Known business error: `return { error: "That gym slug is already
+  taken." }`.
+- Any other Postgres error: `return { error: formatError(error) }`.
 
 **Pick by failure shape:** if the failure is "user did something
 the UI should have prevented and we want a clean message," return
-discriminated. If the failure is "something broke that shouldn't
-have," throw. Don't mix the two contracts in one function.
+the specific message. If the failure is "something broke that
+shouldn't have," format it. Don't mix the two contracts in one
+function.
 
 Don't blur the read/write line either: a silent-swallow on a mutation
 lets the caller think the write succeeded and skip its post-write
@@ -430,49 +445,42 @@ All `cachedQuery` wraps use tags from the `Tag` union in
 
 | Tag | Busted by | Cached helper(s) |
 |-----|-----------|------------------|
-| `gym:{id}` | gym row edits, is_listed toggles | `getGym` |
+| `gym:{id}` | gym row edits, is_listed toggles | `getGym`, `getLeaderboardCached`, `getGymStatsV2Cached` |
 | `gym:{id}:active-set` | set goes live / ends / is created | `getCurrentSet`, `getAllSets` |
 | `set:{id}:routes` | route add / edit / delete within the set | `getRoutesBySet` |
-| `set:route-{id}:routes` | per-route grade vote changes | `getRouteGrade` |
-| `set:{id}:leaderboard` | any route_log change affecting rank | (no cached helper yet) |
-| `user:{id}:profile` | profile row edits (uid known)  | (no cached helper — bust target only) |
-| `user:username-{u}:profile` | profile row edits (username known) | `getProfileByUsername` |
-| `user:{id}:stats` | route_log change → user_set_stats trigger | (no cached helper yet) |
-| `user:{id}:crews` | crew_members status changed | (no cached helper yet) |
-| `user:{id}:notifications` | notifications inserted / marked read | (no cached helper yet) |
-| `crew:{id}` | crew row / member set edits | (no cached helper yet) |
+| `route:{id}:grade` | per-route grade vote changes | `getRouteGrade` |
+| `route:{id}:comments` | comment post / edit / delete | `getCommentsByRoute` |
+| `set:{id}:leaderboard` | any route_log change affecting rank | `getLeaderboardCached`, `getGymStatsV2Cached` |
+| `user:username-{u}:profile` | profile row edits | `getProfileByUsername` |
 | `gyms:listed` | any gym's is_listed flag changed | `getListedGyms` |
 | `competition:{id}` | competition row or relations changed | `getCompetitionById` |
 
-### Tags without cache targets
+### The reader-first rule (no write-only tags)
 
-Several tags above (`set:{id}:leaderboard`, `user:{id}:stats`,
-`user:{id}:crews`, `user:{id}:notifications`, `crew:{id}`) are busted
-by mutations but no helper currently uses them as cache tags. They're
-in place for a future revisit:
+Every tag in the table has a live `cachedQuery` reader — enforced by
+`src/lib/cache/tags.test.ts`. A tag lands in `tags.ts` in the same
+change as the reader that carries it, never ahead of one.
 
-- **leaderboard / gym-stats** — cannot be wrapped today because the
-  RPC's `is_gym_member()` gate uses `auth.uid()`, which returns null
-  under the service-role client used inside `unstable_cache` bodies.
-  Fix would be new RPC variants taking an explicit caller_id +
-  page-level membership check.
-- **crews / notifications / stats** — none have a `cachedQuery` wrap
-  yet. Mutations bust the tag pre-emptively so adding the cache wrap
-  later doesn't require rewriting every mutation site.
+The previous convention ("bust pre-emptively so adding the cache wrap
+later doesn't require rewriting every mutation site") was retired in
+2026-08 after an audit found six tags (`user:{id}:stats`,
+`user:{id}:crews`, `user:{id}:profile`, `crew:{id}`,
+`user:{id}:notifications`, `user:{id}:jams`) busted at 13 sites with
+no reader anywhere. The claimed zero cost turned out false in two
+ways: `revalidateCrewMembers` ran a live `crew_members` SELECT on
+every crew mutation purely to fan out no-op busts, and tests had
+started pinning the phantom busts as if they prevented stale UI. If a
+surface gains a cached reader later, adding its busts then is cheap —
+and the hygiene test names every mutation that needs one the moment
+the tag exists.
 
-This is intentional defensive work. Untagged busts cost nothing
-(`revalidateTag` is a no-op when no entry carries the tag), but
-would matter the moment the corresponding helper gets cached.
-
-### `user:{id}:profile` vs `user:username-{u}:profile`
+### `user:username-{u}:profile`
 
 `getProfileByUsername` is keyed by the only input it has at wrap
 time — the username. The tag mirrors that. Mutations that know only
 the userId (most of them) need to look up the current username before
 busting; helper `revalidateUserProfile(supabase, userId)` in
-`src/lib/cache/revalidate.ts` does this. The `user:{id}:profile` tag
-is also busted as a forward-compatibility hook for future caches
-keyed by uid (e.g. a `getProfileById` server cache).
+`src/lib/cache/revalidate.ts` does this.
 
 `updateProfile` itself doesn't use the helper because it already has
 both old + new username in scope from its rename-aware logic.
