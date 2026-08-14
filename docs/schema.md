@@ -1,9 +1,16 @@
 # Supabase schema
 
-> **STALE** — last comprehensively updated at migration 035. The live
-> schema is well beyond it (jams 041–056, hardening 063–068 not reflected
-> here). Treat `supabase/migrations` + the generated `database.types.ts`
-> as source of truth until this is rewritten.
+> **PARTIALLY STALE** — last comprehensively updated at migration 035.
+> The live schema is well beyond it: jams 041–056 and hardening
+> 063–068 are not reflected here. Treat `supabase/migrations` + the
+> generated `database.types.ts` as source of truth until this is
+> rewritten.
+>
+> The exception is the **Set convergence** (migrations 080–084), which
+> IS current below — `sets` / `routes` / `route_logs` / `set_players` /
+> `set_grades` and the Match RPCs. The `jam_*` family is deliberately
+> undocumented here because it is being retired; see
+> docs/roadmap.md for what is left of that.
 
 For the historical sequence, see `docs/migrations.md`.
 
@@ -103,6 +110,8 @@ enforces that each kind carries its own identity fields.
 | `host_id`        | uuid FK nullable     | Required when `owner_kind = 'climber'` |
 | `code`           | text nullable        | 6 chars, `[A-HJ-NP-Z2-9]` — read aloud across a mat. Match only; unique |
 | `name`           | text nullable        | Display name; falls back to date range |
+| `location`       | text nullable        | ≤120 chars. Free text, because a Match happens wherever the climbers are. A gym Set uses `gym_id` |
+| `last_activity_at` | timestamptz nullable | Bumped by trigger on Match logs/routes; drives `end_stale_matches` |
 | `status`         | text                 | `draft` / `live` / `archived`. Source of truth. `archived` also means "finished" for a Match |
 | `active`         | boolean              | Derived from `status = 'live'` by trigger — legacy readers only |
 | `starts_at`      | timestamptz          | |
@@ -133,7 +142,7 @@ ids can't be probed.
 | `setter_name` | text nullable     | Internal only; never shown to climbers |
 | `description` | text nullable     | ≤ 240 chars. Match routes are added live ("blue crimps, arête") |
 | `added_by`    | uuid FK nullable  | Who added it — Match routes only |
-| `grade`       | smallint nullable | 0..30. Per-route grade, for Matches that don't inherit a Set-wide scale |
+| `declared_grade` | smallint nullable | 0..30. What the adder said this route is. Distinct from `community_grade`, which is what climbers voted (renamed from `grade` in 083 so the two can't be confused) |
 
 Unique `(set_id, number)`.
 
@@ -179,22 +188,50 @@ Who is in a Match. Gym Sets don't use it — membership there is
 
 Insert is self-only — you join a Match, you are never added to one.
 
+### set_grades
+
+Custom (named, non-numeric) ladder labels — "slab", "the roof",
+"hard". Only populated when `sets.grading_scale = 'custom'`, which is
+Match-only.
+
+| Field     | Type     | Notes |
+|---|---|---|
+| `set_id`  | uuid FK  | PK part 1, cascades |
+| `ordinal` | smallint | PK part 2. 0..50 |
+| `label`   | text     | 1..40 chars |
+
+Read-only to clients (`select` policy via `can_read_set`, no
+insert/update policy). Labels are fixed at creation; `create_match`
+writes them as definer.
+
 ### user_set_stats
 
-Materialised aggregate maintained by a trigger on `route_logs`.
-Every leaderboard RPC reads from here — never from raw `route_logs`.
+Materialised per-(user, set) aggregate, maintained by the
+`sync_user_set_stats` trigger on `route_logs`.
 
-| Field     | Type        | Notes |
+| Field     | Type             | Notes |
 |---|---|---|
-| `user_id` | uuid FK     | |
-| `set_id`  | uuid FK     | |
-| `gym_id`  | uuid FK     | |
-| `sends`   | integer ≥ 0 | Count of `completed = true` logs on the set |
-| `flashes` | integer ≥ 0 | Count of completed + attempts = 1 |
-| `zones`   | integer ≥ 0 | Count of zone = true |
-| `points`  | integer ≥ 0 | Sum of `computePoints` across logs |
+| `user_id` | uuid FK          | |
+| `set_id`  | uuid FK          | |
+| `gym_id`  | uuid FK nullable | Null for a Match — see below |
+| `sends`   | integer ≥ 0      | Count of `completed = true` logs on the set |
+| `flashes` | integer ≥ 0      | Count of completed + attempts = 1 |
+| `zones`   | integer ≥ 0      | Count of zone = true |
+| `points`  | integer ≥ 0      | Sum of `compute_points` across logs |
 
 PK `(user_id, set_id)`.
+
+Read by the **cached** leaderboard RPCs (`get_leaderboard_set_cached`,
+`get_leaderboard_all_time_cached`) and `get_user_set_stats`. The
+uncached `get_leaderboard_set` and `get_match_leaderboard` aggregate
+`route_logs` directly — so this table is a cache, not the sole home of
+the numbers, and both paths score through `compute_points`.
+
+`gym_id` went **nullable** in migration 082: the trigger takes it from
+`sets.gym_id`, which is null for a Match. It was NOT NULL until then,
+which meant the first Match log would have aborted the entire
+`route_logs` insert — the trigger runs inside the writer's
+transaction, so that fails the send, not merely the stats.
 
 ### route_tags + route_tags_map
 
@@ -361,6 +398,49 @@ anon, public`. Access is gated inside each function (typically
   `gymId === profile.active_gym_id`). Set-belongs-to-gym
   cross-ownership stays inside the RPC as belt-and-braces
 - `get_route_grade(route_id)` — community grade average
+
+### Match (migration 084)
+
+The climber-run half of the Set convergence. All operate on the
+converged tables; nothing calls them yet (the app still reads
+`jam_*`). See docs/roadmap.md.
+
+- `create_match(name, location, grading_scale, min_grade, max_grade,
+  custom_grades[], save_scale_name)` → `(id, code)` — mints a join
+  code, inserts the `sets` row (`owner_kind = 'climber'`, open-ended),
+  seats the host in `set_players`, writes any custom ladder to
+  `set_grades`, and optionally saves that ladder to
+  `user_custom_scales` for reuse
+- `lookup_match_by_code(code)` — pre-join preview. Readable by any
+  authenticated user **by design**: the code IS the invitation and you
+  cannot yet be a player, so the usual `is_set_player` gate would make
+  joining impossible. Scoped to `owner_kind = 'climber'` so it can
+  never become a way to read gym Sets
+- `join_match(set_id)` — self-join with the 20-player cap. Refuses an
+  ended Match, and refuses to re-join one you left
+- `add_match_route(set_id, description, grade, has_zone)` — assigns
+  the next `number` under a row lock, writes `declared_grade`
+- `get_match_leaderboard(set_id, viewer_id default null)` — the live
+  board. `LEFT JOIN`s from `set_players`, so a player who has joined
+  but not climbed still appears (unlike the gym board, which only
+  ranks scorers). Masks non-owner attempts. **Gated** on active
+  membership — the `get_jam_leaderboard` it replaces had no access
+  check at all. `viewer_id` is honoured only when `auth.uid()` is
+  null (service-role callers), so it cannot be spoofed
+- `get_match_state_for_user(set_id, user_id)` → jsonb — the whole
+  room: `{match, grades, routes, players, my_logs, leaderboard}`.
+  `my_logs` is the caller's only. Service-role only
+- `end_match(set_id)` — sets `status = 'archived'` + stamps `ends_at`.
+  Idempotent, and the guard against two players ending at once. This
+  is the whole of what `end_jam` did: a Match is a Set, Sets keep
+  their rows, so there is no summary to collapse into and nothing to
+  delete
+- `end_stale_matches()` — idle sweep, 24h, mirroring `end_stale_jams`
+
+Logging a Match route deliberately has **no** RPC: `route_logs`
+already accepts it, migration 080's insert policy authorises the
+player branch, and 081's trigger derives `set_id`. The existing
+`upsertRouteLog` path serves both kinds of Set.
 - `get_user_set_stats(user_id, gym_id)` — per-set climber aggregates
 - `get_leaderboard_set(gym_id, set_id, limit, offset)`
 - `get_leaderboard_all_time(gym_id, limit, offset)`

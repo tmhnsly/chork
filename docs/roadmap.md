@@ -179,14 +179,48 @@ vocabulary these decisions produced.
       `jam_routes` / `jam_logs` were verified empty in production
       first — the convergence is structural, with nothing to backfill.
 
+      **Phase 2a landed 2026-08-14** (migrations 082–084). The RPC
+      layer exists on the converged tables — `create_match`,
+      `lookup_match_by_code`, `join_match`, `add_match_route`,
+      `get_match_leaderboard`, `get_match_state_for_user`,
+      `end_match`, `end_stale_matches` — plus `set_grades` and the
+      activity triggers. Additive and inert: nothing calls them yet
+      and no `jam_*` function was touched. Verified end to end
+      against production inside a rolled-back transaction (create →
+      add routes → log → board → 7 points, correct to the ladder).
+
+      Two things it fixes rather than ports: the board is now
+      **gated** (`get_jam_leaderboard` has no access check, so anyone
+      holding a jam id can read it), and the attempt mask resolves
+      against a viewer the service-role path can name (the jam
+      version masks the caller's own attempts too). And `end_jam` is
+      not ported at all — a Match is a Set, Sets keep their rows, so
+      ending one is `status = 'archived'`.
+
+      082 is worth remembering: `user_set_stats.gym_id` was NOT NULL
+      and its trigger fires inside the writer's transaction, so the
+      first Match log would have failed the *send*, not just the
+      stats. Latent since 080. Look for that shape again when
+      widening anything else gymless.
+
       **Still open, in order:**
 
-      - [ ] Point the Match UI at `sets` / `routes` / `route_logs` and
-            drop `jam_*`. This is where the parallel scoring actually
-            dies; until it happens the second implementation is still
-            the live one.
-      - [ ] Join-by-code flow against `sets.code` (the column exists,
-            nothing writes it yet).
+      - [ ] Point the Match UI at the new RPCs and drop `jam_*`. Note
+            the scope is smaller than it looks: logging needs no new
+            code at all (`upsertRouteLog` already serves both), and
+            scoring is already single-sourced through
+            `compute_points` / `computePoints`. What actually merges
+            is the containers, the row types (`JamLog` → `RouteLog`
+            etc.) and the realtime channel.
+      - [ ] Realtime: `use-jam-realtime` listens to `jam_routes` /
+            `jam_logs` / `jam_players` filtered by `jam_id`. The
+            converged equivalents need adding to the
+            `supabase_realtime` publication with `REPLICA IDENTITY
+            FULL`, filtered on `set_id` — and `route_logs` is a much
+            busier table, so the filter matters more than it did.
+      - [ ] Offline queue: `registry.ts` hard-imports
+            `upsertJamLogAction`. Re-point it at the shared route-log
+            action rather than porting a second entry.
       - [ ] Retire `jam_summaries` — but note the share card (shipped)
             reads `share_token` off it, so that moves to whatever
             replaces it rather than being deleted with it.

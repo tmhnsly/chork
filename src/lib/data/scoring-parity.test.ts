@@ -108,6 +108,24 @@ describe("rank clause parity across leaderboard RPCs", () => {
     const { body } = latestDefinition("get_jam_leaderboard");
     expect(denseRankClause(body, "get_jam_leaderboard")).toBe(JAM_RANK_CLAUSE);
   });
+
+  // The converged board (migration 084) replaces get_jam_leaderboard.
+  // It must rank identically, or a Match would change places the day
+  // the UI switches tables underneath it.
+  it("get_match_leaderboard ranks exactly like the jam board it replaces", () => {
+    const { body } = latestDefinition("get_match_leaderboard");
+    expect(denseRankClause(body, "get_match_leaderboard")).toBe(JAM_RANK_CLAUSE);
+  });
+
+  it("get_match_leaderboard scores through the shared SQL ladder", () => {
+    const { body, file } = latestDefinition("get_match_leaderboard");
+    expect(
+      body.includes("public.compute_points("),
+      `get_match_leaderboard (live definition in ${file}) no longer delegates ` +
+        `to compute_points. The ladder has exactly two homes — computePoints ` +
+        `in logs.ts and compute_points in SQL — see CLAUDE.md "Domain rules".`,
+    ).toBe(true);
+  });
 });
 
 // ── 3. TS jam mirror implements the same clause + dense_rank ────
