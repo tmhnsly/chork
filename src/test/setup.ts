@@ -15,3 +15,11 @@ process.env.NEXT_PUBLIC_SUPABASE_URL ??= "http://localhost:54321";
 process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??= "test-anon-key";
 process.env.SUPABASE_SERVICE_ROLE_KEY ??= "test-service-role-key";
 process.env.NEXT_PUBLIC_SITE_URL ??= "http://localhost:3000";
+// A real (throwaway) 32-byte hex secret, so `sign` / `verify` run
+// their actual HMAC path in tests rather than the no-secret
+// pass-through. Without this the signed branch was never executed by
+// any test — which is exactly how `NavBarShell` came to compare a
+// signed cookie against a bare value and always render the
+// signed-out nav in every environment that has a secret configured.
+process.env.CHORK_COOKIE_SECRET ??=
+  "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
