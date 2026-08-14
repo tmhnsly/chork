@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
+import { canRun } from "../skip-guard";
 
 const URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -7,14 +8,26 @@ const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 /**
  * True when integration tests have the creds they need. Drives the
- * top-level `describe.skipIf(!canRunIntegration)` so the suite
- * silently no-ops in CI / forks that don't provide the service role
- * key (failures there would otherwise be noise).
+ * top-level `describe.skipIf(!canRunIntegration)`.
+ *
+ * Skipping is still the right default — a fresh clone or a fork
+ * without the service role key shouldn't fail — but it now announces
+ * itself and names the missing vars, and becomes a hard failure under
+ * `CHORK_STRICT_TESTS=1`. It used to no-op in silence, which is the
+ * same shape of problem as a test layer that stops running and
+ * reports green anyway.
  *
  * Locally: `pnpm test:integration` loads the service key from
  * `.env.local` before invoking vitest.
  */
-export const canRunIntegration = Boolean(URL && ANON && SERVICE);
+export const canRunIntegration = canRun({
+  suite: "integration (Supabase RPCs)",
+  requires: [
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+  ],
+});
 
 /**
  * Service-role client — bypasses RLS. Used to provision + clean up

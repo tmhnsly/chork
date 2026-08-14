@@ -16,6 +16,45 @@ update it in the same PR as any test-infra change.
 └──────────────────────────────────────────────────────────────┘
 ```
 
+
+## What runs in CI, and what doesn't
+
+`ci` job — typecheck, lint, unit tests.
+`e2e` job — build + smoke + a11y + auth specs, in real Chromium.
+
+The e2e job is new. CI previously ran neither e2e nor integration,
+which is how the suite came to be sitting on a real WCAG AA failure
+and a smoke test asserting that a 404 was a 200 — both surfaced the
+first time anyone ran it.
+
+It builds with the three `NEXT_PUBLIC_*` values (repo **variables**,
+not secrets — they already ship in the client bundle) plus a
+placeholder `SUPABASE_SERVICE_ROLE_KEY`. `env.ts` only requires that
+key to be non-empty and no public route calls `createServiceClient`,
+so the app boots for smoke + a11y without the live secret ever
+reaching CI. Verified locally by running the whole suite with the
+placeholder.
+
+Integration tests still don't run in CI — they need the real service
+role key. That is a deliberate open choice, not an oversight.
+
+## Skipping is allowed. Disappearing isn't.
+
+Suites that need credentials may skip, but never in silence:
+
+- they print which suite skipped and exactly which vars would run it
+  (`src/test/skip-guard.ts`, `e2e/skip-guard.ts`);
+- `CHORK_STRICT_TESTS=1` turns any such skip into a hard failure.
+
+Set that flag in CI once the corresponding secrets exist, so a layer
+can't quietly shrink back to nothing. It is the reason a whole
+Storybook project could fail to load for months while the run still
+reported green.
+
+Currently skipping: the three `auth.spec.ts` specs, pending an
+`E2E_TEST_EMAIL` / `E2E_TEST_PASSWORD` pair. They are the only
+automated coverage of a signed-in session.
+
 Every layer runs against a production build so what we test matches
 what ships (no dev-only short-circuits).
 

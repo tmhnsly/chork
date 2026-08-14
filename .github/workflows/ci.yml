@@ -1,13 +1,18 @@
 name: CI
 
-# CI runs code-correctness checks only (typecheck + lint + tests).
-# The deployed build is owned by Vercel's native GitHub integration
-# — it runs on every push to main and pushes a preview/prod deploy
-# with the real env vars from Vercel Project Settings. Running
-# `pnpm build` here as well would duplicate that work, require us
-# to either sync secrets to GH Actions or stub them with fake
-# values, and email us twice on every failure. Single source of
-# truth for the build is Vercel.
+# Two jobs.
+#
+# `ci` — typecheck + lint + unit tests. No build: the *deployed*
+# build is owned by Vercel's GitHub integration, which runs on every
+# push with the real env from Project Settings. Duplicating it here
+# would double the work and the failure emails. Vercel stays the
+# single source of truth for what ships.
+#
+# `e2e` — does build, because there is no other way to drive a real
+# browser against real pages. It builds with public values plus a
+# placeholder service key (see the job), so it never needs the live
+# secret and never produces a deployable artifact. It is not the
+# deploy; it is the only automated accessibility gate.
 
 on:
   pull_request:
@@ -31,7 +36,10 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Matches the Vercel project's runtime. They drifted (20 vs
+          # 24.x), which means CI was type-checking and testing against
+          # a different Node than the one that actually serves the app.
+          node-version: 24
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
@@ -44,3 +52,80 @@ jobs:
 
       - name: Unit tests
         run: pnpm test
+
+  # The e2e suite is the only layer that renders real pages in a real
+  # browser, and the only automated accessibility gate. It was not run
+  # by CI at all, which is how it came to sit on a genuine WCAG AA
+  # failure and a smoke test asserting that a 404 was a 200 — both
+  # found the first time anyone ran it.
+  #
+  # Needs a built app, so unlike the checks above it does build here.
+  # The three NEXT_PUBLIC_* values are public by definition (they ship
+  # in the client bundle) so they live as repo *variables*, not
+  # secrets. `SUPABASE_SERVICE_ROLE_KEY` is a real secret and is NOT
+  # provided: `env.ts` only requires it to be non-empty, and no public
+  # route calls `createServiceClient`, so a placeholder boots the app
+  # for smoke + a11y without putting the live key in CI.
+  #
+  # The auth specs skip without `E2E_TEST_EMAIL` / `E2E_TEST_PASSWORD`.
+  # That skip is announced in the log by `e2e/skip-guard.ts` rather
+  # than passing unnoticed. Add those as secrets and set
+  # `CHORK_STRICT_TESTS=1` here to make a missing test user fail the
+  # build instead.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+      NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-not-a-real-key
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Fail with something actionable rather than a confusing build
+      # error deep in the Next output.
+      # Plain `if`, not `[ -z … ] && …`: GitHub runs `run:` under
+      # `bash -e`, where a false `&&` test exits non-zero — so the
+      # short form would fail the step precisely when the variable IS
+      # set correctly.
+      - name: Check e2e config
+        run: |
+          missing=""
+          for var in NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY NEXT_PUBLIC_SITE_URL; do
+            if [ -z "${!var}" ]; then
+              missing="$missing $var"
+            fi
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing repo variables:$missing"
+            echo "Add them under Settings -> Secrets and variables -> Actions -> Variables."
+            echo "All three are public values - they already ship in the client bundle."
+            exit 1
+          fi
+          echo "e2e config present."
+
+      - run: pnpm exec playwright install --with-deps chromium
+
+      - run: pnpm build
+
+      - name: E2E (smoke + a11y + auth)
+        run: pnpm e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

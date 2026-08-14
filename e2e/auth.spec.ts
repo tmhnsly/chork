@@ -1,4 +1,5 @@
 import { test, expect } from "@playwright/test";
+import { skipReason } from "./skip-guard";
 
 /**
  * Authentication flow tests against the live Supabase project.
@@ -21,8 +22,17 @@ import { test, expect } from "@playwright/test";
 const TEST_EMAIL = process.env.E2E_TEST_EMAIL;
 const TEST_PASSWORD = process.env.E2E_TEST_PASSWORD;
 
+// Announces the skip and names the missing vars rather than vanishing
+// from the run. Under `CHORK_STRICT_TESTS=1` it throws instead — these
+// are the only specs that exercise a signed-in session, so "3 skipped"
+// scrolling past unread is exactly the failure mode worth closing.
+const missing = skipReason({
+  suite: "e2e auth flow",
+  requires: ["E2E_TEST_EMAIL", "E2E_TEST_PASSWORD"],
+});
+
 test.describe("auth flow", () => {
-  test.skip(!TEST_EMAIL || !TEST_PASSWORD, "E2E_TEST_EMAIL / E2E_TEST_PASSWORD not set");
+  test.skip(missing !== null, missing ?? "");
 
   test("sign-in redirects to the wall + nav reflects authed state", async ({ page }) => {
     await page.goto("/login");
