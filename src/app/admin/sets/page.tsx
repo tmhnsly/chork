@@ -14,8 +14,15 @@ export const metadata = {
   title: "Sets - Admin - Chork",
 };
 
-export default async function AdminSetsPage() {
-  const auth = await requireGymAdmin();
+interface Props {
+  /** `?gym=` selects which of the caller's gyms this page shows.
+   *  Verified by requireGymAdmin, so a forged id is rejected. */
+  searchParams: Promise<{ gym?: string }>;
+}
+
+export default async function AdminSetsPage({ searchParams }: Props) {
+  const { gym: gymParam } = await searchParams;
+  const auth = await requireGymAdmin(gymParam);
   if ("error" in auth) redirect("/");
   const { supabase, gymId, isOwner } = auth;
 

@@ -23,45 +23,6 @@
   color: var(--error-text-low-contrast);
 }
 
-// ── Avatar picker ───────────────────────────────────
-.avatarSection {
-  @include layout.stack(var(--space-2));
-}
-
-.avatarPicker {
-  width: var(--space-20);
-  height: var(--space-20);
-  border-radius: var(--radius-full);
-  border: 2px dashed var(--mono-border);
-  background: var(--mono-subtle-bg);
-  cursor: pointer;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: border-color var(--duration-fast) var(--ease-out);
-
-  &:hover {
-    border-color: var(--mono-border-hover);
-  }
-}
-
-.avatarImage {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.avatarFallback {
-  @include type.typography(number);
-  color: var(--mono-text-low-contrast);
-}
-
-.avatarLabel {
-  @include type.typography(meta);
-  color: var(--mono-text-low-contrast);
-}
-
 // ── Button utilities ────────────────────────────────
 .btnFull {
   width: 100%;

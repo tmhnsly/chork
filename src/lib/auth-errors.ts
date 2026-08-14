@@ -14,6 +14,24 @@
 export const AUTH_REQUIRED_ERROR = "You need to be signed in to do that";
 
 /**
+ * `requireAuth` failed because the caller is signed in but has no
+ * active gym — a first-class state, not an error (see CONTEXT.md
+ * "Jam"). Gym-scoped pages branch on this to send the climber to
+ * `/jam` rather than `/login`.
+ *
+ * A named constant because that branch is a STRING COMPARISON: while
+ * this was a bare literal in two files, rewording the copy would have
+ * silently routed every gymless climber to a login page they don't
+ * need. Same reasoning as AUTH_REQUIRED_ERROR above.
+ */
+export const NO_GYM_ERROR = "No gym selected";
+
+/** True when the failure is "signed in, but no gym selected". */
+export function isNoGymError(error: string): boolean {
+  return error === NO_GYM_ERROR;
+}
+
+/**
  * True when the error string returned from a server action is one of
  * our auth sentinels. Currently only one sentinel, but wrapped in a
  * predicate so callers don't lean on string equality directly.

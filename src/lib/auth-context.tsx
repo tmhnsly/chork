@@ -214,6 +214,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Cheap admin probe — single indexed lookup on gym_admins. Null user
   // returns false rather than firing an unauthenticated query.
+  //
+  // Deliberately gym-AGNOSTIC ("do you admin any gym?"), because that
+  // is the question the Admin nav tab asks: /admin resolves whichever
+  // gym you administer, independent of your climber `active_gym_id`.
+  // Nothing authorises on this — it only decides whether to render a
+  // link. Every admin surface re-checks with `requireGymAdmin(gymId)`
+  // server-side.
   const fetchIsAdmin = useCallback(async (userId: string): Promise<boolean> => {
     const { data, error } = await supabase
       .from("gym_admins")
@@ -423,9 +430,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // userId filter gates replays; awaiting was what introduced
       // the throw-path that skipped navigation when IndexedDB
       // glitched.
+      //
+      // `flushThenClear` (not a bare clear) gives unsynced sends a
+      // bounded chance to reach the server before the shared-device
+      // wipe takes them. Still fire-and-forget, so navigation is
+      // unaffected either way.
       if (outgoingUserId) {
         void mutationQueue
-          .clearForUser(outgoingUserId)
+          .flushThenClear(outgoingUserId)
           .catch((err) =>
             logger.warn("signout_queue_clear_failed", { err: formatErrorForLog(err) }),
           );

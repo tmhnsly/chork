@@ -6,9 +6,9 @@ import { formatErrorForLog } from "@/lib/errors";
 import { one, readMany } from "./read";
 import {
   normaliseRankedRows,
-  type RankedRow,
   type RawRankedRow,
 } from "./leaderboard-helpers";
+import type { LeaderboardEntry } from "./types";
 type Supabase = SupabaseClient<Database>;
 
 // ────────────────────────────────────────────────────────────────
@@ -47,7 +47,7 @@ export interface CrewMember {
  * leaderboard-helpers.ts). `rank` is null for members with zero
  * points on the selected set.
  */
-export type CrewLeaderboardRow = RankedRow;
+export type CrewLeaderboardRow = LeaderboardEntry;
 
 export interface CrewActivityEvent {
   route_log_id: string;

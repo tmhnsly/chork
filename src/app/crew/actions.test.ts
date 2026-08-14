@@ -10,45 +10,7 @@ vi.mock("@/lib/notify", () => ({ notify: vi.fn() }));
 // other rate-limit caller) never gets coverage.
 vi.mock("@/lib/rate-limit", () => ({ enforce: vi.fn() }));
 
-// ────────────────────────────────────────────────────────────────
-// Supabase client mock
-// ────────────────────────────────────────────────────────────────
-// Actions build Supabase queries by chaining — .from().insert(),
-// .from().update().eq().eq().eq() etc. The mock below returns a thenable
-// proxy so any chain resolves to whatever `nextResult` is primed with.
-// Each test overrides `nextResult` (or `resultFor(...)` by first chain
-// method called) to simulate success / RLS rejection / unique violation.
-
-type SbResult = { data?: unknown; error?: { code?: string; message?: string } | null; count?: number };
-
-function makeChain(resolve: () => Promise<SbResult> | SbResult) {
-  const builder: Record<string, unknown> = {};
-  const chain: (...args: unknown[]) => typeof builder = () => builder;
-  const methods = [
-    "select", "insert", "update", "delete", "upsert",
-    "eq", "neq", "in", "or", "gte", "lt", "order", "limit",
-    "maybeSingle", "single",
-  ];
-  for (const m of methods) (builder[m] as unknown) = chain;
-  builder.then = (onFulfilled: (v: SbResult) => unknown) =>
-    Promise.resolve(resolve()).then(onFulfilled);
-  return builder;
-}
-
-function mockSupabase(results: Record<string, SbResult | (() => SbResult)> = {}) {
-  // `from(name)` returns a chain whose final await resolves with the
-  // result primed for that table. `rpc("name", …)` is primed the same way.
-  return {
-    from: (table: string) => makeChain(() => {
-      const r = results[`table:${table}`];
-      return typeof r === "function" ? r() : (r ?? { data: null });
-    }),
-    rpc: (name: string) => makeChain(() => {
-      const r = results[`rpc:${name}`];
-      return typeof r === "function" ? r() : (r ?? { data: null });
-    }),
-  };
-}
+import { createMockSupabase } from "@/test/mock-supabase";
 
 const USER_A = "11111111-1111-1111-1111-111111111111";
 const USER_B = "22222222-2222-2222-2222-222222222222";
@@ -90,7 +52,7 @@ describe("createCrew", () => {
 
   it("trims the name and returns the new crew id on success", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
-    const supabase = mockSupabase({
+    const supabase = createMockSupabase({
       // Pre-insert profile guard — resolves to an existing row so
       // the onboarding-check branch passes.
       "table:profiles": { data: { id: USER_A }, error: null },
@@ -108,7 +70,7 @@ describe("createCrew", () => {
 
   it("maps the 42501 RLS code to a stale-session message", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
-    const supabase = mockSupabase({
+    const supabase = createMockSupabase({
       "table:profiles": { data: { id: USER_A }, error: null },
       "table:crews": { data: null, error: { code: "42501", message: "RLS violation" } },
     });
@@ -126,7 +88,7 @@ describe("createCrew", () => {
 
   it("tells the user to finish onboarding if their profile row is missing", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
-    const supabase = mockSupabase({
+    const supabase = createMockSupabase({
       "table:profiles": { data: null, error: null },
     });
     vi.mocked(requireSignedIn).mockResolvedValue({
@@ -153,7 +115,7 @@ describe("inviteToCrew", () => {
   it("rejects self-invite", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
-      supabase: mockSupabase() as never,
+      supabase: createMockSupabase() as never,
       userId: USER_A,
     });
     const { inviteToCrew } = await import("./actions");
@@ -171,7 +133,7 @@ describe("inviteToCrew", () => {
     const { requireSignedIn } = await import("@/lib/auth");
     const { enforce } = await import("@/lib/rate-limit");
     vi.mocked(requireSignedIn).mockResolvedValue({
-      supabase: mockSupabase() as never,
+      supabase: createMockSupabase() as never,
       userId: USER_A,
     });
     vi.mocked(enforce).mockResolvedValueOnce({
@@ -188,7 +150,7 @@ describe("inviteToCrew", () => {
 
   it("rejects when the daily rate limit bump returns false", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
-    const supabase = mockSupabase({
+    const supabase = createMockSupabase({
       "rpc:bump_invite_rate_limit": { data: false, error: null },
     });
     vi.mocked(requireSignedIn).mockResolvedValue({
@@ -202,7 +164,7 @@ describe("inviteToCrew", () => {
 
   it("rejects when target has allow_crew_invites=false", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
-    const supabase = mockSupabase({
+    const supabase = createMockSupabase({
       "rpc:bump_invite_rate_limit": { data: true, error: null },
       "table:profiles": { data: { allow_crew_invites: false }, error: null },
     });
@@ -219,18 +181,11 @@ describe("inviteToCrew", () => {
     const { requireSignedIn } = await import("@/lib/auth");
     // Prime the insert-attempt sequence: pass pre-checks, fail on
     // insert with Postgres code 23505 (unique violation).
-    const supabase = {
-      from: (table: string) => {
-        if (table === "profiles") {
-          return makeChain(() => ({ data: { allow_crew_invites: true }, error: null }));
-        }
-        if (table === "crew_members") {
-          return makeChain(() => ({ data: null, error: { code: "23505" } }));
-        }
-        return makeChain(() => ({ data: null }));
-      },
-      rpc: () => makeChain(() => ({ data: true, error: null })),
-    };
+    const supabase = createMockSupabase({
+      "rpc:bump_invite_rate_limit": { data: true, error: null },
+      "table:profiles": { data: { allow_crew_invites: true }, error: null },
+      "table:crew_members": { data: null, error: { code: "23505" } },
+    });
     vi.mocked(requireSignedIn).mockResolvedValue({
       supabase: supabase as never,
       userId: USER_A,
@@ -244,26 +199,17 @@ describe("inviteToCrew", () => {
     const { requireSignedIn } = await import("@/lib/auth");
     const { notify } = await import("@/lib/notify");
 
-    const supabase = {
-      from: (table: string) => {
-        if (table === "profiles") {
-          return makeChain(() => ({
-            // profile prefetch for allow_crew_invites AND the inviter
-            // username lookup both land here — return a compatible shape.
-            data: { allow_crew_invites: true, username: "alice" },
-            error: null,
-          }));
-        }
-        if (table === "crew_members") {
-          return makeChain(() => ({ data: null, error: null }));
-        }
-        if (table === "crews") {
-          return makeChain(() => ({ data: { name: "Tuesday Crew" }, error: null }));
-        }
-        return makeChain(() => ({ data: null }));
+    const supabase = createMockSupabase({
+      "rpc:bump_invite_rate_limit": { data: true, error: null },
+      // profile prefetch for allow_crew_invites AND the inviter
+      // username lookup both land here — return a compatible shape.
+      "table:profiles": {
+        data: { allow_crew_invites: true, username: "alice" },
+        error: null,
       },
-      rpc: () => makeChain(() => ({ data: true, error: null })),
-    };
+      "table:crew_members": { data: null, error: null },
+      "table:crews": { data: { name: "Tuesday Crew" }, error: null },
+    });
     vi.mocked(requireSignedIn).mockResolvedValue({
       supabase: supabase as never,
       userId: USER_A,
@@ -287,16 +233,13 @@ describe("inviteToCrew", () => {
     const { requireSignedIn } = await import("@/lib/auth");
     const { notify } = await import("@/lib/notify");
 
-    const supabase = {
-      from: (table: string) => {
-        if (table === "profiles") return makeChain(() => ({ data: { allow_crew_invites: true, username: "alice" }, error: null }));
-        if (table === "blocked_users") return makeChain(() => ({ data: [], error: null }));
-        if (table === "crew_members") return makeChain(() => ({ data: null, error: null }));
-        if (table === "crews") return makeChain(() => ({ data: { name: "X" }, error: null }));
-        return makeChain(() => ({ data: null }));
-      },
-      rpc: () => makeChain(() => ({ data: true, error: null })),
-    };
+    const supabase = createMockSupabase({
+      "rpc:bump_invite_rate_limit": { data: true, error: null },
+      "table:profiles": { data: { allow_crew_invites: true, username: "alice" }, error: null },
+      "table:blocked_users": { data: [], error: null },
+      "table:crew_members": { data: null, error: null },
+      "table:crews": { data: { name: "X" }, error: null },
+    });
     vi.mocked(requireSignedIn).mockResolvedValue({
       supabase: supabase as never,
       userId: USER_A,
@@ -328,7 +271,7 @@ describe("acceptCrewInvite", () => {
     // Mock the returning shape so the happy path keeps passing.
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "table:crew_members": {
           data: { invited_by: null, crew_id: CREW_1, crew: null },
           error: null,
@@ -343,7 +286,7 @@ describe("acceptCrewInvite", () => {
   it("propagates DB errors", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "table:crew_members": { data: null, error: { code: "42501", message: "boom" } },
       }) as never,
       userId: USER_A,
@@ -357,26 +300,19 @@ describe("acceptCrewInvite", () => {
   it("notifies the inviter on success (kind: crew_invite_accepted)", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     const { notify } = await import("@/lib/notify");
-    const supabase = {
-      from: (table: string) => {
-        if (table === "crew_members") {
-          return makeChain(() => ({
-            // First read = the invite prefetch (invited_by + crew
-            // name via embedded join). Second call = the UPDATE.
-            data: {
-              invited_by: USER_B,
-              crew_id: CREW_1,
-              crew: { name: "Tuesday Crew" },
-            },
-            error: null,
-          }));
-        }
-        if (table === "profiles") {
-          return makeChain(() => ({ data: { username: "alice" }, error: null }));
-        }
-        return makeChain(() => ({ data: null }));
+    const supabase = createMockSupabase({
+      // First read = the invite prefetch (invited_by + crew
+      // name via embedded join). Second call = the UPDATE.
+      "table:crew_members": {
+        data: {
+          invited_by: USER_B,
+          crew_id: CREW_1,
+          crew: { name: "Tuesday Crew" },
+        },
+        error: null,
       },
-    };
+      "table:profiles": { data: { username: "alice" }, error: null },
+    });
     vi.mocked(requireSignedIn).mockResolvedValue({
       supabase: supabase as never,
       userId: USER_A,
@@ -407,7 +343,7 @@ describe("acceptCrewInvite", () => {
     const { requireSignedIn } = await import("@/lib/auth");
     const { notify } = await import("@/lib/notify");
     vi.mocked(requireSignedIn).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "table:crew_members": {
           data: { invited_by: null, crew_id: CREW_1, crew: null },
           error: null,
@@ -430,7 +366,7 @@ describe("declineCrewInvite", () => {
   it("returns success on delete", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "table:crew_members": { data: null, error: null },
       }) as never,
       userId: USER_A,
@@ -460,7 +396,7 @@ describe("leaveCrew", () => {
   it("returns success when a non-creator member's row is deleted ('left')", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "rpc:leave_crew_atomic": { data: "left", error: null },
       }) as never,
       userId: USER_A,
@@ -472,7 +408,7 @@ describe("leaveCrew", () => {
   it("surfaces a friendly error when the RPC returns 'creator_blocked'", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "rpc:leave_crew_atomic": { data: "creator_blocked", error: null },
       }) as never,
       userId: USER_A,
@@ -482,34 +418,26 @@ describe("leaveCrew", () => {
     expect("error" in res).toBe(true);
   });
 
-  it("returns success on the solo-creator teardown path ('crew_deleted') AND busts crew + userCrews tags", async () => {
+  it("returns success on the solo-creator teardown path ('crew_deleted')", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
-    const { revalidateTag } = await import("next/cache");
     vi.mocked(requireSignedIn).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "rpc:leave_crew_atomic": { data: "crew_deleted", error: null },
       }) as never,
       userId: USER_A,
     });
     const { leaveCrew } = await import("./actions");
     expect(await leaveCrew(CREW_1)).toEqual({ success: true });
-
-    // Regression pin: an earlier version of this test only asserted
-    // the return shape and would have silently passed if the
-    // `revalidateTag` calls were dropped — leaving the deleted crew
-    // visible on the creator's /crew page for up to 60s. Assert both
-    // tag busts fired with the expected keys.
-    const calls = vi
-      .mocked(revalidateTag)
-      .mock.calls.map((c) => c[0]);
-    expect(calls).toContain(`crew:${CREW_1}`);
-    expect(calls).toContain(`user:${USER_A}:crews`);
+    // No tag-bust assertions: crew surfaces are read per-request, so
+    // crew mutations bust nothing (reader-first rule, cache/tags.ts).
+    // An earlier pin here protected `crew:{id}` / `user:{uid}:crews`
+    // busts that no cached read ever carried.
   });
 
   it("errors cleanly when the RPC returns 'not_found'", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "rpc:leave_crew_atomic": { data: "not_found", error: null },
       }) as never,
       userId: USER_A,
@@ -521,7 +449,7 @@ describe("leaveCrew", () => {
   it("errors cleanly when the RPC returns 'not_member'", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "rpc:leave_crew_atomic": { data: "not_member", error: null },
       }) as never,
       userId: USER_A,
@@ -539,7 +467,7 @@ describe("setAllowCrewInvites", () => {
   it("updates the caller's profile and returns success", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "table:profiles": { data: null, error: null },
       }) as never,
       userId: USER_A,
@@ -563,7 +491,7 @@ describe("transferCrewOwnership", () => {
   it("refuses self-transfer", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
-      supabase: mockSupabase() as never,
+      supabase: createMockSupabase() as never,
       userId: USER_A,
     });
     const { transferCrewOwnership } = await import("./actions");
@@ -575,7 +503,7 @@ describe("transferCrewOwnership", () => {
   it("refuses when the caller isn't the current creator", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     vi.mocked(requireSignedIn).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "table:crews": { data: { created_by: USER_B }, error: null },
       }) as never,
       userId: USER_A,
@@ -588,20 +516,11 @@ describe("transferCrewOwnership", () => {
 
   it("refuses when the target isn't an active member", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
-    let call = 0;
-    const supabase = {
-      from: (table: string) => {
-        if (table === "crews") {
-          return makeChain(() => ({ data: { created_by: USER_A }, error: null }));
-        }
-        if (table === "crew_members") {
-          call++;
-          // First call = target-active lookup; return null to fail.
-          return makeChain(() => ({ data: null, error: null }));
-        }
-        return makeChain(() => ({ data: null }));
-      },
-    };
+    const supabase = createMockSupabase({
+      "table:crews": { data: { created_by: USER_A }, error: null },
+      // First call = target-active lookup; return null to fail.
+      "table:crew_members": { data: null, error: null },
+    });
     vi.mocked(requireSignedIn).mockResolvedValue({
       supabase: supabase as never,
       userId: USER_A,
@@ -610,31 +529,24 @@ describe("transferCrewOwnership", () => {
     expect(await transferCrewOwnership(CREW_1, USER_B)).toEqual({
       error: "That climber isn't an active member of this crew.",
     });
-    expect(call).toBeGreaterThan(0);
+    expect(
+      supabase.calls.filter((c) => c.source === "crew_members").length,
+    ).toBeGreaterThan(0);
   });
 
   it("succeeds on the happy path + dispatches notification", async () => {
     const { requireSignedIn } = await import("@/lib/auth");
     const { notify } = await import("@/lib/notify");
-    const supabase = {
-      from: (table: string) => {
-        if (table === "crews") {
-          return makeChain(() => ({
-            // Two reads against `crews` — creator check + name lookup
-            // for the push body. Both can return the same shape.
-            data: { created_by: USER_A, name: "Tuesday Crew" },
-            error: null,
-          }));
-        }
-        if (table === "crew_members") {
-          return makeChain(() => ({ data: { id: "row1" }, error: null }));
-        }
-        if (table === "profiles") {
-          return makeChain(() => ({ data: { username: "alice" }, error: null }));
-        }
-        return makeChain(() => ({ data: null }));
+    const supabase = createMockSupabase({
+      // Two reads against `crews` — creator check + name lookup
+      // for the push body. Both can return the same shape.
+      "table:crews": {
+        data: { created_by: USER_A, name: "Tuesday Crew" },
+        error: null,
       },
-    };
+      "table:crew_members": { data: { id: "row1" }, error: null },
+      "table:profiles": { data: { username: "alice" }, error: null },
+    });
     vi.mocked(requireSignedIn).mockResolvedValue({
       supabase: supabase as never,
       userId: USER_A,

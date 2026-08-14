@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Link from "next/link";
 import { FaBolt } from "react-icons/fa6";
 import { UserAvatar } from "../UserAvatar";
 import styles from "./leaderboardRow.module.scss";
@@ -36,6 +37,14 @@ interface Props {
   onPress?: (entry: LeaderboardRowData) => void;
   interactive?: boolean;
   /**
+   * Navigation variant — renders the row as a Next `<Link>` with the
+   * same visual instead of a `<button>`. For surfaces where tapping a
+   * row goes to the climber's profile page (crew leaderboard) rather
+   * than opening a sheet. Mutually exclusive with `onPress`: pass one
+   * or the other, so a row is always exactly one interactive element.
+   */
+  href?: string;
+  /**
    * Optional trailing slot rendered after the points + flashes
    * cluster. Use for surface-specific extras — e.g. a zone count
    * on the jam leaderboard. Keep to one or two short glyph/number
@@ -49,6 +58,7 @@ export function LeaderboardRow({
   highlighted,
   onPress,
   interactive = true,
+  href,
   trailing,
 }: Props) {
   const className = `${styles.row} ${highlighted ? styles.highlighted : ""}`;
@@ -83,6 +93,18 @@ export function LeaderboardRow({
       </div>
     </>
   );
+
+  if (href && interactive) {
+    return (
+      <Link
+        href={href}
+        className={className}
+        aria-label={`${ariaBase}. Open profile.`}
+      >
+        {content}
+      </Link>
+    );
+  }
 
   if (!interactive || !onPress) {
     return (

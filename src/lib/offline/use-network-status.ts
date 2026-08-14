@@ -14,8 +14,12 @@ function ensureRegistered() {
 
 /**
  * Track online/offline state and pending mutation count.
- * Triggers queue flush on `online` and `visibilitychange` events —
- * the visibilitychange handler is the iOS fallback for Background Sync.
+ * Triggers queue flush on `online` and `visibilitychange` events.
+ *
+ * These two are the ONLY flush triggers — there is no Background
+ * Sync anywhere (`sw.js` registers no `sync` listener and nothing
+ * calls `registration.sync.register`), so `visibilitychange` is the
+ * primary mechanism on iOS rather than a fallback to one.
  */
 export function useNetworkStatus(): { isOnline: boolean; pendingCount: number; ready: boolean } {
   ensureRegistered();

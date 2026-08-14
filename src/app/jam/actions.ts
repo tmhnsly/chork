@@ -1,31 +1,34 @@
 "use server";
 
-import { revalidateTag } from "next/cache";
 import { after } from "next/server";
-import { requireSignedIn } from "@/lib/auth";
+import { gateSignedInMutation } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
 import { formatError, formatErrorForLog } from "@/lib/errors";
-import { UUID_RE } from "@/lib/validation";
-import {
-  createJam,
-  joinJam,
-  leaveJam,
-  addJamRoute,
-  updateJamRoute,
-  upsertJamLog,
-  endJam,
-} from "@/lib/data/jam-mutations";
 import { buildBadgeContext } from "@/lib/achievements/context";
 import { evaluateAndPersistAchievements } from "@/lib/achievements/evaluate";
 import type { JamGradingScale, JamRoute } from "@/lib/data/jam-types";
 
 import { logger } from "@/lib/logger";
-import { tags } from "@/lib/cache/tags";
+
+// Jam writes go through SECURITY DEFINER RPCs (migrations 041 + 042)
+// invoked directly below — is_jam_player / auth.uid() authorisation
+// lives at the SQL layer. A pass-through module (jam-mutations.ts)
+// used to wrap each RPC call; it was inlined in 2026-08 because every
+// wrapper had one caller and an interface as large as its body.
+
 const MAX_NAME_LEN = 80;
 const MAX_LOCATION_LEN = 120;
 const MAX_DESCRIPTION_LEN = 240;
 const MAX_CUSTOM_GRADES = 50;
 const MAX_SCALE_NAME_LEN = 40;
+
+// Supabase generates optional RPC parameters as `T | undefined`
+// rather than `T | null`. Our domain layer models "absent" as `null`
+// (matches Postgres semantics everywhere else), so fold null →
+// undefined once at the RPC boundary.
+function undef<T>(value: T | null | undefined): T | undefined {
+  return value ?? undefined;
+}
 
 function isScale(value: unknown): value is JamGradingScale {
   return (
@@ -103,23 +106,24 @@ export async function createJamAction(
   }
   // `points` falls through — no grades, no range, nothing to validate.
 
-  const auth = await requireSignedIn();
+  // No resource id to validate (the payload was validated above) —
+  // the gate still supplies signed-in auth + the write rate limit.
+  const auth = await gateSignedInMutation(null, "jam");
   if ("error" in auth) return { error: auth.error };
 
-  try {
-    const result = await createJam(auth.supabase, {
-      name,
-      location,
-      gradingScale: payload.gradingScale,
-      minGrade,
-      maxGrade,
-      customGrades,
-      saveScaleName,
-    });
-    return result;
-  } catch (err) {
-    return { error: formatError(err) };
-  }
+  const { data, error } = await auth.supabase.rpc("create_jam", {
+    p_name: undef(name),
+    p_location: undef(location),
+    p_grading_scale: payload.gradingScale,
+    p_min_grade: undef(minGrade),
+    p_max_grade: undef(maxGrade),
+    p_custom_grades: undef(customGrades),
+    p_save_scale_name: undef(saveScaleName),
+  });
+  if (error) return { error: formatError(error) };
+  const rows = (data ?? []) as Array<{ id: string; code: string }>;
+  if (rows.length === 0) return { error: "Could not create the jam." };
+  return rows[0];
 }
 
 // ── Join ──────────────────────────────────────────
@@ -127,29 +131,25 @@ export async function createJamAction(
 export async function joinJamAction(
   jamId: string,
 ): Promise<{ error: string } | { ok: true }> {
-  if (!UUID_RE.test(jamId)) return { error: "Invalid jam id" };
-  const auth = await requireSignedIn();
+  const auth = await gateSignedInMutation(jamId, "jam id");
   if ("error" in auth) return { error: auth.error };
-  try {
-    await joinJam(auth.supabase, jamId);
-    return { ok: true };
-  } catch (err) {
-    return { error: formatError(err) };
-  }
+  const { error } = await auth.supabase.rpc("add_jam_player", {
+    p_jam_id: jamId,
+  });
+  if (error) return { error: formatError(error) };
+  return { ok: true };
 }
 
 export async function leaveJamAction(
   jamId: string,
 ): Promise<{ error: string } | { ok: true }> {
-  if (!UUID_RE.test(jamId)) return { error: "Invalid jam id" };
-  const auth = await requireSignedIn();
+  const auth = await gateSignedInMutation(jamId, "jam id");
   if ("error" in auth) return { error: auth.error };
-  try {
-    await leaveJam(auth.supabase, jamId);
-    return { ok: true };
-  } catch (err) {
-    return { error: formatError(err) };
-  }
+  const { error } = await auth.supabase.rpc("leave_jam", {
+    p_jam_id: jamId,
+  });
+  if (error) return { error: formatError(error) };
+  return { ok: true };
 }
 
 // ── Routes ────────────────────────────────────────
@@ -164,26 +164,21 @@ interface RoutePayload {
 export async function addJamRouteAction(
   payload: RoutePayload,
 ): Promise<{ error: string } | { route: JamRoute }> {
-  if (!UUID_RE.test(payload.jamId)) return { error: "Invalid jam id" };
-
-  const auth = await requireSignedIn();
+  const auth = await gateSignedInMutation(payload.jamId, "jam id");
   if ("error" in auth) return { error: auth.error };
 
-  try {
-    const route = await addJamRoute(auth.supabase, {
-      jamId: payload.jamId,
-      description: clampString(payload.description, MAX_DESCRIPTION_LEN),
-      grade: typeof payload.grade === "number" ? payload.grade : null,
-      hasZone: !!payload.hasZone,
-    });
-    // Return the full row so the client can dispatch `upsert-route`
-    // immediately — the jam grid must not wait on the realtime
-    // self-echo, which drops often enough for the creator to see a
-    // stale list until they refresh.
-    return { route };
-  } catch (err) {
-    return { error: formatError(err) };
-  }
+  const { data, error } = await auth.supabase.rpc("add_jam_route", {
+    p_jam_id: payload.jamId,
+    p_description: undef(clampString(payload.description, MAX_DESCRIPTION_LEN)),
+    p_grade: undef(typeof payload.grade === "number" ? payload.grade : null),
+    p_has_zone: !!payload.hasZone,
+  });
+  if (error) return { error: formatError(error) };
+  // Return the full row so the client can dispatch `upsert-route`
+  // immediately — the jam grid must not wait on the realtime
+  // self-echo, which drops often enough for the creator to see a
+  // stale list until they refresh.
+  return { route: data as JamRoute };
 }
 
 interface UpdateRoutePayload {
@@ -196,8 +191,7 @@ interface UpdateRoutePayload {
 export async function updateJamRouteAction(
   payload: UpdateRoutePayload,
 ): Promise<{ error: string } | { route: JamRoute }> {
-  if (!UUID_RE.test(payload.routeId)) return { error: "Invalid route id" };
-  const auth = await requireSignedIn();
+  const auth = await gateSignedInMutation(payload.routeId, "route id");
   if ("error" in auth) return { error: auth.error };
   // No `added_by === userId` check on purpose: jams are intentionally
   // collaborative — any player may edit any route's metadata. The
@@ -205,17 +199,14 @@ export async function updateJamRouteAction(
   // layer (migrations 041 + 046), which is the correct authorisation
   // for the designed model. Don't add an author gate here without
   // first changing the jam product semantics.
-  try {
-    const route = await updateJamRoute(auth.supabase, {
-      routeId: payload.routeId,
-      description: clampString(payload.description, MAX_DESCRIPTION_LEN),
-      grade: typeof payload.grade === "number" ? payload.grade : null,
-      hasZone: !!payload.hasZone,
-    });
-    return { route };
-  } catch (err) {
-    return { error: formatError(err) };
-  }
+  const { data, error } = await auth.supabase.rpc("update_jam_route", {
+    p_route_id: payload.routeId,
+    p_description: undef(clampString(payload.description, MAX_DESCRIPTION_LEN)),
+    p_grade: undef(typeof payload.grade === "number" ? payload.grade : null),
+    p_has_zone: !!payload.hasZone,
+  });
+  if (error) return { error: formatError(error) };
+  return { route: data as JamRoute };
 }
 
 // ── Log an attempt ────────────────────────────────
@@ -230,9 +221,6 @@ interface UpsertLogPayload {
 export async function upsertJamLogAction(
   payload: UpsertLogPayload,
 ): Promise<{ error: string } | { success: true; log: null }> {
-  if (!UUID_RE.test(payload.jamRouteId)) {
-    return { error: "Invalid route id" };
-  }
   if (
     typeof payload.attempts !== "number" ||
     payload.attempts < 0 ||
@@ -240,23 +228,20 @@ export async function upsertJamLogAction(
   ) {
     return { error: "Invalid attempt count" };
   }
-  const auth = await requireSignedIn();
+  const auth = await gateSignedInMutation(payload.jamRouteId, "route id");
   if ("error" in auth) return { error: auth.error };
-  try {
-    await upsertJamLog(auth.supabase, {
-      jamRouteId: payload.jamRouteId,
-      attempts: payload.attempts,
-      completed: !!payload.completed,
-      zone: !!payload.zone,
-    });
-    // `{ success: true, log: null }` matches the synthetic shape
-    // returned by `withOfflineQueue` when the action gets queued,
-    // so callers can check `"error" in result` identically for
-    // both the online write and the offline-queued replay.
-    return { success: true, log: null };
-  } catch (err) {
-    return { error: formatError(err) };
-  }
+  const { error } = await auth.supabase.rpc("upsert_jam_log", {
+    p_jam_route_id: payload.jamRouteId,
+    p_attempts: payload.attempts,
+    p_completed: !!payload.completed,
+    p_zone: !!payload.zone,
+  });
+  if (error) return { error: formatError(error) };
+  // `{ success: true, log: null }` matches the synthetic shape
+  // returned by `withOfflineQueue` when the action gets queued,
+  // so callers can check `"error" in result` identically for
+  // both the online write and the offline-queued replay.
+  return { success: true, log: null };
 }
 
 // ── End jam ───────────────────────────────────────
@@ -264,12 +249,15 @@ export async function upsertJamLogAction(
 export async function endJamAction(
   jamId: string,
 ): Promise<{ error: string } | { summaryId: string }> {
-  if (!UUID_RE.test(jamId)) return { error: "Invalid jam id" };
-  const auth = await requireSignedIn();
+  const auth = await gateSignedInMutation(jamId, "jam id");
   if ("error" in auth) return { error: auth.error };
 
   try {
-    const summaryId = await endJam(auth.supabase, jamId);
+    const { data, error } = await auth.supabase.rpc("end_jam_as_player", {
+      p_jam_id: jamId,
+    });
+    if (error) return { error: formatError(error) };
+    const summaryId = data as string;
 
     // Deferred — everything below is best-effort housekeeping after
     // the jam-end transaction has already committed. If it fails
@@ -291,13 +279,6 @@ export async function endJamAction(
         .map((p) => p.user_id)
         .filter((id): id is string => id !== null);
       if (userIds.length === 0) return;
-
-      // Revalidate the jam history tag for every participant — every
-      // player's `/jam` landing + profile history list needs to pick
-      // up the new summary row, not just the caller's.
-      for (const userId of userIds) {
-        revalidateTag(tags.userJams(userId), "max");
-      }
 
       // Batch profile read — one trip for every participant's gym.
       const { data: profiles } = await service

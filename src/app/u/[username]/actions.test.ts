@@ -8,30 +8,18 @@
  * the target's data.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createMockSupabase } from "@/test/mock-supabase";
 
-vi.mock("@/lib/auth", () => ({ requireAuth: vi.fn() }));
+// Partial mock: requireAuth is stubbed per-test, but requireSameGymScope
+// stays REAL so the cross-gym security gate below is exercised, not
+// mocked away.
+vi.mock(import("@/lib/auth"), async (importOriginal) => ({
+  ...(await importOriginal()),
+  requireAuth: vi.fn(),
+}));
 vi.mock("@/lib/data/leaderboard-queries", () => ({
   getLeaderboardUserRow: vi.fn(),
 }));
-
-type SbResult = { data?: unknown; error?: unknown };
-
-function makeChain(resolve: () => SbResult) {
-  const builder: Record<string, unknown> = {};
-  const chain: (...args: unknown[]) => typeof builder = () => builder;
-  const methods = ["select", "eq", "maybeSingle"];
-  for (const m of methods) (builder[m] as unknown) = chain;
-  builder.then = (onFulfilled: (v: SbResult) => unknown) =>
-    Promise.resolve(resolve()).then(onFulfilled);
-  return builder;
-}
-
-function mockSupabase(tables: Record<string, SbResult> = {}) {
-  return {
-    from: (table: string) =>
-      makeChain(() => tables[`table:${table}`] ?? { data: null }),
-  };
-}
 
 const USER_A = "11111111-1111-1111-1111-111111111111";
 const USER_B = "22222222-2222-2222-2222-222222222222";
@@ -70,7 +58,7 @@ describe("fetchSetPlacement", () => {
   it("blocks cross-gym set lookup", async () => {
     const { requireAuth } = await import("@/lib/auth");
     vi.mocked(requireAuth).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "table:sets": { data: { gym_id: GYM_OTHER } },
       }) as never,
       userId: USER_A,
@@ -85,7 +73,7 @@ describe("fetchSetPlacement", () => {
   it("blocks lookup of a user who isn't a member of the caller's gym", async () => {
     const { requireAuth } = await import("@/lib/auth");
     vi.mocked(requireAuth).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "table:sets": { data: { gym_id: GYM_OWN } },
         "table:gym_memberships": { data: null },
       }) as never,
@@ -93,15 +81,17 @@ describe("fetchSetPlacement", () => {
       gymId: GYM_OWN,
     });
     const { fetchSetPlacement } = await import("./actions");
+    // Wording unified with fetchClimberSheetLogs when both adopted
+    // the shared requireSameGymScope gate.
     expect(await fetchSetPlacement(USER_B, SET_1)).toEqual({
-      error: "Not in this gym",
+      error: "Climber not in this gym",
     });
   });
 
   it("returns the user's rank on success", async () => {
     const { requireAuth } = await import("@/lib/auth");
     vi.mocked(requireAuth).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "table:sets": { data: { gym_id: GYM_OWN } },
         "table:gym_memberships": { data: { user_id: USER_B } },
       }) as never,
@@ -128,7 +118,7 @@ describe("fetchSetPlacement", () => {
   it("returns rank: null when the user has no activity in the set", async () => {
     const { requireAuth } = await import("@/lib/auth");
     vi.mocked(requireAuth).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "table:sets": { data: { gym_id: GYM_OWN } },
         "table:gym_memberships": { data: { user_id: USER_B } },
       }) as never,

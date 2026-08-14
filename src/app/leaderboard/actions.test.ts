@@ -5,36 +5,24 @@
  * broke), so that action gets the heaviest coverage.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createMockSupabase } from "@/test/mock-supabase";
 
-vi.mock("@/lib/auth", () => ({ requireAuth: vi.fn() }));
+// Partial mock: requireAuth is stubbed per-test, but requireSameGymScope
+// stays REAL so the cross-gym security gate below is exercised, not
+// mocked away.
+vi.mock(import("@/lib/auth"), async (importOriginal) => ({
+  ...(await importOriginal()),
+  requireAuth: vi.fn(),
+}));
 vi.mock("@/lib/data/route-log-queries", () => ({
   getLogsBySetForUser: vi.fn(() => Promise.resolve([])),
 }));
 vi.mock("@/lib/data/leaderboard-queries", () => ({
   getLeaderboardCached: vi.fn(() => Promise.resolve([])),
-  getLeaderboardNeighbourhood: vi.fn(() => Promise.resolve([])),
-  getLeaderboardUserRow: vi.fn(() => Promise.resolve(null)),
+  getLeaderboardTabData: vi.fn(() =>
+    Promise.resolve({ top: [], userRow: null, neighbourhood: [] }),
+  ),
 }));
-
-type SbResult = { data?: unknown; error?: unknown };
-
-function makeChain(resolve: () => SbResult) {
-  const builder: Record<string, unknown> = {};
-  const chain: (...args: unknown[]) => typeof builder = () => builder;
-  const methods = [
-    "select", "eq", "maybeSingle", "single",
-  ];
-  for (const m of methods) (builder[m] as unknown) = chain;
-  builder.then = (onFulfilled: (v: SbResult) => unknown) =>
-    Promise.resolve(resolve()).then(onFulfilled);
-  return builder;
-}
-
-function mockSupabase(tables: Record<string, SbResult> = {}) {
-  return {
-    from: (table: string) => makeChain(() => tables[`table:${table}`] ?? { data: null }),
-  };
-}
 
 const USER_A = "11111111-1111-1111-1111-111111111111";
 const GYM_OWN = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
@@ -59,7 +47,7 @@ describe("fetchLeaderboardTab", () => {
   it("returns an empty-ish tab when auth succeeds but data is empty", async () => {
     const { requireAuth } = await import("@/lib/auth");
     vi.mocked(requireAuth).mockResolvedValue({
-      supabase: mockSupabase() as never,
+      supabase: createMockSupabase() as never,
       userId: USER_A,
       gymId: GYM_OWN,
     });
@@ -87,7 +75,7 @@ describe("fetchLeaderboardPage", () => {
   it("includes the paging limit on success so the caller knows the step", async () => {
     const { requireAuth } = await import("@/lib/auth");
     vi.mocked(requireAuth).mockResolvedValue({
-      supabase: mockSupabase() as never,
+      supabase: createMockSupabase() as never,
       userId: USER_A,
       gymId: GYM_OWN,
     });
@@ -129,7 +117,7 @@ describe("fetchClimberSheetLogs", () => {
   it("rejects a set that belongs to a DIFFERENT gym — no cross-gym leak", async () => {
     const { requireAuth } = await import("@/lib/auth");
     vi.mocked(requireAuth).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "table:sets": { data: { gym_id: GYM_OTHER } },
       }) as never,
       userId: USER_A,
@@ -149,7 +137,7 @@ describe("fetchClimberSheetLogs", () => {
   it("rejects a target climber who is not a member of the caller's gym", async () => {
     const { requireAuth } = await import("@/lib/auth");
     vi.mocked(requireAuth).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "table:sets": { data: { gym_id: GYM_OWN } },
         "table:gym_memberships": { data: null },
       }) as never,
@@ -165,7 +153,7 @@ describe("fetchClimberSheetLogs", () => {
   it("sanitises raw logs — flash derived from attempts===1, no raw attempt count in output", async () => {
     const { requireAuth } = await import("@/lib/auth");
     vi.mocked(requireAuth).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "table:sets": { data: { gym_id: GYM_OWN } },
         "table:gym_memberships": { data: { user_id: USER_A } },
       }) as never,

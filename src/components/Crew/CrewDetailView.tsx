@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { tabId } from "@/components/ui/tab-ids";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { UserAvatar } from "@/components/ui";
 import { CrewActivityFeed } from "./CrewActivityFeed";
@@ -13,6 +14,9 @@ import type {
   ActiveSetOption,
 } from "@/lib/data/crew-queries";
 import styles from "./crewDetailView.module.scss";
+
+/** Ties the Activity/Leaderboard/Members tabs to the panel below. */
+const CREW_PANEL_ID = "crew-tabpanel";
 
 type Tab = "activity" | "leaderboard" | "members";
 
@@ -89,34 +93,45 @@ export function CrewDetailView({
         value={tab}
         onChange={setTab}
         ariaLabel="Crew view"
+        panelId={CREW_PANEL_ID}
       />
 
-      {tab === "activity" && (
-        <CrewActivityFeed
-          hasCrew
-          initialEvents={initialFeed}
-          initialExhausted={initialFeedExhausted}
-          crewId={crew.id}
-        />
-      )}
+      {/* One panel, swapped content — so it points back at whichever
+          tab is selected. */}
+      <div
+        id={CREW_PANEL_ID}
+        role="tabpanel"
+        tabIndex={0}
+        aria-labelledby={tabId(CREW_PANEL_ID, tab)}
+      >
 
-      {tab === "leaderboard" && (
-        <CrewLeaderboardPanel
-          crewId={crew.id}
-          liveSets={liveSets}
-          initialSetId={defaultSetId}
-          currentUserId={currentUserId}
-        />
-      )}
+        {tab === "activity" && (
+          <CrewActivityFeed
+            hasCrew
+            initialEvents={initialFeed}
+            initialExhausted={initialFeedExhausted}
+            crewId={crew.id}
+          />
+        )}
 
-      {tab === "members" && (
-        <CrewMembersList
-          crew={crew}
-          members={members}
-          currentUserId={currentUserId}
-          myCrews={myCrews}
-        />
-      )}
+        {tab === "leaderboard" && (
+          <CrewLeaderboardPanel
+            crewId={crew.id}
+            liveSets={liveSets}
+            initialSetId={defaultSetId}
+            currentUserId={currentUserId}
+          />
+        )}
+
+        {tab === "members" && (
+          <CrewMembersList
+            crew={crew}
+            members={members}
+            currentUserId={currentUserId}
+            myCrews={myCrews}
+          />
+        )}
+      </div>
     </div>
   );
 }

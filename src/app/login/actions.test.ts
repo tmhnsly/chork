@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { createMockSupabase } from "@/test/mock-supabase";
 
 // Shape of the mock cookies jar. The signOut path wipes two
 // non-Supabase cookies (`chork-onboarded` / `chork-auth-shell`)
@@ -22,13 +23,11 @@ vi.mock("@/lib/errors", () => ({
 }));
 
 function mockSupabase(signInResult: unknown, signOutResult: unknown = { error: null }) {
-  return {
-    auth: {
-      signInWithPassword: vi.fn().mockResolvedValue(signInResult),
-      signOut: vi.fn().mockResolvedValue(signOutResult),
-      signUp: vi.fn().mockResolvedValue({ error: null }),
-    },
-  };
+  const sb = createMockSupabase();
+  sb.auth.signInWithPassword.mockResolvedValue(signInResult);
+  sb.auth.signOut.mockResolvedValue(signOutResult);
+  sb.auth.signUp.mockResolvedValue({ error: null });
+  return sb;
 }
 
 beforeEach(() => {

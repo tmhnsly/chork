@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidateTag } from "next/cache";
 import { requireSignedIn } from "@/lib/auth";
 import { formatError } from "@/lib/errors";
 import {
@@ -8,14 +7,10 @@ import {
   sendCrewInvite as sendCrewInviteLifecycle,
   transferCrewOwnership as transferCrewOwnershipLifecycle,
 } from "@/lib/data/crew-lifecycle";
-import {
-  revalidateCrewMembers,
-  revalidateUserProfile,
-} from "@/lib/cache/revalidate";
+import { revalidateUserProfile } from "@/lib/cache/revalidate";
 import { UUID_RE } from "@/lib/validation";
 import { enforce as enforceRateLimit } from "@/lib/rate-limit";
 
-import { tags } from "@/lib/cache/tags";
 import type { ActionResult } from "@/lib/action-result";
 
 // ────────────────────────────────────────────────────────────────
@@ -65,7 +60,9 @@ export async function createCrew(name: string): Promise<ActionResult<{ crewId: s
 
     // The seat_crew_creator trigger has already inserted our active
     // membership row in the same transaction — no follow-up writes.
-    await revalidateCrewMembers(supabase, data.id);
+    // Crew surfaces are read per-request (no cachedQuery entries), so
+    // there is nothing to bust here — see the reader-first rule in
+    // cache/tags.ts.
     return { success: true, crewId: data.id };
   } catch (err) {
     return { error: formatError(err) };
@@ -137,43 +134,20 @@ export async function declineCrewInvite(crewMemberId: string): Promise<ActionRes
   const { supabase, userId } = auth;
 
   try {
-    // Capture invite metadata before delete so we know who to notify +
-    // which crew tag to bust.
-    const { data: invite } = await supabase
-      .from("crew_members")
-      .select("invited_by, crew_id")
-      .eq("id", crewMemberId)
-      .eq("user_id", userId)
-      .eq("status", "pending")
-      .maybeSingle();
-
-    // `.select("id")` so we know whether the delete actually removed
-    // a row. If another tab / device accepted (or declined) the
-    // invite between our read above and this delete, the status has
-    // already flipped — the predicate excludes the row, the delete
-    // is a no-op, and we don't want to fire spurious cache busts
-    // (which would invalidate the inviter's notifications tag for no
-    // user-visible reason).
-    const { data: deleted, error } = await supabase
+    // The status predicate makes this atomic: if another tab / device
+    // accepted (or declined) the invite first, the row no longer
+    // matches and the delete is a harmless no-op. A pre-read used to
+    // sit here to feed cache busts + know who invited us — both were
+    // retired (crew + notification surfaces are read per-request; see
+    // the reader-first rule in cache/tags.ts), so the single DELETE
+    // is the whole operation now.
+    const { error } = await supabase
       .from("crew_members")
       .delete()
       .eq("id", crewMemberId)
       .eq("user_id", userId)
-      .eq("status", "pending")
-      .select("id");
+      .eq("status", "pending");
     if (error) return { error: formatError(error) };
-
-    if (invite?.crew_id && deleted && deleted.length > 0) {
-      // Shared crew + userCrews pair via the fan-out helper. The
-      // decliner never appears in the active roster, so pass them via
-      // extraUserIds to bust their pending-invite banner.
-      await revalidateCrewMembers(supabase, invite.crew_id, [userId]);
-      // The inviter's notification state is outside the crew fan-out —
-      // keep that extra tag inline at this call site.
-      if (invite.invited_by && invite.invited_by !== userId) {
-        revalidateTag(tags.userNotifications(invite.invited_by), "max");
-      }
-    }
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
@@ -198,7 +172,7 @@ export async function leaveCrew(crewId: string): Promise<ActionResult> {
 
   const auth = await requireSignedIn();
   if ("error" in auth) return { error: auth.error };
-  const { supabase, userId } = auth;
+  const { supabase } = auth;
 
   try {
     // Atomic count + branch + delete via `leave_crew_atomic` RPC
@@ -224,15 +198,9 @@ export async function leaveCrew(crewId: string): Promise<ActionResult> {
             "You created this crew — transfer it or remove the other members first.",
         };
       case "crew_deleted":
-        // Crew row is already gone, so the helper's member fetch finds
-        // no rows — this resolves to the same crew + leaver userCrews
-        // pair as before, through the one shared code path.
-        await revalidateCrewMembers(supabase, crewId, [userId]);
-        return { success: true };
       case "left":
-        // Leaver no longer in crew_members; pass them via extraUserIds so
-        // their crews tag busts alongside the remaining active set.
-        await revalidateCrewMembers(supabase, crewId, [userId]);
+        // No cache work: crew surfaces are read per-request (see the
+        // reader-first rule in cache/tags.ts).
         return { success: true };
       default:
         return { error: "Unexpected response from leave-crew." };

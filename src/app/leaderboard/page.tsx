@@ -1,13 +1,12 @@
 import { redirect } from "next/navigation";
 import { formatSetResetCountdown } from "@/lib/data/set-label";
 import { requireAuth } from "@/lib/auth";
+import { isNoGymError } from "@/lib/auth-errors";
 import { getGym } from "@/lib/data/gym-queries";
 import { getCurrentSet } from "@/lib/data/set-queries";
 import { getRoutesBySet } from "@/lib/data/route-queries";
 import {
-  getLeaderboardCached,
-  getLeaderboardNeighbourhood,
-  getLeaderboardUserRow,
+  getLeaderboardTabData,
   getGymStatsV2Cached,
 } from "@/lib/data/leaderboard-queries";
 import { LeaderboardView } from "@/components/Leaderboard/LeaderboardView";
@@ -17,8 +16,6 @@ export const metadata = {
   title: "Chorkboard - Chork",
 };
 
-const TOP_LIMIT = 5;
-
 export default async function LeaderboardPage() {
   const auth = await requireAuth();
   // requireAuth fails if the user isn't signed in OR is signed in
@@ -26,7 +23,7 @@ export default async function LeaderboardPage() {
   // being bounced to /login — the gym-scoped leaderboard has no
   // meaning without a gym, and /jam is the useful home for them.
   if ("error" in auth) {
-    redirect(auth.error === "No gym selected" ? "/jam" : "/login");
+    redirect(isNoGymError(auth.error) ? "/jam" : "/login");
   }
   const { supabase, userId, gymId } = auth;
 
@@ -47,20 +44,14 @@ export default async function LeaderboardPage() {
   // userRow / neighbourhood stay per-user (uncached) since they
   // depend on the caller's identity.
   //
-  // Neighbourhood runs unconditionally in the same parallel wave.
-  // Previously it waited on userRow.rank > TOP_LIMIT before firing,
-  // which added 50–100 ms of serial latency for mid-ranked viewers.
-  // For top-N viewers the RPC result is thrown away by
-  // LeaderboardView's existing dedup (line 142) — ~5 rows wasted,
-  // no user-facing cost.
-  const [top, userRow, stats, currentSetRoutes, neighbourhood] =
-    await Promise.all([
-      getLeaderboardCached(gymId, initialSetId, TOP_LIMIT, 0),
-      getLeaderboardUserRow(supabase, gymId, userId, initialSetId),
-      getGymStatsV2Cached(gymId, initialSetId),
-      initialSetId ? getRoutesBySet(initialSetId) : Promise.resolve([]),
-      getLeaderboardNeighbourhood(supabase, gymId, userId, initialSetId),
-    ]);
+  // The tab triple (top / userRow / neighbourhood) is assembled by
+  // getLeaderboardTabData — the same rule fetchLeaderboardTab uses
+  // on tab switches, so first paint and tab switch can't drift.
+  const [tabData, stats, currentSetRoutes] = await Promise.all([
+    getLeaderboardTabData(supabase, gymId, userId, initialSetId),
+    getGymStatsV2Cached(gymId, initialSetId),
+    initialSetId ? getRoutesBySet(initialSetId) : Promise.resolve([]),
+  ]);
 
   const allTimeStats = stats.all_time;
   const setStats = stats.set;
@@ -71,7 +62,7 @@ export default async function LeaderboardPage() {
         gymName={gym?.name ?? "Your gym"}
         currentSetId={currentSet?.id ?? null}
         currentUserId={userId}
-        initialSetData={{ top, userRow, neighbourhood }}
+        initialSetData={tabData}
         setStats={setStats}
         allTimeStats={allTimeStats}
         currentSetRoutes={currentSetRoutes}

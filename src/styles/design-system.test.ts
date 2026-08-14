@@ -269,3 +269,105 @@ describe("avatars", () => {
     expect(bad, "Same rule, multi-line JSX form.").toEqual([]);
   });
 });
+
+describe("interactive nesting", () => {
+  // A <button> may not be a descendant of an <a>: invalid HTML, and
+  // AT announces a link containing a button while keyboard users get
+  // two stops. `LinkButton` renders a <Link> wearing the button
+  // classes, which is what a "go somewhere" CTA wants.
+  //
+  // This shipped at 8 climber-facing sites while the primitive
+  // existed and was used only in /admin — the rule is here because
+  // the primitive alone clearly wasn't enough to hold the line.
+  it("never nests <Button> inside <Link>", () => {
+    const bad: string[] = [];
+    for (const { path, text } of tsx) {
+      // Non-greedy through the opening <Link ...> tag, then look for
+      // a <Button before the matching </Link>.
+      for (const m of text.matchAll(/<Link\b[\s\S]{0,600}?<\/Link>/g)) {
+        if (/<Button\b/.test(m[0])) bad.push(path);
+      }
+    }
+    expect(
+      [...new Set(bad)],
+      "Use <LinkButton href=…> — a link styled as a button. <Button> is " +
+        "for 'do something', <Link>/<LinkButton> for 'go somewhere'.",
+    ).toEqual([]);
+  });
+});
+
+describe("tab semantics", () => {
+  // `role="tab"` is a promise: AT announces "tab 2 of 3, selected"
+  // and expects somewhere to move to. Ten surfaces made that promise
+  // with no `role="tabpanel"` and no `aria-controls` anywhere in the
+  // repo, because both tab controls hardcoded the role whether or not
+  // the caller had a panel.
+  //
+  // Both now take an optional `panelId` and fall back to a
+  // toggle-button group (role="group" + aria-pressed) without one, so
+  // the roles are only emitted when they're true. This pins that:
+  // outside those two primitives, nothing hand-rolls a tab role.
+  const TAB_PRIMITIVES = ["components/ui/SegmentedControl", "components/ui/TabPills"];
+
+  it("only the shared controls emit role=tab", () => {
+    const bad = tsx
+      .filter(({ path }) => !TAB_PRIMITIVES.some((p) => path.startsWith(p)))
+      .filter(({ text }) => /role=["']tab["']|role=\{["']tab["']\}/.test(text))
+      .map(({ path }) => path);
+    expect(
+      bad,
+      "Use <SegmentedControl> / <TabPills>. They render the tabs " +
+        "pattern only when given a `panelId`, and a toggle group " +
+        "otherwise — so the role always matches reality.",
+    ).toEqual([]);
+  });
+
+  it("every tabpanel is wired to a tab control", () => {
+    // A panel with no `aria-labelledby` is the other half of the same
+    // break: the tab points at the panel but the panel names nothing.
+    const bad = tsx
+      .filter(({ text }) => /role=["']tabpanel["']/.test(text))
+      .filter(({ text }) => !/aria-labelledby=/.test(text))
+      .map(({ path }) => path);
+    expect(
+      bad,
+      "A role=tabpanel needs aria-labelledby={tabId(panelId, value)} " +
+        "so it names the tab that selected it.",
+    ).toEqual([]);
+  });
+});
+
+describe("light/dark mechanism", () => {
+  // Light/dark works through a coupling with no representation in
+  // this repo: next-themes writes `class="dark"` on <html>, and the
+  // matching `.dark` selector lives inside Radix's `*-dark.css`
+  // files. Grep src/styles for `.dark` and you get nothing.
+  //
+  // Either half can be removed without a build error or a failing
+  // test, leaving the app silently light-only. These two pin the
+  // halves to each other.
+  it("next-themes still supplies the .dark class", () => {
+    const providers = readFileSync(
+      join(SRC, "app", "providers.tsx"),
+      "utf8",
+    );
+    expect(
+      /<ThemeProvider[^>]*attribute="class"/.test(providers),
+      'Dark mode depends on next-themes writing class="dark" on <html>, ' +
+        "which is what Radix's *-dark.css selectors react to. Changing " +
+        "this attribute makes the app light-only.",
+    ).toBe(true);
+  });
+
+  it("the Radix dark scales are still imported", () => {
+    const colors = readFileSync(
+      join(SRC, "styles", "theme", "colors.scss"),
+      "utf8",
+    );
+    expect(
+      /@use "@radix-ui\/colors\/[a-z]+-dark\.css"/.test(colors),
+      "The *-dark.css files carry the `.dark` selector. Without them " +
+        "the class next-themes writes matches nothing.",
+    ).toBe(true);
+  });
+});

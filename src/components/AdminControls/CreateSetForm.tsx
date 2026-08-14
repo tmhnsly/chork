@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button, showToast } from "@/components/ui";
-import { createSet } from "@/app/(app)/admin-actions";
+import { createSet } from "@/app/admin/sets-actions";
 import styles from "./adminControls.module.scss";
 
 interface Props {
@@ -46,13 +46,20 @@ export function CreateSetForm({ gymId }: Props) {
     setSubmitting(true);
 
     try {
-      const result = await createSet(
+      // Same action as the admin console's set editor — the quick
+      // create is just the one-round-trip variant that also seeds the
+      // routes. grading scale + max grade match the old DB defaults
+      // (v / 10); the admin console can adjust them later.
+      const result = await createSet({
         gymId,
-        new Date(startsAt).toISOString(),
-        new Date(endsAt).toISOString(),
-        routeCount,
-        [...zoneRoutes]
-      );
+        name: "",
+        startsAt: new Date(startsAt).toISOString(),
+        endsAt: new Date(endsAt).toISOString(),
+        gradingScale: "v",
+        maxGrade: 10,
+        status: "live",
+        routes: { count: routeCount, zoneRouteNumbers: [...zoneRoutes] },
+      });
 
       if ("error" in result) {
         showToast(result.error, "error");

@@ -9,7 +9,7 @@ import styles from "./loading.module.scss";
  */
 export default function LeaderboardLoading() {
   return (
-    <main className={styles.page} role="status" aria-busy="true" aria-label="Loading Chorkboard">
+    <main className={styles.page} aria-busy="true" aria-label="Loading Chorkboard">
       <header className={styles.header}>
         <div className={`${styles.title} ${shimmerStyles.skeleton}`} />
       </header>

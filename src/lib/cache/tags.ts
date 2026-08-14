@@ -17,6 +17,13 @@
  * The mutation → tag map lives in `docs/architecture.md`. Keep both
  * in sync: a new tag here should have a corresponding mutation
  * listed in the doc, and vice versa.
+ *
+ * **Reader-first rule.** A tag lands here in the same change as the
+ * `cachedQuery({ tags: [...] })` reader that carries it — never ahead
+ * of one. A tag that is only ever busted is a no-op that reads like
+ * cache correctness; six such tags (userStats, userCrews, userProfile,
+ * crew, userNotifications, userJams) were retired in 2026-08 after an
+ * audit found nothing registered them. `tags.test.ts` pins the rule.
  */
 
 // Each helper returns a specific template-literal type so the
@@ -27,25 +34,14 @@
 // narrow shape.
 export const tags = {
   // ── User-scoped ──
-  /** The canonical profile row for a given user id. */
-  userProfile: (uid: string): `user:${string}:profile` => `user:${uid}:profile`,
   /**
-   * Paired alias keyed by username (the /u/[username] surface caches
-   * by username, not uid — but mutations know the uid). The
-   * revalidateUserProfile helper in src/lib/cache/revalidate.ts
-   * busts both shapes on any profile-row change.
+   * The /u/[username] profile surface, keyed by username (the cache
+   * key input) — but mutations know the uid. The revalidateUserProfile
+   * helper in src/lib/cache/revalidate.ts does the uid → username
+   * lookup so the entry actually invalidates on profile-row changes.
    */
   userByUsername: (username: string): `user:username-${string}:profile` =>
     `user:username-${username}:profile`,
-  /** Per-user aggregate stats (sends, flashes, points, streak). */
-  userStats: (uid: string): `user:${string}:stats` => `user:${uid}:stats`,
-  /** Crew memberships for the user (authored + invited). */
-  userCrews: (uid: string): `user:${string}:crews` => `user:${uid}:crews`,
-  /** Notification inbox count / list for the user. */
-  userNotifications: (uid: string): `user:${string}:notifications` =>
-    `user:${uid}:notifications`,
-  /** Jam history for the user. */
-  userJams: (uid: string): `user:${string}:jams` => `user:${uid}:jams`,
 
   // ── Gym-scoped ──
   /** The currently-live set for a gym; shared across every climber at the gym. */
@@ -53,13 +49,6 @@ export const tags = {
     `gym:${gid}:active-set`,
   /** Static gym metadata (name, slug, plan tier). */
   gym: (gid: string): `gym:${string}` => `gym:${gid}`,
-  /**
-   * All-time gym aggregates (chorkboard strip). Reserved for a future
-   * cache wrap on the all-time `get_gym_stats_v2_cached` variant; the
-   * tag is typed now so the Tag union stays exhaustive.
-   */
-  gymStatsAllTime: (gid: string): `gym:${string}:stats-all-time` =>
-    `gym:${gid}:stats-all-time`,
 
   // ── Set / route-scoped ──
   /** Set leaderboard top-N + neighbourhood cache. */
@@ -76,10 +65,6 @@ export const tags = {
    */
   routeComments: (rid: string): `route:${string}:comments` =>
     `route:${rid}:comments`,
-
-  // ── Crew-scoped ──
-  /** Crew metadata + roster. */
-  crew: (cid: string): `crew:${string}` => `crew:${cid}`,
 
   // ── Competition-scoped ──
   /** Competition metadata + linked gyms + categories. */

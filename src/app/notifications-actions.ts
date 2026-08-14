@@ -1,6 +1,5 @@
 "use server";
 
-import { revalidateTag } from "next/cache";
 import { requireSignedIn } from "@/lib/auth";
 import { formatError } from "@/lib/errors";
 import { getNotifications } from "@/lib/data/notifications";
@@ -8,7 +7,6 @@ import type { NotificationRow } from "@/lib/data/notifications";
 import { isUuid } from "@/lib/validation";
 import type { ActionResult } from "@/lib/action-result";
 
-import { tags } from "@/lib/cache/tags";
 /**
  * Fetch the caller's recent notifications. Called by the NotificationsSheet
  * the first time it opens — keeps the 50-row payload off the profile
@@ -50,8 +48,6 @@ export async function markAllNotificationsRead(): Promise<ActionResult> {
       p_user_id: userId,
     });
     if (error) return { error: formatError(error) };
-
-    revalidateTag(tags.userNotifications(userId), "max");
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
@@ -76,8 +72,6 @@ export async function dismissNotification(id: string): Promise<ActionResult> {
       .eq("id", id)
       .eq("user_id", userId);
     if (error) return { error: formatError(error) };
-
-    revalidateTag(tags.userNotifications(userId), "max");
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };

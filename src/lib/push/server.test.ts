@@ -124,12 +124,14 @@ describe("sendPushToUsers", () => {
       { id: "s-dead", endpoint: "https://push/dead", p256dh: "p", auth: "a" },
     ]);
     let deleteCalledWith: string[] | null = null;
+    // Cast: the double narrows `.in()` to capture the id list, which
+    // the generic chain type declares as taking no args.
     subsChain.delete = vi.fn(() => ({
       in: vi.fn((_col: string, ids: string[]) => {
         deleteCalledWith = ids;
         return Promise.resolve({ error: null });
       }),
-    }));
+    })) as unknown as typeof subsChain.delete;
 
     fromFn.mockImplementation((table: string) => {
       if (table === "push_subscriptions") return subsChain;

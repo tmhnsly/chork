@@ -317,7 +317,13 @@ function AuthenticatedNav({
             <FaFire className={styles.tabIcon} aria-hidden />
             <span className={styles.tabLabel}>Jam</span>
           </Link>
-          {isAdmin && hasGym && (
+          {/* Gated on admin rights ALONE. Admin is orthogonal to
+              climber membership (CONTEXT.md "Climber, admin,
+              organiser"), and `hasGym` is the climber's active gym —
+              so a gym owner who never joined their own gym as a
+              climber lost the Admin tab entirely, even though /admin
+              works fine for them. Gymless is a first-class state. */}
+          {isAdmin && (
             <Link
               href="/admin"
               className={`${styles.tab} ${adminActive ? styles.tabActive : ""}`}

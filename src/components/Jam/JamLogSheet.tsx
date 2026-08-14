@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
 import type { ReactNode } from "react";
 import { FaArrowRight, FaBolt } from "react-icons/fa6";
 import {
@@ -19,6 +19,11 @@ import { useDebouncedFlush } from "@/hooks/use-debounced-flush";
 import { makeGradeLabeller } from "@/lib/data/grade-label";
 import { computePoints } from "@/lib/data/logs";
 import type { JamRoute, JamLog, JamGradingScale } from "@/lib/data/jam-types";
+import {
+  initJamLogDraft,
+  jamLogReducer,
+  type JamLogDraftAction,
+} from "./jamLogReducer";
 import styles from "./jamLogSheet.module.scss";
 
 /**
@@ -77,35 +82,44 @@ export function JamLogSheet({
   onEdit,
   onSubmit,
 }: Props) {
-  const [attempts, setAttempts] = useState(log?.attempts ?? 0);
-  const [completed, setCompleted] = useState(log?.completed ?? false);
-  const [zone, setZone] = useState(log?.zone ?? false);
+  // The {attempts, completed, zone} triple is one draft value — every
+  // submit ships all three — so it lives behind jamLogReducer instead
+  // of three useStates with mirror refs. Transitions (the 0→1 coerce
+  // on complete, attempts frozen while completed) are pure and
+  // unit-tested in jamLogReducer.test.ts.
+  const [draft, dispatch] = useReducer(jamLogReducer, log, initJamLogDraft);
+  const { attempts, completed, zone } = draft;
 
-  // Latest-state refs for the debounced attempts flush. Without them
-  // the debounce closure would capture `completed` / `zone` at the
-  // time +/- was tapped, and a user who toggled zone between the tap
-  // and the 800ms fire would see their zone write silently
-  // overwritten by the delayed attempts save. Commit-phase write
-  // avoids `react-hooks/refs` flagging render-time ref writes.
-  const completedRef = useRef(completed);
-  const zoneRef = useRef(zone);
+  // Latest-draft ref for the debounced attempts flush. Without it the
+  // debounce closure would capture completed/zone at the time +/- was
+  // tapped, and a zone toggled between the tap and the 800ms fire
+  // would be silently overwritten by the delayed attempts save.
+  // Commit-phase write avoids `react-hooks/refs` flagging render-time
+  // ref writes.
+  const draftRef = useRef(draft);
   useEffect(() => {
-    completedRef.current = completed;
-    zoneRef.current = zone;
+    draftRef.current = draft;
   });
+
+  /** Apply an action AND return the post-transition draft, so submit
+   *  payloads come from the same pure transition the state takes. */
+  const apply = useCallback(
+    (action: JamLogDraftAction) => {
+      dispatch(action);
+      return jamLogReducer(draftRef.current, action);
+    },
+    [],
+  );
 
   // Debounced attempts save. Mirrors the wall sheet's pattern via
   // the shared `useDebouncedFlush` primitive — auto-flushes on
   // unmount so a quick open → tap + → close doesn't drop the
-  // increment. The flush reads the LATEST completed/zone via refs.
+  // increment. The flush reads the LATEST completed/zone via the
+  // draft ref.
   const attemptsFlush = useDebouncedFlush<number>({
     delayMs: ATTEMPTS_DEBOUNCE_MS,
     flush: (next) => {
-      onSubmit({
-        attempts: next,
-        completed: completedRef.current,
-        zone: zoneRef.current,
-      });
+      onSubmit({ ...draftRef.current, attempts: next });
     },
   });
 
@@ -148,41 +162,33 @@ export function JamLogSheet({
 
   const handleAttemptsChange = useCallback(
     (next: number) => {
-      // Can't change attempts while the route is completed; the +/-
-      // buttons are already disabled in that state, this is a belt-
-      // and-braces guard for any programmatic callers.
-      if (completedRef.current) return;
-      setAttempts(next);
+      // The reducer freezes attempts while completed — if the action
+      // was a no-op (same draft back), skip scheduling a write.
+      const after = apply({ type: "set-attempts", attempts: next });
+      if (after === draftRef.current) return;
       attemptsFlush.schedule(next);
     },
-    [attemptsFlush],
+    [apply, attemptsFlush],
   );
 
   function handleComplete() {
     // Cancel any pending attempts debounce — this write already
     // carries the latest `attempts` value, and leaving the timer
     // running would fire an 800ms-later write with completed=false
-    // and clobber the completion we just made.
+    // and clobber the completion we just made. Same for undo + zone
+    // below.
     attemptsFlush.cancel();
-    const finalAttempts = attempts === 0 ? 1 : attempts;
-    setAttempts(finalAttempts);
-    setCompleted(true);
-    onSubmit({ attempts: finalAttempts, completed: true, zone });
+    onSubmit(apply({ type: "mark-complete" }));
   }
 
   function handleUndo() {
     attemptsFlush.cancel();
-    setCompleted(false);
-    onSubmit({ attempts, completed: false, zone });
+    onSubmit(apply({ type: "undo-complete" }));
   }
 
   function handleZoneToggle(checked: boolean) {
-    // Same reason as handleComplete: a pending attempts debounce
-    // would fire later with the OLD zone (captured in the flush
-    // callback's ref read at fire time) and clobber the toggle.
     attemptsFlush.cancel();
-    setZone(checked);
-    onSubmit({ attempts, completed, zone: checked });
+    onSubmit(apply({ type: "set-zone", zone: checked }));
   }
 
   const pointsPreview: ReactNode = completed ? (

@@ -22,6 +22,11 @@ groups called **crews**.
 - `pnpm test --run` — vitest, should stay green on every commit
 - `pnpm lint` (`eslint .`) — CI-blocking. `react-hooks/purity` +
   `react-hooks/set-state-in-effect` are both active; treat as errors
+- `pnpm typecheck` — app code. **`pnpm typecheck:test`** — the test
+  suite + `src/test/**`, which the base tsconfig excludes so
+  `next build` skips them. Vitest transpiles without typechecking, so
+  without this a drifted fixture or harness signature never surfaces.
+  `pnpm check` runs both plus lint + tests
 - `pnpm storybook` — port 6006
 - `npx supabase db push` — apply pending migrations to the linked project
 - `npx supabase gen types typescript --project-id <id> > src/lib/database.types.ts`
@@ -93,14 +98,32 @@ Two supabase clients:
   also enforces `profile.active_gym_id` is set
 - `requireGymAdmin(gymId?)` → `{ supabase, userId, gymId, isOwner } |
   { error }` — reads the `gym_admins` table, NOT `gym_memberships.role`
+- Mutation gates (uuid validate + auth + rate limit in one call —
+  never re-type the prelude): `gateClimberMutation` (gym-scoped),
+  `gateGymAdminMutation` (admin), `gateSignedInMutation` (gymless-safe,
+  rate limit ON by default — jams use this)
+- `requireSameGymScope(supabase, gymId, setId, targetUserId)` — the
+  cross-gym exposure gate (set in caller's gym AND target is a
+  member). Use it for any read that surfaces another climber's data
 
 ### Data access
 
-- Queries: `src/lib/data/queries.ts`, `.../admin-queries.ts`,
-  `.../crew-queries.ts`, `.../dashboard-queries.ts`,
-  `.../competition-queries.ts`. Every read takes `supabase` as first arg
-- Mutations: `src/lib/data/mutations.ts`, `.../admin-mutations.ts`
-  — server-side only; some use service role for cross-user writes
+- Queries: one `*-queries.ts` module per domain surface —
+  `route-log-queries` / `route-queries` / `set-queries` /
+  `gym-queries` / `profile-queries` / `leaderboard-queries` /
+  `crew-queries` / `competition-queries` / `admin-queries` /
+  `dashboard-queries` / `jam-queries` / `comment-queries` /
+  `achievement-queries`. Every read takes `supabase` as first arg.
+  (There is no catch-all `queries.ts`; it was split per-surface.)
+- Client-reachable data modules use a `*.client.ts` suffix (no
+  `server-only` import) — e.g. `gym-queries.client.ts` mirrors the
+  server-only `getListedGyms` for `"use client"` callers. Components
+  never query Supabase tables directly, even client-side
+- Mutations: `src/lib/data/mutations.ts` (climber writes) and
+  `crew-lifecycle.ts` — server-side only; some use service role for
+  cross-user writes. Admin + jam writes live inline in their server
+  action (single-caller wrappers were deliberately inlined — don't
+  reintroduce a pass-through mutation module for them)
 - Server actions live next to their pages:
   `src/app/(app)/actions.ts`, `src/app/admin/actions.ts`,
   `src/app/crew/actions.ts`
@@ -134,17 +157,21 @@ Quick reference:
   `revalidatePath("/", "layout")` is forbidden everywhere except
   inside `revalidateUserProfile` indirection (which still uses tags).
   Tag union lives in `src/lib/cache/cached.ts`; mutation→tag table
-  in `docs/architecture.md`
+  in `docs/architecture.md`. **Reader-first rule:** a tag exists only
+  alongside a live `cachedQuery` reader — never bust pre-emptively
+  (`src/lib/cache/tags.test.ts` enforces this)
 - **`revalidateUserProfile(supabase, userId)`** in
-  `src/lib/cache/revalidate.ts` looks up username + busts both
-  `user:{uid}:profile` and `user:username-{u}:profile` so callers
-  that only know uid don't leave the by-username cache stale
+  `src/lib/cache/revalidate.ts` looks up username + busts
+  `user:username-{u}:profile` so callers that only know uid don't
+  leave the by-username cache stale
 - `next.config.ts`: `experimental.staleTimes.dynamic = 60` (60s
   client RSC cache; lowered from 300 once tag busts replaced layout
   scorch)
 - `SendsGrid` keeps a `routeDataCache` Map for instant tile re-opens
-- `completeRoute` defers badge eval via `after()` from `next/server`
-  — action returns as soon as the log + activity event are written
+- `completeRoute` evaluates badges **inline** (~150–250ms) so newly
+  earned achievements ride back in the same response and the toast
+  fires with the send that earned it. `endJamAction` is the one that
+  defers via `after()` — it has no toast to feed
 - `AuthProvider` reads a localStorage profile cache on mount (1h TTL,
   key `chork-profile-cache-v2`). NavBar paints in its full state on
   the first hydration cycle when warm — no brand-only-then-personalised
@@ -189,6 +216,13 @@ Quick reference:
 Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
 
 - Both light + dark must work — never override OS preference
+- **Two orthogonal theme systems, don't conflate them.** Light/dark is
+  a `class` on `<html>` written by `next-themes`
+  (`<ThemeProvider attribute="class">` in `providers.tsx`); the
+  `.dark` selector it targets lives inside Radix's `*-dark.css`, not
+  in `src/styles`. Palette is `data-theme` via our own store. Changing
+  that one prop makes the app light-only with no build error —
+  `design-system.test.ts` pins both halves
 - **Four user-selectable palettes** (Chork / Blue / Violet / Pink).
   Each is a `[data-theme="…"]` block in
   `src/styles/theme/colors.scss` that re-maps `--mono-*` and
@@ -394,13 +428,23 @@ navbar + home indicator), max-width, and centering.
   edit in each of those two homes
 - **Flash is derived.** `attempts === 1 && completed === true`
 - **Attempt counts are private** — never show raw attempts to other
-  users. Points are public
+  users. Points and flashes are public. This is **two collapses, not
+  one**: aggregate totals are masked to 0 in SQL, per-log values are
+  bucketed to `{0,1,2}` by `visibleAttempts()` (tile state needs the
+  flash signal). Read CONTEXT.md "Attempt privacy" before touching
+  either — the SQL mask has been dropped twice; both grains are now
+  pinned by `src/lib/data/attempt-privacy.test.ts`
 - **Community grade is an average** via `get_route_grade()` RPC
 - **Grading scales per set.** Each set has `grading_scale`
   (`v` / `font` / `points`) and `max_grade`. The climber-side grade
   slider reads both. Points-only sets hide the slider entirely.
   Label mapping lives in `src/lib/data/grade-label.ts`
-- **One live set per gym at a time** (convention, not a DB constraint)
+- **One live set per gym at a time.** App-enforced since 2026-08:
+  `createSet` (status live) and `updateSet`'s go-live branch both
+  archive the incumbent first, in `src/app/admin/sets-actions.ts` —
+  the single set-creation/publish path. Still not a DB constraint;
+  the pg_cron auto-publish path relies on migration 071's
+  auto-archive of ended sets
 - **Archived / draft sets are read-only** for climbers. Migration 003
   blocks inserts against non-live sets at the RLS layer
 - **Legacy `sets.active` is derived from `sets.status`** via a
@@ -473,8 +517,10 @@ internally; don't pass a supabase client to it.
 
 The service worker (`public/sw.js`) only opens same-origin paths
 on tap — any notification `url` that isn't a single-leading-slash
-path falls back to `/`. Pushes also carry a `tag` for tray
-coalescing (default `chork-notification`).
+path falls back to `/`. Pushes carry a per-kind `tag`
+(`chork-{kind}`, set in `notify`) so repeats of one kind coalesce in
+the tray while different kinds stay separate; `announce()` sends
+none, so broadcasts fall back to `chork-notification`.
 
 ### Admin vs climber vs organiser
 

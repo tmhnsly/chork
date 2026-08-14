@@ -29,8 +29,11 @@ import { formatErrorForLog } from "@/lib/errors";
 import {
   initialRouteLogState,
   routeLogReducer,
+  selectCommentThread,
+  type CommentThreadView,
   type RouteLogState,
 } from "./routeLogReducer";
+import type { CommentThreadActions } from "./CommentThread";
 import type { CachedRouteData } from "./types";
 
 const ATTEMPTS_DEBOUNCE_MS = 800;
@@ -58,11 +61,10 @@ export interface UseRouteLogState {
   handleUncomplete: () => Promise<void>;
   handleZoneToggle: (checked: boolean) => Promise<void>;
   handleGradeVote: (vote: number | null) => void;
-  handleExpandBeta: () => void;
-  loadMore: () => Promise<void>;
-  onPostComment: (body: string) => Promise<boolean>;
-  onEditComment: (commentId: string, body: string) => Promise<boolean>;
-  onLikeComment: (commentId: string) => Promise<void>;
+  /** Comment-thread state + capabilities, grouped so the orchestrator
+   *  can forward them without naming each field. */
+  commentThread: CommentThreadView;
+  commentActions: CommentThreadActions;
 }
 
 /**
@@ -275,15 +277,9 @@ export function useRouteLogState({
     onLogUpdate(route.id, optimisticLog);
     showToast(pickSendMessage(attempts === 1));
 
-    const result = await completeRoute(
-      route.id,
-      attempts,
-      gradeVote,
-      currentLog?.zone ?? false,
-      currentLog?.id,
-    );
-    if ("error" in result) {
-      showToast(result.error, "error");
+    /** Undo the optimistic write and tell the climber. */
+    const revert = (message: string) => {
+      showToast(message, "error");
       dispatch({
         type: "revert-log",
         log: snapshotLog,
@@ -291,17 +287,44 @@ export function useRouteLogState({
         gradeVote: snapshotLog?.grade_vote ?? null,
       });
       if (snapshotLog) onLogUpdate(route.id, snapshotLog);
-    } else if (result.log) {
-      dispatch({ type: "set-log", log: result.log });
-      onLogUpdate(route.id, result.log);
-      if (result.earnedBadges) {
-        result.earnedBadges.forEach((badge, i) => {
-          const id = setTimeout(() => showAchievementToast(badge), i * 250);
-          badgeToastTimersRef.current.push(id);
-        });
+    };
+
+    // The whole call is guarded: `completeRoute` goes through
+    // `withOfflineQueue`, which rethrows anything that isn't a
+    // transport failure. Without a catch here the rejection escaped,
+    // `end-complete` never ran, and the sheet sat in "Saving…"
+    // forever with the optimistic tile still flipped — no toast, no
+    // revert, nothing queued. The `finally` is the load-bearing
+    // part: the sheet must always leave the completing state.
+    try {
+      const result = await completeRoute(
+        route.id,
+        attempts,
+        gradeVote,
+        currentLog?.zone ?? false,
+        currentLog?.id,
+      );
+      if ("error" in result) {
+        revert(result.error);
+      } else if (result.log) {
+        dispatch({ type: "set-log", log: result.log });
+        onLogUpdate(route.id, result.log);
+        if (result.earnedBadges) {
+          result.earnedBadges.forEach((badge, i) => {
+            const id = setTimeout(() => showAchievementToast(badge), i * 250);
+            badgeToastTimersRef.current.push(id);
+          });
+        }
       }
+    } catch (err) {
+      logger.error("complete_route_threw", {
+        routeId: route.id,
+        err: formatErrorForLog(err),
+      });
+      revert("Couldn't save that send — try again.");
+    } finally {
+      dispatch({ type: "end-complete" });
     }
-    dispatch({ type: "end-complete" });
   }
 
   async function handleUncomplete() {
@@ -449,6 +472,19 @@ export function useRouteLogState({
     likingRef.current.delete(commentId);
   }
 
+  // The comment thread's state + capabilities travel as two named
+  // values so `RouteLogSheet` — which renders the thread but never
+  // reads its fields — doesn't have to name each one to forward it.
+  // See `CommentThreadView` in routeLogReducer.ts.
+  const commentThread = selectCommentThread(state);
+  const commentActions: CommentThreadActions = {
+    onToggleBetaExpanded: handleExpandBeta,
+    onLoadMore: loadMore,
+    onPostComment,
+    onEditComment,
+    onLikeComment,
+  };
+
   return {
     state,
     isCompleted,
@@ -459,10 +495,7 @@ export function useRouteLogState({
     handleUncomplete,
     handleZoneToggle,
     handleGradeVote,
-    handleExpandBeta,
-    loadMore,
-    onPostComment,
-    onEditComment,
-    onLikeComment,
+    commentThread,
+    commentActions,
   };
 }

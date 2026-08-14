@@ -22,9 +22,35 @@
  *      `evaluateSetCondition` (per-set) if relevant.
  *   3. Append an entry with `kind: "condition"` below.
  *
+ * Using a NEW icon:
+ *   1. Add it to `BadgeIcon` in `src/lib/badges.ts`.
+ *   2. Map it in `ICON_MAP` in `src/lib/badge-icons.tsx` — the map is
+ *      a `Record<BadgeIcon, …>`, so a missing entry is a build error.
+ *
+ * Using a NEW category:
+ *   1. Add it to `BadgeCategory` in `src/lib/badges.ts`.
+ *   2. Add it to `ACHIEVEMENT_CATEGORIES` at the foot of this file
+ *      (that array is the pill order, not just a list).
+ *   3. Decide its colour in `badgeFamily` — or set `family` on the
+ *      entry, which is the escape hatch for a badge whose colour
+ *      doesn't follow from its category.
+ *
+ * Driving a progress badge off a NEW aggregate:
+ *   1. Add the key to `ProgressKey` + read it in `progressValue`
+ *      (`src/lib/badges.ts`).
+ *   2. Add the field to `BadgeContext` (same file) and populate it in
+ *      `src/lib/achievements/context.ts`.
+ *   3. If it's jam-sourced, it also needs the SQL side of
+ *      `get_jam_achievement_context`.
+ *
  * IDs must stay stable — they key the persistence row in
  * `user_achievements`. Renaming an ID will re-show a locked
- * achievement a climber has already earned.
+ * achievement a climber has already earned. There is deliberately NO
+ * DB check constraint on `user_achievements.badge_id` (unlike
+ * notification kinds, migration 033): the catalogue moves faster than
+ * the schema should, and an orphaned row costs a climber one badge
+ * rather than corrupting anything. Treat a rename as a data
+ * migration, not a refactor.
  *
  * ───────────────────────────────────────────────────────────────────
  */
@@ -234,6 +260,8 @@ export const ACHIEVEMENTS: BadgeDefinition[] = [
   {
     kind: "condition",
     id: "in-the-zone",
+    // Teal (the zone colour) rather than the category default.
+    family: "success",
     name: "In the Zone",
     description: "Claim every zone hold in a set",
     icon: "flag",

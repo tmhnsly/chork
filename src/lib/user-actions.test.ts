@@ -18,24 +18,7 @@ vi.mock("./validation", () => ({
   validateUsername: vi.fn(() => ({ error: null })),
 }));
 
-type SbResult = { data?: unknown; error?: unknown };
-
-function makeChain(resolve: () => SbResult) {
-  const builder: Record<string, unknown> = {};
-  const chain: (...args: unknown[]) => typeof builder = () => builder;
-  const methods = ["select", "update", "eq", "neq", "limit", "single", "maybeSingle"];
-  for (const m of methods) (builder[m] as unknown) = chain;
-  builder.then = (onFulfilled: (v: SbResult) => unknown) =>
-    Promise.resolve(resolve()).then(onFulfilled);
-  return builder;
-}
-
-function mockSupabase(tables: Record<string, SbResult> = {}) {
-  return {
-    from: (table: string) =>
-      makeChain(() => tables[`table:${table}`] ?? { data: null }),
-  };
-}
+import { createMockSupabase } from "@/test/mock-supabase";
 
 const USER_A = "11111111-1111-1111-1111-111111111111";
 
@@ -57,7 +40,7 @@ describe("updateProfile", () => {
   it("rejects empty updates", async () => {
     const { requireAuth } = await import("./auth");
     vi.mocked(requireAuth).mockResolvedValue({
-      supabase: mockSupabase() as never,
+      supabase: createMockSupabase() as never,
       userId: USER_A,
       gymId: "g1",
     });
@@ -68,7 +51,7 @@ describe("updateProfile", () => {
   it("rejects non-string names", async () => {
     const { requireAuth } = await import("./auth");
     vi.mocked(requireAuth).mockResolvedValue({
-      supabase: mockSupabase() as never,
+      supabase: createMockSupabase() as never,
       userId: USER_A,
       gymId: "g1",
     });
@@ -109,7 +92,7 @@ describe("updateThemePreference", () => {
   it("writes the theme on success", async () => {
     const { requireAuth } = await import("./auth");
     vi.mocked(requireAuth).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "table:profiles": { data: null, error: null },
       }) as never,
       userId: USER_A,
@@ -150,7 +133,7 @@ describe("updatePushCategory", () => {
   it("writes the flag on success for every known category", async () => {
     const { requireAuth } = await import("./auth");
     vi.mocked(requireAuth).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "table:profiles": { data: null, error: null },
       }) as never,
       userId: USER_A,
@@ -166,7 +149,7 @@ describe("updatePushCategory", () => {
   it("propagates DB errors", async () => {
     const { requireAuth } = await import("./auth");
     vi.mocked(requireAuth).mockResolvedValue({
-      supabase: mockSupabase({
+      supabase: createMockSupabase({
         "table:profiles": { data: null, error: { code: "42501", message: "nope" } },
       }) as never,
       userId: USER_A,
@@ -196,26 +179,12 @@ describe("deleteAccount", () => {
     const { requireSignedIn } = await import("./auth");
     vi.mocked(requireSignedIn).mockResolvedValue({ userId: USER_A } as never);
 
-    const calls: { table: string; method: string; args: unknown[] }[] = [];
-    const deleteUser = vi.fn(async () => ({ error: null }));
-    const service = {
-      from: (table: string) => {
-        const b: Record<string, unknown> = {};
-        for (const m of ["select", "update", "eq", "neq", "order", "limit", "maybeSingle"]) {
-          b[m] = (...args: unknown[]) => {
-            calls.push({ table, method: m, args });
-            return b;
-          };
-        }
-        // crews SELECT → one owned crew; crew_members lookup → the heir.
-        b.then = (onF: (v: SbResult) => unknown) =>
-          Promise.resolve(
-            table === "crews" ? { data: [{ id: CREW }] } : { data: { user_id: HEIR } },
-          ).then(onF);
-        return b;
-      },
-      auth: { admin: { deleteUser } },
-    };
+    // crews SELECT → one owned crew; crew_members lookup → the heir.
+    const service = createMockSupabase({
+      "table:crews": { data: [{ id: CREW }] },
+      "table:crew_members": { data: { user_id: HEIR } },
+    });
+    service.auth.admin.deleteUser.mockResolvedValue({ error: null });
     const { createServiceClient } = await import("./supabase/server");
     vi.mocked(createServiceClient).mockReturnValue(service as never);
 
@@ -225,13 +194,13 @@ describe("deleteAccount", () => {
     // Invariant: ownership is transferred to the heir, and only THEN is
     // the account deleted — otherwise the cascade wipes the crew for all.
     expect(
-      calls.some(
+      service.calls.some(
         (c) =>
-          c.table === "crews" &&
+          c.source === "crews" &&
           c.method === "update" &&
           (c.args[0] as { created_by?: string })?.created_by === HEIR,
       ),
     ).toBe(true);
-    expect(deleteUser).toHaveBeenCalledWith(USER_A);
+    expect(service.auth.admin.deleteUser).toHaveBeenCalledWith(USER_A);
   });
 });

@@ -7,7 +7,7 @@ import {
 } from "./supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "./database.types";
-import { AUTH_REQUIRED_ERROR } from "./auth-errors";
+import { AUTH_REQUIRED_ERROR, NO_GYM_ERROR } from "./auth-errors";
 import { UUID_RE } from "./validation";
 import { one } from "./data/read";
 import { enforce as enforceRateLimit, type LimiterKey as RateLimitKey } from "./rate-limit";
@@ -49,7 +49,7 @@ export async function requireAuth(): Promise<AuthSuccess | AuthFailure> {
   }
 
   if (!profile.active_gym_id) {
-    return { error: "No gym selected" };
+    return { error: NO_GYM_ERROR };
   }
 
   return { supabase, userId: profile.id, gymId: profile.active_gym_id };
@@ -146,19 +146,37 @@ type AdminOfSetSuccess = {
   setRow: { gym_id: string };
 };
 
+/**
+ * Why a resource gate refused.
+ *
+ * Server actions only need the message, but PAGES have to choose
+ * between `notFound()` and `redirect()` — and the difference matters:
+ * a 404 for a set that exists but isn't yours is right, a 404 for
+ * "you're not an admin" should send you home instead. Branching on
+ * this beats matching the user-facing copy, which reworded is a
+ * silently-changed redirect (see NO_GYM_ERROR for the same lesson).
+ */
+export type ResourceGateReason = "invalid" | "not-found" | "forbidden";
+
+export type ResourceGateFailure = AuthFailure & {
+  reason: ResourceGateReason;
+};
+
 export async function requireAdminOfSet(
   setId: string,
-): Promise<AdminOfSetSuccess | AuthFailure> {
-  if (!UUID_RE.test(setId)) return { error: "Invalid set." };
+): Promise<AdminOfSetSuccess | ResourceGateFailure> {
+  if (!UUID_RE.test(setId)) {
+    return { error: "Invalid set.", reason: "invalid" };
+  }
   const service = createServiceClient();
   const { data: setRow } = await service
     .from("sets")
     .select("gym_id")
     .eq("id", setId)
     .maybeSingle();
-  if (!setRow) return { error: "Set not found." };
+  if (!setRow) return { error: "Set not found.", reason: "not-found" };
   const auth = await requireGymAdmin(setRow.gym_id);
-  if ("error" in auth) return { error: auth.error };
+  if ("error" in auth) return { error: auth.error, reason: "forbidden" };
   return { auth, setRow };
 }
 
@@ -169,8 +187,10 @@ type AdminOfRouteSuccess = {
 
 export async function requireAdminOfRoute(
   routeId: string,
-): Promise<AdminOfRouteSuccess | AuthFailure> {
-  if (!UUID_RE.test(routeId)) return { error: "Invalid route." };
+): Promise<AdminOfRouteSuccess | ResourceGateFailure> {
+  if (!UUID_RE.test(routeId)) {
+    return { error: "Invalid route.", reason: "invalid" };
+  }
   const service = createServiceClient();
   const { data: routeRow } = await service
     .from("routes")
@@ -181,11 +201,11 @@ export async function requireAdminOfRoute(
       set_id: string;
       sets: { gym_id: string } | { gym_id: string }[];
     }>();
-  if (!routeRow) return { error: "Route not found." };
+  if (!routeRow) return { error: "Route not found.", reason: "not-found" };
   const gymId = one(routeRow.sets)?.gym_id;
-  if (!gymId) return { error: "Route not found." };
+  if (!gymId) return { error: "Route not found.", reason: "not-found" };
   const auth = await requireGymAdmin(gymId);
-  if ("error" in auth) return { error: auth.error };
+  if ("error" in auth) return { error: auth.error, reason: "forbidden" };
   return { auth, routeRow: { id: routeRow.id, set_id: routeRow.set_id, gym_id: gymId } };
 }
 
@@ -193,6 +213,53 @@ type SignedInSuccess = {
   supabase: SupabaseClient<Database>;
   userId: string;
 };
+
+/**
+ * Cross-gym scope gate for read actions that expose another climber's
+ * data: verifies the set belongs to the caller's gym AND the target
+ * user is a member of that gym.
+ *
+ * The set check alone isn't enough: if a target user once logged on a
+ * route that has since moved between gyms (or any shared-set edge
+ * case), a gym-A caller could enumerate gym-B climber UUIDs and read
+ * their sanitised logs. Both checks together are the defence.
+ *
+ * This 20-line block used to live copy-pasted in
+ * `fetchClimberSheetLogs` and `fetchSetPlacement`, coupled only by a
+ * comment ("Same defence as…") — a drift here is a cross-gym data
+ * exposure, so it gets one auditable home (see CLAUDE.md
+ * "Security-first review").
+ *
+ * Runs on the caller's RLS-scoped client — no service role needed;
+ * both lookups are within the caller's own gym visibility.
+ */
+export async function requireSameGymScope(
+  supabase: SupabaseClient<Database>,
+  callerGymId: string,
+  setId: string,
+  targetUserId: string,
+): Promise<{ ok: true } | AuthFailure> {
+  const { data: setRow, error: setError } = await supabase
+    .from("sets")
+    .select("gym_id")
+    .eq("id", setId)
+    .maybeSingle();
+  if (setError || !setRow || setRow.gym_id !== callerGymId) {
+    return { error: "Set not found" };
+  }
+
+  const { data: membership } = await supabase
+    .from("gym_memberships")
+    .select("user_id")
+    .eq("user_id", targetUserId)
+    .eq("gym_id", callerGymId)
+    .maybeSingle();
+  if (!membership) {
+    return { error: "Climber not in this gym" };
+  }
+
+  return { ok: true };
+}
 
 /**
  * Confirms the caller is the organiser of the given competition.
@@ -325,6 +392,39 @@ export async function gateGymAdminMutation(
 ): Promise<AdminAuthSuccess | AuthFailure> {
   if (!UUID_RE.test(gymId)) return { error: `Invalid ${resourceLabel}` };
   const auth = await requireGymAdmin(gymId);
+  if ("error" in auth) return { error: auth.error };
+  if (options.rateLimit !== null) {
+    const rl = await enforceRateLimit(options.rateLimit, auth.userId);
+    if (!rl.ok) return { error: rl.error };
+  }
+  return auth;
+}
+
+/**
+ * Third sibling: the gate for signed-in (gymless-safe) mutations —
+ * jams, and any future write that must work without an active gym
+ * (see CLAUDE.md "A gym is optional").
+ *
+ *   1. UUID-validate `resourceId` when one is supplied (`null` for
+ *      actions like createJam that validate a payload instead; the
+ *      label feeds the user-facing error string).
+ *   2. `requireSignedIn` — NOT `requireAuth`; gymless climbers are
+ *      first-class here.
+ *   3. Rate-limit, ON by default (`mutationsWrite`). This default is
+ *      the point: before this gate existed, every jam write action
+ *      re-typed the requireSignedIn prelude by hand and all seven
+ *      skipped the rate limit entirely. Pass `null` only with a
+ *      written reason.
+ */
+export async function gateSignedInMutation(
+  resourceId: string | null,
+  resourceLabel: string,
+  options: { rateLimit: RateLimitKey | null } = { rateLimit: "mutationsWrite" },
+): Promise<SignedInSuccess | AuthFailure> {
+  if (resourceId !== null && !UUID_RE.test(resourceId)) {
+    return { error: `Invalid ${resourceLabel}` };
+  }
+  const auth = await requireSignedIn();
   if ("error" in auth) return { error: auth.error };
   if (options.rateLimit !== null) {
     const rl = await enforceRateLimit(options.rateLimit, auth.userId);

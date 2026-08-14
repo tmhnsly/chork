@@ -257,7 +257,10 @@ describe.skipIf(!canRunIntegration)("jam RPCs (integration)", () => {
       // Add one route + log so the summary has something to aggregate.
       const { data: routeRes } = await hostClient.rpc("add_jam_route", {
         p_jam_id: jamId,
-        p_description: null,
+        // Optional RPC params are `T | undefined`, not nullable —
+        // the app folds null → undefined at this boundary (`undef()`
+        // in jam actions).
+        p_description: undefined,
         p_grade: 0,
         p_has_zone: false,
       });

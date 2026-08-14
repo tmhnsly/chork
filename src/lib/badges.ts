@@ -3,7 +3,7 @@
  *
  * The actual catalogue of achievements lives in
  * `src/config/achievements.ts`, which is re-exported below as
- * `BADGES` for backwards compatibility. To add or tweak a badge, go
+ * `ACHIEVEMENTS`. To add or tweak a badge, go
  * there first. To change *how* a badge is earned (a new condition
  * type), add a case to `evaluateBadges` below.
  *
@@ -94,6 +94,17 @@ interface BadgeCommon {
   category: BadgeCategory;
   /** Hidden in the shelf until earned. Orthogonal to category. */
   isSecret?: boolean;
+  /**
+   * Colour family override. Defaults from `category`; set it when a
+   * badge's colour doesn't follow from its category — the zone badge
+   * is teal (the zone colour) while sitting in a non-zone category,
+   * because `BadgeCategory` has no "zones" member.
+   *
+   * This used to be inferred by sniffing `icon === "flag"`, which
+   * silently re-coloured any future badge that happened to pick that
+   * icon.
+   */
+  family?: BadgeFamily;
 }
 
 /**
@@ -148,16 +159,12 @@ export type BadgeFamily = "accent" | "flash" | "success";
 
 export function badgeFamily(badge: {
   category: BadgeCategory;
-  icon: BadgeIcon;
+  family?: BadgeFamily;
 }): BadgeFamily {
+  if (badge.family) return badge.family;
   if (badge.category === "flashes") return "flash";
-  if (badge.icon === "flag") return "success";
   return "accent";
 }
-
-// ── Badge catalogue (re-export) ───────────────────
-
-export const BADGES: BadgeDefinition[] = ACHIEVEMENTS;
 
 // ── Evaluation context ────────────────────────────
 
@@ -191,7 +198,7 @@ export interface BadgeContext {
 // ── Evaluate all badges ───────────────────────────
 
 export function evaluateBadges(ctx: BadgeContext): BadgeStatus[] {
-  return BADGES.map((badge): BadgeStatus => {
+  return ACHIEVEMENTS.map((badge): BadgeStatus => {
     if (badge.kind === "progress") {
       const current = progressValue(badge.progressKey, ctx);
       return progressBadge(badge, current);
@@ -308,7 +315,7 @@ export interface SetBadgeContext {
  */
 export function evaluateBadgesForSet(ctx: SetBadgeContext): ConditionBadgeDefinition[] {
   const earned: ConditionBadgeDefinition[] = [];
-  for (const badge of BADGES) {
+  for (const badge of ACHIEVEMENTS) {
     if (badge.kind !== "condition") continue;
     if (evaluateSetCondition(badge.id, ctx)) earned.push(badge);
   }

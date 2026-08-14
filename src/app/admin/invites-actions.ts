@@ -1,9 +1,9 @@
 "use server";
 
 import { gateGymAdminMutation, requireSignedIn } from "@/lib/auth";
-import { acceptGymInvite } from "@/lib/data/admin-mutations";
 import { createServiceClient } from "@/lib/supabase/server";
-import { formatError } from "@/lib/errors";
+import { formatError, formatErrorForLog } from "@/lib/errors";
+import { logger } from "@/lib/logger";
 import { UUID_RE, EMAIL_RE } from "@/lib/validation";
 import { env } from "@/lib/env";
 import { randomBytes } from "node:crypto";
@@ -112,19 +112,58 @@ export async function acceptAdminInvite(token: string): Promise<ActionResult<{ g
   const auth = await requireSignedIn();
   if ("error" in auth) return { error: auth.error };
 
+  // Runs under the service role so the chicken-and-egg check on
+  // gym_admins INSERT (which requires an existing owner) is bypassed
+  // once the token has been proven valid.
   const service = createServiceClient();
   const { data: user } = await service.auth.admin.getUserById(auth.userId);
   const email = user?.user?.email;
   if (!email) return { error: "Could not read your email address." };
 
-  const result = await acceptGymInvite({
-    token,
-    acceptingUserId: auth.userId,
-    acceptingEmail: email,
-  });
-  if ("error" in result) return { error: result.error };
+  const { data: invite, error } = await service
+    .from("gym_invites")
+    .select("id, gym_id, email, role, accepted_at, expires_at")
+    .eq("token", token)
+    .maybeSingle();
+
+  if (error || !invite) {
+    return { error: "Invite not found." };
+  }
+  if (invite.accepted_at) {
+    return { error: "This invite has already been used." };
+  }
+  if (new Date(invite.expires_at).getTime() < Date.now()) {
+    return { error: "This invite has expired." };
+  }
+  if (invite.email.toLowerCase() !== email.toLowerCase()) {
+    return { error: "This invite was issued to a different email address." };
+  }
+
+  const role = invite.role as "admin" | "owner";
+
+  const { error: adminErr } = await service.from("gym_admins").upsert(
+    {
+      gym_id: invite.gym_id,
+      user_id: auth.userId,
+      role,
+    },
+    { onConflict: "gym_id,user_id" },
+  );
+  if (adminErr) return { error: formatError(adminErr) };
+
+  const { error: markErr } = await service
+    .from("gym_invites")
+    .update({ accepted_at: new Date().toISOString() })
+    .eq("id", invite.id);
+  if (markErr) {
+    // Admin row is already inserted; this is a minor accounting
+    // failure, not a blocker for the invitee.
+    logger.warn("could_not_mark_invite_accepted_failed", {
+      err: formatErrorForLog(markErr),
+    });
+  }
 
   // Same reasoning as signupGym — gym_admins isn't cached and adminGyms
   // re-fetches via the action response. Profile row unchanged.
-  return { success: true, gymId: result.gymId };
+  return { success: true, gymId: invite.gym_id };
 }

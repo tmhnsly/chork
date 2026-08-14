@@ -19,7 +19,14 @@
   transition: background var(--duration-fast) var(--ease-out);
 }
 
-button.row {
+// The navigation variant (`href` prop) renders the same visual as an
+// anchor — kill the UA underline, share the button's hover.
+a.row {
+  text-decoration: none;
+}
+
+button.row,
+a.row {
   @media (hover: hover) {
     &:hover {
       background: var(--mono-bg-hover);

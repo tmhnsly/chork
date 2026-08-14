@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { requireSignedIn } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getJamStateForUser } from "@/lib/data/jam-queries";
-import { joinJam } from "@/lib/data/jam-mutations";
 import { JamScreen } from "@/components/Jam/JamScreen";
 import { UUID_RE } from "@/lib/validation";
 
@@ -40,13 +39,14 @@ export default async function JamRoomPage({ params }: Props) {
   const service = createServiceClient();
   let initialState = await getJamStateForUser(service, id, auth.userId);
   if (!initialState) {
-    try {
-      await joinJam(auth.supabase, id);
+    // add_jam_player errors for ended / full / deleted jams — fall
+    // through to the join screen, which doubles as the "this jam
+    // isn't available" surface.
+    const { error: joinError } = await auth.supabase.rpc("add_jam_player", {
+      p_jam_id: id,
+    });
+    if (!joinError) {
       initialState = await getJamStateForUser(service, id, auth.userId);
-    } catch {
-      // add_jam_player throws for ended / full / deleted jams — fall
-      // through to the join screen, which doubles as the "this jam
-      // isn't available" surface.
     }
     if (!initialState) {
       redirect("/jam/join");

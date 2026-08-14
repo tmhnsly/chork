@@ -1,7 +1,7 @@
 "use server";
 
 import { requireSignedIn } from "@/lib/auth";
-import { createGymWithOwner } from "@/lib/data/admin-mutations";
+import { formatError } from "@/lib/errors";
 import { enforce as enforceRateLimit } from "@/lib/rate-limit";
 import type { ActionResult } from "@/lib/action-result";
 import { SLUG_RE } from "@/lib/validation";
@@ -45,18 +45,33 @@ export async function signupGym(form: {
   const rl = await enforceRateLimit("gymSignup", auth.userId);
   if (!rl.ok) return { error: rl.error };
 
-  const result = await createGymWithOwner(auth.supabase, {
-    name,
-    slug,
-    city,
-    country,
-    plan_tier: planTier,
+  // create_gym_with_owner_tx (migration 061): both inserts (gyms +
+  // gym_admins) happen in one implicit transaction, so a failure on
+  // the second insert rolls the first back automatically. The RPC is
+  // SECURITY DEFINER and derives the owner uid from auth.uid() inside
+  // the function — the caller can't seat a different user.
+  //
+  // Migration 062 reordered the function so p_city / p_country trail
+  // p_plan_tier with DEFAULT NULL — the type generator marks them
+  // optional, so omit (rather than send null) when absent to let the
+  // DB-side defaults take over.
+  const { data, error } = await auth.supabase.rpc("create_gym_with_owner_tx", {
+    p_name: name,
+    p_slug: slug,
+    p_plan_tier: planTier,
+    ...(city !== null && { p_city: city }),
+    ...(country !== null && { p_country: country }),
   });
 
-  if ("error" in result) return { error: result.error };
+  if (error || !data) {
+    if (error?.code === "23505") {
+      return { error: "That gym slug is already taken." };
+    }
+    return { error: error ? formatError(error) : "Could not create gym." };
+  }
 
   // signupGym writes a new gyms row + an admin seat, but doesn't touch
   // profiles.* — getAdminGymsForUser is uncached and re-fetches via the
   // server action's response cycle, so no profile-tag bust required.
-  return { success: true, gymId: result.gymId };
+  return { success: true, gymId: data };
 }

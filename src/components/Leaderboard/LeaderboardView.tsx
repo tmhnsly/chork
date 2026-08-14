@@ -2,6 +2,7 @@
 
 import { useState, useTransition, useCallback, useRef, useEffect } from "react";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { tabId } from "@/components/ui/tab-ids";
 import { showToast } from "@/components/ui";
 import { Podium } from "./Podium";
 import { PodiumSkeleton } from "./PodiumSkeleton";
@@ -32,6 +33,9 @@ export interface TabData {
 }
 
 type Tab = "set" | "all";
+
+/** Ties the This-set / All-time tabs to the board below. */
+const BOARD_PANEL_ID = "chorkboard-tabpanel";
 
 const TOP_LIMIT = 5;
 
@@ -154,7 +158,10 @@ export function LeaderboardView({
 
   return (
     <div className={styles.view}>
-      <PageHeader title="Chork Board" />
+      {/* One word — see CONTEXT.md "Wall vs Chorkboard". The tab
+          title, the loading aria-label and 12 other uses all say
+          Chorkboard; only this heading said "Chork Board". */}
+      <PageHeader title="Chorkboard" />
 
       <GymStatsStrip
         stats={tab === "set" && setStats ? setStats : allTimeStats}
@@ -171,6 +178,7 @@ export function LeaderboardView({
           value={tab}
           onChange={handleTabChange}
           ariaLabel="Leaderboard timeframe"
+          panelId={BOARD_PANEL_ID}
         />
       </div>
 
@@ -178,6 +186,12 @@ export function LeaderboardView({
         {isPending ? "Loading…" : ""}
       </div>
 
+      <div
+        id={BOARD_PANEL_ID}
+        role="tabpanel"
+        tabIndex={0}
+        aria-labelledby={tabId(BOARD_PANEL_ID, tab)}
+      >
       {tabLoading ? (
         <PodiumSkeleton />
       ) : isEmpty ? (
@@ -241,6 +255,7 @@ export function LeaderboardView({
           <InviteCard gymName={gymName} />
         </>
       )}
+      </div>
 
       {sheetEntry && (
         <ClimberSheet

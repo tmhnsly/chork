@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { FaArrowLeft } from "react-icons/fa6";
 import { PageHeader } from "@/components/motion";
-import { Button } from "@/components/ui";
+import { LinkButton } from "@/components/ui";
 import styles from "./privacy.module.scss";
 
 /**
@@ -102,12 +102,10 @@ export default function PrivacyPage() {
       </section>
 
       <footer className={styles.footer}>
-        <Link href="/" className={styles.backLink}>
-          <Button variant="secondary">
-            <FaArrowLeft aria-hidden />
-            Back to Chork
-          </Button>
-        </Link>
+        <LinkButton href="/" className={styles.backLink} variant="secondary">
+          <FaArrowLeft aria-hidden />
+          Back to Chork
+        </LinkButton>
       </footer>
     </main>
   );

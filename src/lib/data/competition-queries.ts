@@ -6,9 +6,9 @@ import { formatErrorForLog } from "@/lib/errors";
 import { one, readMany, readSingle } from "./read";
 import {
   normaliseRankedRows,
-  type RankedRow,
   type RawRankedRow,
 } from "./leaderboard-helpers";
+import type { LeaderboardEntry } from "./types";
 type Supabase = SupabaseClient<Database>;
 
 export interface CompetitionSummary {
@@ -42,7 +42,7 @@ export interface CompetitionParticipant {
   category_id: string | null;
 }
 
-export type CompetitionLeaderboardRow = RankedRow & {
+export type CompetitionLeaderboardRow = LeaderboardEntry & {
   category_id: string | null;
 };
 
@@ -61,20 +61,39 @@ export async function getCompetitionsForOrganiser(
   );
 }
 
-/** Gyms linked to a competition. Joined with the gym's name + slug. */
-export async function getCompetitionGyms(
-  supabase: Supabase,
-  competitionId: string
-): Promise<CompetitionGymLink[]> {
-  const { data, error } = await supabase
+// ── Shared query shapes ────────────────────────────
+//
+// Each of these reads has TWO adapters: the per-request RLS-scoped
+// read below, and a `cachedQuery` variant in `competition-by-id.ts`
+// (kept in a separate module so the server-only cached-context client
+// chain doesn't reach client bundles via CompetitionLeaderboard).
+// Only the CLIENT CONSTRUCTION differs between them — the columns,
+// filters, ordering, and row shaping are one behaviour and live here,
+// on the client-safe side of that split, so the cached variant can
+// import them. Previously both copies carried their own select string
+// and flatMap, so a new column landed in two places with no
+// type-level link between them.
+
+/** Build the competition-gyms read. Callers supply the client. */
+export function competitionGymsQuery(supabase: Supabase, competitionId: string) {
+  return supabase
     .from("competition_gyms")
     .select("competition_id, gym_id, gyms:gym_id (name, slug)")
     .eq("competition_id", competitionId);
-  if (error) {
-    logger.warn("getcompetitiongyms_failed", { err: formatErrorForLog(error) });
-    return [];
-  }
-  return (data ?? []).flatMap((row) => {
+}
+
+type CompetitionGymRow = {
+  competition_id: string;
+  gym_id: string;
+  gyms: { name: string; slug: string } | { name: string; slug: string }[] | null;
+};
+
+/** Flatten the joined gym onto the link row, dropping rows whose join
+ *  missed (a linked gym deleted mid-flight). */
+export function shapeCompetitionGyms(
+  rows: CompetitionGymRow[] | null,
+): CompetitionGymLink[] {
+  return (rows ?? []).flatMap((row) => {
     const gym = one(row.gyms);
     if (!gym) return [];
     return [{
@@ -86,18 +105,39 @@ export async function getCompetitionGyms(
   });
 }
 
+/** Build the competition-categories read, in the organiser's order. */
+export function competitionCategoriesQuery(
+  supabase: Supabase,
+  competitionId: string,
+) {
+  return supabase
+    .from("competition_categories")
+    .select("id, competition_id, name, display_order")
+    .eq("competition_id", competitionId)
+    .order("display_order", { ascending: true })
+    .order("name", { ascending: true });
+}
+
+/** Gyms linked to a competition. Joined with the gym's name + slug. */
+export async function getCompetitionGyms(
+  supabase: Supabase,
+  competitionId: string
+): Promise<CompetitionGymLink[]> {
+  const { data, error } = await competitionGymsQuery(supabase, competitionId);
+  if (error) {
+    logger.warn("getcompetitiongyms_failed", { err: formatErrorForLog(error) });
+    return [];
+  }
+  return shapeCompetitionGyms(data);
+}
+
 /** Categories for a competition, ordered as the organiser arranged them. */
 export async function getCompetitionCategories(
   supabase: Supabase,
   competitionId: string
 ): Promise<CompetitionCategory[]> {
   return readMany<CompetitionCategory>(
-    supabase
-      .from("competition_categories")
-      .select("id, competition_id, name, display_order")
-      .eq("competition_id", competitionId)
-      .order("display_order", { ascending: true })
-      .order("name", { ascending: true }),
+    competitionCategoriesQuery(supabase, competitionId),
     "getcompetitioncategories_failed",
   );
 }

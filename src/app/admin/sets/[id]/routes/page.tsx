@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
-import { requireGymAdmin } from "@/lib/auth";
+import { requireAdminOfSet } from "@/lib/auth";
 import {
-  getAllSetsForAdminGym,
+  getSetForAdmin,
   getAdminRoutesForSet,
   getRouteTags,
 } from "@/lib/data/admin-queries";
@@ -20,21 +20,21 @@ interface Props {
 
 export default async function AdminRoutesPage({ params }: Props) {
   const { id: setId } = await params;
-  const auth = await requireGymAdmin();
-  if ("error" in auth) redirect("/");
-  const { supabase, gymId } = auth;
 
-  // Pull the full set record so we can render the set label + confirm
-  // the set belongs to the caller's gym. We already have the list of
-  // gym sets cached on the admin-queries layer; reuse it.
-  const sets = await getAllSetsForAdminGym(supabase, gymId);
-  const set = sets.find((s) => s.id === setId);
-  if (!set) notFound();
+  // Same rule as the edit page: authorise against the set's own gym
+  // so an admin of more than one gym can reach all of their sets.
+  const gate = await requireAdminOfSet(setId);
+  if ("error" in gate) {
+    if (gate.reason === "forbidden") redirect("/");
+    notFound();
+  }
 
-  const [routes, tags] = await Promise.all([
-    getAdminRoutesForSet(supabase, setId),
-    getRouteTags(supabase),
+  const [set, routes, tags] = await Promise.all([
+    getSetForAdmin(gate.auth.supabase, setId),
+    getAdminRoutesForSet(gate.auth.supabase, setId),
+    getRouteTags(gate.auth.supabase),
   ]);
+  if (!set) notFound();
 
   return (
     <main className={styles.page}>

@@ -74,9 +74,11 @@ Anything with no I/O gets straightforward unit tests:
 - `src/lib/validation.test.ts` — username shape
 - `src/lib/errors.test.ts` — error message extraction
 - `src/lib/data/profile-stats.test.ts` — aggregates
-- `src/lib/data/roles.test.ts` — role permissions matrix
 - `src/lib/badges.test.ts` — badge evaluation
 - `src/lib/data/set-label.test.ts` — display formatter
+- `src/lib/data/scoring-parity.test.ts` — TS ↔ SQL parity for the
+  scoring ladder and every leaderboard rank clause (reads the latest
+  migration definitions; a one-sided scoring edit fails here)
 
 ### 4. Type-level invariants
 
@@ -103,7 +105,7 @@ a mutation twice, no duplicate log rows. Tests assert the
   has non-trivial state logic (keyed cache, optimistic rollback)
 - **Supabase itself.** Its own tests exist upstream. We don't
   re-test that `.eq()` filters rows
-- **Middleware behaviour in-depth.** `middleware.test.ts` covers
+- **Middleware behaviour in-depth.** `src/proxy.test.ts` covers
   the matcher shape. Behavioural tests for the cookie cache + auth
   gate would need heavy NextRequest / Supabase mocks for a handful
   of branches that are exercised on every prod request anyway. The
@@ -132,25 +134,30 @@ so `vi.mock()` is applied before the first import.
 
 ### Mocking the Supabase chain
 
-Supabase clients build queries via chaining — `from().eq().eq().maybeSingle()`.
-A helper that returns a thenable chain proxy resolves cleanly:
+**One harness: `createMockSupabase` from `src/test/mock-supabase.ts`.
+Never write a local `makeChain` fork** — thirteen of them existed
+before 2026-08, each encoding its subject's query shape, so tests
+broke when a query gained a `.gte()` rather than when behaviour
+changed. The shared harness proxies ANY method name, so nothing
+lists methods.
 
 ```ts
-function makeChain(resolve: () => SbResult) {
-  const builder = {};
-  const chain = () => builder;
-  for (const m of [
-    "select", "insert", "update", "delete", "upsert",
-    "eq", "neq", "in", "or", "gte", "lt",
-    "order", "limit", "maybeSingle", "single",
-  ]) builder[m] = chain;
-  builder.then = (onFulfilled) => Promise.resolve(resolve()).then(onFulfilled);
-  return builder;
-}
+import { createMockSupabase } from "@/test/mock-supabase";
+
+const sb = createMockSupabase({
+  "table:profiles": { data: { username: "alice" } },   // per-table
+  "rpc:leave_crew_atomic": { data: "left" },           // per-RPC
+  "table:gyms": [{ data: { id: "g1" } }, { error: {} }], // sequenced
+});
+// Behaviour assertions via the recorded calls, when the query shape
+// IS the behaviour (a mutation's payload, an .eq scoping a write):
+sb.calls.find((c) => c.source === "profiles" && c.method === "update");
 ```
 
-See `src/app/crew/actions.test.ts` for the full pattern including
-per-table / per-RPC priming.
+`_resolveWith(result)` sets the fallback for unprimed keys;
+`prime(key, result)` re-primes after construction; lazy `() => result`
+values re-evaluate per awaited chain. See the harness's own doc
+comment for the full contract.
 
 ### Realistic error fixtures
 
@@ -179,10 +186,10 @@ for correctness. They're separate concerns:
 - Tests should cover every state that could produce a wrong outcome,
   whether it's visible in Storybook or not
 
-The overlap: mock factories in `src/test/mocks.ts` are shared by
-both. If a migration adds a column to a table, both the mocks and
-the stories + tests that consume them need updating. Typecheck
-catches the miss at build time.
+The overlap: mock factories in `src/test/mocks.ts` feed the stories
+(no test file imports them today). If a migration adds a column to a
+table, the factories and the stories that consume them need
+updating. Typecheck catches the miss at build time.
 
 ---
 

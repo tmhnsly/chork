@@ -7,7 +7,7 @@ import { getJamAchievementContext } from "@/lib/data/jam-queries";
 import { evaluateBadges } from "@/lib/badges";
 import type { Route } from "@/lib/data";
 import { ProfileAchievements } from "@/components/Achievements/ProfileAchievements";
-import { BADGES } from "@/lib/badges";
+import { ACHIEVEMENTS } from "@/config/achievements";
 
 interface Props {
   userId: string;
@@ -33,7 +33,7 @@ export async function ProfileAchievementsSection({ userId, gymId, createdAt }: P
   // ends, so they're in the table by the time the profile reads it.
   if (!gymId) {
     const earnedAchievements = await getEarnedAchievements(supabase, userId);
-    const badges = BADGES.map((badge) => {
+    const badges = ACHIEVEMENTS.map((badge) => {
       const earnedAt = earnedAchievements.get(badge.id);
       return earnedAt
         ? { badge, earned: true as const, earnedAt }

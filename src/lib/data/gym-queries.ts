@@ -42,6 +42,9 @@ export function getGym(gymId: string): Promise<Gym | null> {
   return fn(gymId);
 }
 
+// Keep this shape + the SELECT column list in `getListedGyms` in sync
+// with the client-reachable mirror in `./gym-queries.client.ts` (this
+// module is `server-only`, so client surfaces read from there).
 export interface GymListing {
   id: string;
   name: string;

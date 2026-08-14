@@ -6,18 +6,12 @@ import {
   requireCompetitionOrganiserOrGymAdmin,
   requireSignedIn,
 } from "@/lib/auth";
-import {
-  createCompetition,
-  createCompetitionCategory,
-  deleteCompetitionCategory,
-  linkGymToCompetition,
-  unlinkGymFromCompetition,
-  updateCompetition,
-} from "@/lib/data/admin-mutations";
 import { createServiceClient } from "@/lib/supabase/server";
+import { formatError } from "@/lib/errors";
 import { UUID_RE } from "@/lib/validation";
 import { enforce as enforceRateLimit } from "@/lib/rate-limit";
 import { tags } from "@/lib/cache/tags";
+import type { Database } from "@/lib/database.types";
 
 import type { ActionResult } from "@/lib/action-result";
 
@@ -51,17 +45,22 @@ export async function createNewCompetition(form: {
   const rl = await enforceRateLimit("competitionsCreate", auth.userId);
   if (!rl.ok) return { error: rl.error };
 
-  const result = await createCompetition(auth.supabase, {
-    name,
-    description: form.description?.trim() || null,
-    startsAt: form.startsAt,
-    endsAt: form.endsAt,
-    organiserId: auth.userId,
-  });
-  if ("error" in result) return { error: result.error };
+  const { data, error } = await auth.supabase
+    .from("competitions")
+    .insert({
+      name,
+      description: form.description?.trim() || null,
+      starts_at: form.startsAt,
+      ends_at: form.endsAt,
+      status: "draft",
+      organiser_id: auth.userId,
+    })
+    .select("id")
+    .single();
+  if (error || !data) return { error: formatError(error) };
 
-  revalidateTag(tags.competition(result.competitionId), "max");
-  return { success: true, competitionId: result.competitionId };
+  revalidateTag(tags.competition(data.id), "max");
+  return { success: true, competitionId: data.id };
 }
 
 export async function updateCompetitionAction(
@@ -89,8 +88,19 @@ export async function updateCompetitionAction(
     return { error: "Invalid status." };
   }
 
-  const result = await updateCompetition(gate.supabase, competitionId, form);
-  if ("error" in result) return { error: result.error };
+  type CompetitionUpdate = Database["public"]["Tables"]["competitions"]["Update"];
+  const patch: CompetitionUpdate = {};
+  if (form.name !== undefined) patch.name = form.name;
+  if (form.description !== undefined) patch.description = form.description;
+  if (form.startsAt !== undefined) patch.starts_at = form.startsAt;
+  if (form.endsAt !== undefined) patch.ends_at = form.endsAt;
+  if (form.status !== undefined) patch.status = form.status;
+
+  const { error } = await gate.supabase
+    .from("competitions")
+    .update(patch)
+    .eq("id", competitionId);
+  if (error) return { error: formatError(error) };
 
   revalidateTag(tags.competition(competitionId), "max");
   return { success: true };
@@ -111,12 +121,13 @@ export async function linkCompetitionGym(form: {
   );
   if ("error" in gate) return { error: gate.error };
 
-  const result = await linkGymToCompetition(
-    gate.supabase,
-    form.competitionId,
-    form.gymId,
-  );
-  if ("error" in result) return { error: result.error };
+  const { error } = await gate.supabase
+    .from("competition_gyms")
+    .upsert(
+      { competition_id: form.competitionId, gym_id: form.gymId },
+      { onConflict: "competition_id,gym_id" },
+    );
+  if (error) return { error: formatError(error) };
 
   revalidateTag(tags.competition(form.competitionId), "max");
   return { success: true };
@@ -132,12 +143,12 @@ export async function unlinkCompetitionGym(form: {
   );
   if ("error" in gate) return { error: gate.error };
 
-  const result = await unlinkGymFromCompetition(
-    gate.supabase,
-    form.competitionId,
-    form.gymId,
-  );
-  if ("error" in result) return { error: result.error };
+  const { error } = await gate.supabase
+    .from("competition_gyms")
+    .delete()
+    .eq("competition_id", form.competitionId)
+    .eq("gym_id", form.gymId);
+  if (error) return { error: formatError(error) };
 
   revalidateTag(tags.competition(form.competitionId), "max");
   return { success: true };
@@ -154,16 +165,19 @@ export async function addCompetitionCategory(form: {
   const name = (form.name ?? "").trim();
   if (name.length < 1 || name.length > 60) return { error: "Name must be 1–60 characters." };
 
-  const result = await createCompetitionCategory(
-    gate.supabase,
-    form.competitionId,
-    name,
-    form.displayOrder ?? 0
-  );
-  if ("error" in result) return { error: result.error };
+  const { data, error } = await gate.supabase
+    .from("competition_categories")
+    .insert({
+      competition_id: form.competitionId,
+      name,
+      display_order: form.displayOrder ?? 0,
+    })
+    .select("id")
+    .single();
+  if (error || !data) return { error: formatError(error) };
 
   revalidateTag(tags.competition(form.competitionId), "max");
-  return { success: true, categoryId: result.categoryId };
+  return { success: true, categoryId: data.id };
 }
 
 export async function removeCompetitionCategory(categoryId: string): Promise<ActionResult> {
@@ -182,8 +196,11 @@ export async function removeCompetitionCategory(categoryId: string): Promise<Act
   const gate = await requireCompetitionOrganiser(cat.competition_id);
   if ("error" in gate) return { error: gate.error };
 
-  const result = await deleteCompetitionCategory(gate.supabase, categoryId);
-  if ("error" in result) return { error: result.error };
+  const { error } = await gate.supabase
+    .from("competition_categories")
+    .delete()
+    .eq("id", categoryId);
+  if (error) return { error: formatError(error) };
 
   revalidateTag(tags.competition(cat.competition_id), "max");
   return { success: true };

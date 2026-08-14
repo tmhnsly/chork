@@ -23,6 +23,24 @@ interface Props {
 
 export function Providers({ children, navBar }: Props) {
   return (
+    /*
+     * `attribute="class"` is the ENTIRE light/dark mechanism, and the
+     * coupling is invisible from this repo: next-themes writes
+     * `class="dark"` on <html>, and the `.dark` selector that reacts
+     * to it lives inside the Radix `*-dark.css` files imported by
+     * styles/theme/colors.scss. Nothing in src/styles mentions
+     * `.dark` at all.
+     *
+     * So changing this prop, or dropping this provider, silently
+     * makes the app light-only — no build error, no failing test
+     * beyond the one pinning it in design-system.test.ts.
+     * `useTheme()` is never called; supplying that class is the only
+     * job next-themes has here.
+     *
+     * The two theme systems are orthogonal and stack: this one is
+     * light vs dark, PaletteProvider below is which accent palette
+     * (`data-theme`).
+     */
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <AuthProvider>
         {/* PaletteProvider sits inside AuthProvider so it can read
@@ -32,7 +50,10 @@ export function Providers({ children, navBar }: Props) {
           <ScrollRestore />
           <OfflineBanner />
           {navBar}
-          <div id="main-content">{children}</div>
+          {/* tabIndex={-1} is what makes the skip link work: browsers
+              scroll to a bare div but won't move focus into it, so the
+              next Tab returned to the nav and the link was decorative. */}
+          <div id="main-content" tabIndex={-1}>{children}</div>
           <ToastProvider />
           <ServiceWorker />
         </PaletteProvider>

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import { tabId } from "@/components/ui/tab-ids";
 import { formatSetLabel } from "@/lib/data/set-label";
 import type {
   SetOverview,
@@ -48,6 +49,9 @@ interface Props {
  * Tab switches between per-set and all-time views. Both tabs' data is
  * fetched up-front so switching is instant with no layout shift.
  */
+/** Ties the This-set / All-time tabs to the widget grid below. */
+const DASHBOARD_PANEL_ID = "admin-dashboard-tabpanel";
+
 export function AdminDashboard({
   activeSet,
   overview,
@@ -80,9 +84,16 @@ export function AdminDashboard({
           value={tab}
           onChange={setTab}
           ariaLabel="Dashboard timeframe"
+          panelId={DASHBOARD_PANEL_ID}
         />
       </div>
 
+      <div
+        id={DASHBOARD_PANEL_ID}
+        role="tabpanel"
+        tabIndex={0}
+        aria-labelledby={tabId(DASHBOARD_PANEL_ID, tab)}
+      >
       {tab === "set" ? (
         <div className={styles.grid}>
           <div className={styles.wide}>
@@ -123,6 +134,7 @@ export function AdminDashboard({
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

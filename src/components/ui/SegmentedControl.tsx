@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useTabList } from "./useTabList";
 import styles from "./segmentedControl.module.scss";
 
 interface Option<T extends string> {
@@ -14,13 +14,34 @@ interface Props<T extends string> {
   onChange: (value: T) => void;
   ariaLabel: string;
   className?: string;
+  /**
+   * Id of the panel this control switches between.
+   *
+   * **Set it when the control drives a region of content** — the
+   * control then renders the full ARIA tabs pattern and points each
+   * tab at that panel. The panel must carry
+   * `role="tabpanel"`, `id={panelId}`, `tabIndex={0}` and
+   * `aria-labelledby={tabId(panelId, value)}`.
+   *
+   * **Omit it for a filter or a form choice**, which is what most
+   * uses are (grading scale, achievement filter). The control then
+   * renders as a toggle-button group: `role="group"` with
+   * `aria-pressed` on each option. That's honest — `role="tab"`
+   * without a `tabpanel` makes a screen reader announce "tab 1 of 3,
+   * selected" and then offer nowhere to move to, which is what every
+   * one of these surfaces used to do.
+   */
+  panelId?: string;
 }
 
 /**
- * Accessible segmented control — a group of mutually exclusive options.
- * Implements the tablist pattern with arrow-key navigation. The active
- * option has a filled pill background using `--mono-bg` (step 3),
- * consistent with the navbar active tab style.
+ * Mutually exclusive options in a fixed, equal-width segmented bar.
+ * The active option has a filled pill background using `--mono-bg`
+ * (step 3), consistent with the navbar active tab style.
+ *
+ * Behaviour (roles, roving tabindex, arrow keys, tabs-vs-group) comes
+ * from `useTabList` — shared with `TabPills`, which is the same widget
+ * in a scrollable pill layout. Only the markup and styles differ.
  */
 export function SegmentedControl<T extends string>({
   options,
@@ -28,44 +49,30 @@ export function SegmentedControl<T extends string>({
   onChange,
   ariaLabel,
   className,
+  panelId,
 }: Props<T>) {
-  const refs = useRef<(HTMLButtonElement | null)[]>([]);
-
-  function handleKeyDown(e: React.KeyboardEvent, i: number) {
-    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-    e.preventDefault();
-    // Move focus only — user activates with Enter/Space or click (manual
-    // activation per ARIA tablist pattern). Avoids firing onChange on every
-    // keypress, which would trigger a server fetch per arrow press.
-    const dir = e.key === "ArrowRight" ? 1 : -1;
-    const next = (i + dir + options.length) % options.length;
-    refs.current[next]?.focus();
-  }
+  const { listProps, optionProps, isSelected } = useTabList({
+    options,
+    value,
+    panelId,
+  });
 
   return (
     <div
-      role="tablist"
+      {...listProps}
       aria-label={ariaLabel}
       className={[styles.track, className].filter(Boolean).join(" ")}
     >
-      {options.map((opt, i) => {
-        const selected = opt.value === value;
-        return (
-          <button
-            key={opt.value}
-            ref={(el) => { refs.current[i] = el; }}
-            role="tab"
-            type="button"
-            aria-selected={selected}
-            tabIndex={selected ? 0 : -1}
-            className={`${styles.option} ${selected ? styles.optionSelected : ""}`}
-            onClick={() => onChange(opt.value)}
-            onKeyDown={(e) => handleKeyDown(e, i)}
-          >
-            {opt.label}
-          </button>
-        );
-      })}
+      {options.map((opt, i) => (
+        <button
+          key={opt.value}
+          {...optionProps(opt, i)}
+          className={`${styles.option} ${isSelected(opt.value) ? styles.optionSelected : ""}`}
+          onClick={() => onChange(opt.value)}
+        >
+          {opt.label}
+        </button>
+      ))}
     </div>
   );
 }

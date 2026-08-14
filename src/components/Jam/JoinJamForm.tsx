@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { FaQrcode, FaArrowRight } from "react-icons/fa6";
 import { Banner, Button, showToast, Username } from "@/components/ui";
 import { createBrowserSupabase } from "@/lib/supabase/client";
+import { useClientResource } from "@/hooks/use-client-resource";
 import { lookupJamByCode } from "@/lib/data/jam-queries";
 import { joinJamAction } from "@/app/jam/actions";
 import type { JoinJamLookup } from "@/lib/data/jam-types";
@@ -35,60 +36,40 @@ export function JoinJamForm({ initialCode }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [code, setCode] = useState(initialCode ?? "");
-  const [lookup, setLookup] = useState<JoinJamLookup | null>(null);
-  const [lookupError, setLookupError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
 
   const normalised = code.trim().toUpperCase();
   const codeValid = JAM_CODE_RE.test(normalised);
 
-  // Retry counter: the manual "Look up" button bumps this to
-  // re-run the auto-lookup effect without depending on the lookup
-  // result state. Previously the effect had `lookup` + `lookupError`
-  // in its deps so the button could flip those back to null and
-  // re-trigger — that caused the effect to re-subscribe on every
-  // settle. With a dedicated retry tick, the effect only re-runs
-  // when the user intentionally asks for it or the code changes.
-  const [retryTick, setRetryTick] = useState(0);
-
-  // Auto-lookup on a valid code or manual retry. The async IIFE
-  // pattern keeps the setState calls on a post-await microtask,
-  // which the project's `react-hooks/set-state-in-effect` rule
-  // tolerates as long as the effect body itself doesn't call
-  // setState synchronously.
-  useEffect(() => {
-    if (!codeValid) return;
-    let cancelled = false;
-    (async () => {
+  // Auto-lookup on a valid code, keyed on the code itself: typing a
+  // new code resets result + error structurally (key mismatch), so
+  // no clear-on-change setState calls. The manual "Look up" button is
+  // the hook's `reload` — it bumps the reload token and refetches the
+  // current key (the old hand-rolled `retryTick`). The fetcher throws
+  // the user-facing copy for the three known rejections so the hook's
+  // error slot carries exactly the strings the Banner used to show.
+  const { data: lookup, error, reload } = useClientResource<JoinJamLookup>(
+    normalised,
+    async (key) => {
       const supabase = createBrowserSupabase();
-      const result = await lookupJamByCode(supabase, normalised);
-      if (cancelled) return;
-      if (!result) {
-        setLookupError("No jam found for that code");
-        return;
-      }
+      const result = await lookupJamByCode(supabase, key);
+      if (!result) throw new Error("No jam found for that code");
       if (result.status === "ended") {
-        setLookupError("That jam has already ended");
-        return;
+        throw new Error("That jam has already ended");
       }
       if (result.at_cap) {
-        setLookupError("That jam is full — 20 players is the max");
-        return;
+        throw new Error("That jam is full — 20 players is the max");
       }
-      setLookup(result);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [codeValid, normalised, retryTick]);
-
-  // Manual "Look up" — clear prior result/error and bump the retry
-  // tick so the auto-lookup effect re-fires for the current code.
-  const triggerLookup = useCallback(() => {
-    setLookupError(null);
-    setLookup(null);
-    setRetryTick((t) => t + 1);
-  }, []);
+      return result;
+    },
+    { enabled: codeValid },
+  );
+  const lookupError =
+    error === null
+      ? null
+      : error instanceof Error
+        ? error.message
+        : "Couldn't look up that code";
 
   function handleJoin() {
     if (!lookup) return;
@@ -119,8 +100,6 @@ export function JoinJamForm({ initialCode }: Props) {
             placeholder="ABC123"
             onChange={(e) => {
               setCode(e.target.value.toUpperCase().replace(/[^A-HJ-NP-Z2-9]/g, ""));
-              setLookup(null);
-              setLookupError(null);
             }}
           />
         </label>
@@ -129,7 +108,7 @@ export function JoinJamForm({ initialCode }: Props) {
           <Button
             type="button"
             variant="secondary"
-            onClick={triggerLookup}
+            onClick={reload}
             disabled={!codeValid || pending}
           >
             Look up

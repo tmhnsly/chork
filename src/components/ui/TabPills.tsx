@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useTabList } from "./useTabList";
 import styles from "./tabPills.module.scss";
 
 export interface TabPillOption<T extends string | number | null> {
@@ -32,6 +32,19 @@ interface Props<T extends string | number | null> {
    */
   layout?: "scroll" | "wrap";
   className?: string;
+  /**
+   * Id of the panel this control switches between. Set it when the
+   * pills drive a region of content (the panel needs
+   * `role="tabpanel"`, `id={panelId}`, `tabIndex={0}` and
+   * `aria-labelledby={tabId(panelId, value)}`); omit it for a filter,
+   * which is what most uses are.
+   *
+   * Without a panel, `role="tab"` announces "tab 1 of 4, selected"
+   * and then offers nowhere to move to — so the no-panel form renders
+   * a toggle-button group instead. See SegmentedControl for the full
+   * reasoning; the two controls share this contract.
+   */
+  panelId?: string;
 }
 
 /**
@@ -45,7 +58,8 @@ interface Props<T extends string | number | null> {
  * keyboard users don't trigger network fetches on every arrow press.
  *
  * Pair with `SegmentedControl` when you want a fixed equal-width
- * segmented bar instead of a scrollable pill row.
+ * segmented bar instead of a scrollable pill row — same widget, same
+ * behaviour (both use `useTabList`), different layout.
  */
 export function TabPills<T extends string | number | null>({
   options,
@@ -54,26 +68,17 @@ export function TabPills<T extends string | number | null>({
   ariaLabel,
   layout = "scroll",
   className,
+  panelId,
 }: Props<T>) {
-  const refs = useRef<(HTMLButtonElement | null)[]>([]);
-
-  function handleKeyDown(e: React.KeyboardEvent, i: number) {
-    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-    e.preventDefault();
-    const dir = e.key === "ArrowRight" ? 1 : -1;
-    const len = options.length;
-    let j = i;
-    // Skip disabled options so Tab focus never lands on them.
-    for (let step = 0; step < len; step++) {
-      j = (j + dir + len) % len;
-      if (!options[j]?.disabled) break;
-    }
-    refs.current[j]?.focus();
-  }
+  const { listProps, optionProps, isSelected } = useTabList({
+    options,
+    value,
+    panelId,
+  });
 
   return (
     <div
-      role="tablist"
+      {...listProps}
       aria-label={ariaLabel}
       className={[
         styles.row,
@@ -84,19 +89,13 @@ export function TabPills<T extends string | number | null>({
         .join(" ")}
     >
       {options.map((opt, i) => {
-        const selected = opt.value === value;
+        const selected = isSelected(opt.value);
         return (
           <button
             key={String(opt.value ?? "__null")}
-            ref={(el) => { refs.current[i] = el; }}
-            role="tab"
-            type="button"
-            aria-selected={selected}
-            tabIndex={selected ? 0 : -1}
-            disabled={opt.disabled}
+            {...optionProps(opt, i)}
             className={`${styles.pill} ${selected ? styles.pillActive : ""}`}
             onClick={() => onChange(opt.value)}
-            onKeyDown={(e) => handleKeyDown(e, i)}
           >
             <span>{opt.label}</span>
             {typeof opt.count === "number" && (

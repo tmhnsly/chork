@@ -41,6 +41,18 @@ export interface PushPayload {
   body: string;
   /** Optional path on chork to open when the user taps the notification. */
   url?: string;
+  /**
+   * Tray-coalescing key. The service worker groups notifications
+   * sharing a tag, so a burst of the same kind collapses into one
+   * entry instead of stacking.
+   *
+   * `sw.js` has always read this; nothing ever set it, so every
+   * notification fell back to the single generic `chork-notification`
+   * tag and three unrelated events collapsed into one. Set it per
+   * KIND (see `notify`) so different kinds stay distinct while
+   * repeats of the same kind coalesce.
+   */
+  tag?: string;
 }
 
 /**

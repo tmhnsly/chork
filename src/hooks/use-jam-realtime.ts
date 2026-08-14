@@ -2,8 +2,25 @@
 
 import { useEffect, useRef } from "react";
 import { createBrowserSupabase } from "@/lib/supabase/client";
+import type { JamLog, JamRoute } from "@/lib/data/jam-types";
 
-type ChangeHandler = (payload: unknown) => void;
+/**
+ * Shape of a Supabase postgres_changes payload for a jam table. The
+ * cast from the wire's `unknown` happens ONCE, in this module — the
+ * caller receives typed events instead of re-deriving the shape at
+ * every handler (JamScreen used to hand-write this cast twice).
+ *
+ * Caveat carried over from the raw payloads: on DELETE, `new` is an
+ * empty object and only `old` is populated (jam tables run REPLICA
+ * IDENTITY FULL, so `old` carries the full row); on INSERT/UPDATE,
+ * `old` may be partial. Branch on `eventType` before trusting either
+ * side.
+ */
+export interface JamRealtimeEvent<T> {
+  eventType: "INSERT" | "UPDATE" | "DELETE";
+  new: T;
+  old: T;
+}
 
 /**
  * Subscribes to realtime changes for a specific jam's live tables
@@ -19,9 +36,11 @@ type ChangeHandler = (payload: unknown) => void;
 export function useJamRealtime(
   jamId: string,
   handlers: {
-    onRouteChange: ChangeHandler;
-    onLogChange: ChangeHandler;
-    onPlayerChange: ChangeHandler;
+    onRouteChange: (evt: JamRealtimeEvent<JamRoute>) => void;
+    onLogChange: (evt: JamRealtimeEvent<JamLog>) => void;
+    /** Join/leave events — payload deliberately untyped; the current
+     *  strategy is a full refresh, not a patch. */
+    onPlayerChange: () => void;
   },
 ) {
   // Cache the latest handlers in a ref so the channel callbacks can
@@ -46,17 +65,19 @@ export function useJamRealtime(
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "jam_routes", filter: `jam_id=eq.${jamId}` },
-        (payload: unknown) => handlersRef.current.onRouteChange(payload),
+        (payload: unknown) =>
+          handlersRef.current.onRouteChange(payload as JamRealtimeEvent<JamRoute>),
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "jam_logs", filter: `jam_id=eq.${jamId}` },
-        (payload: unknown) => handlersRef.current.onLogChange(payload),
+        (payload: unknown) =>
+          handlersRef.current.onLogChange(payload as JamRealtimeEvent<JamLog>),
       )
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "jam_players", filter: `jam_id=eq.${jamId}` },
-        (payload: unknown) => handlersRef.current.onPlayerChange(payload),
+        () => handlersRef.current.onPlayerChange(),
       )
       .subscribe();
 

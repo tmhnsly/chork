@@ -1,6 +1,7 @@
 import { openOfflineDB, STORE_NAME, type OfflineDB } from "./db";
 import type { QueuedMutation, OfflineAction } from "./types";
 import { isAuthRequiredError } from "@/lib/auth-errors";
+import { logger } from "@/lib/logger";
 
 type Listener = (count: number) => void;
 
@@ -116,9 +117,46 @@ class MutationQueue {
     return true;
   }
 
+  /**
+   * Pending mutations for the CURRENT user.
+   *
+   * Must match `flush`'s scope. It used to count every row in the
+   * store while flush only ran the signed-in user's — so on a shared
+   * device, User A's leftover entries (deliberately preserved, see
+   * `clearForUser`) made User B's OfflineBanner read
+   * "Syncing 1 change…" forever, for work that would never run.
+   */
   async count(): Promise<number> {
+    const userId = await this.currentUserResolver?.();
+    if (!userId) return 0;
     const db = await this.getDB();
-    return db.count(STORE_NAME);
+    // `getAllFromIndex` rather than `countFromIndex`: the latter is
+    // typed but absent on this wrapper at runtime. The queue is capped
+    // at MAX_QUEUE_SIZE, so materialising the rows is bounded.
+    const mine = await db.getAllFromIndex(STORE_NAME, "userId", userId);
+    return mine.length;
+  }
+
+  /**
+   * A queued mutation is about to be discarded after exhausting its
+   * retries. This is silent data loss from the climber's point of
+   * view — their send is gone — so it must at minimum be observable
+   * in the logs. `logger.error` (not warn) so it reaches Sentry.
+   */
+  private logDrop(
+    entry: QueuedMutation,
+    reason: "server_error" | "threw",
+    detail: unknown,
+  ): void {
+    logger.error("offline_queue_dropped_mutation", {
+      action: entry.action,
+      routeId: entry.routeId,
+      retries: entry.retries,
+      queuedAt: new Date(entry.createdAt).toISOString(),
+      reason,
+      detail:
+        detail instanceof Error ? detail.message : String(detail ?? "unknown"),
+    });
   }
 
   /**
@@ -136,6 +174,45 @@ class MutationQueue {
     }
     await tx.done;
     this.notify();
+  }
+
+  /**
+   * Sign-out path: try to save the outgoing user's work, then wipe it.
+   *
+   * The wipe is non-negotiable — a shared gym device must not carry
+   * User A's queued writes into User B's session. But wiping *without
+   * trying first* threw away every unsynced send, silently, on a
+   * routine sign-out.
+   *
+   * Bounded on purpose. `signOut` is committed to navigating and the
+   * whole housekeeping block is fire-and-forget (awaiting it is what
+   * caused the old "still on the profile page after logout" bug), so
+   * this races the flush against `timeoutMs` and clears regardless of
+   * which wins. Online: the queue drains and nothing is lost. Offline
+   * or slow: we clear anyway and log what went with it, so the loss
+   * is observable instead of invisible.
+   */
+  async flushThenClear(userId: string, timeoutMs = 3000): Promise<void> {
+    const db = await this.getDB();
+    const before = await db.getAllFromIndex(STORE_NAME, "userId", userId);
+    if (before.length === 0) return;
+
+    if (navigator.onLine) {
+      await Promise.race([
+        this.flush().catch(() => {}),
+        new Promise<void>((resolve) => setTimeout(resolve, timeoutMs)),
+      ]);
+    }
+
+    const remaining = await db.getAllFromIndex(STORE_NAME, "userId", userId);
+    if (remaining.length > 0) {
+      logger.error("offline_queue_cleared_unsynced_on_signout", {
+        lost: remaining.length,
+        actions: remaining.map((e) => e.action),
+        online: navigator.onLine,
+      });
+    }
+    await this.clearForUser(userId);
   }
 
   async flush(): Promise<void> {
@@ -179,6 +256,7 @@ class MutationQueue {
             // Validation or other server error — retry or discard
             entry.retries++;
             if (entry.retries >= MAX_RETRIES) {
+              this.logDrop(entry, "server_error", error);
               await db.delete(STORE_NAME, entry.id);
             } else {
               await db.put(STORE_NAME, entry);
@@ -198,6 +276,7 @@ class MutationQueue {
           // Unexpected error — retry or discard
           entry.retries++;
           if (entry.retries >= MAX_RETRIES) {
+            this.logDrop(entry, "threw", err);
             await db.delete(STORE_NAME, entry.id);
           } else {
             await db.put(STORE_NAME, entry);

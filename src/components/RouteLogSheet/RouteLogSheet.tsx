@@ -61,11 +61,8 @@ export function RouteLogSheet({
     handleUncomplete,
     handleZoneToggle,
     handleGradeVote,
-    handleExpandBeta,
-    loadMore,
-    onPostComment,
-    onEditComment,
-    onLikeComment,
+    commentThread,
+    commentActions,
   } = useRouteLogState({
     set,
     route,
@@ -185,19 +182,8 @@ export function RouteLogSheet({
         userId={user?.id}
         isCompleted={isCompleted}
         setActive={set.active}
-        betaExpanded={state.betaExpanded}
-        onToggleBetaExpanded={handleExpandBeta}
-        comments={state.comments}
-        totalComments={state.totalComments}
-        hasMore={state.hasMore}
-        loadingComments={state.loadingComments}
-        loadingMore={state.loadingMore}
-        likedIds={state.likedIds}
-        commentsLoaded={state.commentsLoaded}
-        onLoadMore={loadMore}
-        onPostComment={onPostComment}
-        onEditComment={onEditComment}
-        onLikeComment={onLikeComment}
+        view={commentThread}
+        actions={commentActions}
       />
     </BottomSheet>
   );
