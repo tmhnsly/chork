@@ -83,7 +83,41 @@ const profileCacheStore = createLocalStorageStore<ProfileCacheEntry>(
   },
 );
 
+/**
+ * True when the cache already holds exactly this profile + admin flag.
+ *
+ * Exported for tests. This guard is what stops an infinite render
+ * loop, so it is worth pinning:
+ *
+ *   `write()` stamps a fresh `cachedAt` and always dispatches, so
+ *   every call produced a different raw string → the store's
+ *   raw-keyed memo missed → `useSyncExternalStore` notified →
+ *   `AuthProvider` re-rendered → `profile` came back from
+ *   `JSON.parse` with a NEW object identity → the effect's
+ *   `[profile]` dependency "changed" → it wrote again. Unbounded,
+ *   until React gave up with "Maximum update depth exceeded".
+ *
+ * Comparing content rather than identity breaks the cycle: the second
+ * pass finds nothing to do and stops.
+ */
+export function profileCacheUnchanged(
+  current: ProfileCacheEntry | null,
+  profile: Profile | null,
+  isAdmin: boolean,
+): boolean {
+  if (profile === null) return current === null;
+  if (!current || current.isAdmin !== isAdmin) return false;
+  // The profile is a flat row of primitives, so a stable stringify is
+  // an honest deep-equal here — and cheaper than the render it saves.
+  return JSON.stringify(current.profile) === JSON.stringify(profile);
+}
+
 function writeProfileCache(profile: Profile | null, isAdmin: boolean): void {
+  // A no-op write is not free: it notifies every subscriber. Skipping
+  // it is the whole fix.
+  if (profileCacheUnchanged(profileCacheStore.getSnapshot(), profile, isAdmin)) {
+    return;
+  }
   profileCacheStore.write(
     profile ? { profile, isAdmin, cachedAt: Date.now() } : null,
   );
