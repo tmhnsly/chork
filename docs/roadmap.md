@@ -88,6 +88,28 @@ Platform hardening:
 > **Session convention:** these are picked up when Tom says
 > **"feature time"**. Bug-fix sessions leave this list alone.
 
+### Product direction (decided 2026-08-14, grilled)
+
+The strategy every item below serves. See CONTEXT.md for the
+vocabulary these decisions produced.
+
+- **Group-first, not solo-first.** Griptonite and Redpoint own the
+  solo logbook; we won't win there and shouldn't try. Chork is
+  deliberately thin for a lone climber and excellent for 2–6 mates.
+  The defensible product is what happens on the mats between people.
+- **The free thing becomes the paid thing.** A Match is the same
+  primitive as a gym Set, so the sales conversation is "your members
+  ran 40 Matches here last month — press this to make Tuesday's comp
+  official", not "buy this admin system you've never used". Every
+  Match at a gym is also outbound signal.
+- **What gyms actually buy is repeat footfall.** A long-running
+  numbered Set gives members a reason to come back midweek. That's
+  the monthly value; comps and dashboards are how it's delivered.
+- **Multi-discipline from the start.** Boulder, sport, top-rope.
+  Discipline defaults per Set, overridable per route.
+- **The growth loop is the group chat, not an in-app feed.** Climbers
+  already have WhatsApp. Don't compete with it — feed it.
+
 ### Designed and ready to build
 
 - [ ] **Grades graph.** Distribution pyramid of grades sent, flashes
@@ -101,33 +123,120 @@ Platform hardening:
       `jam_summary_players.ungraded_sends` so the UI can say what it
       left out. Retention shipped and live (076/077), so jam data has
       been accruing since; gym data is full history and needs no
-      backfill. **This is the one to start with — no design work
-      left.**
+      backfill.
+
+      **⚠️ One decision is now void.** "Converted at display to the
+      climber's most-used scale" pre-dates the multi-discipline
+      decision and breaks the moment someone logs both boulders and
+      ropes: a 6a+ cannot be rendered as a V-grade. The graph must be
+      **per discipline** — one pyramid for boulders, one for ropes —
+      and the rollup needs discipline alongside `(grade, scale)`.
+      Cheap to fix now (nothing built); annoying once 076 has data
+      behind it. Everything else in that header still stands.
+
+- [ ] **Match result share card.** The single highest-leverage growth
+      feature, and small. When a Set ends, produce an image + link
+      worth pasting into the group chat: winner, placements, the
+      numbers, a join code. Works before any social graph exists,
+      feeds the channel climbers already use, and turns the
+      trophy/placement moment we already decided on into recruitment.
+      Build this before any in-app feed.
 
 ### Need a design pass first
 
-- [ ] **Jam handicap system.** So stronger and weaker climbers can
-      compete in the same jam. Open questions: handicap per climber
-      or per grade band; self-declared or derived from history;
-      applied to points or to the board. Needs grilling before code.
-- [ ] **Jam host/guest mode.** Hosts logging attempts for others, and
-      guests playing without an account. Needs schema work
-      (`jam_players` requires a `profiles` FK) plus a trust decision —
-      anyone in a jam can already edit anything.
-- [ ] **Jam activity → crew feed.** One event per jam. Parked by Tom
-      pending the wider crew rework; `activity_events` is currently
-      only written by gym-wall sends and comments, so a gymless
-      climber generates nothing for the feed.
+- [ ] **The Set convergence.** The structural change everything else
+      waits on. A Match and a gym Set are one primitive at different
+      settings (owner, lifetime, route source), so they become one
+      family instead of `jam_*` mirroring `route_*`. Decided with
+      full rewrite explicitly on the table — the only user is Tom, so
+      this is the cheapest it will ever be.
 
-- [ ] **Jams — UX/robustness overhaul.** Shipped half-baked; the feature
-      works but doesn't hang together yet. Known gaps (audit 2026-08-10):
-      live-player realtime never dispatched (`set-players` reducer action is
-      unused, so friends who join mid-jam don't appear until reload); no
-      leave-jam UI (server `leaveJam` is ready, no call site); ending a jam
-      gives no signal to other open sessions; offline queue only retries
-      `TypeError` (silent data loss on any other failure); add/edit/end-route
-      and end-jam have no error handling; live leaderboard caps at 5 of 20.
-      Needs one coherent pass, not piecemeal fixes.
+      Sequence it, don't big-bang it: **unify the log + scoring layer
+      first** (reversible, and it deletes `scoring-parity.test.ts`'s
+      reason to exist by leaving one implementation instead of two
+      that must agree), **then the containers**.
+
+      What it deletes: parallel scoring, parallel leaderboards,
+      duplicate row types, and the whole collapse-to-summary
+      machinery — `jam_summaries` / `jam_summary_players` /
+      `end_jam`'s aggregation exist only because Matches were treated
+      as disposable. As Sets they keep their rows like anything else,
+      which also removes the `row_number` vs `dense_rank` tie
+      divergence recorded in CONTEXT.md.
+
+      The hard part, to design carefully rather than rush: **RLS must
+      cover two access models** — gym Sets gated on `is_gym_member`,
+      Matches on a join code. Also carry `discipline` onto the
+      container while it's free, and rename `jam*` → `match*` in the
+      same pass.
+
+- [ ] **Guest players (the growth unlock).** Joining is the thirty
+      seconds in which one climber recruits another, and today it
+      costs install → sign up → code. `jam_players.user_id` is NOT
+      NULL against `profiles`, so identity *is* the account.
+
+      Decided: **Supabase anonymous sign-in**, claimable later. The
+      guest gets a real `auth.users` row, so `handle_new_user` gives
+      them a profile, so the FK holds and **every RLS policy already
+      written keeps working**. Claiming is `updateUser` with an
+      email, and their history comes with them. Host-logs-for-a-guest
+      is the fallback for someone who won't install anything at all —
+      but note it's an *anti*-acquisition feature, since that guest
+      never opens the app.
+
+      Costs to handle: no username until claimed, a cleanup policy
+      for anon rows that never convert, and the onboarding
+      middleware must not shove a guest into signup.
+
+      Trust stays permissive — anyone in a Match can edit anything.
+      It's mates on mats; the social contract is the enforcement.
+      Verification machinery belongs only to gym-sanctioned Sets.
+
+- [ ] **Handicap.** Scores each send relative to the climber's own
+      ceiling, so a V3 and a V8 climber can share a board honestly.
+      **Matches only, never gym Sets** (a gym Set carries the gym's
+      name and prizes; handicap is self-declared and soft).
+      Ceilings are **per discipline**. Self-declared at first;
+      suggested from recent sends once there's history, so it can't
+      be casually sandbagged.
+
+- [ ] **Mates (replaces Crew).** Crews need creating, inviting and
+      accepting — three steps before any value, and every crew is
+      empty at launch. Replace with a mutual follow graph; value at
+      one connection.
+
+      Feed content is **moments, not ticks**: first V6, project sent
+      after five sessions, flash above usual grade, Set won. Note
+      `activity_events` is currently written only by gym-wall sends
+      and comments, so a gymless climber generates nothing — exactly
+      backwards for a group-first product.
+
+      Ship the share card (above) *before* the feed: it works with no
+      network at all.
+
+- [ ] **Game modes.** Chork (the HORSE variant) and whatever follows.
+      Blocked on the convergence — build them on one engine or build
+      each one twice.
+
+- [ ] **Match UX/robustness overhaul.** Shipped half-baked; the
+      feature works but doesn't hang together yet. Known gaps (audit
+      2026-08-10): live-player realtime never dispatched
+      (`set-players` reducer action is unused, so friends who join
+      mid-Match don't appear until reload); no leave UI (server
+      `leaveJam` is ready, no call site); ending gives no signal to
+      other open sessions; add/edit/end-route and end have no error
+      handling; live leaderboard caps at 5 of 20. Needs one coherent
+      pass, not piecemeal fixes — and best done *with* the
+      convergence rather than before it, since the container is
+      changing underneath. (The offline-queue data loss from this
+      list was fixed 2026-08-14.)
+
+- [ ] **Card + Ranks merge.** Agreed in principle: they're the same
+      context ("my gym, right now") and the bottom nav is one tab
+      lighter for it. Deferred deliberately — Tom likes both surfaces
+      as they stand, so this needs its own design session rather than
+      a mechanical merge. The `tabpanel` wiring it needs already
+      exists.
 - [ ] **Admin flow — full design pass.** Never fleshed out as a
       journey; it grew per-feature. The 2026-08-14 architecture sweep
       found the seams that implies. Open product questions first, then
