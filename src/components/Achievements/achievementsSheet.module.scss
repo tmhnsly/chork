@@ -49,7 +49,7 @@
 // Earned icon carries the row's family tint (accent / flash /
 // success). The per-family overrides below supply the colour for
 // flashes (amber) and zones (teal); the default accent lime handles
-// sends, jams, and every condition badge that isn't zone-themed.
+// sends, matches, and every condition badge that isn't zone-themed.
 .rowIconEarned {
   background: var(--accent-bg);
   color: var(--accent-text-low-contrast);

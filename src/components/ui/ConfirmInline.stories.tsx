@@ -37,16 +37,16 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Destructive confirm — end jam / delete account / sign out. */
+/** Destructive confirm — end match / delete account / sign out. */
 export const Danger: Story = {
   args: {
     prompt: (
       <p>
-        End the jam for everyone? Final scores will be calculated and the jam
+        End the match for everyone? Final scores will be calculated and the match
         will be closed. This cannot be undone.
       </p>
     ),
-    confirmLabel: "Yes, end jam",
+    confirmLabel: "Yes, end match",
     pendingLabel: "Ending…",
     confirmVariant: "danger",
   },

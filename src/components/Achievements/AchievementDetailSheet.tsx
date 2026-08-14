@@ -132,8 +132,8 @@ function progressUnit(key: ProgressKey, target: number): string {
     case "flashes":     return plural ? "flashes" : "flash";
     case "sends":       return plural ? "sends" : "send";
     case "points":      return plural ? "points" : "point";
-    case "jams_played": return plural ? "jams" : "jam";
-    case "jams_won":    return plural ? "wins" : "win";
-    case "jams_hosted": return plural ? "jams hosted" : "jam hosted";
+    case "matches_played": return plural ? "matches" : "match";
+    case "matches_won":    return plural ? "wins" : "win";
+    case "matches_hosted": return plural ? "matches hosted" : "match hosted";
   }
 }

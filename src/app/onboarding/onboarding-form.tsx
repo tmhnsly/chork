@@ -26,7 +26,7 @@ export function OnboardingForm() {
 
   // Gym branch — climbers whose gym has Chork proceed through the
   // picker; climbers who don't can still sign up and start using
-  // jams + crews without a gym. They can add one later from settings.
+  // matches + crews without a gym. They can add one later from settings.
   const [gymChoice, setGymChoice] = useState<GymChoice>("unchosen");
   const [allGyms, setAllGyms] = useState<Gym[]>([]);
   const [gymQuery, setGymQuery] = useState("");
@@ -301,7 +301,7 @@ export function OnboardingForm() {
             >
               <span className={styles.gymChoiceTitle}>Not yet</span>
               <span className={styles.gymChoiceDetail}>
-                Run jams with friends anywhere. Add a gym later from settings.
+                Run matches with friends anywhere. Add a gym later from settings.
               </span>
             </button>
           </div>

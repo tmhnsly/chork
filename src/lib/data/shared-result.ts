@@ -11,7 +11,7 @@ import { asJsonShape } from "./json-shape";
  * The one seam between a shareable result and where its data lives.
  *
  * It has now earned its keep: the Set convergence moved results off
- * `jam_summaries` and onto the `sets` family, and only the two
+ * `match_summaries` and onto the `sets` family, and only the two
  * function bodies below changed. The share page, the OG image and the
  * share button never learned which table it came from, and the token
  * in an already-shared link keeps resolving.
@@ -121,7 +121,7 @@ export async function getSharedResult(
  * Mint (or return the existing) share token for a result.
  *
  * Caller MUST have already established that this user took part —
- * `getJamStateForUser` is that gate and it 404s for everyone else, so
+ * `getMatchStateForUser` is that gate and it 404s for everyone else, so
  * re-checking here would be a second thing to keep correct rather
  * than a second layer of safety.
  *

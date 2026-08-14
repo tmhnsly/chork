@@ -37,7 +37,7 @@ type Supabase = SupabaseClient<Database>;
  *
  * @deprecated Alias kept only so call sites read clearly during the
  * convergence. `set_id` is a real column since migration 080, so this
- * is now exactly `RouteLog` — collapse it when the jam_* tables go.
+ * is now exactly `RouteLog` — collapse it when the match_* tables go.
  */
 export type UpsertedRouteLog = RouteLog;
 

@@ -18,7 +18,7 @@ export const LoggedOut: Story = {
   args: { initialShell: "unauthed" },
 };
 
-/** Logged-in, no gym — Crew / Jam / Profile only. */
+/** Logged-in, no gym — Crew / Match / Profile only. */
 export const AuthedNoGymSkeleton: Story = {
   args: { initialShell: "authed-no-gym" },
 };

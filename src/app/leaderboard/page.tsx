@@ -19,11 +19,11 @@ export const metadata = {
 export default async function LeaderboardPage() {
   const auth = await requireAuth();
   // requireAuth fails if the user isn't signed in OR is signed in
-  // without an active gym. Gymless users land on /jam rather than
+  // without an active gym. Gymless users land on /match rather than
   // being bounced to /login — the gym-scoped leaderboard has no
-  // meaning without a gym, and /jam is the useful home for them.
+  // meaning without a gym, and /match is the useful home for them.
   if ("error" in auth) {
-    redirect(isNoGymError(auth.error) ? "/jam" : "/login");
+    redirect(isNoGymError(auth.error) ? "/match" : "/login");
   }
   const { supabase, userId, gymId } = auth;
 

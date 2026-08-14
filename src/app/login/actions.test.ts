@@ -109,10 +109,10 @@ describe("signInAction", () => {
     const fd = new FormData();
     fd.set("email", "a@b.com");
     fd.set("password", "pw");
-    fd.set("next", "/jam/new");
+    fd.set("next", "/match/new");
     const result = await signInAction(undefined, fd);
     expect(result.success).toBe(true);
-    expect(result.next).toBe("/jam/new");
+    expect(result.next).toBe("/match/new");
   });
 });
 

@@ -31,8 +31,8 @@ export function shellFromCookie(value: string | null): InitialShell {
  *
  * Three-state cookie:
  *   "u"   unauthed
- *   "ang" authed, no gym   → Crew / Jam / Profile tabs
- *   "awg" authed with gym  → Wall / Board / Crew / Jam / Profile
+ *   "ang" authed, no gym   → Crew / Match / Profile tabs
+ *   "awg" authed with gym  → Wall / Board / Crew / Match / Profile
  *
  * The value MUST go through `verify` first. The proxy writes
  * `sign(value)`, which is `"awg.<sig>"` wherever `CHORK_COOKIE_SECRET`

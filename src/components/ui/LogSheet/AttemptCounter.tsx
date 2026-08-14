@@ -17,7 +17,7 @@ interface Props {
    * gets completed.
    */
   hideControls?: boolean;
-  /** Disables both buttons (e.g. set is archived, jam ended). */
+  /** Disables both buttons (e.g. set is archived, match ended). */
   disabled?: boolean;
   /**
    * Fires with the new attempt count when the user taps +/-. The
@@ -37,7 +37,7 @@ interface Props {
 
 /**
  * The shared [−] [N] [+] + points-preview block. Pulled out of the
- * wall's `RouteLogSheet` so the jam log sheet renders the identical
+ * wall's `RouteLogSheet` so the match log sheet renders the identical
  * hero counter. All state stays in the consumer — debouncing the
  * resulting onChange + swapping its own points preview for the
  * just-earned one is up to the parent.

@@ -24,7 +24,7 @@ export function getRoutesBySet(setId: string): Promise<Route[]> {
           .eq("set_id", id)
           .order("number")
           // Ceiling-guard. Normal sets are <100 routes; 300 covers
-          // outlier jam-style mega-sets without letting a pathological
+          // outlier match-style mega-sets without letting a pathological
           // seed ship a 10k-row payload to the wall.
           .limit(300),
         "getroutesbyset_failed",

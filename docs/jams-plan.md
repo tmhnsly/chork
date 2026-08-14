@@ -3,8 +3,17 @@
 Companion doc for the Jams feature. Read `docs/architecture.md` +
 `docs/schema.md` first; this file only describes the net delta.
 
-> **HISTORICAL — Jams has SHIPPED** (migrations 041–056, a full `/jam`
-> route tree + component set). This file is the original pre-build plan,
+> **HISTORICAL — and now doubly so. "Jams" no longer exist.** The
+> feature shipped as jams (migrations 041–056, a `/jam` route tree),
+> then the Set convergence folded it into the Set family and renamed
+> it **Match** (migrations 080–090, 2026-08). The `jam_*` tables and
+> RPCs were dropped in 089; the route is `/match`. Every table, RPC
+> and file name below is gone. Kept only because the *reasoning* —
+> scoring, privacy, the code alphabet, the 20-player cap — carried
+> across intact and is easier to read here than in a diff. For
+> anything current see CONTEXT.md, `docs/schema.md` and the roadmap.
+>
+> This file is the original pre-build plan,
 > kept for context; it is NOT current. Read the code + `supabase/migrations`,
 > with `docs/architecture.md` as the live reference.
 

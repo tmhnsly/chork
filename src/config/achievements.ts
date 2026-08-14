@@ -40,8 +40,8 @@
  *      (`src/lib/badges.ts`).
  *   2. Add the field to `BadgeContext` (same file) and populate it in
  *      `src/lib/achievements/context.ts`.
- *   3. If it's jam-sourced, it also needs the SQL side of
- *      `get_jam_achievement_context`.
+ *   3. If it's match-sourced, it also needs the SQL side of
+ *      `get_match_achievement_context`.
  *
  * IDs must stay stable — they key the persistence row in
  * `user_achievements`. Renaming an ID will re-show a locked
@@ -269,93 +269,93 @@ export const ACHIEVEMENTS: BadgeDefinition[] = [
     category: "sends",
   },
 
-  // ── Jams ──────────────────────────────────────────
-  // Earned at jam end via evaluator + service-role write. Iron Crew
-  // uses the pair-max heuristic from the jams plan doc — cheap, no
+  // ── Matches ──────────────────────────────────────────
+  // Earned at match end via evaluator + service-role write. Iron Crew
+  // uses the pair-max heuristic from the matches plan doc — cheap, no
   // full triple enumeration, matches the intent for small circles.
   {
     kind: "progress",
-    id: "jam-first-jam",
-    name: "First jam",
-    description: "Play your first jam",
+    id: "match-first-match",
+    name: "First match",
+    description: "Play your first match",
     icon: "fire",
     tier: "bronze",
-    category: "jams",
-    progressKey: "jams_played",
+    category: "matches",
+    progressKey: "matches_played",
     target: 1,
   },
   {
     kind: "progress",
-    id: "jam-first-win",
-    name: "Jam winner",
-    description: "Win your first jam",
+    id: "match-first-win",
+    name: "Match winner",
+    description: "Win your first match",
     icon: "crown",
     tier: "bronze",
-    category: "jams",
-    progressKey: "jams_won",
+    category: "matches",
+    progressKey: "matches_won",
     target: 1,
   },
   {
     kind: "progress",
-    id: "jam-reigning-champ",
+    id: "match-reigning-champ",
     name: "Reigning Champ",
-    description: "Win 5 jams",
+    description: "Win 5 matches",
     icon: "crown",
     tier: "silver",
-    category: "jams",
-    progressKey: "jams_won",
+    category: "matches",
+    progressKey: "matches_won",
     target: 5,
   },
   {
     kind: "progress",
-    id: "jam-legend",
-    name: "Jam Legend",
-    description: "Win 25 jams",
+    id: "match-legend",
+    name: "Match Legend",
+    description: "Win 25 matches",
     icon: "crown",
     tier: "gold",
-    category: "jams",
-    progressKey: "jams_won",
+    category: "matches",
+    progressKey: "matches_won",
     target: 25,
   },
   {
     kind: "progress",
-    id: "jam-host-with-the-most",
+    id: "match-host-with-the-most",
     name: "Host with the most",
-    description: "Host 10 jams",
+    description: "Host 10 matches",
     icon: "fire-streak",
     tier: "silver",
-    category: "jams",
-    progressKey: "jams_hosted",
+    category: "matches",
+    progressKey: "matches_hosted",
     target: 10,
   },
   {
     kind: "condition",
-    id: "jam-big-fish",
+    id: "match-big-fish",
     name: "Big Fish",
-    description: "Win a jam with six or more players",
+    description: "Win a match with six or more players",
     icon: "trophy",
     tier: "silver",
-    category: "jams",
+    category: "matches",
   },
   {
     kind: "condition",
-    id: "jam-social-climber",
+    id: "match-social-climber",
     name: "Social Climber",
-    description: "Play jams with twenty different climbers",
+    description: "Play matches with twenty different climbers",
     icon: "users",
     tier: "silver",
-    category: "jams",
+    category: "matches",
   },
   {
     kind: "condition",
-    id: "jam-iron-crew",
+    id: "match-iron-crew",
     name: "Iron Crew",
-    description: "Play ten jams with the same mates",
+    description: "Play ten matches with the same mates",
     icon: "user-plus",
     tier: "gold",
-    category: "jams",
+    category: "matches",
   },
 ];
 
 /** Category order for filter pills on the Achievements sheet. */
-export const ACHIEVEMENT_CATEGORIES = ["sends", "flashes", "jams"] as const;
+export const ACHIEVEMENT_CATEGORIES = ["sends", "flashes", "matches"] as const;

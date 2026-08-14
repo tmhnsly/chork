@@ -32,10 +32,11 @@ keep only when a write has more than one caller or carries real
 orchestration (`mutations.ts` upsert semantics, `crew-lifecycle.ts`
 flows). Single-caller pass-through wrappers do not: `admin-mutations.ts`
 (13 functions, 13 callers, 1:1) and `jam-mutations.ts` (7 RPC
-wrappers) were inlined into their owning server actions in 2026-08 —
+wrappers — the Match feature was called "jams" then) were inlined into
+their owning server actions in 2026-08 —
 each wrapper's interface was as large as its body, and the layer had
 grown a third error contract that leaked raw `error.message` to the
-client. Admin + jam writes now live inline in their action, next to
+client. Admin + match writes now live inline in their action, next to
 the gate, validation, and tag busts they belong with.
 
 ### Passing `supabase` as first arg

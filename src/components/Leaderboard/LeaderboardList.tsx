@@ -13,7 +13,7 @@ interface Props {
 
 /** Adapter — the shared `LeaderboardRow` primitive is decoupled from
  *  the gym-specific `LeaderboardEntry` shape so it can be reused on
- *  the jam screen (which carries `display_name` etc). This module
+ *  the match screen (which carries `display_name` etc). This module
  *  owns the mapping one direction; the press callback adapts back. */
 function toRowData(entry: LeaderboardEntry): LeaderboardRowData {
   return {

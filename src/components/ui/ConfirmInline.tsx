@@ -12,7 +12,7 @@ interface Props {
    * etc.) rather than being limited to a plain string.
    */
   prompt: ReactNode;
-  /** Label on the commit button — "End jam", "Delete", "Sign out", … */
+  /** Label on the commit button — "End match", "Delete", "Sign out", … */
   confirmLabel: string;
   /** Label on the cancel button. Defaults to "Cancel". */
   cancelLabel?: string;
@@ -23,7 +23,7 @@ interface Props {
   pendingLabel?: string;
   /**
    * Visual weight of the confirm button. "danger" for destructive
-   * ops (end jam, delete account, sign out); "primary" for neutral
+   * ops (end match, delete account, sign out); "primary" for neutral
    * commits (transfer ownership, publish set).
    */
   confirmVariant?: "danger" | "primary";
@@ -35,7 +35,7 @@ interface Props {
  * has triggered a destructive or high-stakes action and needs to
  * explicitly opt in before it fires.
  *
- * Canonical examples: "End this jam for everyone?", "Delete your
+ * Canonical examples: "End this match for everyone?", "Delete your
  * account and all data?", "Transfer crew ownership?".
  *
  * Pair with `<BottomSheet>` or `<AppDialog>` as the containing

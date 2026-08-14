@@ -410,16 +410,16 @@ export async function gateGymAdminMutation(
 
 /**
  * Third sibling: the gate for signed-in (gymless-safe) mutations —
- * jams, and any future write that must work without an active gym
+ * matches, and any future write that must work without an active gym
  * (see CLAUDE.md "A gym is optional").
  *
  *   1. UUID-validate `resourceId` when one is supplied (`null` for
- *      actions like createJam that validate a payload instead; the
+ *      actions like createMatch that validate a payload instead; the
  *      label feeds the user-facing error string).
  *   2. `requireSignedIn` — NOT `requireAuth`; gymless climbers are
  *      first-class here.
  *   3. Rate-limit, ON by default (`mutationsWrite`). This default is
- *      the point: before this gate existed, every jam write action
+ *      the point: before this gate existed, every match write action
  *      re-typed the requireSignedIn prelude by hand and all seven
  *      skipped the rate limit entirely. Pass `null` only with a
  *      written reason.

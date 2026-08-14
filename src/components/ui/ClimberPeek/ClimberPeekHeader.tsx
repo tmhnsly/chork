@@ -45,7 +45,7 @@ interface Props {
 
 /**
  * Shared sticky-chrome header for "peek another climber" sheets —
- * leaderboard climber peek and jam player grid peek. Avatar + name
+ * leaderboard climber peek and match player grid peek. Avatar + name
  * is the link to the climber's profile; the rest of the sheet's
  * body can be just the grid (or whatever content), and the chrome
  * stays pinned while the body scrolls underneath.

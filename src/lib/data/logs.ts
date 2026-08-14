@@ -37,7 +37,7 @@ export function computeMaxPoints(totalRoutes: number, zoneRouteCount: number): n
 /**
  * Derive tile visual state from a log row. Structural on
  * `attempts` + `completed` so it works for both `route_logs` (gym)
- * and `jam_logs` (ephemeral jams) — the tile visual language is
+ * and `match_logs` (ephemeral matches) — the tile visual language is
  * shared.
  */
 export function deriveTileState(

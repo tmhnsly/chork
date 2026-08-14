@@ -1,6 +1,6 @@
 /**
  * Pure debouncer factory — no React. Captures the timerRef + pendingRef
- * + latest-flush state that RouteLogSheet and JamLogSheet independently
+ * + latest-flush state that RouteLogSheet and MatchLogSheet independently
  * hand-rolled. `useDebouncedFlush` is a thin React wrapper around this.
  *
  * Kept in a separate module so it can be unit-tested in the Node-only

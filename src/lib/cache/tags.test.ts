@@ -11,7 +11,7 @@ import { tags } from "./tags";
  * correctness: the mutation looks covered, reviewers assume the
  * invalidation works, and nobody notices there is no cached entry to
  * invalidate. A 2026-08 audit found six such tags (userStats,
- * userCrews, userProfile, crew, userNotifications, userJams) plus a
+ * userCrews, userProfile, crew, userNotifications, userMatches) plus a
  * live per-mutation DB round-trip whose only job was fanning out
  * no-op busts.
  *

@@ -2,16 +2,16 @@ import { describe, expect, it } from "vitest";
 
 import { latestDefinition, normaliseClause } from "@/test/sql-definitions";
 import { computePoints } from "./logs";
-import { computeJamLeaderboard } from "./jam-leaderboard";
-import type { JamLog, JamPlayerView } from "./jam-types";
+import { computeMatchLeaderboard } from "./match-leaderboard";
+import type { MatchLog, MatchPlayerView } from "./match-types";
 
 /**
  * Cross-home parity for scoring + rank semantics.
  *
  * The Scoring ladder deliberately lives in exactly two homes —
  * `computePoints()` (TS) and `public.compute_points` (SQL) — and the
- * jam tiebreak in two more (`computeJamLeaderboard` mirrors
- * `get_jam_leaderboard`). CONTEXT.md promises "a scoring change is
+ * match tiebreak in two more (`computeMatchLeaderboard` mirrors
+ * `get_match_leaderboard`). CONTEXT.md promises "a scoring change is
  * one edit in each home", but until this file nothing failed when
  * only one home was edited: logs.test.ts pinned the TS ladder, the
  * SQL had no pin at all, and both suites stayed green through a
@@ -23,10 +23,10 @@ import type { JamLog, JamPlayerView } from "./jam-types";
  * fails after you edited one home, the fix is to edit the other
  * home — never to loosen the parser.
  *
- * Known divergence, deliberately NOT pinned: `end_jam` writes summary
+ * Known divergence, deliberately NOT pinned: `end_match` writes summary
  * ranks with `row_number()` (arbitrary tie order) while the live
  * board uses `dense_rank()`. Tie handling in summaries is a product
- * decision parked with the jams overhaul (docs/roadmap.md).
+ * decision parked with the matches overhaul (docs/roadmap.md).
  */
 
 function denseRankClause(body: string, fn: string): string {
@@ -87,7 +87,7 @@ describe("scoring ladder parity (computePoints ↔ public.compute_points)", () =
 // ── 2. Rank clause: every ranked surface orders the same way ────
 
 const GYM_RANK_CLAUSE = "points desc, flashes desc, sends desc";
-const JAM_RANK_CLAUSE = `${GYM_RANK_CLAUSE}, last_send_at asc nulls last`;
+const MATCH_RANK_CLAUSE = `${GYM_RANK_CLAUSE}, last_send_at asc nulls last`;
 
 describe("rank clause parity across leaderboard RPCs", () => {
   const gymFns = [
@@ -104,17 +104,21 @@ describe("rank clause parity across leaderboard RPCs", () => {
     expect(denseRankClause(body, fn)).toBe(GYM_RANK_CLAUSE);
   });
 
-  it("get_jam_leaderboard ranks by the gym clause + last-send tiebreak", () => {
-    const { body } = latestDefinition("get_jam_leaderboard");
-    expect(denseRankClause(body, "get_jam_leaderboard")).toBe(JAM_RANK_CLAUSE);
+  // The Match board adds a last-send tiebreak the gym board doesn't
+  // have: a Match ranks its whole roster, so ties are common enough
+  // that "who got there first" is worth breaking on.
+  it("get_match_leaderboard ranks by the gym clause + last-send tiebreak", () => {
+    const { body } = latestDefinition("get_match_leaderboard");
+    expect(denseRankClause(body, "get_match_leaderboard")).toBe(MATCH_RANK_CLAUSE);
   });
 
-  // The converged board (migration 084) replaces get_jam_leaderboard.
-  // It must rank identically, or a Match would change places the day
-  // the UI switches tables underneath it.
-  it("get_match_leaderboard ranks exactly like the jam board it replaces", () => {
-    const { body } = latestDefinition("get_match_leaderboard");
-    expect(denseRankClause(body, "get_match_leaderboard")).toBe(JAM_RANK_CLAUSE);
+  // `match_standings` (085) ranks history and the shared result card.
+  // It must agree with the live board exactly, or a finished Match
+  // would reorder itself the moment you looked at it on another
+  // screen — which is precisely the bug the old summary snapshot had.
+  it("match_standings ranks identically to the live board", () => {
+    const { body } = latestDefinition("match_standings");
+    expect(denseRankClause(body, "match_standings")).toBe(MATCH_RANK_CLAUSE);
   });
 
   it("get_match_leaderboard scores through the shared SQL ladder", () => {
@@ -128,10 +132,10 @@ describe("rank clause parity across leaderboard RPCs", () => {
   });
 });
 
-// ── 3. TS jam mirror implements the same clause + dense_rank ────
+// ── 3. TS match mirror implements the same clause + dense_rank ────
 
-describe("computeJamLeaderboard implements the SQL tiebreak", () => {
-  const player = (uid: string): JamPlayerView => ({
+describe("computeMatchLeaderboard implements the SQL tiebreak", () => {
+  const player = (uid: string): MatchPlayerView => ({
     user_id: uid,
     username: uid,
     display_name: uid,
@@ -143,12 +147,12 @@ describe("computeJamLeaderboard implements the SQL tiebreak", () => {
   const log = (
     uid: string,
     routeId: string,
-    partial: Partial<JamLog>,
-  ): [string, JamLog] => [
+    partial: Partial<MatchLog>,
+  ): [string, MatchLog] => [
     `${uid}:${routeId}`,
     {
       id: `${uid}:${routeId}`,
-      set_id: "jam-1",
+      set_id: "match-1",
       route_id: routeId,
       user_id: uid,
       attempts: 1,
@@ -172,7 +176,7 @@ describe("computeJamLeaderboard implements the SQL tiebreak", () => {
     //   p3 (4, 0, 2, 09:30)  — sends only reached after flashes
     //   p6 (1, 0, 0, null)   ┐ zone-only rows: full-tuple tie,
     //   p7 (1, 0, 0, null)   ┘ null last send sorts last
-    const logs = new Map<string, JamLog>([
+    const logs = new Map<string, MatchLog>([
       log("p1", "r1", { attempts: 1 }),
       log("p1", "r2", { attempts: 1 }),
       log("p2", "r1", { attempts: 1, completed_at: "2026-08-14T10:00:00Z" }),
@@ -184,7 +188,7 @@ describe("computeJamLeaderboard implements the SQL tiebreak", () => {
       log("p7", "r2", { attempts: 2, completed: false, zone: true }),
     ]);
 
-    const rows = computeJamLeaderboard(
+    const rows = computeMatchLeaderboard(
       ["p1", "p2", "p3", "p4", "p5", "p6", "p7"].map(player),
       logs,
     );
@@ -205,14 +209,14 @@ describe("computeJamLeaderboard implements the SQL tiebreak", () => {
     // SQL rank() (gaps after ties), not the dense_rank() the RPC
     // uses. With two tied at rank 2, the next player must be 3 —
     // rank() would call them 4.
-    const logs = new Map<string, JamLog>([
+    const logs = new Map<string, MatchLog>([
       log("top", "r1", { attempts: 1 }), // 4 pts, flash
       log("tieA", "r1", { attempts: 2, completed_at: "2026-08-14T09:00:00Z" }), // 3 pts
       log("tieB", "r2", { attempts: 2, completed_at: "2026-08-14T09:00:00Z" }), // 3 pts, same tuple
       log("last", "r1", { attempts: 4, completed_at: "2026-08-14T10:00:00Z" }), // 1 pt
     ]);
 
-    const rows = computeJamLeaderboard(
+    const rows = computeMatchLeaderboard(
       ["top", "tieA", "tieB", "last"].map(player),
       logs,
     );

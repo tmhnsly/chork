@@ -15,15 +15,15 @@ function makeCtx(overrides: Partial<BadgeContext> = {}): BadgeContext {
     flashedRoutesBySet: new Map(),
     zoneAvailableBySet: new Map(),
     zoneClaimedBySet: new Map(),
-    // Jam aggregates default to 0 for a climber with no jam history,
-    // which is the shape `get_jam_achievement_context` actually
+    // Match aggregates default to 0 for a climber with no match history,
+    // which is the shape `get_match_achievement_context` actually
     // returns — the fixture has to carry them or it isn't a
     // BadgeContext, and progress badges keyed on them go unexercised.
-    jamsPlayed: 0,
-    jamsWon: 0,
-    jamsHosted: 0,
-    maxPlayersInWonJam: 0,
-    uniqueJamCoplayers: 0,
+    matchesPlayed: 0,
+    matchesWon: 0,
+    matchesHosted: 0,
+    maxPlayersInWonMatch: 0,
+    uniqueMatchCoplayers: 0,
     ironCrewMaxPairCount: 0,
     ...overrides,
   };

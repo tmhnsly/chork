@@ -13,8 +13,8 @@
  * across viewers, so they can't carry a caller's auth). The other
  * four reads do use the passed client. Callers therefore pass
  * whichever client suits the rest: `route-log-actions` passes the
- * user's, `jam/actions` passes the service client for cross-user
- * evaluation after a jam ends.
+ * user's, `match/actions` passes the service client for cross-user
+ * evaluation after a match ends.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
@@ -24,43 +24,43 @@ import { getRoutesBySetIds } from "@/lib/data/route-queries";
 import { getAllRouteDataForUserInGym } from "@/lib/data/route-log-queries";
 import { computeAllTimeAggregates } from "@/lib/data/profile-stats";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getJamAchievementContext } from "@/lib/data/jam-queries";
-import type { JamAchievementContext } from "@/lib/data/jam-types";
+import { getMatchAchievementContext } from "@/lib/data/match-queries";
+import type { MatchAchievementContext } from "@/lib/data/match-types";
 import { emptyGymFold, foldGymSets, type GymSetFold } from "./fold";
 
 type Supabase = SupabaseClient<Database>;
 
 /**
- * Jam-sourced fields, mapped from the RPC's snake_case row to the
+ * Match-sourced fields, mapped from the RPC's snake_case row to the
  * evaluator's shape. One home: this mapping used to be written out
- * three times (gymless, no-sets, and the full path), so adding a jam
+ * three times (gymless, no-sets, and the full path), so adding a match
  * aggregate meant remembering all three.
  */
-function jamFields(jam: JamAchievementContext) {
+function matchFields(match: MatchAchievementContext) {
   return {
-    jamsPlayed: jam.jams_played,
-    jamsWon: jam.jams_won,
-    jamsHosted: jam.jams_hosted,
-    maxPlayersInWonJam: jam.max_players_in_won_jam,
-    uniqueJamCoplayers: jam.unique_coplayers,
-    ironCrewMaxPairCount: jam.max_iron_crew_pair_count,
+    matchesPlayed: match.matches_played,
+    matchesWon: match.matches_won,
+    matchesHosted: match.matches_hosted,
+    maxPlayersInWonMatch: match.max_players_in_won_match,
+    uniqueMatchCoplayers: match.unique_coplayers,
+    ironCrewMaxPairCount: match.max_iron_crew_pair_count,
   };
 }
 
-/** Totals union gym activity with jam activity. A flash is a flash is
+/** Totals union gym activity with match activity. A flash is a flash is
  *  a flash — Thunder progression, First (A)send and Century all count
  *  both sources. */
 function assemble(
-  jam: JamAchievementContext,
+  match: MatchAchievementContext,
   gym: GymSetFold,
   gymTotals: { flashes: number; sends: number; points: number } | null,
 ): BadgeContext {
   return {
-    totalFlashes: (gymTotals?.flashes ?? 0) + jam.jam_total_flashes,
-    totalSends: (gymTotals?.sends ?? 0) + jam.jam_total_sends,
-    totalPoints: (gymTotals?.points ?? 0) + jam.jam_total_points,
+    totalFlashes: (gymTotals?.flashes ?? 0) + match.match_total_flashes,
+    totalSends: (gymTotals?.sends ?? 0) + match.match_total_sends,
+    totalPoints: (gymTotals?.points ?? 0) + match.match_total_points,
     ...gym,
-    ...jamFields(jam),
+    ...matchFields(match),
   };
 }
 
@@ -76,16 +76,16 @@ export async function buildBadgeContext(
   // takes its subject explicitly and is revoked from `authenticated`,
   // because this runs for OTHER users too (the post-Match evaluation
   // re-scores every participant).
-  const jamAchievements = await getJamAchievementContext(
+  const matchAchievements = await getMatchAchievementContext(
     createServiceClient(),
     userId,
   );
 
-  if (!gymId) return assemble(jamAchievements, emptyGymFold(), null);
+  if (!gymId) return assemble(matchAchievements, emptyGymFold(), null);
 
   const allSets = await getAllSets(gymId);
   if (allSets.length === 0) {
-    return assemble(jamAchievements, emptyGymFold(), null);
+    return assemble(matchAchievements, emptyGymFold(), null);
   }
 
   // One batched routes query for all sets instead of N parallel
@@ -101,5 +101,5 @@ export async function buildBadgeContext(
   const aggregates = computeAllTimeAggregates(routeData.logs);
   const gymFold = foldGymSets(allSets, routesBySetId, routeData.logs);
 
-  return assemble(jamAchievements, gymFold, aggregates);
+  return assemble(matchAchievements, gymFold, aggregates);
 }

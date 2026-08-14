@@ -121,18 +121,31 @@ vocabulary these decisions produced.
       `(grade, scale)` stored and converted at display to the
       climber's most-used scale; excluded climbs counted in
       `jam_summary_players.ungraded_sends` so the UI can say what it
-      left out. Retention shipped and live (076/077), so jam data has
-      been accruing since; gym data is full history and needs no
-      backfill.
+      left out.
 
-      **⚠️ One decision is now void.** "Converted at display to the
-      climber's most-used scale" pre-dates the multi-discipline
-      decision and breaks the moment someone logs both boulders and
-      ropes: a 6a+ cannot be rendered as a V-grade. The graph must be
-      **per discipline** — one pyramid for boulders, one for ropes —
-      and the rollup needs discipline alongside `(grade, scale)`.
-      Cheap to fix now (nothing built); annoying once 076 has data
-      behind it. Everything else in that header still stands.
+      **⚠️ Two of those decisions are now void.**
+
+      1. "Converted at display to the climber's most-used scale"
+         pre-dates the multi-discipline decision and breaks the moment
+         someone logs both boulders and ropes: a 6a+ cannot be
+         rendered as a V-grade. The graph must be **per discipline** —
+         one pyramid for boulders, one for ropes — and the rollup
+         needs discipline alongside `(grade, scale)`.
+      2. **The storage described in 076 no longer exists.**
+         `jam_summary_grades` and `jam_summary_players.ungraded_sends`
+         were dropped with the rest of the family in migration 089.
+         Nothing was lost — the table had accrued 0 rows in its
+         lifetime, because it was only ever written by `end_jam` and
+         read by nothing.
+
+      That is a better starting position than it sounds. The
+      convergence means Match sends are ordinary `route_logs` rows
+      with a `declared_grade` on their route, so the graph can roll
+      up gym and Match sends together, from live rows, with no
+      snapshot table to keep in sync and no backfill. Everything in
+      076's header about *shape* (per-(climber, grade), attempts
+      deliberately absent, visible to any signed-in user, say what
+      was excluded) still stands; only its storage plan is void.
 
 - [x] **Match result share card.** *(Shipped 2026-08-14.)* When a Set
       ends, `/r/<token>` renders the result and unfurls in a group
@@ -253,19 +266,40 @@ vocabulary these decisions produced.
       rewrite its `gym_id` onto any gym's board. Migration 073 fixed
       that for inserts; nobody checked the edit path.
 
+      **Phase 3 landed 2026-08-15** (migrations 089 + 090). The
+      `jam_*` family is gone from the database — 8 tables, 21
+      functions, plus `get_user_all_time_stats`, the only
+      non-jam-named function that read them. The code is renamed
+      throughout: files, the `/jam` → `/match` route, types, badge
+      keys. **The convergence is complete.**
+
+      Two things worth carrying forward from it:
+
+      - Dropping had to go **tables before functions**, the opposite
+        of the intuitive order, because every jam table's RLS
+        policies depended on `is_jam_player(uuid)`. Dry-running the
+        migration inside a rolled-back transaction is what caught it.
+      - Badge ids are persisted in `user_achievements.badge_id` and
+        the evaluator's "already earned" check compares against them,
+        so a config rename without migration 090 would have silently
+        unearned every Match badge and re-issued it with a fresh
+        date. Two real badges were affected. Any future badge rename
+        has the same shape.
+
+      The one deliberate leftover: `registry.ts` keeps an
+      `upsertJamLog` alias beside `upsertMatchLog`, because the key is
+      what gets written into IndexedDB — a device that queued a log
+      while offline before the rename still names the old action.
+      Delete it once no client can plausibly hold a pre-rename queue.
+
       **Still open:**
 
-      - [ ] Drop the `jam_*` tables and their RPCs. Nothing reads them
-            now, so this is a deletion, not a migration — but leave a
-            gap between "unused" and "gone" in case something surfaces.
-      - [ ] Rename `jam*` → `match*` across the code: files, routes
-            (`/jam` → `/match`), types, the 7 badge keys and their
-            persisted `user_achievements` rows. Deliberately left
-            last so the data-source swap stayed reviewable on its own.
-            The badge keys are the fiddly part — they're stored.
-      - [ ] `jam_summary_grades` was write-only even before this and
-            is now unwritten. Decide whether per-grade breakdown is a
-            feature (it pairs with the grades graph below) or deletion.
+      - [ ] `jam_summary_grades` held the per-grade breakdown and was
+            write-only even before the convergence — nothing ever read
+            it. Dropped with the rest in 089, so the grades graph
+            below now needs its own rollup over `route_logs`. That is
+            arguably better: it can cover gym and Match sends
+            together, from live rows, per discipline.
 
 - [ ] **Guest players (the growth unlock).** Joining is the thirty
       seconds in which one climber recruits another, and today it

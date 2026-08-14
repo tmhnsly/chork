@@ -13,7 +13,7 @@ import { visibleAttempts } from "./logs";
  * two different things at two different grains, so there are two
  * collapses, not one.
  *
- *   • **Aggregate grain** (a player's total attempts across a jam):
+ *   • **Aggregate grain** (a player's total attempts across a match):
  *     masked to 0 in SQL. It has no display or derivation role for
  *     anyone but the owner, so it is simply withheld.
  *   • **Per-log grain** (one climber, one route): collapsed to the
@@ -22,7 +22,7 @@ import { visibleAttempts } from "./logs";
  *     derived from it and flash is PUBLIC — it's a leaderboard column.
  *
  * These tests exist because the leak they guard has already happened
- * twice: migration 052 fixed it on the post-jam summary hydrator and
+ * twice: migration 052 fixed it on the post-match summary hydrator and
  * migration 056 fixed the same leak on the live leaderboard RPC. Both
  * were caught by review, not by a test — a later `create or replace`
  * that drops the mask would ship silently. `create or replace`
@@ -36,21 +36,17 @@ describe("aggregate attempt mask (SQL)", () => {
   /** Masked RPCs → the column expression that must stay guarded. */
   const MASKED_RPCS = [
     {
-      fn: "get_jam_leaderboard",
-      // Live board: masks its own aggregate before returning it.
-      column: "attempts",
-    },
-    {
-      fn: "get_jam_summary_for_user",
-      // Post-jam summary hydrator: masks jam_summary_players.attempts.
-      column: "attempts",
-    },
-    {
       fn: "get_match_leaderboard",
-      // The converged live board (migration 084). Same mask, resolved
-      // against `v_viewer` — which is auth.uid() for an authenticated
-      // caller and the named viewer only when auth.uid() is null, so
-      // it cannot be spoofed into revealing someone else's count.
+      // The live board (migration 084). Masks its own aggregate before
+      // returning it, resolved against `v_viewer` — which is
+      // auth.uid() for an authenticated caller and the named viewer
+      // only when auth.uid() is null, so it cannot be spoofed into
+      // revealing someone else's count.
+      //
+      // The post-match summary hydrator used to be pinned here too.
+      // It no longer exists: a finished Match is an archived Set that
+      // keeps its rows, so there is no snapshot to mask a second time
+      // (migrations 085 + 089).
       column: "attempts",
     },
   ];
@@ -82,7 +78,7 @@ describe("aggregate attempt mask (SQL)", () => {
   );
 
   it("get_match_state_for_user inherits the mask rather than re-deriving it", () => {
-    // Same contract as the jam hydrator below: the bundle's board
+    // Same contract as the match hydrator below: the bundle's board
     // comes straight from get_match_leaderboard (already masked), and
     // `my_logs` is filtered to the caller. If it ever reads attempts
     // out of route_logs for anyone else it needs its own mask.
@@ -101,19 +97,6 @@ describe("aggregate attempt mask (SQL)", () => {
     ).toBe(true);
   });
 
-  it("get_jam_state_for_user inherits the mask rather than re-deriving it", () => {
-    // The hydrator passes `lb.attempts` straight through from
-    // get_jam_leaderboard (already masked) and returns `my_logs` for
-    // the caller only. If it ever selects attempts from jam_logs
-    // directly it needs its own mask — this test says so out loud.
-    const { body, file } = latestDefinition("get_jam_state_for_user");
-    expect(
-      body.includes("get_jam_leaderboard"),
-      `get_jam_state_for_user (live definition in ${file}) no longer sources ` +
-        `its leaderboard from get_jam_leaderboard, so it no longer inherits ` +
-        `that RPC's attempt mask. Add an explicit mask or re-point it.`,
-    ).toBe(true);
-  });
 });
 
 // ── TS side: the per-log bucket collapse ──

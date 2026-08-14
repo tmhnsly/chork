@@ -62,7 +62,7 @@ interface Props {
  * Use for any horizontal row of cards / tiles that should read
  * aligned-to-content on first paint but unfurl to viewport edges
  * on swipe — achievements shelf, crew member rows, route tag
- * chips, future jams history strips.
+ * chips, future matches history strips.
  *
  * Mount the scroller as a direct child of a `layout.page`-wrapped
  * `<main>` so `bleed-x` can compute the correct negative margin

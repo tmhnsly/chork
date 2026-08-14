@@ -5,7 +5,7 @@ import type { CachedRouteData } from "./types";
 
 /**
  * Local state model for the route-log bottom-sheet. Modelled on
- * `jamScreenReducer.ts` — discriminated-union actions, pure
+ * `matchScreenReducer.ts` — discriminated-union actions, pure
  * transitions, immutable updates. Unit-tested independently of any
  * React render.
  *

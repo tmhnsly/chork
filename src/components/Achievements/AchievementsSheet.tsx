@@ -35,7 +35,7 @@ const ALL_FILTERS: { id: Filter; label: string }[] = [
   { id: "all", label: "All" },
   { id: "sends", label: "Sends" },
   { id: "flashes", label: "Flashes" },
-  { id: "jams", label: "Jams" },
+  { id: "matches", label: "Matches" },
 ];
 
 export function AchievementsSheet({ badges, open, onClose }: Props) {

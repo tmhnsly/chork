@@ -9,7 +9,7 @@ that needs a single canonical definition.
 
 > **Vocabulary is ahead of the code (decided 2026-08-14).** The terms
 > below are the agreed product language; the codebase still says
-> `jam*` / "Wall" / "Crew" in places and will until the convergence
+> `match*` / "Wall" / "Crew" in places and will until the convergence
 > work in `docs/roadmap.md` lands. Where they differ, this file is the
 > target and the code is the lag. Don't "correct" this file back.
 
@@ -44,7 +44,7 @@ same way as a gym Set.
 
 The name works twice over: a match is a contest with players and a
 winner, and matching is putting both hands on the same hold. Legible
-to a newcomer, a wink to a climber. (It replaces "Jam", dropped
+to a newcomer, a wink to a climber. (It replaces "Match", dropped
 because it named a crack technique and implied a session rather than
 a competition.)
 
@@ -179,7 +179,7 @@ incomplete = 0, plus 1 if zone. One concept, two canonical homes —
 `computePoints()` in `src/lib/data/logs.ts` (TypeScript) and
 `public.compute_points(attempts, completed, zone)` (SQL, migration
 063). Every scoring surface (Chorkboard, crew leaderboard, competition
-standings, jam leaderboard, `user_set_stats`) derives from one of
+standings, match leaderboard, `user_set_stats`) derives from one of
 these two; nothing else may inline the ladder. A scoring change is one
 edit in each home — and since 2026-08 the pairing is machine-checked:
 `src/lib/data/scoring-parity.test.ts` evaluates the TS ladder against
@@ -187,10 +187,15 @@ the latest SQL definition (and pins every leaderboard RPC's
 rank/tiebreak clause), so a one-sided edit fails the suite instead of
 silently forking the formula.
 
-Known, deliberate rank divergence: `end_jam` writes summary ranks
-with `row_number()` (arbitrary tie order) while every live board uses
-`dense_rank()`. Tie handling in jam summaries is a product decision
-parked with the jams overhaul (docs/roadmap.md).
+**Resolved 2026-08-15.** There used to be a deliberate rank
+divergence here: `end_jam` wrote summary ranks with `row_number()`
+(arbitrary tie order) while every live board used `dense_rank()`, so
+a tied session disagreed with itself depending on the screen. The Set
+convergence removed the summary entirely — a finished Match is an
+archived Set that keeps its rows — and `match_standings` (migration
+085) is the single ranking behind the live board, history and the
+shared result card alike. `scoring-parity.test.ts` pins it to the
+same clause as `get_match_leaderboard`.
 
 ## Attempt privacy
 
@@ -198,13 +203,19 @@ Raw attempt counts are owner-only. "Raw" means two different things
 at two different grains, so the contract is **two collapses, not
 one** — reading it as a single rule is how it gets implemented wrong.
 
-**Aggregate grain** — a player's total attempts across a jam
-(`sum(attempts)`, `jam_summary_players.attempts`). Masked to `0` for
-everyone but the owner, in SQL. It has no display role and no
-derivation role for a viewer, so it is simply withheld. Lives inline
-in the live definitions of `get_jam_leaderboard` and
-`get_jam_summary_for_user`; `get_jam_state_for_user` inherits it by
-sourcing its leaderboard from the former rather than re-deriving.
+**Aggregate grain** — a player's total attempts across a Match
+(`sum(attempts)`). Masked to `0` for everyone but the owner, in SQL.
+It has no display role and no derivation role for a viewer, so it is
+simply withheld. Lives inline in the live definition of
+`get_match_leaderboard`, resolved against `v_viewer` so the
+service-role path masks against a real person rather than nobody;
+`get_match_state_for_user` inherits it by sourcing its leaderboard
+from that RPC rather than re-deriving.
+
+The public result card goes further: `get_public_match_result`
+doesn't return `attempts` at all. There is no viewer to mask against
+on a page anyone with the link can read, so the column simply never
+leaves the database.
 
 **Per-log grain** — one climber, one route. Collapsed to the buckets
 `{0, 1, 2}` by `visibleAttempts()` in `src/lib/data/logs.ts`:
@@ -223,10 +234,10 @@ and drops `attempts` entirely, so the number never crosses the wire.
 Prefer that shape for any NEW surface handing one climber's logs to
 another's browser.
 
-**Known accepted weakness.** Jam realtime ships `jam_logs` with
+**Known accepted weakness.** Match realtime ships `match_logs` with
 `REPLICA IDENTITY FULL`, so other players' raw per-log counts do
 reach the browser and are collapsed client-side, in
-`jamScreenReducer`'s `upsert-log`. Migration 056 accepted this
+`matchScreenReducer`'s `upsert-log`. Migration 056 accepted this
 deliberately: the RPC mask plus the client collapse are documented
 there as a defence-in-depth pair, and the value is never rendered.
 Reopen only with a filtered publication or realtime RLS — not by

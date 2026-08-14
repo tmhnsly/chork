@@ -16,8 +16,8 @@ export const AUTH_REQUIRED_ERROR = "You need to be signed in to do that";
 /**
  * `requireAuth` failed because the caller is signed in but has no
  * active gym — a first-class state, not an error (see CONTEXT.md
- * "Jam"). Gym-scoped pages branch on this to send the climber to
- * `/jam` rather than `/login`.
+ * "Match"). Gym-scoped pages branch on this to send the climber to
+ * `/match` rather than `/login`.
  *
  * A named constant because that branch is a STRING COMPARISON: while
  * this was a bare literal in two files, rewording the copy would have

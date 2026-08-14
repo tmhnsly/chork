@@ -31,7 +31,7 @@ export const canRunIntegration = canRun({
 
 /**
  * Service-role client — bypasses RLS. Used to provision + clean up
- * test fixtures (insert / delete jam rows, create / remove test
+ * test fixtures (insert / delete match rows, create / remove test
  * users via the admin API).
  */
 export function makeServiceClient(): SupabaseClient<Database> {

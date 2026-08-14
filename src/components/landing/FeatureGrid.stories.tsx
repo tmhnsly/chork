@@ -13,7 +13,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 /**
- * Climber-focused bento — Chorkboard, Wall, Jams, Flash, Zone, Crews,
+ * Climber-focused bento — Chorkboard, Wall, Matches, Flash, Zone, Crews,
  * Beta, Your stats, Achievements, Community grades. Each tile's
  * visual is a container query so it scales with its own width.
  */

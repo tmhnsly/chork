@@ -42,7 +42,7 @@ $tile-min-h: 17.5rem;
     "zone"
     "achievements"
     "crews"
-    "jams";
+    "matches";
 
   @include bp.tablet {
     grid-template-columns: repeat(2, 1fr);
@@ -56,7 +56,7 @@ $tile-min-h: 17.5rem;
       "beta         beta"
       "zone         achievements"
       "crews        crews"
-      "jams         jams";
+      "matches         matches";
   }
 
   @include bp.desktop {
@@ -65,13 +65,13 @@ $tile-min-h: 17.5rem;
     grid-template-areas:
       "chorkboard chorkboard wall  flash"
       "beta       beta       zone  achievements"
-      "crews      crews      jams  jams";
+      "crews      crews      matches  matches";
   }
 }
 
 .tileChorkboard   { grid-area: chorkboard; }
 .tileWall         { grid-area: wall; }
-.tileJams         { grid-area: jams; }
+.tileMatches         { grid-area: matches; }
 .tileCrews        { grid-area: crews; }
 .tileFlash        { grid-area: flash; }
 .tileAchievements { grid-area: achievements; }
@@ -87,7 +87,7 @@ $tile-min-h: 17.5rem;
 // rings / halos / gradient washes read as depth beneath the text,
 // blurred through the panel's backdrop-filter. Tiles themselves carry
 // a themed radial-gradient wash (gold for ranking/flash, teal for
-// zone, red for live jams, lime for climber-social) so each card
+// zone, red for live matches, lime for climber-social) so each card
 // reads as its own accent family.
 .tile {
   position: relative;
@@ -149,7 +149,7 @@ $tile-min-h: 17.5rem;
     var(--mono-app-bg);
 }
 
-.tileJams {
+.tileMatches {
   background:
     radial-gradient(120% 90% at 0% 0%, var(--error-subtle-bg) 0%, transparent 55%),
     var(--mono-app-bg);
@@ -244,7 +244,7 @@ $tile-min-h: 17.5rem;
   color: var(--accent-text);
 }
 
-.tileJams .icon {
+.tileMatches .icon {
   color: var(--error-text);
 }
 
@@ -748,10 +748,10 @@ $tile-min-h: 17.5rem;
 }
 
 // ══════════════════════════════════════════════════════
-// JAMS — JAM badge + roster + attributed route rows
+// MATCHES — MATCH badge + roster + attributed route rows
 // ══════════════════════════════════════════════════════
 
-.jamGame {
+.matchGame {
   width: 100%;
   max-width: min(340px, 84cqi);
   display: flex;
@@ -759,13 +759,13 @@ $tile-min-h: 17.5rem;
   gap: clamp(8px, 2.5cqi, 14px);
 }
 
-.jamHead {
+.matchHead {
   display: flex;
   align-items: center;
   gap: clamp(8px, 2.5cqi, 14px);
 }
 
-.jamBadge {
+.matchBadge {
   padding: clamp(3px, 1cqi, 5px) clamp(8px, 2.4cqi, 12px);
   border-radius: var(--radius-full);
   background: var(--error-solid);
@@ -774,11 +774,11 @@ $tile-min-h: 17.5rem;
   font-size: clamp(9px, 2.4cqi, 12px);
 }
 
-.jamPlayers {
+.matchPlayers {
   display: flex;
 }
 
-.jamPlayer {
+.matchPlayer {
   display: grid;
   place-items: center;
   width: clamp(22px, 7cqi, 32px);
@@ -794,11 +794,11 @@ $tile-min-h: 17.5rem;
   &:first-child { margin-left: 0; }
 }
 
-.jamPlayeraccent { background: var(--accent-solid); color: var(--accent-on-solid); }
-.jamPlayermono   { background: var(--mono-solid);   color: var(--mono-app-bg); }
-.jamPlayerflash  { background: var(--flash-solid);  color: var(--flash-on-solid); }
+.matchPlayeraccent { background: var(--accent-solid); color: var(--accent-on-solid); }
+.matchPlayermono   { background: var(--mono-solid);   color: var(--mono-app-bg); }
+.matchPlayerflash  { background: var(--flash-solid);  color: var(--flash-on-solid); }
 
-.jamBuild {
+.matchBuild {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -807,7 +807,7 @@ $tile-min-h: 17.5rem;
   gap: clamp(4px, 1.4cqi, 8px);
 }
 
-.jamCardRow {
+.matchCardRow {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
@@ -818,7 +818,7 @@ $tile-min-h: 17.5rem;
   border-radius: var(--radius-2);
   opacity: 0;
   transform: translateY(6px);
-  animation: jamRowAppear 6s ease-out infinite;
+  animation: matchRowAppear 6s ease-out infinite;
   animation-delay: calc(var(--i, 0) * 500ms);
 
   @media (prefers-reduced-motion: reduce) {
@@ -828,7 +828,7 @@ $tile-min-h: 17.5rem;
   }
 }
 
-.jamGrade {
+.matchGrade {
   padding: clamp(2px, 0.7cqi, 4px) clamp(6px, 2cqi, 10px);
   border-radius: var(--radius-1);
   background: var(--accent-solid);
@@ -840,7 +840,7 @@ $tile-min-h: 17.5rem;
   letter-spacing: var(--tracking-sm);
 }
 
-.jamRouteName {
+.matchRouteName {
   @include type.typography(meta);
   font-size: clamp(11px, 3cqi, 14px);
   color: var(--mono-text);
@@ -850,7 +850,7 @@ $tile-min-h: 17.5rem;
   white-space: nowrap;
 }
 
-.jamTag {
+.matchTag {
   display: grid;
   place-items: center;
   width: clamp(20px, 5.5cqi, 28px);
@@ -862,11 +862,11 @@ $tile-min-h: 17.5rem;
   line-height: 1;
 }
 
-.jamTagaccent { background: var(--accent-solid); color: var(--accent-on-solid); }
-.jamTagmono   { background: var(--mono-solid);   color: var(--mono-app-bg); }
-.jamTagflash  { background: var(--flash-solid);  color: var(--flash-on-solid); }
+.matchTagaccent { background: var(--accent-solid); color: var(--accent-on-solid); }
+.matchTagmono   { background: var(--mono-solid);   color: var(--mono-app-bg); }
+.matchTagflash  { background: var(--flash-solid);  color: var(--flash-on-solid); }
 
-@keyframes jamRowAppear {
+@keyframes matchRowAppear {
   0%, 8%    { opacity: 0; transform: translateY(8px); }
   16%, 80%  { opacity: 1; transform: translateY(0); }
   90%, 100% { opacity: 0; transform: translateY(-4px); }
@@ -1291,7 +1291,7 @@ $tile-min-h: 17.5rem;
 // Visibility gate — every animation inside the grid stays paused
 // until `TileGrid` (see FeatureGrid.tsx) adds `.gridVisible` on
 // first IntersectionObserver hit. Before this, ~20 infinite loops
-// (Chorkboard choreography, Wall cell cycle, Jams rows, Crews halo/
+// (Chorkboard choreography, Wall cell cycle, Matches rows, Crews halo/
 // pop/activity, Flash rings, Achievements, Zone, Beta, etc.) kept
 // ticking whether the grid was on-screen or not — wasted paint +
 // composite work on every scroll position.

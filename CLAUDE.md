@@ -101,7 +101,7 @@ Two supabase clients:
 - Mutation gates (uuid validate + auth + rate limit in one call —
   never re-type the prelude): `gateClimberMutation` (gym-scoped),
   `gateGymAdminMutation` (admin), `gateSignedInMutation` (gymless-safe,
-  rate limit ON by default — jams use this)
+  rate limit ON by default — matches use this)
 - `requireSameGymScope(supabase, gymId, setId, targetUserId)` — the
   cross-gym exposure gate (set in caller's gym AND target is a
   member). Use it for any read that surfaces another climber's data
@@ -112,7 +112,7 @@ Two supabase clients:
   `route-log-queries` / `route-queries` / `set-queries` /
   `gym-queries` / `profile-queries` / `leaderboard-queries` /
   `crew-queries` / `competition-queries` / `admin-queries` /
-  `dashboard-queries` / `jam-queries` / `comment-queries` /
+  `dashboard-queries` / `match-queries` / `comment-queries` /
   `achievement-queries`. Every read takes `supabase` as first arg.
   (There is no catch-all `queries.ts`; it was split per-surface.)
 - Client-reachable data modules use a `*.client.ts` suffix (no
@@ -121,7 +121,7 @@ Two supabase clients:
   never query Supabase tables directly, even client-side
 - Mutations: `src/lib/data/mutations.ts` (climber writes) and
   `crew-lifecycle.ts` — server-side only; some use service role for
-  cross-user writes. Admin + jam writes live inline in their server
+  cross-user writes. Admin + match writes live inline in their server
   action (single-caller wrappers were deliberately inlined — don't
   reintroduce a pass-through mutation module for them)
 - Server actions live next to their pages:
@@ -170,7 +170,7 @@ Quick reference:
 - `SendsGrid` keeps a `routeDataCache` Map for instant tile re-opens
 - `completeRoute` evaluates badges **inline** (~150–250ms) so newly
   earned achievements ride back in the same response and the toast
-  fires with the send that earned it. `endJamAction` is the one that
+  fires with the send that earned it. `endMatchAction` is the one that
   defers via `after()` — it has no toast to feed
 - `AuthProvider` reads a localStorage profile cache on mount (1h TTL,
   key `chork-profile-cache-v2`). NavBar paints in its full state on
@@ -393,7 +393,7 @@ navbar + home indicator), max-width, and centering.
   multi-field payload. Independent toggles, orthogonal form fields,
   and isolated flags stay as `useState` — a reducer for those is
   just indirection. Reference shapes:
-  `src/components/Jam/jamScreenReducer.ts` (realtime merge) and
+  `src/components/Match/matchScreenReducer.ts` (realtime merge) and
   `src/components/RouteLogSheet/routeLogReducer.ts` (optimistic +
   revert + paginated list).
 - **Custom `useXState` hook for the async handlers around the
@@ -407,13 +407,13 @@ navbar + home indicator), max-width, and centering.
   no mocks, no fake timers. Pin every transition that has an
   invariant (optimistic-revert paths, idempotent toggle pairs,
   one-shot hydration). References:
-  `src/components/Jam/jamScreenReducer.test.ts` (25+ cases) and
+  `src/components/Match/matchScreenReducer.test.ts` (25+ cases) and
   `src/components/RouteLogSheet/routeLogReducer.test.ts` (23 cases).
 - **Use `useDebouncedFlush` for the debounce-with-flush-on-unmount
   pattern.** Lives at `src/hooks/use-debounced-flush.ts` (pure logic
   in `src/lib/debouncer.ts` with its own unit tests). Never re-roll
   the `timerRef` + `pendingRef` + latest-flush-ref trio inline.
-  Adopted by RouteLogSheet (attempts + grade vote) and JamLogSheet
+  Adopted by RouteLogSheet (attempts + grade vote) and MatchLogSheet
   (attempts).
 
 ---
@@ -460,16 +460,16 @@ navbar + home indicator), max-width, and centering.
 ### A gym is optional — gymless is a first-class state
 
 Chork's core is that anyone can run their own comp anywhere via a
-**jam** — at a gym, outdoors, on a home wall. The Wall and Chorkboard
+**match** — at a gym, outdoors, on a home wall. The Wall and Chorkboard
 are the *extra* layer for gyms that have adopted Chork, not the
 baseline. Never write code that assumes `profile.active_gym_id` is
 set.
 
-- `requireSignedIn()` for anything that works without a gym (jams,
+- `requireSignedIn()` for anything that works without a gym (matches,
   crews, profiles, notifications). `requireAuth()` **only** for
   genuinely gym-scoped surfaces — it fails with "No gym selected"
 - Gymless routing already exists: `/` and `/leaderboard` redirect to
-  `/jam`, NavBar drops to its gymless variant (Crew / Jam / Profile),
+  `/match`, NavBar drops to its gymless variant (Crew / Match / Profile),
   and the profile page guards its gym sections. Onboarding can be
   completed without a gym
 - **Leaving a gym parks it, never severs it.** `clearActiveGym` nulls
@@ -484,7 +484,7 @@ set.
 
 Known gap: `activity_events` is only written by gym-wall sends and
 comments, so a gymless climber produces nothing for the crew feed.
-Decided direction is one event per jam, parked pending the crew rework.
+Decided direction is one event per match, parked pending the crew rework.
 
 ### Crews replaced follows
 
