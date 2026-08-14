@@ -128,6 +128,57 @@ Platform hardening:
       `TypeError` (silent data loss on any other failure); add/edit/end-route
       and end-jam have no error handling; live leaderboard caps at 5 of 20.
       Needs one coherent pass, not piecemeal fixes.
+- [ ] **Admin flow — full design pass.** Never fleshed out as a
+      journey; it grew per-feature. The 2026-08-14 architecture sweep
+      found the seams that implies. Open product questions first, then
+      code:
+
+      **Multi-gym is unreachable.** All 6 admin pages call
+      `requireGymAdmin()` with no argument, which resolves to the
+      *oldest* `gym_admins` row. An owner of gyms A and B gets a hard
+      404 on every Set belonging to B (`sets/[id]/page.tsx` authorises
+      by `getAllSetsForAdminGym(gymId).find(...)` → `notFound()`).
+      There is no gym picker anywhere in the admin shell —
+      `AdminNav` is 3 static links, and `getAdminGymsForUser` exists
+      but is used only by the competition gym-link dropdown. Needs:
+      does an admin pick a gym in the shell (like the climber's gym
+      switcher), or does every admin route carry a gym in its path?
+
+      **The invite journey is half-built.** `sendAdminInvite` +
+      `cancelAdminInvite` are fully implemented and tested, and have
+      **zero non-test callers** — no team/invites surface exists. Only
+      acceptance (`/admin/invite/[token]`) is reachable. Either build
+      the team screen or delete the endpoints.
+
+      **Publish semantics need deciding, not patching.** Create-live
+      now requires seeded routes (a live Set with no routes is an
+      empty Wall), so /admin/sets/new's "Publish" button can never
+      succeed — the console has no route input at create time. Should
+      the console create-as-draft only and drop Publish, and does
+      going live from the console announce to the gym? (See the
+      Announcement question below.)
+
+      **Client and server constraints have drifted**, not duplicated:
+      route count `max={50}` vs `max={100}` vs server `1..100`; setter
+      name `maxLength={40}` vs server `> 80` rejected. One authority
+      needed per field.
+
+      **Nothing is tested or storied.** 26 admin component files, 0
+      tests, 0 stories. 9 of 18 admin server actions have no test —
+      all 6 competition actions among them. `SetForm`'s
+      status-derivation is a closure, so the bug that unpublished live
+      Sets was structurally invisible; a pure
+      `setFormPayload(mode, publishing, fields)` would be testable.
+
+      Smaller cleanups to fold in: `adminControls.module.scss` is 36%
+      dead; 6 admin stylesheets keep pre-`PageHeader` title blocks;
+      `getCommunityGradeDistribution` has zero callers; three
+      one-line `archiveSet`/`publishSet`/`unpublishSet` pass-throughs;
+      the `SetterBreakdown`/`VenueStats` widgets are structural twins
+      (bar-row markup + SCSS duplicated 3×); `FormField` exists and no
+      admin form uses it (4 hand-rolled copies); demoting an incumbent
+      Set busts `gymActiveSet` but not that Set's `setLeaderboard`.
+
 - [ ] Closing-event UI (data model in place — `closing_event` +
       `venue_gym_id` on sets)
 - [ ] Invite email delivery for `gym_invites` (current flow
