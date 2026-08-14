@@ -40,6 +40,44 @@ export interface RouteLogState {
   likedIds: Set<string>;
 }
 
+/**
+ * The slice of `RouteLogState` that `<CommentThread />` renders.
+ *
+ * Named as one value because it changes as one: every comment
+ * feature adds or edits fields here together. Before this existed,
+ * all eight were forwarded individually through `RouteLogSheet` —
+ * which is documented as "purely the JSX tree" yet had to know each
+ * field's name and type just to pass it along, so a new comment
+ * field meant editing a component that never reads it.
+ *
+ * `nextPage` is deliberately NOT here: it's pagination bookkeeping
+ * the reducer owns and the view never reads.
+ */
+export interface CommentThreadView {
+  betaExpanded: boolean;
+  comments: Comment[];
+  totalComments: number;
+  hasMore: boolean;
+  loadingComments: boolean;
+  loadingMore: boolean;
+  likedIds: Set<string>;
+  commentsLoaded: boolean;
+}
+
+/** Project the comment-thread view out of the full sheet state. */
+export function selectCommentThread(state: RouteLogState): CommentThreadView {
+  return {
+    betaExpanded: state.betaExpanded,
+    comments: state.comments,
+    totalComments: state.totalComments,
+    hasMore: state.hasMore,
+    loadingComments: state.loadingComments,
+    loadingMore: state.loadingMore,
+    likedIds: state.likedIds,
+    commentsLoaded: state.commentsLoaded,
+  };
+}
+
 export type RouteLogAction =
   // attempts + log
   | { type: "set-attempts"; attempts: number }

@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  initJamState,
   jamReducer,
   logKey,
   type JamAction,
   type JamLocalState,
 } from "./jamScreenReducer";
-import type { JamLog, JamPlayerView, JamRoute } from "@/lib/data/jam-types";
+import type { JamLog, JamPlayerView, JamRoute, JamState } from "@/lib/data/jam-types";
 
 function mkRoute(id: string, number: number, overrides: Partial<JamRoute> = {}): JamRoute {
   return {
@@ -52,6 +53,7 @@ const emptyState: JamLocalState = {
   routes: [],
   players: [],
   logs: new Map(),
+  panel: { kind: "none" },
 };
 
 describe("jamReducer", () => {
@@ -70,6 +72,7 @@ describe("jamReducer", () => {
         routes: [],
         players: [mkPlayer("u1", "alice")],
         logs,
+        panel: { kind: "none" },
       };
       const next = jamReducer(state, { type: "set-routes", routes: [mkRoute("b", 1)] });
       expect(next.players).toBe(state.players);
@@ -168,6 +171,7 @@ describe("jamReducer", () => {
       const next = jamReducer(emptyState, {
         type: "upsert-log",
         log: mkLog("u1", "r1"),
+        viewerId: "u1",
       });
       expect(next.logs.size).toBe(1);
       expect(next.logs.get(logKey("u1", "r1"))).toBeTruthy();
@@ -181,6 +185,7 @@ describe("jamReducer", () => {
       const next = jamReducer(state, {
         type: "upsert-log",
         log: mkLog("u1", "r1", { attempts: 3 }),
+        viewerId: "u1",
       });
       expect(next.logs.size).toBe(1);
       expect(next.logs.get(logKey("u1", "r1"))?.attempts).toBe(3);
@@ -192,9 +197,141 @@ describe("jamReducer", () => {
       const next = jamReducer(state, {
         type: "upsert-log",
         log: mkLog("u1", "r1"),
+        viewerId: "u1",
       });
       expect(next.logs).not.toBe(logs);
       expect(logs.size).toBe(0);
+    });
+  });
+
+  // ── Privacy gate ──────────────────────────────────────────────
+  // CLAUDE.md: "Attempt counts are private — never show raw attempts
+  // to other users." Realtime ships jam_logs with REPLICA IDENTITY
+  // FULL, so other-player events arrive with raw counts; the reducer
+  // is the single gate that collapses them before they enter state.
+  // This invariant used to live in an untestable inline branch of
+  // JamScreen's realtime callback.
+  describe("upsert-log privacy gate", () => {
+    it("keeps the viewer's own raw attempt count", () => {
+      const next = jamReducer(emptyState, {
+        type: "upsert-log",
+        log: mkLog("me", "r1", { attempts: 7, completed: true }),
+        viewerId: "me",
+      });
+      expect(next.logs.get(logKey("me", "r1"))?.attempts).toBe(7);
+    });
+
+    it("collapses another player's non-flash completion to the bucket value", () => {
+      const next = jamReducer(emptyState, {
+        type: "upsert-log",
+        log: mkLog("them", "r1", { attempts: 7, completed: true }),
+        viewerId: "me",
+      });
+      // visibleAttempts: non-flash completion → 2 (uniform bucket).
+      expect(next.logs.get(logKey("them", "r1"))?.attempts).toBe(2);
+    });
+
+    it("collapses another player's uncompleted attempts to 0 (no 'in progress' signal)", () => {
+      const next = jamReducer(emptyState, {
+        type: "upsert-log",
+        log: mkLog("them", "r1", { attempts: 5, completed: false }),
+        viewerId: "me",
+      });
+      expect(next.logs.get(logKey("them", "r1"))?.attempts).toBe(0);
+    });
+
+    it("preserves another player's flash (attempts 1 stays 1)", () => {
+      const next = jamReducer(emptyState, {
+        type: "upsert-log",
+        log: mkLog("them", "r1", { attempts: 1, completed: true }),
+        viewerId: "me",
+      });
+      expect(next.logs.get(logKey("them", "r1"))?.attempts).toBe(1);
+    });
+
+    it("never lets a raw attempt count above the bucket ceiling enter state for another player", () => {
+      // Sweep a range of raw counts — whatever arrives, the stored
+      // value for a non-viewer is always in {0, 1, 2}.
+      for (const attempts of [0, 1, 2, 3, 4, 10, 99]) {
+        for (const completed of [true, false]) {
+          const next = jamReducer(emptyState, {
+            type: "upsert-log",
+            log: mkLog("them", "r1", { attempts, completed }),
+            viewerId: "me",
+          });
+          const stored = next.logs.get(logKey("them", "r1"))!.attempts;
+          expect([0, 1, 2]).toContain(stored);
+        }
+      }
+    });
+
+    it("leaves zone status untouched for other players (zone is public)", () => {
+      const next = jamReducer(emptyState, {
+        type: "upsert-log",
+        log: mkLog("them", "r1", { attempts: 4, completed: false, zone: true }),
+        viewerId: "me",
+      });
+      expect(next.logs.get(logKey("them", "r1"))?.zone).toBe(true);
+    });
+  });
+
+  // ── One open panel ────────────────────────────────────────────
+  describe("panels", () => {
+    it("opening a panel replaces whatever was open — two can't coexist", () => {
+      const afterLog = jamReducer(emptyState, {
+        type: "open-panel",
+        panel: { kind: "log", routeId: "r1" },
+      });
+      const afterMenu = jamReducer(afterLog, {
+        type: "open-panel",
+        panel: { kind: "menu" },
+      });
+      expect(afterMenu.panel).toEqual({ kind: "menu" });
+    });
+
+    it("close-panel returns to none", () => {
+      const open = jamReducer(emptyState, {
+        type: "open-panel",
+        panel: { kind: "peek", playerId: "u2" },
+      });
+      expect(jamReducer(open, { type: "close-panel" }).panel).toEqual({
+        kind: "none",
+      });
+    });
+
+    it("panel changes leave routes / players / logs untouched", () => {
+      const logs = new Map([[logKey("u1", "r1"), mkLog("u1", "r1")]]);
+      const state: JamLocalState = {
+        routes: [mkRoute("a", 1)],
+        players: [mkPlayer("u1", "alice")],
+        logs,
+        panel: { kind: "none" },
+      };
+      const next = jamReducer(state, {
+        type: "open-panel",
+        panel: { kind: "add" },
+      });
+      expect(next.routes).toBe(state.routes);
+      expect(next.players).toBe(state.players);
+      expect(next.logs).toBe(state.logs);
+    });
+  });
+
+  describe("initJamState", () => {
+    it("keys the viewer's own logs and starts with no panel open", () => {
+      const initial = {
+        jam: { id: "jam-1" },
+        routes: [mkRoute("a", 1)],
+        players: [mkPlayer("u1", "alice")],
+        my_logs: [mkLog("u1", "a", { attempts: 4 })],
+        grades: [],
+        leaderboard: [],
+      } as unknown as JamState;
+      const state = initJamState(initial);
+      expect(state.panel).toEqual({ kind: "none" });
+      // Own logs keep raw attempts — they arrive from
+      // get_jam_state_for_user already scoped to the viewer.
+      expect(state.logs.get(logKey("u1", "a"))?.attempts).toBe(4);
     });
   });
 

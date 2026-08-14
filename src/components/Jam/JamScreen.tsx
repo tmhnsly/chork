@@ -1,29 +1,14 @@
 "use client";
 
-import { useCallback, useMemo, useReducer, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
 import { FaPlus, FaEllipsisVertical, FaFlag } from "react-icons/fa6";
-import { LeaderboardRow, showToast } from "@/components/ui";
-import { useJamRealtime } from "@/hooks/use-jam-realtime";
-import { computeJamLeaderboard } from "@/lib/data/jam-leaderboard";
-import type {
-  JamState,
-  JamRoute,
-  JamLog,
-} from "@/lib/data/jam-types";
-import {
-  addJamRouteAction,
-  updateJamRouteAction,
-  endJamAction,
-} from "@/app/jam/actions";
-import { upsertJamLogOffline } from "@/app/jam/offline-actions";
+import { LeaderboardRow } from "@/components/ui";
+import type { JamState } from "@/lib/data/jam-types";
 import { JamGrid } from "./JamGrid";
 import { JamLogSheet } from "./JamLogSheet";
 import { JamAddRouteSheet } from "./JamAddRouteSheet";
 import { JamMenuSheet } from "./JamMenuSheet";
 import { JamPlayerGridSheet } from "./JamPlayerGridSheet";
-import { jamReducer, logKey, type JamLocalState } from "./jamScreenReducer";
-import { visibleAttempts } from "@/lib/data/logs";
+import { useJamScreenState } from "./useJamScreenState";
 import styles from "./jamScreen.module.scss";
 
 interface Props {
@@ -31,220 +16,42 @@ interface Props {
   userId: string;
 }
 
+/**
+ * Live jam room — purely the JSX tree. All state, realtime wiring,
+ * optimistic writes, and panel exclusivity live in `useJamScreenState`
+ * (+ jamScreenReducer), matching the RouteLogSheet / SettingsSheet
+ * split.
+ */
 export function JamScreen({ initialState, userId }: Props) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const {
+    state,
+    leaderboard,
+    myLogByRouteId,
+    isPending,
+    openPanel,
+    closePanel,
+    handleAddRoute,
+    handleUpdateRoute,
+    handleLog,
+    handleEnd,
+  } = useJamScreenState({ initialState, userId });
 
-  const [state, dispatch] = useReducer(
-    jamReducer,
-    {
-      routes: initialState.routes,
-      players: initialState.players,
-      logs: new Map(
-        initialState.my_logs.map((log) => [logKey(log.user_id, log.jam_route_id), log]),
-      ),
-    } as JamLocalState,
-  );
-
-  const [activeRouteId, setActiveRouteId] = useState<string | null>(null);
-  const [addSheetOpen, setAddSheetOpen] = useState(false);
-  const [editRoute, setEditRoute] = useState<JamRoute | null>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
-  // Peeking another player's send grid from the leaderboard. Their
-  // logs are already in `state.logs` via realtime (sanitised in
-  // onLogChange), so no fetch is needed.
-  const [peekPlayerId, setPeekPlayerId] = useState<string | null>(null);
-
-  // Subscribe to realtime events for the jam.
-  useJamRealtime(initialState.jam.id, {
-    onRouteChange: (payload) => {
-      const evt = payload as {
-        eventType: "INSERT" | "UPDATE" | "DELETE";
-        new: JamRoute;
-        old: JamRoute;
-      };
-      if (evt.eventType === "DELETE") {
-        dispatch({ type: "remove-route", id: evt.old.id });
-      } else {
-        dispatch({ type: "upsert-route", route: evt.new });
-      }
-    },
-    onLogChange: (payload) => {
-      const evt = payload as {
-        eventType: "INSERT" | "UPDATE" | "DELETE";
-        new: JamLog;
-        old: JamLog;
-      };
-      if (evt.eventType === "DELETE") {
-        dispatch({ type: "remove-log", userId: evt.old.user_id, routeId: evt.old.jam_route_id });
-      } else {
-        // Privacy: raw attempt counts are owner-only (per CLAUDE.md
-        // domain rule "Attempt counts are private — never show raw
-        // attempts to other users"). Realtime ships jam_logs with
-        // REPLICA IDENTITY FULL, so other-player events arrive with
-        // raw counts; sanitise via the same `visibleAttempts`
-        // collapse used by the wall (flash → 1, non-flash completion
-        // → 2, incomplete → 0). Own events keep raw attempts so the
-        // user's points preview + log sheet stay correct.
-        const sanitisedLog: JamLog =
-          evt.new.user_id === userId
-            ? evt.new
-            : { ...evt.new, attempts: visibleAttempts(evt.new, false) };
-        dispatch({ type: "upsert-log", log: sanitisedLog });
-      }
-    },
-    onPlayerChange: () => {
-      // Player changes come as scattered events — a full state
-      // refresh is cheaper to reason about than hand-patched set
-      // maths when someone joins or leaves.
-      router.refresh();
-    },
-  });
-
-  // Derive the live leaderboard from current logs. Matches the
-  // server-side formula in get_jam_leaderboard exactly so the
-  // display doesn't desync with the summary calculation on end.
-  const leaderboard = useMemo(() => {
-    return computeJamLeaderboard(state.players, state.logs);
-  }, [state.players, state.logs]);
-
-  // Logs keyed by route id, just the current user. Drives tile
-  // state derivation + log-sheet pre-fill.
-  const myLogByRouteId = useMemo(() => {
-    const map = new Map<string, JamLog>();
-    for (const log of state.logs.values()) {
-      if (log.user_id === userId) map.set(log.jam_route_id, log);
-    }
-    return map;
-  }, [state.logs, userId]);
-
-  const activeRoute = state.routes.find((r) => r.id === activeRouteId) ?? null;
-
-  const handleTileTap = useCallback(
-    (route: JamRoute) => {
-      setActiveRouteId(route.id);
-    },
-    [],
-  );
-
-  const handleAddRoute = useCallback(
-    async (payload: { description: string | null; grade: number | null; hasZone: boolean }) => {
-      startTransition(async () => {
-        const result = await addJamRouteAction({
-          jamId: initialState.jam.id,
-          description: payload.description,
-          grade: payload.grade,
-          hasZone: payload.hasZone,
-        });
-        if ("error" in result) {
-          showToast(result.error, "error");
-          return;
-        }
-        // Paint the new row locally on server success — the realtime
-        // self-echo is unreliable for the creator right after an HTTP
-        // round-trip, so the grid would otherwise stay stale until a
-        // refresh. The reducer's upsert-route is idempotent on id, so
-        // the echo (when it arrives) is a harmless no-op.
-        dispatch({ type: "upsert-route", route: result.route });
-        setAddSheetOpen(false);
-      });
-    },
-    [initialState.jam.id],
-  );
-
-  const handleUpdateRoute = useCallback(
-    async (
-      routeId: string,
-      payload: { description: string | null; grade: number | null; hasZone: boolean },
-    ) => {
-      startTransition(async () => {
-        const result = await updateJamRouteAction({
-          routeId,
-          description: payload.description,
-          grade: payload.grade,
-          hasZone: payload.hasZone,
-        });
-        if ("error" in result) {
-          showToast(result.error, "error");
-          return;
-        }
-        dispatch({ type: "upsert-route", route: result.route });
-        setEditRoute(null);
-      });
-    },
-    [],
-  );
-
-  const handleLog = useCallback(
-    async (payload: { attempts: number; completed: boolean; zone: boolean }) => {
-      if (!activeRoute) return;
-      const previous = myLogByRouteId.get(activeRoute.id);
-      // Capture `now` once at callback entry rather than inline in
-      // the dispatched object. The `react-hooks/purity` lint rule
-      // flags `new Date()` anywhere in a render-adjacent path; doing
-      // it here keeps the pattern out of the reducer payload.
-      const now = new Date().toISOString();
-      // Optimistic write — dispatch a local patch so the tile +
-      // leaderboard react instantly, then fire the action. Realtime
-      // echo overwrites with the server's row on success.
-      dispatch({
-        type: "upsert-log",
-        log: {
-          id: previous?.id ?? `optimistic-${activeRoute.id}`,
-          jam_id: initialState.jam.id,
-          jam_route_id: activeRoute.id,
-          user_id: userId,
-          attempts: payload.attempts,
-          completed: payload.completed,
-          completed_at: payload.completed
-            ? previous?.completed_at ?? now
-            : null,
-          zone: payload.zone,
-          created_at: previous?.created_at ?? now,
-          updated_at: now,
-        },
-      });
-
-      startTransition(async () => {
-        // Offline-aware wrapper — queues the upsert in IndexedDB if
-        // we're offline (or the network dies mid-request) so the
-        // climber's local tile flip sticks and the server write
-        // replays on reconnect. The server-side RPC is idempotent
-        // on (user_id, jam_route_id) so replays never duplicate.
-        const result = await upsertJamLogOffline({
-          jamRouteId: activeRoute.id,
-          attempts: payload.attempts,
-          completed: payload.completed,
-          zone: payload.zone,
-        });
-        if (result && typeof result === "object" && "error" in result) {
-          showToast((result as { error: string }).error, "error");
-          // Roll back to the previous log if the action rejected.
-          if (previous) {
-            dispatch({ type: "upsert-log", log: previous });
-          } else {
-            dispatch({
-              type: "remove-log",
-              userId,
-              routeId: activeRoute.id,
-            });
-          }
-        }
-      });
-    },
-    [activeRoute, initialState.jam.id, myLogByRouteId, userId],
-  );
-
-  const handleEnd = useCallback(() => {
-    startTransition(async () => {
-      const result = await endJamAction(initialState.jam.id);
-      if ("error" in result) {
-        showToast(result.error, "error");
-        return;
-      }
-      router.push(`/jam/summary/${result.summaryId}?fresh=1`);
-    });
-  }, [initialState.jam.id, router]);
+  const { panel } = state;
+  // Panels store route ids and derive the row at render time so a
+  // route edited (or deleted) via realtime never renders from a stale
+  // snapshot; a deleted route simply closes its sheet.
+  const activeRoute =
+    panel.kind === "log"
+      ? state.routes.find((r) => r.id === panel.routeId) ?? null
+      : null;
+  const editRoute =
+    panel.kind === "edit"
+      ? state.routes.find((r) => r.id === panel.routeId) ?? null
+      : null;
+  const peekedPlayer =
+    panel.kind === "peek"
+      ? state.players.find((p) => p.user_id === panel.playerId) ?? null
+      : null;
 
   return (
     <main className={styles.screen}>
@@ -264,7 +71,7 @@ export function JamScreen({ initialState, userId }: Props) {
             <button
               type="button"
               className={styles.codeChip}
-              onClick={() => setMenuOpen(true)}
+              onClick={() => openPanel({ kind: "menu" })}
               aria-label={`Join code ${initialState.jam.code}. Tap to share.`}
             >
               <span className={styles.codeLabel}>Code</span>
@@ -275,7 +82,7 @@ export function JamScreen({ initialState, userId }: Props) {
         <button
           type="button"
           className={styles.menuButton}
-          onClick={() => setMenuOpen(true)}
+          onClick={() => openPanel({ kind: "menu" })}
           aria-label="Jam menu"
         >
           <FaEllipsisVertical aria-hidden />
@@ -300,9 +107,9 @@ export function JamScreen({ initialState, userId }: Props) {
                 highlighted={isSelf}
                 // Tapping any row (including your own) peeks the
                 // climber's per-route grid. Their logs are already in
-                // state.logs via realtime (sanitised for non-self in
-                // onLogChange), so the peek is a zero-fetch sheet.
-                onPress={() => setPeekPlayerId(row.user_id)}
+                // state.logs via realtime (sanitised by the reducer's
+                // privacy gate), so the peek is a zero-fetch sheet.
+                onPress={() => openPanel({ kind: "peek", playerId: row.user_id })}
                 trailing={
                   row.zones > 0 ? (
                     <span
@@ -324,9 +131,9 @@ export function JamScreen({ initialState, userId }: Props) {
         myLogs={myLogByRouteId}
         grades={initialState.grades}
         gradingScale={initialState.jam.grading_scale}
-        onTileTap={handleTileTap}
-        onAddTap={() => setAddSheetOpen(true)}
-        onTileLongPress={(route) => setEditRoute(route)}
+        onTileTap={(route) => openPanel({ kind: "log", routeId: route.id })}
+        onAddTap={() => openPanel({ kind: "add" })}
+        onTileLongPress={(route) => openPanel({ kind: "edit", routeId: route.id })}
       />
 
       {activeRoute && (
@@ -335,23 +142,20 @@ export function JamScreen({ initialState, userId }: Props) {
           log={myLogByRouteId.get(activeRoute.id) ?? null}
           grades={initialState.grades}
           gradingScale={initialState.jam.grading_scale}
-          onClose={() => setActiveRouteId(null)}
-          onEdit={() => {
-            setEditRoute(activeRoute);
-            setActiveRouteId(null);
-          }}
-          onSubmit={handleLog}
+          onClose={closePanel}
+          onEdit={() => openPanel({ kind: "edit", routeId: activeRoute.id })}
+          onSubmit={(payload) => handleLog(activeRoute, payload)}
         />
       )}
 
-      {addSheetOpen && (
+      {panel.kind === "add" && (
         <JamAddRouteSheet
           mode="add"
           grades={initialState.grades}
           gradingScale={initialState.jam.grading_scale}
           minGrade={initialState.jam.min_grade}
           maxGrade={initialState.jam.max_grade}
-          onClose={() => setAddSheetOpen(false)}
+          onClose={closePanel}
           onSubmit={handleAddRoute}
           pending={isPending}
         />
@@ -365,42 +169,37 @@ export function JamScreen({ initialState, userId }: Props) {
           gradingScale={initialState.jam.grading_scale}
           minGrade={initialState.jam.min_grade}
           maxGrade={initialState.jam.max_grade}
-          onClose={() => setEditRoute(null)}
+          onClose={closePanel}
           onSubmit={(payload) => handleUpdateRoute(editRoute.id, payload)}
           pending={isPending}
         />
       )}
 
-      {menuOpen && (
+      {panel.kind === "menu" && (
         <JamMenuSheet
           jam={initialState.jam}
-          onClose={() => setMenuOpen(false)}
+          onClose={closePanel}
           onEnd={handleEnd}
           pending={isPending}
         />
       )}
 
-      {peekPlayerId && (() => {
-        const peekedPlayer = state.players.find((p) => p.user_id === peekPlayerId);
-        if (!peekedPlayer) return null;
-        const peekedRow = leaderboard.find((r) => r.user_id === peekPlayerId);
-        return (
-          <JamPlayerGridSheet
-            player={peekedPlayer}
-            row={peekedRow}
-            routes={state.routes}
-            logs={state.logs}
-            grades={initialState.grades}
-            gradingScale={initialState.jam.grading_scale}
-            onClose={() => setPeekPlayerId(null)}
-          />
-        );
-      })()}
+      {peekedPlayer && (
+        <JamPlayerGridSheet
+          player={peekedPlayer}
+          row={leaderboard.find((r) => r.user_id === peekedPlayer.user_id)}
+          routes={state.routes}
+          logs={state.logs}
+          grades={initialState.grades}
+          gradingScale={initialState.jam.grading_scale}
+          onClose={closePanel}
+        />
+      )}
 
       <button
         type="button"
         className={styles.floatingAdd}
-        onClick={() => setAddSheetOpen(true)}
+        onClick={() => openPanel({ kind: "add" })}
         aria-label="Add route"
       >
         <FaPlus aria-hidden />
@@ -408,4 +207,3 @@ export function JamScreen({ initialState, userId }: Props) {
     </main>
   );
 }
-

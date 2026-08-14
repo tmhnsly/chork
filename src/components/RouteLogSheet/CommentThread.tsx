@@ -14,33 +14,16 @@ import {
 import { EditCommentForm } from "./EditCommentForm";
 import { shimmerStyles, showToast, UserAvatar, Username } from "@/components/ui";
 import type { Comment } from "@/lib/data";
+import type { CommentThreadView } from "./routeLogReducer";
 import styles from "./routeLogSheet.module.scss";
 
-interface Props {
-  /** Owner of the sheet — used to detect "own comments". */
-  userId: string | undefined;
-  /** When false, the post form + reveal toggle behave differently. */
-  isCompleted: boolean;
-  /** When false, the post form is hidden (set is archived/draft). */
-  setActive: boolean;
-  /**
-   * Controlled drawer open state — parent owns this because the
-   * BottomSheet height depends on it.
-   */
-  betaExpanded: boolean;
+/** Everything the thread can ask the sheet to do. Grouped for the
+ *  same reason as `CommentThreadView`: a new comment capability lands
+ *  here and in `useRouteLogState`, never in the JSX bridge between. */
+export interface CommentThreadActions {
+  /** Toggle the drawer. Owned by the parent because BottomSheet
+   *  height depends on it. */
   onToggleBetaExpanded: () => void;
-
-  /** Loaded comment data from the parent's fetch. */
-  comments: Comment[];
-  totalComments: number;
-  hasMore: boolean;
-  loadingComments: boolean;
-  loadingMore: boolean;
-  /** Set of comment ids the viewer has liked — owned by parent. */
-  likedIds: Set<string>;
-  /** When true, the parent has fully resolved the initial fetch. */
-  commentsLoaded: boolean;
-
   /** Fetch the next page of comments. Parent appends to its array. */
   onLoadMore: () => void;
   /** Returns success — child uses it to clear the input on ok. */
@@ -49,6 +32,19 @@ interface Props {
   onEditComment: (commentId: string, body: string) => Promise<boolean>;
   /** Fire-and-forget like toggle. Parent handles optimistic UI. */
   onLikeComment: (commentId: string) => void;
+}
+
+interface Props {
+  /** Owner of the sheet — used to detect "own comments". */
+  userId: string | undefined;
+  /** When false, the post form + reveal toggle behave differently. */
+  isCompleted: boolean;
+  /** When false, the post form is hidden (set is archived/draft). */
+  setActive: boolean;
+  /** Comment state, projected from RouteLogState by
+   *  `selectCommentThread`. */
+  view: CommentThreadView;
+  actions: CommentThreadActions;
 }
 
 /**
@@ -69,20 +65,27 @@ export function CommentThread({
   userId,
   isCompleted,
   setActive,
-  betaExpanded,
-  onToggleBetaExpanded,
-  comments,
-  totalComments,
-  hasMore,
-  loadingComments,
-  loadingMore,
-  likedIds,
-  commentsLoaded,
-  onLoadMore,
-  onPostComment,
-  onEditComment,
-  onLikeComment,
+  view,
+  actions,
 }: Props) {
+  const {
+    betaExpanded,
+    comments,
+    totalComments,
+    hasMore,
+    loadingComments,
+    loadingMore,
+    likedIds,
+    commentsLoaded,
+  } = view;
+  const {
+    onToggleBetaExpanded,
+    onLoadMore,
+    onPostComment,
+    onEditComment,
+    onLikeComment,
+  } = actions;
+
   const [commentBody, setCommentBody] = useState("");
   const [posting, setPosting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
