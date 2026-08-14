@@ -1,5 +1,7 @@
 @use "mixins/typography" as type;
 @use "mixins/surfaces" as surface;
+@use "mixins/input" as input;
+@use "mixins/layout" as layout;
 
 // Admin sub-nav. Sticks to the top of the admin page as the user
 // scrolls through long admin surfaces (routes editor, dashboards).
@@ -51,4 +53,29 @@
   background: var(--mono-app-bg);
   color: var(--mono-text);
   box-shadow: var(--shadow-sm);
+}
+
+// Row holding the section nav plus, for admins of more than one gym,
+// the gym switcher. Single-gym admins never see the switcher, so the
+// row collapses to just the nav.
+.bar {
+  @include layout.cluster;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.gymPicker {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.gymPickerLabel {
+  @include type.typography(label);
+  color: var(--mono-text-low);
+}
+
+.gymSelect {
+  @include input.field;
+  width: auto;
 }

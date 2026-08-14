@@ -26,8 +26,15 @@ export const metadata = {
   title: "Admin - Chork",
 };
 
-export default async function AdminHomePage() {
-  const auth = await requireGymAdmin();
+interface Props {
+  /** `?gym=` selects which of the caller's gyms the dashboard shows.
+   *  Verified by requireGymAdmin, so a forged id is rejected. */
+  searchParams: Promise<{ gym?: string }>;
+}
+
+export default async function AdminHomePage({ searchParams }: Props) {
+  const { gym: gymParam } = await searchParams;
+  const auth = await requireGymAdmin(gymParam);
 
   if ("error" in auth) {
     return (

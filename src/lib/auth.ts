@@ -146,19 +146,37 @@ type AdminOfSetSuccess = {
   setRow: { gym_id: string };
 };
 
+/**
+ * Why a resource gate refused.
+ *
+ * Server actions only need the message, but PAGES have to choose
+ * between `notFound()` and `redirect()` — and the difference matters:
+ * a 404 for a set that exists but isn't yours is right, a 404 for
+ * "you're not an admin" should send you home instead. Branching on
+ * this beats matching the user-facing copy, which reworded is a
+ * silently-changed redirect (see NO_GYM_ERROR for the same lesson).
+ */
+export type ResourceGateReason = "invalid" | "not-found" | "forbidden";
+
+export type ResourceGateFailure = AuthFailure & {
+  reason: ResourceGateReason;
+};
+
 export async function requireAdminOfSet(
   setId: string,
-): Promise<AdminOfSetSuccess | AuthFailure> {
-  if (!UUID_RE.test(setId)) return { error: "Invalid set." };
+): Promise<AdminOfSetSuccess | ResourceGateFailure> {
+  if (!UUID_RE.test(setId)) {
+    return { error: "Invalid set.", reason: "invalid" };
+  }
   const service = createServiceClient();
   const { data: setRow } = await service
     .from("sets")
     .select("gym_id")
     .eq("id", setId)
     .maybeSingle();
-  if (!setRow) return { error: "Set not found." };
+  if (!setRow) return { error: "Set not found.", reason: "not-found" };
   const auth = await requireGymAdmin(setRow.gym_id);
-  if ("error" in auth) return { error: auth.error };
+  if ("error" in auth) return { error: auth.error, reason: "forbidden" };
   return { auth, setRow };
 }
 
@@ -169,8 +187,10 @@ type AdminOfRouteSuccess = {
 
 export async function requireAdminOfRoute(
   routeId: string,
-): Promise<AdminOfRouteSuccess | AuthFailure> {
-  if (!UUID_RE.test(routeId)) return { error: "Invalid route." };
+): Promise<AdminOfRouteSuccess | ResourceGateFailure> {
+  if (!UUID_RE.test(routeId)) {
+    return { error: "Invalid route.", reason: "invalid" };
+  }
   const service = createServiceClient();
   const { data: routeRow } = await service
     .from("routes")
@@ -181,11 +201,11 @@ export async function requireAdminOfRoute(
       set_id: string;
       sets: { gym_id: string } | { gym_id: string }[];
     }>();
-  if (!routeRow) return { error: "Route not found." };
+  if (!routeRow) return { error: "Route not found.", reason: "not-found" };
   const gymId = one(routeRow.sets)?.gym_id;
-  if (!gymId) return { error: "Route not found." };
+  if (!gymId) return { error: "Route not found.", reason: "not-found" };
   const auth = await requireGymAdmin(gymId);
-  if ("error" in auth) return { error: auth.error };
+  if ("error" in auth) return { error: auth.error, reason: "forbidden" };
   return { auth, routeRow: { id: routeRow.id, set_id: routeRow.set_id, gym_id: gymId } };
 }
 

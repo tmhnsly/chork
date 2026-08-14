@@ -479,7 +479,10 @@ describe("set status shortcuts", () => {
 describe("updateRoute", () => {
   it("rejects malformed route ids", async () => {
     const { requireAdminOfRoute } = await import("@/lib/auth");
-    vi.mocked(requireAdminOfRoute).mockResolvedValueOnce({ error: "Invalid route." });
+    vi.mocked(requireAdminOfRoute).mockResolvedValueOnce({
+      error: "Invalid route.",
+      reason: "invalid",
+    });
     const { updateRoute } = await import("./actions");
     expect(await updateRoute("nope", {})).toEqual({ error: "Invalid route." });
   });

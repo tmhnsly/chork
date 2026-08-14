@@ -127,6 +127,34 @@ export async function getAllSetsForAdminGym(
   );
 }
 
+/**
+ * One set by id, for the admin edit + routes pages.
+ *
+ * Those pages used to list every set at the admin's gym (200-row
+ * ceiling) and `.find()` the one they wanted, using the list as both
+ * the data source AND the authorisation check. That coupling is what
+ * made a second gym's sets unreachable: the list is scoped to
+ * whichever gym `requireGymAdmin()` resolved, so an admin of two gyms
+ * got `notFound()` on every set belonging to the other one.
+ *
+ * Authorisation now comes from `requireAdminOfSet(setId)`, which
+ * resolves the set's OWN gym and checks admin rights against that.
+ * This is just the read.
+ */
+export async function getSetForAdmin(
+  supabase: Supabase,
+  setId: string,
+): Promise<AdminSetSummary | null> {
+  return readSingle<AdminSetSummary>(
+    supabase
+      .from("sets")
+      .select("id, name, status, starts_at, ends_at, grading_scale, max_grade, closing_event")
+      .eq("id", setId)
+      .maybeSingle(),
+    "getsetforadmin_failed",
+  );
+}
+
 export interface RouteTagRow {
   id: string;
   slug: string;

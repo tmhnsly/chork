@@ -50,7 +50,7 @@ beforeEach(async () => {
 describe("requireAdminOfSet", () => {
   it("rejects malformed set id without touching the DB", async () => {
     const result = await requireAdminOfSet("nope");
-    expect(result).toEqual({ error: "Invalid set." });
+    expect(result).toMatchObject({ error: "Invalid set.", reason: "invalid" });
     expect(createServiceClientMock).not.toHaveBeenCalled();
     expect(getServerUserMock).not.toHaveBeenCalled();
   });
@@ -60,7 +60,7 @@ describe("requireAdminOfSet", () => {
       createMockSupabase({ "table:sets": { data: null } }),
     );
     const result = await requireAdminOfSet(SET_1);
-    expect(result).toEqual({ error: "Set not found." });
+    expect(result).toMatchObject({ error: "Set not found.", reason: "not-found" });
     // Auth check shouldn't have run if the set didn't exist.
     expect(getServerUserMock).not.toHaveBeenCalled();
   });
@@ -78,7 +78,7 @@ describe("requireAdminOfSet", () => {
       createMockSupabase({ "table:gym_admins": { data: null } }),
     );
     const result = await requireAdminOfSet(SET_1);
-    expect(result).toEqual({ error: "You are not an admin of that gym" });
+    expect(result).toMatchObject({ error: "You are not an admin of that gym", reason: "forbidden" });
   });
 
   it("returns auth + setRow on the happy path", async () => {
@@ -123,14 +123,14 @@ describe("requireAdminOfSet", () => {
 
 describe("requireAdminOfRoute", () => {
   it("rejects malformed route id", async () => {
-    expect(await requireAdminOfRoute("nope")).toEqual({ error: "Invalid route." });
+    expect(await requireAdminOfRoute("nope")).toMatchObject({ error: "Invalid route.", reason: "invalid" });
   });
 
   it("returns Route not found when the join misses", async () => {
     createServiceClientMock.mockReturnValue(
       createMockSupabase({ "table:routes": { data: null } }),
     );
-    expect(await requireAdminOfRoute(ROUTE_1)).toEqual({ error: "Route not found." });
+    expect(await requireAdminOfRoute(ROUTE_1)).toMatchObject({ error: "Route not found.", reason: "not-found" });
   });
 
   it("returns Route not found when the joined set has no gym_id", async () => {
@@ -141,7 +141,7 @@ describe("requireAdminOfRoute", () => {
         "table:routes": { data: { id: ROUTE_1, set_id: SET_1, sets: null } },
       }),
     );
-    expect(await requireAdminOfRoute(ROUTE_1)).toEqual({ error: "Route not found." });
+    expect(await requireAdminOfRoute(ROUTE_1)).toMatchObject({ error: "Route not found.", reason: "not-found" });
   });
 
   it("happy path: sets returned as nested object", async () => {
@@ -400,5 +400,68 @@ describe("gateSignedInMutation", () => {
     const { enforce } = await import("./rate-limit");
     await gateSignedInMutation(SET_1, "set", { rateLimit: null });
     expect(enforce).not.toHaveBeenCalled();
+  });
+});
+
+// ────────────────────────────────────────────────────────────────
+// Resource gates authorise against the RESOURCE's gym
+// ────────────────────────────────────────────────────────────────
+
+describe("requireAdminOfSet — multi-gym", () => {
+  const GYM_OTHER = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee";
+
+  it("checks admin rights against the SET's gym, not a default one", async () => {
+    // Regression: the admin set pages authorised by listing the sets
+    // of whichever gym `requireGymAdmin()` resolved (the caller's
+    // OLDEST gym_admins row) and looking for the id in that list — so
+    // an admin of two gyms got a hard 404 on every set belonging to
+    // the other one.
+    createServiceClientMock.mockReturnValue(
+      createMockSupabase({ "table:sets": { data: { gym_id: GYM_OTHER } } }),
+    );
+    getServerUserMock.mockResolvedValue({ id: USER_A });
+    const adminClient = createMockSupabase({
+      "table:gym_admins": { data: { role: "admin" } },
+    });
+    createServerSupabaseMock.mockReturnValue(adminClient);
+
+    const result = await requireAdminOfSet(SET_1);
+    expect(result).toMatchObject({
+      auth: expect.objectContaining({ gymId: GYM_OTHER }),
+      setRow: { gym_id: GYM_OTHER },
+    });
+
+    // The admin-rights lookup must be scoped to the set's gym.
+    const eqArgs = adminClient.calls
+      .filter((c) => c.source === "gym_admins" && c.method === "eq")
+      .map((c) => c.args);
+    expect(eqArgs).toContainEqual(["gym_id", GYM_OTHER]);
+  });
+
+  it.each([
+    ["nope", "invalid"],
+    [SET_1, "not-found"],
+  ])("reports a machine-readable reason (%s -> %s)", async (setId, reason) => {
+    createServiceClientMock.mockReturnValue(
+      createMockSupabase({ "table:sets": { data: null } }),
+    );
+    const result = await requireAdminOfSet(setId);
+    expect(result).toMatchObject({ reason });
+  });
+
+  it("reports 'forbidden' when the caller doesn't admin the set's gym", async () => {
+    // Pages branch on this to choose redirect-vs-404. Matching the
+    // user-facing copy instead would make a reworded string silently
+    // change the redirect.
+    createServiceClientMock.mockReturnValue(
+      createMockSupabase({ "table:sets": { data: { gym_id: GYM_1 } } }),
+    );
+    getServerUserMock.mockResolvedValue({ id: USER_A });
+    createServerSupabaseMock.mockReturnValue(
+      createMockSupabase({ "table:gym_admins": { data: null } }),
+    );
+    expect(await requireAdminOfSet(SET_1)).toMatchObject({
+      reason: "forbidden",
+    });
   });
 });

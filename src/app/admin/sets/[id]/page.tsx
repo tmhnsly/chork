@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { FaListUl } from "react-icons/fa6";
-import { requireGymAdmin } from "@/lib/auth";
-import { getAllSetsForAdminGym } from "@/lib/data/admin-queries";
+import { requireAdminOfSet } from "@/lib/auth";
+import { getSetForAdmin } from "@/lib/data/admin-queries";
 import { SetForm } from "@/components/admin/SetForm";
 import { PageHeader } from "@/components/motion";
 import styles from "./edit.module.scss";
@@ -17,12 +17,20 @@ interface Props {
 
 export default async function EditSetPage({ params }: Props) {
   const { id } = await params;
-  const auth = await requireGymAdmin();
-  if ("error" in auth) redirect("/");
-  const { supabase, gymId } = auth;
 
-  const sets = await getAllSetsForAdminGym(supabase, gymId);
-  const set = sets.find((s) => s.id === id);
+  // Authorise against the SET's gym, not the admin's default one.
+  // `requireGymAdmin()` with no argument resolves to the caller's
+  // oldest gym_admins row, so authorising against that 404'd every
+  // set belonging to any other gym the admin runs.
+  const gate = await requireAdminOfSet(id);
+  if ("error" in gate) {
+    // Not an admin at all -> home. Bad or missing set id -> 404.
+    if (gate.reason === "forbidden") redirect("/");
+    notFound();
+  }
+  const { auth, setRow } = gate;
+
+  const set = await getSetForAdmin(auth.supabase, id);
   if (!set) notFound();
 
   return (
@@ -33,7 +41,7 @@ export default async function EditSetPage({ params }: Props) {
       </Link>
       <SetForm
         mode="edit"
-        gymId={gymId}
+        gymId={setRow.gym_id}
         set={{
           id: set.id,
           name: set.name,
