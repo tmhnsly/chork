@@ -7,63 +7,118 @@ CLAUDE.md is the authoritative source for project rules. Architectural
 deep-dives live in `docs/architecture.md`. This file holds **terminology**
 that needs a single canonical definition.
 
+> **Vocabulary is ahead of the code (decided 2026-08-14).** The terms
+> below are the agreed product language; the codebase still says
+> `jam*` / "Wall" / "Crew" in places and will until the convergence
+> work in `docs/roadmap.md` lands. Where they differ, this file is the
+> target and the code is the lag. Don't "correct" this file back.
+
 ---
 
 ## Set
 
-A gym's numbered batch of routes for a period. Carries `status`
-(`draft` / `live` / `archived`) — **write `status`, never the legacy
-`active` boolean**, which a migration-003 trigger derives from it so
-older readers keep working. **One live Set per gym**: app-enforced in
-`createSet` and in `updateSet`'s go-live branch (both archive the
-incumbent first), not a DB constraint. A Set owns its grading scale
-and max grade, so the climber-side grade slider reads from the Set,
-not from global config.
+**The general term: any numbered collection of routes you score
+points on.** Two kinds, which differ only in who runs it and how long
+it lives — not in what it is:
 
-## Route log
+- **Gym Set** — run by a gym, set by its setters, any length (a week,
+  a season). The thing gyms pay for.
+- **Match** — run by climbers themselves. See below.
 
-One climber's record on one Route: `attempts`, `completed`, `zone`.
-The atom the whole scoring system is built from. **Points are never
-stored** — always derived via the Scoring ladder. Flash is likewise
-derived (`attempts === 1 && completed`), never a column. See
-[Attempt privacy](#attempt-privacy) for what may be shown to whom.
+Every Set **ends with a winner**, who gets a trophy on their profile;
+anyone who took part sees their placement when it closes.
 
-## Jam
+A gym Set carries `status` (`draft` / `live` / `archived`) — **write
+`status`, never the legacy `active` boolean**, which a migration-003
+trigger derives from it so older readers keep working. **One live Set
+per gym**: app-enforced in `createSet` and in `updateSet`'s go-live
+branch (both archive the incumbent first), not a DB constraint. A Set
+owns its grading scale and max grade, so the climber-side grade
+slider reads from the Set, not from global config.
 
-A self-organised competition that needs no gym — at a gym, outdoors,
-on a home wall. **Jams are the baseline product, not a lesser Set**:
-a climber with no gym is a first-class user, so never write code that
-assumes `profile.active_gym_id` (use `requireSignedIn` /
-`gateSignedInMutation`, not `requireAuth`).
+## Match
 
-Structurally a Jam **parallels** a Set — routes, logs, a leaderboard,
-a log sheet — but shares no tables with one (`jam_logs` vs
-`route_logs`, `jam_routes` vs `routes`). That parallelism is
-deliberate and load-bearing: a Jam is ephemeral and collapses into a
-`jam_summaries` row when it ends, whereas a Set's logs are permanent
-history. The duplication it causes is therefore expected in the data
-layer, and expected NOT to appear in the presentation layer — shared
-visual language (tile states, `LeaderboardRow`) is factored into
-`components/ui`. Where the two must agree numerically (the Scoring
-ladder, rank/tiebreak order) they are pinned by
-`scoring-parity.test.ts` rather than merged.
+**A Set climbers run themselves** — at a gym, outdoors, on a home
+wall. Started by anyone, joined with a 6-character code, scored the
+same way as a gym Set.
 
-## Wall vs Chorkboard
+The name works twice over: a match is a contest with players and a
+winner, and matching is putting both hands on the same hold. Legible
+to a newcomer, a wink to a climber. (It replaces "Jam", dropped
+because it named a crack technique and implied a session rather than
+a competition.)
 
-Two distinct gym surfaces, easy to conflate in conversation. The
-**Wall** is the punch-card grid of the current Set — where a climber
-logs. The **Chorkboard** is the gym-wide public leaderboard — where
-standings are read. Both are gym-scoped and therefore both are
-*optional*: a gymless climber sees neither, and `/` and `/leaderboard`
-redirect to `/jam`.
+**Matches are the baseline product, not a lesser Set.** A climber
+with no gym is a first-class user, so never write code that assumes
+`profile.active_gym_id` (use `requireSignedIn` /
+`gateSignedInMutation`, not `requireAuth`). They are also the growth
+engine: a Match is the thirty seconds in which one climber recruits
+another, so joining must stay near-frictionless — see the guest model
+in the roadmap.
 
-## Crew
+A Match can be **promoted to a gym Set** — that upgrade path is why
+the two are one primitive rather than two systems.
 
-A private group with a mutual membership row both sides agreed to.
-Crews replaced follows entirely (migrations 020 + 021) — **there is
-no asymmetric social relationship anywhere in the app**. Any
-`follower_count` / `getFollowers` reference is dead and should be
-deleted on sight.
+## Discipline
+
+Boulder / sport / top-rope — Chork is not boulder-only.
+
+**Set at the Set level as a default, overridable per route.** A gym
+admin picks one for the whole Set; a climber logging an outdoor day
+mixes freely within one Match.
+
+Discipline changes **which grade scale is offered** (V / Font for
+boulders, YDS / French for ropes) and **what partial credit is
+called** (a boulder's zone is a rope's highpoint). It does **not**
+change scoring: `computePoints` reads `attempts`, `completed`,
+`zone` and never grade, so a V4 boulder and a 6a+ route already share
+one points total with no equivalence to invent. Keep it that way —
+the moment scoring forks per discipline, every game mode has to be
+built three times.
+
+Two places discipline genuinely bites:
+
+- **Handicap** needs a ceiling *per discipline*. A V6 boulderer is
+  not a 6a rope climber.
+- **Grade distributions** must never mix scales across disciplines —
+  a pyramid per discipline, never a 6a+ rendered as a V-grade.
+
+## Handicap
+
+Optional scoring lens that lets climbers of different abilities share
+a leaderboard: a send scores relative to the climber's own ceiling,
+so everyone competes against themselves.
+
+**Matches only — never gym Sets.** A gym Set carries the gym's name
+and eventually prizes, so its scoring has to be comparable and
+ungameable; handicap is self-declared and inherently soft.
+
+## Card, Ranks, Chorkboard
+
+- **Card** — a climber's scorecard for the Set they're on: the grid
+  of numbered routes they tick. (Was "the Wall", which competed with
+  the physical wall they're standing at.)
+- **Ranks** — the navigation label for standings.
+- **Chorkboard** — the brand name for a gym's public leaderboard.
+  Brand names may be invented; navigation labels may not.
+
+Card and Ranks are the same context ("my gym, right now") and are to
+be merged into one destination with tabs — design session pending.
+
+## Mates
+
+The social graph: climbers you follow, mutually. Replaces **Crew**,
+which required creating a group and waiting for invites to be
+accepted — three steps before any value, and every crew empty at
+launch. A follow gives value at one connection.
+
+The feed shows **moments, not ticks**: a first V6, a project sent
+after five sessions, a flash above someone's usual grade, a Set won.
+"Tom sent #14" is noise.
+
+Crews replaced follows entirely in migrations 020 + 021, so any
+`follower_count` / `getFollowers` reference from *before* that is
+still dead code — the new graph is a fresh design, not a revival.
 
 ## Climber, admin, organiser
 
