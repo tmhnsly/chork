@@ -9,7 +9,6 @@ update it in the same PR as any test-infra change.
 │  Layer            Where                      Runs in         │
 ├──────────────────────────────────────────────────────────────┤
 │  Unit tests       src/**/*.test.ts           node (vitest)   │
-│  Component tests  *.stories.tsx              chromium        │
 │  Lighthouse CI    lighthouserc.json          chromium (lhci) │
 │  E2E smoke        e2e/smoke.spec.ts          chromium        │
 │  E2E auth         e2e/auth.spec.ts           chromium        │
@@ -41,26 +40,29 @@ Pattern:
   a `code` field, not just `message` (friendly-error mapping is
   keyed on code)
 
-## Component tests (Storybook)
+## Storybook
 
-Storybook stories double as test fixtures via
-`@storybook/addon-vitest`. Run via:
+Storybook is a visual workbench, not a test layer:
 
 ```bash
-pnpm storybook                     # interactive at :6006
-pnpm test --project storybook      # headless run
+pnpm storybook       # interactive at :6006
 ```
 
-Real Chromium via Playwright. Catches render regressions, prop
-shape changes, and (with `@storybook/addon-a11y`) accessibility
-violations surfaced interactively.
+There was a `storybook` vitest project running every story in
+headless chromium. It had been silently failing to load for some
+time — `@storybook/addon-vitest` needs a Vite-based Storybook and
+`.storybook/main.ts` uses the webpack framework, so the config never
+resolved. The run reported its unit total and carried on, which made
+the suite look larger than it was.
 
-**Known gap (pnpm hoisting bug):** `test --project storybook`
-currently errors with "Failed to fetch dynamically imported
-module: setup-file-with-project-annotations.js" on this repo. The
-systematic a11y gate moved to `e2e/a11y.spec.ts` (see below) to
-route around it. Storybook autodocs still render in the interactive
-dev server — only the headless vitest-project run is affected.
+It was removed rather than repaired, because of what it would have
+asserted. Not one story has a `play` function or an `expect` — the
+project could only ever have checked that each story mounted without
+throwing, and the e2e layer below already renders real pages in a real
+browser and asserts against them, which is strictly more.
+
+`@storybook/addon-a11y` still surfaces violations interactively in the
+dev server. The systematic a11y gate is `e2e/a11y.spec.ts`.
 
 ## Lighthouse CI
 
