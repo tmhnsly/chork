@@ -140,41 +140,41 @@ export function WallTile() {
   );
 }
 
-// ── Jams ────────────────────────────────────────────────
-// Collaborative route list — JAM badge + roster + three routes,
+// ── Matches ────────────────────────────────────────────────
+// Collaborative route list — MATCH badge + roster + three routes,
 // each attributed to the crew member who added it. Staggered row
 // entry reads as players taking turns.
 
-const JAM_ROUTES = [
+const MATCH_ROUTES = [
   { grade: "V4", name: "Arête",    by: "R", tone: "accent" as const },
   { grade: "V3", name: "Slab",     by: "M", tone: "mono" as const },
   { grade: "V5", name: "Overhang", by: "S", tone: "flash" as const },
 ];
 
-export function JamsTile() {
+export function MatchesTile() {
   return (
-    <article className={`${styles.tile} ${styles.tileJams}`}>
+    <article className={`${styles.tile} ${styles.tileMatches}`}>
       <div className={styles.visual} aria-hidden="true">
-        <div className={styles.jamGame}>
-          <div className={styles.jamHead}>
-            <span className={styles.jamBadge}>JAM</span>
-            <div className={styles.jamPlayers}>
-              <span className={`${styles.jamPlayer} ${styles.jamPlayeraccent}`}>R</span>
-              <span className={`${styles.jamPlayer} ${styles.jamPlayermono}`}>M</span>
-              <span className={`${styles.jamPlayer} ${styles.jamPlayerflash}`}>S</span>
+        <div className={styles.matchGame}>
+          <div className={styles.matchHead}>
+            <span className={styles.matchBadge}>MATCH</span>
+            <div className={styles.matchPlayers}>
+              <span className={`${styles.matchPlayer} ${styles.matchPlayeraccent}`}>R</span>
+              <span className={`${styles.matchPlayer} ${styles.matchPlayermono}`}>M</span>
+              <span className={`${styles.matchPlayer} ${styles.matchPlayerflash}`}>S</span>
             </div>
           </div>
-          <ul className={styles.jamBuild}>
-            {JAM_ROUTES.map((r, i) => (
+          <ul className={styles.matchBuild}>
+            {MATCH_ROUTES.map((r, i) => (
               <li
                 key={r.name}
-                className={styles.jamCardRow}
+                className={styles.matchCardRow}
                 style={{ "--i": i } as React.CSSProperties}
               >
-                <span className={styles.jamGrade}>{r.grade}</span>
-                <span className={styles.jamRouteName}>{r.name}</span>
+                <span className={styles.matchGrade}>{r.grade}</span>
+                <span className={styles.matchRouteName}>{r.name}</span>
                 <span
-                  className={`${styles.jamTag} ${styles[`jamTag${r.tone}`]}`}
+                  className={`${styles.matchTag} ${styles[`matchTag${r.tone}`]}`}
                   aria-label={`Added by ${r.by}`}
                 >
                   {r.by}
@@ -187,7 +187,7 @@ export function JamsTile() {
       <div className={styles.meta}>
         <div className={styles.metaHead}>
           <span className={styles.icon}><FaFire /></span>
-          <h3 className={styles.title}>Jams</h3>
+          <h3 className={styles.title}>Matches</h3>
         </div>
         <p className={styles.description}>
           A climbing game for anywhere. Build the set as you go.
@@ -397,7 +397,7 @@ export function BetaTile() {
 // ═══════════════════════════════════════════════════════
 // Main bento — 8 tiles across a 4×3 desktop grid.
 //   Row 1: Chorkboard (medium 2×1) + Wall (1×1) + Flash (1×1)
-//   Row 2: Jams (2×1) + Zone (1×1) + Achievements (1×1)
+//   Row 2: Matches (2×1) + Zone (1×1) + Achievements (1×1)
 //   Row 3: Crews (2×1) + Beta (2×1)
 // ═══════════════════════════════════════════════════════
 
@@ -415,7 +415,7 @@ export function FeatureGrid() {
         <ZoneTile />
         <AchievementsTile />
         <CrewsTile />
-        <JamsTile />
+        <MatchesTile />
       </InView>
     </section>
   );

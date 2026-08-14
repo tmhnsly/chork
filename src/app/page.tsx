@@ -32,11 +32,11 @@ export default async function Home() {
   }
 
   // Authed but gymless (onboarded without a gym, or added the app
-  // before claiming a gym) → /jam is the most useful destination.
-  // The Wall has no meaning without an active set, and /jam lets
-  // them start running jams with friends immediately.
+  // before claiming a gym) → /match is the most useful destination.
+  // The Wall has no meaning without an active set, and /match lets
+  // them start running matches with friends immediately.
   if (!profile.active_gym_id) {
-    redirect("/jam");
+    redirect("/match");
   }
 
   const userId = profile.id;

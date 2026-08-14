@@ -22,7 +22,7 @@
  * `cachedQuery({ tags: [...] })` reader that carries it — never ahead
  * of one. A tag that is only ever busted is a no-op that reads like
  * cache correctness; six such tags (userStats, userCrews, userProfile,
- * crew, userNotifications, userJams) were retired in 2026-08 after an
+ * crew, userNotifications, userMatches) were retired in 2026-08 after an
  * audit found nothing registered them. `tags.test.ts` pins the rule.
  */
 

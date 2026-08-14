@@ -13,7 +13,7 @@ import { normaliseRankedRows, type RawRankedRow } from "./leaderboard-helpers";
  * Leaderboard + gym-stats queries.
  *
  * Sibling to crew-queries / admin-queries / competition-queries /
- * dashboard-queries / jam-queries — the per-domain `*-queries.ts`
+ * dashboard-queries / match-queries — the per-domain `*-queries.ts`
  * pattern means each surface (Leaderboard, ClimberSheet, GymStatsStrip)
  * imports from one place. Error contract matches the rest: swallow
  * Postgres errors, log, return a neutral fallback.

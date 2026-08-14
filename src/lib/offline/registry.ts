@@ -5,7 +5,7 @@ import {
   toggleZone,
   updateGradeVote,
 } from "@/app/(app)/route-log-actions";
-import { upsertJamLogAction } from "@/app/jam/actions";
+import { upsertMatchLogAction } from "@/app/match/actions";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { mutationQueue } from "./mutation-queue";
 
@@ -25,10 +25,18 @@ const ACTION_REGISTRY = {
   uncompleteRoute,
   toggleZone,
   updateGradeVote,
-  // Jam logs reuse the offline pipeline. They upsert on
-  // (user_id, jam_route_id) server-side so replay is idempotent,
+  // Match logs reuse the offline pipeline. They upsert on
+  // (user_id, route_id) server-side so replay is idempotent,
   // matching the route_log contract.
-  upsertJamLog: upsertJamLogAction,
+  upsertMatchLog: upsertMatchLogAction,
+  // Compatibility alias, and the "migration" the note above asks for.
+  // This key was `upsertJamLog` until the Match rename, and the key is
+  // what's written into IndexedDB — so a device that queued a log
+  // while offline before the rename still has rows naming the old
+  // action. Without this entry those replay into an empty dispatch
+  // slot and the send is silently dropped. Costs one line; delete it
+  // once no client can plausibly still be holding a pre-rename queue.
+  upsertJamLog: upsertMatchLogAction,
 } as const;
 
 export type OfflineAction = keyof typeof ACTION_REGISTRY;

@@ -161,7 +161,7 @@
   /* Collapses the line box entirely. Not a reading value — it exists
      for a wrapper whose only child is an inline image, where the
      inherited line box would otherwise add descender space under it
-     (the QR frame on the jam share sheet). */
+     (the QR frame on the match share sheet). */
   --leading-collapse: 0;
   --leading-none: 1; /* glyph or numeral centred in a fixed box */
   --leading-tight: 1.1; /* single-line display + numerals */

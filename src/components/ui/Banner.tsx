@@ -24,7 +24,7 @@ const icons: Record<Variant, React.ReactNode> = {
 
 export function Banner({ variant = "info", children }: Props) {
   // Announce dynamic banners to AT — assertive for error/warning, polite
-  // otherwise. Its main dynamic use (JoinJamForm's lookup error) was
+  // otherwise. Its main dynamic use (JoinMatchForm's lookup error) was
   // previously silent to screen readers.
   const assertive = variant === "error" || variant === "warning";
   return (

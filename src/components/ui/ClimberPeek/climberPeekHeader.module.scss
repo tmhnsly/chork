@@ -104,7 +104,7 @@
   color: var(--success-text);
 }
 
-// ── 3-cell variant — used when a sheet only has 3 stats (jam) ──
+// ── 3-cell variant — used when a sheet only has 3 stats (match) ──
 .statsRow:has(.statCell:nth-child(3):last-child) {
   grid-template-columns: repeat(3, 1fr);
 }

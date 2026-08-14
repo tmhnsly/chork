@@ -112,12 +112,12 @@ export function GymPickerPanel({ open, onClose, activeGymId }: Props) {
       await refreshProfile();
       // Push *and* refresh, both needed for different reasons. The
       // push moves them off a page that no longer applies — the Wall
-      // and Board bounce gymless climbers to /jam anyway. The refresh
+      // and Board bounce gymless climbers to /match anyway. The refresh
       // busts the client router cache so the layout re-renders: NavBar
       // is a server component, and with `staleTimes.dynamic = 60` a
       // push alone left the gym-variant nav (Wall / Board / Admin) on
       // screen for up to a minute after the gym was gone.
-      router.push("/jam");
+      router.push("/match");
       router.refresh();
     });
   }
@@ -132,7 +132,7 @@ export function GymPickerPanel({ open, onClose, activeGymId }: Props) {
         prompt={
           <>
             Step out of gym mode? The wall and board for your gym will
-            disappear until you pick it again. Jams, crews and your
+            disappear until you pick it again. Matches, crews and your
             climbing history all stay exactly as they are.
           </>
         }
@@ -162,7 +162,7 @@ export function GymPickerPanel({ open, onClose, activeGymId }: Props) {
         </div>
 
         {/* Gymless sits above the catalogue, not buried at the end of
-            it: jams-anywhere is the product, and a gym is the optional
+            it: matches-anywhere is the product, and a gym is the optional
             extra. Never filtered out by the search box for the same
             reason. */}
         <button
@@ -173,7 +173,7 @@ export function GymPickerPanel({ open, onClose, activeGymId }: Props) {
         >
           <span className={styles.rowText}>
             <span className={styles.rowName}>Not at a Chork gym</span>
-            <span className={styles.rowMeta}>Jams and crews still work</span>
+            <span className={styles.rowMeta}>Matches and crews still work</span>
           </span>
           {activeGymId === null && (
             <FaCheck className={styles.activeIcon} aria-label="No active gym" />

@@ -30,7 +30,7 @@ const log = (partial: Partial<FoldLog> & { route_id: string }): FoldLog => ({
 describe("emptyGymFold", () => {
   it("gives the evaluator empty maps rather than nulls", () => {
     // The gymless path relies on this: every Map access downstream is
-    // unguarded, so a null here would crash jam-only badge eval.
+    // unguarded, so a null here would crash match-only badge eval.
     const fold = emptyGymFold();
     expect(fold.completedRoutesBySet.size).toBe(0);
     expect(fold.totalRoutesBySet.size).toBe(0);

@@ -215,7 +215,7 @@ export async function switchActiveGym(
  * every `gym_memberships` row in place.
  *
  * Gymless is a first-class state, not a degraded one: Chork's core is
- * running your own comps anywhere via jams, and the wall/board are the
+ * running your own comps anywhere via matches, and the wall/board are the
  * extra layer for gyms that have adopted it. Onboarding already lets a
  * climber finish without a gym; this is the missing return path for
  * someone who moves away from a Chork gym and wants the wall and board

@@ -1,0 +1,66 @@
+@use "mixins/typography" as type;
+
+// Shell chrome + counter + completed-row layout comes from the
+// shared `<AttemptCounter>`, `<CompletedRow>`, and `<LogSheetHeader>`
+// primitives in `ui/`. This module only owns match-specific bits:
+// the grade + description sub-line in the header and the points-
+// preview inline markup the counter renders in its slot.
+
+// ── Secondary controls (zone row + complete button / undo) ──
+.controls {
+  display: flex;
+  flex-direction: column;
+  // No flex gap — the zone row sits inside a `ui/Collapse`, and a
+  // gap around a zero-height wrapper leaves dead space. Its spacing
+  // comes from the Collapse `padBottom` inside the animated content.
+  padding-bottom: var(--space-3);
+  flex-shrink: 0;
+}
+
+// ── Header sub-line — grade + description on one row ──
+.gradeLine {
+  @include type.typography(label);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  white-space: nowrap;
+  min-height: 1lh;
+  margin: 0 auto;
+}
+
+.gradeValue {
+  color: var(--accent-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.gradeMeta {
+  color: var(--mono-text-low-contrast);
+}
+
+// ── Points preview inline tokens ──
+// Mirrors the wall sheet's `.pts*` classes so the "Send now → 4 pts"
+// + flash glyph + "+1 zone" inline reads identically across sheets.
+.ptsArrow {
+  font-size: 0.7em;
+  color: var(--accent-text-low-contrast);
+}
+
+.ptsValue {
+  @include type.typography(label);
+  color: var(--accent-text);
+}
+
+.ptsValueFlash {
+  color: var(--flash-text-low-contrast);
+}
+
+.ptsFlash {
+  color: var(--flash-text-low-contrast);
+  font-size: 0.85em;
+}
+
+.ptsZone {
+  @include type.typography(label);
+  color: var(--accent-text-low-contrast);
+}

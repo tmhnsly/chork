@@ -3,7 +3,7 @@ import { getProfileSummary } from "@/lib/data/profile-queries";
 import { getEarnedAchievements } from "@/lib/data/achievement-queries";
 import { getAllSets } from "@/lib/data/set-queries";
 import { getRoutesBySet, getRoutesBySetIds } from "@/lib/data/route-queries";
-import { getJamAchievementContext } from "@/lib/data/jam-queries";
+import { getMatchAchievementContext } from "@/lib/data/match-queries";
 import { evaluateBadges } from "@/lib/badges";
 import type { Route } from "@/lib/data";
 import { ProfileAchievements } from "@/components/Achievements/ProfileAchievements";
@@ -13,7 +13,7 @@ interface Props {
   userId: string;
   /**
    * Null when the profile's owner hasn't set an active gym — gymless
-   * climbers earn achievements from jam activity only. In that mode
+   * climbers earn achievements from match activity only. In that mode
    * the re-evaluation pipeline below is skipped and the shelf reads
    * straight from `user_achievements` — the persisted earned_at is
    * the source of truth regardless of whether the badge is currently
@@ -29,7 +29,7 @@ export async function ProfileAchievementsSection({ userId, gymId, createdAt }: P
   // Gymless path — just hydrate persisted earned_at values onto the
   // badge catalogue. Re-evaluation needs gym-scoped set/route data;
   // without a gym there's nothing new to discover at render time.
-  // Jam-end achievements are evaluated server-side when the jam
+  // Match-end achievements are evaluated server-side when the match
   // ends, so they're in the table by the time the profile reads it.
   if (!gymId) {
     const earnedAchievements = await getEarnedAchievements(supabase, userId);
@@ -42,11 +42,11 @@ export async function ProfileAchievementsSection({ userId, gymId, createdAt }: P
     return <ProfileAchievements badges={badges} />;
   }
 
-  const [summary, earnedAchievements, allSets, jamAchievements] = await Promise.all([
+  const [summary, earnedAchievements, allSets, matchAchievements] = await Promise.all([
     getProfileSummary(supabase, userId, gymId),
     getEarnedAchievements(supabase, userId),
     getAllSets(gymId, createdAt),
-    getJamAchievementContext(createServiceClient(), userId),
+    getMatchAchievementContext(createServiceClient(), userId),
   ]);
 
   const activeSet = allSets.find((s) => s.active) ?? null;
@@ -119,24 +119,24 @@ export async function ProfileAchievementsSection({ userId, gymId, createdAt }: P
   );
 
   const badges = evaluateBadges({
-    // Union gym + jam totals for progress ladders so gym climbers
-    // also see their jam activity feed into Thunder / First (A)send /
+    // Union gym + match totals for progress ladders so gym climbers
+    // also see their match activity feed into Thunder / First (A)send /
     // Century. Per-set maps stay gym-only — rhyme pair / Saviour
     // badges are anchored to the numbered-wall concept.
-    totalFlashes: totals.flashes + jamAchievements.jam_total_flashes,
-    totalSends: totals.sends + jamAchievements.jam_total_sends,
-    totalPoints: totals.points + jamAchievements.jam_total_points,
+    totalFlashes: totals.flashes + matchAchievements.match_total_flashes,
+    totalSends: totals.sends + matchAchievements.match_total_sends,
+    totalPoints: totals.points + matchAchievements.match_total_points,
     completedRoutesBySet,
     totalRoutesBySet,
     flashedRoutesBySet,
     zoneAvailableBySet,
     zoneClaimedBySet,
-    jamsPlayed: jamAchievements.jams_played,
-    jamsWon: jamAchievements.jams_won,
-    jamsHosted: jamAchievements.jams_hosted,
-    maxPlayersInWonJam: jamAchievements.max_players_in_won_jam,
-    uniqueJamCoplayers: jamAchievements.unique_coplayers,
-    ironCrewMaxPairCount: jamAchievements.max_iron_crew_pair_count,
+    matchesPlayed: matchAchievements.matches_played,
+    matchesWon: matchAchievements.matches_won,
+    matchesHosted: matchAchievements.matches_hosted,
+    maxPlayersInWonMatch: matchAchievements.max_players_in_won_match,
+    uniqueMatchCoplayers: matchAchievements.unique_coplayers,
+    ironCrewMaxPairCount: matchAchievements.max_iron_crew_pair_count,
   }).map((b) => {
     if (b.earned) {
       const earnedAt = earnedAchievements.get(b.badge.id);

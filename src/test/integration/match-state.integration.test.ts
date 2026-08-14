@@ -90,7 +90,7 @@ describe.skipIf(!canRunIntegration)("Match RPCs (integration)", () => {
     // `sets` cascades to routes, set_players, set_grades; `routes`
     // cascades to route_logs. One delete per Match is the whole
     // cleanup — which is itself a property of the convergence worth
-    // noticing, since the jam version had to walk five tables.
+    // noticing, since the match version had to walk five tables.
     for (const setId of createdSetIds) {
       await service.from("sets").delete().eq("id", setId);
     }

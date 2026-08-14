@@ -35,9 +35,13 @@ const LAST_WRITE_WINS: OfflineAction[] = [
   "updateAttempts",
   "toggleZone",
   "updateGradeVote",
-  // Jam log upserts are idempotent on (user_id, jam_route_id)
+  // Match log upserts are idempotent on (user_id, route_id)
   // server-side — replaying an older one would stomp newer state,
-  // so compact to the most recent per jam route.
+  // so compact to the most recent per route.
+  "upsertMatchLog",
+  // Pre-rename queues, see the alias in registry.ts. Compaction has
+  // to know about it too, or an old queued write skips the
+  // last-write-wins pass and can stomp a newer one on replay.
   "upsertJamLog",
 ];
 

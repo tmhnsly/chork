@@ -96,7 +96,7 @@ interface NavBarProps {
    * stamps on every response. Prevents the "unauthed nav → authed
    * nav" flash on refresh by ensuring the server-rendered HTML
    * already matches the final authed shape. The 3-state value also
-   * lets the gymless variant (Crew / Jam / Profile only) paint
+   * lets the gymless variant (Crew / Match / Profile only) paint
    * correctly for users who've not yet added a gym.
    */
   initialShell: InitialShell;
@@ -152,7 +152,7 @@ function AuthedNavSkeleton({ pathname, hasGym }: { pathname: string; hasGym: boo
   const homeActive = pathname === "/";
   const leaderboardActive = pathname.startsWith("/leaderboard");
   const crewActive = pathname.startsWith("/crew");
-  const jamActive = pathname.startsWith("/jam");
+  const matchActive = pathname.startsWith("/match");
   const profileActive = pathname.startsWith("/profile") || pathname.startsWith("/u/");
 
   const { tabsRef, pillRef } = useSlidingPill(pathname, hasGym);
@@ -183,9 +183,9 @@ function AuthedNavSkeleton({ pathname, hasGym }: { pathname: string; hasGym: boo
             <FaUserGroup className={styles.tabIcon} aria-hidden />
             <span className={styles.tabLabel}>Crew</span>
           </Link>
-          <Link href="/jam" className={`${styles.tab} ${jamActive ? styles.tabActive : ""}`} aria-current={jamActive ? "page" : undefined}>
+          <Link href="/match" className={`${styles.tab} ${matchActive ? styles.tabActive : ""}`} aria-current={matchActive ? "page" : undefined}>
             <FaFire className={styles.tabIcon} aria-hidden />
-            <span className={styles.tabLabel}>Jam</span>
+            <span className={styles.tabLabel}>Match</span>
           </Link>
           <Link href="/profile" className={`${styles.tab} ${profileActive ? styles.tabActive : ""}`} aria-current={profileActive ? "page" : undefined}>
             <FaUser className={styles.tabIcon} aria-hidden />
@@ -213,7 +213,7 @@ function AuthenticatedNav({
   const homeActive = pathname === "/";
   const leaderboardActive = pathname.startsWith("/leaderboard");
   const crewActive = pathname.startsWith("/crew");
-  const jamActive = pathname.startsWith("/jam");
+  const matchActive = pathname.startsWith("/match");
   const adminActive = pathname.startsWith("/admin");
   const profileActive = pathname.startsWith("/profile") || pathname.startsWith("/u/");
 
@@ -310,12 +310,12 @@ function AuthenticatedNav({
             <span className={styles.tabLabel}>Crew</span>
           </Link>
           <Link
-            href="/jam"
-            className={`${styles.tab} ${jamActive ? styles.tabActive : ""}`}
-            aria-current={jamActive ? "page" : undefined}
+            href="/match"
+            className={`${styles.tab} ${matchActive ? styles.tabActive : ""}`}
+            aria-current={matchActive ? "page" : undefined}
           >
             <FaFire className={styles.tabIcon} aria-hidden />
-            <span className={styles.tabLabel}>Jam</span>
+            <span className={styles.tabLabel}>Match</span>
           </Link>
           {/* Gated on admin rights ALONE. Admin is orthogonal to
               climber membership (CONTEXT.md "Climber, admin,

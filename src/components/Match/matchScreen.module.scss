@@ -1,0 +1,210 @@
+@use "mixins/typography" as type;
+@use "mixins/focus" as focus;
+@use "mixins/surfaces" as surface;
+@use "mixins/layout" as layout;
+@use "mixins/breakpoints" as bp;
+
+.screen {
+  min-height: 100dvh;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: calc(
+    var(--navbar-height) + env(safe-area-inset-bottom, 0px) + var(--space-8)
+  );
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+// ── Hero ──────────────────────────────────────────
+// The screen climbers spend most of their session on. Card surface
+// so it lifts off the page (not just a header on the app bg),
+// display-weight title, meta chips for the codified facts (players,
+// location), code chip that's a real interactive affordance — taps
+// open the share / end sheet directly instead of routing through the
+// kebab menu.
+.hero {
+  @include surface.glass(50%);
+  margin: var(--space-3) var(--gutter-x) 0;
+  border-radius: var(--radius-3);
+  padding: var(--space-4);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  max-width: var(--content-app);
+  width: calc(100% - 2 * var(--gutter-x));
+  box-sizing: border-box;
+}
+
+@include bp.tablet {
+  .hero {
+    margin-inline: auto;
+  }
+}
+
+.heroBody {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  @include type.typography(display);
+  color: var(--mono-text);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.metaChip {
+  @include type.typography(meta, $step: xs);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--mono-bg);
+  color: var(--mono-text-low-contrast);
+}
+
+// Code chip — tappable affordance to open the share sheet.
+// Reads as a real control rather than display-only text. Accent
+// border tint cues "this is the join code, share it" at a glance.
+.codeChip {
+  @include type.typography(label);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--accent-bg);
+  color: var(--accent-text);
+  border: 1px solid var(--accent-border-subtle);
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    border-color: var(--accent-border);
+  }
+
+  @include focus.ring;
+}
+
+.codeLabel {
+  @include type.typography(label);
+  color: var(--accent-text-low-contrast);
+}
+
+.menuButton {
+  width: var(--size-touch-target);
+  height: var(--size-touch-target);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--mono-border-subtle);
+  background: var(--mono-bg);
+  color: var(--mono-text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    border-color: var(--accent-border);
+  }
+
+  @include focus.ring;
+}
+
+// ── Leaderboard strip ──────────────────────────────
+// Surface treatment so the strip reads as "your standing in this
+// match" rather than a list floating against the page bg. Card surface
+// with slim padding — the LeaderboardRow primitive already owns its
+// own per-row chrome, this container just frames the strip.
+.leaderboardStrip {
+  @include surface.card;
+  @include layout.stack(0);
+  margin: 0 var(--gutter-x);
+  padding: var(--space-2);
+  max-width: var(--content-app);
+  width: calc(100% - 2 * var(--gutter-x));
+  box-sizing: border-box;
+  border-radius: var(--radius-3);
+  list-style: none;
+}
+
+@include bp.tablet {
+  .leaderboardStrip {
+    margin-inline: auto;
+  }
+}
+
+// Trailing count (passed via `LeaderboardRow`'s `trailing` slot)
+// showing the zone bonuses a match player has claimed. Mirrors the
+// flash count's visual treatment but in teal to signal zones.
+.zoneCount {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  @include type.typography(meta);
+  color: var(--success-text-low-contrast);
+}
+
+// ── Floating add button ─────────────────────────────
+// Scale-in entrance so the FAB lands rather than just appears.
+// CSS-only keyframe so we don't pull in a motion library (per
+// CLAUDE.md's animation-library policy).
+@keyframes fab-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.floatingAdd {
+  position: fixed;
+  right: var(--gutter-x);
+  bottom: calc(var(--navbar-height) + env(safe-area-inset-bottom, 0px) + var(--space-4));
+  width: var(--size-fab);
+  height: var(--size-fab);
+  border-radius: var(--radius-full);
+  border: none;
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+  cursor: pointer;
+  box-shadow: var(--shadow-lg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xl);
+  z-index: 10;
+  animation: fab-enter var(--duration-normal) var(--ease-out);
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    background: var(--accent-solid-hover);
+  }
+
+  &:active {
+    transform: scale(0.94);
+  }
+
+  @include focus.ring(var(--accent-on-solid));
+}

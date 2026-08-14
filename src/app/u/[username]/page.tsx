@@ -9,7 +9,7 @@ import { ProfileStats } from "./_components/ProfileStats";
 import { ProfileStatsSkeleton } from "./_components/ProfileStats.skeleton";
 import { ProfileAchievementsSection } from "./_components/ProfileAchievementsSection";
 import { PreviousSetsSection } from "./_components/PreviousSetsSection";
-import { ProfileJamsSection } from "./_components/ProfileJamsSection";
+import { ProfileMatchesSection } from "./_components/ProfileMatchesSection";
 import { PROFILE_SECTION_HEIGHTS } from "./_components/sectionHeights";
 import { CardSkeleton } from "@/components/ui";
 import styles from "./user.module.scss";
@@ -73,7 +73,7 @@ export default async function UserProfilePage({ params }: Props) {
       {/* Gym-scoped widgets (current set + previous sets) are only
           meaningful when the profile's owner has an active gym.
           Gymless profiles skip them. ProfileAchievementsSection is
-          rendered in both cases — achievements span gym + jam
+          rendered in both cases — achievements span gym + match
           activity once badges are gym-agnostic. */}
       {gymId ? (
         <Suspense fallback={<ProfileStatsSkeleton />}>
@@ -85,14 +85,14 @@ export default async function UserProfilePage({ params }: Props) {
           />
         </Suspense>
       ) : (
-        /* Gymless: jams take the slot gym stats would occupy, so every
+        /* Gymless: matches take the slot gym stats would occupy, so every
            profile leads with a stats row sourced from whatever that
            climber actually does. Without this a gymless profile opened
-           on achievements and buried the jam record at the bottom —
+           on achievements and buried the match record at the bottom —
            the wrong way round when running your own comps anywhere is
            the point of the app, not the fallback. */
         <Suspense fallback={null}>
-          <ProfileJamsSection userId={profileUser.id} isOwnProfile={isOwnProfile} />
+          <ProfileMatchesSection userId={profileUser.id} isOwnProfile={isOwnProfile} />
         </Suspense>
       )}
 
@@ -129,13 +129,13 @@ export default async function UserProfilePage({ params }: Props) {
         </Suspense>
       )}
 
-      {/* Jam history — public within the app. Self-hides when the
-          climber has no jams on record so first-time visitors see
+      {/* Match history — public within the app. Self-hides when the
+          climber has no matches on record so first-time visitors see
           a quiet profile. Gymless profiles render this higher up
           instead, in the gym-stats slot. */}
       {gymId && (
         <Suspense fallback={null}>
-          <ProfileJamsSection userId={profileUser.id} isOwnProfile={isOwnProfile} />
+          <ProfileMatchesSection userId={profileUser.id} isOwnProfile={isOwnProfile} />
         </Suspense>
       )}
     </main>

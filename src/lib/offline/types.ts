@@ -15,8 +15,8 @@ export interface QueuedMutation {
   args: unknown[];
   /**
    * Dedupe key for compaction — the id of the thing being mutated.
-   * Gym actions use `routes.id`; jam log actions use
-   * `jam_routes.id`. Both are UUIDs so the namespace is shared
+   * Gym actions use `routes.id`; match log actions use
+   * `match_routes.id`. Both are UUIDs so the namespace is shared
    * without collision risk.
    */
   routeId: string;

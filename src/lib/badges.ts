@@ -24,7 +24,7 @@ export type BadgeTier = "bronze" | "silver" | "gold";
  * used by the catalogue — extend here only when you add real badges
  * in a new group (and update `ACHIEVEMENT_CATEGORIES` to match).
  */
-export type BadgeCategory = "sends" | "flashes" | "jams";
+export type BadgeCategory = "sends" | "flashes" | "matches";
 
 /**
  * Aggregates the evaluator knows how to count. Add a value here only
@@ -35,9 +35,9 @@ export type ProgressKey =
   | "flashes"
   | "sends"
   | "points"
-  | "jams_played"
-  | "jams_won"
-  | "jams_hosted";
+  | "matches_played"
+  | "matches_won"
+  | "matches_hosted";
 
 /**
  * IDs of every condition-based achievement. Typed as a string-
@@ -57,9 +57,9 @@ export type ConditionBadgeId =
   | "saviour-of-the-universe"
   | "not-easy-being-green"
   | "in-the-zone"
-  | "jam-big-fish"
-  | "jam-social-climber"
-  | "jam-iron-crew";
+  | "match-big-fish"
+  | "match-social-climber"
+  | "match-iron-crew";
 
 /**
  * Icon IDs — mapped to actual components in BadgeShelf's ICON_MAP.
@@ -153,7 +153,7 @@ export type BadgeStatus = EarnedBadge | LockedBadge;
  * slots, so a flash-category badge reads amber at 60% AND 100%.
  *   • "flash"   — amber (flash category)
  *   • "success" — teal (zone-themed badges, icon === "flag")
- *   • "accent"  — lime (everything else: send ladders, jams, condition badges)
+ *   • "accent"  — lime (everything else: send ladders, matches, condition badges)
  */
 export type BadgeFamily = "accent" | "flash" | "success";
 
@@ -183,15 +183,15 @@ export interface BadgeContext {
   /** Route numbers where the climber claimed the zone, per set. */
   zoneClaimedBySet: Map<string, Set<number>>;
   /**
-   * Jam activity aggregates. Sourced from `jam_summary_players` via
-   * `get_jam_achievement_context`. All default to 0 for climbers
-   * with no jam history — progress badges gracefully skip them.
+   * Match activity aggregates. Sourced from `match_summary_players` via
+   * `get_match_achievement_context`. All default to 0 for climbers
+   * with no match history — progress badges gracefully skip them.
    */
-  jamsPlayed: number;
-  jamsWon: number;
-  jamsHosted: number;
-  maxPlayersInWonJam: number;
-  uniqueJamCoplayers: number;
+  matchesPlayed: number;
+  matchesWon: number;
+  matchesHosted: number;
+  maxPlayersInWonMatch: number;
+  uniqueMatchCoplayers: number;
   ironCrewMaxPairCount: number;
 }
 
@@ -218,9 +218,9 @@ function evaluateCondition(id: ConditionBadgeId, ctx: BadgeContext): boolean {
     case "saviour-of-the-universe":  return checkSaviour(ctx);
     case "not-easy-being-green":     return checkNotEasyBeingGreen(ctx);
     case "in-the-zone":              return checkInTheZone(ctx);
-    case "jam-big-fish":             return ctx.maxPlayersInWonJam >= 6;
-    case "jam-social-climber":       return ctx.uniqueJamCoplayers >= 20;
-    case "jam-iron-crew":            return ctx.ironCrewMaxPairCount >= 10;
+    case "match-big-fish":             return ctx.maxPlayersInWonMatch >= 6;
+    case "match-social-climber":       return ctx.uniqueMatchCoplayers >= 20;
+    case "match-iron-crew":            return ctx.ironCrewMaxPairCount >= 10;
   }
 }
 
@@ -231,9 +231,9 @@ function progressValue(key: ProgressKey, ctx: BadgeContext): number {
     case "flashes":      return ctx.totalFlashes;
     case "sends":        return ctx.totalSends;
     case "points":       return ctx.totalPoints;
-    case "jams_played":  return ctx.jamsPlayed;
-    case "jams_won":     return ctx.jamsWon;
-    case "jams_hosted":  return ctx.jamsHosted;
+    case "matches_played":  return ctx.matchesPlayed;
+    case "matches_won":     return ctx.matchesWon;
+    case "matches_hosted":  return ctx.matchesHosted;
   }
 }
 
@@ -345,12 +345,12 @@ function evaluateSetCondition(id: ConditionBadgeId, ctx: SetBadgeContext): boole
       }
       return true;
     }
-    // Jam-specific conditions — their context comes from
-    // jam_summary_players, not a single set. A per-set evaluation
+    // Match-specific conditions — their context comes from
+    // match_summary_players, not a single set. A per-set evaluation
     // can never earn them, so they always return false here.
-    case "jam-big-fish":
-    case "jam-social-climber":
-    case "jam-iron-crew":
+    case "match-big-fish":
+    case "match-social-climber":
+    case "match-iron-crew":
       return false;
   }
 }

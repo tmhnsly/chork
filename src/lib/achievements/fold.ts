@@ -6,7 +6,7 @@ import { isFlash } from "@/lib/data/logs";
  * evaluator reads.
  *
  * Lives apart from `context.ts` because that module's five awaits
- * (sets, routes, logs, aggregates, jam context) made the interesting
+ * (sets, routes, logs, aggregates, match context) made the interesting
  * part — this fold — reachable only by mocking five modules, so it
  * had no tests at all. Nothing here imports Supabase or `server-only`;
  * it's data in, data out.
@@ -39,7 +39,7 @@ export interface FoldLog {
 }
 
 /** Empty gym-scoped shape — used when the climber has no active gym
- *  (jam-only) so the evaluator can run on jam data without a
+ *  (match-only) so the evaluator can run on match data without a
  *  null-guard on every Map access. */
 export function emptyGymFold(): GymSetFold {
   return {

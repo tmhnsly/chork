@@ -22,8 +22,8 @@ export type ActivityEvent = Tables["activity_events"]["Row"];
 /**
  * The one ranked-row shape for every board — gym Chorkboard, crew
  * (`CrewLeaderboardRow`), competition (`CompetitionLeaderboardRow`
- * extends with `category_id`). Jam boards differ deliberately
- * (`JamLeaderboardRow` in jam-types.ts: nullable username, attempts,
+ * extends with `category_id`). Match boards differ deliberately
+ * (`MatchLeaderboardRow` in match-types.ts: nullable username, attempts,
  * last_send_at). Don't redeclare these nine columns; extend.
  */
 export interface LeaderboardEntry {

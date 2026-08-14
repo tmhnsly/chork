@@ -51,7 +51,7 @@
 
   // ── Switch ────────────────────────────────────────────────────
   // The app shipped two switches: 42×24 with a 20px thumb (route log,
-  // grade slider) and 44×26 with a 22px thumb (admin, jam forms).
+  // grade slider) and 44×26 with a 22px thumb (admin, match forms).
   // Same control, two sizes, and a climber met both in one session.
   // Unified here at 44×26 — the wider track reaches the 44px tap
   // target on its own, where the narrower one needed a transparent
@@ -120,7 +120,7 @@
 
   // Vertical rhythm between a page's top-level sections. Consumed
   // via `layout.stack(var(--page-stack-gap))` so every in-app page
-  // — leaderboard, crew, jam, competitions — shares the same
+  // — leaderboard, crew, match, competitions — shares the same
   // breathing room and doesn't individually pick a space step.
   --page-stack-gap: var(--space-7);
 }

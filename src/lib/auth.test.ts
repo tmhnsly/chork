@@ -385,15 +385,15 @@ describe("requireSameGymScope", () => {
 
 describe("gateSignedInMutation", () => {
   it("rejects a malformed resource id with the caller's label", async () => {
-    expect(await gateSignedInMutation("nope", "jam id")).toEqual({
-      error: "Invalid jam id",
+    expect(await gateSignedInMutation("nope", "match id")).toEqual({
+      error: "Invalid match id",
     });
   });
 
   it("skips uuid validation when resourceId is null (payload-validated actions)", async () => {
     getServerUserMock.mockResolvedValue({ id: USER_A });
     createServerSupabaseMock.mockResolvedValue(createMockSupabase());
-    const result = await gateSignedInMutation(null, "jam");
+    const result = await gateSignedInMutation(null, "match");
     expect("error" in result).toBe(false);
   });
 
@@ -405,7 +405,7 @@ describe("gateSignedInMutation", () => {
   });
 
   it("enforces the mutationsWrite rate limit BY DEFAULT", async () => {
-    // The default is the point of the gate: the jam actions re-typed
+    // The default is the point of the gate: the match actions re-typed
     // this prelude by hand and all seven skipped the limit.
     getServerUserMock.mockResolvedValue({ id: USER_A });
     createServerSupabaseMock.mockResolvedValue(createMockSupabase());

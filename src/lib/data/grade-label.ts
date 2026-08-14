@@ -13,14 +13,14 @@
 export type GradingScale = "v" | "font" | "points";
 
 /**
- * Every scale the app knows about, including the jam-only `custom`
+ * Every scale the app knows about, including the match-only `custom`
  * scale (migration 046). Formula scales (`v` / `font`) map a numeric
  * grade through a fixed sequence; `custom` resolves by ordinal lookup
- * into a per-jam grade ladder; `points` disables grading entirely.
+ * into a per-match grade ladder; `points` disables grading entirely.
  */
 export type GradingScaleWithCustom = GradingScale | "custom";
 
-/** One rung of a jam's custom grade ladder (`jam_grades` row shape). */
+/** One rung of a match's custom grade ladder (`match_grades` row shape). */
 export interface CustomGradeEntry {
   ordinal: number;
   label: string;

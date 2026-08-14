@@ -10,7 +10,7 @@ import { Username } from "../Username";
 /**
  * Minimal shape a leaderboard row needs to render. Deliberately
  * decoupled from `LeaderboardEntry` (gym leaderboard) and
- * `JamLeaderboardRow` (jam leaderboard) so both surfaces can use
+ * `MatchLeaderboardRow` (match leaderboard) so both surfaces can use
  * the same visual primitive via a tiny adapter at the call site.
  *
  * `rank = null` renders as "—" (the unranked-user fallback).
@@ -47,7 +47,7 @@ interface Props {
   /**
    * Optional trailing slot rendered after the points + flashes
    * cluster. Use for surface-specific extras — e.g. a zone count
-   * on the jam leaderboard. Keep to one or two short glyph/number
+   * on the match leaderboard. Keep to one or two short glyph/number
    * pairs so the row height stays consistent.
    */
   trailing?: ReactNode;

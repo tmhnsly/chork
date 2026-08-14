@@ -18,11 +18,11 @@ interface Props {
 }
 
 /**
- * Shared header for any attempt-logging sheet (wall + jam). The
+ * Shared header for any attempt-logging sheet (wall + match). The
  * route number is centred in a 3-column grid so the flanking flash
  * + zone icons never nudge the digit off-axis. Exactly mirrors the
  * header that shipped with the wall's RouteLogSheet — pulled up to
- * `ui/` so the jam log sheet feels identical on entry.
+ * `ui/` so the match log sheet feels identical on entry.
  */
 export function LogSheetHeader({
   number,
