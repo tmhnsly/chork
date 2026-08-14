@@ -67,11 +67,10 @@ jobs:
   # route calls `createServiceClient`, so a placeholder boots the app
   # for smoke + a11y without putting the live key in CI.
   #
-  # The auth specs skip without `E2E_TEST_EMAIL` / `E2E_TEST_PASSWORD`.
-  # That skip is announced in the log by `e2e/skip-guard.ts` rather
-  # than passing unnoticed. Add those as secrets and set
-  # `CHORK_STRICT_TESTS=1` here to make a missing test user fail the
-  # build instead.
+  # The auth specs sign in as a dedicated test climber whose
+  # credentials are repo secrets — encrypted, masked in logs, and
+  # never sent to fork PRs. They are the only automated coverage of a
+  # signed-in session.
   e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -81,6 +80,14 @@ jobs:
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ci-placeholder-not-a-real-key
+      E2E_TEST_EMAIL: ${{ secrets.E2E_TEST_EMAIL }}
+      E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+      # Strict exactly when it can be. On a fork PR GitHub withholds
+      # secrets, so this resolves empty and the auth specs skip loudly
+      # instead of failing a contributor's build for something they
+      # can't provide. Everywhere the credentials do exist, a skipped
+      # suite is a failed build.
+      CHORK_STRICT_TESTS: ${{ secrets.E2E_TEST_PASSWORD && '1' || '' }}
 
     steps:
       - uses: actions/checkout@v4

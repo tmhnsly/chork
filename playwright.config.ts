@@ -1,4 +1,17 @@
 import { defineConfig, devices } from "@playwright/test";
+import { config as loadEnv } from "dotenv";
+import { resolve } from "node:path";
+
+// Load `.env.local` so the auth specs find `E2E_TEST_EMAIL` /
+// `E2E_TEST_PASSWORD` when run locally. dotenv does NOT override
+// variables already in the environment, so CI — where these arrive
+// as GitHub secrets — is unaffected.
+//
+// Without this the credentials could sit correctly in `.env.local`
+// and the suite would still skip, reporting only that they were
+// "missing". The vitest integration project loads the same file via
+// its own setup; Playwright shares no module graph with it.
+loadEnv({ path: resolve(process.cwd(), ".env.local"), quiet: true });
 
 /**
  * Playwright config for end-to-end tests.
