@@ -171,13 +171,21 @@ export async function requireAdminOfSet(
   const service = createServiceClient();
   const { data: setRow } = await service
     .from("sets")
-    .select("gym_id")
+    .select("gym_id, owner_kind")
     .eq("id", setId)
     .maybeSingle();
   if (!setRow) return { error: "Set not found.", reason: "not-found" };
+  // `sets` hosts climber-run Matches since the convergence (migration
+  // 080) and those have no gym, so there is no gym admin who owns
+  // one. This gate answers "may you administer this Set?" — for a
+  // Match the answer is nobody, and it collapses to not-found so the
+  // admin surface can't be used to probe for Matches either.
+  if (setRow.owner_kind !== "gym" || !setRow.gym_id) {
+    return { error: "Set not found.", reason: "not-found" };
+  }
   const auth = await requireGymAdmin(setRow.gym_id);
   if ("error" in auth) return { error: auth.error, reason: "forbidden" };
-  return { auth, setRow };
+  return { auth, setRow: { gym_id: setRow.gym_id } };
 }
 
 type AdminOfRouteSuccess = {

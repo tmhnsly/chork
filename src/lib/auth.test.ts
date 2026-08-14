@@ -68,7 +68,7 @@ describe("requireAdminOfSet", () => {
   it("rejects when caller is not an admin of the owning gym", async () => {
     createServiceClientMock.mockReturnValue(
       createMockSupabase({
-        "table:sets": { data: { gym_id: GYM_1 } },
+        "table:sets": { data: { owner_kind: "gym", gym_id: GYM_1 } },
       }),
     );
     // requireGymAdmin: getServerUser returns the user, but the
@@ -84,7 +84,7 @@ describe("requireAdminOfSet", () => {
   it("returns auth + setRow on the happy path", async () => {
     createServiceClientMock.mockReturnValue(
       createMockSupabase({
-        "table:sets": { data: { gym_id: GYM_1 } },
+        "table:sets": { data: { owner_kind: "gym", gym_id: GYM_1 } },
       }),
     );
     getServerUserMock.mockResolvedValue({ id: USER_A });
@@ -105,7 +105,7 @@ describe("requireAdminOfSet", () => {
   it("flips isOwner when the caller's gym_admins role is 'owner'", async () => {
     createServiceClientMock.mockReturnValue(
       createMockSupabase({
-        "table:sets": { data: { gym_id: GYM_1 } },
+        "table:sets": { data: { owner_kind: "gym", gym_id: GYM_1 } },
       }),
     );
     getServerUserMock.mockResolvedValue({ id: USER_A });
@@ -114,6 +114,40 @@ describe("requireAdminOfSet", () => {
     );
     const result = await requireAdminOfSet(SET_1);
     expect(result).toMatchObject({ auth: expect.objectContaining({ isOwner: true }) });
+  });
+
+  // Since migration 080 a climber-run Match is a row in the same
+  // `sets` table. The gym admin surface must not reach one: nobody
+  // is a "gym admin" of a Match, so every admin action against it
+  // would fall through to whatever gym the caller happens to run.
+  it("refuses a climber-run Match — the gym admin surface can't reach one", async () => {
+    createServiceClientMock.mockReturnValue(
+      createMockSupabase({
+        "table:sets": { data: { owner_kind: "climber", gym_id: null } },
+      }),
+    );
+    const result = await requireAdminOfSet(SET_1);
+    expect(result).toMatchObject({ error: "Set not found.", reason: "not-found" });
+    // Indistinguishable from a missing set: an admin of gym A must
+    // not be able to probe which ids are Matches.
+    expect(getServerUserMock).not.toHaveBeenCalled();
+  });
+
+  // A Match that names a venue still carries a gym_id (that's the
+  // "23 climbers ran Matches here" signal migration 080 preserves).
+  // Gating on `gym_id is null` alone would hand the venue's admins
+  // control of a Match they don't run.
+  it("refuses a Match even when it names a gym as its venue", async () => {
+    createServiceClientMock.mockReturnValue(
+      createMockSupabase({
+        "table:sets": { data: { owner_kind: "climber", gym_id: GYM_1 } },
+      }),
+    );
+    expect(await requireAdminOfSet(SET_1)).toMatchObject({
+      error: "Set not found.",
+      reason: "not-found",
+    });
+    expect(getServerUserMock).not.toHaveBeenCalled();
   });
 });
 
@@ -308,7 +342,7 @@ describe("requireCompetitionOrganiserOrGymAdmin", () => {
 describe("requireSameGymScope", () => {
   it("rejects a set that belongs to a different gym", async () => {
     const sb = createMockSupabase({
-      "table:sets": { data: { gym_id: "some-other-gym" } },
+      "table:sets": { data: { owner_kind: "gym", gym_id: "some-other-gym" } },
     });
     expect(
       await requireSameGymScope(sb as never, GYM_1, SET_1, USER_B),
@@ -317,7 +351,7 @@ describe("requireSameGymScope", () => {
 
   it("rejects a target user who is not a member of the caller's gym", async () => {
     const sb = createMockSupabase({
-      "table:sets": { data: { gym_id: GYM_1 } },
+      "table:sets": { data: { owner_kind: "gym", gym_id: GYM_1 } },
       "table:gym_memberships": { data: null },
     });
     expect(
@@ -336,7 +370,7 @@ describe("requireSameGymScope", () => {
 
   it("passes when the set is in-gym AND the target is a member", async () => {
     const sb = createMockSupabase({
-      "table:sets": { data: { gym_id: GYM_1 } },
+      "table:sets": { data: { owner_kind: "gym", gym_id: GYM_1 } },
       "table:gym_memberships": { data: { user_id: USER_B } },
     });
     expect(
@@ -417,7 +451,7 @@ describe("requireAdminOfSet — multi-gym", () => {
     // an admin of two gyms got a hard 404 on every set belonging to
     // the other one.
     createServiceClientMock.mockReturnValue(
-      createMockSupabase({ "table:sets": { data: { gym_id: GYM_OTHER } } }),
+      createMockSupabase({ "table:sets": { data: { owner_kind: "gym", gym_id: GYM_OTHER } } }),
     );
     getServerUserMock.mockResolvedValue({ id: USER_A });
     const adminClient = createMockSupabase({
@@ -454,7 +488,7 @@ describe("requireAdminOfSet — multi-gym", () => {
     // user-facing copy instead would make a reworded string silently
     // change the redirect.
     createServiceClientMock.mockReturnValue(
-      createMockSupabase({ "table:sets": { data: { gym_id: GYM_1 } } }),
+      createMockSupabase({ "table:sets": { data: { owner_kind: "gym", gym_id: GYM_1 } } }),
     );
     getServerUserMock.mockResolvedValue({ id: USER_A });
     createServerSupabaseMock.mockReturnValue(

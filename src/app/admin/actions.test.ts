@@ -541,6 +541,7 @@ describe("updateSet", () => {
 
   const liveRow = {
     gym_id: GYM_1,
+    owner_kind: "gym",
     status: "live",
     name: "Spring",
     starts_at: "2026-04-01",

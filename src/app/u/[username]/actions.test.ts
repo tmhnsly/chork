@@ -59,7 +59,7 @@ describe("fetchSetPlacement", () => {
     const { requireAuth } = await import("@/lib/auth");
     vi.mocked(requireAuth).mockResolvedValue({
       supabase: createMockSupabase({
-        "table:sets": { data: { gym_id: GYM_OTHER } },
+        "table:sets": { data: { owner_kind: "gym", gym_id: GYM_OTHER } },
       }) as never,
       userId: USER_A,
       gymId: GYM_OWN,
@@ -74,7 +74,7 @@ describe("fetchSetPlacement", () => {
     const { requireAuth } = await import("@/lib/auth");
     vi.mocked(requireAuth).mockResolvedValue({
       supabase: createMockSupabase({
-        "table:sets": { data: { gym_id: GYM_OWN } },
+        "table:sets": { data: { owner_kind: "gym", gym_id: GYM_OWN } },
         "table:gym_memberships": { data: null },
       }) as never,
       userId: USER_A,
@@ -92,7 +92,7 @@ describe("fetchSetPlacement", () => {
     const { requireAuth } = await import("@/lib/auth");
     vi.mocked(requireAuth).mockResolvedValue({
       supabase: createMockSupabase({
-        "table:sets": { data: { gym_id: GYM_OWN } },
+        "table:sets": { data: { owner_kind: "gym", gym_id: GYM_OWN } },
         "table:gym_memberships": { data: { user_id: USER_B } },
       }) as never,
       userId: USER_A,
@@ -119,7 +119,7 @@ describe("fetchSetPlacement", () => {
     const { requireAuth } = await import("@/lib/auth");
     vi.mocked(requireAuth).mockResolvedValue({
       supabase: createMockSupabase({
-        "table:sets": { data: { gym_id: GYM_OWN } },
+        "table:sets": { data: { owner_kind: "gym", gym_id: GYM_OWN } },
         "table:gym_memberships": { data: { user_id: USER_B } },
       }) as never,
       userId: USER_A,

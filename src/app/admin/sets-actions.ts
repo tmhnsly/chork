@@ -223,12 +223,21 @@ export async function updateSet(
   const service = createServiceClient();
   const { data: setRow } = await service
     .from("sets")
-    .select("gym_id, status, name, starts_at, ends_at")
+    .select("gym_id, owner_kind, status, name, starts_at, ends_at")
     .eq("id", setId)
     .maybeSingle();
   if (!setRow) return { error: "Set not found." };
 
-  const auth = await requireGymAdmin(setRow.gym_id);
+  // `sets` hosts climber-run Matches too since the convergence
+  // (migration 080), and `gym_id` is null on those. This is the gym
+  // admin surface — a Match is edited by its players, not from here —
+  // so refuse rather than let a null gym reach requireGymAdmin.
+  if (setRow.owner_kind !== "gym" || !setRow.gym_id) {
+    return { error: "Set not found." };
+  }
+  const gymId = setRow.gym_id;
+
+  const auth = await requireGymAdmin(gymId);
   if ("error" in auth) return { error: auth.error };
 
   // Validate the RESULTING set, not just the supplied fields: a patch
@@ -238,7 +247,11 @@ export async function updateSet(
   const validation = validateSetPatch({
     ...form,
     startsAt: form.startsAt ?? setRow.starts_at,
-    endsAt: form.endsAt ?? setRow.ends_at,
+    // `ends_at` went nullable in the convergence (a Match has no
+    // fixed end). Gym Sets always have one, but the type can't know
+    // that — `undefined` skips the range check rather than comparing
+    // against null.
+    endsAt: form.endsAt ?? setRow.ends_at ?? undefined,
   });
   if (validation) return { error: validation };
 
@@ -260,7 +273,7 @@ export async function updateSet(
     const { error: demoteError } = await auth.supabase
       .from("sets")
       .update({ status: "archived" })
-      .eq("gym_id", setRow.gym_id)
+      .eq("gym_id", gymId)
       .eq("status", "live")
       .neq("id", setId);
     if (demoteError) return { error: formatError(demoteError) };
@@ -299,20 +312,28 @@ export async function updateSet(
   if (goingLive) {
     try {
       const [userIds, gym] = await Promise.all([
-        getGymClimberUserIds(setRow.gym_id),
-        getGym(setRow.gym_id),
+        getGymClimberUserIds(gymId),
+        getGym(gymId),
       ]);
       announce({
         userIds,
         title: `New set at ${gym?.name ?? "your gym"}`,
-        body: `${formatSetLabel({ name: form.name ?? setRow.name, starts_at: form.startsAt ?? setRow.starts_at, ends_at: form.endsAt ?? setRow.ends_at })} is now live. Get climbing.`,
+        body: `${formatSetLabel({
+          name: form.name ?? setRow.name,
+          starts_at: form.startsAt ?? setRow.starts_at,
+          // Gym Sets always carry an end date; the column is only
+          // nullable because Matches share the table now. Falling
+          // back to the start keeps the label a valid range rather
+          // than rendering "Invalid Date".
+          ends_at: form.endsAt ?? setRow.ends_at ?? setRow.starts_at,
+        })} is now live. Get climbing.`,
       });
     } catch (err) {
       logger.warn("set_live_announce_preparation_failed", { err: formatErrorForLog(err) });
     }
   }
 
-  revalidateTag(tags.gymActiveSet(setRow.gym_id), "max");
+  revalidateTag(tags.gymActiveSet(gymId), "max");
   // Status transitions affect leaderboard semantics for the set.
   revalidateTag(tags.setLeaderboard(setId), "max");
   return { success: true };

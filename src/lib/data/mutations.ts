@@ -12,7 +12,6 @@ import {
   type ActivityEventType,
   type GymRole,
 } from "./types";
-import { one } from "./read";
 
 /**
  * ── Error contract ────────────────────────────────────────────────
@@ -33,11 +32,14 @@ type Supabase = SupabaseClient<Database>;
 // ── Route logs ─────────────────────────────────────
 
 /**
- * Returned shape includes the route's set_id (joined) so callers
- * can target precise revalidateTag invalidations on
- * `set:{setId}:leaderboard` without firing a second query.
+ * The returned row carries `set_id`, so callers can target precise
+ * `set:{setId}:leaderboard` invalidations without a second query.
+ *
+ * @deprecated Alias kept only so call sites read clearly during the
+ * convergence. `set_id` is a real column since migration 080, so this
+ * is now exactly `RouteLog` — collapse it when the jam_* tables go.
  */
-export type UpsertedRouteLog = RouteLog & { set_id: string | null };
+export type UpsertedRouteLog = RouteLog;
 
 export async function upsertRouteLog(
   supabase: Supabase,
@@ -57,10 +59,10 @@ export async function upsertRouteLog(
       .eq("id", existingLogId)
       .eq("user_id", userId)
       .eq("gym_id", gymId)
-      .select("*, routes!inner(set_id)")
+      .select("*")
       .single();
     if (error) throw error;
-    return flattenSetId(log);
+    return log;
   }
 
   if (!gymId) throw new Error("gym_id is required when creating a route log");
@@ -68,27 +70,18 @@ export async function upsertRouteLog(
   const { data: log, error } = await supabase
     .from("route_logs")
     .upsert(
-      { user_id: userId, route_id: routeId, gym_id: gymId, ...data },
+      // `set_id` is deliberately omitted: it's derived from the route
+      // by a trigger (migration 081) so a caller can't name a set the
+      // route doesn't belong to. The cast is because the generated
+      // Insert type sees a NOT NULL column with no default and can't
+      // know a trigger fills it.
+      { user_id: userId, route_id: routeId, gym_id: gymId, ...data } as never,
       { onConflict: "user_id,route_id" }
     )
-    .select("*, routes!inner(set_id)")
+    .select("*")
     .single();
   if (error) throw error;
-  return flattenSetId(log);
-}
-
-/**
- * Flatten the joined `routes` embed (see `one()` in read.ts for the
- * arity invariant) to a top-level set_id string so call sites don't
- * branch.
- */
-function flattenSetId(row: RouteLog & { routes?: { set_id: string } | { set_id: string }[] | null }): UpsertedRouteLog {
-  const setId = one(row.routes)?.set_id ?? null;
-  // Strip the join column from the returned shape so callers see a
-  // flat RouteLog + set_id.
-  const { routes: _drop, ...rest } = row;
-  void _drop;
-  return { ...rest, set_id: setId };
+  return log;
 }
 
 // ── Comments ───────────────────────────────────────

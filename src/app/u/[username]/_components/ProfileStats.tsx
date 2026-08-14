@@ -126,6 +126,7 @@ export async function ProfileStats({ userId, gymId, createdAt, isOwnProfile }: P
         // RouteLog shape without a hand-rolled stub.
         id: "",
         user_id: userId,
+        set_id: activeSet?.id ?? "",
         gym_id: gymId,
         completed_at: null,
         grade_vote: null,

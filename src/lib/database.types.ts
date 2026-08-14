@@ -1115,9 +1115,10 @@ export type Database = {
           completed_at: string | null
           created_at: string
           grade_vote: number | null
-          gym_id: string
+          gym_id: string | null
           id: string
           route_id: string
+          set_id: string
           updated_at: string
           user_id: string
           zone: boolean
@@ -1128,9 +1129,10 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           grade_vote?: number | null
-          gym_id: string
+          gym_id?: string | null
           id?: string
           route_id: string
+          set_id: string
           updated_at?: string
           user_id: string
           zone?: boolean
@@ -1141,9 +1143,10 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           grade_vote?: number | null
-          gym_id?: string
+          gym_id?: string | null
           id?: string
           route_id?: string
+          set_id?: string
           updated_at?: string
           user_id?: string
           zone?: boolean
@@ -1161,6 +1164,13 @@ export type Database = {
             columns: ["route_id"]
             isOneToOne: false
             referencedRelation: "routes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_logs_set_id_fkey"
+            columns: ["set_id"]
+            isOneToOne: false
+            referencedRelation: "sets"
             referencedColumns: ["id"]
           },
           {
@@ -1225,8 +1235,11 @@ export type Database = {
       }
       routes: {
         Row: {
+          added_by: string | null
           community_grade: number | null
           created_at: string
+          description: string | null
+          grade: number | null
           grade_vote_count: number
           has_zone: boolean
           id: string
@@ -1236,8 +1249,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          added_by?: string | null
           community_grade?: number | null
           created_at?: string
+          description?: string | null
+          grade?: number | null
           grade_vote_count?: number
           has_zone?: boolean
           id?: string
@@ -1247,8 +1263,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          added_by?: string | null
           community_grade?: number | null
           created_at?: string
+          description?: string | null
+          grade?: number | null
           grade_vote_count?: number
           has_zone?: boolean
           id?: string
@@ -1259,6 +1278,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "routes_added_by_fkey"
+            columns: ["added_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "routes_set_id_fkey"
             columns: ["set_id"]
             isOneToOne: false
@@ -1267,18 +1293,61 @@ export type Database = {
           },
         ]
       }
+      set_players: {
+        Row: {
+          is_host: boolean
+          joined_at: string
+          left_at: string | null
+          set_id: string
+          user_id: string
+        }
+        Insert: {
+          is_host?: boolean
+          joined_at?: string
+          left_at?: string | null
+          set_id: string
+          user_id: string
+        }
+        Update: {
+          is_host?: boolean
+          joined_at?: string
+          left_at?: string | null
+          set_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "set_players_set_id_fkey"
+            columns: ["set_id"]
+            isOneToOne: false
+            referencedRelation: "sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "set_players_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sets: {
         Row: {
           active: boolean
           closing_event: boolean
+          code: string | null
           competition_id: string | null
           created_at: string
-          ends_at: string
+          ends_at: string | null
           grading_scale: string
-          gym_id: string
+          gym_id: string | null
+          host_id: string | null
           id: string
-          max_grade: number
+          max_grade: number | null
+          min_grade: number | null
           name: string | null
+          owner_kind: string
           starts_at: string
           status: string
           updated_at: string
@@ -1287,14 +1356,18 @@ export type Database = {
         Insert: {
           active?: boolean
           closing_event?: boolean
+          code?: string | null
           competition_id?: string | null
           created_at?: string
-          ends_at: string
+          ends_at?: string | null
           grading_scale?: string
-          gym_id: string
+          gym_id?: string | null
+          host_id?: string | null
           id?: string
-          max_grade?: number
+          max_grade?: number | null
+          min_grade?: number | null
           name?: string | null
+          owner_kind?: string
           starts_at: string
           status?: string
           updated_at?: string
@@ -1303,14 +1376,18 @@ export type Database = {
         Update: {
           active?: boolean
           closing_event?: boolean
+          code?: string | null
           competition_id?: string | null
           created_at?: string
-          ends_at?: string
+          ends_at?: string | null
           grading_scale?: string
-          gym_id?: string
+          gym_id?: string | null
+          host_id?: string | null
           id?: string
-          max_grade?: number
+          max_grade?: number | null
+          min_grade?: number | null
           name?: string | null
+          owner_kind?: string
           starts_at?: string
           status?: string
           updated_at?: string
@@ -1329,6 +1406,13 @@ export type Database = {
             columns: ["gym_id"]
             isOneToOne: false
             referencedRelation: "gyms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sets_host_id_fkey"
+            columns: ["host_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -1529,6 +1613,7 @@ export type Database = {
       auto_archive_ended_sets: { Args: never; Returns: number }
       auto_publish_due_sets: { Args: never; Returns: number }
       bump_invite_rate_limit: { Args: never; Returns: boolean }
+      can_read_set: { Args: { p_set_id: string }; Returns: boolean }
       compute_points: {
         Args: { p_attempts: number; p_completed: boolean; p_zone: boolean }
         Returns: number
@@ -2001,6 +2086,7 @@ export type Database = {
       is_gym_owner: { Args: { p_gym_id: string }; Returns: boolean }
       is_jam_host: { Args: { p_jam_id: string }; Returns: boolean }
       is_jam_player: { Args: { p_jam_id: string }; Returns: boolean }
+      is_set_player: { Args: { p_set_id: string }; Returns: boolean }
       join_jam_by_code: {
         Args: { p_code: string }
         Returns: {
