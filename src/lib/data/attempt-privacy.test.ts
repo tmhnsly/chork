@@ -45,15 +45,27 @@ describe("aggregate attempt mask (SQL)", () => {
       // Post-jam summary hydrator: masks jam_summary_players.attempts.
       column: "attempts",
     },
+    {
+      fn: "get_match_leaderboard",
+      // The converged live board (migration 084). Same mask, resolved
+      // against `v_viewer` — which is auth.uid() for an authenticated
+      // caller and the named viewer only when auth.uid() is null, so
+      // it cannot be spoofed into revealing someone else's count.
+      column: "attempts",
+    },
   ];
 
   // `case when <alias>.user_id = <owner> then <alias>.attempts else 0`,
-  // where <owner> is `(select auth.uid())` for caller-context RPCs or
-  // the `p_user_id` argument for service-role hydrators. Table aliases
+  // where <owner> is `(select auth.uid())` for caller-context RPCs,
+  // the `p_user_id` argument for service-role hydrators, or the
+  // `v_viewer` binding that resolves between the two. Table aliases
   // are optional so a rename or reformat doesn't fail a behavioural
-  // assertion — but the mask itself must be there.
+  // assertion — but the mask itself must be there. Each alternative
+  // is enumerated rather than matched with `\w+`: a wildcard here
+  // would happily accept `case when user_id = user_id`, which masks
+  // nothing at all.
   const MASK =
-    /case when (?:\w+\.)?user_id = (?:\(select auth\.uid\(\)\)|p_user_id) then (?:\w+\.)?attempts else 0/;
+    /case when (?:\w+\.)?(?:agg_)?user_id = (?:\(select auth\.uid\(\)\)|p_user_id|v_viewer) then (?:\w+\.)?attempts else 0/;
 
   it.each(MASKED_RPCS)(
     "$fn masks non-owner attempts to zero",
@@ -68,6 +80,26 @@ describe("aggregate attempt mask (SQL)", () => {
       ).toBe(true);
     },
   );
+
+  it("get_match_state_for_user inherits the mask rather than re-deriving it", () => {
+    // Same contract as the jam hydrator below: the bundle's board
+    // comes straight from get_match_leaderboard (already masked), and
+    // `my_logs` is filtered to the caller. If it ever reads attempts
+    // out of route_logs for anyone else it needs its own mask.
+    const { body, file } = latestDefinition("get_match_state_for_user");
+    expect(
+      body.includes("get_match_leaderboard"),
+      `get_match_state_for_user (live definition in ${file}) no longer sources ` +
+        `its leaderboard from get_match_leaderboard, so it no longer inherits ` +
+        `that RPC's attempt mask. Add an explicit mask or re-point it.`,
+    ).toBe(true);
+    expect(
+      /where rl\.set_id = p_set_id\s+and rl\.user_id = p_user_id/.test(body),
+      `get_match_state_for_user (live definition in ${file}) no longer scopes ` +
+        `my_logs to the caller. Raw per-log attempt counts for other players ` +
+        `must never reach a client — see CONTEXT.md "Attempt privacy".`,
+    ).toBe(true);
+  });
 
   it("get_jam_state_for_user inherits the mask rather than re-deriving it", () => {
     // The hydrator passes `lb.attempts` straight through from

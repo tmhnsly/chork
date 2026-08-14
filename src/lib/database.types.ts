@@ -1238,8 +1238,8 @@ export type Database = {
           added_by: string | null
           community_grade: number | null
           created_at: string
+          declared_grade: number | null
           description: string | null
-          grade: number | null
           grade_vote_count: number
           has_zone: boolean
           id: string
@@ -1252,8 +1252,8 @@ export type Database = {
           added_by?: string | null
           community_grade?: number | null
           created_at?: string
+          declared_grade?: number | null
           description?: string | null
-          grade?: number | null
           grade_vote_count?: number
           has_zone?: boolean
           id?: string
@@ -1266,8 +1266,8 @@ export type Database = {
           added_by?: string | null
           community_grade?: number | null
           created_at?: string
+          declared_grade?: number | null
           description?: string | null
-          grade?: number | null
           grade_vote_count?: number
           has_zone?: boolean
           id?: string
@@ -1286,6 +1286,32 @@ export type Database = {
           },
           {
             foreignKeyName: "routes_set_id_fkey"
+            columns: ["set_id"]
+            isOneToOne: false
+            referencedRelation: "sets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      set_grades: {
+        Row: {
+          label: string
+          ordinal: number
+          set_id: string
+        }
+        Insert: {
+          label: string
+          ordinal: number
+          set_id: string
+        }
+        Update: {
+          label?: string
+          ordinal?: number
+          set_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "set_grades_set_id_fkey"
             columns: ["set_id"]
             isOneToOne: false
             referencedRelation: "sets"
@@ -1344,6 +1370,8 @@ export type Database = {
           gym_id: string | null
           host_id: string | null
           id: string
+          last_activity_at: string | null
+          location: string | null
           max_grade: number | null
           min_grade: number | null
           name: string | null
@@ -1364,6 +1392,8 @@ export type Database = {
           gym_id?: string | null
           host_id?: string | null
           id?: string
+          last_activity_at?: string | null
+          location?: string | null
           max_grade?: number | null
           min_grade?: number | null
           name?: string | null
@@ -1384,6 +1414,8 @@ export type Database = {
           gym_id?: string | null
           host_id?: string | null
           id?: string
+          last_activity_at?: string | null
+          location?: string | null
           max_grade?: number | null
           min_grade?: number | null
           name?: string | null
@@ -1514,7 +1546,7 @@ export type Database = {
       user_set_stats: {
         Row: {
           flashes: number
-          gym_id: string
+          gym_id: string | null
           points: number
           sends: number
           set_id: string
@@ -1524,7 +1556,7 @@ export type Database = {
         }
         Insert: {
           flashes?: number
-          gym_id: string
+          gym_id?: string | null
           points?: number
           sends?: number
           set_id: string
@@ -1534,7 +1566,7 @@ export type Database = {
         }
         Update: {
           flashes?: number
-          gym_id?: string
+          gym_id?: string | null
           points?: number
           sends?: number
           set_id?: string
@@ -1610,6 +1642,34 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      add_match_route: {
+        Args: {
+          p_description?: string
+          p_grade?: number
+          p_has_zone?: boolean
+          p_set_id: string
+        }
+        Returns: {
+          added_by: string | null
+          community_grade: number | null
+          created_at: string
+          declared_grade: number | null
+          description: string | null
+          grade_vote_count: number
+          has_zone: boolean
+          id: string
+          number: number
+          set_id: string
+          setter_name: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "routes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       auto_archive_ended_sets: { Args: never; Returns: number }
       auto_publish_due_sets: { Args: never; Returns: number }
       bump_invite_rate_limit: { Args: never; Returns: boolean }
@@ -1643,11 +1703,59 @@ export type Database = {
           id: string
         }[]
       }
+      create_match: {
+        Args: {
+          p_custom_grades?: string[]
+          p_grading_scale?: string
+          p_location?: string
+          p_max_grade?: number
+          p_min_grade?: number
+          p_name?: string
+          p_save_scale_name?: string
+        }
+        Returns: {
+          code: string
+          id: string
+        }[]
+      }
       crew_member_status: { Args: { p_crew_id: string }; Returns: string }
       end_jam: { Args: { p_jam_id: string }; Returns: string }
       end_jam_as_player: { Args: { p_jam_id: string }; Returns: string }
+      end_match: {
+        Args: { p_set_id: string }
+        Returns: {
+          active: boolean
+          closing_event: boolean
+          code: string | null
+          competition_id: string | null
+          created_at: string
+          ends_at: string | null
+          grading_scale: string
+          gym_id: string | null
+          host_id: string | null
+          id: string
+          last_activity_at: string | null
+          location: string | null
+          max_grade: number | null
+          min_grade: number | null
+          name: string | null
+          owner_kind: string
+          starts_at: string
+          status: string
+          updated_at: string
+          venue_gym_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "sets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       end_stale_jams: { Args: never; Returns: number }
+      end_stale_matches: { Args: never; Returns: number }
       generate_jam_code: { Args: never; Returns: string }
+      generate_set_code: { Args: never; Returns: string }
       get_active_climber_count: { Args: { p_set_id: string }; Returns: number }
       get_active_jam_for_user: {
         Args: never
@@ -1967,6 +2075,26 @@ export type Database = {
           zones: number
         }[]
       }
+      get_match_leaderboard: {
+        Args: { p_set_id: string; p_viewer_id?: string }
+        Returns: {
+          attempts: number
+          avatar_url: string
+          display_name: string
+          flashes: number
+          last_send_at: string
+          points: number
+          rank: number
+          sends: number
+          user_id: string
+          username: string
+          zones: number
+        }[]
+      }
+      get_match_state_for_user: {
+        Args: { p_set_id: string; p_user_id: string }
+        Returns: Json
+      }
       get_profile_summary: {
         Args: { p_gym_id: string; p_user_id: string }
         Returns: Json
@@ -2101,6 +2229,22 @@ export type Database = {
           status: string
         }[]
       }
+      join_match: {
+        Args: { p_set_id: string }
+        Returns: {
+          is_host: boolean
+          joined_at: string
+          left_at: string | null
+          set_id: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "set_players"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       leave_crew_atomic: { Args: { p_crew_id: string }; Returns: string }
       leave_jam: {
         Args: { p_jam_id: string }
@@ -2116,6 +2260,20 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      lookup_match_by_code: {
+        Args: { p_code: string }
+        Returns: {
+          at_cap: boolean
+          grading_scale: string
+          host_display_name: string
+          host_username: string
+          location: string
+          name: string
+          player_count: number
+          set_id: string
+          status: string
+        }[]
       }
       mark_all_notifications_read: {
         Args: { p_user_id: string }
