@@ -1,10 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { useClientResource } from "@/hooks/use-client-resource";
-import { Button, UserAvatar, shimmerStyles, Username } from "@/components/ui";
+import {
+  Button,
+  LeaderboardRow,
+  shimmerStyles,
+  type LeaderboardRowData,
+} from "@/components/ui";
 import {
   getCrewLeaderboard,
   type ActiveSetOption,
@@ -12,6 +16,20 @@ import {
 } from "@/lib/data/crew-queries";
 import { formatSetLabel } from "@/lib/data/set-label";
 import styles from "./crewLeaderboardSection.module.scss";
+
+/** Adapter — the shared `LeaderboardRow` primitive is decoupled from
+ *  the crew query shape (same idiom as `LeaderboardList`). */
+function toRowData(r: CrewLeaderboardRow): LeaderboardRowData {
+  return {
+    userId: r.user_id,
+    username: r.username,
+    name: r.name,
+    avatarUrl: r.avatar_url,
+    rank: r.rank,
+    points: r.points,
+    flashes: r.flashes,
+  };
+}
 
 interface Props {
   crewId: string;
@@ -78,7 +96,10 @@ export function CrewLeaderboardPanel({
       ) : rows === null ? (
         <ul className={styles.list} aria-busy="true">
           {[0, 1, 2, 3].map((i) => (
-            <li key={i} className={`${styles.row} ${shimmerStyles.skeleton}`} />
+            <li
+              key={i}
+              className={`${styles.skeletonRow} ${shimmerStyles.skeleton}`}
+            />
           ))}
         </ul>
       ) : rows.length === 0 ? (
@@ -87,42 +108,15 @@ export function CrewLeaderboardPanel({
         </p>
       ) : (
         <ul className={styles.list}>
-          {rows.map((r) => {
-            const isSelf = r.user_id === currentUserId;
-            return (
-              <li
-                key={r.user_id}
-                className={`${styles.row} ${isSelf ? styles.rowSelf : ""}`}
-              >
-                <Link
-                  href={`/u/${r.username}`}
-                  className={styles.rowLink}
-                  aria-label={`Open @${r.username}'s profile`}
-                >
-                  <span className={styles.rank}>
-                    {r.rank === null ? "—" : `#${r.rank}`}
-                  </span>
-                  <UserAvatar
-                    user={{
-                      id: r.user_id,
-                      username: r.username,
-                      name: r.name,
-                      avatar_url: r.avatar_url,
-                    }}
-                    size="row"
-                  />
-                  <div className={styles.rowText}>
-                    <Username username={r.username} className={styles.rowName} />
-                    {r.name && <span className={styles.rowSub}>{r.name}</span>}
-                  </div>
-                  <div className={styles.rowStats}>
-                    <span className={styles.statValue}>{r.points}</span>
-                    <span className={styles.statLabel}>pts</span>
-                  </div>
-                </Link>
-              </li>
-            );
-          })}
+          {rows.map((r) => (
+            <li key={r.user_id}>
+              <LeaderboardRow
+                entry={toRowData(r)}
+                highlighted={r.user_id === currentUserId}
+                href={`/u/${r.username}`}
+              />
+            </li>
+          ))}
         </ul>
       )}
     </section>

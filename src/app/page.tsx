@@ -44,7 +44,10 @@ export default async function Home() {
 
   return (
     <main className={styles.app}>
-      <PageHeader title="The Wall" as="h2" />
+      {/* h1: this is the app's primary authed route and its heading.
+          It was the only `as="h2"` of 16 PageHeader call sites, which
+          left `/` with no h1 at all. */}
+      <PageHeader title="The Wall" />
       <Suspense fallback={<SendsGridSkeleton />}>
         <AuthenticatedHome userId={userId} gymId={gymId} />
       </Suspense>

@@ -9,7 +9,7 @@ import loadingStyles from "./loading.module.scss";
  */
 export default function CrewLoading() {
   return (
-    <main className={styles.page} role="status" aria-busy="true" aria-label="Loading crew">
+    <main className={styles.page} aria-busy="true" aria-label="Loading crew">
       <header className={styles.header}>
         <div className={`${loadingStyles.title} ${shimmerStyles.skeleton}`} />
         <div className={`${loadingStyles.sub} ${shimmerStyles.skeleton}`} />

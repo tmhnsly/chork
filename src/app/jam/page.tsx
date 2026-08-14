@@ -8,7 +8,7 @@ import {
   getUserJams,
 } from "@/lib/data/jam-queries";
 import { PageHeader } from "@/components/motion";
-import { Button, ChorkMark } from "@/components/ui";
+import { ChorkMark, LinkButton } from "@/components/ui";
 import { ActiveJamBanner } from "@/components/Jam/ActiveJamBanner";
 import { JamHistoryList } from "@/components/Jam/JamHistoryList";
 import styles from "./jam.module.scss";
@@ -65,16 +65,12 @@ export default async function JamPage() {
           </p>
         </div>
         <div className={styles.actionButtons}>
-          <Link href="/jam/new" className={styles.actionLink}>
-            <Button fullWidth>
-              <FaPlus aria-hidden /> Start a jam
-            </Button>
-          </Link>
-          <Link href="/jam/join" className={styles.actionLink}>
-            <Button variant="secondary" fullWidth>
-              <FaUserPlus aria-hidden /> Join a jam
-            </Button>
-          </Link>
+          <LinkButton href="/jam/new" className={styles.actionLink} fullWidth>
+            <FaPlus aria-hidden /> Start a jam
+          </LinkButton>
+          <LinkButton href="/jam/join" className={styles.actionLink} variant="secondary" fullWidth>
+            <FaUserPlus aria-hidden /> Join a jam
+          </LinkButton>
         </div>
       </section>
 
@@ -101,11 +97,9 @@ export default async function JamPage() {
             <p className={styles.emptyLede}>
               Start one with your mates or join by code.
             </p>
-            <Link href="/jam/new" className={styles.actionLink}>
-              <Button>
-                <FaPlus aria-hidden /> Start the first one
-              </Button>
-            </Link>
+            <LinkButton href="/jam/new" className={styles.actionLink}>
+              <FaPlus aria-hidden /> Start the first one
+            </LinkButton>
           </div>
         ) : (
           <JamHistoryList jams={recentJams} />

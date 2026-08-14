@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useClientResource } from "@/hooks/use-client-resource";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { SheetBody } from "@/components/ui";
 import { RingStatsRow } from "@/components/ui/RingStatsRow/RingStatsRow";
@@ -22,22 +22,18 @@ interface Props {
 }
 
 export function SetDetailSheet({ set, userId, onClose }: Props) {
-  const [rank, setRank] = useState<number | null>(null);
-  const [rankLoading, setRankLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchSetPlacement(userId, set.id).then((result) => {
-      if (cancelled) return;
-      if ("error" in result) {
-        setRankLoading(false);
-        return;
-      }
-      setRank(result.rank);
-      setRankLoading(false);
-    });
-    return () => { cancelled = true; };
-  }, [set.id, userId]);
+  // Keyed fetch — loading derives from the key, stale responses are
+  // rejected structurally. An `{ error }` result throws into the
+  // hook's error slot, which renders identically to the old handling:
+  // loading ends, rank stays null (RingStatsRow shows its fallback).
+  const { data: placement, loading: rankLoading } = useClientResource<{
+    rank: number | null;
+  }>(`${userId}|${set.id}`, async () => {
+    const result = await fetchSetPlacement(userId, set.id);
+    if ("error" in result) throw new Error(result.error);
+    return result;
+  });
+  const rank = placement?.rank ?? null;
 
   const pps = pointsPerSend(set.points, set.completions);
   const flashRate = set.completions > 0 ? set.flashes / set.completions : null;

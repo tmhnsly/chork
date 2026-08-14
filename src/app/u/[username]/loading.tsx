@@ -15,7 +15,7 @@ import styles from "./loading.module.scss";
  */
 export default function ProfileLoading() {
   return (
-    <main className={styles.page} role="status" aria-busy="true" aria-label="Loading profile">
+    <main className={styles.page} aria-busy="true" aria-label="Loading profile">
       <header className={styles.header}>
         <div className={`${styles.avatar} ${shimmerStyles.skeleton}`} />
         <div className={styles.identity}>

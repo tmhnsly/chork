@@ -32,7 +32,10 @@ export function Providers({ children, navBar }: Props) {
           <ScrollRestore />
           <OfflineBanner />
           {navBar}
-          <div id="main-content">{children}</div>
+          {/* tabIndex={-1} is what makes the skip link work: browsers
+              scroll to a bare div but won't move focus into it, so the
+              next Tab returned to the nav and the link was decorative. */}
+          <div id="main-content" tabIndex={-1}>{children}</div>
           <ToastProvider />
           <ServiceWorker />
         </PaletteProvider>

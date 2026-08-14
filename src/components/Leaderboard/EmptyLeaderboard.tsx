@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { FaTrophy } from "react-icons/fa6";
-import { Button } from "@/components/ui";
+import { LinkButton } from "@/components/ui";
 import styles from "./emptyLeaderboard.module.scss";
 
 export function EmptyLeaderboard() {
@@ -11,9 +10,7 @@ export function EmptyLeaderboard() {
       <p className={styles.body}>
         No climbs logged yet — log your first send to get on the board.
       </p>
-      <Link href="/">
-        <Button>Log a climb</Button>
-      </Link>
+      <LinkButton href="/">Log a climb</LinkButton>
     </div>
   );
 }

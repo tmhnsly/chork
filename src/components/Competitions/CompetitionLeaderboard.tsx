@@ -4,10 +4,30 @@ import { useMemo, useState } from "react";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { useClientResource } from "@/hooks/use-client-resource";
 import { getCompetitionLeaderboard, type CompetitionLeaderboardRow } from "@/lib/data/competition-queries";
-import { Button, UserAvatar, shimmerStyles, TabPills, type TabPillOption, Username } from "@/components/ui";
-import { toAvatarUser } from "@/lib/data/leaderboard-helpers";
+import {
+  Button,
+  LeaderboardRow,
+  shimmerStyles,
+  TabPills,
+  type LeaderboardRowData,
+  type TabPillOption,
+} from "@/components/ui";
 import type { CompetitionCategory } from "@/lib/data/competition-queries";
 import styles from "./competitionLeaderboard.module.scss";
+
+/** Adapter — the shared `LeaderboardRow` primitive is decoupled from
+ *  the competition query shape (same idiom as `LeaderboardList`). */
+function toRowData(r: CompetitionLeaderboardRow): LeaderboardRowData {
+  return {
+    userId: r.user_id,
+    username: r.username,
+    name: r.name,
+    avatarUrl: r.avatar_url,
+    rank: r.rank,
+    points: r.points,
+    flashes: r.flashes,
+  };
+}
 
 interface Props {
   competitionId: string;
@@ -65,7 +85,10 @@ export function CompetitionLeaderboard({
       ) : rows === null ? (
         <ul className={styles.list} aria-busy="true">
           {[0, 1, 2, 3, 4].map((i) => (
-            <li key={i} className={`${styles.row} ${shimmerStyles.skeleton}`} />
+            <li
+              key={i}
+              className={`${styles.skeletonRow} ${shimmerStyles.skeleton}`}
+            />
           ))}
         </ul>
       ) : rows.length === 0 ? (
@@ -75,20 +98,12 @@ export function CompetitionLeaderboard({
       ) : (
         <ul className={styles.list}>
           {rows.map((r) => (
-            <li
-              key={r.user_id}
-              className={`${styles.row} ${r.user_id === currentUserId ? styles.rowSelf : ""}`}
-            >
-              <span className={styles.rank}>#{r.rank}</span>
-              <UserAvatar user={toAvatarUser(r)} size="row" />
-              <div className={styles.rowText}>
-                <Username username={r.username} className={styles.rowName} />
-                {r.name && <span className={styles.rowSub}>{r.name}</span>}
-              </div>
-              <div className={styles.rowStats}>
-                <span className={`${styles.statValue} ${styles.statPoints}`}>{r.points}</span>
-                <span className={styles.statLabel}>pts</span>
-              </div>
+            <li key={r.user_id}>
+              <LeaderboardRow
+                entry={toRowData(r)}
+                highlighted={r.user_id === currentUserId}
+                interactive={false}
+              />
             </li>
           ))}
         </ul>

@@ -154,7 +154,10 @@ export function LeaderboardView({
 
   return (
     <div className={styles.view}>
-      <PageHeader title="Chork Board" />
+      {/* One word — see CONTEXT.md "Wall vs Chorkboard". The tab
+          title, the loading aria-label and 12 other uses all say
+          Chorkboard; only this heading said "Chork Board". */}
+      <PageHeader title="Chorkboard" />
 
       <GymStatsStrip
         stats={tab === "set" && setStats ? setStats : allTimeStats}

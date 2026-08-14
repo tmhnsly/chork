@@ -1,7 +1,7 @@
 /**
- * Admin-surface queries. Parallel to `src/lib/data/queries.ts` — kept
- * separate so the admin code path can be audited and upgraded without
- * touching climber-facing reads.
+ * Admin-surface queries. Parallel to the climber-facing
+ * `*-queries.ts` modules — kept separate so the admin code path can
+ * be audited and upgraded without touching climber-facing reads.
  *
  * Every function takes `supabase` as the first argument so the caller
  * controls auth context (RLS applies to the authed client; the service

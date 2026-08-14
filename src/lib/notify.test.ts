@@ -53,13 +53,17 @@ describe("notify", () => {
         title: "New crew invite",
         body: "@alice invited you to Tuesday Crew.",
         url: "/crew",
+        // Per-kind tray tag: repeats of one kind coalesce, different
+        // kinds stay separate. sw.js has always read this field;
+        // nothing set it until 2026-08, so every notification shared
+        // the generic fallback tag and collapsed into one entry.
+        tag: "chork-crew_invite_received",
       },
       { category: "invite_received" },
     );
-    expect(revalidateTag).toHaveBeenCalledWith(
-      `user:${USER_B}:notifications`,
-      "max",
-    );
+    // No cache bust: the inbox is read via an uncached server action
+    // (reader-first rule, cache/tags.ts).
+    expect(revalidateTag).not.toHaveBeenCalled();
   });
 
   it("crew_invite_accepted: composes title with accepter username", async () => {

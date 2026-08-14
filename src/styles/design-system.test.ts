@@ -269,3 +269,29 @@ describe("avatars", () => {
     expect(bad, "Same rule, multi-line JSX form.").toEqual([]);
   });
 });
+
+describe("interactive nesting", () => {
+  // A <button> may not be a descendant of an <a>: invalid HTML, and
+  // AT announces a link containing a button while keyboard users get
+  // two stops. `LinkButton` renders a <Link> wearing the button
+  // classes, which is what a "go somewhere" CTA wants.
+  //
+  // This shipped at 8 climber-facing sites while the primitive
+  // existed and was used only in /admin — the rule is here because
+  // the primitive alone clearly wasn't enough to hold the line.
+  it("never nests <Button> inside <Link>", () => {
+    const bad: string[] = [];
+    for (const { path, text } of tsx) {
+      // Non-greedy through the opening <Link ...> tag, then look for
+      // a <Button before the matching </Link>.
+      for (const m of text.matchAll(/<Link\b[\s\S]{0,600}?<\/Link>/g)) {
+        if (/<Button\b/.test(m[0])) bad.push(path);
+      }
+    }
+    expect(
+      [...new Set(bad)],
+      "Use <LinkButton href=…> — a link styled as a button. <Button> is " +
+        "for 'do something', <Link>/<LinkButton> for 'go somewhere'.",
+    ).toEqual([]);
+  });
+});

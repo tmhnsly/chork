@@ -150,8 +150,6 @@ export async function enforce(
     };
   } catch (err) {
     // Fail-open: a Redis outage shouldn't brick mutations. Log + pass.
-    // (logger.ts is introduced in a later phase; for now we use
-    // console.warn matching the rest of the code's error path.)
     logger.warn("rate_limit_enforce_failed", { err: formatErrorForLog(err) });
     return { ok: true };
   }

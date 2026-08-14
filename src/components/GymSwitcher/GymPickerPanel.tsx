@@ -8,23 +8,12 @@ import { Button } from "@/components/ui/Button";
 import { FaMagnifyingGlass, FaCheck } from "react-icons/fa6";
 import { ConfirmInline, shimmerStyles, showToast } from "@/components/ui";
 import { createBrowserSupabase } from "@/lib/supabase/client";
+import {
+  getListedGymsClient,
+  type GymListing,
+} from "@/lib/data/gym-queries.client";
 import { switchActiveGym, clearActiveGym } from "@/app/(app)/membership-actions";
 import styles from "./gymPickerPanel.module.scss";
-
-import { logger } from "@/lib/logger";
-import { formatErrorForLog } from "@/lib/errors";
-/**
- * Shape of a listed gym row. Mirrors `GymListing` in lib/data/queries,
- * declared locally because this is a client component and the queries
- * module is marked `server-only`.
- */
-interface GymListing {
-  id: string;
-  name: string;
-  slug: string;
-  city: string | null;
-  country: string | null;
-}
 
 interface Props {
   /**
@@ -66,25 +55,12 @@ export function GymPickerPanel({ open, onClose, activeGymId }: Props) {
   const [confirmingGymless, setConfirmingGymless] = useState(false);
 
   // Fetch once on first open; the settled result is kept for the
-  // session (constant key ⇒ never refetched). Errors degrade to an
-  // empty list inside the fetcher, exactly as before.
+  // session (constant key ⇒ never refetched). The helper throws on a
+  // Postgres error so useClientResource surfaces a retryable error
+  // state rather than a misleading empty "No gyms" list.
   const { data: gyms, error, reload } = useClientResource<GymListing[]>(
     "gym-listings",
-    async () => {
-      const supabase = createBrowserSupabase();
-      const { data, error } = await supabase
-        .from("gyms")
-        .select("id, name, slug, city, country")
-        .eq("is_listed", true)
-        .order("name");
-      if (error) {
-        // Throw so useClientResource surfaces a retryable error state
-        // rather than a misleading empty "No gyms" list.
-        logger.error("gym_listing_failed", { err: formatErrorForLog(error) });
-        throw error;
-      }
-      return data ?? [];
-    },
+    () => getListedGymsClient(createBrowserSupabase()),
     { enabled: open },
   );
 

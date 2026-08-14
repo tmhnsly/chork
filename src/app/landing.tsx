@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { FaArrowRight } from "react-icons/fa6";
-import { Button } from "@/components/ui";
+import { LinkButton } from "@/components/ui";
 import { SiteFooter } from "@/components/landing/SiteFooter";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { HeroGrid } from "@/components/landing/HeroGrid";
@@ -50,9 +49,9 @@ const scoreRows: ScoreRow[] = [
 
 export function LandingPage() {
   const ctaButton = (
-    <Link href="/login">
-      <Button>Get started<FaArrowRight aria-hidden /></Button>
-    </Link>
+    <LinkButton href="/login">
+      Get started<FaArrowRight aria-hidden />
+    </LinkButton>
   );
 
   return (
@@ -80,9 +79,9 @@ export function LandingPage() {
           <p className={styles.ctaSub}>
             Join your crew on the wall. It takes ten seconds.
           </p>
-          <Link href="/login">
-            <Button variant="secondary">Sign up free<FaArrowRight aria-hidden /></Button>
-          </Link>
+          <LinkButton href="/login" variant="secondary">
+            Sign up free<FaArrowRight aria-hidden />
+          </LinkButton>
         </section>
       </FadeIn>
 

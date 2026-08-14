@@ -8,7 +8,8 @@ import {
   createActivityEvent,
   deleteCompletionEvents,
 } from "@/lib/data/mutations";
-import type { RouteLog, ActivityEventType } from "@/lib/data";
+import type { ActivityEventType } from "@/lib/data";
+import type { UpsertedRouteLog } from "@/lib/data/mutations";
 import { formatError } from "@/lib/errors";
 import { UUID_RE, isValidGradeVote } from "@/lib/validation";
 import { isFlash } from "@/lib/data/logs";
@@ -18,7 +19,17 @@ import type { BadgeDefinition } from "@/lib/badges";
 import { tags } from "@/lib/cache/tags";
 import type { ActionResult } from "@/lib/action-result";
 
-type LogResult = ActionResult<{ log: RouteLog; earnedBadges?: BadgeDefinition[] }>;
+/**
+ * `UpsertedRouteLog`, not `RouteLog`: `upsertRouteLog` flattens the
+ * joined `routes.set_id` onto the row, and these actions both return
+ * that row and key `revalidateRouteLogTags` off it. Declaring the
+ * narrower `RouteLog` here made the returned type deny a field the
+ * value actually carries, so callers had to cast to reach `set_id`.
+ */
+type LogResult = ActionResult<{
+  log: UpsertedRouteLog;
+  earnedBadges?: BadgeDefinition[];
+}>;
 
 export async function updateAttempts(
   routeId: string,
