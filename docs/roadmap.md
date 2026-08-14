@@ -85,6 +85,40 @@ Platform hardening:
 
 ## Next up
 
+> **Session convention:** these are picked up when Tom says
+> **"feature time"**. Bug-fix sessions leave this list alone.
+
+### Designed and ready to build
+
+- [ ] **Grades graph.** Distribution pyramid of grades sent, flashes
+      tinted amber, on the profile. Design fully settled (grilled
+      2026-08-14) — every decision is recorded in the header of
+      `supabase/migrations/076_jam_grade_retention.sql`:
+      gym + jam sends combined; per-(climber, grade) rollup; attempts
+      deliberately not stored; visible to any signed-in user; raw
+      `(grade, scale)` stored and converted at display to the
+      climber's most-used scale; excluded climbs counted in
+      `jam_summary_players.ungraded_sends` so the UI can say what it
+      left out. Retention shipped and live (076/077), so jam data has
+      been accruing since; gym data is full history and needs no
+      backfill. **This is the one to start with — no design work
+      left.**
+
+### Need a design pass first
+
+- [ ] **Jam handicap system.** So stronger and weaker climbers can
+      compete in the same jam. Open questions: handicap per climber
+      or per grade band; self-declared or derived from history;
+      applied to points or to the board. Needs grilling before code.
+- [ ] **Jam host/guest mode.** Hosts logging attempts for others, and
+      guests playing without an account. Needs schema work
+      (`jam_players` requires a `profiles` FK) plus a trust decision —
+      anyone in a jam can already edit anything.
+- [ ] **Jam activity → crew feed.** One event per jam. Parked by Tom
+      pending the wider crew rework; `activity_events` is currently
+      only written by gym-wall sends and comments, so a gymless
+      climber generates nothing for the feed.
+
 - [ ] **Jams — UX/robustness overhaul.** Shipped half-baked; the feature
       works but doesn't hang together yet. Known gaps (audit 2026-08-10):
       live-player realtime never dispatched (`set-players` reducer action is
