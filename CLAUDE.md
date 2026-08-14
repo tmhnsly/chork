@@ -189,11 +189,20 @@ Quick reference:
 Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
 
 - Both light + dark must work — never override OS preference
-- **Six user-selectable palettes** (Chork / Slate / Sand / Gray /
-  Mauve / Sage). Each is a `[data-theme="…"]` block in
+- **Four user-selectable palettes** (Chork / Blue / Violet / Pink).
+  Each is a `[data-theme="…"]` block in
   `src/styles/theme/colors.scss` that re-maps `--mono-*` and
-  `--accent-*` to a different Radix scale via mixins. Flash and
-  zone are brand-fixed across every palette
+  `--accent-*` to a different Radix scale via mixins. The **accent**
+  is what distinguishes a palette; the gray follows from Radix's
+  pairing guide for that hue. Flash and zone are brand-fixed across
+  every palette
+- **A new palette's accent must not collide with a reserved hue** —
+  amber (flash + podium gold), teal (zone), red (error), orange
+  (warning), bronze (podium 3rd), or the grays (silver + every
+  surface). That is why there are four and not more; the reasoning
+  is written out above the theme table in `colors.scss`. The
+  constraint is real, not stylistic: a send tile, a flash, a zone and
+  an untouched route all appear in one grid on the wall
 - Theme selection persists on `profiles.theme` (migration 028);
   `theme.tsx` bridges the auth profile into a tiny external store
   via `useSyncExternalStore`. Visiting another climber's profile
