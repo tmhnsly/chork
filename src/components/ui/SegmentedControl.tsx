@@ -1,7 +1,6 @@
 "use client";
 
-import { useRef } from "react";
-import { tabId } from "./tab-ids";
+import { useTabList } from "./useTabList";
 import styles from "./segmentedControl.module.scss";
 
 interface Option<T extends string> {
@@ -36,16 +35,13 @@ interface Props<T extends string> {
 }
 
 /**
- * Mutually exclusive options in a segmented bar.
+ * Mutually exclusive options in a fixed, equal-width segmented bar.
+ * The active option has a filled pill background using `--mono-bg`
+ * (step 3), consistent with the navbar active tab style.
  *
- * Two ARIA shapes behind one visual — see `panelId`. Arrow-key roving
- * focus applies only in tabs mode: in group mode every button is
- * Tab-reachable, because a toggle group isn't a composite widget and
- * roving tabindex would hide options from keyboard users.
- *
- * Activation is manual in tabs mode (focus moves on arrow, selection
- * on Enter/Space/click) per the WAI-ARIA recommendation, so keyboard
- * users don't fire a fetch on every arrow press.
+ * Behaviour (roles, roving tabindex, arrow keys, tabs-vs-group) comes
+ * from `useTabList` — shared with `TabPills`, which is the same widget
+ * in a scrollable pill layout. Only the markup and styles differ.
  */
 export function SegmentedControl<T extends string>({
   options,
@@ -55,45 +51,28 @@ export function SegmentedControl<T extends string>({
   className,
   panelId,
 }: Props<T>) {
-  const refs = useRef<(HTMLButtonElement | null)[]>([]);
-  const asTabs = panelId !== undefined;
-
-  function handleKeyDown(e: React.KeyboardEvent, i: number) {
-    if (!asTabs) return;
-    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-    e.preventDefault();
-    const dir = e.key === "ArrowRight" ? 1 : -1;
-    const next = (i + dir + options.length) % options.length;
-    refs.current[next]?.focus();
-  }
+  const { listProps, optionProps, isSelected } = useTabList({
+    options,
+    value,
+    panelId,
+  });
 
   return (
     <div
-      role={asTabs ? "tablist" : "group"}
+      {...listProps}
       aria-label={ariaLabel}
       className={[styles.track, className].filter(Boolean).join(" ")}
     >
-      {options.map((opt, i) => {
-        const selected = opt.value === value;
-        return (
-          <button
-            key={opt.value}
-            ref={(el) => { refs.current[i] = el; }}
-            type="button"
-            role={asTabs ? "tab" : undefined}
-            id={asTabs ? tabId(panelId, opt.value) : undefined}
-            aria-selected={asTabs ? selected : undefined}
-            aria-controls={asTabs ? panelId : undefined}
-            aria-pressed={asTabs ? undefined : selected}
-            tabIndex={asTabs ? (selected ? 0 : -1) : undefined}
-            className={`${styles.option} ${selected ? styles.optionSelected : ""}`}
-            onClick={() => onChange(opt.value)}
-            onKeyDown={(e) => handleKeyDown(e, i)}
-          >
-            {opt.label}
-          </button>
-        );
-      })}
+      {options.map((opt, i) => (
+        <button
+          key={opt.value}
+          {...optionProps(opt, i)}
+          className={`${styles.option} ${isSelected(opt.value) ? styles.optionSelected : ""}`}
+          onClick={() => onChange(opt.value)}
+        >
+          {opt.label}
+        </button>
+      ))}
     </div>
   );
 }

@@ -1,7 +1,6 @@
 "use client";
 
-import { useRef } from "react";
-import { tabId } from "./tab-ids";
+import { useTabList } from "./useTabList";
 import styles from "./tabPills.module.scss";
 
 export interface TabPillOption<T extends string | number | null> {
@@ -59,7 +58,8 @@ interface Props<T extends string | number | null> {
  * keyboard users don't trigger network fetches on every arrow press.
  *
  * Pair with `SegmentedControl` when you want a fixed equal-width
- * segmented bar instead of a scrollable pill row.
+ * segmented bar instead of a scrollable pill row — same widget, same
+ * behaviour (both use `useTabList`), different layout.
  */
 export function TabPills<T extends string | number | null>({
   options,
@@ -70,27 +70,15 @@ export function TabPills<T extends string | number | null>({
   className,
   panelId,
 }: Props<T>) {
-  const refs = useRef<(HTMLButtonElement | null)[]>([]);
-  const asTabs = panelId !== undefined;
-
-  function handleKeyDown(e: React.KeyboardEvent, i: number) {
-    if (!asTabs) return;
-    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
-    e.preventDefault();
-    const dir = e.key === "ArrowRight" ? 1 : -1;
-    const len = options.length;
-    let j = i;
-    // Skip disabled options so Tab focus never lands on them.
-    for (let step = 0; step < len; step++) {
-      j = (j + dir + len) % len;
-      if (!options[j]?.disabled) break;
-    }
-    refs.current[j]?.focus();
-  }
+  const { listProps, optionProps, isSelected } = useTabList({
+    options,
+    value,
+    panelId,
+  });
 
   return (
     <div
-      role={asTabs ? "tablist" : "group"}
+      {...listProps}
       aria-label={ariaLabel}
       className={[
         styles.row,
@@ -101,22 +89,13 @@ export function TabPills<T extends string | number | null>({
         .join(" ")}
     >
       {options.map((opt, i) => {
-        const selected = opt.value === value;
+        const selected = isSelected(opt.value);
         return (
           <button
             key={String(opt.value ?? "__null")}
-            ref={(el) => { refs.current[i] = el; }}
-            type="button"
-            role={asTabs ? "tab" : undefined}
-            id={asTabs ? tabId(panelId, opt.value) : undefined}
-            aria-selected={asTabs ? selected : undefined}
-            aria-controls={asTabs ? panelId : undefined}
-            aria-pressed={asTabs ? undefined : selected}
-            tabIndex={asTabs ? (selected ? 0 : -1) : undefined}
-            disabled={opt.disabled}
+            {...optionProps(opt, i)}
             className={`${styles.pill} ${selected ? styles.pillActive : ""}`}
             onClick={() => onChange(opt.value)}
-            onKeyDown={(e) => handleKeyDown(e, i)}
           >
             <span>{opt.label}</span>
             {typeof opt.count === "number" && (
