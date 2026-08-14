@@ -102,7 +102,7 @@ export default function PrivacyPage() {
       </section>
 
       <footer className={styles.footer}>
-        <LinkButton href="/" className={styles.backLink} variant="secondary">
+        <LinkButton href="/" variant="secondary">
           <FaArrowLeft aria-hidden />
           Back to Chork
         </LinkButton>

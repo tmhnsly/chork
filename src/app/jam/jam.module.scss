@@ -38,11 +38,6 @@
 
 // Link wrapper around a Button — needs no decoration of its own,
 // just carries the href. Button does all the visual work.
-.actionLink {
-  display: block;
-  text-decoration: none;
-}
-
 // ── Recent jams section ───────────────────────────
 .historySection {
   @include layout.stack(var(--space-3));

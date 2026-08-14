@@ -65,10 +65,10 @@ export default async function JamPage() {
           </p>
         </div>
         <div className={styles.actionButtons}>
-          <LinkButton href="/jam/new" className={styles.actionLink} fullWidth>
+          <LinkButton href="/jam/new" fullWidth>
             <FaPlus aria-hidden /> Start a jam
           </LinkButton>
-          <LinkButton href="/jam/join" className={styles.actionLink} variant="secondary" fullWidth>
+          <LinkButton href="/jam/join" variant="secondary" fullWidth>
             <FaUserPlus aria-hidden /> Join a jam
           </LinkButton>
         </div>
@@ -97,7 +97,7 @@ export default async function JamPage() {
             <p className={styles.emptyLede}>
               Start one with your mates or join by code.
             </p>
-            <LinkButton href="/jam/new" className={styles.actionLink}>
+            <LinkButton href="/jam/new">
               <FaPlus aria-hidden /> Start the first one
             </LinkButton>
           </div>
