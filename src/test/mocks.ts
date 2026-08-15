@@ -25,6 +25,9 @@ export function mockRouteSet(overrides: Partial<RouteSet> & { id: string; gym_id
     // Migration 091. Chork shipped boulder-only, so that's the default
     // a fixture should look like unless a test says otherwise.
     discipline: "boulder",
+    // Migration 098. Off by default, and a CHECK forbids it on a gym
+    // Set anyway — a gym's scoring has to be comparable.
+    handicap: false,
     // Migration 085 — null until a player taps Share.
     share_token: null,
     // Columns added in migration 014 — defaults mirror the SQL defaults so

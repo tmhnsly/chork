@@ -127,6 +127,47 @@ Optional scoring lens that lets climbers of different abilities share
 a leaderboard: a send scores relative to the climber's own ceiling,
 so everyone competes against themselves.
 
+**The rule** (settled 2026-08-15, measured not guessed): a send
+counts at full value when the route is at or above your declared
+ceiling, ×0.7 one grade below, ×0.4 two below, and **nothing** more
+than two below.
+
+That cutoff is the balance mechanism. A stronger climber doesn't
+out-score a weaker one per route — on a route both can flash, both
+score 4 — they win on VOLUME, because every route below their limit
+is another route they can add. Any tail at all re-tilts the board.
+Simulated over a V0–V6 session, V2 climber vs V6 climber:
+
+| taper | V2 | V6 | ratio |
+|---|---|---|---|
+| 1 / .7 / .4 / .2, floor .1 | 4.7 | 6.7 | 1.43 |
+| 1 / .7 / .4 / .15 | 4.7 | 5.3 | 1.13 |
+| 1 / .7 / .4, then nothing | 4.7 | 4.7 | **1.00** |
+
+Sending ABOVE your ceiling is capped at full value, never bonused —
+a bonus there makes declaring low strictly better than being honest.
+
+It is a lens OVER `computePoints`, never a second ladder: base points
+first, then one multiplier. Two homes (`handicap.ts`,
+`handicap_multiplier` in SQL), pinned together by
+`scoring-parity.test.ts` for the same reason `compute_points` is.
+
+**Known hole:** ceilings are self-declared, and declaring low is
+still worth points — your band fills with routes you flash. The fix
+is a ceiling *suggested from what you've actually been sending*,
+which needs history to exist first. Until then this is a handicap for
+climbing with mates who can see what you climbed, not a defence
+against an adversary. Auto-raising the ceiling mid-Match was
+considered and rejected: it punishes the upset, since a V2 climber
+who sends a V4 would have their earlier sends fall out of band and
+score LESS for climbing better.
+
+**Ceilings live per Match, not on the profile** — a ceiling only
+means something alongside a scale, and a Match has exactly one. On
+the profile it would need a (discipline, scale, grade) triple and a
+conversion at read time, and there is no honest conversion between a
+V-grade and a French one.
+
 **Matches only — never gym Sets.** A gym Set carries the gym's name
 and eventually prizes, so its scoring has to be comparable and
 ungameable; handicap is self-declared and inherently soft.

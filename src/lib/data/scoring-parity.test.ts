@@ -4,6 +4,7 @@ import { latestDefinition, normaliseClause } from "@/test/sql-definitions";
 import { computePoints } from "./logs";
 import { computeMatchLeaderboard } from "./match-leaderboard";
 import type { MatchLog, MatchPlayerView } from "./match-types";
+import { handicapMultiplier } from "./handicap";
 
 /**
  * Cross-home parity for scoring + rank semantics.
@@ -240,5 +241,53 @@ describe("computeMatchLeaderboard implements the SQL tiebreak", () => {
     expect(ranks.get("tieA")).toBe(2);
     expect(ranks.get("tieB")).toBe(2);
     expect(ranks.get("last")).toBe(3);
+  });
+});
+
+// ── 4. Handicap: the same taper in both homes ────────────────────
+
+describe("handicap parity between TS and SQL", () => {
+  /**
+   * Same contract as `compute_points` above: the live Match board is
+   * recomputed client-side from realtime events while the server
+   * ranks in SQL, so the taper has two homes and they must agree.
+   * This evaluates the SQL's CASE arms against the TS table rather
+   * than eyeballing them.
+   */
+  const { body } = latestDefinition("handicap_multiplier");
+  const sql = body.replace(/\s+/g, " ");
+
+  it("spells the same multiplier for every rung", () => {
+    // Pulled straight out of the SQL so a changed constant fails here
+    // rather than silently diverging from the client.
+    const arms = [...sql.matchAll(/p_ceiling - p_route_grade = (\d+) then ([\d.]+)/g)]
+      .map(([, below, value]) => ({ below: Number(below), value: Number(value) }));
+
+    expect(arms.length).toBeGreaterThan(0);
+    for (const { below, value } of arms) {
+      // Any ceiling works — the multiplier depends only on the gap.
+      expect(handicapMultiplier(10 - below, 10)).toBe(value);
+    }
+  });
+
+  it("agrees at the limit, above it, and past the cutoff", () => {
+    expect(sql).toMatch(/p_ceiling - p_route_grade <= 0 then 1.0/);
+    expect(handicapMultiplier(10, 10)).toBe(1);
+    expect(handicapMultiplier(12, 10)).toBe(1);
+
+    // The `else` arm is the cutoff, and it must be zero — a tail is
+    // what re-tilts the board toward the stronger climber.
+    expect(sql).toMatch(/else 0.0/);
+    expect(handicapMultiplier(0, 10)).toBe(0);
+  });
+
+  it("scores through the shared base ladder rather than its own", () => {
+    const tenths = latestDefinition("handicap_points_tenths");
+    expect(
+      tenths.body.includes("public.compute_points("),
+      `handicap_points_tenths (live definition in ${tenths.file}) no longer `
+        + `delegates to compute_points. Handicap is a lens OVER the base `
+        + `ladder, not a second ladder — see CONTEXT.md "Handicap".`,
+    ).toBe(true);
   });
 });
