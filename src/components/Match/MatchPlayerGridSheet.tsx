@@ -14,6 +14,7 @@ import type {
   MatchGradingScale,
   MatchLeaderboardRow, } from "@/lib/data/match-types";
 import { ownerIdOf } from "@/lib/data/match-types";
+import { formatHandicapPoints } from "@/lib/data/handicap";
 import { logKey } from "./matchScreenReducer";
 import styles from "./matchPlayerGridSheet.module.scss";
 
@@ -79,7 +80,7 @@ export function MatchPlayerGridSheet({
     ) : null,
     stats: row
       ? [
-          { label: "Points", value: row.points },
+          { label: "Points", value: formatHandicapPoints(row.points_tenths) },
           { label: "Sends", value: row.sends },
           { label: "Flashes", value: row.flashes, icon: <FaBolt />, tone: "flash" },
           { label: "Zones", value: row.zones, icon: <FaFlag />, tone: "success" },

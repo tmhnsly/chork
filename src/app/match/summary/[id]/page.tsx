@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/motion";
 import { UserAvatar, Username } from "@/components/ui";
 import { ShareResultButton } from "@/components/Match/ShareResultButton";
 import styles from "./summary.module.scss";
+import { formatHandicapPoints } from "@/lib/data/handicap";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -107,7 +108,7 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
             )}
           </div>
           <div className={styles.winnerStats}>
-            <span className={styles.winnerPoints}>{winner.points}</span>
+            <span className={styles.winnerPoints}>{formatHandicapPoints(winner.points_tenths)}</span>
             <span className={styles.winnerPointsLabel}>points</span>
           </div>
         </section>
@@ -150,7 +151,7 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
               <div className={styles.playerStats}>
                 <span>{p.sends} sends</span>
                 <span>{p.flashes} flashes</span>
-                <span className={styles.playerPoints}>{p.points} pts</span>
+                <span className={styles.playerPoints}>{formatHandicapPoints(p.points_tenths)} pts</span>
               </div>
             </li>
             );

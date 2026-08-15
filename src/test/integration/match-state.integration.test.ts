@@ -553,6 +553,7 @@ describe.skipIf(!canRunIntegration)("Match RPCs (integration)", () => {
         "is_guest",
         "is_winner",
         "points",
+        "points_tenths",
         "rank",
         "sends",
         "username",

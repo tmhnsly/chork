@@ -79,9 +79,27 @@ export function useMatchScreenState({
   // server-side formula in get_match_leaderboard exactly (pinned by
   // scoring-parity.test.ts) so the display doesn't desync with the
   // summary calculation on end.
+  // A log knows its route id but not its grade, and the handicap
+  // needs the grade. Same resolution the server uses: what the adder
+  // declared, else what climbers voted.
+  const gradeByRouteId = useMemo(
+    () =>
+      new Map(
+        state.routes.map((r) => [
+          r.id,
+          r.declared_grade ?? r.community_grade ?? null,
+        ]),
+      ),
+    [state.routes],
+  );
+
   const leaderboard = useMemo(
-    () => computeMatchLeaderboard(state.players, state.logs),
-    [state.players, state.logs],
+    () =>
+      computeMatchLeaderboard(state.players, state.logs, {
+        handicap: initialState.match.handicap,
+        gradeByRouteId,
+      }),
+    [state.players, state.logs, initialState.match.handicap, gradeByRouteId],
   );
 
   // Logs keyed by route id, just the current user. Drives tile
@@ -153,6 +171,8 @@ export function useMatchScreenState({
             avatar_url: null,
             joined_at: result.player.joined_at,
             is_host: false,
+            // The host declares it separately, after seating them.
+            ceiling: null,
           },
         });
         dispatch({ type: "close-panel" });

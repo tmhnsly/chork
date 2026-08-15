@@ -21,7 +21,12 @@ export interface LeaderboardRowData {
   name: string | null;
   avatarUrl: string | null;
   rank: number | null;
-  points: number;
+  /**
+   * Pre-formatted by the caller. A gym board passes a whole number; a
+   * handicapped Match passes something like "4.7", since scoring
+   * relative to a ceiling stops totals being integers.
+   */
+  points: number | string;
   flashes: number;
 }
 

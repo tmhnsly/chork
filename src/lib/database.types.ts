@@ -1289,6 +1289,7 @@ export type Database = {
           p_custom_grades?: string[]
           p_discipline?: string
           p_grading_scale?: string
+          p_handicap?: boolean
           p_location?: string
           p_max_grade?: number
           p_min_grade?: number
@@ -1636,6 +1637,7 @@ export type Database = {
         Returns: {
           duration_seconds: number
           ended_at: string
+          handicap: boolean
           location: string
           name: string
           player_count: number
@@ -1644,6 +1646,7 @@ export type Database = {
           user_flashes: number
           user_is_winner: boolean
           user_points: number
+          user_points_tenths: number
           user_rank: number
           user_sends: number
           winner_display_name: string
@@ -1662,6 +1665,7 @@ export type Database = {
           last_send_at: string
           player_id: string
           points: number
+          points_tenths: number
           rank: number
           sends: number
           user_id: string
@@ -1818,6 +1822,7 @@ export type Database = {
           last_send_at: string
           player_id: string
           points: number
+          points_tenths: number
           rank: number
           sends: number
           user_id: string
@@ -1857,6 +1862,59 @@ export type Database = {
           score: number
           username: string
         }[]
+      }
+      set_match_ceiling: {
+        Args: { p_ceiling: number; p_player_id: string; p_set_id: string }
+        Returns: {
+          ceiling: number | null
+          display_name: string | null
+          id: string
+          is_host: boolean
+          joined_at: string
+          left_at: string | null
+          set_id: string
+          user_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "set_players"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_match_handicap: {
+        Args: { p_enabled: boolean; p_set_id: string }
+        Returns: {
+          active: boolean
+          closing_event: boolean
+          code: string | null
+          competition_id: string | null
+          created_at: string
+          discipline: string
+          ends_at: string | null
+          grading_scale: string
+          gym_id: string | null
+          handicap: boolean
+          host_id: string | null
+          id: string
+          last_activity_at: string | null
+          location: string | null
+          max_grade: number | null
+          min_grade: number | null
+          name: string | null
+          owner_kind: string
+          share_token: string | null
+          starts_at: string
+          status: string
+          updated_at: string
+          venue_gym_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "sets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       set_route_tags_tx: {
         Args: { p_route_id: string; p_tag_ids: string[] }
