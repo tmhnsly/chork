@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { loadGoogleFont } from "@/lib/og-fonts";
+import { loadOgFont } from "@/lib/og-fonts";
 
 export const alt =
   "Chork — Climb it. Log it. Top it. Join for free at chork.app.";
@@ -7,14 +7,12 @@ export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 export default async function OpengraphImage() {
-  // Union of every glyph rendered below — lets Google Fonts return a
-  // tiny subsetted @font-face. Keep in sync with the JSX text content.
-  const displayText = "chorkCLIMBITOGP.";
-  const bodyText = "chork.appJoin for free→";
-
+  // Full faces, read from disk — no subsetting to keep in sync with
+  // the JSX any more, which is one fewer thing to get quietly wrong
+  // when the copy changes.
   const [outfitBlack, outfitSemi] = await Promise.all([
-    loadGoogleFont("Outfit", 900, displayText),
-    loadGoogleFont("Outfit", 600, bodyText),
+    loadOgFont("Outfit", 900),
+    loadOgFont("Outfit", 600),
   ]);
 
   return new ImageResponse(

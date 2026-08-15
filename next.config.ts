@@ -81,6 +81,16 @@ const nextConfig: NextConfig = {
     ];
   },
 
+  // The OG image routes read their font faces off disk at request
+  // time (`src/lib/og-fonts.ts`). Next's tracer follows imports, and a
+  // runtime `readFile` isn't one — so without this the files are left
+  // out of the deployed function and every share card 500s with
+  // ENOENT, while dev works perfectly because dev has the whole repo.
+  outputFileTracingIncludes: {
+    "/opengraph-image": ["./src/fonts/*.woff"],
+    "/r/[token]/opengraph-image": ["./src/fonts/*.woff"],
+  },
+
   experimental: {
     // NOTE: Partial Prerendering (`ppr: "incremental"`) was trialled
     // for `/u/[username]` but the stable 15.x line reserves the
