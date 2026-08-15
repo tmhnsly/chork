@@ -936,6 +936,7 @@ export type Database = {
       }
       set_players: {
         Row: {
+          ceiling: number | null
           display_name: string | null
           id: string
           is_host: boolean
@@ -945,6 +946,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          ceiling?: number | null
           display_name?: string | null
           id?: string
           is_host?: boolean
@@ -954,6 +956,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          ceiling?: number | null
           display_name?: string | null
           id?: string
           is_host?: boolean
@@ -990,6 +993,7 @@ export type Database = {
           ends_at: string | null
           grading_scale: string
           gym_id: string | null
+          handicap: boolean
           host_id: string | null
           id: string
           last_activity_at: string | null
@@ -1014,6 +1018,7 @@ export type Database = {
           ends_at?: string | null
           grading_scale?: string
           gym_id?: string | null
+          handicap?: boolean
           host_id?: string | null
           id?: string
           last_activity_at?: string | null
@@ -1038,6 +1043,7 @@ export type Database = {
           ends_at?: string | null
           grading_scale?: string
           gym_id?: string | null
+          handicap?: boolean
           host_id?: string | null
           id?: string
           last_activity_at?: string | null
@@ -1307,6 +1313,7 @@ export type Database = {
           ends_at: string | null
           grading_scale: string
           gym_id: string | null
+          handicap: boolean
           host_id: string | null
           id: string
           last_activity_at: string | null
@@ -1741,6 +1748,20 @@ export type Database = {
           zone_only: number
         }[]
       }
+      handicap_multiplier: {
+        Args: { p_ceiling: number; p_route_grade: number }
+        Returns: number
+      }
+      handicap_points_tenths: {
+        Args: {
+          p_attempts: number
+          p_ceiling: number
+          p_completed: boolean
+          p_route_grade: number
+          p_zone: boolean
+        }
+        Returns: number
+      }
       is_active_crew_member: { Args: { p_crew_id: string }; Returns: boolean }
       is_admin_of_route: { Args: { p_route_id: string }; Returns: boolean }
       is_competition_organiser: {
@@ -1754,6 +1775,7 @@ export type Database = {
       join_match: {
         Args: { p_set_id: string }
         Returns: {
+          ceiling: number | null
           display_name: string | null
           id: string
           is_host: boolean
