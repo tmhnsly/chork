@@ -37,9 +37,15 @@ export const inter = localFont({
   style: "normal",
   variable: "--font-inter",
   display: "swap",
-  // Not on the critical path — Inter is the body/UI face on surfaces
-  // that render after first paint, so don't spend a preload slot on it.
-  preload: false,
+  // Preloaded, unlike before. It used to be skipped because Inter came
+  // from Google — a third-party DNS + TLS + round-trip that wasn't
+  // worth a preload slot on first paint. Self-hosted it is one more
+  // file on a connection we already have, and it backs `body`, `meta`
+  // and `button` — 179 call sites, i.e. most of the text on screen. Not
+  // preloading it means that text paints in the fallback first and
+  // visibly reflows, which is the one way the body copy can look
+  // different from before.
+  preload: true,
   adjustFontFallback: "Arial",
   fallback: ["system-ui", "sans-serif"],
 });

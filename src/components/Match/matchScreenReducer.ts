@@ -48,7 +48,9 @@ export type MatchPanel =
   | { kind: "menu" }
   | { kind: "peek"; playerId: string }
   /** Host adding a guest seat. */
-  | { kind: "add-guest" };
+  | { kind: "add-guest" }
+  /** Declaring a player's limit for the handicap. */
+  | { kind: "ceiling"; playerId: string };
 
 export type MatchAction =
   // set-routes / set-players are the full-refresh transitions for the
@@ -66,6 +68,7 @@ export type MatchAction =
    */
   | { type: "upsert-player"; player: MatchPlayerView }
   | { type: "remove-player"; playerId: string }
+  | { type: "set-ceiling"; playerId: string; ceiling: number | null }
   | { type: "upsert-log"; log: MatchLog; viewerId: string }
   | { type: "remove-log"; userId: string; routeId: string }
   | { type: "open-panel"; panel: MatchPanel }
@@ -124,6 +127,17 @@ export function matchReducer(
         (p) => p.player_id !== action.player.player_id,
       );
       return { ...state, players: [...players, action.player] };
+    }
+
+    case "set-ceiling": {
+      return {
+        ...state,
+        players: state.players.map((p) =>
+          p.player_id === action.playerId
+            ? { ...p, ceiling: action.ceiling }
+            : p,
+        ),
+      };
     }
 
     case "remove-player":

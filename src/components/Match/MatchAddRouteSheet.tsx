@@ -7,6 +7,7 @@ import type { TabPillOption } from "@/components/ui";
 import {
   gradeOptions,
   partialCreditLabel,
+  SCALE_LABEL,
   DISCIPLINES,
   DISCIPLINE_LABEL,
   type Discipline,
@@ -59,6 +60,12 @@ export function MatchAddRouteSheet({
   );
 
   const pointsOnly = gradingScale === "points";
+  // A Match carries ONE grading scale, tied to its own discipline. A
+  // route that overrides the discipline can't be graded on it — V4 is
+  // not a sport grade — so it goes ungraded rather than being given a
+  // number that means nothing. Per-route scales would be the fuller
+  // answer; see docs/roadmap.md.
+  const offScale = discipline !== matchDiscipline;
 
   // Compute the ordered label list the picker renders — matches the
   // scale the match was created with, bounded to the chosen range.
@@ -81,7 +88,9 @@ export function MatchAddRouteSheet({
   function handleSubmit() {
     onSubmit({
       description: description.trim() || null,
-      grade: pointsOnly ? null : grade,
+      // Ungraded when the scale doesn't apply: `points` has no grades,
+      // and an off-discipline route can't use this Match's scale.
+      grade: pointsOnly || offScale ? null : grade,
       hasZone,
       discipline,
     });
@@ -123,7 +132,15 @@ export function MatchAddRouteSheet({
           />
         </div>
 
-        {!pointsOnly && (
+        {!pointsOnly && offScale && (
+          <p className={styles.hint}>
+            This match is graded in {SCALE_LABEL[gradingScale]}, which
+            doesn&apos;t apply to a {DISCIPLINE_LABEL[discipline].toLowerCase()}{" "}
+            route — so this one stays ungraded. It still scores points.
+          </p>
+        )}
+
+        {!pointsOnly && !offScale && (
           <div className={styles.field}>
             <span className={styles.label}>Grade</span>
             <TabPills<number | null>

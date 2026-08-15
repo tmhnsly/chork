@@ -5,11 +5,13 @@ import { LeaderboardRow } from "@/components/ui";
 import type { MatchState } from "@/lib/data/match-types";
 import { ownerIdOf } from "@/lib/data/match-types";
 import { formatHandicapPoints } from "@/lib/data/handicap";
+import { makeGradeLabeller } from "@/lib/data/grade-label";
 import { MatchGrid } from "./MatchGrid";
 import { MatchLogSheet } from "./MatchLogSheet";
 import { MatchAddRouteSheet } from "./MatchAddRouteSheet";
 import { MatchMenuSheet } from "./MatchMenuSheet";
 import { AddGuestSheet } from "./AddGuestSheet";
+import { CeilingSheet } from "./CeilingSheet";
 import { MatchPlayerGridSheet } from "./MatchPlayerGridSheet";
 import { useMatchScreenState } from "./useMatchScreenState";
 import styles from "./matchScreen.module.scss";
@@ -39,6 +41,7 @@ export function MatchScreen({ initialState, userId }: Props) {
     handleUpdateRoute,
     handleLog,
     handleAddGuest,
+    handleSetCeiling,
     handleEnd,
   } = useMatchScreenState({ initialState, userId });
 
@@ -54,9 +57,38 @@ export function MatchScreen({ initialState, userId }: Props) {
     panel.kind === "edit"
       ? state.routes.find((r) => r.id === panel.routeId) ?? null
       : null;
+  // Matched on the SEAT, not the account. The board passes
+  // `ownerIdOf(row)`, which is a guest's `player_id` — looking them up
+  // by `user_id` would never find one, since a guest hasn't got one.
   const peekedPlayer =
     panel.kind === "peek"
-      ? state.players.find((p) => p.user_id === panel.playerId) ?? null
+      ? state.players.find((p) => ownerIdOf(p) === panel.playerId) ?? null
+      : null;
+
+  // Same labeller the grade pickers use, so a limit reads in the
+  // Match's own scale rather than as a bare index.
+  const labelForCeiling = (ceiling: number | null) =>
+    ceiling === null
+      ? null
+      : makeGradeLabeller(
+          initialState.match.grading_scale,
+          initialState.grades,
+        )(ceiling);
+
+  // Which seat the open log sheet is writing to: a guest when the
+  // host tapped through their grid, otherwise the viewer's own.
+  const loggingPlayer =
+    panel.kind === "log"
+      ? state.players.find((p) =>
+          panel.playerId
+            ? p.player_id === panel.playerId
+            : p.user_id === userId,
+        ) ?? null
+      : null;
+
+  const ceilingPlayer =
+    panel.kind === "ceiling"
+      ? state.players.find((p) => p.player_id === panel.playerId) ?? null
       : null;
 
   return (
@@ -73,6 +105,12 @@ export function MatchScreen({ initialState, userId }: Props) {
             </span>
             {initialState.match.location && (
               <span className={styles.metaChip}>{initialState.match.location}</span>
+            )}
+            {/* Say so. A player whose score is being adjusted against
+                their own limit should not have to work that out from
+                the numbers not adding up. */}
+            {initialState.match.handicap && (
+              <span className={styles.metaChip}>Handicap</span>
             )}
             <button
               type="button"
@@ -113,6 +151,7 @@ export function MatchScreen({ initialState, userId }: Props) {
                   points: formatHandicapPoints(row.points_tenths),
                   flashes: row.flashes,
                 }}
+                isGuest={row.is_guest}
                 highlighted={isSelf}
                 // Tapping any row (including your own) peeks the
                 // climber's per-route grid. Their logs are already in
@@ -152,6 +191,15 @@ export function MatchScreen({ initialState, userId }: Props) {
           grades={initialState.grades}
           gradingScale={initialState.match.grading_scale}
           matchDiscipline={initialState.match.discipline}
+          handicap={initialState.match.handicap}
+          // The seat being logged for — the guest when the host is
+          // entering, otherwise the viewer's own.
+          ceiling={loggingPlayer?.ceiling ?? null}
+          loggingFor={
+            loggingPlayer && loggingPlayer.is_guest
+              ? loggingPlayer.display_name
+              : null
+          }
           onClose={closePanel}
           onEdit={() => openPanel({ kind: "edit", routeId: activeRoute.id })}
           onSubmit={(payload) =>
@@ -200,6 +248,21 @@ export function MatchScreen({ initialState, userId }: Props) {
         />
       )}
 
+      {ceilingPlayer && (
+        <CeilingSheet
+          player={ceilingPlayer}
+          grades={initialState.grades}
+          gradingScale={initialState.match.grading_scale}
+          minGrade={initialState.match.min_grade}
+          maxGrade={initialState.match.max_grade}
+          onClose={closePanel}
+          onSubmit={(ceiling) =>
+            handleSetCeiling(ceilingPlayer.player_id, ceiling)
+          }
+          pending={isPending}
+        />
+      )}
+
       {panel.kind === "add-guest" && (
         <AddGuestSheet
           onClose={closePanel}
@@ -216,6 +279,22 @@ export function MatchScreen({ initialState, userId }: Props) {
           // host can open the log sheet on any route. Everyone else
           // (and the host on an account-backed player) gets a
           // read-only peek.
+          // Offered only when the handicap is on and this viewer may
+          // set this player's limit: their own seat, or a guest's if
+          // they host. A row that can't do anything is worse than no
+          // row.
+          onSetCeiling={
+            initialState.match.handicap
+            && (peekedPlayer.user_id === userId
+              || (isHost && peekedPlayer.is_guest))
+              ? () =>
+                  openPanel({
+                    kind: "ceiling",
+                    playerId: peekedPlayer.player_id,
+                  })
+              : undefined
+          }
+          ceilingLabel={labelForCeiling(peekedPlayer.ceiling)}
           onLogRoute={
             isHost && peekedPlayer.is_guest
               ? (routeId) =>

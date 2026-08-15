@@ -34,6 +34,14 @@ interface Props {
    * one person entering their sends.
    */
   onLogRoute?: (routeId: string) => void;
+  /**
+   * When set, offers "Set limit". Only passed when the Match is
+   * handicapped AND the viewer may set this player's — their own
+   * seat, or a guest's if they host.
+   */
+  onSetCeiling?: () => void;
+  /** The player's declared limit, rendered so it's visible at a glance. */
+  ceilingLabel?: string | null;
   onClose: () => void;
 }
 
@@ -56,6 +64,8 @@ export function MatchPlayerGridSheet({
   grades,
   gradingScale,
   onLogRoute,
+  onSetCeiling,
+  ceilingLabel,
   onClose,
 }: Props) {
   const labelForGrade = useMemo(
@@ -98,6 +108,19 @@ export function MatchPlayerGridSheet({
       description={`${displayName}'s send grid for this match`}
     >
       <SheetBody>
+        {onSetCeiling && (
+          <button
+            type="button"
+            className={styles.ceilingRow}
+            onClick={onSetCeiling}
+          >
+            <span className={styles.ceilingLabel}>Limit</span>
+            <span className={styles.ceilingValue}>
+              {ceilingLabel ?? "Not set"}
+            </span>
+          </button>
+        )}
+
         <div className={styles.grid}>
           {routes.map((route) => {
             const log = logs.get(logKey(ownerIdOf(player), route.id)) ?? null;
