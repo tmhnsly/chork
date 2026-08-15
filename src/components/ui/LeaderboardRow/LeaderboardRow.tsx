@@ -56,6 +56,12 @@ interface Props {
    * pairs so the row height stays consistent.
    */
   trailing?: ReactNode;
+  /**
+   * A guest — a named seat in a Match with no account. They have no
+   * handle, so the row shows their name on its own rather than an
+   * invented one.
+   */
+  isGuest?: boolean;
 }
 
 export function LeaderboardRow({
@@ -65,11 +71,15 @@ export function LeaderboardRow({
   interactive = true,
   href,
   trailing,
+  isGuest = false,
 }: Props) {
   const className = `${styles.row} ${highlighted ? styles.highlighted : ""}`;
   const rankLabel = entry.rank === null ? "—" : `${entry.rank}`;
   const username = entry.username ?? "unknown";
-  const ariaBase = `Rank ${rankLabel}, @${username}, ${entry.points} points`;
+  // A guest has no handle. Showing "@unknown" reads as a bug — and to
+  // the person whose name it is, as rudeness.
+  const displayLabel = isGuest ? (entry.name || "Guest") : `@${username}`;
+  const ariaBase = `Rank ${rankLabel}, ${displayLabel}, ${entry.points} points`;
 
   const content = (
     <>
@@ -84,8 +94,17 @@ export function LeaderboardRow({
         size="row"
       />
       <div className={styles.identity}>
-        <Username username={username} className={styles.username} />
-        {entry.name && <span className={styles.name}>{entry.name}</span>}
+        {isGuest ? (
+          <>
+            <span className={styles.username}>{entry.name || "Guest"}</span>
+            <span className={styles.name}>Guest</span>
+          </>
+        ) : (
+          <>
+            <Username username={username} className={styles.username} />
+            {entry.name && <span className={styles.name}>{entry.name}</span>}
+          </>
+        )}
       </div>
       <div className={styles.stats}>
         <span className={styles.points}>{entry.points}</span>

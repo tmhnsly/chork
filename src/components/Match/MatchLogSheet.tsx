@@ -18,6 +18,7 @@ import { BrandDivider } from "@/components/ui/BrandDivider";
 import { useDebouncedFlush } from "@/hooks/use-debounced-flush";
 import { makeGradeLabeller, partialCreditLabel, type Discipline } from "@/lib/data/grade-label";
 import { computePoints } from "@/lib/data/logs";
+import { handicapPointsTenths, tenthsToPoints } from "@/lib/data/handicap";
 import type { MatchRoute, MatchLog, MatchGradingScale } from "@/lib/data/match-types";
 import {
   initMatchLogDraft,
@@ -37,6 +38,17 @@ interface Props {
   route: MatchRoute;
   /** The Match's default — the route may override it. */
   matchDiscipline: Discipline;
+  /**
+   * Scoring context, so the sheet's points preview agrees with the
+   * board. Without it the sheet showed base points while the board
+   * showed the handicapped total — the climber saw "4 pts" and then
+   * a 0 next to their name.
+   */
+  handicap: boolean;
+  /** The player whose card this is — their ceiling scores the send. */
+  ceiling: number | null;
+  /** Whose card, when the host is entering for a guest. */
+  loggingFor?: string | null;
   log: MatchLog | null;
   grades: Array<{ ordinal: number; label: string }>;
   gradingScale: MatchGradingScale;
@@ -78,6 +90,9 @@ interface Props {
 export function MatchLogSheet({
   route,
   matchDiscipline,
+  handicap,
+  ceiling,
+  loggingFor,
   log,
   grades,
   gradingScale,
@@ -156,14 +171,26 @@ export function MatchLogSheet({
   // the completed figure INCLUDES the zone bonus, while the mid-attempt
   // preview EXCLUDES it and surfaces a separate "+1 zone" chip, so a
   // zone route never double-counts (the number PLUS the chip).
-  const earnedPoints = useMemo(
-    () => computePoints({ attempts, completed: true, zone }),
-    [attempts, zone],
+  // Scored the way the BOARD scores it, handicap included, so the
+  // two never disagree. `effectiveGrade` mirrors the server: what the
+  // adder declared, else what climbers voted.
+  const effectiveGrade = route.declared_grade ?? route.community_grade ?? null;
+  const scoreOf = useCallback(
+    (z: boolean) =>
+      handicap
+        ? tenthsToPoints(
+            handicapPointsTenths(
+              { attempts, completed: true, zone: z },
+              effectiveGrade,
+              ceiling,
+            ),
+          )
+        : computePoints({ attempts, completed: true, zone: z }),
+    [attempts, handicap, effectiveGrade, ceiling],
   );
-  const previewPoints = useMemo(
-    () => computePoints({ attempts, completed: true, zone: false }),
-    [attempts],
-  );
+
+  const earnedPoints = useMemo(() => scoreOf(zone), [scoreOf, zone]);
+  const previewPoints = useMemo(() => scoreOf(false), [scoreOf]);
 
   const isCurrentFlash = completed && attempts === 1;
 
@@ -220,7 +247,16 @@ export function MatchLogSheet({
   );
 
   return (
-    <BottomSheet open onClose={onClose} title={`Route ${route.number}`}>
+    <BottomSheet
+      open
+      onClose={onClose}
+      // Naming the guest matters: without it a host entering someone
+      // else's send sees a sheet identical to their own, and logs it
+      // onto the wrong card.
+      title={
+        loggingFor ? `Route ${route.number} — ${loggingFor}` : `Route ${route.number}`
+      }
+    >
       <SheetBody>
         <LogSheetHeader
           number={route.number}

@@ -352,6 +352,56 @@ export async function removeMatchGuestAction(
   return { ok: true };
 }
 
+/**
+ * Declare a player's ceiling for the handicap, in this Match's scale.
+ *
+ * Your own seat, or a guest's if you host — the same split as
+ * logging. An account-backed player declares their own limit, or the
+ * handicap becomes something done TO them.
+ */
+export async function setMatchCeilingAction(
+  matchId: string,
+  playerId: string,
+  ceiling: number | null,
+): Promise<{ error: string } | { ok: true }> {
+  const auth = await gateSignedInMutation(playerId, "player id");
+  if ("error" in auth) return { error: auth.error };
+  if (!isUuid(matchId)) return { error: "Invalid match id" };
+  if (
+    ceiling !== null
+    && (!Number.isInteger(ceiling) || ceiling < 0 || ceiling > 30)
+  ) {
+    return { error: "Ceiling out of range" };
+  }
+
+  const { error } = await auth.supabase.rpc("set_match_ceiling", {
+    p_set_id: matchId,
+    p_player_id: playerId,
+    // Generated as `number | undefined`; our domain models "no
+    // ceiling declared" as null, so fold it at the RPC boundary the
+    // same way `undef` does elsewhere.
+    p_ceiling: ceiling ?? undefined,
+  });
+  if (error) return { error: formatError(error) };
+  return { ok: true };
+}
+
+/** Turn the handicap on or off. Host only, while the Match is live. */
+export async function setMatchHandicapAction(
+  matchId: string,
+  enabled: boolean,
+): Promise<{ error: string } | { ok: true }> {
+  const auth = await gateSignedInMutation(matchId, "match id");
+  if ("error" in auth) return { error: auth.error };
+
+  const { error } = await auth.supabase.rpc("set_match_handicap", {
+    p_set_id: matchId,
+    p_enabled: enabled,
+  });
+  if (error) return { error: formatError(error) };
+  return { ok: true };
+}
+
 // ── Log an attempt ────────────────────────────────
 
 interface UpsertLogPayload {

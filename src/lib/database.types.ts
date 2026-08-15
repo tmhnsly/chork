@@ -1864,7 +1864,7 @@ export type Database = {
         }[]
       }
       set_match_ceiling: {
-        Args: { p_ceiling: number; p_player_id: string; p_set_id: string }
+        Args: { p_ceiling?: number; p_player_id: string; p_set_id: string }
         Returns: {
           ceiling: number | null
           display_name: string | null

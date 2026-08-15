@@ -23,3 +23,29 @@
   grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
   gap: var(--space-2);
 }
+
+// Tappable row showing the player's handicap limit. Only rendered
+// when the viewer may change it, so it always does something.
+.ceilingRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3);
+  border-radius: var(--radius-2);
+  background: var(--mono-bg);
+  border: none;
+  cursor: pointer;
+  min-height: var(--size-touch-target);
+}
+
+.ceilingLabel {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.ceilingValue {
+  @include type.typography(number, $step: sm);
+  color: var(--mono-text);
+}

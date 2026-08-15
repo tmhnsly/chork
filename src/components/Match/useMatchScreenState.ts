@@ -13,6 +13,7 @@ import {
   updateMatchRouteAction,
   endMatchAction,
   addMatchGuestAction,
+  setMatchCeilingAction,
   removeMatchGuestAction,
 } from "@/app/match/actions";
 import { upsertMatchLogOffline } from "@/app/match/offline-actions";
@@ -181,6 +182,28 @@ export function useMatchScreenState({
     [initialState.match.id],
   );
 
+  const handleSetCeiling = useCallback(
+    async (playerId: string, ceiling: number | null) => {
+      startTransition(async () => {
+        const result = await setMatchCeilingAction(
+          initialState.match.id,
+          playerId,
+          ceiling,
+        );
+        if ("error" in result) {
+          showToast(result.error, "error");
+          return;
+        }
+        // Patch locally so the board re-scores immediately — the
+        // handicap is recomputed from `players`, so without this the
+        // change wouldn't show until a refresh.
+        dispatch({ type: "set-ceiling", playerId, ceiling });
+        dispatch({ type: "close-panel" });
+      });
+    },
+    [initialState.match.id],
+  );
+
   const handleRemoveGuest = useCallback(
     async (playerId: string) => {
       startTransition(async () => {
@@ -312,6 +335,7 @@ export function useMatchScreenState({
     handleAddRoute,
     handleAddGuest,
     handleRemoveGuest,
+    handleSetCeiling,
     handleUpdateRoute,
     handleLog,
     handleEnd,
