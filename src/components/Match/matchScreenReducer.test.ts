@@ -15,6 +15,7 @@ function mkRoute(id: string, number: number, overrides: Partial<MatchRoute> = {}
     number,
     description: null,
     declared_grade: null,
+    discipline: null,
     has_zone: false,
     added_by: null,
     created_at: "2026-04-01T00:00:00Z",

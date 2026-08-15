@@ -4,7 +4,13 @@ import { useMemo, useState } from "react";
 import { FaFlag } from "react-icons/fa6";
 import { BottomSheet, Button, SheetBody, TabPills, ToggleRow } from "@/components/ui";
 import type { TabPillOption } from "@/components/ui";
-import { gradeOptions } from "@/lib/data/grade-label";
+import {
+  gradeOptions,
+  partialCreditLabel,
+  DISCIPLINES,
+  DISCIPLINE_LABEL,
+  type Discipline,
+} from "@/lib/data/grade-label";
 import type { MatchGradingScale, MatchRoute } from "@/lib/data/match-types";
 import styles from "./matchAddRouteSheet.module.scss";
 
@@ -15,11 +21,14 @@ interface Props {
   gradingScale: MatchGradingScale;
   minGrade: number | null;
   maxGrade: number | null;
+  /** The Match's default — what this route inherits unless changed. */
+  matchDiscipline: Discipline;
   onClose: () => void;
   onSubmit: (payload: {
     description: string | null;
     grade: number | null;
     hasZone: boolean;
+    discipline: Discipline;
   }) => void;
   pending: boolean;
 }
@@ -35,6 +44,7 @@ export function MatchAddRouteSheet({
   gradingScale,
   minGrade,
   maxGrade,
+  matchDiscipline,
   onClose,
   onSubmit,
   pending,
@@ -42,6 +52,11 @@ export function MatchAddRouteSheet({
   const [description, setDescription] = useState(route?.description ?? "");
   const [grade, setGrade] = useState<number | null>(route?.declared_grade ?? null);
   const [hasZone, setHasZone] = useState(route?.has_zone ?? false);
+  // Null on the route means "inherit", so the picker opens on the
+  // Match's default and only diverges if the climber says so.
+  const [discipline, setDiscipline] = useState<Discipline>(
+    route?.discipline ?? matchDiscipline,
+  );
 
   const pointsOnly = gradingScale === "points";
 
@@ -68,6 +83,7 @@ export function MatchAddRouteSheet({
       description: description.trim() || null,
       grade: pointsOnly ? null : grade,
       hasZone,
+      discipline,
     });
   }
 
@@ -90,6 +106,23 @@ export function MatchAddRouteSheet({
           <span className={styles.hint}>Optional — sketch the beta in a sentence.</span>
         </label>
 
+        {/* Per-route discipline. Opens on the Match's default; the
+            RPC normalises "same as the Match" back to null, so leaving
+            it alone keeps the route following the Match. */}
+        <div className={styles.field}>
+          <span className={styles.label}>Discipline</span>
+          <TabPills<Discipline>
+            options={DISCIPLINES.map((d) => ({
+              value: d,
+              label: DISCIPLINE_LABEL[d],
+            }))}
+            value={discipline}
+            onChange={setDiscipline}
+            ariaLabel="Discipline"
+            layout="wrap"
+          />
+        </div>
+
         {!pointsOnly && (
           <div className={styles.field}>
             <span className={styles.label}>Grade</span>
@@ -105,7 +138,7 @@ export function MatchAddRouteSheet({
 
         <ToggleRow
           icon={<FaFlag aria-hidden />}
-          title="Zone hold"
+          title={`${partialCreditLabel(discipline)}${discipline === "boulder" ? " hold" : ""}`}
           detail="Climbers earn a bonus point for reaching it."
           checked={hasZone}
           onChange={setHasZone}

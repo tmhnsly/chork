@@ -62,6 +62,7 @@ the two are one primitive rather than two systems.
 ## Discipline
 
 Boulder / sport / top-rope — Chork is not boulder-only.
+*(Shipped 2026-08-15, migrations 091–093.)*
 
 **Set at the Set level as a default, overridable per route.** A gym
 admin picks one for the whole Set; a climber logging an outdoor day
@@ -69,7 +70,18 @@ mixes freely within one Match.
 
 Discipline changes **which grade scale is offered** (V / Font for
 boulders, YDS / French for ropes) and **what partial credit is
-called** (a boulder's zone is a rope's highpoint). It does **not**
+called** (a boulder's zone is a rope's highpoint — same `zone`
+column throughout, it is a display name and not a second concept).
+
+Note `french` (sport: 6a, 6a+) is a **different system** from `font`
+(boulder: 6A, 6A+) despite the resemblance. Case is the only thing
+telling them apart on screen, so never normalise it —
+`grade-label.test.ts` pins that.
+
+Stored as a default on the Set and a nullable override on the route,
+where null means inherit. A route agreeing with its Set is normalised
+back to null by a trigger, so changing a Set's discipline still moves
+every route that never disagreed. It does **not**
 change scoring: `computePoints` reads `attempts`, `completed`,
 `zone` and never grade, so a V4 boulder and a 6a+ route already share
 one points total with no equivalence to invent. Keep it that way —

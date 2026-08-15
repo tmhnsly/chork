@@ -155,6 +155,7 @@ export function MatchScreen({ initialState, userId }: Props) {
           gradingScale={initialState.match.grading_scale}
           minGrade={initialState.match.min_grade}
           maxGrade={initialState.match.max_grade}
+          matchDiscipline={initialState.match.discipline}
           onClose={closePanel}
           onSubmit={handleAddRoute}
           pending={isPending}
@@ -169,6 +170,7 @@ export function MatchScreen({ initialState, userId }: Props) {
           gradingScale={initialState.match.grading_scale}
           minGrade={initialState.match.min_grade}
           maxGrade={initialState.match.max_grade}
+          matchDiscipline={initialState.match.discipline}
           onClose={closePanel}
           onSubmit={(payload) => handleUpdateRoute(editRoute.id, payload)}
           pending={isPending}

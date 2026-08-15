@@ -22,6 +22,9 @@ export function mockRouteSet(overrides: Partial<RouteSet> & { id: string; gym_id
     // and ends on its schedule rather than on inactivity.
     location: null,
     last_activity_at: null,
+    // Migration 091. Chork shipped boulder-only, so that's the default
+    // a fixture should look like unless a test says otherwise.
+    discipline: "boulder",
     // Migration 085 — null until a player taps Share.
     share_token: null,
     // Columns added in migration 014 — defaults mirror the SQL defaults so
@@ -49,6 +52,9 @@ export function mockRoute(overrides: Partial<Route> & { id: string; set_id: stri
     description: null,
     added_by: null,
     declared_grade: null,
+    // Null = inherit the Set's discipline (migration 091), which is
+    // the common case — only a route that genuinely differs stores one.
+    discipline: null,
     has_zone: false,
     setter_name: null,
     // Populated by the trigger in migration 026; mocks default to a

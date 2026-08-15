@@ -1,4 +1,9 @@
 import type { MatchGradingScale, SavedScale } from "@/lib/data/match-types";
+import {
+  DISCIPLINE_SCALES,
+  SCALE_DEFAULT_MAX,
+  type Discipline,
+} from "@/lib/data/grade-label";
 
 /**
  * Local state model for the create-match form. Modelled on
@@ -7,7 +12,7 @@ import type { MatchGradingScale, SavedScale } from "@/lib/data/match-types";
  * React render.
  *
  * Split rationale: `scale` is a tiny state machine — it gates which
- * of vRange / fontRange / customGrades / saveScale / scaleName are
+ * of ranges / customGrades / saveScale / scaleName are
  * live — but the form held all of them as nine loose useStates, and
  * the "which fields matter for this scale" invariant was re-encoded
  * three times (canSubmit, submit payload assembly, JSX conditionals).
@@ -24,15 +29,36 @@ import type { MatchGradingScale, SavedScale } from "@/lib/data/match-types";
 
 export const MAX_CUSTOM_GRADES = 50;
 
+/**
+ * Scales that take a numeric [min, max]. `custom` carries its own
+ * ladder and `points` has no grades, so neither has a range.
+ */
+export type FormulaScale = "v" | "font" | "yds" | "french";
+
+export function isFormulaScale(
+  scale: MatchGradingScale,
+): scale is FormulaScale {
+  return (
+    scale === "v" || scale === "font" || scale === "yds" || scale === "french"
+  );
+}
+
 export interface CreateMatchState {
   name: string;
   location: string;
   /** The state-machine key — gates which fields below are live. */
   scale: MatchGradingScale;
 
-  // v / font — numeric [min, max] index into the grade-label table.
-  vRange: [number, number];
-  fontRange: [number, number];
+  /** Which discipline this Match defaults to. Gates `scale`. */
+  discipline: Discipline;
+
+  /**
+   * Numeric [min, max] index into the grade-label table, one per
+   * formula scale. A map rather than a field each: there were two
+   * scales and are now four, and "remember what they picked on the
+   * other scale" is one rule, not N.
+   */
+  ranges: Record<FormulaScale, [number, number]>;
 
   // custom — ordered easiest → hardest, plus its editing scratch.
   customGrades: string[];
@@ -45,8 +71,15 @@ export type CreateMatchAction =
   | { type: "set-name"; value: string }
   | { type: "set-location"; value: string }
   | { type: "set-scale"; scale: MatchGradingScale }
-  | { type: "set-v-range"; min: number; max: number }
-  | { type: "set-font-range"; min: number; max: number }
+  /**
+   * Switching discipline re-points `scale` when the current one
+   * doesn't belong to the new discipline — you cannot grade a rope
+   * in V. `points` and `custom` suit any discipline and are left
+   * alone, so someone mid-way through building a custom ladder
+   * doesn't lose it by changing discipline.
+   */
+  | { type: "set-discipline"; discipline: Discipline }
+  | { type: "set-range"; scale: FormulaScale; min: number; max: number }
   /**
    * Commit the pending grade input onto the list and clear the
    * input. No-op when the trimmed input is empty or the list is at
@@ -73,9 +106,16 @@ export function initialCreateMatchState(): CreateMatchState {
   return {
     name: "",
     location: "",
+    discipline: "boulder",
     scale: "v",
-    vRange: [0, 8],
-    fontRange: [0, 10],
+    ranges: {
+      v: [0, 8],
+      font: [0, 10],
+      // Ropes start at the bottom of each scale and run to a common
+      // gym top-end, same reasoning as the boulder defaults.
+      yds: [0, SCALE_DEFAULT_MAX.yds],
+      french: [0, SCALE_DEFAULT_MAX.french],
+    },
     customGrades: [],
     newGradeInput: "",
     saveScale: false,
@@ -97,11 +137,29 @@ export function createMatchReducer(
     case "set-scale":
       return { ...state, scale: action.scale };
 
-    case "set-v-range":
-      return { ...state, vRange: [action.min, action.max] };
+    case "set-discipline": {
+      if (action.discipline === state.discipline) return state;
+      const allowed = DISCIPLINE_SCALES[action.discipline];
+      // `points` / `custom` suit any discipline — only a formula
+      // scale can belong to the wrong one.
+      const keepScale =
+        !isFormulaScale(state.scale)
+        || (allowed as readonly MatchGradingScale[]).includes(state.scale);
+      return {
+        ...state,
+        discipline: action.discipline,
+        scale: keepScale ? state.scale : allowed[0],
+      };
+    }
 
-    case "set-font-range":
-      return { ...state, fontRange: [action.min, action.max] };
+    case "set-range":
+      return {
+        ...state,
+        ranges: {
+          ...state.ranges,
+          [action.scale]: [action.min, action.max],
+        },
+      };
 
     case "add-grade": {
       const label = state.newGradeInput.trim();
@@ -177,6 +235,7 @@ export function canSubmit(state: CreateMatchState, pending: boolean): boolean {
 export interface CreateMatchFormPayload {
   name: string | null;
   location: string | null;
+  discipline: Discipline;
   gradingScale: MatchGradingScale;
   minGrade: number | null;
   maxGrade: number | null;
@@ -191,15 +250,11 @@ export interface CreateMatchFormPayload {
 export function buildCreateMatchPayload(
   state: CreateMatchState,
 ): CreateMatchFormPayload {
-  const range =
-    state.scale === "v"
-      ? state.vRange
-      : state.scale === "font"
-        ? state.fontRange
-        : null;
+  const range = isFormulaScale(state.scale) ? state.ranges[state.scale] : null;
   return {
     name: state.name.trim() || null,
     location: state.location.trim() || null,
+    discipline: state.discipline,
     gradingScale: state.scale,
     minGrade: range ? range[0] : null,
     maxGrade: range ? range[1] : null,

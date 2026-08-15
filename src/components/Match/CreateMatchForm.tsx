@@ -16,14 +16,22 @@ import {
   ToggleRow,
   showToast,
 } from "@/components/ui";
-import { gradeLabels } from "@/lib/data/grade-label";
+import {
+  gradeLabels,
+  SCALE_HARD_MAX,
+  SCALE_LABEL,
+  DISCIPLINES,
+  DISCIPLINE_LABEL,
+  DISCIPLINE_SCALES,
+  type Discipline,
+} from "@/lib/data/grade-label";
 import type { MatchGradingScale, SavedScale } from "@/lib/data/match-types";
 import { createMatchAction } from "@/app/match/actions";
-import { MATCH_SCALE_LABEL } from "./match-scale-label";
 import {
   buildCreateMatchPayload,
   canSubmit as deriveCanSubmit,
   createMatchReducer,
+  isFormulaScale,
   initialCreateMatchState,
   MAX_CUSTOM_GRADES,
 } from "./createMatchReducer";
@@ -35,15 +43,18 @@ interface Props {
 
 type ScaleTab = MatchGradingScale;
 
-const V_LABELS = gradeLabels("v", 17);
-const FONT_LABELS = gradeLabels("font", 21);
+const DISCIPLINE_OPTIONS: { value: Discipline; label: string }[] =
+  DISCIPLINES.map((d) => ({ value: d, label: DISCIPLINE_LABEL[d] }));
 
-const SCALE_OPTIONS: { value: ScaleTab; label: string }[] = [
-  { value: "v", label: MATCH_SCALE_LABEL.v },
-  { value: "font", label: MATCH_SCALE_LABEL.font },
-  { value: "custom", label: MATCH_SCALE_LABEL.custom },
-  { value: "points", label: MATCH_SCALE_LABEL.points },
-];
+/**
+ * Scales offered for a discipline: its own, then the two that suit
+ * any of them. You cannot grade a rope in V, and offering it is how
+ * a Match ends up mis-scaled.
+ */
+function scaleOptions(discipline: Discipline): { value: ScaleTab; label: string }[] {
+  return [...DISCIPLINE_SCALES[discipline], "custom" as const, "points" as const]
+    .map((value) => ({ value, label: SCALE_LABEL[value] }));
+}
 
 export function CreateMatchForm({ savedScales }: Props) {
   const router = useRouter();
@@ -60,9 +71,9 @@ export function CreateMatchForm({ savedScales }: Props) {
   const {
     name,
     location,
+    discipline,
     scale,
-    vRange,
-    fontRange,
+    ranges,
     customGrades,
     newGradeInput,
     saveScale,
@@ -123,11 +134,28 @@ export function CreateMatchForm({ savedScales }: Props) {
         />
       </label>
 
-      {/* Scale picker — SegmentedControl across V / Font / Custom / Points */}
+      {/* Discipline first — it decides which scales are on offer. */}
+      <fieldset className={styles.fieldset}>
+        <legend className={styles.label}>Discipline</legend>
+        <SegmentedControl<Discipline>
+          options={DISCIPLINE_OPTIONS}
+          value={discipline}
+          onChange={(next) =>
+            dispatch({ type: "set-discipline", discipline: next })
+          }
+          ariaLabel="Discipline"
+        />
+        <p className={styles.scaleHint}>
+          Sets the default for this match. Any route can be a different
+          discipline — handy for an outdoor day mixing boulders and ropes.
+        </p>
+      </fieldset>
+
+      {/* Scale picker — the discipline's own scales, plus Custom / Points */}
       <fieldset className={styles.fieldset}>
         <legend className={styles.label}>Grading scale</legend>
         <SegmentedControl<ScaleTab>
-          options={SCALE_OPTIONS}
+          options={scaleOptions(discipline)}
           value={scale}
           onChange={(next) => dispatch({ type: "set-scale", scale: next })}
           ariaLabel="Grading scale"
@@ -140,26 +168,15 @@ export function CreateMatchForm({ savedScales }: Props) {
         )}
       </fieldset>
 
-      {scale === "v" && (
+      {isFormulaScale(scale) && (
         <fieldset className={styles.fieldset}>
           <legend className={styles.label}>Grade range</legend>
           <RangePicker
-            labels={V_LABELS}
-            min={vRange[0]}
-            max={vRange[1]}
-            onChange={(min, max) => dispatch({ type: "set-v-range", min, max })}
-          />
-        </fieldset>
-      )}
-      {scale === "font" && (
-        <fieldset className={styles.fieldset}>
-          <legend className={styles.label}>Grade range</legend>
-          <RangePicker
-            labels={FONT_LABELS}
-            min={fontRange[0]}
-            max={fontRange[1]}
+            labels={gradeLabels(scale, SCALE_HARD_MAX[scale])}
+            min={ranges[scale][0]}
+            max={ranges[scale][1]}
             onChange={(min, max) =>
-              dispatch({ type: "set-font-range", min, max })
+              dispatch({ type: "set-range", scale, min, max })
             }
           />
         </fieldset>

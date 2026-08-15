@@ -6,6 +6,7 @@ import { showToast } from "@/components/ui";
 import { useMatchRealtime } from "@/hooks/use-match-realtime";
 import { computeMatchLeaderboard } from "@/lib/data/match-leaderboard";
 import type { MatchState, MatchRoute, MatchLog } from "@/lib/data/match-types";
+import type { Discipline } from "@/lib/data/grade-label";
 import {
   addMatchRouteAction,
   updateMatchRouteAction,
@@ -100,6 +101,7 @@ export function useMatchScreenState({
       description: string | null;
       grade: number | null;
       hasZone: boolean;
+      discipline: Discipline;
     }) => {
       startTransition(async () => {
         const result = await addMatchRouteAction({
@@ -107,6 +109,7 @@ export function useMatchScreenState({
           description: payload.description,
           grade: payload.grade,
           hasZone: payload.hasZone,
+          discipline: payload.discipline,
         });
         if ("error" in result) {
           showToast(result.error, "error");
@@ -131,6 +134,7 @@ export function useMatchScreenState({
         description: string | null;
         grade: number | null;
         hasZone: boolean;
+        discipline: Discipline;
       },
     ) => {
       startTransition(async () => {
@@ -139,6 +143,7 @@ export function useMatchScreenState({
           description: payload.description,
           grade: payload.grade,
           hasZone: payload.hasZone,
+          discipline: payload.discipline,
         });
         if ("error" in result) {
           showToast(result.error, "error");
