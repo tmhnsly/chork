@@ -142,6 +142,7 @@ export function MatchScreen({ initialState, userId }: Props) {
           log={myLogByRouteId.get(activeRoute.id) ?? null}
           grades={initialState.grades}
           gradingScale={initialState.match.grading_scale}
+          matchDiscipline={initialState.match.discipline}
           onClose={closePanel}
           onEdit={() => openPanel({ kind: "edit", routeId: activeRoute.id })}
           onSubmit={(payload) => handleLog(activeRoute, payload)}

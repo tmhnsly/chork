@@ -10,16 +10,28 @@ interface Props {
   disabled?: boolean;
   /** Whether attempts have been logged — controls enabled/disabled state */
   hasAttempts: boolean;
+  /**
+   * What this row is called. A boulder has a zone hold; a rope route
+   * has a highpoint. Defaults to "Zone hold" so the gym Wall — which
+   * is boulders — needs no change.
+   */
+  label?: string;
 }
 
-export function ZoneHoldRow({ checked, onCheckedChange, disabled, hasAttempts }: Props) {
+export function ZoneHoldRow({
+  checked,
+  onCheckedChange,
+  disabled,
+  hasAttempts,
+  label = "Zone hold",
+}: Props) {
   const isDisabled = disabled || !hasAttempts;
 
   return (
     <div className={`${styles.row} ${checked ? styles.rowOn : ""} ${isDisabled ? styles.rowDisabled : ""}`}>
       <div className={styles.label}>
         <FaFlag className={styles.icon} />
-        <span className={styles.text}>Zone hold</span>
+        <span className={styles.text}>{label}</span>
       </div>
       {!hasAttempts ? (
         <span className={styles.hint}>Log an attempt first</span>
@@ -30,7 +42,7 @@ export function ZoneHoldRow({ checked, onCheckedChange, disabled, hasAttempts }:
           onCheckedChange={onCheckedChange}
           disabled={isDisabled}
           onPointerDown={(e) => e.stopPropagation()}
-          aria-label="Zone hold"
+          aria-label={label}
         >
           <Switch.Thumb className={styles.toggleThumb} />
         </Switch.Root>
