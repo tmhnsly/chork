@@ -11,7 +11,8 @@ import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
 import { tags } from "@/lib/cache/tags";
 import { asJsonShape } from "./json-shape";
-import { readSingle } from "./read";
+import { readSingle, readMany } from "./read";
+import type { GradeDistributionRow } from "./grade-distribution";
 
 type Supabase = SupabaseClient<Database>;
 
@@ -103,3 +104,23 @@ export const getProfileSummary = cache(
       : asJsonShape<ProfileSummary>(data);
   },
 );
+
+/**
+ * Grade distribution for the pyramid on a climber's profile
+ * (migration 094). Service-role: the RPC takes its subject
+ * explicitly, and the page has already resolved whose profile is
+ * being viewed.
+ *
+ * Returns the raw rollup — `buildGradeDistribution` in
+ * `grade-distribution.ts` shapes it, and is where the rules worth
+ * testing live.
+ */
+export async function getGradeDistribution(
+  service: Supabase,
+  userId: string,
+): Promise<GradeDistributionRow[]> {
+  return readMany<GradeDistributionRow>(
+    service.rpc("get_grade_distribution", { p_user_id: userId }),
+    "getgradedistribution_failed",
+  );
+}

@@ -130,7 +130,7 @@ vocabulary these decisions produced.
 
 ### Designed and ready to build
 
-- [ ] **Grades graph.** Distribution pyramid of grades sent, flashes
+- [x] **Grades graph.** *(Shipped 2026-08-15, migration 094.)* Distribution pyramid of grades sent, flashes
       tinted amber, on the profile. Design fully settled (grilled
       2026-08-14) — every decision is recorded in the header of
       `supabase/migrations/076_jam_grade_retention.sql`:
