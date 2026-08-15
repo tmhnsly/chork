@@ -73,10 +73,13 @@ export function MatchPlayerGridSheet({
     [gradingScale, grades],
   );
 
+  // A guest has no account, so no username and no profile to link to.
+  const isGuest = !player.user_id;
   const username = player.username ?? "unknown";
   const displayName = player.display_name?.trim() || username || "Climber";
 
   const header = ClimberPeekHeader({
+    isGuest,
     user: {
       id: player.user_id ?? player.player_id,
       username,

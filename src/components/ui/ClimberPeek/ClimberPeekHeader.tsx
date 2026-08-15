@@ -41,6 +41,15 @@ interface Props {
    * it — at-a-glance climbing stats for the peeked climber.
    */
   stats: StatEntry[];
+  /**
+   * This seat has no account — a guest the host entered by name.
+   *
+   * Changes two things, both of which were wrong without it: the
+   * handle renders as "Guest" rather than "@unknown", and the identity
+   * stops being a link, because `/u/unknown` is a 404 and there is no
+   * profile to reach.
+   */
+  isGuest?: boolean;
 }
 
 /**
@@ -54,25 +63,44 @@ interface Props {
  * into `subheader`. Two-call render so consumers can put each piece
  * in the correct sheet slot without exposing the internal layout.
  */
-export function ClimberPeekHeader({ user, trailing, stats }: Props) {
+export function ClimberPeekHeader({
+  user,
+  trailing,
+  stats,
+  isGuest = false,
+}: Props) {
+  const body = (
+    <>
+      <UserAvatar user={user} size="rowLg" />
+      <span className={styles.identityText}>
+        <span className={styles.displayName}>
+          {user.name?.trim() || <Username username={user.username} />}
+        </span>
+        {isGuest ? (
+          <span className={styles.handle}>Guest</span>
+        ) : (
+          user.name?.trim() && (
+            <Username username={user.username} className={styles.handle} />
+          )
+        )}
+      </span>
+    </>
+  );
+
   return {
     identity: (
       <>
-        <Link
-          href={`/u/${user.username}`}
-          className={styles.identityLink}
-          aria-label={`Go to @${user.username}'s profile`}
-        >
-          <UserAvatar user={user} size="rowLg" />
-          <span className={styles.identityText}>
-            <span className={styles.displayName}>
-              {user.name?.trim() || <Username username={user.username} />}
-            </span>
-            {user.name?.trim() && (
-              <Username username={user.username} className={styles.handle} />
-            )}
-          </span>
-        </Link>
+        {isGuest ? (
+          <span className={styles.identityLink}>{body}</span>
+        ) : (
+          <Link
+            href={`/u/${user.username}`}
+            className={styles.identityLink}
+            aria-label={`Go to @${user.username}'s profile`}
+          >
+            {body}
+          </Link>
+        )}
         {trailing && <span className={styles.trailing}>{trailing}</span>}
       </>
     ),
