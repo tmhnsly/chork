@@ -10,6 +10,7 @@ function mkPlayer(user_id: string, username: string): MatchPlayerView {
     player_id: user_id,
     user_id,
     is_guest: false,
+    ceiling: null,
     username,
     display_name: username,
     avatar_url: null,

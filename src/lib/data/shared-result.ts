@@ -27,6 +27,12 @@ export interface SharedResultPlayer {
   rank: number;
   /** A guest seat — no account behind the name. */
   isGuest: boolean;
+  /**
+   * The score this result was won on, in tenths — handicapped when
+   * the Match was. Equals `points * 10` otherwise, so the card can
+   * read this one field either way.
+   */
+  pointsTenths: number;
   displayName: string;
   username: string;
   points: number;
@@ -37,6 +43,8 @@ export interface SharedResultPlayer {
 }
 
 export interface SharedResult {
+  /** Whether this Match was scored against each climber's ceiling. */
+  handicap: boolean;
   name: string | null;
   location: string | null;
   endedAt: string;
@@ -57,6 +65,7 @@ export interface SharedResult {
 interface PlayerRow {
   rank: number;
   is_guest: boolean;
+  points_tenths: number;
   display_name: string | null;
   username: string | null;
   points: number;
@@ -67,6 +76,7 @@ interface PlayerRow {
 }
 
 interface ResultPayload {
+  handicap: boolean;
   name: string | null;
   location: string | null;
   ended_at: string | null;
@@ -99,6 +109,7 @@ export async function getSharedResult(
   if (!result.ended_at) return null;
 
   return {
+    handicap: result.handicap,
     name: result.name,
     location: result.location,
     endedAt: result.ended_at,
@@ -106,6 +117,7 @@ export async function getSharedResult(
     players: (result.players ?? []).map((p) => ({
       rank: p.rank,
       isGuest: p.is_guest,
+      pointsTenths: p.points_tenths,
       // The board reads live profiles now rather than names copied at
       // end time, so a deleted account resolves to null. Keep the row
       // — the standings are the point, and a gap in the ranks would

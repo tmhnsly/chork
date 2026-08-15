@@ -4,6 +4,7 @@ import { FaPlus, FaEllipsisVertical, FaFlag } from "react-icons/fa6";
 import { LeaderboardRow } from "@/components/ui";
 import type { MatchState } from "@/lib/data/match-types";
 import { ownerIdOf } from "@/lib/data/match-types";
+import { formatHandicapPoints } from "@/lib/data/handicap";
 import { MatchGrid } from "./MatchGrid";
 import { MatchLogSheet } from "./MatchLogSheet";
 import { MatchAddRouteSheet } from "./MatchAddRouteSheet";
@@ -106,7 +107,10 @@ export function MatchScreen({ initialState, userId }: Props) {
                   name: row.display_name,
                   avatarUrl: row.avatar_url,
                   rank: row.rank,
-                  points: row.points,
+                  // One field either way — `points_tenths` equals
+                  // base × 10 with no handicap, and the formatter
+                  // drops a pointless decimal.
+                  points: formatHandicapPoints(row.points_tenths),
                   flashes: row.flashes,
                 }}
                 highlighted={isSelf}

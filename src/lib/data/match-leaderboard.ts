@@ -1,4 +1,5 @@
 import { ownerIdOf } from "./match-types";
+import { handicapPointsTenths } from "./handicap";
 import type {
   MatchLeaderboardRow,
   MatchLog,
@@ -32,12 +33,24 @@ import { computePoints, isFlash } from "./logs";
 export function computeMatchLeaderboard(
   players: MatchPlayerView[],
   logs: Map<string, MatchLog>,
+  /**
+   * Applies the handicap when the Match has it on. Route grades come
+   * in as a map because a log only knows its route id — without them
+   * a handicapped send can't be scored and falls back to base points,
+   * which is the same fallback the SQL takes.
+   */
+  options: {
+    handicap?: boolean;
+    gradeByRouteId?: Map<string, number | null>;
+  } = {},
 ): MatchLeaderboardRow[] {
+  const { handicap = false, gradeByRouteId } = options;
   const rows: MatchLeaderboardRow[] = players.map((p) => {
     let sends = 0;
     let flashes = 0;
     let zones = 0;
     let points = 0;
+    let pointsTenths = 0;
     let attempts = 0;
     let lastSendAt: string | null = null;
 
@@ -49,6 +62,13 @@ export function computeMatchLeaderboard(
       attempts += log.attempts;
       if (log.zone) zones += 1;
       points += computePoints(log);
+      pointsTenths += handicap
+        ? handicapPointsTenths(
+            log,
+            gradeByRouteId?.get(log.route_id) ?? null,
+            p.ceiling,
+          )
+        : computePoints(log) * 10;
       if (log.completed) {
         sends += 1;
         if (isFlash(log)) flashes += 1;
@@ -72,6 +92,7 @@ export function computeMatchLeaderboard(
       flashes,
       zones,
       points,
+      points_tenths: pointsTenths,
       attempts,
       last_send_at: lastSendAt,
       rank: 0,
@@ -79,7 +100,12 @@ export function computeMatchLeaderboard(
   });
 
   rows.sort((a, b) => {
-    if (b.points !== a.points) return b.points - a.points;
+    // Ranks on the handicapped total, which equals base × 10 when the
+    // handicap is off — one comparison for both modes, matching the
+    // `dense_rank` clause in `match_standings`.
+    if (b.points_tenths !== a.points_tenths) {
+      return b.points_tenths - a.points_tenths;
+    }
     if (b.flashes !== a.flashes) return b.flashes - a.flashes;
     if (b.sends !== a.sends) return b.sends - a.sends;
     if (a.last_send_at && b.last_send_at) {

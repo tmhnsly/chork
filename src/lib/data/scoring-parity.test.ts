@@ -88,7 +88,17 @@ describe("scoring ladder parity (computePoints ↔ public.compute_points)", () =
 // ── 2. Rank clause: every ranked surface orders the same way ────
 
 const GYM_RANK_CLAUSE = "points desc, flashes desc, sends desc";
-const MATCH_RANK_CLAUSE = `${GYM_RANK_CLAUSE}, last_send_at asc nulls last`;
+/**
+ * The Match board ranks on `points_tenths`, not `points`.
+ *
+ * That is the handicapped total — and it equals `points * 10` when
+ * the Match has no handicap, so one clause serves both modes rather
+ * than a branch. The last-send tiebreak is the Match's own: it ranks
+ * its whole roster, so ties are common enough that "who got there
+ * first" is worth breaking on.
+ */
+const MATCH_RANK_CLAUSE =
+  "points_tenths desc, flashes desc, sends desc, last_send_at asc nulls last";
 
 describe("rank clause parity across leaderboard RPCs", () => {
   const gymFns = [
@@ -151,6 +161,7 @@ describe("computeMatchLeaderboard implements the SQL tiebreak", () => {
     player_id: uid,
     user_id: uid,
     is_guest: false,
+    ceiling: null,
     username: uid,
     display_name: uid,
     avatar_url: null,

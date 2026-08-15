@@ -4,6 +4,7 @@ import { format, parseISO } from "date-fns";
 import { FaCrown } from "react-icons/fa6";
 import { LinkButton } from "@/components/ui";
 import { getSharedResult } from "@/lib/data/shared-result";
+import { formatHandicapPoints } from "@/lib/data/handicap";
 import styles from "./result.module.scss";
 
 /**
@@ -35,7 +36,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `${label} - Chork`,
     description: winner
-      ? `${winner.displayName} won with ${winner.points} points. ${result.playerCount} climbers.`
+      ? `${winner.displayName} won with ${formatHandicapPoints(winner.pointsTenths)} points. ${result.playerCount} climbers.`
       : `${result.playerCount} climbers. See the result.`,
     // Nothing here should be indexed — these are private-ish links
     // shared between friends, not public pages we want ranked.
@@ -72,7 +73,7 @@ export default async function SharedResultPage({ params }: Props) {
         <section className={styles.winner} aria-label="Winner">
           <FaCrown className={styles.crown} aria-hidden />
           <p className={styles.winnerName}>{winner.displayName}</p>
-          <p className={styles.winnerScore}>{winner.points} pts</p>
+          <p className={styles.winnerScore}>{formatHandicapPoints(winner.pointsTenths)} pts</p>
         </section>
       )}
 
@@ -85,7 +86,7 @@ export default async function SharedResultPage({ params }: Props) {
               <span className={styles.handle}>@{p.username}</span>
             </span>
             <span className={styles.points}>
-              {p.points}
+              {formatHandicapPoints(p.pointsTenths)}
               <span className={styles.pointsLabel}>pts</span>
             </span>
           </li>

@@ -35,6 +35,8 @@ export type MatchStatus = "live" | "archived";
 
 /** A Match — the `sets` row, narrowed to `owner_kind = 'climber'`. */
 export interface Match {
+  /** Score relative to each player's ceiling. Matches only. */
+  handicap: boolean;
   id: string;
   code: string;
   name: string | null;
@@ -78,6 +80,12 @@ export interface MatchRoute {
    * which is what climbers voted.
    */
   declared_grade: number | null;
+  /**
+   * The rounded average of climbers' grade votes, maintained by
+   * trigger. Gym routes generally have only this; Match routes
+   * generally only `declared_grade`.
+   */
+  community_grade: number | null;
   has_zone: boolean;
   added_by: string | null;
   /**
@@ -128,10 +136,23 @@ export interface MatchPlayerView {
   avatar_url: string | null;
   joined_at: string;
   is_host: boolean;
+  /**
+   * This player's declared limit, as an index into the Match's scale.
+   * Null = no handicap for them; they score base points.
+   */
+  ceiling: number | null;
 }
 
 export interface MatchLeaderboardRow {
   player_id: string;
+  /**
+   * The score the board actually ranks on, in TENTHS.
+   *
+   * Equal to `points * 10` when the Match has no handicap, so display
+   * code can read this one field either way — `formatHandicapPoints`
+   * drops the pointless decimal.
+   */
+  points_tenths: number;
   /** Null for a guest — they have no account. */
   user_id: string | null;
   is_guest: boolean;

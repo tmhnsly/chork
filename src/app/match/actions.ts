@@ -93,6 +93,8 @@ interface CreateMatchPayload {
   saveScaleName?: string | null;
   /** Default for the Match's routes; each may override. */
   discipline?: Discipline | null;
+  /** Score relative to each player's ceiling. Needs a graded scale. */
+  handicap?: boolean;
 }
 
 export async function createMatchAction(
@@ -153,6 +155,7 @@ export async function createMatchAction(
 
   const { data, error } = await auth.supabase.rpc("create_match", {
     p_discipline: discipline,
+    p_handicap: !!payload.handicap,
     p_name: undef(name),
     p_location: undef(location),
     p_grading_scale: payload.gradingScale,

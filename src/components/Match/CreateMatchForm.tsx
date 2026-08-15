@@ -9,6 +9,7 @@ import {
   FaArrowDown,
   FaChevronLeft,
   FaChevronRight,
+  FaScaleBalanced,
 } from "react-icons/fa6";
 import {
   Button,
@@ -72,6 +73,7 @@ export function CreateMatchForm({ savedScales }: Props) {
     name,
     location,
     discipline,
+    handicap,
     scale,
     ranges,
     customGrades,
@@ -167,6 +169,19 @@ export function CreateMatchForm({ savedScales }: Props) {
           </p>
         )}
       </fieldset>
+
+      {/* Only offered on a graded scale — a handicap measures a send
+          against a grade, and `points` has none while a custom
+          ladder's ordinals aren't a difficulty scale. */}
+      {isFormulaScale(scale) && (
+        <ToggleRow
+          icon={<FaScaleBalanced aria-hidden />}
+          title="Handicap"
+          detail="Score everyone against their own limit, so climbers of different grades can compete."
+          checked={handicap}
+          onChange={(value) => dispatch({ type: "set-handicap", value })}
+        />
+      )}
 
       {isFormulaScale(scale) && (
         <fieldset className={styles.fieldset}>

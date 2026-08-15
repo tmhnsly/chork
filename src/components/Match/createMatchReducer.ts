@@ -53,6 +53,14 @@ export interface CreateMatchState {
   discipline: Discipline;
 
   /**
+   * Score relative to each player's own ceiling, so climbers of
+   * different grades share a board honestly. Needs a graded scale —
+   * `points` has no grades and a custom ladder's ordinals aren't a
+   * difficulty scale, so the toggle is hidden on those.
+   */
+  handicap: boolean;
+
+  /**
    * Numeric [min, max] index into the grade-label table, one per
    * formula scale. A map rather than a field each: there were two
    * scales and are now four, and "remember what they picked on the
@@ -79,6 +87,7 @@ export type CreateMatchAction =
    * doesn't lose it by changing discipline.
    */
   | { type: "set-discipline"; discipline: Discipline }
+  | { type: "set-handicap"; value: boolean }
   | { type: "set-range"; scale: FormulaScale; min: number; max: number }
   /**
    * Commit the pending grade input onto the list and clear the
@@ -107,6 +116,7 @@ export function initialCreateMatchState(): CreateMatchState {
     name: "",
     location: "",
     discipline: "boulder",
+    handicap: false,
     scale: "v",
     ranges: {
       v: [0, 8],
@@ -134,8 +144,20 @@ export function createMatchReducer(
     case "set-location":
       return { ...state, location: action.value };
 
-    case "set-scale":
-      return { ...state, scale: action.scale };
+    case "set-scale": {
+      // A handicap needs grades to measure against, so switching to a
+      // scale that has none turns it off rather than leaving a toggle
+      // that silently does nothing.
+      const keepsHandicap = isFormulaScale(action.scale);
+      return {
+        ...state,
+        scale: action.scale,
+        handicap: keepsHandicap && state.handicap,
+      };
+    }
+
+    case "set-handicap":
+      return { ...state, handicap: action.value && isFormulaScale(state.scale) };
 
     case "set-discipline": {
       if (action.discipline === state.discipline) return state;
@@ -236,6 +258,7 @@ export interface CreateMatchFormPayload {
   name: string | null;
   location: string | null;
   discipline: Discipline;
+  handicap: boolean;
   gradingScale: MatchGradingScale;
   minGrade: number | null;
   maxGrade: number | null;
@@ -255,6 +278,7 @@ export function buildCreateMatchPayload(
     name: state.name.trim() || null,
     location: state.location.trim() || null,
     discipline: state.discipline,
+    handicap: state.handicap,
     gradingScale: state.scale,
     minGrade: range ? range[0] : null,
     maxGrade: range ? range[1] : null,

@@ -214,6 +214,7 @@ describe("buildCreateMatchPayload per scale", () => {
       name: null,
       location: null,
       discipline: "boulder",
+      handicap: false,
       gradingScale: "v",
       minGrade: 2,
       maxGrade: 7,
@@ -256,6 +257,7 @@ describe("buildCreateMatchPayload per scale", () => {
       name: null,
       location: null,
       discipline: "boulder",
+      handicap: false,
       gradingScale: "points",
       minGrade: null,
       maxGrade: null,
@@ -395,5 +397,58 @@ describe("set-discipline", () => {
     expect(payload.minGrade).toBe(4);
     expect(payload.maxGrade).toBe(14);
     expect(payload.customGrades).toBeNull();
+  });
+});
+
+// ── Handicap (migrations 098–100) ────────────────────────────────
+
+describe("set-handicap", () => {
+  it("turns off when the scale stops having grades", () => {
+    // A handicap measures a send against a grade. `points` has none
+    // and a custom ladder's ordinals aren't a difficulty scale, so
+    // leaving the flag on would be a toggle that silently does
+    // nothing — which reads as a bug the first time someone checks
+    // the board.
+    let state = createMatchReducer(initialCreateMatchState(), {
+      type: "set-handicap",
+      value: true,
+    });
+    expect(state.handicap).toBe(true);
+
+    state = createMatchReducer(state, { type: "set-scale", scale: "points" });
+    expect(state.handicap).toBe(false);
+  });
+
+  it("refuses to turn on for a scale with no grades", () => {
+    const points = createMatchReducer(initialCreateMatchState(), {
+      type: "set-scale",
+      scale: "custom",
+    });
+    const attempted = createMatchReducer(points, {
+      type: "set-handicap",
+      value: true,
+    });
+    expect(attempted.handicap).toBe(false);
+  });
+
+  it("survives a discipline change, since both rope scales are graded", () => {
+    let state = createMatchReducer(initialCreateMatchState(), {
+      type: "set-handicap",
+      value: true,
+    });
+    state = createMatchReducer(state, {
+      type: "set-discipline",
+      discipline: "sport",
+    });
+    expect(state.scale).toBe("french");
+    expect(state.handicap).toBe(true);
+  });
+
+  it("sends the flag in the payload", () => {
+    const state = createMatchReducer(initialCreateMatchState(), {
+      type: "set-handicap",
+      value: true,
+    });
+    expect(buildCreateMatchPayload(state).handicap).toBe(true);
   });
 });
