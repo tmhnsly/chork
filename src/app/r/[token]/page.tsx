@@ -6,6 +6,7 @@ import { LinkButton } from "@/components/ui";
 import { getSharedResult } from "@/lib/data/shared-result";
 import { formatHandicapPoints } from "@/lib/data/handicap";
 import styles from "./result.module.scss";
+import { countOf, countOfFormatted } from "@/lib/plural";
 
 /**
  * Public result page — the landing spot for a shared match link.
@@ -29,15 +30,15 @@ interface Props {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { token } = await params;
   const result = await getSharedResult(token);
-  if (!result) return { title: "Result not found - Chork" };
+  if (!result) return { title: "Result not found" };
 
   const winner = result.players.find((p) => p.isWinner);
   const label = result.name?.trim() || "Match result";
   return {
-    title: `${label} - Chork`,
+    title: label,
     description: winner
-      ? `${winner.displayName} won with ${formatHandicapPoints(winner.pointsTenths)} points. ${result.playerCount} climbers.`
-      : `${result.playerCount} climbers. See the result.`,
+      ? `${winner.displayName} won with ${countOfFormatted(formatHandicapPoints(winner.pointsTenths), "point")}. ${countOf(result.playerCount, "climber")}.`
+      : `${countOf(result.playerCount, "climber")}. See the result.`,
     // Nothing here should be indexed — these are private-ish links
     // shared between friends, not public pages we want ranked.
     robots: { index: false, follow: false },

@@ -12,6 +12,7 @@ import {
 } from "@/app/admin/routes-actions";
 import type { AdminRouteRow, RouteTagRow } from "@/lib/data/admin-queries";
 import styles from "./routesAdmin.module.scss";
+import { countOf } from "@/lib/plural";
 
 interface Props {
   setId: string;
@@ -291,7 +292,7 @@ function QuickSetupForm({
         showToast(res.error, "error");
         return;
       }
-      showToast(`Created ${res.created} routes`, "success");
+      showToast(`Created ${countOf(res.created, "route")}`, "success");
       onCreated(res.created);
     });
   }
@@ -331,7 +332,7 @@ function QuickSetupForm({
       </fieldset>
 
       <Button type="submit" disabled={pending} fullWidth>
-        {pending ? "Creating…" : <><FaPlus aria-hidden /> Create {count} routes</>}
+        {pending ? "Creating…" : <><FaPlus aria-hidden /> Create {countOf(count, "route")}</>}
       </Button>
     </form>
   );

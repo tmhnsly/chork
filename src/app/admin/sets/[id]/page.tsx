@@ -8,7 +8,7 @@ import { PageHeader } from "@/components/motion";
 import styles from "./edit.module.scss";
 
 export const metadata = {
-  title: "Edit set - Admin - Chork",
+  title: "Edit set - Admin",
 };
 
 interface Props {

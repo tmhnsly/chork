@@ -83,6 +83,29 @@ const notMarketing = (p: string) => MARKETING.some((d) => p.startsWith(d));
 const notTokenLayer = (p: string) => TOKEN_LAYER.some((d) => p.startsWith(d));
 
 describe("type scale", () => {
+  it("makes a role own its whole voice, resets included", () => {
+    // `text-transform` and `font-style` are the only two axes that
+    // would otherwise inherit: every other property the mixin writes
+    // is written on every path, so an ancestor's value can't reach a
+    // nested preset. These two were emitted only when the preset had
+    // them — which is how a climber's handle shipped as "@TOM" on the
+    // share card, `.handle` (meta) nested inside `.name` (label).
+    //
+    // Greps the mixin rather than the output because the call sites
+    // are forbidden from setting these at all: with no reset in the
+    // mixin the bug is unfixable in the module, only hideable.
+    const mixin = readFileSync(
+      join(process.cwd(), "src/styles/mixins/_typography.scss"),
+      "utf8",
+    );
+    expect(mixin, "typography() must reset text-transform").toMatch(
+      /text-transform:\s*none/,
+    );
+    expect(mixin, "typography() must reset font-style").toMatch(
+      /font-style:\s*normal/,
+    );
+  });
+
   it("never sets a raw letter-spacing value", () => {
     // Note the lookahead sits before the whitespace, not after: with
     // `\s*(?!…)` the star backtracks to zero and the lookahead passes

@@ -6,7 +6,7 @@ import { CreateMatchForm } from "@/components/Match/CreateMatchForm";
 import styles from "./new.module.scss";
 
 export const metadata = {
-  title: "Start a match - Chork",
+  title: "Start a match",
 };
 
 export default async function NewMatchPage() {

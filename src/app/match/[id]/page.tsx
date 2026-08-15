@@ -10,7 +10,7 @@ interface Props {
 }
 
 export const metadata = {
-  title: "Match - Chork",
+  title: "Match",
 };
 
 export default async function MatchRoomPage({ params }: Props) {

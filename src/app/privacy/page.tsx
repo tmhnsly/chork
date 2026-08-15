@@ -24,7 +24,7 @@ import styles from "./privacy.module.scss";
 export const dynamic = "force-static";
 
 export const metadata = {
-  title: "Privacy Policy - Chork",
+  title: "Privacy Policy",
 };
 
 export default function PrivacyPage() {

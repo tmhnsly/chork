@@ -11,7 +11,7 @@ import { RoutesAdmin } from "@/components/admin/RoutesAdmin";
 import styles from "./routes.module.scss";
 
 export const metadata = {
-  title: "Routes - Admin - Chork",
+  title: "Routes - Admin",
 };
 
 interface Props {

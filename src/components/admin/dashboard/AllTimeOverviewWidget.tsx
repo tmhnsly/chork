@@ -1,6 +1,7 @@
 import { WidgetCard } from "./WidgetCard";
 import type { AllTimeOverview } from "@/lib/data/dashboard-queries";
 import styles from "./allTimeOverviewWidget.module.scss";
+import { countOf } from "@/lib/plural";
 
 interface Props {
   overview: AllTimeOverview | null;
@@ -35,7 +36,7 @@ export function AllTimeOverviewWidget({ overview }: Props) {
             subtitle={
               overview.top_route_send_count !== null &&
               overview.top_route_send_count > 0
-                ? `${overview.top_route_send_count} sends`
+                ? countOf(overview.top_route_send_count, "send")
                 : undefined
             }
           />

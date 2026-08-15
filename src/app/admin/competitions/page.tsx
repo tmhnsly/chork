@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/motion";
 import styles from "./competitions.module.scss";
 
 export const metadata = {
-  title: "Competitions - Admin - Chork",
+  title: "Competitions - Admin",
 };
 
 /**

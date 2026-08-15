@@ -2,6 +2,7 @@ import { FaBolt } from "react-icons/fa6";
 import { WidgetCard } from "./WidgetCard";
 import type { TopRouteRow } from "@/lib/data/dashboard-queries";
 import styles from "./flashRateWidget.module.scss";
+import { countOf, plural } from "@/lib/plural";
 
 interface Props {
   routes: TopRouteRow[];
@@ -50,7 +51,7 @@ export function FlashRateWidget({ routes }: Props) {
         <div className={styles.headline}>
           <span className={styles.number}>{rate.toFixed(0)}%</span>
           <span className={styles.meta}>
-            {totalFlashes} of {totalSends} sends were flashes
+            {totalFlashes} of {countOf(totalSends, "send")} were {plural(totalFlashes, "a flash", "flashes")}
           </span>
         </div>
 

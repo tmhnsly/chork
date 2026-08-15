@@ -14,7 +14,7 @@ import { MatchHistoryList } from "@/components/Match/MatchHistoryList";
 import styles from "./match.module.scss";
 
 export const metadata = {
-  title: "Match - Chork",
+  title: "Match",
 };
 
 const RECENT_MATCHES_LIMIT = 5;

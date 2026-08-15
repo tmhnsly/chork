@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/motion";
 import styles from "./crew.module.scss";
 
 export const metadata = {
-  title: "Crew - Chork",
+  title: "Crew",
 };
 
 export default async function CrewPage() {

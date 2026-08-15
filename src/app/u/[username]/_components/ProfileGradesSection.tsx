@@ -32,9 +32,15 @@ export async function ProfileGradesSection({ userId }: Props) {
 
   return (
     <section className={styles.section} aria-labelledby="grades-heading">
-      <h2 id="grades-heading" className={styles.heading}>
-        Grades
-      </h2>
+      <div className={styles.header}>
+        <h2 id="grades-heading" className={styles.heading}>
+          Grades
+        </h2>
+        {/* The gym stats above this are gym-only, so without saying
+            so the two disagree — a climber sees "2 sends" up there and
+            counts three bars down here. */}
+        <p className={styles.scope}>Gym and matches</p>
+      </div>
 
       <div className={styles.pyramids}>
         {pyramids.map((pyramid) => (

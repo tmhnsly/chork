@@ -1,5 +1,6 @@
 import type { GradePyramid as Pyramid } from "@/lib/data/grade-distribution";
 import styles from "./gradePyramid.module.scss";
+import { countOf } from "@/lib/plural";
 
 interface Props {
   pyramid: Pyramid;
@@ -58,7 +59,7 @@ export function GradePyramid({ pyramid }: Props) {
               <span className={styles.count}>
                 {rung.sends > 0 ? rung.sends : ""}
                 <span className={styles.srOnly}>
-                  {` ${rung.sends} sends at ${rung.label}`}
+                  {` ${countOf(rung.sends, "send")} at ${rung.label}`}
                   {rung.flashes > 0 ? `, ${rung.flashes} flashed` : ""}
                 </span>
               </span>

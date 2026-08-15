@@ -1,6 +1,7 @@
 import { WidgetCard } from "./WidgetCard";
 import type { EngagementPoint } from "@/lib/data/dashboard-queries";
 import styles from "./engagementWidget.module.scss";
+import { countOf } from "@/lib/plural";
 
 interface Props {
   points: EngagementPoint[];
@@ -36,7 +37,7 @@ export function EngagementWidget({ points, activeCount }: Props) {
                   key={p.set_id}
                   className={styles.sparkBar}
                   style={{ "--bar-h": `${h}%` } as React.CSSProperties}
-                  title={`${p.active_climber_count} climbers`}
+                  title={countOf(p.active_climber_count, "climber")}
                   aria-hidden
                 />
               );

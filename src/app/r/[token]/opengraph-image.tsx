@@ -1,6 +1,7 @@
 import { ImageResponse } from "next/og";
 import { loadOgFont } from "@/lib/og-fonts";
 import { getSharedResult } from "@/lib/data/shared-result";
+import { countOf } from "@/lib/plural";
 
 /**
  * The thing that actually gets pasted into the group chat.
@@ -121,8 +122,11 @@ export default async function ResultOgImage({ params }: Props) {
             color: "#7c8378",
           }}
         >
+          {/* Left slot is the overflow count, and empty when there
+              isn't one — it used to fall back to the wordmark, which
+              put "chork.app" at both ends of a two-player card. */}
           <div style={{ display: "flex" }}>
-            {others > 0 ? `+${others} more climbers` : "chork.app"}
+            {others > 0 ? `+${countOf(others, "more climber")}` : ""}
           </div>
           <div style={{ display: "flex", color: "#bdee63" }}>chork.app</div>
         </div>

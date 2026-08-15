@@ -5,7 +5,7 @@ import { JoinMatchForm } from "@/components/Match/JoinMatchForm";
 import styles from "./join.module.scss";
 
 export const metadata = {
-  title: "Join a match - Chork",
+  title: "Join a match",
 };
 
 interface Props {

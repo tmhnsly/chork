@@ -8,6 +8,7 @@ import type { Route, RouteLog } from "@/lib/data";
 import type { BadgeDefinition } from "@/lib/badges";
 import styles from "./previousSetsGrid.module.scss";
 import { RING_SIZES } from "@/components/ui/ActivityRings/ring-sizes";
+import { countOf } from "@/lib/plural";
 
 export type SetCellLog = Pick<RouteLog, "attempts" | "completed" | "zone">;
 
@@ -58,7 +59,7 @@ export function PreviousSetsGrid({ sets, gymId, userId, showEmptyState = false }
         <div className={styles.titleGroup}>
           <h2 className={styles.title}>Sets</h2>
           <BrandDivider />
-          <span className={styles.count} aria-label={`${sets.length} sets`}>
+          <span className={styles.count} aria-label={countOf(sets.length, "set")}>
             {sets.length}
           </span>
         </div>
@@ -141,7 +142,7 @@ function SetTile({ set, onOpen }: TileProps) {
       type="button"
       className={cls}
       onClick={onOpen}
-      aria-label={`${set.label}${set.isActive ? " (current set)" : ""}. ${set.completions} sends, ${set.flashes} flashes, ${set.zones} zones. Open details.`}
+      aria-label={`${set.label}${set.isActive ? " (current set)" : ""}. ${countOf(set.completions, "send")}, ${countOf(set.flashes, "flash", "flashes")}, ${countOf(set.zones, "zone")}. Open details.`}
     >
       {content}
     </button>

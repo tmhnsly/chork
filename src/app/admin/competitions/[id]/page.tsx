@@ -15,7 +15,7 @@ import { PageHeader } from "@/components/motion";
 import styles from "./edit.module.scss";
 
 export const metadata = {
-  title: "Edit competition - Admin - Chork",
+  title: "Edit competition - Admin",
 };
 
 interface Props {

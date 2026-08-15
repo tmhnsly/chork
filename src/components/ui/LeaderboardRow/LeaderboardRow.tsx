@@ -6,6 +6,7 @@ import { FaBolt } from "react-icons/fa6";
 import { UserAvatar } from "../UserAvatar";
 import styles from "./leaderboardRow.module.scss";
 import { Username } from "../Username";
+import { countOf, countOfFormatted } from "@/lib/plural";
 
 /**
  * Minimal shape a leaderboard row needs to render. Deliberately
@@ -79,7 +80,7 @@ export function LeaderboardRow({
   // A guest has no handle. Showing "@unknown" reads as a bug — and to
   // the person whose name it is, as rudeness.
   const displayLabel = isGuest ? (entry.name || "Guest") : `@${username}`;
-  const ariaBase = `Rank ${rankLabel}, ${displayLabel}, ${entry.points} points`;
+  const ariaBase = `Rank ${rankLabel}, ${displayLabel}, ${countOfFormatted(entry.points, "point")}`;
 
   const content = (
     <>
@@ -109,7 +110,7 @@ export function LeaderboardRow({
       <div className={styles.stats}>
         <span className={styles.points}>{entry.points}</span>
         {entry.flashes > 0 && (
-          <span className={styles.flashes} aria-label={`${entry.flashes} flashes`}>
+          <span className={styles.flashes} aria-label={countOf(entry.flashes, "flash", "flashes")}>
             <FaBolt aria-hidden="true" /> {entry.flashes}
           </span>
         )}
