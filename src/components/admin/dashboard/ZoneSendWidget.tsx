@@ -1,6 +1,7 @@
 import { WidgetCard } from "./WidgetCard";
 import type { ZoneSendRow } from "@/lib/data/dashboard-queries";
 import styles from "./zoneSendWidget.module.scss";
+import { countOf } from "@/lib/plural";
 
 interface Props {
   rows: ZoneSendRow[];
@@ -37,7 +38,7 @@ export function ZoneSendWidget({ rows }: Props) {
                 <div
                   className={styles.stack}
                   style={{ "--total-w": `${totalPct}%` } as React.CSSProperties}
-                  aria-label={`Route ${r.number}: ${r.send_count} sends, ${r.zone_only} zone only`}
+                  aria-label={`Route ${r.number}: ${countOf(r.send_count, "send")}, ${r.zone_only} zone only`}
                 >
                   <span
                     className={styles.stackSend}

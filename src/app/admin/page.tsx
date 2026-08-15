@@ -23,7 +23,7 @@ import type { AdminSetSummary } from "@/lib/data/admin-queries";
 import styles from "./admin.module.scss";
 
 export const metadata = {
-  title: "Admin - Chork",
+  title: "Admin",
 };
 
 interface Props {

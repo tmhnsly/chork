@@ -149,8 +149,10 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
                 <Username username={username} className={styles.playerHandle} />
               </div>
               <div className={styles.playerStats}>
-                <span>{p.sends} sends</span>
-                <span>{p.flashes} flashes</span>
+                <span>{p.sends} {p.sends === 1 ? "send" : "sends"}</span>
+                <span>
+                  {p.flashes} {p.flashes === 1 ? "flash" : "flashes"}
+                </span>
                 <span className={styles.playerPoints}>{formatHandicapPoints(p.points_tenths)} pts</span>
               </div>
             </li>

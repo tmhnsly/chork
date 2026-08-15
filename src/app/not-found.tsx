@@ -4,7 +4,7 @@ import { RevealText } from "@/components/motion";
 import styles from "./not-found.module.scss";
 
 export const metadata = {
-  title: "Off the wall - Chork",
+  title: "Off the wall",
   description: "This route doesn't exist.",
 };
 

@@ -5,6 +5,7 @@ import { UserAvatar, Username } from "@/components/ui";
 import type { LeaderboardEntry } from "@/lib/data";
 import { toAvatarUser } from "@/lib/data/leaderboard-helpers";
 import styles from "./podium.module.scss";
+import { countOfFormatted } from "@/lib/plural";
 
 interface Props {
   /** Entries sorted by rank ascending. Renders up to 3 positions. */
@@ -75,7 +76,7 @@ function Slot({ entry, place, currentUserId, onPress, active }: SlotProps) {
     </>
   );
 
-  const ariaLabel = `Rank ${place}, @${entry.username}, ${entry.points} points${isSelf ? " (you)" : ""}`;
+  const ariaLabel = `Rank ${place}, @${entry.username}, ${countOfFormatted(entry.points, "point")}${isSelf ? " (you)" : ""}`;
 
   if (isSelf) {
     return (

@@ -21,7 +21,7 @@ interface Props {
 
 export async function generateMetadata({ params }: Props) {
   const { username } = await params;
-  return { title: `@${username} - Chork` };
+  return { title: `@${username}` };
 }
 
 export default async function UserProfilePage({ params }: Props) {

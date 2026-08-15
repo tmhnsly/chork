@@ -4,6 +4,7 @@ import { UserAvatar, Username } from "@/components/ui";
 import { FaBolt } from "react-icons/fa6";
 import type { FlashLeader } from "@/lib/data/dashboard-queries";
 import styles from "./flashLeaderboardWidget.module.scss";
+import { countOf } from "@/lib/plural";
 
 interface Props {
   leaders: FlashLeader[];
@@ -23,7 +24,7 @@ export function FlashLeaderboardWidget({ leaders }: Props) {
             <Link
               href={`/u/${row.username}`}
               className={styles.row}
-              aria-label={`@${row.username}, ${row.flash_count} flashes. Open profile.`}
+              aria-label={`@${row.username}, ${countOf(row.flash_count, "flash", "flashes")}. Open profile.`}
             >
               <span className={styles.rank}>{i + 1}</span>
               <UserAvatar

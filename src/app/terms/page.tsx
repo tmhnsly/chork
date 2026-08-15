@@ -24,7 +24,7 @@ import styles from "./terms.module.scss";
 export const dynamic = "force-static";
 
 export const metadata = {
-  title: "Terms of Service - Chork",
+  title: "Terms of Service",
   description:
     "The terms governing your use of Chork — the bouldering competition tracker for gyms and climbers.",
 };

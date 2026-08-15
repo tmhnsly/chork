@@ -13,7 +13,7 @@ import { LeaderboardView } from "@/components/Leaderboard/LeaderboardView";
 import styles from "./leaderboard.module.scss";
 
 export const metadata = {
-  title: "Chorkboard - Chork",
+  title: "Chorkboard",
 };
 
 export default async function LeaderboardPage() {

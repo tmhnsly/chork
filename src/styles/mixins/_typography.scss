@@ -190,11 +190,28 @@ $_typography: (
     letter-spacing: var(--tracking-#{$step});
   }
 
+  // `text-transform` and `font-style` are emitted unconditionally,
+  // resets included. Every other axis above always writes a value, so
+  // a preset can't inherit one; these two used to be written only when
+  // the preset had them, which made them the only two that could leak
+  // in from an ancestor.
+  //
+  // That is not hypothetical: the share card renders `.handle` (meta)
+  // inside `.name` (label), and `label` is uppercase — so a climber's
+  // handle shipped as "@TOM". The call site can't fix it without
+  // hand-setting a font property, which the code rules forbid and
+  // `design-system.test.ts` fails on. So the role owns the whole
+  // voice, including the absence of a transform.
   @if $transform {
     text-transform: $transform;
+  } @else {
+    text-transform: none;
   }
 
   $style: map.get($p, style);
+  @if not $style {
+    font-style: normal;
+  }
   @if $style {
     font-style: $style;
     @if $style == italic {

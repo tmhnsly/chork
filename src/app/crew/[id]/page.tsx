@@ -13,7 +13,7 @@ import { CrewDetailView } from "@/components/Crew/CrewDetailView";
 import styles from "./crewDetail.module.scss";
 
 export const metadata = {
-  title: "Crew - Chork",
+  title: "Crew",
 };
 
 // Keep in sync with PAGE_SIZE inside CrewActivityFeed.

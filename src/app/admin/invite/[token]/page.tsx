@@ -5,7 +5,7 @@ import { getGym } from "@/lib/data/gym-queries";
 import styles from "./invite.module.scss";
 
 export const metadata = {
-  title: "Admin invite - Chork",
+  title: "Admin invite",
 };
 
 interface Props {

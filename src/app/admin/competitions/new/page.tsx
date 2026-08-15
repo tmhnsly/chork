@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/motion";
 import styles from "./new.module.scss";
 
 export const metadata = {
-  title: "New competition - Admin - Chork",
+  title: "New competition - Admin",
 };
 
 export default async function NewCompetitionPage() {

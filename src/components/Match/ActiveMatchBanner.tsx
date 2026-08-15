@@ -2,6 +2,7 @@ import Link from "next/link";
 import { FaFire, FaArrowRight } from "react-icons/fa6";
 import type { ActiveMatchSummary } from "@/lib/data/match-types";
 import styles from "./activeMatchBanner.module.scss";
+import { countOf } from "@/lib/plural";
 
 interface Props {
   match: ActiveMatchSummary;
@@ -15,8 +16,7 @@ interface Props {
  */
 export function ActiveMatchBanner({ match }: Props) {
   const name = match.name?.trim() || "Untitled match";
-  const playerLabel =
-    match.player_count === 1 ? "1 player" : `${match.player_count} players`;
+  const playerLabel = countOf(match.player_count, "player");
 
   return (
     <Link

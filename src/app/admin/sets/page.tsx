@@ -11,7 +11,7 @@ import { getGym } from "@/lib/data/gym-queries";
 import styles from "./sets.module.scss";
 
 export const metadata = {
-  title: "Sets - Admin - Chork",
+  title: "Sets - Admin",
 };
 
 interface Props {

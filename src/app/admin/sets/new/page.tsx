@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/motion";
 import styles from "./new.module.scss";
 
 export const metadata = {
-  title: "New set - Admin - Chork",
+  title: "New set - Admin",
 };
 
 interface Props {
