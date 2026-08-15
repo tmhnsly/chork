@@ -12,8 +12,8 @@ import type {
   MatchPlayerView,
   MatchRoute,
   MatchGradingScale,
-  MatchLeaderboardRow,
-} from "@/lib/data/match-types";
+  MatchLeaderboardRow, } from "@/lib/data/match-types";
+import { ownerIdOf } from "@/lib/data/match-types";
 import { logKey } from "./matchScreenReducer";
 import styles from "./matchPlayerGridSheet.module.scss";
 
@@ -27,6 +27,12 @@ interface Props {
   logs: Map<string, MatchLog>;
   grades: Array<{ ordinal: number; label: string }>;
   gradingScale: MatchGradingScale;
+  /**
+   * When set, each tile is tappable and opens the log sheet for this
+   * player. Only passed for a GUEST viewed by the host, who is the
+   * one person entering their sends.
+   */
+  onLogRoute?: (routeId: string) => void;
   onClose: () => void;
 }
 
@@ -48,6 +54,7 @@ export function MatchPlayerGridSheet({
   logs,
   grades,
   gradingScale,
+  onLogRoute,
   onClose,
 }: Props) {
   const labelForGrade = useMemo(
@@ -60,7 +67,7 @@ export function MatchPlayerGridSheet({
 
   const header = ClimberPeekHeader({
     user: {
-      id: player.user_id,
+      id: player.user_id ?? player.player_id,
       username,
       name: player.display_name ?? "",
       avatar_url: player.avatar_url ?? "",
@@ -92,7 +99,7 @@ export function MatchPlayerGridSheet({
       <SheetBody>
         <div className={styles.grid}>
           {routes.map((route) => {
-            const log = logs.get(logKey(player.user_id, route.id)) ?? null;
+            const log = logs.get(logKey(ownerIdOf(player), route.id)) ?? null;
             const state = deriveTileState(log);
             const gradeLabel = labelForGrade(route.declared_grade);
             return (
@@ -102,6 +109,9 @@ export function MatchPlayerGridSheet({
                 state={state}
                 zone={route.has_zone && (log?.zone ?? false)}
                 gradeLabel={gradeLabel ?? undefined}
+                // Without a handler the tile renders as a plain div,
+                // which is right for a read-only peek.
+                onClick={onLogRoute ? () => onLogRoute(route.id) : undefined}
               />
             );
           })}

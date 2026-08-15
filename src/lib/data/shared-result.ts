@@ -25,6 +25,8 @@ import { asJsonShape } from "./json-shape";
 /** One row on the public result card. */
 export interface SharedResultPlayer {
   rank: number;
+  /** A guest seat — no account behind the name. */
+  isGuest: boolean;
   displayName: string;
   username: string;
   points: number;
@@ -54,6 +56,7 @@ export interface SharedResult {
  */
 interface PlayerRow {
   rank: number;
+  is_guest: boolean;
   display_name: string | null;
   username: string | null;
   points: number;
@@ -102,6 +105,7 @@ export async function getSharedResult(
     playerCount: result.player_count,
     players: (result.players ?? []).map((p) => ({
       rank: p.rank,
+      isGuest: p.is_guest,
       // The board reads live profiles now rather than names copied at
       // end time, so a deleted account resolves to null. Keep the row
       // — the standings are the point, and a gap in the ranks would

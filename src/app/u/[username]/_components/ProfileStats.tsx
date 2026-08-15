@@ -126,6 +126,9 @@ export async function ProfileStats({ userId, gymId, createdAt, isOwnProfile }: P
         // RouteLog shape without a hand-rolled stub.
         id: "",
         user_id: userId,
+        // Gym wall, so account-owned — a guest seat never appears on
+        // a profile (migration 095).
+        player_id: null,
         set_id: activeSet?.id ?? "",
         gym_id: gymId,
         completed_at: null,

@@ -7,16 +7,20 @@ import { useMatchRealtime } from "@/hooks/use-match-realtime";
 import { computeMatchLeaderboard } from "@/lib/data/match-leaderboard";
 import type { MatchState, MatchRoute, MatchLog } from "@/lib/data/match-types";
 import type { Discipline } from "@/lib/data/grade-label";
+import { ownerIdOf } from "@/lib/data/match-types";
 import {
   addMatchRouteAction,
   updateMatchRouteAction,
   endMatchAction,
+  addMatchGuestAction,
+  removeMatchGuestAction,
 } from "@/app/match/actions";
 import { upsertMatchLogOffline } from "@/app/match/offline-actions";
 import {
   initMatchState,
   matchReducer,
   type MatchPanel,
+  logKey,
 } from "./matchScreenReducer";
 
 /**
@@ -54,7 +58,7 @@ export function useMatchScreenState({
       if (evt.eventType === "DELETE") {
         dispatch({
           type: "remove-log",
-          userId: evt.old.user_id,
+          userId: ownerIdOf(evt.old),
           routeId: evt.old.route_id,
         });
       } else {
@@ -127,6 +131,51 @@ export function useMatchScreenState({
     [initialState.match.id],
   );
 
+  const handleAddGuest = useCallback(
+    async (name: string) => {
+      startTransition(async () => {
+        const result = await addMatchGuestAction(initialState.match.id, name);
+        if ("error" in result) {
+          showToast(result.error, "error");
+          return;
+        }
+        // Same reasoning as routes: paint locally on server success
+        // rather than wait on a realtime self-echo that drops often
+        // enough for the host to think nothing happened.
+        dispatch({
+          type: "upsert-player",
+          player: {
+            player_id: result.player.id,
+            user_id: null,
+            is_guest: true,
+            username: null,
+            display_name: result.player.display_name,
+            avatar_url: null,
+            joined_at: result.player.joined_at,
+            is_host: false,
+          },
+        });
+        dispatch({ type: "close-panel" });
+      });
+    },
+    [initialState.match.id],
+  );
+
+  const handleRemoveGuest = useCallback(
+    async (playerId: string) => {
+      startTransition(async () => {
+        const result = await removeMatchGuestAction(playerId);
+        if ("error" in result) {
+          showToast(result.error, "error");
+          return;
+        }
+        dispatch({ type: "remove-player", playerId });
+        dispatch({ type: "close-panel" });
+      });
+    },
+    [],
+  );
+
   const handleUpdateRoute = useCallback(
     async (
       routeId: string,
@@ -161,8 +210,11 @@ export function useMatchScreenState({
     async (
       route: MatchRoute,
       payload: { attempts: number; completed: boolean; zone: boolean },
+      // A GUEST seat the host is entering for. Absent = own card.
+      playerId?: string,
     ) => {
-      const previous = myLogByRouteId.get(route.id);
+      const ownerId = playerId ?? userId;
+      const previous = state.logs.get(logKey(ownerId, route.id));
       // Capture `now` once at callback entry rather than inline in
       // the dispatched object. The `react-hooks/purity` lint rule
       // flags `new Date()` anywhere in a render-adjacent path; doing
@@ -178,7 +230,9 @@ export function useMatchScreenState({
           id: previous?.id ?? `optimistic-${route.id}`,
           set_id: initialState.match.id,
           route_id: route.id,
-          user_id: userId,
+          // Exactly one of these, matching `route_logs_owner_ck`.
+          user_id: playerId ? null : userId,
+          player_id: playerId ?? null,
           attempts: payload.attempts,
           completed: payload.completed,
           completed_at: payload.completed
@@ -201,6 +255,7 @@ export function useMatchScreenState({
           attempts: payload.attempts,
           completed: payload.completed,
           zone: payload.zone,
+          playerId: playerId ?? null,
         });
         if (result && typeof result === "object" && "error" in result) {
           showToast((result as { error: string }).error, "error");
@@ -208,12 +263,12 @@ export function useMatchScreenState({
           if (previous) {
             dispatch({ type: "upsert-log", log: previous, viewerId: userId });
           } else {
-            dispatch({ type: "remove-log", userId, routeId: route.id });
+            dispatch({ type: "remove-log", userId: ownerId, routeId: route.id });
           }
         }
       });
     },
-    [initialState.match.id, myLogByRouteId, userId],
+    [initialState.match.id, state.logs, userId],
   );
 
   const handleEnd = useCallback(() => {
@@ -235,6 +290,8 @@ export function useMatchScreenState({
     openPanel,
     closePanel,
     handleAddRoute,
+    handleAddGuest,
+    handleRemoveGuest,
     handleUpdateRoute,
     handleLog,
     handleEnd,

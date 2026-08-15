@@ -5,7 +5,11 @@ import type { MatchLog, MatchPlayerView } from "./match-types";
 
 function mkPlayer(user_id: string, username: string): MatchPlayerView {
   return {
+    // Seat id mirrors the account id in fixtures, so assertions keyed
+    // on one keep meaning the same thing as the other.
+    player_id: user_id,
     user_id,
+    is_guest: false,
     username,
     display_name: username,
     avatar_url: null,
@@ -27,6 +31,7 @@ function mkLog(
     set_id: "match-1",
     route_id,
     user_id,
+    player_id: null,
     attempts,
     completed,
     completed_at,

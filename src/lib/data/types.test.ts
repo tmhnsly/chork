@@ -7,6 +7,7 @@ describe("createOptimisticLog", () => {
     user_id: "user1",
     route_id: "route1",
     set_id: "set1",
+    player_id: null,
     gym_id: "gym1",
     attempts: 3,
     completed: false,

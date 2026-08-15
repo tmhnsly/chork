@@ -95,6 +95,32 @@ Two places discipline genuinely bites:
 - **Grade distributions** must never mix scales across disciplines —
   a pyramid per discipline, never a 6a+ rendered as a V-grade.
 
+## Guest players
+
+A **guest** is a named seat in a Match with no account — no sign-in,
+no profile, nothing to claim. The host adds a name and enters that
+person's sends.
+
+**Why not an account.** Supabase anonymous auth was the other
+candidate (a real `auth.users` row, claimable later). It was rejected
+because an account that self-reports onto a leaderboard is trivially
+minted by anyone holding the join code. Having the host enter the
+sends puts a real, accountable person behind every number.
+
+**Matches only.** The gym leaderboard is for signed-in gym members. A
+guest's log carries no `gym_id` and belongs to a climber-owned Set, so
+it cannot reach the gym board or `user_set_stats` by construction —
+not by a filter someone has to remember.
+
+Identity is the SEAT (`set_players.id`), which is the only thing both
+kinds of player have. An account-backed seat owns its logs by
+`user_id`, a guest's by `route_logs.player_id`; `ownerIdOf()` in
+`match-types.ts` resolves both to one string for client code.
+
+A guest's attempts never leave the database on the board — there is no
+account to own them. The host reads them from `guest_logs` in the room
+bundle, since they typed them in.
+
 ## Handicap
 
 Optional scoring lens that lets climbers of different abilities share

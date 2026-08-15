@@ -1,4 +1,5 @@
 import type { MatchLog, MatchPlayerView, MatchRoute, MatchState } from "@/lib/data/match-types";
+import { ownerIdOf } from "@/lib/data/match-types";
 import { visibleAttempts } from "@/lib/data/logs";
 
 /**
@@ -37,11 +38,17 @@ export interface MatchLocalState {
  */
 export type MatchPanel =
   | { kind: "none" }
-  | { kind: "log"; routeId: string }
+  /**
+   * Logging a route. `playerId` names a GUEST seat the host is
+   * entering for; absent means the caller's own card.
+   */
+  | { kind: "log"; routeId: string; playerId?: string }
   | { kind: "add" }
   | { kind: "edit"; routeId: string }
   | { kind: "menu" }
-  | { kind: "peek"; playerId: string };
+  | { kind: "peek"; playerId: string }
+  /** Host adding a guest seat. */
+  | { kind: "add-guest" };
 
 export type MatchAction =
   // set-routes / set-players are the full-refresh transitions for the
@@ -52,6 +59,13 @@ export type MatchAction =
   | { type: "upsert-route"; route: MatchRoute }
   | { type: "remove-route"; id: string }
   | { type: "set-players"; players: MatchPlayerView[] }
+  /**
+   * Seat a guest locally on server success. Idempotent on
+   * `player_id`, so the realtime echo (when it arrives) is a no-op —
+   * same contract as `upsert-route`.
+   */
+  | { type: "upsert-player"; player: MatchPlayerView }
+  | { type: "remove-player"; playerId: string }
   | { type: "upsert-log"; log: MatchLog; viewerId: string }
   | { type: "remove-log"; userId: string; routeId: string }
   | { type: "open-panel"; panel: MatchPanel }
@@ -67,9 +81,12 @@ export function initMatchState(initialState: MatchState): MatchLocalState {
   return {
     routes: initialState.routes,
     players: initialState.players,
+    // Own logs, plus every guest's when the viewer is the host — the
+    // RPC returns an empty `guest_logs` to everyone else, so this is
+    // the same map for a non-host as it was before guests existed.
     logs: new Map(
-      initialState.my_logs.map((log) => [
-        logKey(log.user_id, log.route_id),
+      [...initialState.my_logs, ...initialState.guest_logs].map((log) => [
+        logKey(ownerIdOf(log), log.route_id),
         log,
       ]),
     ),
@@ -102,6 +119,19 @@ export function matchReducer(
         ...state,
         routes: state.routes.filter((r) => r.id !== action.id),
       };
+    case "upsert-player": {
+      const players = state.players.filter(
+        (p) => p.player_id !== action.player.player_id,
+      );
+      return { ...state, players: [...players, action.player] };
+    }
+
+    case "remove-player":
+      return {
+        ...state,
+        players: state.players.filter((p) => p.player_id !== action.playerId),
+      };
+
     case "set-players":
       return { ...state, players: action.players };
     case "upsert-log": {
@@ -113,7 +143,7 @@ export function matchReducer(
           ? action.log
           : { ...action.log, attempts: visibleAttempts(action.log, false) };
       const logs = new Map(state.logs);
-      logs.set(logKey(log.user_id, log.route_id), log);
+      logs.set(logKey(ownerIdOf(log), log.route_id), log);
       return { ...state, logs };
     }
     case "remove-log": {

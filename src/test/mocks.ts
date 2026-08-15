@@ -78,6 +78,9 @@ export function mockRouteLog(overrides: Partial<RouteLog> & { id: string; user_i
     // Every log belongs to a Set (migration 080). In production a
     // trigger derives this from the route; a fixture states it.
     set_id: "set_001",
+    // Null = an account owns this log. A guest's is owned by a seat
+    // (migration 095).
+    player_id: null,
     created_at: DEFAULT_DATE,
     updated_at: DEFAULT_DATE,
     ...overrides,
