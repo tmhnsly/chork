@@ -10,7 +10,52 @@
  *   — Admin dashboard grade-distribution widgets (future)
  */
 
-export type GradingScale = "v" | "font" | "points";
+/**
+ * Discipline — boulder, sport or top-rope. See CONTEXT.md.
+ *
+ * It decides which grade scales are offered and what partial credit
+ * is called. It deliberately does NOT touch scoring: `computePoints`
+ * never reads grade, so a V4 and a 6a+ share one points total with no
+ * equivalence to invent.
+ */
+export type Discipline = "boulder" | "sport" | "top-rope";
+
+export const DISCIPLINES: readonly Discipline[] = [
+  "boulder",
+  "sport",
+  "top-rope",
+] as const;
+
+export function isDiscipline(value: unknown): value is Discipline {
+  return (
+    value === "boulder" || value === "sport" || value === "top-rope"
+  );
+}
+
+/** How a discipline names itself in the UI. */
+export const DISCIPLINE_LABEL: Record<Discipline, string> = {
+  boulder: "Boulder",
+  sport: "Sport",
+  "top-rope": "Top rope",
+};
+
+/**
+ * What partial credit is called.
+ *
+ * The column is `zone` on every route regardless — this is a display
+ * name, not a second concept. A boulder has a zone hold; a rope route
+ * has a highpoint.
+ */
+export function partialCreditLabel(discipline: Discipline): string {
+  return discipline === "boulder" ? "Zone" : "Highpoint";
+}
+
+export type GradingScale =
+  | "v"
+  | "font"
+  | "points"
+  | "yds"
+  | "french";
 
 /**
  * Every scale the app knows about, including the match-only `custom`
@@ -37,18 +82,86 @@ const FONT_GRADES = [
   "8A", "8A+", "8B", "8B+", "8C", "8C+",
 ];
 
+/**
+ * Yosemite Decimal System, the rope scale used in the US. Sub-5.10
+ * has no letter grades, which is why this is a list rather than a
+ * formula.
+ */
+const YDS_GRADES = [
+  "5.5", "5.6", "5.7", "5.8", "5.9",
+  "5.10a", "5.10b", "5.10c", "5.10d",
+  "5.11a", "5.11b", "5.11c", "5.11d",
+  "5.12a", "5.12b", "5.12c", "5.12d",
+  "5.13a", "5.13b", "5.13c", "5.13d",
+  "5.14a", "5.14b", "5.14c", "5.14d",
+  "5.15a", "5.15b", "5.15c", "5.15d",
+];
+
+/**
+ * French sport grades.
+ *
+ * Lowercase on purpose. This is a DIFFERENT system from `font` above
+ * despite `6a` and `6A` looking almost alike — Font grades boulders,
+ * French grades routes, and the two are nowhere near equivalent at
+ * the same number. The case is the convention that tells them apart,
+ * so never normalise it.
+ */
+const FRENCH_GRADES = [
+  "4", "5a", "5b", "5c",
+  "6a", "6a+", "6b", "6b+", "6c", "6c+",
+  "7a", "7a+", "7b", "7b+", "7c", "7c+",
+  "8a", "8a+", "8b", "8b+", "8c", "8c+",
+  "9a", "9a+", "9b", "9b+", "9c",
+];
+
 /** Highest numeric index supported by each scale. */
 export const SCALE_HARD_MAX: Record<GradingScale, number> = {
-  v: 17,                       // V0..V17
-  font: FONT_GRADES.length - 1, // 0..21
+  v: 17,                          // V0..V17
+  font: FONT_GRADES.length - 1,   // 0..21
+  yds: YDS_GRADES.length - 1,     // 0..28
+  french: FRENCH_GRADES.length - 1, // 0..26
   points: 0,
 };
 
 /** Sensible default upper bound when an admin first picks a scale. */
 export const SCALE_DEFAULT_MAX: Record<GradingScale, number> = {
   v: 10,
-  font: 15, // 7C+
+  font: 15,   // 7C+
+  yds: 16,    // 5.12d
+  french: 15, // 7c+
   points: 0,
+};
+
+/**
+ * Which scales a discipline offers.
+ *
+ * `points` and `custom` suit any discipline, so they are appended by
+ * the caller rather than repeated here. Deliberately not enforced by
+ * a DB constraint — a Set's discipline is only a default and its
+ * routes may each differ, so a mixed Match on a custom ladder is a
+ * legitimate shape. See migration 091.
+ */
+export const DISCIPLINE_SCALES: Record<Discipline, readonly GradingScale[]> = {
+  boulder: ["v", "font"],
+  sport: ["french", "yds"],
+  "top-rope": ["french", "yds"],
+};
+
+/**
+ * How a scale names itself in a picker or a summary row.
+ *
+ * Covers `custom` as well, so the Match create form, the join
+ * preview and any gym-side picker all read one map — they used to
+ * keep a second copy that had to be updated in lock-step whenever
+ * the enum grew.
+ */
+export const SCALE_LABEL: Record<GradingScaleWithCustom, string> = {
+  v: "V-scale",
+  font: "Font",
+  yds: "YDS",
+  french: "French",
+  points: "Points only",
+  custom: "Custom",
 };
 
 /**
@@ -61,9 +174,14 @@ export function formatGrade(
 ): string | null {
   if (scale === "points") return null;
   if (scale === "v") return `V${clamp(value, 0, SCALE_HARD_MAX.v)}`;
-  if (scale === "font") {
-    const idx = clamp(value, 0, SCALE_HARD_MAX.font);
-    return FONT_GRADES[idx] ?? String(idx);
+  const sequence =
+    scale === "font" ? FONT_GRADES
+    : scale === "yds" ? YDS_GRADES
+    : scale === "french" ? FRENCH_GRADES
+    : null;
+  if (sequence) {
+    const idx = clamp(value, 0, sequence.length - 1);
+    return sequence[idx] ?? String(idx);
   }
   return String(value);
 }

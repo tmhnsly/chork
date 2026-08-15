@@ -300,6 +300,67 @@ describe.skipIf(!canRunIntegration)("Match RPCs (integration)", () => {
     }, 30_000);
   });
 
+  // ── discipline ──────────────────────────────────
+
+  describe("discipline", () => {
+    it("inherits by default, stores only a genuine override", async () => {
+      const { data: created } = await hostClient.rpc("create_match", {
+        p_name: "int: rope match",
+        p_grading_scale: "french",
+        p_min_grade: 0,
+        p_max_grade: 15,
+        p_discipline: "sport",
+      });
+      const setId = (created as Array<{ id: string }>)[0].id;
+      createdSetIds.push(setId);
+
+      const { data: setRow } = await service
+        .from("sets").select("discipline, grading_scale").eq("id", setId).single();
+      expect(setRow!.discipline).toBe("sport");
+      expect(setRow!.grading_scale).toBe("french");
+
+      // Says nothing → inherits.
+      const { data: silent } = await hostClient.rpc("add_match_route", {
+        p_set_id: setId, p_description: "int: silent", p_has_zone: false,
+      });
+      expect((silent as { discipline: string | null }).discipline).toBeNull();
+
+      // Agrees with the Match → still inherits, so changing the
+      // Match's discipline later still moves it.
+      const { data: agrees } = await hostClient.rpc("add_match_route", {
+        p_set_id: setId, p_description: "int: agrees", p_has_zone: false,
+        p_discipline: "sport",
+      });
+      expect((agrees as { discipline: string | null }).discipline).toBeNull();
+
+      // Genuinely differs → stored. The outdoor mixed-session case.
+      const { data: differs } = await hostClient.rpc("add_match_route", {
+        p_set_id: setId, p_description: "int: differs", p_has_zone: false,
+        p_discipline: "boulder",
+      });
+      const differsId = (differs as { id: string; discipline: string | null }).id;
+      expect((differs as { discipline: string | null }).discipline).toBe("boulder");
+
+      // Editing it back to the Match's own must re-normalise to null —
+      // the edit path is a direct UPDATE, not an RPC, so this is the
+      // trigger from migration 093 doing the work.
+      const { error: editErr } = await hostClient
+        .from("routes").update({ discipline: "sport" }).eq("id", differsId);
+      expect(editErr).toBeNull();
+      const { data: after } = await service
+        .from("routes").select("discipline").eq("id", differsId).single();
+      expect(after!.discipline).toBeNull();
+    }, 60_000);
+
+    it("refuses a discipline that isn't one", async () => {
+      const { error } = await hostClient.rpc("create_match", {
+        p_grading_scale: "v",
+        p_discipline: "trad",
+      });
+      expect(error).toBeTruthy();
+    }, 30_000);
+  });
+
   // ── end ─────────────────────────────────────────
 
   describe("end_match", () => {

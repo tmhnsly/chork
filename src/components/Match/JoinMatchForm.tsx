@@ -10,8 +10,8 @@ import { lookupMatchByCode } from "@/lib/data/match-queries";
 import { joinMatchAction } from "@/app/match/actions";
 import type { JoinMatchLookup } from "@/lib/data/match-types";
 import { MATCH_CODE_RE } from "@/lib/validation";
-import { MATCH_SCALE_LABEL } from "./match-scale-label";
 import styles from "./joinMatchForm.module.scss";
+import { SCALE_LABEL } from "@/lib/data/grade-label";
 
 // BarcodeDetector isn't in lib.dom yet (Chromium / Safari ship it,
 // Firefox + Edge don't). Declare the surface we use so the feature
@@ -155,7 +155,7 @@ export function JoinMatchForm({ initialCode }: Props) {
             </div>
             <div className={styles.previewRow}>
               <dt>Scale</dt>
-              <dd>{MATCH_SCALE_LABEL[lookup.grading_scale]}</dd>
+              <dd>{SCALE_LABEL[lookup.grading_scale]}</dd>
             </div>
           </dl>
           <Button type="button" onClick={handleJoin} disabled={pending} fullWidth>

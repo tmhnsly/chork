@@ -15,7 +15,7 @@
 // `Database["public"]["Tables"]` at every call site means generated-
 // type drift surfaces as compile errors in one file.
 
-import type { GradingScaleWithCustom } from "./grade-label";
+import type { Discipline, GradingScaleWithCustom } from "./grade-label";
 
 // The scale union lives in grade-label.ts (the single source of truth
 // for grade → label resolution); this alias keeps Match call sites on
@@ -43,6 +43,8 @@ export interface Match {
   grading_scale: MatchGradingScale;
   min_grade: number | null;
   max_grade: number | null;
+  /** Default for this Match's routes; each may override it. */
+  discipline: Discipline;
   status: MatchStatus;
   starts_at: string;
   /** Null while live — a Match is open-ended until someone ends it. */
@@ -78,6 +80,13 @@ export interface MatchRoute {
   declared_grade: number | null;
   has_zone: boolean;
   added_by: string | null;
+  /**
+   * Overrides the Match's discipline. Null = inherit, which is the
+   * common case — the RPC normalises a value equal to the Match's own
+   * back to null, so changing the Match default still moves this
+   * route with it.
+   */
+  discipline: Discipline | null;
   created_at: string;
 }
 

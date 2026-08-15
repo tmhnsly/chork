@@ -123,7 +123,8 @@ vocabulary these decisions produced.
   numbered Set gives members a reason to come back midweek. That's
   the monthly value; comps and dashboards are how it's delivered.
 - **Multi-discipline from the start.** Boulder, sport, top-rope.
-  Discipline defaults per Set, overridable per route.
+  Discipline defaults per Set, overridable per route. *(Shipped
+  2026-08-15, migrations 091–093.)*
 - **The growth loop is the group chat, not an in-app feed.** Climbers
   already have WhatsApp. Don't compete with it — feed it.
 

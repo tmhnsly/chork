@@ -33,8 +33,8 @@ describe("initialCreateMatchState", () => {
   it("starts on the V scale with the common default ranges", () => {
     const state = initialCreateMatchState();
     expect(state.scale).toBe("v");
-    expect(state.vRange).toEqual([0, 8]);
-    expect(state.fontRange).toEqual([0, 10]);
+    expect(state.ranges.v).toEqual([0, 8]);
+    expect(state.ranges.font).toEqual([0, 10]);
     expect(state.customGrades).toEqual([]);
     expect(state.saveScale).toBe(false);
   });
@@ -48,11 +48,11 @@ describe("set-scale (state-machine key)", () => {
 
   it("preserves the V range across a round-trip through custom", () => {
     const state = run([
-      { type: "set-v-range", min: 2, max: 6 },
+      { type: "set-range", scale: "v", min: 2, max: 6 },
       { type: "set-scale", scale: "custom" },
       { type: "set-scale", scale: "v" },
     ]);
-    expect(state.vRange).toEqual([2, 6]);
+    expect(state.ranges.v).toEqual([2, 6]);
   });
 
   it("preserves custom grades + scratch when switching away and back", () => {
@@ -72,11 +72,11 @@ describe("set-scale (state-machine key)", () => {
 
   it("keeps font and V ranges independent", () => {
     const state = run([
-      { type: "set-v-range", min: 1, max: 4 },
-      { type: "set-font-range", min: 3, max: 9 },
+      { type: "set-range", scale: "v", min: 1, max: 4 },
+      { type: "set-range", scale: "font", min: 3, max: 9 },
     ]);
-    expect(state.vRange).toEqual([1, 4]);
-    expect(state.fontRange).toEqual([3, 9]);
+    expect(state.ranges.v).toEqual([1, 4]);
+    expect(state.ranges.font).toEqual([3, 9]);
   });
 });
 
@@ -205,8 +205,7 @@ describe("buildCreateMatchPayload per scale", () => {
     const state: CreateMatchState = {
       ...initialCreateMatchState(),
       scale: "v",
-      vRange: [2, 7],
-      fontRange: [1, 5],
+      ranges: { ...initialCreateMatchState().ranges, v: [2, 7], font: [1, 5] },
       customGrades: ["stale"],
       saveScale: true,
       scaleName: "stale name",
@@ -214,6 +213,7 @@ describe("buildCreateMatchPayload per scale", () => {
     expect(buildCreateMatchPayload(state)).toEqual({
       name: null,
       location: null,
+      discipline: "boulder",
       gradingScale: "v",
       minGrade: 2,
       maxGrade: 7,
@@ -226,8 +226,7 @@ describe("buildCreateMatchPayload per scale", () => {
     const state: CreateMatchState = {
       ...initialCreateMatchState(),
       scale: "font",
-      vRange: [2, 7],
-      fontRange: [1, 5],
+      ranges: { ...initialCreateMatchState().ranges, v: [2, 7], font: [1, 5] },
     };
     const payload = buildCreateMatchPayload(state);
     expect(payload.minGrade).toBe(1);
@@ -256,6 +255,7 @@ describe("buildCreateMatchPayload per scale", () => {
     expect(buildCreateMatchPayload(state)).toEqual({
       name: null,
       location: null,
+      discipline: "boulder",
       gradingScale: "points",
       minGrade: null,
       maxGrade: null,
@@ -306,5 +306,94 @@ describe("buildCreateMatchPayload per scale", () => {
       };
       expect(buildCreateMatchPayload(state).saveScaleName).toBeNull();
     });
+  });
+});
+
+// ── Discipline (migration 091/092) ───────────────────────────────
+
+describe("set-discipline", () => {
+  it("re-points the scale when it doesn't belong to the new discipline", () => {
+    // You cannot grade a rope in V. Leaving the scale alone here is
+    // how a Match ends up mis-scaled.
+    const boulder = { ...initialCreateMatchState(), scale: "v" as const };
+    const sport = createMatchReducer(boulder, {
+      type: "set-discipline",
+      discipline: "sport",
+    });
+    expect(sport.discipline).toBe("sport");
+    expect(sport.scale).toBe("french");
+  });
+
+  it("keeps a scale that suits the new discipline", () => {
+    const sport = createMatchReducer(
+      { ...initialCreateMatchState(), discipline: "sport", scale: "yds" },
+      { type: "set-discipline", discipline: "top-rope" },
+    );
+    // Both rope disciplines offer YDS — no reason to move them.
+    expect(sport.scale).toBe("yds");
+  });
+
+  it("leaves points and custom alone — they suit any discipline", () => {
+    for (const scale of ["points", "custom"] as const) {
+      const next = createMatchReducer(
+        { ...initialCreateMatchState(), scale },
+        { type: "set-discipline", discipline: "sport" },
+      );
+      expect(next.scale).toBe(scale);
+    }
+  });
+
+  it("doesn't lose a half-built custom ladder when discipline changes", () => {
+    // The reason `custom` is preserved above: someone typing out a
+    // ladder shouldn't have it wiped by a discipline tap.
+    const state = {
+      ...initialCreateMatchState(),
+      scale: "custom" as const,
+      customGrades: ["slab", "the roof"],
+    };
+    const next = createMatchReducer(state, {
+      type: "set-discipline",
+      discipline: "top-rope",
+    });
+    expect(next.customGrades).toEqual(["slab", "the roof"]);
+  });
+
+  it("is a no-op when the discipline hasn't changed", () => {
+    const state = initialCreateMatchState();
+    expect(createMatchReducer(state, {
+      type: "set-discipline",
+      discipline: "boulder",
+    })).toBe(state);
+  });
+
+  it("remembers each scale's range across discipline switches", () => {
+    // The whole reason ranges is a map: flipping away and back must
+    // not forget what you picked.
+    let state = createMatchReducer(initialCreateMatchState(), {
+      type: "set-range", scale: "v", min: 3, max: 9,
+    });
+    state = createMatchReducer(state, { type: "set-discipline", discipline: "sport" });
+    state = createMatchReducer(state, { type: "set-range", scale: "french", min: 2, max: 12 });
+    state = createMatchReducer(state, { type: "set-discipline", discipline: "boulder" });
+
+    expect(state.scale).toBe("v");
+    expect(state.ranges.v).toEqual([3, 9]);
+    expect(state.ranges.french).toEqual([2, 12]);
+    expect(buildCreateMatchPayload(state).minGrade).toBe(3);
+  });
+
+  it("sends the rope range and discipline on a sport match", () => {
+    let state = createMatchReducer(initialCreateMatchState(), {
+      type: "set-discipline", discipline: "sport",
+    });
+    state = createMatchReducer(state, {
+      type: "set-range", scale: "french", min: 4, max: 14,
+    });
+    const payload = buildCreateMatchPayload(state);
+    expect(payload.discipline).toBe("sport");
+    expect(payload.gradingScale).toBe("french");
+    expect(payload.minGrade).toBe(4);
+    expect(payload.maxGrade).toBe(14);
+    expect(payload.customGrades).toBeNull();
   });
 });

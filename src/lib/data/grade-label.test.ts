@@ -6,6 +6,12 @@ import {
   makeGradeLabeller,
   SCALE_DEFAULT_MAX,
   SCALE_HARD_MAX,
+  SCALE_LABEL,
+  DISCIPLINES,
+  DISCIPLINE_LABEL,
+  DISCIPLINE_SCALES,
+  isDiscipline,
+  partialCreditLabel,
 } from "./grade-label";
 
 describe("formatGrade", () => {
@@ -147,5 +153,116 @@ describe("gradeOptions", () => {
   it("returns an empty list on the points scale", () => {
     expect(gradeOptions("points")).toEqual([]);
     expect(gradeOptions("points", { customGrades: ladder })).toEqual([]);
+  });
+});
+
+// ── Rope scales + discipline (migration 091) ─────────────────────
+
+describe("rope grading scales", () => {
+  it("formats YDS, including the letterless sub-5.10 rungs", () => {
+    // 5.5–5.9 have no letter grades; 5.10 upwards do. That asymmetry
+    // is why YDS is a list and not a formula.
+    expect(formatGrade(0, "yds")).toBe("5.5");
+    expect(formatGrade(4, "yds")).toBe("5.9");
+    expect(formatGrade(5, "yds")).toBe("5.10a");
+    expect(formatGrade(SCALE_HARD_MAX.yds, "yds")).toBe("5.15d");
+  });
+
+  it("formats French sport grades in lower case", () => {
+    expect(formatGrade(4, "french")).toBe("6a");
+    expect(formatGrade(SCALE_HARD_MAX.french, "french")).toBe("9c");
+  });
+
+  /**
+   * The one that would bite hardest in the wild: `font` grades
+   * boulders and `french` grades routes, and at the same index they
+   * are nowhere near each other. Case is the only thing distinguishing
+   * `6A` from `6a` on a screen, so a "helpful" normalisation anywhere
+   * in the pipeline would silently misgrade every rope climb.
+   */
+  it("keeps Font and French distinct — they are not the same system", () => {
+    expect(formatGrade(4, "font")).toBe("6A");
+    expect(formatGrade(4, "french")).toBe("6a");
+    expect(formatGrade(4, "font")).not.toBe(formatGrade(4, "french"));
+
+    const fontLabels = gradeLabels("font", SCALE_HARD_MAX.font);
+    const frenchLabels = gradeLabels("french", SCALE_HARD_MAX.french);
+    expect(fontLabels.some((l) => l !== l.toUpperCase())).toBe(false);
+    expect(frenchLabels.some((l) => l !== l.toLowerCase())).toBe(false);
+  });
+
+  it("clamps out-of-range values to the scale's ends", () => {
+    expect(formatGrade(-5, "yds")).toBe("5.5");
+    expect(formatGrade(999, "french")).toBe("9c");
+  });
+
+  it("gives every scale a hard max, default max and label", () => {
+    // A scale missing from any of these three maps is a runtime
+    // `undefined` in a picker rather than a compile error, because
+    // they're keyed by the union.
+    for (const scale of ["v", "font", "yds", "french", "points"] as const) {
+      expect(SCALE_HARD_MAX[scale]).toBeTypeOf("number");
+      expect(SCALE_DEFAULT_MAX[scale]).toBeTypeOf("number");
+      expect(SCALE_LABEL[scale]).toBeTruthy();
+    }
+    expect(SCALE_LABEL.custom).toBeTruthy();
+  });
+
+  it("keeps every default max inside its scale's hard max", () => {
+    for (const scale of ["v", "font", "yds", "french", "points"] as const) {
+      expect(SCALE_DEFAULT_MAX[scale]).toBeLessThanOrEqual(SCALE_HARD_MAX[scale]);
+    }
+  });
+
+  it("keeps every scale inside the DB's 0..30 grade bound", () => {
+    // `sets.min_grade` / `max_grade` and `routes.declared_grade` are
+    // all CHECKed to 0..30, so a scale longer than that would produce
+    // grades the database refuses to store.
+    for (const scale of ["v", "font", "yds", "french"] as const) {
+      expect(SCALE_HARD_MAX[scale]).toBeLessThanOrEqual(30);
+    }
+  });
+});
+
+describe("discipline", () => {
+  it("offers boulder scales to boulderers and rope scales to ropes", () => {
+    expect(DISCIPLINE_SCALES.boulder).toEqual(["v", "font"]);
+    expect(DISCIPLINE_SCALES.sport).toEqual(["french", "yds"]);
+    expect(DISCIPLINE_SCALES["top-rope"]).toEqual(["french", "yds"]);
+  });
+
+  it("never offers a boulder scale for a rope, or the reverse", () => {
+    const boulderOnly = new Set(["v", "font"]);
+    for (const d of ["sport", "top-rope"] as const) {
+      for (const scale of DISCIPLINE_SCALES[d]) {
+        expect(boulderOnly.has(scale)).toBe(false);
+      }
+    }
+    for (const scale of DISCIPLINE_SCALES.boulder) {
+      expect(["yds", "french"]).not.toContain(scale);
+    }
+  });
+
+  it("names partial credit after the discipline", () => {
+    // Same `zone` column throughout — this is a display name, not a
+    // second concept.
+    expect(partialCreditLabel("boulder")).toBe("Zone");
+    expect(partialCreditLabel("sport")).toBe("Highpoint");
+    expect(partialCreditLabel("top-rope")).toBe("Highpoint");
+  });
+
+  it("covers every discipline in DISCIPLINES, labels and scales", () => {
+    for (const d of DISCIPLINES) {
+      expect(isDiscipline(d)).toBe(true);
+      expect(DISCIPLINE_LABEL[d]).toBeTruthy();
+      expect(DISCIPLINE_SCALES[d].length).toBeGreaterThan(0);
+    }
+    expect(DISCIPLINES).toHaveLength(3);
+  });
+
+  it("rejects anything that isn't a discipline", () => {
+    for (const bad of ["Boulder", "trad", "", null, undefined, 1]) {
+      expect(isDiscipline(bad)).toBe(false);
+    }
   });
 });

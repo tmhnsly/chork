@@ -7,6 +7,7 @@ import { formatError, formatErrorForLog } from "@/lib/errors";
 import { buildBadgeContext } from "@/lib/achievements/context";
 import { evaluateAndPersistAchievements } from "@/lib/achievements/evaluate";
 import type { MatchGradingScale, MatchRoute } from "@/lib/data/match-types";
+import { isDiscipline, type Discipline } from "@/lib/data/grade-label";
 
 import { logger } from "@/lib/logger";
 import { env } from "@/lib/env";
@@ -51,8 +52,21 @@ function isScale(value: unknown): value is MatchGradingScale {
   return (
     value === "v"
     || value === "font"
+    || value === "yds"
+    || value === "french"
     || value === "custom"
     || value === "points"
+  );
+}
+
+/**
+ * Scales that map a numeric grade through a fixed sequence, and so
+ * take a min/max range. `custom` carries its own ladder and `points`
+ * has no grades at all.
+ */
+function isFormulaScale(scale: MatchGradingScale): boolean {
+  return (
+    scale === "v" || scale === "font" || scale === "yds" || scale === "french"
   );
 }
 
@@ -73,6 +87,8 @@ interface CreateMatchPayload {
   maxGrade?: number | null;
   customGrades?: string[] | null;
   saveScaleName?: string | null;
+  /** Default for the Match's routes; each may override. */
+  discipline?: Discipline | null;
 }
 
 export async function createMatchAction(
@@ -90,7 +106,7 @@ export async function createMatchAction(
   let customGrades: string[] | null = null;
   let saveScaleName: string | null = null;
 
-  if (payload.gradingScale === "v" || payload.gradingScale === "font") {
+  if (isFormulaScale(payload.gradingScale)) {
     if (
       typeof payload.minGrade !== "number" ||
       typeof payload.maxGrade !== "number"
@@ -128,7 +144,11 @@ export async function createMatchAction(
   const auth = await gateSignedInMutation(null, "match");
   if ("error" in auth) return { error: auth.error };
 
+  const discipline = payload.discipline ?? "boulder";
+  if (!isDiscipline(discipline)) return { error: "Invalid discipline" };
+
   const { data, error } = await auth.supabase.rpc("create_match", {
+    p_discipline: discipline,
     p_name: undef(name),
     p_location: undef(location),
     p_grading_scale: payload.gradingScale,
@@ -188,6 +208,13 @@ interface RoutePayload {
   description?: string | null;
   grade?: number | null;
   hasZone?: boolean;
+  /**
+   * Overrides the Match's discipline for this route — the outdoor
+   * "boulders and ropes in one session" case. Omit to inherit; the
+   * RPC also normalises a value equal to the Match's own back to
+   * null, so inheriting stays inheriting.
+   */
+  discipline?: Discipline | null;
 }
 
 export async function addMatchRouteAction(
@@ -196,7 +223,12 @@ export async function addMatchRouteAction(
   const auth = await gateSignedInMutation(payload.matchId, "match id");
   if ("error" in auth) return { error: auth.error };
 
+  if (payload.discipline != null && !isDiscipline(payload.discipline)) {
+    return { error: "Invalid discipline" };
+  }
+
   const { data, error } = await auth.supabase.rpc("add_match_route", {
+    p_discipline: undef(payload.discipline),
     p_set_id: payload.matchId,
     p_description: undef(clampString(payload.description, MAX_DESCRIPTION_LEN)),
     p_grade: undef(typeof payload.grade === "number" ? payload.grade : null),
@@ -215,11 +247,20 @@ interface UpdateRoutePayload {
   description?: string | null;
   grade?: number | null;
   hasZone?: boolean;
+  /**
+   * Overrides the Match's discipline. A value equal to the Match's own
+   * is normalised back to null by a trigger (migration 093), so
+   * "inherit" survives an edit — the same rule the add RPC applies.
+   */
+  discipline?: Discipline | null;
 }
 
 export async function updateMatchRouteAction(
   payload: UpdateRoutePayload,
 ): Promise<{ error: string } | { route: MatchRoute }> {
+  if (payload.discipline != null && !isDiscipline(payload.discipline)) {
+    return { error: "Invalid discipline" };
+  }
   const auth = await gateSignedInMutation(payload.routeId, "route id");
   if ("error" in auth) return { error: auth.error };
   // No `added_by === userId` check on purpose: Matches are
@@ -239,6 +280,7 @@ export async function updateMatchRouteAction(
       description: clampString(payload.description, MAX_DESCRIPTION_LEN),
       declared_grade: typeof payload.grade === "number" ? payload.grade : null,
       has_zone: !!payload.hasZone,
+      discipline: payload.discipline ?? null,
     })
     .eq("id", payload.routeId)
     .select("*")

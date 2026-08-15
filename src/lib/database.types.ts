@@ -842,6 +842,7 @@ export type Database = {
           created_at: string
           declared_grade: number | null
           description: string | null
+          discipline: string | null
           grade_vote_count: number
           has_zone: boolean
           id: string
@@ -856,6 +857,7 @@ export type Database = {
           created_at?: string
           declared_grade?: number | null
           description?: string | null
+          discipline?: string | null
           grade_vote_count?: number
           has_zone?: boolean
           id?: string
@@ -870,6 +872,7 @@ export type Database = {
           created_at?: string
           declared_grade?: number | null
           description?: string | null
+          discipline?: string | null
           grade_vote_count?: number
           has_zone?: boolean
           id?: string
@@ -967,6 +970,7 @@ export type Database = {
           code: string | null
           competition_id: string | null
           created_at: string
+          discipline: string
           ends_at: string | null
           grading_scale: string
           gym_id: string | null
@@ -990,6 +994,7 @@ export type Database = {
           code?: string | null
           competition_id?: string | null
           created_at?: string
+          discipline?: string
           ends_at?: string | null
           grading_scale?: string
           gym_id?: string | null
@@ -1013,6 +1018,7 @@ export type Database = {
           code?: string | null
           competition_id?: string | null
           created_at?: string
+          discipline?: string
           ends_at?: string | null
           grading_scale?: string
           gym_id?: string | null
@@ -1211,6 +1217,7 @@ export type Database = {
       add_match_route: {
         Args: {
           p_description?: string
+          p_discipline?: string
           p_grade?: number
           p_has_zone?: boolean
           p_set_id: string
@@ -1221,6 +1228,7 @@ export type Database = {
           created_at: string
           declared_grade: number | null
           description: string | null
+          discipline: string | null
           grade_vote_count: number
           has_zone: boolean
           id: string
@@ -1257,6 +1265,7 @@ export type Database = {
       create_match: {
         Args: {
           p_custom_grades?: string[]
+          p_discipline?: string
           p_grading_scale?: string
           p_location?: string
           p_max_grade?: number
@@ -1278,6 +1287,7 @@ export type Database = {
           code: string | null
           competition_id: string | null
           created_at: string
+          discipline: string
           ends_at: string | null
           grading_scale: string
           gym_id: string | null
