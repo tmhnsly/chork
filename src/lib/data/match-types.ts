@@ -100,7 +100,10 @@ export interface MatchLog {
   id: string;
   set_id: string;
   route_id: string;
-  user_id: string;
+  /** Null when a guest owns this log — see `player_id`. */
+  user_id: string | null;
+  /** The guest seat that owns this log; null for an account's. */
+  player_id: string | null;
   attempts: number;
   completed: boolean;
   completed_at: string | null;
@@ -110,8 +113,17 @@ export interface MatchLog {
 }
 
 export interface MatchPlayerView {
-  user_id: string;
+  /** The seat. Present for everyone; the only id a guest has. */
+  player_id: string;
+  /** The account behind the seat — null for a guest. */
+  user_id: string | null;
+  /**
+   * A guest: a named seat with no account, whose sends the host
+   * enters. See migration 095 and CONTEXT.md "Guest players".
+   */
+  is_guest: boolean;
   username: string | null;
+  /** The profile's name, or the seat's own for a guest. */
   display_name: string | null;
   avatar_url: string | null;
   joined_at: string;
@@ -119,7 +131,10 @@ export interface MatchPlayerView {
 }
 
 export interface MatchLeaderboardRow {
-  user_id: string;
+  player_id: string;
+  /** Null for a guest — they have no account. */
+  user_id: string | null;
+  is_guest: boolean;
   username: string | null;
   display_name: string | null;
   avatar_url: string | null;
@@ -141,6 +156,12 @@ export interface MatchState {
   players: MatchPlayerView[];
   /** The caller's logs only. */
   my_logs: MatchLog[];
+  /**
+   * Every guest's logs — returned to the HOST only, because the host
+   * entered them and is the one person for whom they aren't someone
+   * else's private data. Empty for everyone else.
+   */
+  guest_logs: MatchLog[];
   leaderboard: MatchLeaderboardRow[];
 }
 
@@ -211,4 +232,24 @@ export interface MatchAchievementContext {
   match_total_flashes: number;
   match_total_sends: number;
   match_total_points: number;
+}
+
+/**
+ * Who a log or board row belongs to, as one string.
+ *
+ * A Match seat is held either by an account or by a guest, and the
+ * two are identified by different columns — `user_id` and
+ * `player_id`. Client code that needs to say "these belong together"
+ * (keying the log map, matching a log to its board row, deciding
+ * which tile to paint) wants one id, not a branch at every call site.
+ *
+ * Both overloads resolve to the same string for the same person: an
+ * account's `user_id`, or a guest's seat id.
+ */
+export function ownerIdOf(
+  owner: { user_id: string | null; player_id?: string | null },
+): string {
+  // A row always has one or the other — `route_logs_owner_ck` and
+  // `set_players_identity_ck` both enforce exactly-one.
+  return owner.user_id ?? owner.player_id ?? "";
 }

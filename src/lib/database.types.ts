@@ -719,10 +719,11 @@ export type Database = {
           grade_vote: number | null
           gym_id: string | null
           id: string
+          player_id: string | null
           route_id: string
           set_id: string
           updated_at: string
-          user_id: string
+          user_id: string | null
           zone: boolean
         }
         Insert: {
@@ -733,10 +734,11 @@ export type Database = {
           grade_vote?: number | null
           gym_id?: string | null
           id?: string
+          player_id?: string | null
           route_id: string
           set_id: string
           updated_at?: string
-          user_id: string
+          user_id?: string | null
           zone?: boolean
         }
         Update: {
@@ -747,10 +749,11 @@ export type Database = {
           grade_vote?: number | null
           gym_id?: string | null
           id?: string
+          player_id?: string | null
           route_id?: string
           set_id?: string
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
           zone?: boolean
         }
         Relationships: [
@@ -759,6 +762,13 @@ export type Database = {
             columns: ["gym_id"]
             isOneToOne: false
             referencedRelation: "gyms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "route_logs_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "set_players"
             referencedColumns: ["id"]
           },
           {
@@ -926,25 +936,31 @@ export type Database = {
       }
       set_players: {
         Row: {
+          display_name: string | null
+          id: string
           is_host: boolean
           joined_at: string
           left_at: string | null
           set_id: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
+          display_name?: string | null
+          id?: string
           is_host?: boolean
           joined_at?: string
           left_at?: string | null
           set_id: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
+          display_name?: string | null
+          id?: string
           is_host?: boolean
           joined_at?: string
           left_at?: string | null
           set_id?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -1635,7 +1651,9 @@ export type Database = {
           avatar_url: string
           display_name: string
           flashes: number
+          is_guest: boolean
           last_send_at: string
+          player_id: string
           points: number
           rank: number
           sends: number
@@ -1736,11 +1754,13 @@ export type Database = {
       join_match: {
         Args: { p_set_id: string }
         Returns: {
+          display_name: string | null
+          id: string
           is_host: boolean
           joined_at: string
           left_at: string | null
           set_id: string
-          user_id: string
+          user_id: string | null
         }
         SetofOptions: {
           from: "*"
@@ -1774,6 +1794,7 @@ export type Database = {
           attempts: number
           flashes: number
           last_send_at: string
+          player_id: string
           points: number
           rank: number
           sends: number
@@ -1823,6 +1844,7 @@ export type Database = {
         Args: {
           p_attempts?: number
           p_completed?: boolean
+          p_player_id?: string
           p_route_id: string
           p_zone?: boolean
         }
@@ -1834,10 +1856,11 @@ export type Database = {
           grade_vote: number | null
           gym_id: string | null
           id: string
+          player_id: string | null
           route_id: string
           set_id: string
           updated_at: string
-          user_id: string
+          user_id: string | null
           zone: boolean
         }
         SetofOptions: {

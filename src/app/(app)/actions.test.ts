@@ -49,7 +49,7 @@ const LOG_ID = "bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb";
 const COMMENT_ID = "cccccccc-cccc-4ccc-cccc-cccccccccccc";
 
 const mockAuth = { supabase: {} as never, userId: "user1", gymId: "gym1" };
-const mockLog = { id: LOG_ID, user_id: "user1", route_id: ROUTE_ID, set_id: "set1", attempts: 3, completed: true, completed_at: "2026-01-01", grade_vote: null, zone: false, gym_id: "gym1", created_at: "2026-01-01", updated_at: "2026-01-01" };
+const mockLog = { id: LOG_ID, user_id: "user1", player_id: null, route_id: ROUTE_ID, set_id: "set1", attempts: 3, completed: true, completed_at: "2026-01-01", grade_vote: null, zone: false, gym_id: "gym1", created_at: "2026-01-01", updated_at: "2026-01-01" };
 
 beforeEach(() => {
   vi.resetAllMocks();

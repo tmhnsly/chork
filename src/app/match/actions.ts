@@ -8,6 +8,10 @@ import { buildBadgeContext } from "@/lib/achievements/context";
 import { evaluateAndPersistAchievements } from "@/lib/achievements/evaluate";
 import type { MatchGradingScale, MatchRoute } from "@/lib/data/match-types";
 import { isDiscipline, type Discipline } from "@/lib/data/grade-label";
+import { isUuid } from "@/lib/validation";
+import type { Database } from "@/lib/database.types";
+
+type MatchPlayerRow = Database["public"]["Tables"]["set_players"]["Row"];
 
 import { logger } from "@/lib/logger";
 import { env } from "@/lib/env";
@@ -291,6 +295,60 @@ export async function updateMatchRouteAction(
   return { route: data as MatchRoute };
 }
 
+// ── Guests ────────────────────────────────────────
+
+const MAX_GUEST_NAME_LEN = 40;
+
+/**
+ * Seat a guest: a named player with no account, whose sends the host
+ * enters. See CONTEXT.md "Guest players".
+ *
+ * No RPC — `set_players_insert` (migration 095) already permits
+ * exactly "the host of this live Match, seating a nameless-account
+ * row", which is the whole rule. RLS filtering every row out is what
+ * a non-host gets.
+ */
+export async function addMatchGuestAction(
+  matchId: string,
+  name: string,
+): Promise<{ error: string } | { player: MatchPlayerRow }> {
+  const auth = await gateSignedInMutation(matchId, "match id");
+  if ("error" in auth) return { error: auth.error };
+
+  const displayName = clampString(name, MAX_GUEST_NAME_LEN);
+  if (!displayName) return { error: "Give them a name" };
+
+  const { data, error } = await auth.supabase
+    .from("set_players")
+    .insert({ set_id: matchId, user_id: null, display_name: displayName })
+    .select("*")
+    .maybeSingle();
+  if (error) return { error: formatError(error) };
+  if (!data) return { error: "Only the host can add a guest." };
+  return { player: data as MatchPlayerRow };
+}
+
+/**
+ * Remove a guest. Parks the seat rather than deleting it, exactly as
+ * a real player leaving does — their logs stay readable and the
+ * result they were part of doesn't silently change shape afterwards.
+ */
+export async function removeMatchGuestAction(
+  playerId: string,
+): Promise<{ error: string } | { ok: true }> {
+  const auth = await gateSignedInMutation(playerId, "player id");
+  if ("error" in auth) return { error: auth.error };
+
+  const { error } = await auth.supabase
+    .from("set_players")
+    .update({ left_at: new Date().toISOString() })
+    .eq("id", playerId)
+    .is("user_id", null)
+    .is("left_at", null);
+  if (error) return { error: formatError(error) };
+  return { ok: true };
+}
+
 // ── Log an attempt ────────────────────────────────
 
 interface UpsertLogPayload {
@@ -298,6 +356,12 @@ interface UpsertLogPayload {
   attempts: number;
   completed: boolean;
   zone: boolean;
+  /**
+   * Log for a GUEST seat instead of yourself. Host-only, enforced in
+   * SQL — a guest has no session, so the host is the only person who
+   * could be entering this.
+   */
+  playerId?: string | null;
 }
 
 export async function upsertMatchLogAction(
@@ -318,11 +382,16 @@ export async function upsertMatchLogAction(
   // route, and a plain upsert can't express "leave it as it was".
   // Restamping it would reorder tied climbers, since `last_send_at`
   // is the board's fourth tiebreak. See migration 088.
+  if (payload.playerId != null && !isUuid(payload.playerId)) {
+    return { error: "Invalid player" };
+  }
+
   const { error } = await auth.supabase.rpc("upsert_match_log", {
     p_route_id: payload.matchRouteId,
     p_attempts: payload.attempts,
     p_completed: !!payload.completed,
     p_zone: !!payload.zone,
+    p_player_id: undef(payload.playerId),
   });
   if (error) return { error: formatError(error) };
   // `{ success: true, log: null }` matches the synthetic shape

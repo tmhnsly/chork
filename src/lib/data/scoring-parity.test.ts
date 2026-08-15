@@ -107,9 +107,20 @@ describe("rank clause parity across leaderboard RPCs", () => {
   // The Match board adds a last-send tiebreak the gym board doesn't
   // have: a Match ranks its whole roster, so ties are common enough
   // that "who got there first" is worth breaking on.
-  it("get_match_leaderboard ranks by the gym clause + last-send tiebreak", () => {
-    const { body } = latestDefinition("get_match_leaderboard");
-    expect(denseRankClause(body, "get_match_leaderboard")).toBe(MATCH_RANK_CLAUSE);
+  //
+  // It lives in `match_standings` and nowhere else — the board, the
+  // history list and the public card all read it from there, which is
+  // what stops a finished Match reordering itself between screens.
+  it("get_match_leaderboard inherits its ranking rather than re-deriving it", () => {
+    const { body, file } = latestDefinition("get_match_leaderboard");
+    expect(
+      body.includes("match_standings"),
+      `get_match_leaderboard (live definition in ${file}) no longer sources `
+        + `its ranking from match_standings. Every Match surface must rank `
+        + `through that one function or they can disagree on ties.`,
+    ).toBe(true);
+    // And it must not have grown a second ranking of its own.
+    expect(body).not.toMatch(/dense_rank\s*\(/);
   });
 
   // `match_standings` (085) ranks history and the shared result card.
@@ -121,11 +132,11 @@ describe("rank clause parity across leaderboard RPCs", () => {
     expect(denseRankClause(body, "match_standings")).toBe(MATCH_RANK_CLAUSE);
   });
 
-  it("get_match_leaderboard scores through the shared SQL ladder", () => {
-    const { body, file } = latestDefinition("get_match_leaderboard");
+  it("match_standings scores through the shared SQL ladder", () => {
+    const { body, file } = latestDefinition("match_standings");
     expect(
       body.includes("public.compute_points("),
-      `get_match_leaderboard (live definition in ${file}) no longer delegates ` +
+      `match_standings (live definition in ${file}) no longer delegates ` +
         `to compute_points. The ladder has exactly two homes — computePoints ` +
         `in logs.ts and compute_points in SQL — see CLAUDE.md "Domain rules".`,
     ).toBe(true);
@@ -136,7 +147,9 @@ describe("rank clause parity across leaderboard RPCs", () => {
 
 describe("computeMatchLeaderboard implements the SQL tiebreak", () => {
   const player = (uid: string): MatchPlayerView => ({
+    player_id: uid,
     user_id: uid,
+    is_guest: false,
     username: uid,
     display_name: uid,
     avatar_url: null,
@@ -155,6 +168,7 @@ describe("computeMatchLeaderboard implements the SQL tiebreak", () => {
       set_id: "match-1",
       route_id: routeId,
       user_id: uid,
+      player_id: null,
       attempts: 1,
       completed: true,
       completed_at: null,

@@ -211,5 +211,13 @@ export async function getGymClimberUserIds(gymId: string): Promise<string[]> {
     .select("user_id")
     .eq("gym_id", gymId);
   if (error || !data) return [];
-  return [...new Set(data.map((r) => r.user_id))];
+  // `user_id` is nullable since guest players (migration 095), whose
+  // logs are owned by a seat rather than an account. A gym log always
+  // has one — the filter is for the type, and for the day someone
+  // widens this query.
+  return [
+    ...new Set(
+      data.map((r) => r.user_id).filter((id): id is string => id !== null),
+    ),
+  ];
 }

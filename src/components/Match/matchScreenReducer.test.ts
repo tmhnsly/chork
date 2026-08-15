@@ -25,7 +25,11 @@ function mkRoute(id: string, number: number, overrides: Partial<MatchRoute> = {}
 
 function mkPlayer(user_id: string, username: string): MatchPlayerView {
   return {
+    // Seat id mirrors the account id in fixtures, so assertions keyed
+    // on one keep meaning the same thing as the other.
+    player_id: user_id,
     user_id,
+    is_guest: false,
     username,
     display_name: username,
     avatar_url: null,
@@ -40,6 +44,7 @@ function mkLog(user_id: string, route_id: string, overrides: Partial<MatchLog> =
     set_id: "match-1",
     route_id,
     user_id,
+    player_id: null,
     attempts: 1,
     completed: true,
     completed_at: "2026-04-01T10:00:00Z",
@@ -325,6 +330,7 @@ describe("matchReducer", () => {
         routes: [mkRoute("a", 1)],
         players: [mkPlayer("u1", "alice")],
         my_logs: [mkLog("u1", "a", { attempts: 4 })],
+        guest_logs: [],
         grades: [],
         leaderboard: [],
       } as unknown as MatchState;
@@ -333,6 +339,25 @@ describe("matchReducer", () => {
       // Own logs keep raw attempts — they arrive from
       // get_match_state_for_user already scoped to the viewer.
       expect(state.logs.get(logKey("u1", "a"))?.attempts).toBe(4);
+    });
+
+    it("seats guest logs alongside the viewer's own", () => {
+      // `guest_logs` is non-empty only for the host, who entered
+      // them. Keyed by SEAT, since a guest has no user_id.
+      const initial = {
+        match: { id: "match-1" },
+        routes: [mkRoute("a", 1)],
+        players: [mkPlayer("u1", "alice")],
+        my_logs: [mkLog("u1", "a", { attempts: 4 })],
+        guest_logs: [
+          { ...mkLog("u1", "a", { attempts: 2 }), user_id: null, player_id: "seat-9" },
+        ],
+        grades: [],
+        leaderboard: [],
+      } as unknown as MatchState;
+      const state = initMatchState(initial);
+      expect(state.logs.get(logKey("u1", "a"))?.attempts).toBe(4);
+      expect(state.logs.get(logKey("seat-9", "a"))?.attempts).toBe(2);
     });
   });
 

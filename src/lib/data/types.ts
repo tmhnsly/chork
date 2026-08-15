@@ -114,6 +114,9 @@ export function createOptimisticLog(fields: {
     grade_vote: fields.grade_vote ?? null,
     created_at: now,
     updated_at: now,
+    // Account-owned. A guest's log is entered by the host and never
+    // painted optimistically — a guest has no session to paint in.
+    player_id: null,
     ...fields,
   };
 }

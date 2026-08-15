@@ -1,3 +1,4 @@
+import { ownerIdOf } from "./match-types";
 import type {
   MatchLeaderboardRow,
   MatchLog,
@@ -41,7 +42,10 @@ export function computeMatchLeaderboard(
     let lastSendAt: string | null = null;
 
     for (const log of logs.values()) {
-      if (log.user_id !== p.user_id) continue;
+      // Match on the SEAT, not the account — a guest's logs are owned
+      // by `player_id` because they have no `user_id`. `ownerIdOf`
+      // resolves both to the same string.
+      if (ownerIdOf(log) !== ownerIdOf(p)) continue;
       attempts += log.attempts;
       if (log.zone) zones += 1;
       points += computePoints(log);
@@ -58,7 +62,9 @@ export function computeMatchLeaderboard(
     }
 
     return {
+      player_id: p.player_id,
       user_id: p.user_id,
+      is_guest: p.is_guest,
       username: p.username ?? null,
       display_name: p.display_name ?? null,
       avatar_url: p.avatar_url ?? null,

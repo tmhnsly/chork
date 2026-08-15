@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { FaCopy, FaShare, FaFlag } from "react-icons/fa6";
+import { FaCopy, FaShare, FaFlag, FaUserPlus } from "react-icons/fa6";
 import { QRCodeSVG } from "qrcode.react";
 import {
   BottomSheet,
@@ -15,12 +15,15 @@ import styles from "./matchMenuSheet.module.scss";
 
 interface Props {
   match: Match;
+  /** Only the host may seat a guest — they enter the guest's sends. */
+  isHost: boolean;
+  onAddGuest: () => void;
   onClose: () => void;
   onEnd: () => void;
   pending: boolean;
 }
 
-export function MatchMenuSheet({ match, onClose, onEnd, pending }: Props) {
+export function MatchMenuSheet({ match, isHost, onAddGuest, onClose, onEnd, pending }: Props) {
   const [confirming, setConfirming] = useState(false);
   // Lazy initialiser so `window.location.origin` stays out of the
   // render body — `react-hooks/purity` flags direct global reads
@@ -103,6 +106,16 @@ export function MatchMenuSheet({ match, onClose, onEnd, pending }: Props) {
             No need to type — camera does it for you.
           </span>
         </section>
+
+        {/* Guests are the recruiting path: someone climbing with you
+            who hasn't got the app still appears on the board, with
+            their sends entered by you. Host-only, because the host is
+            the one entering them. */}
+        {isHost && !confirming && (
+          <Button type="button" variant="secondary" onClick={onAddGuest} fullWidth>
+            <FaUserPlus aria-hidden /> Add a guest
+          </Button>
+        )}
 
         {!confirming ? (
           <Button

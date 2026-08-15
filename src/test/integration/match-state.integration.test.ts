@@ -361,6 +361,112 @@ describe.skipIf(!canRunIntegration)("Match RPCs (integration)", () => {
     }, 30_000);
   });
 
+  // ── guests ──────────────────────────────────────
+
+  describe("guest players", () => {
+    it("scores a guest with no account, entered by the host", async () => {
+      const setId = await createMatchAsHost("int: guests");
+      const route = await addRoute(setId, "int: guest route");
+
+      // A guest is a named seat — no auth user, no profile.
+      const { data: seat, error: seatErr } = await hostClient
+        .from("set_players")
+        .insert({ set_id: setId, user_id: null, display_name: "Dave" })
+        .select("id")
+        .single();
+      expect(seatErr).toBeNull();
+      const playerId = (seat as { id: string }).id;
+
+      // Host enters their send: flash with the zone.
+      const { error: logErr } = await hostClient.rpc("upsert_match_log", {
+        p_route_id: route.id,
+        p_attempts: 1,
+        p_completed: true,
+        p_zone: true,
+        p_player_id: playerId,
+      });
+      expect(logErr).toBeNull();
+
+      const { data: log } = await service
+        .from("route_logs").select("user_id, player_id, gym_id")
+        .eq("player_id", playerId).single();
+      expect(log!.user_id).toBeNull();
+      expect(log!.gym_id).toBeNull();
+
+      const { data: board } = await hostClient.rpc("get_match_leaderboard", {
+        p_set_id: setId,
+      });
+      const rows = board as Array<Record<string, unknown>>;
+      const guest = rows.find((r) => r.is_guest);
+      expect(guest).toBeTruthy();
+      expect(guest!.display_name).toBe("Dave");
+      expect(guest!.user_id).toBeNull();
+      expect(guest!.points).toBe(5); // flash 4 + zone 1
+      // A guest has no account to own attempts, so they never leave
+      // the database — the host reads them from `guest_logs`.
+      expect(guest!.attempts).toBe(0);
+
+      const { data: state } = await service.rpc("get_match_state_for_user", {
+        p_set_id: setId,
+        p_user_id: hostUserId,
+      });
+      expect((state as { guest_logs: unknown[] }).guest_logs).toHaveLength(1);
+    }, 60_000);
+
+    it("never lets a non-host write a guest's score", async () => {
+      const setId = await createMatchAsHost("int: guest guard");
+      const route = await addRoute(setId, "int: guarded");
+      const { data: seat } = await hostClient
+        .from("set_players")
+        .insert({ set_id: setId, user_id: null, display_name: "Target" })
+        .select("id").single();
+      const playerId = (seat as { id: string }).id;
+
+      await guestClient.rpc("join_match", { p_set_id: setId });
+
+      // Via the RPC…
+      const { error: rpcErr } = await guestClient.rpc("upsert_match_log", {
+        p_route_id: route.id, p_attempts: 1, p_completed: true, p_zone: false,
+        p_player_id: playerId,
+      });
+      expect(rpcErr).toBeTruthy();
+
+      // …and by going straight at the table.
+      const { error: rawErr } = await guestClient.from("route_logs").insert({
+        player_id: playerId, route_id: route.id, gym_id: null,
+        attempts: 1, completed: true, zone: false,
+      } as never);
+      expect(rawErr).toBeTruthy();
+
+      const { data: logs } = await service
+        .from("route_logs").select("id").eq("player_id", playerId);
+      expect(logs).toHaveLength(0);
+    }, 60_000);
+
+    it("keeps guests off the gym leaderboard entirely", async () => {
+      // The gym board is for signed-in gym members. A guest's log has
+      // no gym_id and belongs to a climber-owned Set, so it cannot
+      // reach `user_set_stats` — the cache behind that board.
+      const setId = await createMatchAsHost("int: no gym leak");
+      const route = await addRoute(setId, "int: leaky?");
+      const { data: seat } = await hostClient
+        .from("set_players")
+        .insert({ set_id: setId, user_id: null, display_name: "Ghost" })
+        .select("id").single();
+      const playerId = (seat as { id: string }).id;
+
+      await hostClient.rpc("upsert_match_log", {
+        p_route_id: route.id, p_attempts: 1, p_completed: true, p_zone: false,
+        p_player_id: playerId,
+      });
+
+      const { data: stats } = await service
+        .from("user_set_stats").select("user_id").eq("set_id", setId);
+      // Only the host could have a row, and they logged nothing here.
+      expect(stats ?? []).toHaveLength(0);
+    }, 60_000);
+  });
+
   // ── end ─────────────────────────────────────────
 
   describe("end_match", () => {
@@ -444,6 +550,7 @@ describe.skipIf(!canRunIntegration)("Match RPCs (integration)", () => {
       expect(Object.keys(payload.players[0]).sort()).toEqual([
         "display_name",
         "flashes",
+        "is_guest",
         "is_winner",
         "points",
         "rank",

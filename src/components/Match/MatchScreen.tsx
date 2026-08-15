@@ -3,10 +3,12 @@
 import { FaPlus, FaEllipsisVertical, FaFlag } from "react-icons/fa6";
 import { LeaderboardRow } from "@/components/ui";
 import type { MatchState } from "@/lib/data/match-types";
+import { ownerIdOf } from "@/lib/data/match-types";
 import { MatchGrid } from "./MatchGrid";
 import { MatchLogSheet } from "./MatchLogSheet";
 import { MatchAddRouteSheet } from "./MatchAddRouteSheet";
 import { MatchMenuSheet } from "./MatchMenuSheet";
+import { AddGuestSheet } from "./AddGuestSheet";
 import { MatchPlayerGridSheet } from "./MatchPlayerGridSheet";
 import { useMatchScreenState } from "./useMatchScreenState";
 import styles from "./matchScreen.module.scss";
@@ -23,6 +25,8 @@ interface Props {
  * split.
  */
 export function MatchScreen({ initialState, userId }: Props) {
+  const isHost = initialState.match.host_id === userId;
+
   const {
     state,
     leaderboard,
@@ -33,6 +37,7 @@ export function MatchScreen({ initialState, userId }: Props) {
     handleAddRoute,
     handleUpdateRoute,
     handleLog,
+    handleAddGuest,
     handleEnd,
   } = useMatchScreenState({ initialState, userId });
 
@@ -93,10 +98,10 @@ export function MatchScreen({ initialState, userId }: Props) {
         {leaderboard.slice(0, 5).map((row) => {
           const isSelf = row.user_id === userId;
           return (
-            <li key={row.user_id}>
+            <li key={row.player_id}>
               <LeaderboardRow
                 entry={{
-                  userId: row.user_id,
+                  userId: ownerIdOf(row),
                   username: row.username,
                   name: row.display_name,
                   avatarUrl: row.avatar_url,
@@ -109,7 +114,7 @@ export function MatchScreen({ initialState, userId }: Props) {
                 // climber's per-route grid. Their logs are already in
                 // state.logs via realtime (sanitised by the reducer's
                 // privacy gate), so the peek is a zero-fetch sheet.
-                onPress={() => openPanel({ kind: "peek", playerId: row.user_id })}
+                onPress={() => openPanel({ kind: "peek", playerId: ownerIdOf(row) })}
                 trailing={
                   row.zones > 0 ? (
                     <span
@@ -145,7 +150,9 @@ export function MatchScreen({ initialState, userId }: Props) {
           matchDiscipline={initialState.match.discipline}
           onClose={closePanel}
           onEdit={() => openPanel({ kind: "edit", routeId: activeRoute.id })}
-          onSubmit={(payload) => handleLog(activeRoute, payload)}
+          onSubmit={(payload) =>
+            handleLog(activeRoute, payload, panel.kind === "log" ? panel.playerId : undefined)
+          }
         />
       )}
 
@@ -181,8 +188,18 @@ export function MatchScreen({ initialState, userId }: Props) {
       {panel.kind === "menu" && (
         <MatchMenuSheet
           match={initialState.match}
+          isHost={isHost}
+          onAddGuest={() => openPanel({ kind: "add-guest" })}
           onClose={closePanel}
           onEnd={handleEnd}
+          pending={isPending}
+        />
+      )}
+
+      {panel.kind === "add-guest" && (
+        <AddGuestSheet
+          onClose={closePanel}
+          onSubmit={handleAddGuest}
           pending={isPending}
         />
       )}
@@ -190,7 +207,21 @@ export function MatchScreen({ initialState, userId }: Props) {
       {peekedPlayer && (
         <MatchPlayerGridSheet
           player={peekedPlayer}
-          row={leaderboard.find((r) => r.user_id === peekedPlayer.user_id)}
+          row={leaderboard.find((r) => r.player_id === peekedPlayer.player_id)}
+          // The host enters a guest's sends, so from their grid the
+          // host can open the log sheet on any route. Everyone else
+          // (and the host on an account-backed player) gets a
+          // read-only peek.
+          onLogRoute={
+            isHost && peekedPlayer.is_guest
+              ? (routeId) =>
+                  openPanel({
+                    kind: "log",
+                    routeId,
+                    playerId: peekedPlayer.player_id,
+                  })
+              : undefined
+          }
           routes={state.routes}
           logs={state.logs}
           grades={initialState.grades}

@@ -15,6 +15,7 @@ function makeLog(overrides: Partial<RouteLog> = {}): RouteLog {
     user_id: "user-1",
     route_id: "route-1",
     set_id: "set-1",
+    player_id: null,
     gym_id: "gym-1",
     attempts: 2,
     completed: false,
