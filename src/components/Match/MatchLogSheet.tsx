@@ -16,7 +16,7 @@ import {
 } from "@/components/ui";
 import { BrandDivider } from "@/components/ui/BrandDivider";
 import { useDebouncedFlush } from "@/hooks/use-debounced-flush";
-import { makeGradeLabeller } from "@/lib/data/grade-label";
+import { makeGradeLabeller, partialCreditLabel, type Discipline } from "@/lib/data/grade-label";
 import { computePoints } from "@/lib/data/logs";
 import type { MatchRoute, MatchLog, MatchGradingScale } from "@/lib/data/match-types";
 import {
@@ -35,6 +35,8 @@ const ATTEMPTS_DEBOUNCE_MS = 800;
 
 interface Props {
   route: MatchRoute;
+  /** The Match's default — the route may override it. */
+  matchDiscipline: Discipline;
   log: MatchLog | null;
   grades: Array<{ ordinal: number; label: string }>;
   gradingScale: MatchGradingScale;
@@ -75,6 +77,7 @@ interface Props {
  */
 export function MatchLogSheet({
   route,
+  matchDiscipline,
   log,
   grades,
   gradingScale,
@@ -82,6 +85,10 @@ export function MatchLogSheet({
   onEdit,
   onSubmit,
 }: Props) {
+  // Null on the route means inherit, so the effective discipline is
+  // the route's own or the Match's.
+  const creditLabel = partialCreditLabel(route.discipline ?? matchDiscipline);
+
   // The {attempts, completed, zone} triple is one draft value — every
   // submit ships all three — so it lives behind matchLogReducer instead
   // of three useStates with mirror refs. Transitions (the 0→1 coerce
@@ -206,7 +213,9 @@ export function MatchLogSheet({
         {previewPoints} pts
       </span>
       {attempts === 1 && <FaBolt className={styles.ptsFlash} />}
-      {zone && <span className={styles.ptsZone}>+1 zone</span>}
+      {zone && (
+        <span className={styles.ptsZone}>+1 {creditLabel.toLowerCase()}</span>
+      )}
     </>
   );
 
@@ -253,6 +262,9 @@ export function MatchLogSheet({
           {route.has_zone && (
             <Collapse open={!completed} padBottom>
               <ZoneHoldRow
+                label={
+                  creditLabel === "Zone" ? "Zone hold" : creditLabel
+                }
                 checked={zone}
                 onCheckedChange={handleZoneToggle}
                 hasAttempts={attempts > 0}
@@ -264,6 +276,7 @@ export function MatchLogSheet({
             <CompletedRow
               isFlash={isCurrentFlash}
               hasZone={zone}
+              zoneLabel={creditLabel}
               onUndo={handleUndo}
             />
           ) : (

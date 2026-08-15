@@ -5,8 +5,15 @@ import styles from "./completedRow.module.scss";
 interface Props {
   /** `true` when `attempts === 1 && completed` — swap the label + tint. */
   isFlash: boolean;
-  /** Show the teal "Zone" chip alongside the sent/flashed badge. */
+  /** Show the teal partial-credit chip alongside the sent/flashed badge. */
   hasZone?: boolean;
+  /**
+   * What partial credit is called here. A boulder has a zone; a rope
+   * route has a highpoint. Defaults to "Zone" so the gym Wall — which
+   * is boulders — needs no change. Pass
+   * `partialCreditLabel(discipline)` from a Match.
+   */
+  zoneLabel?: string;
   onUndo: () => void;
   /** Disable the undo button during a pending mutation. */
   disabled?: boolean;
@@ -14,12 +21,18 @@ interface Props {
 
 /**
  * Post-completion row: "Sent" or "Flashed" badge on the left
- * (optionally joined by a "Zone" chip), "Undo send" on the right.
+ * (optionally joined by a partial-credit chip), "Undo send" on the right.
  * Matches the Mark-as-complete button's slot height so the layout
  * above the controls block doesn't breathe when the user completes
  * or undoes a route.
  */
-export function CompletedRow({ isFlash, hasZone = false, onUndo, disabled }: Props) {
+export function CompletedRow({
+  isFlash,
+  hasZone = false,
+  zoneLabel = "Zone",
+  onUndo,
+  disabled,
+}: Props) {
   return (
     <div className={styles.row}>
       <div className={styles.badges}>
@@ -36,7 +49,7 @@ export function CompletedRow({ isFlash, hasZone = false, onUndo, disabled }: Pro
         </span>
         {hasZone && (
           <span className={styles.zoneChip}>
-            <FaFlag className={styles.icon} /> Zone
+            <FaFlag className={styles.icon} /> {zoneLabel}
           </span>
         )}
       </div>
