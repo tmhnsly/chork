@@ -22,6 +22,7 @@ export { AttemptCounter, CompletedRow, LogSheetHeader } from "./LogSheet";
 export { LeaderboardRow } from "./LeaderboardRow/LeaderboardRow";
 export type { LeaderboardRowData } from "./LeaderboardRow/LeaderboardRow";
 export { ZoneHoldRow } from "./ZoneHoldRow/ZoneHoldRow";
+export { GradePyramid } from "./GradePyramid/GradePyramid";
 export { SetMeta } from "./SetMeta";
 export { SegmentedControl } from "./SegmentedControl";
 export { TabPills } from "./TabPills";

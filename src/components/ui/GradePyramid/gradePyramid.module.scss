@@ -1,0 +1,113 @@
+@use "mixins/typography" as type;
+
+.pyramid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.title {
+  @include type.typography(label);
+  color: var(--mono-text);
+}
+
+.summary {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+.rungs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rung {
+  display: grid;
+  // Fixed grade gutter so every bar starts on the same line — a
+  // ragged left edge makes the distribution hard to read at a glance.
+  grid-template-columns: var(--space-12) 1fr var(--space-8);
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.grade {
+  @include type.typography(number, $step: sm);
+  color: var(--mono-text-low-contrast);
+  text-align: right;
+}
+
+.track {
+  height: var(--space-5);
+  background: var(--mono-bg);
+  border-radius: var(--radius-1);
+  overflow: hidden;
+}
+
+.bar {
+  position: relative;
+  height: 100%;
+  width: var(--bar-w, 0%);
+  background: var(--accent-solid);
+  border-radius: var(--radius-1);
+
+  animation: barGrow var(--duration-normal) var(--ease-out) backwards;
+  animation-delay: calc(var(--i, 0) * 30ms);
+  transition: width var(--duration-normal) var(--ease-out);
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    transition: none;
+  }
+}
+
+// A rung with no sends still draws its track, so a gap in the
+// pyramid is visible as a gap rather than a missing row.
+.bar[data-empty] {
+  background: transparent;
+}
+
+// Flashes are a subset of this grade's sends, so the tint sits at the
+// start of the bar rather than beside it.
+.flash {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  width: var(--flash-w, 0%);
+  background: var(--flash-solid);
+  border-radius: var(--radius-1);
+}
+
+.count {
+  @include type.typography(number, $step: sm);
+  color: var(--mono-text-low-contrast);
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes barGrow {
+  from {
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+}

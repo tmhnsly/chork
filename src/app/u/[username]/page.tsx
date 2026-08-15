@@ -10,6 +10,7 @@ import { ProfileStatsSkeleton } from "./_components/ProfileStats.skeleton";
 import { ProfileAchievementsSection } from "./_components/ProfileAchievementsSection";
 import { PreviousSetsSection } from "./_components/PreviousSetsSection";
 import { ProfileMatchesSection } from "./_components/ProfileMatchesSection";
+import { ProfileGradesSection } from "./_components/ProfileGradesSection";
 import { PROFILE_SECTION_HEIGHTS } from "./_components/sectionHeights";
 import { CardSkeleton } from "@/components/ui";
 import styles from "./user.module.scss";
@@ -128,6 +129,14 @@ export default async function UserProfilePage({ params }: Props) {
           />
         </Suspense>
       )}
+
+      {/* Grade pyramids — gym and Match sends together, one per
+          (discipline, scale). Renders on every profile, gym or not,
+          because it's sourced from route_logs rather than anything
+          gym-scoped. Self-hides when there's nothing graded yet. */}
+      <Suspense fallback={null}>
+        <ProfileGradesSection userId={profileUser.id} />
+      </Suspense>
 
       {/* Match history — public within the app. Self-hides when the
           climber has no matches on record so first-time visitors see

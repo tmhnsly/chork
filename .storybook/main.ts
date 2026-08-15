@@ -1,6 +1,7 @@
 import type { StorybookConfig } from "@storybook/nextjs";
 import path from "path";
 import { fileURLToPath } from "url";
+import webpack from "webpack";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -53,7 +54,38 @@ const config: StorybookConfig = {
   webpackFinal: async (config) => {
     patchSassConfig(config.module?.rules);
 
+    // Node built-ins reached from the browser bundle.
+    //
+    // The alias list below stubs specific server-only modules, but it
+    // only covers the ones someone remembered — and it silently rots,
+    // because a NEW component importing a NEW server action pulls the
+    // whole module graph in again and the build dies with an opaque
+    // "UnhandledSchemeError: node:crypto". That is what happened here:
+    // `@/app/match/actions` reaches `shared-result.ts`, which uses
+    // `randomBytes` to mint share tokens.
+    //
+    // Fix the class rather than the instance. Webpack 5 doesn't
+    // understand the `node:` scheme at all, so strip the prefix and
+    // then let the normal browser fallbacks resolve it to nothing.
+    // Stories never CALL server actions — they only import them, so
+    // an absent implementation is exactly right.
+    // Webpack 5 rejects the `node:` scheme outright, BEFORE alias or
+    // fallback resolution gets a look — so aliasing "node:crypto" to
+    // false does nothing. Strip the prefix first, then the fallbacks
+    // below resolve the bare name to nothing.
+    config.plugins = config.plugins ?? [];
+    config.plugins.push(
+      new webpack.NormalModuleReplacementPlugin(/^node:/, (resource) => {
+        resource.request = resource.request.replace(/^node:/, "");
+      }),
+    );
+
     config.resolve = config.resolve ?? {};
+    config.resolve.fallback = {
+      ...(config.resolve.fallback as Record<string, false | string> ?? {}),
+      crypto: false, fs: false, net: false, tls: false, path: false,
+      stream: false, os: false, zlib: false, http: false, https: false,
+    };
     const stubPath = path.resolve(__dirname, "server-actions-stub.ts");
     config.resolve.alias = {
       ...(config.resolve.alias as Record<string, string> ?? {}),
