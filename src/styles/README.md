@@ -13,17 +13,24 @@
 
 ## Fonts
 
-Two font families are used:
-- **Heading** — Outfit (titles, numbers, labels, display — supports weights 100–900)
+Three font families are used:
+- **Heading** — Outfit (titles, numbers, labels, display — weights 100–900)
 - **Body** — Inter (body text, meta, buttons)
+- **Display italic** — Archivo Italic (real italic for headings; Outfit
+  ships none, and browser-synthesised italic clips on iOS Safari)
 
-Fonts are loaded via `next/font/google` in `app/layout.tsx`. Each font sets a
-CSS custom property on `<html>`:
+Fonts are **self-hosted** and declared in `src/lib/fonts.ts` via
+`next/font/local`; the files and the swap recipe live in
+`src/fonts/README.md`. Each sets a CSS custom property on `<html>`:
 
-| next/font variable  | Token            | Resolves to |
-|---------------------|------------------|-------------|
-| `--font-outfit`     | `--font-heading` | Outfit      |
-| `--font-inter`      | `--font-body`    | Inter       |
+| Font variable            | Token            | Resolves to     |
+|--------------------------|------------------|-----------------|
+| `--font-outfit`          | `--font-heading` | Outfit          |
+| `--font-inter`           | `--font-body`    | Inter           |
+| `--font-display-italic`  | —                | Archivo Italic  |
+
+Changing a family is a change to `src/lib/fonts.ts` only — the variable
+names are the contract, so nothing in `src/styles` moves.
 
 The tokens are defined in `theme/typography.scss` with named fallbacks so
 rendering is graceful before fonts load or if `next/font` isn't available.

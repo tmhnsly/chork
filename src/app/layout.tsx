@@ -1,42 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Outfit, Inter, Archivo } from "next/font/google";
+import { fontVariables } from "@/lib/fonts";
 import { Providers } from "./providers";
 import { NavBarShell } from "@/components/NavBar/NavBarShell";
 import { env } from "@/lib/env";
 import "@/styles/globals.scss";
-
-const outfit = Outfit({
-  subsets: ["latin"],
-  variable: "--font-outfit",
-  display: "swap",
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-  preload: false,
-});
-
-// Real italic for display surfaces. Outfit ships no italic on Google
-// Fonts, so every `font-style: italic` on the heading family was being
-// browser-synthesised by skewing the upright glyph — synth-italic
-// glyphs overhang their advance-width box, which iOS Safari paints
-// outside the layout box and then clips. A real italic font reports
-// correct advance widths, so the right edge no longer shaves off.
-//
-// Archivo: neutral grotesque, weight up to 900, has a real italic
-// axis. Picked after a side-by-side trial across DM Sans, Hanken
-// Grotesk, Plus Jakarta, Mona/Hubot, Public Sans — Archivo holds
-// the most consistent character against Outfit Black upright while
-// keeping the grid-numbers (01 / 02 / 03 / 04) readable.
-const archivoItalic = Archivo({
-  subsets: ["latin"],
-  weight: ["700", "800", "900"],
-  style: ["italic"],
-  variable: "--font-display-italic",
-  display: "swap",
-});
 
 // Public site URL for absolute share-link image / canonical resolution.
 // Validated + typed via `@/lib/env`; missing env var fails the build
@@ -201,7 +168,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${outfit.variable} ${inter.variable} ${archivoItalic.variable}`}
+      className={fontVariables}
     >
       <body>
         <a href="#main-content" className="skip-link">Skip to main content</a>

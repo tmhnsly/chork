@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { loadGoogleFont } from "@/lib/og-fonts";
+import { loadOgFont } from "@/lib/og-fonts";
 import { getSharedResult } from "@/lib/data/shared-result";
 
 /**
@@ -29,19 +29,14 @@ export default async function ResultOgImage({ params }: Props) {
 
   const title = result?.name?.trim() || "Match result";
   const podium = result?.players.slice(0, 3) ?? [];
-  const winner = podium.find((p) => p.isWinner) ?? podium[0];
   const others = result ? result.playerCount - podium.length : 0;
 
-  // Satori needs every glyph up front so Google can subset the face.
-  const displayText = `chork${title}${winner?.displayName ?? ""}`;
-  const bodyText =
-    `chork.app pts climbers Match result +more ` +
-    podium.map((p) => `${p.rank}${p.displayName}${p.points}`).join("") +
-    `${others}`;
-
+  // Full faces, read from disk. This route especially wanted it: the
+  // old glyph union had to include every climber's display name, so a
+  // name with an unusual character rendered in a fallback face.
   const [outfitBlack, outfitSemi] = await Promise.all([
-    loadGoogleFont("Outfit", 900, displayText),
-    loadGoogleFont("Outfit", 600, bodyText),
+    loadOgFont("Outfit", 900),
+    loadOgFont("Outfit", 600),
   ]);
 
   return new ImageResponse(
