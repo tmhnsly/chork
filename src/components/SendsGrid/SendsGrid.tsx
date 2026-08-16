@@ -27,6 +27,14 @@ interface Props {
   initialLogs: RouteLog[];
   /** Current gym name — rendered under the title to match the Chorkboard header. */
   gymName?: string | null;
+  /**
+   * Fired whenever a log changes — an attempt, a zone, a send.
+   *
+   * The grid doesn't know or care what the listener does; `GymScreen`
+   * uses it to go and ask where the climber now stands, because rank
+   * depends on everyone else and can't be derived from these logs.
+   */
+  onLogChange?: () => void;
 }
 
 /**
@@ -45,7 +53,13 @@ interface OverlayState {
   map: Map<string, RouteLog>;
 }
 
-export function SendsGrid({ set, routes, initialLogs, gymName }: Props) {
+export function SendsGrid({
+  set,
+  routes,
+  initialLogs,
+  gymName,
+  onLogChange,
+}: Props) {
   const [overlayState, setOverlayState] = useState<OverlayState>({
     key: set.id,
     map: new Map(),
@@ -75,7 +89,8 @@ export function SendsGrid({ set, routes, initialLogs, gymName }: Props) {
       const base = prev.key === set.id ? prev.map : new Map<string, RouteLog>();
       return { key: set.id, map: new Map(base).set(routeId, updatedLog) };
     });
-  }, [set.id]);
+    onLogChange?.();
+  }, [set.id, onLogChange]);
 
   // Aggregate stats are derived from the merged logs so optimistic
   // updates feed the rings + score immediately. Memoised to avoid

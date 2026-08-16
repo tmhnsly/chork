@@ -181,8 +181,28 @@ ungameable; handicap is self-declared and inherently soft.
 - **Chorkboard** — the brand name for a gym's public leaderboard.
   Brand names may be invented; navigation labels may not.
 
-Card and Ranks are the same context ("my gym, right now") and are to
-be merged into one destination with tabs — design session pending.
+Card and Ranks are the same context ("my gym, right now") and share
+one nav entry. **Not tabs** — that was the plan until the design
+session (2026-08-16) landed somewhere better.
+
+The problem with tabs: behind one, you log a send and nothing on
+screen says it mattered. The two things are only interesting
+*together*, so the Card carries a one-line **rank strip** — `#41 of
+51 · 8 pts` — that moves the moment you log, showing places gained
+since you opened the screen. Tapping it opens the full Chorkboard,
+which keeps everything it had.
+
+They also aren't peers: you log sends constantly and check standings
+occasionally. The strip matches that, and it costs one indexed lookup
+plus the cached gym-stats RPC — no board is fetched to render it.
+
+Rank can't be derived client-side (it depends on everyone else) and
+`completeRoute` busts cache tags rather than re-rendering the page, so
+the strip asks the server after a debounced burst of logging. See
+`GymScreen`, which exists solely to hold that wire.
+
+Nav went from six entries to five, one over the HIG's limit for
+anyone who runs a gym.
 
 ## Mates
 

@@ -433,12 +433,16 @@ vocabulary these decisions produced.
       Still open: no hand-over if the host wants to leave rather than
       end (pg_cron's `end_stale_matches` is the backstop).
 
-- [ ] **Card + Ranks merge.** Agreed in principle: they're the same
-      context ("my gym, right now") and the bottom nav is one tab
-      lighter for it. Deferred deliberately — Tom likes both surfaces
-      as they stand, so this needs its own design session rather than
-      a mechanical merge. The `tabpanel` wiring it needs already
-      exists.
+- [x] **Card + Ranks merge.** *(Shipped 2026-08-16. Design session
+      first — three structures weighed, see CONTEXT.md.)* Not tabs:
+      behind a tab you log a send and nothing says it mattered. The
+      Card carries a live rank strip that moves as you log and opens
+      the full Chorkboard on tap. Nav down from six entries to five.
+
+      Rejected on the way: one long scrolling page (the board would
+      have had to shed the browse controls and scoring key), and
+      Card | This set | All time as one flattened control (mixes two
+      axes, and you still never see your rank while logging).
 - [ ] **Admin flow — full design pass.** Never fleshed out as a
       journey; it grew per-feature. The 2026-08-14 architecture sweep
       found the seams that implies. Open product questions first, then
