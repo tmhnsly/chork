@@ -29,3 +29,10 @@
     animation: none;
   }
 }
+
+// Placeholder for the rank strip while the card loads. Same height and
+// radius as the real one, so nothing shifts when it arrives.
+.rankStrip {
+  min-height: var(--size-touch-target);
+  border-radius: var(--radius-3);
+}
