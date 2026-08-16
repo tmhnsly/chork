@@ -59,14 +59,6 @@
 // Grade range: the same pills the log + add-route sheets use, one
 // labelled row per bound. Replaced a pair of steppers that cost a tap
 // per grade and matched nothing else in the app.
-.rangeRow {
-  @include layout.stack(var(--space-2));
-}
-
-.rangeLabel {
-  @include type.typography(label, $step: xs);
-  color: var(--mono-text-low-contrast);
-}
 
 
 // Card + summary share one column stack so the summary feels

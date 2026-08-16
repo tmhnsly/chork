@@ -269,6 +269,32 @@ Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
 - **Never dim text via opacity** — use the correct step
 - **No `color-mix()`** — use Radix tokens directly
 
+### The tile is the app's vocabulary
+
+Chork already had a good visual language and it was confined to one
+screen. The card's route tiles are chunky, square, and coloured by
+what you *did* — lime sent, amber flash, olive attempted. Everything
+else was full-width grey rectangles of identical weight: a settings
+app wearing the same shell.
+
+**A choice is a tile, not a bar.** Anywhere a climber picks between a
+small number of things that matter — the game, the discipline, a
+grade — use `ChoiceTile` / `ChoiceTiles`, which is the route tile with
+a label instead of a number. `SegmentedControl` stays for *filters*
+(This set / All time): switching what you're looking at is not the
+same act as choosing what you're going to do, and they shouldn't look
+alike.
+
+**Selected means accent, always.** Step 9 fill plus `--accent-on-solid`
+— the same treatment a sent route gets. The accent is never
+decoration; it means "you did this" or "this is yours".
+
+**A range lights up contiguously.** `GradeRangeTiles` fills every
+tile between the two bounds rather than marking only the ends, so the
+range reads as a range at a glance.
+
+Marketing surfaces are exempt; they have their own job.
+
 ### Tile state palette
 
 Completed = accent (lime) · Flash = flash (amber) · Attempted = mono
