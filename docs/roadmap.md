@@ -68,15 +68,31 @@ Platform hardening:
 
 ## Pre-launch (before going public)
 
-- [ ] Buy domain (chork.app or similar)
-- [ ] Verify domain in Resend → add DNS records in Cloudflare
-- [ ] Configure Supabase SMTP with Resend
-- [ ] Cloudflare email forwarding (hi@chork.app → personal)
+- [x] Buy domain — **chork.app is live.** Evidenced directly:
+      `env.SITE_URL` resolves to `https://chork.app`, which is what
+      the admin invite links are minted against
+- [x] Verify domain for mail → DNS records. **Note: Porkbun, not
+      Cloudflare** — this line named the wrong provider. ⚠️ Do not
+      touch Porkbun's "Fix DNS" button; it wipes the `send.*` records
+      and mail dies silently
+- [x] Configure Supabase SMTP with Resend — sending from
+      `hello@chork.app`
+- [x] Inbound email forwarding (Porkbun → dedicated Gmail)
 - [ ] Enable "confirm email" in Supabase Auth
 - [ ] Update Supabase redirect URLs for production domain
-- [ ] Set VAPID env vars in Vercel (see `.env.example`)
-- [ ] Google OAuth (add back)
-- [ ] Apple Sign In
+- [ ] Set VAPID env vars in Vercel (see `.env.example`) — push
+      gracefully no-ops until these exist, so this is the difference
+      between having notifications and not
+- [ ] **Google sign-in.** Genuinely unstarted, not "add back":
+      `signInWithOAuth` appears nowhere in `src`, and login is email +
+      password only. See "Next up" — this is the recommended next
+      build
+- [ ] Apple Sign In — same shape as Google, but needs a paid Apple
+      developer account. Worth doing after Google proves the callback
+      flow, since iOS PWA users are the core audience
+
+> The first four were already done and this list hadn't caught up.
+> Verify before believing an unticked box here.
 
 ## Known fragility
 
@@ -109,6 +125,52 @@ Platform hardening:
       easiest to lose silently (RLS flags, `pg_cron` jobs). Blocked on
       a scratch project to restore INTO; `supabase db dump` also needs
       Docker, which isn't installed
+
+## Recommended next: Google sign-in
+
+Picked over the alternatives on 2026-08-16, after checking what was
+actually left rather than what the list claimed.
+
+**Why this one.** It is the only unchecked pre-launch item that both
+blocks launch and is mostly code. Everything else up there is a
+dashboard Tom has to click. And the goal is community growth — sign-up
+is the top of that funnel, and the app currently asks a climber to
+type a password, on a phone, at a gym, with chalk on their hands. That
+is the worst possible context for the worst possible input.
+
+**It is not "add back".** The old line said that; `signInWithOAuth`
+appears nowhere in `src` and login is email + password only. Treat it
+as unstarted.
+
+**Split of work.** The code half is small and ours: a provider button
+on `/login`, `supabase.auth.signInWithOAuth`, and a callback route
+that exchanges the code and lands the climber on onboarding or home
+depending on `onboarded`. The other half is Tom's and can't be
+skipped — a Google Cloud OAuth client, and the redirect URLs added in
+Supabase Auth.
+
+**Watch for.** Onboarding assumes a climber picks a username, and an
+OAuth account arrives with a display name and no username — the
+callback has to route a first-time OAuth user into onboarding rather
+than home, or they land on a Card with no profile. `middleware`
+already reads the `chork-onboarded` cookie, so the check exists;
+it just has to run on the callback path.
+
+**Then Apple**, same shape, once Google has proved the callback. It
+needs a paid Apple developer account, and iOS PWA users are the core
+audience, so it matters — just not first.
+
+### Considered and not chosen
+
+- **Invite email delivery.** Completes the team screen shipped today,
+  but there is no app-level mail helper at all — Supabase's SMTP sends
+  *auth* mail, not ours — so it means a new Resend API integration and
+  a deliverability surface. And the copy-link flow works today, so it
+  is an improvement, not a gap.
+- **Kudos / reactions.** Fully buildable with no blockers, and serves
+  community growth. Second choice — it just doesn't unblock launch.
+- **Closing-event UI, comment threading, route QR codes.** All have
+  their data model in place and none is load-bearing yet.
 
 ## Recently shipped — UI
 
@@ -606,7 +668,9 @@ vocabulary these decisions produced.
 ## Planned
 
 - [ ] Kudos / reactions on activity events
-- [ ] Grade pyramids on profiles
+- [x] Grade pyramids on profiles — shipped; `ProfileGradesSection`
+      renders `GradePyramid`, fed by `get_grade_distribution`
+      (corrected in migration 119 to read each route's own scale)
 - [ ] Gym subscription billing (Stripe wired into `plan_tier`)
 - [ ] Competition event management UI (rounds, qualifiers, finals)
 - [ ] Climber-facing streaks and personal records
