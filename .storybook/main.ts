@@ -81,17 +81,43 @@ const config: StorybookConfig = {
     );
 
     config.resolve = config.resolve ?? {};
+
+    // `server-only` is a package whose entire job is to throw when it
+    // reaches a client bundle. Next honours the `"use server"` boundary
+    // and never lets it; Storybook's webpack has no such boundary, so
+    // any story importing a server action pulled the real module graph
+    // in and died on "This module cannot be imported from a Client
+    // Component module".
+    //
+    // The alias list below stubs the specific server modules someone
+    // remembered, which is the rot the comment above describes — a NEW
+    // action reaches a NEW server module and it breaks again. This
+    // resolves the guard itself away instead, which fixes every case
+    // at once. Stories never CALL an action, only import it.
+    config.resolve.alias = {
+      ...(config.resolve.alias as Record<string, string | false> ?? {}),
+      "server-only": false,
+    };
+
     config.resolve.fallback = {
       ...(config.resolve.fallback as Record<string, false | string> ?? {}),
       crypto: false, fs: false, net: false, tls: false, path: false,
       stream: false, os: false, zlib: false, http: false, https: false,
     };
     const stubPath = path.resolve(__dirname, "server-actions-stub.ts");
+    const envStubPath = path.resolve(__dirname, "env-stub.ts");
     config.resolve.alias = {
-      ...(config.resolve.alias as Record<string, string> ?? {}),
+      ...(config.resolve.alias as Record<string, string | false> ?? {}),
       // Alias auth-context to the Storybook mock so components using
       // useAuth() get a mock provider that doesn't need next/navigation.
+      // Both forms, per the note below: tsconfig-paths resolves `@/`
+      // first, so the absolute path is what webpack ultimately sees.
+      // This one listed only the prefixed form, so the real
+      // auth-context still won — and every story whose component
+      // calls useAuth() died on "must be used within AuthProvider".
       "@/lib/auth-context": path.resolve(__dirname, "decorators.tsx"),
+      [path.resolve(__dirname, "../src/lib/auth-context.tsx")]:
+        path.resolve(__dirname, "decorators.tsx"),
       // Server-only modules. Next.js production builds replace these
       // with RPC stubs at the client edge via the `"use server"`
       // boundary; Storybook's webpack doesn't honour that, so the
@@ -104,6 +130,16 @@ const config: StorybookConfig = {
       // absolute path — tsconfig-paths resolves `@/` first, so the
       // unprefixed form is the one webpack ultimately sees. Listing
       // both is belt-and-braces.
+      // `@/lib/env` validates process.env at IMPORT time and throws on
+      // a missing required var. Next inlines NEXT_PUBLIC_* statically;
+      // webpack here does not, so every var read as undefined and any
+      // story whose tree reached this module died on "Invalid or
+      // missing environment variables" — including the whole
+      // Onboarding page. Stubbed rather than fed real values: stories
+      // make no network calls, so a published Storybook bundle has no
+      // business carrying a Supabase key.
+      "@/lib/env": envStubPath,
+      [path.resolve(__dirname, "../src/lib/env.ts")]: envStubPath,
       "@/lib/user-actions": stubPath,
       "@/lib/push/server": stubPath,
       [path.resolve(__dirname, "../src/lib/user-actions.ts")]: stubPath,
