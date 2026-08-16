@@ -17,13 +17,16 @@ Core climber experience:
 Social + competitive:
 - [x] Chorkboard — gym-wide leaderboard with set / all-time tabs,
       podium, neighbourhood rows, peek sheet with send grid
-- [x] Crew feature — mutual groups with private leaderboard +
-      activity feed. Replaces follows (migration 020)
-- [x] Per-crew detail route (`/crew/[id]`) with Activity /
-      Leaderboard / Members tabs
+- [x] Friends — mutual links, suggestions from shared Matches, a
+      set-scoped board, and a moments feed for friends at other gyms.
+      Migrations 104–110; see the Friends entry below for the design.
+      **Replaced Crew, which is gone** (migration 108) — crews had
+      themselves replaced follows (020). Nothing named `crew*` should
+      survive anywhere; see CLAUDE.md
 - [x] Fuzzy user search (pg_trgm) with block list + rate limit
-- [x] Crew ownership transfer (migration 031)
-- [x] Achievements + badges with persistent earned-at
+- [x] Achievements + badges with persistent earned-at, shown as a card
+      grid on the profile and in the catalogue, both opening one
+      detail sheet
 - [x] Competitions (multi-gym) with category filter + organiser role
 - [x] PWA push notifications — per-category opt-out (invite /
       accept / ownership) + persistent in-app log that survives
@@ -101,6 +104,37 @@ Platform hardening:
 - [x] Error monitoring (Sentry — `sentry.{client,server,edge}.config.ts`)
 - [ ] Database connection pooling (Supabase config verify)
 - [ ] Scheduled backups verified restorable
+
+## Recently shipped — UI
+
+- [x] **Achievements as cards.** *(2026-08-16.)* The catalogue was
+      full-width rows carrying name, description, progress bar, tick
+      and earned date on one line each — too wide to scan, and a
+      different thing to look at than the shelf it was opened from.
+      Worse, it was a dead end: it showed a progress bar and answered
+      no questions, while a detail sheet already existed that only the
+      profile shelf could reach. Both surfaces are one
+      `AchievementCard` now, and every card — earned, in-progress,
+      locked, secret — opens the same sheet.
+
+      Colour carries the state: earned is the family tint filled,
+      in-progress is a mono circle with a family-coloured arc and
+      deliberately NO tint (so 90% can't read as done), locked is
+      muted. `ProgressRing` came out into its own primitive on the way
+      — it had been exported from `BadgeShelf` and imported by the
+      detail sheet, one feature reaching into another's internals.
+
+- [x] **Numbers roll per digit.** *(2026-08-16.)* The count-up ramped
+      the whole value (0, 1, 47, 300, …, 823), which reads as a slot
+      machine and made a big total a long wait. Now it opens on zeros
+      matched to the digit count and each column rolls up once,
+      staggered 60ms. A digit travels 0→9 at most, so a rank of 4 and
+      a total of 1,284 land in the same beat. Pure CSS transform, per
+      the no-JS-animation-library rule.
+
+      Reduced motion drops the roll entirely rather than shortening
+      it: someone asking for less movement wants none, not a brisker
+      version.
 
 ## Next up
 
