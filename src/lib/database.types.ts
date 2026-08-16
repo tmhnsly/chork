@@ -1661,6 +1661,7 @@ export type Database = {
           avatar_url: string
           display_name: string
           flashes: number
+          has_left: boolean
           is_guest: boolean
           last_send_at: string
           player_id: string
@@ -1767,6 +1768,7 @@ export type Database = {
         Returns: number
       }
       is_active_crew_member: { Args: { p_crew_id: string }; Returns: boolean }
+      is_active_set_player: { Args: { p_set_id: string }; Returns: boolean }
       is_admin_of_route: { Args: { p_route_id: string }; Returns: boolean }
       is_competition_organiser: {
         Args: { p_competition_id: string }
@@ -1819,6 +1821,7 @@ export type Database = {
         Returns: {
           attempts: number
           flashes: number
+          has_left: boolean
           last_send_at: string
           player_id: string
           points: number

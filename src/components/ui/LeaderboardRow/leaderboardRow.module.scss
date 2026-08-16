@@ -75,6 +75,24 @@ a.row {
   color: var(--accent-text);
 }
 
+// Handle and its status word share a line so the note reads as part
+// of the identity, not as another stat.
+.handleLine {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.note {
+  @include type.typography(label, $step: xs);
+  flex-shrink: 0;
+  color: var(--mono-text-low-contrast);
+  background: var(--mono-subtle-bg);
+  border-radius: var(--radius-1);
+  padding: var(--space-1) var(--space-2);
+}
+
 .name {
   @include type.typography(meta);
   color: var(--mono-text-low-contrast);

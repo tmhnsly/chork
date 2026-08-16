@@ -53,10 +53,11 @@ export type MatchPanel =
   | { kind: "ceiling"; playerId: string };
 
 export type MatchAction =
-  // set-routes / set-players are the full-refresh transitions for the
-  // live-player realtime wiring (roadmap: matches overhaul) — set-players
-  // has no production dispatcher YET because the join/leave events
-  // currently trigger a router.refresh() instead.
+  // set-routes / set-players are the full-refresh transitions. A
+  // set_players realtime row carries a user_id but no username or
+  // avatar, so joins and leaves round-trip the server and come back
+  // as a whole roster — see the render-time sync in
+  // useMatchScreenState, which is what dispatches set-players.
   | { type: "set-routes"; routes: MatchRoute[] }
   | { type: "upsert-route"; route: MatchRoute }
   | { type: "remove-route"; id: string }

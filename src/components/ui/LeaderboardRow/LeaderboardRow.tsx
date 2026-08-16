@@ -63,6 +63,15 @@ interface Props {
    * invented one.
    */
   isGuest?: boolean;
+  /**
+   * A short status word beside the handle — "Left" for a climber who
+   * parked their seat mid-Match.
+   *
+   * Kept out of the secondary line deliberately: that line carries
+   * their display name, which is how their mates recognise them, and
+   * a leaver is still on the board precisely because they still count.
+   */
+  note?: string;
 }
 
 export function LeaderboardRow({
@@ -73,6 +82,7 @@ export function LeaderboardRow({
   href,
   trailing,
   isGuest = false,
+  note,
 }: Props) {
   const className = `${styles.row} ${highlighted ? styles.highlighted : ""}`;
   const rankLabel = entry.rank === null ? "—" : `${entry.rank}`;
@@ -80,7 +90,9 @@ export function LeaderboardRow({
   // A guest has no handle. Showing "@unknown" reads as a bug — and to
   // the person whose name it is, as rudeness.
   const displayLabel = isGuest ? (entry.name || "Guest") : `@${username}`;
-  const ariaBase = `Rank ${rankLabel}, ${displayLabel}, ${countOfFormatted(entry.points, "point")}`;
+  const ariaBase =
+    `Rank ${rankLabel}, ${displayLabel}${note ? `, ${note}` : ""}, `
+    + countOfFormatted(entry.points, "point");
 
   const content = (
     <>
@@ -95,16 +107,25 @@ export function LeaderboardRow({
         size="row"
       />
       <div className={styles.identity}>
-        {isGuest ? (
-          <>
+        {/* The note rides the primary line either way — a guest's
+            seat can be parked too (the host removed them), and a row
+            that keeps its points without saying why is a puzzle. */}
+        <span className={styles.handleLine}>
+          {isGuest ? (
             <span className={styles.username}>{entry.name || "Guest"}</span>
-            <span className={styles.name}>Guest</span>
-          </>
-        ) : (
-          <>
+          ) : (
             <Username username={username} className={styles.username} />
-            {entry.name && <span className={styles.name}>{entry.name}</span>}
-          </>
+          )}
+          {note && (
+            <span className={styles.note} aria-hidden="true">
+              {note}
+            </span>
+          )}
+        </span>
+        {isGuest ? (
+          <span className={styles.name}>Guest</span>
+        ) : (
+          entry.name && <span className={styles.name}>{entry.name}</span>
         )}
       </div>
       <div className={styles.stats}>

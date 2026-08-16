@@ -42,6 +42,13 @@ export function useMatchRealtime(
     /** Join/leave events — payload deliberately untyped; the current
      *  strategy is a full refresh, not a patch. */
     onPlayerChange: () => void;
+    /**
+     * The Match row itself changed. Fires for the host ending it,
+     * which is the only status transition a live screen can see —
+     * without this, everyone else sat on a board that had quietly
+     * stopped accepting writes.
+     */
+    onMatchChange: (evt: MatchRealtimeEvent<{ id: string; status: string }>) => void;
   },
 ) {
   // Cache the latest handlers in a ref so the channel callbacks can
@@ -84,6 +91,18 @@ export function useMatchRealtime(
         "postgres_changes",
         { event: "*", schema: "public", table: "set_players", filter: `set_id=eq.${matchId}` },
         () => handlersRef.current.onPlayerChange(),
+      )
+      // `sets` joined the publication in migration 102. Filtered to
+      // this row: the table also holds every gym Set, and realtime
+      // applies the `sets` SELECT policy on top, so a subscriber only
+      // ever hears about Matches they are in.
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "sets", filter: `id=eq.${matchId}` },
+        (payload: unknown) =>
+          handlersRef.current.onMatchChange(
+            payload as MatchRealtimeEvent<{ id: string; status: string }>,
+          ),
       )
       .subscribe();
 

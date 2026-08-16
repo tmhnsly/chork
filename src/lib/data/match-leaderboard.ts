@@ -96,6 +96,10 @@ export function computeMatchLeaderboard(
       attempts,
       last_send_at: lastSendAt,
       rank: 0,
+      // A parked seat keeps its points and its place — migration 102.
+      // Carried through so the board can mark the row rather than
+      // rank a name nobody can account for.
+      has_left: p.has_left,
     };
   });
 

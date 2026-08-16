@@ -167,6 +167,7 @@ describe("computeMatchLeaderboard implements the SQL tiebreak", () => {
     avatar_url: null,
     joined_at: "2026-08-14T07:00:00Z",
     is_host: false,
+    has_left: false,
   });
 
   const log = (

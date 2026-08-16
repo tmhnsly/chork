@@ -1,7 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { FaCopy, FaShare, FaFlag, FaUserPlus } from "react-icons/fa6";
+import {
+  FaCopy,
+  FaShare,
+  FaFlag,
+  FaUserPlus,
+  FaRightFromBracket,
+} from "react-icons/fa6";
 import { QRCodeSVG } from "qrcode.react";
 import {
   BottomSheet,
@@ -20,11 +26,26 @@ interface Props {
   onAddGuest: () => void;
   onClose: () => void;
   onEnd: () => void;
+  /**
+   * Park the caller's seat. Everyone except the host — the host ends
+   * the Match instead, and `leaveMatchAction` deliberately has no
+   * hand-over path for them (see the refusal in crew-lifecycle for
+   * the same shape).
+   */
+  onLeave: () => void;
   pending: boolean;
 }
 
-export function MatchMenuSheet({ match, isHost, onAddGuest, onClose, onEnd, pending }: Props) {
-  const [confirming, setConfirming] = useState(false);
+export function MatchMenuSheet({
+  match,
+  isHost,
+  onAddGuest,
+  onClose,
+  onEnd,
+  onLeave,
+  pending,
+}: Props) {
+  const [confirming, setConfirming] = useState<"end" | "leave" | null>(null);
   // Lazy initialiser so `window.location.origin` stays out of the
   // render body — `react-hooks/purity` flags direct global reads
   // during render. Computed once on mount; the sheet only exists on
@@ -111,22 +132,36 @@ export function MatchMenuSheet({ match, isHost, onAddGuest, onClose, onEnd, pend
             who hasn't got the app still appears on the board, with
             their sends entered by you. Host-only, because the host is
             the one entering them. */}
-        {isHost && !confirming && (
+        {isHost && confirming === null && (
           <Button type="button" variant="secondary" onClick={onAddGuest} fullWidth>
             <FaUserPlus aria-hidden /> Add a guest
           </Button>
         )}
 
-        {!confirming ? (
+        {/* Ending is the host's — it reaches everyone else's screen.
+            Everyone else leaves, which reaches only their own. The
+            server enforces both; this just stops offering an action
+            that would come back as an error. */}
+        {confirming === null && (
           <Button
             type="button"
             variant="danger"
-            onClick={() => setConfirming(true)}
+            onClick={() => setConfirming(isHost ? "end" : "leave")}
             fullWidth
           >
-            <FaFlag aria-hidden /> End match
+            {isHost ? (
+              <>
+                <FaFlag aria-hidden /> End match
+              </>
+            ) : (
+              <>
+                <FaRightFromBracket aria-hidden /> Leave match
+              </>
+            )}
           </Button>
-        ) : (
+        )}
+
+        {confirming === "end" && (
           <ConfirmInline
             prompt={
               <p>
@@ -137,7 +172,24 @@ export function MatchMenuSheet({ match, isHost, onAddGuest, onClose, onEnd, pend
             confirmLabel="Yes, end match"
             pendingLabel="Ending…"
             onConfirm={onEnd}
-            onCancel={() => setConfirming(false)}
+            onCancel={() => setConfirming(null)}
+            pending={pending}
+          />
+        )}
+
+        {confirming === "leave" && (
+          <ConfirmInline
+            prompt={
+              <p>
+                Leave this match? You keep the points you&rsquo;ve already
+                scored and stay on the board — you just can&rsquo;t log
+                anything more.
+              </p>
+            }
+            confirmLabel="Yes, leave"
+            pendingLabel="Leaving…"
+            onConfirm={onLeave}
+            onCancel={() => setConfirming(null)}
             pending={pending}
           />
         )}
