@@ -13,8 +13,13 @@ import { useRouter } from "next/navigation";
 import { showToast } from "@/components/ui";
 import { useMatchRealtime } from "@/hooks/use-match-realtime";
 import { computeMatchLeaderboard } from "@/lib/data/match-leaderboard";
-import type { MatchState, MatchRoute, MatchLog } from "@/lib/data/match-types";
-import { disciplineFamily, type Discipline } from "@/lib/data/grade-label";
+import type {
+  MatchState,
+  MatchRoute,
+  MatchLog,
+  MatchPlayerView,
+} from "@/lib/data/match-types";
+import { ceilingForDiscipline, type Discipline } from "@/lib/data/grade-label";
 import { ownerIdOf } from "@/lib/data/match-types";
 import {
   addMatchRouteAction,
@@ -198,27 +203,39 @@ export function useMatchScreenState({
   // A log knows its route id but not its grade, and the handicap
   // needs the grade. Same resolution the server uses: what the adder
   // declared, else what climbers voted.
-  //
-  // A ceiling is ONE number in ONE scale — the Match's own. On a mixed
-  // day an off-family route's ordinal is not comparable to it: a 6b
-  // rope and a V6 boulder are both ordinal 6, so scoring the rope
-  // against a V4 ceiling would read as "two grades above your limit"
-  // on a scale the climber never gave a limit for. Those routes go in
-  // with a null grade, which `handicapPointsTenths` already scores at
-  // full value — the same "guessing is worse than not helping" rule
-  // the Chork allowance uses for an unknown.
   const gradeByRouteId = useMemo(
     () =>
       new Map(
         state.routes.map((r) => [
           r.id,
-          disciplineFamily(r.discipline ?? initialState.match.discipline)
-            === disciplineFamily(initialState.match.discipline)
-            ? r.declared_grade ?? r.community_grade ?? null
-            : null,
+          r.declared_grade ?? r.community_grade ?? null,
         ]),
       ),
-    [state.routes, initialState.match.discipline],
+    [state.routes],
+  );
+
+  // A ceiling is a number on a ladder, so it only means anything
+  // against the ladder it was given on — a 6b rope and a V6 boulder
+  // are both ordinal 6 and share no arithmetic. Every route resolves
+  // to the limit for ITS family (migration 121); on a
+  // single-discipline Match that is always the same one.
+  //
+  // This briefly nulled the off-family GRADE instead, which scored
+  // those routes flat. That was the honest answer while a climber had
+  // only one ceiling; they have two now, and the rope half of a mixed
+  // session was going unhandicapped.
+  const disciplineByRouteId = useMemo(
+    () => new Map(state.routes.map((r) => [r.id, r.discipline])),
+    [state.routes],
+  );
+  const ceilingForRoute = useCallback(
+    (player: MatchPlayerView, routeId: string) =>
+      ceilingForDiscipline(
+        initialState.match,
+        player,
+        disciplineByRouteId.get(routeId) ?? null,
+      ),
+    [initialState.match, disciplineByRouteId],
   );
 
   const leaderboard = useMemo(
@@ -226,8 +243,15 @@ export function useMatchScreenState({
       computeMatchLeaderboard(state.players, state.logs, {
         handicap: initialState.match.handicap,
         gradeByRouteId,
+        ceilingForRoute,
       }),
-    [state.players, state.logs, initialState.match.handicap, gradeByRouteId],
+    [
+      state.players,
+      state.logs,
+      initialState.match.handicap,
+      gradeByRouteId,
+      ceilingForRoute,
+    ],
   );
 
   // Logs keyed by route id, just the current user. Drives tile
@@ -341,8 +365,9 @@ export function useMatchScreenState({
             joined_at: result.player.joined_at,
             is_host: false,
             has_left: false,
-            // The host declares it separately, after seating them.
+            // The host declares these separately, after seating them.
             ceiling: null,
+            alt_ceiling: null,
           },
         });
         dispatch({ type: "close-panel" });
@@ -352,12 +377,17 @@ export function useMatchScreenState({
   );
 
   const handleSetCeiling = useCallback(
-    async (playerId: string, ceiling: number | null) => {
+    async (
+      playerId: string,
+      ceiling: number | null,
+      altCeiling: number | null,
+    ) => {
       startTransition(async () => {
         const result = await setMatchCeilingAction(
           initialState.match.id,
           playerId,
           ceiling,
+          altCeiling,
         );
         if ("error" in result) {
           showToast(result.error, "error");
@@ -366,7 +396,7 @@ export function useMatchScreenState({
         // Patch locally so the board re-scores immediately — the
         // handicap is recomputed from `players`, so without this the
         // change wouldn't show until a refresh.
-        dispatch({ type: "set-ceiling", playerId, ceiling });
+        dispatch({ type: "set-ceiling", playerId, ceiling, altCeiling });
         dispatch({ type: "close-panel" });
       });
     },

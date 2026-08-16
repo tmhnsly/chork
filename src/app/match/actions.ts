@@ -422,15 +422,19 @@ export async function setMatchCeilingAction(
   matchId: string,
   playerId: string,
   ceiling: number | null,
+  /** The other family's limit on a mixed day — see migration 121. */
+  altCeiling: number | null = null,
 ): Promise<{ error: string } | { ok: true }> {
   const auth = await gateSignedInMutation(playerId, "player id");
   if ("error" in auth) return { error: auth.error };
   if (!isUuid(matchId)) return { error: "Invalid match id" };
-  if (
-    ceiling !== null
-    && (!Number.isInteger(ceiling) || ceiling < 0 || ceiling > 30)
-  ) {
-    return { error: "Ceiling out of range" };
+  for (const value of [ceiling, altCeiling]) {
+    if (
+      value !== null
+      && (!Number.isInteger(value) || value < 0 || value > 30)
+    ) {
+      return { error: "Ceiling out of range" };
+    }
   }
 
   const { error } = await auth.supabase.rpc("set_match_ceiling", {
@@ -440,6 +444,7 @@ export async function setMatchCeilingAction(
     // ceiling declared" as null, so fold it at the RPC boundary the
     // same way `undef` does elsewhere.
     p_ceiling: ceiling ?? undefined,
+    p_alt_ceiling: altCeiling ?? undefined,
   });
   if (error) return { error: formatError(error) };
   return { ok: true };

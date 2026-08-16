@@ -16,6 +16,7 @@ import {
   scaleFamily,
   scaleForDiscipline,
   makeRouteLabeller,
+  ceilingForDiscipline,
 } from "./grade-label";
 
 describe("formatGrade", () => {
@@ -416,5 +417,49 @@ describe("makeRouteLabeller", () => {
     const single = { ...mixed, alt_grading_scale: null };
     const label = makeRouteLabeller(single, []);
     expect(label({ declared_grade: 6, discipline: "top-rope" })).toBeNull();
+  });
+});
+
+describe("ceilingForDiscipline", () => {
+  const mixed = {
+    discipline: "boulder" as const,
+    grading_scale: "v" as const,
+    min_grade: 0,
+    max_grade: 8,
+    alt_grading_scale: "french" as const,
+    alt_min_grade: 0,
+    alt_max_grade: 20,
+  };
+  // V4 on the boulders, French ordinal 12 on the ropes — one climber,
+  // two limits, no arithmetic in common.
+  const player = { ceiling: 4, alt_ceiling: 12 };
+
+  it("measures a route against its own family's limit", () => {
+    expect(ceilingForDiscipline(mixed, player, "boulder")).toBe(4);
+    expect(ceilingForDiscipline(mixed, player, "top-rope")).toBe(12);
+    expect(ceilingForDiscipline(mixed, player, "sport")).toBe(12);
+  });
+
+  it("treats a route that inherits as the Match's own discipline", () => {
+    // Null means "inherit", not "unknown".
+    expect(ceilingForDiscipline(mixed, player, null)).toBe(4);
+  });
+
+  it("works the same way round from a roped Match", () => {
+    const ropeFirst = { ...mixed, discipline: "sport" as const };
+    expect(ceilingForDiscipline(ropeFirst, player, "sport")).toBe(4);
+    expect(ceilingForDiscipline(ropeFirst, player, "boulder")).toBe(12);
+  });
+
+  /**
+   * The case migration 121 exists for. Before it there was one
+   * ceiling, so an off-family route was scored as "limit unknown" and
+   * went through unhandicapped — the rope half of a mixed session was
+   * the half the handicap didn't apply to.
+   */
+  it("returns null only when that family's limit was never given", () => {
+    const boulderOnly = { ceiling: 4, alt_ceiling: null };
+    expect(ceilingForDiscipline(mixed, boulderOnly, "boulder")).toBe(4);
+    expect(ceilingForDiscipline(mixed, boulderOnly, "top-rope")).toBeNull();
   });
 });

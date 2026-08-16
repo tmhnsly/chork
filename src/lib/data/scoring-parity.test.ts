@@ -162,6 +162,7 @@ describe("computeMatchLeaderboard implements the SQL tiebreak", () => {
     user_id: uid,
     is_guest: false,
     ceiling: null,
+    alt_ceiling: null,
     username: uid,
     display_name: uid,
     avatar_url: null,

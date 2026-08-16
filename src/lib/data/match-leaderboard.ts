@@ -42,9 +42,20 @@ export function computeMatchLeaderboard(
   options: {
     handicap?: boolean;
     gradeByRouteId?: Map<string, number | null>;
+    /**
+     * Which of a player's two limits a given route is measured
+     * against — see `ceilingForDiscipline`. A mixed day has one
+     * ceiling per discipline family, and V4 vs 6b share no
+     * arithmetic, so the caller resolves it per route rather than
+     * this passing `p.ceiling` at every send.
+     *
+     * Omitted on a single-discipline Match, where `p.ceiling` is the
+     * only answer there is.
+     */
+    ceilingForRoute?: (player: MatchPlayerView, routeId: string) => number | null;
   } = {},
 ): MatchLeaderboardRow[] {
-  const { handicap = false, gradeByRouteId } = options;
+  const { handicap = false, gradeByRouteId, ceilingForRoute } = options;
   const rows: MatchLeaderboardRow[] = players.map((p) => {
     let sends = 0;
     let flashes = 0;
@@ -66,7 +77,7 @@ export function computeMatchLeaderboard(
         ? handicapPointsTenths(
             log,
             gradeByRouteId?.get(log.route_id) ?? null,
-            p.ceiling,
+            ceilingForRoute ? ceilingForRoute(p, log.route_id) : p.ceiling,
           )
         : computePoints(log) * 10;
       if (log.completed) {
