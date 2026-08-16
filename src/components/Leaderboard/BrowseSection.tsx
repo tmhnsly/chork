@@ -9,6 +9,7 @@ import type { LeaderboardEntry, NeighbourhoodEntry } from "@/lib/data";
 import {
   TOP_LIMIT,
   BROWSE_WINDOW,
+  BROWSE_STEP,
   PREFETCH_BUFFER,
   computeInitialOffset,
   firstMissingRange,
@@ -68,8 +69,20 @@ export function BrowseSection({
   const inFlight = useRef<Set<string>>(new Set());
   // Track unmount so we don't setState after the component is gone
   // (tab switch remounts this via the parent's key prop).
+  //
+  // The mount assignment is load-bearing, not decoration. StrictMode
+  // runs effects mount → cleanup → mount; with only the cleanup
+  // writing, the flag went false on that first teardown and NOTHING
+  // set it back. From then on every fetch threw its rows away and
+  // never cleared `loading`, so one press of either browse button
+  // dropped a row from the window and disabled both.
   const mountedRef = useRef(true);
-  useEffect(() => () => { mountedRef.current = false; }, []);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   // Mirror of maxKnownOffset as a ref so `fetchRange` can read the
   // current bound without listing it as a dep — otherwise every
@@ -178,12 +191,12 @@ export function BrowseSection({
 
   const goUp = useCallback(() => {
     if (atTop) return;
-    setTopOffset((o) => Math.max(TOP_LIMIT, o - 1));
+    setTopOffset((o) => Math.max(TOP_LIMIT, o - BROWSE_STEP));
   }, [atTop]);
 
   const goDown = useCallback(() => {
     if (atBottom) return;
-    setTopOffset((o) => o + 1);
+    setTopOffset((o) => o + BROWSE_STEP);
   }, [atBottom]);
 
   // Nothing to show and we already know we're at the top → parent
@@ -197,7 +210,7 @@ export function BrowseSection({
         className={styles.nudge}
         onClick={goUp}
         disabled={atTop || loading}
-        aria-label="Nudge up one position"
+        aria-label={`Show ${BROWSE_STEP} places higher`}
       >
         <FaChevronUp aria-hidden />
       </button>
@@ -214,7 +227,7 @@ export function BrowseSection({
         className={styles.nudge}
         onClick={goDown}
         disabled={atBottom || loading}
-        aria-label="Nudge down one position"
+        aria-label={`Show ${BROWSE_STEP} places lower`}
       >
         <FaChevronDown aria-hidden />
       </button>

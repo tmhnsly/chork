@@ -18,6 +18,16 @@ export const TOP_LIMIT = 5;
 export const BROWSE_WINDOW = 5;
 
 /**
+ * How far each press moves the window.
+ *
+ * One rank at a time meant eleven presses to travel ten places, which
+ * is not browsing. A whole window would lose your place entirely, so
+ * this leaves one row of overlap: the row that was at the bottom is
+ * at the top after a press down, and you can see where you came from.
+ */
+export const BROWSE_STEP = BROWSE_WINDOW - 1;
+
+/**
  * How far above + below the current window to prefetch. Each direction
  * gets one extra window-worth of rows ready so up / down nudges from
  * any cached state are instant.
