@@ -1,10 +1,8 @@
 "use client";
 
 import { useMemo } from "react";
-import { FaLock } from "react-icons/fa6";
 import type { BadgeStatus } from "@/lib/badges";
-import { badgeFamily } from "@/lib/badges";
-import { ICON_MAP } from "@/lib/badge-icons";
+import { AchievementCard } from "@/components/ui/AchievementCard/AchievementCard";
 import { BrandDivider } from "@/components/ui/BrandDivider";
 import { HorizontalScroller } from "@/components/ui/HorizontalScroller";
 import styles from "./badgeShelf.module.scss";
@@ -103,55 +101,9 @@ export function BadgeShelf({ badges, onSeeAll, onTapBadge }: Props) {
         className={styles.grid}
         edgeFade
       >
-        {visible.map((b) => {
-          const isSecret = b.badge.isSecret && !b.earned;
-          const Icon = isSecret ? FaLock : ICON_MAP[b.badge.icon];
-          const name = isSecret ? "???" : b.badge.name;
-
-          // Visual state:
-          //   earned    — category tint, category border, category name
-          //   progress  — category-coloured progress ring around the
-          //                mono circle. Flash-category badges get the
-          //                amber ring, zone-category (icon: flag) the
-          //                teal ring, everything else the accent lime
-          //   muted     — plain muted circle, muted name
-          //                (one-off condition or secret)
-          let state: "earned" | "progress" | "muted" = "muted";
-          if (b.earned) state = "earned";
-          else if (!isSecret && b.badge.kind === "progress") state = "progress";
-          // Family drives the earned tint and the progress-ring
-          // colour only. In-progress slots keep a mono circle so
-          // they don't falsely signal completion — the coloured
-          // ring is the sole "you're working on this" hint.
-          const family = state === "earned" ? badgeFamily(b.badge) : null;
-          const ringFamily =
-            state === "progress" ? badgeFamily(b.badge) : null;
-          const progress =
-            state === "progress" && !b.earned && b.progress !== null
-              ? b.progress
-              : null;
-
-          return (
-            <button
-              key={b.badge.id}
-              type="button"
-              className={`${styles.slot} ${styles[`slot--${state}`]} ${family ? styles[`slot--${family}`] : ""}`}
-              onClick={() => onTapBadge?.(b)}
-              aria-label={`${name}. ${isSecret ? "Secret achievement." : b.badge.description}`}
-            >
-              <span className={styles.circle}>
-                {progress !== null && (
-                  <ProgressRing
-                    progress={progress}
-                    family={ringFamily ?? "accent"}
-                  />
-                )}
-                <Icon />
-              </span>
-              <span className={styles.name}>{name}</span>
-            </button>
-          );
-        })}
+        {visible.map((b) => (
+          <AchievementCard key={b.badge.id} badge={b} onPress={(x) => onTapBadge?.(x)} />
+        ))}
 
         {remainingCount > 0 && onSeeAll && (
           <button
@@ -166,56 +118,5 @@ export function BadgeShelf({ badges, onSeeAll, onTapBadge }: Props) {
         )}
       </HorizontalScroller>
     </section>
-  );
-}
-
-/**
- * Progress ring overlay for in-progress achievement badges. Sits on
- * top of the circle, same pattern as ActivityRings — mono track,
- * accent fill, `stroke-dashoffset` drives the arc. Exported so the
- * detail sheet's hero can reuse the exact geometry.
- *
- * Uses `pathLength={1}` so the dashoffset range is a simple 0-1
- * regardless of radius — same trick ActivityRings uses.
- */
-export function ProgressRing({
-  progress,
-  family = "accent",
-}: {
-  progress: number;
-  /** Colour family for the filled arc. Matches the earned-state
-   *  tint so a flash-category badge reads amber at 50% AND 100%. */
-  family?: "accent" | "flash" | "success";
-}) {
-  const clamped = Math.min(1, Math.max(0, progress));
-  const strokeVar = `var(--${family === "accent" ? "accent" : family}-solid)`;
-  return (
-    <svg
-      className={styles.progressRing}
-      viewBox="0 0 100 100"
-      aria-hidden="true"
-    >
-      <circle
-        cx={50}
-        cy={50}
-        r={46}
-        fill="none"
-        stroke="var(--mono-border)"
-        strokeWidth={6}
-      />
-      <circle
-        cx={50}
-        cy={50}
-        r={46}
-        fill="none"
-        stroke={strokeVar}
-        strokeWidth={6}
-        strokeLinecap="round"
-        pathLength={1}
-        strokeDasharray={1}
-        strokeDashoffset={1 - clamped}
-        transform="rotate(-90 50 50)"
-      />
-    </svg>
   );
 }

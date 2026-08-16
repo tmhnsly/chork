@@ -1,19 +1,22 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { FaCheck, FaLock } from "react-icons/fa6";
-import { format, parseISO } from "date-fns";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { SheetBody, TabPills, type TabPillOption } from "@/components/ui";
-import { ICON_MAP } from "@/lib/badge-icons";
+import { AchievementCard } from "@/components/ui/AchievementCard/AchievementCard";
 import type { BadgeStatus, BadgeCategory } from "@/lib/badges";
-import { badgeFamily } from "@/lib/badges";
 import styles from "./achievementsSheet.module.scss";
 
 interface Props {
   badges: BadgeStatus[];
   open: boolean;
   onClose: () => void;
+  /**
+   * Tapping a card asks for the detail sheet. Owned by the parent so
+   * both entry points — this catalogue and the profile shelf — open
+   * the same one, rather than this sheet growing a second copy.
+   */
+  onTapBadge: (badge: BadgeStatus) => void;
 }
 
 // Filters = the catalogue categories plus two meta filters:
@@ -38,7 +41,7 @@ const ALL_FILTERS: { id: Filter; label: string }[] = [
   { id: "matches", label: "Matches" },
 ];
 
-export function AchievementsSheet({ badges, open, onClose }: Props) {
+export function AchievementsSheet({ badges, open, onClose, onTapBadge }: Props) {
   const earnedCount = useMemo(
     () => badges.filter((b) => b.earned).length,
     [badges],
@@ -114,71 +117,17 @@ export function AchievementsSheet({ badges, open, onClose }: Props) {
       }
     >
       <SheetBody>
-        {/* Rows are informational only — no detail sheet. Earned
-            date + tick on the right, name / description / progress
-            inline on the left. */}
-        <ul className={styles.list}>
-          {visible.map((b) => {
-            const hidden = b.badge.isSecret && !b.earned;
-            const Icon = hidden ? FaLock : ICON_MAP[b.badge.icon];
-            const name = hidden ? "???" : b.badge.name;
-            const description = hidden
-              ? "Keep climbing to discover this one."
-              : b.badge.description;
-            // Earned rows carry a family class (accent / flash /
-            // success) so the icon tint + tick background match the
-            // badge's category — flashes read amber, zones teal, etc.
-            // In-progress rows stay mono apart from the progress bar,
-            // which uses the family colour as its fill. Locked / secret
-            // rows have no family (neutral mono treatment).
-            const family =
-              b.earned || (!hidden && b.badge.kind === "progress")
-                ? badgeFamily(b.badge)
-                : null;
-            const familyClass = family ? styles[`row--${family}`] : "";
-
-            return (
-              <li
-                key={b.badge.id}
-                className={`${styles.row} ${familyClass}`}
-              >
-                <span className={`${styles.rowIcon} ${b.earned ? styles.rowIconEarned : ""}`}>
-                  <Icon />
-                </span>
-
-                <div className={styles.rowText}>
-                  <span className={styles.rowName}>{name}</span>
-                  <span className={styles.rowDesc}>{description}</span>
-                  {!hidden && !b.earned && b.badge.kind === "progress" && b.progress !== null && b.current !== null && (
-                    <span className={styles.progress}>
-                      <span className={styles.progressBar}>
-                        <span
-                          className={styles.progressFill}
-                          style={{ "--progress": `${Math.round(b.progress * 100)}%` } as React.CSSProperties}
-                        />
-                      </span>
-                      <span className={styles.progressText}>
-                        {b.current}/{b.badge.target}
-                      </span>
-                    </span>
-                  )}
-                </div>
-
-                {b.earned && (
-                  <div className={styles.rowRight}>
-                    {b.earnedAt && (
-                      <span className={styles.earnedDate}>
-                        {format(parseISO(b.earnedAt), "MMM d, yyyy")}
-                      </span>
-                    )}
-                    <span className={styles.tick} aria-label="Earned">
-                      <FaCheck />
-                    </span>
-                  </div>
-                )}
-              </li>
-            );
-          })}
+        {/* A grid of cards, not a list of rows. Full-width rows put
+            the name, description, progress bar and earned date on one
+            line each — too wide to scan, and a different thing to look
+            at than the shelf they were opened from. The detail lives
+            behind a tap now; this is the glance. */}
+        <ul className={styles.grid}>
+          {visible.map((b) => (
+            <li key={b.badge.id}>
+              <AchievementCard badge={b} onPress={onTapBadge} />
+            </li>
+          ))}
         </ul>
       </SheetBody>
     </BottomSheet>

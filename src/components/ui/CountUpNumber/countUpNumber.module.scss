@@ -1,12 +1,64 @@
+// An odometer: one column per digit, each holding 0–9 stacked
+// vertically and translated up to show its target.
+//
+// The height of one digit is the line box, so every offset is a
+// multiple of `1em * line-height`. `--digit-offset` is the target
+// digit (0–9) and the transform multiplies it out — which is why the
+// component can hand over a bare number rather than a length.
+
 .root {
-  display: inline-block;
-  // Reserve the final value's width from the very first paint so the
-  // surrounding layout doesn't reflow as digits appear. `tabular-nums`
-  // keeps every digit the same width; `--count-min-w` is set per-call
-  // so the booked width matches the eventual final number.
-  // `text-align: right` lands the rolling digits flush against any
-  // trailing suffix (e.g. "/14", " pts").
-  min-width: var(--count-min-w, 1ch);
+  display: inline-flex;
+  align-items: baseline;
   font-variant-numeric: tabular-nums;
-  text-align: right;
+}
+
+.digits {
+  display: inline-flex;
+}
+
+.column {
+  // Clips its strip to a single digit's worth of height.
+  display: inline-block;
+  overflow: hidden;
+  height: 1lh;
+  // Tabular figures make every column the same width, so the reserved
+  // space is exact and nothing reflows as the digits land.
+  width: 1ch;
+}
+
+.strip {
+  display: flex;
+  flex-direction: column;
+  transform: translateY(calc(var(--digit-offset, 0) * -1lh));
+  transition: transform var(--duration-normal) var(--ease-out-expo);
+  transition-delay: var(--digit-delay, 0ms);
+}
+
+.digit {
+  height: 1lh;
+  text-align: center;
+}
+
+// Reduced motion: no roll. The strip is placed at its final offset
+// with no transition, so the number is simply correct on arrival —
+// which is what someone who asked for less movement wants, rather
+// than a faster version of the same thing.
+@media (prefers-reduced-motion: reduce) {
+  .strip {
+    transition: none;
+  }
+}
+
+// The value, for screen readers. The columns above are aria-hidden,
+// so without this a reader would announce nothing at all.
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
