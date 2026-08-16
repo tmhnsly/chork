@@ -2,7 +2,6 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { createServerSupabase, getServerUser } from "@/lib/supabase/server";
 import { getProfileByUsername } from "@/lib/data/profile-queries";
-import { getCrewCountForUser, getPendingCrewInvites } from "@/lib/data/crew-queries";
 import { getUnreadNotificationCount } from "@/lib/data/notifications";
 import { ProfileHeader } from "@/components/ProfileHeader/ProfileHeader";
 import { ProfileStats } from "./_components/ProfileStats";
@@ -42,16 +41,15 @@ export default async function UserProfilePage({ params }: Props) {
   // Notification list itself lazy-loads inside the sheet on open;
   // the shell only needs the unread count for the badge.
   // Admin entry moved into NavBar — no admin lookup needed here.
-  const [crewCount, invites, unreadCount] = await Promise.all([
-    !isOwnProfile ? getCrewCountForUser(supabase, profileUser.id) : Promise.resolve(0),
-    isOwnProfile ? getPendingCrewInvites(supabase, profileUser.id) : Promise.resolve([]),
-    isOwnProfile ? getUnreadNotificationCount(supabase, profileUser.id) : Promise.resolve(0),
-  ]);
+  const unreadCount = isOwnProfile
+    ? await getUnreadNotificationCount(supabase, profileUser.id)
+    : 0;
 
-  let contextLine: string | null = null;
-  if (!isOwnProfile && crewCount > 0) {
-    contextLine = `${crewCount} crew${crewCount === 1 ? "" : "s"}`;
-  }
+  // `contextLine` used to read "N crews" for a visitor. Nothing fills
+  // it now that crews are gone — a friend count would, but it would
+  // also publish who is popular to anyone who looks, which is a
+  // decision worth making on purpose rather than by inheritance.
+  const contextLine: string | null = null;
 
   // Show another climber's profile in *their* chosen theme — viewer's
   // theme restores when they leave the route. Scoped to <main> so the
@@ -67,7 +65,6 @@ export default async function UserProfilePage({ params }: Props) {
         user={profileUser}
         isOwnProfile={isOwnProfile}
         contextLine={contextLine}
-        invites={invites}
         unreadCount={unreadCount}
       />
 

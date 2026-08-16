@@ -1,4 +1,15 @@
 /**
+ * Coarse activity timestamps.
+ *
+ * Currently unused — its only consumer was the crew activity feed,
+ * removed in migration 108. Kept rather than deleted because the
+ * privacy contract below is the thing that matters, and the moments
+ * feed (docs/roadmap.md) will need exactly it. Deleting the rule and
+ * its anti-regression tests, then re-deriving them later, is how a
+ * rule like this quietly stops being true.
+ */
+
+/**
  * Privacy-first relative timestamp formatter.
  *
  * The crew feature deliberately shows only whole-day resolution on the

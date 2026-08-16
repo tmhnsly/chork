@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { readdirSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join } from "node:path";
 import { config } from "./proxy";
 
 /**
@@ -27,7 +27,7 @@ const EXEMPT = new Set([
   "/auth", // Supabase callback handlers
 ]);
 
-/** Turn `src/app/(app)/crew/[id]/page.tsx` into `/crew`. */
+/** Turn `src/app/(app)/friends/[id]/page.tsx` into `/friends`. */
 function routeSegments(dir: string, prefix = ""): string[] {
   const out: string[] = [];
   for (const entry of readdirSync(dir)) {

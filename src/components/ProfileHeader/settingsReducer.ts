@@ -33,7 +33,7 @@ export type NotifFlags = Record<PushCategoryKey, boolean>;
  * Structural subset of `Profile` so tests need no full fixture.
  */
 export interface SettingsProfileSlice {
-  allow_crew_invites: boolean;
+  allow_friend_requests: boolean;
   push_invite_received: boolean;
   push_invite_accepted: boolean;
   push_ownership_changed: boolean;
@@ -47,7 +47,7 @@ export interface SettingsState {
   // on server error, and reseeded whenever a profile refresh changes
   // the underlying value (keyed reconciliation — no useEffect).
   allowInvites: boolean;
-  /** Last profile value seen for allow_crew_invites — reseed key. */
+  /** Last profile value seen for allow_friend_requests — reseed key. */
   lastProfileAllowInvites: boolean | null;
 
   notifFlags: NotifFlags;
@@ -95,8 +95,8 @@ export function initialSettingsState(
 ): SettingsState {
   return {
     activePanel: null,
-    allowInvites: profile?.allow_crew_invites ?? true,
-    lastProfileAllowInvites: profile?.allow_crew_invites ?? null,
+    allowInvites: profile?.allow_friend_requests ?? true,
+    lastProfileAllowInvites: profile?.allow_friend_requests ?? null,
     notifFlags: {
       invite_received: profile?.push_invite_received ?? true,
       invite_accepted: profile?.push_invite_accepted ?? true,
@@ -120,7 +120,7 @@ export function needsProfileReseed(
 ): boolean {
   return (
     notifSignature(profile) !== state.lastNotifSignature ||
-    profile.allow_crew_invites !== state.lastProfileAllowInvites
+    profile.allow_friend_requests !== state.lastProfileAllowInvites
   );
 }
 
@@ -147,11 +147,11 @@ export function settingsReducer(
           notifFlags: notifFlagsFromProfile(profile),
         };
       }
-      if (profile.allow_crew_invites !== state.lastProfileAllowInvites) {
+      if (profile.allow_friend_requests !== state.lastProfileAllowInvites) {
         next = {
           ...next,
-          lastProfileAllowInvites: profile.allow_crew_invites,
-          allowInvites: profile.allow_crew_invites,
+          lastProfileAllowInvites: profile.allow_friend_requests,
+          allowInvites: profile.allow_friend_requests,
         };
       }
       // Same-signature no-op returns the same reference so React can

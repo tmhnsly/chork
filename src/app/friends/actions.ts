@@ -145,6 +145,28 @@ export async function removeFriend(
 }
 
 /**
+ * "People may send me friend requests."
+ *
+ * Enforced in `request_friend`, not just here — see migration 108.
+ * A privacy switch the server doesn't honour is decoration.
+ */
+export async function setAllowFriendRequests(
+  allow: boolean,
+): Promise<ActionResult<{ ok: true }>> {
+  const auth = await gateSignedInMutation(null, "profile");
+  if ("error" in auth) return { error: auth.error };
+
+  const { error } = await auth.supabase
+    .from("profiles")
+    .update({ allow_friend_requests: allow })
+    .eq("id", auth.userId);
+  if (error) return { error: formatError(error) };
+
+  revalidatePath("/friends");
+  return { success: true, ok: true };
+}
+
+/**
  * Push is best-effort. A failed dispatch must never fail the write
  * that already succeeded — same contract as the crew invite path.
  */

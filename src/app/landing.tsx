@@ -30,7 +30,7 @@ const steps: Step[] = [
   {
     number: 4,
     title: "Share beta",
-    description: "Sent a route? Leave hints for your crew. Beta spray is blurred until you send it yourself.",
+    description: "Sent a route? Leave hints for your friends. Beta spray is blurred until you send it yourself.",
   },
   {
     number: 5,
@@ -57,7 +57,7 @@ export function LandingPage() {
   return (
     <div className={styles.page}>
       <HeroSection
-        headline="Track your sends. Compete with your crew."
+        headline="Track your sends. Compete with your friends."
         subheadline="The bouldering comp tracker that keeps score so you can keep climbing."
         cta={ctaButton}
         visual={<HeroGrid />}
@@ -77,7 +77,7 @@ export function LandingPage() {
         <section className={styles.ctaSection}>
           <h2 className={styles.ctaHeadline}>Ready to climb?</h2>
           <p className={styles.ctaSub}>
-            Join your crew on the wall. It takes ten seconds.
+            Join your friends on the wall. It takes ten seconds.
           </p>
           <LinkButton href="/login" variant="secondary">
             Sign up free<FaArrowRight aria-hidden />

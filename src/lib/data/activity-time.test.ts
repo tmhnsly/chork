@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { relativeDay } from "./crew-time";
+import { relativeDay } from "./activity-time";
 
 // relativeDay is the privacy-critical formatter for the crew activity
 // feed. These tests pin the behaviour so a future refactor can't

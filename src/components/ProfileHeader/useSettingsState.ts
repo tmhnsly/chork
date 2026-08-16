@@ -3,7 +3,7 @@
 import { useEffect, useReducer } from "react";
 import type { Profile } from "@/lib/data/types";
 import { savePushSubscription, removePushSubscription } from "@/app/(app)/push-actions";
-import { setAllowCrewInvites } from "@/app/crew/actions";
+import { setAllowFriendRequests } from "@/app/friends/actions";
 import { updatePushCategory, type PushCategoryKey } from "@/lib/user-actions";
 import {
   isStandalonePwa,
@@ -89,13 +89,13 @@ export function useSettingsState(profile: Profile | null): UseSettingsState {
   async function handleToggleAllowInvites() {
     const next = !state.allowInvites;
     dispatch({ type: "set-allow-invites", value: next });
-    const res = await setAllowCrewInvites(next);
+    const res = await setAllowFriendRequests(next);
     if ("error" in res) {
       dispatch({ type: "set-allow-invites", value: !next });
       showToast(res.error, "error");
       return;
     }
-    showToast(next ? "Crew invites on" : "Crew invites off", "info");
+    showToast(next ? "Friend requests on" : "Friend requests off", "info");
   }
 
   async function handleTogglePush() {

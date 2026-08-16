@@ -262,34 +262,11 @@ export async function deleteAccount(): Promise<{ error: string } | { success: tr
   try {
     const service = createServiceClient();
 
-    // Hand off any crews this user OWNS that still have another active
-    // member BEFORE deleting the account. crews.created_by cascades on
-    // profile delete, so skipping this would silently destroy the crew
-    // (and every member's row) for everyone else. Transfer to the
-    // longest-standing active member; solo-owned crews are left for the
-    // cascade to delete, which is correct.
-    const { data: ownedCrews } = await service
-      .from("crews")
-      .select("id")
-      .eq("created_by", userId);
-    for (const crew of ownedCrews ?? []) {
-      const { data: heir } = await service
-        .from("crew_members")
-        .select("user_id")
-        .eq("crew_id", crew.id)
-        .eq("status", "active")
-        .neq("user_id", userId)
-        .order("created_at", { ascending: true })
-        .limit(1)
-        .maybeSingle();
-      if (heir) {
-        await service
-          .from("crews")
-          .update({ created_by: heir.user_id })
-          .eq("id", crew.id);
-      }
-    }
-
+    // Crews used to need a hand-off here: `crews.created_by` cascades
+    // on profile delete, so deleting an owner silently destroyed the
+    // crew for everyone else. Crews are gone (migration 108) and
+    // `friends` has no such asymmetry — a link cascades away from both
+    // sides and takes nothing with it.
     const { error } = await service.auth.admin.deleteUser(userId);
     if (error) return { error: formatError(error) };
     return { success: true };

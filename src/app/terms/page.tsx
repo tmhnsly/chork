@@ -76,7 +76,7 @@ export default function TermsPage() {
         <ul className={styles.list}>
           <li>Log sends, attempts, flashes or zones you did not actually complete.</li>
           <li>Impersonate another climber, gym or organisation.</li>
-          <li>Harass, abuse, threaten or intimidate other users in beta spray, crew chat, or anywhere else on the Service.</li>
+          <li>Harass, abuse, threaten or intimidate other users in beta spray, comments, or anywhere else on the Service.</li>
           <li>Post unlawful, hateful, sexually explicit, or otherwise objectionable content.</li>
           <li>Scrape, harvest, or otherwise extract data from the Service beyond what the product surfaces to you as a user.</li>
           <li>Attempt to reverse engineer, probe, or exploit the Service&rsquo;s security.</li>
@@ -94,7 +94,7 @@ export default function TermsPage() {
         <p>
           You keep ownership of everything you upload, post, or submit to the
           Service (your &ldquo;Content&rdquo;), including route logs, grade
-          votes, beta spray, crew names, display names, and any other material
+          votes, beta spray, match names, display names, and any other material
           you publish.
         </p>
         <p>
@@ -102,7 +102,7 @@ export default function TermsPage() {
           host, store, reproduce, and display your Content as needed to run
           the Service and show it to the other users you have chosen to share
           it with (for example, your gym&rsquo;s leaderboard or the members of
-          a crew you belong to). This licence ends when you delete the
+          a match you took part in). This licence ends when you delete the
           relevant Content or your account, except where we are legally
           required to retain copies.
         </p>

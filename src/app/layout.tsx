@@ -11,7 +11,7 @@ import "@/styles/globals.scss";
 const SITE_URL = env.SITE_URL;
 
 const APP_DESCRIPTION =
-  "Competition tracker for climbing gyms. Log every send on numbered routes in your gym's active set, climb the Chorkboard, and compete with crews.";
+  "Competition tracker for climbing gyms. Log every send on numbered routes in your gym's active set, climb the Chorkboard, and compete with your friends.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -88,7 +88,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Chork",
-    title: "Chork · Bouldering competition tracker for gyms & crews",
+    title: "Chork · Bouldering competition tracker for gyms & friends",
     description: APP_DESCRIPTION,
     url: SITE_URL,
     locale: "en_GB",
@@ -98,7 +98,7 @@ export const metadata: Metadata = {
   // same hero renders on both platforms.
   twitter: {
     card: "summary_large_image",
-    title: "Chork · Bouldering competition tracker for gyms & crews",
+    title: "Chork · Bouldering competition tracker for gyms & friends",
     description: APP_DESCRIPTION,
   },
   // Search-engine hints. robots auto-derives sensible defaults; tighten

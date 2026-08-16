@@ -56,7 +56,7 @@ export default async function MatchPage() {
 
       <section className={styles.actionsCard} aria-label="Start or join a match">
         <div className={styles.actionHeader}>
-          <h2 className={styles.actionHeading}>Run it with the crew.</h2>
+          <h2 className={styles.actionHeading}>Run it with your friends.</h2>
           <p className={styles.actionLede}>
             A match is a quick comp you can start anywhere. Add routes as
             you go, log your own attempts, climb the live leaderboard.

@@ -326,84 +326,6 @@ export type Database = {
           },
         ]
       }
-      crew_members: {
-        Row: {
-          created_at: string
-          crew_id: string
-          id: string
-          invited_by: string
-          status: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          crew_id: string
-          id?: string
-          invited_by: string
-          status: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          crew_id?: string
-          id?: string
-          invited_by?: string
-          status?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "crew_members_crew_id_fkey"
-            columns: ["crew_id"]
-            isOneToOne: false
-            referencedRelation: "crews"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crew_members_invited_by_fkey"
-            columns: ["invited_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "crew_members_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      crews: {
-        Row: {
-          created_at: string
-          created_by: string
-          id: string
-          name: string
-        }
-        Insert: {
-          created_at?: string
-          created_by: string
-          id?: string
-          name: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string
-          id?: string
-          name?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "crews_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       friends: {
         Row: {
           addressee_id: string
@@ -655,12 +577,10 @@ export type Database = {
       profiles: {
         Row: {
           active_gym_id: string | null
-          allow_crew_invites: boolean
+          allow_friend_requests: boolean
           avatar_url: string
           created_at: string
           id: string
-          invites_sent_date: string | null
-          invites_sent_today: number
           name: string
           onboarded: boolean
           push_invite_accepted: boolean
@@ -672,12 +592,10 @@ export type Database = {
         }
         Insert: {
           active_gym_id?: string | null
-          allow_crew_invites?: boolean
+          allow_friend_requests?: boolean
           avatar_url?: string
           created_at?: string
           id: string
-          invites_sent_date?: string | null
-          invites_sent_today?: number
           name?: string
           onboarded?: boolean
           push_invite_accepted?: boolean
@@ -689,12 +607,10 @@ export type Database = {
         }
         Update: {
           active_gym_id?: string | null
-          allow_crew_invites?: boolean
+          allow_friend_requests?: boolean
           avatar_url?: string
           created_at?: string
           id?: string
-          invites_sent_date?: string | null
-          invites_sent_today?: number
           name?: string
           onboarded?: boolean
           push_invite_accepted?: boolean
@@ -1343,7 +1259,6 @@ export type Database = {
           id: string
         }[]
       }
-      crew_member_status: { Args: { p_crew_id: string }; Returns: string }
       end_match: {
         Args: { p_set_id: string }
         Returns: {
@@ -1443,84 +1358,6 @@ export type Database = {
           set_count: number
           total_flashes: number
           total_sends: number
-        }[]
-      }
-      get_crew_activity_feed:
-        | {
-            Args: { p_before?: string; p_crew_id: string; p_limit?: number }
-            Returns: {
-              avatar_url: string
-              gym_id: string
-              gym_name: string
-              happened_at: string
-              is_flash: boolean
-              is_zone: boolean
-              route_id: string
-              route_log_id: string
-              route_number: number
-              set_ends_at: string
-              set_id: string
-              set_name: string
-              set_starts_at: string
-              user_id: string
-              username: string
-            }[]
-          }
-        | {
-            Args: { p_before?: string; p_limit?: number }
-            Returns: {
-              avatar_url: string
-              gym_id: string
-              gym_name: string
-              happened_at: string
-              is_flash: boolean
-              is_zone: boolean
-              route_id: string
-              route_log_id: string
-              route_number: number
-              set_ends_at: string
-              set_id: string
-              set_name: string
-              set_starts_at: string
-              user_id: string
-              username: string
-            }[]
-          }
-      get_crew_leaderboard: {
-        Args: {
-          p_crew_id: string
-          p_limit?: number
-          p_offset?: number
-          p_set_id: string
-        }
-        Returns: {
-          avatar_url: string
-          flashes: number
-          name: string
-          points: number
-          rank: number
-          sends: number
-          user_id: string
-          username: string
-          zones: number
-        }[]
-      }
-      get_crew_member_counts: {
-        Args: { p_crew_ids: string[] }
-        Returns: {
-          count: number
-          crew_id: string
-        }[]
-      }
-      get_crew_member_previews: {
-        Args: { p_crew_ids: string[]; p_limit?: number }
-        Returns: {
-          avatar_url: string
-          crew_id: string
-          joined_at: string
-          name: string
-          user_id: string
-          username: string
         }[]
       }
       get_engagement_trend: {
@@ -1848,7 +1685,6 @@ export type Database = {
         }
         Returns: number
       }
-      is_active_crew_member: { Args: { p_crew_id: string }; Returns: boolean }
       is_active_set_player: { Args: { p_set_id: string }; Returns: boolean }
       is_admin_of_route: { Args: { p_route_id: string }; Returns: boolean }
       is_competition_organiser: {
@@ -1879,7 +1715,6 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      leave_crew_atomic: { Args: { p_crew_id: string }; Returns: string }
       lookup_match_by_code: {
         Args: { p_code: string }
         Returns: {

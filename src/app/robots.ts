@@ -4,7 +4,7 @@ import { env } from "@/lib/env";
 /**
  * Chork is a logged-in app; public surface is only the landing +
  * marketing routes. Everything behind auth (logging, leaderboard,
- * admin, crews, competitions) would 401 a crawler anyway — explicit
+ * admin, friends, competitions) would 401 a crawler anyway — explicit
  * here so bots don't waste crawl budget and so we don't have to
  * rely on the 401 wall as our SEO boundary.
  */
@@ -23,7 +23,7 @@ export default function robots(): MetadataRoute.Robots {
           "/onboarding",
           "/settings",
           "/inbox",
-          "/crew",
+          "/friends",
           "/competitions",
           "/log",
           "/leaderboard",

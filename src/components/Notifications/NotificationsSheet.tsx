@@ -7,15 +7,12 @@ import type { IconType } from "react-icons";
 import {
   FaUserPlus,
   FaCheck,
-  FaCrown,
   FaXmark,
 } from "react-icons/fa6";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { PendingInvitesCard } from "@/components/ui/PendingInvitesCard";
 import { Button } from "@/components/ui/Button";
 import { Username } from "@/components/ui/Username";
 import { formatDistanceToNow, parseISO } from "date-fns";
-import type { PendingInvite } from "@/lib/data/crew-queries";
 import type { NotificationRow } from "@/lib/data/notifications";
 import {
   renderNotificationInApp,
@@ -30,7 +27,6 @@ import {
 import styles from "./notificationsSheet.module.scss";
 
 interface Props {
-  invites: PendingInvite[];
   /**
    * Server-derived unread count. Drives the bell-badge upstream and
    * tells us whether to fire markAllNotificationsRead on open without
@@ -45,8 +41,9 @@ interface Props {
  * Notification sheet — opened from the profile header's bell button.
  *
  * Sections:
- *   • Crew invites — accept/decline surface (source of truth in
- *     `crew_members.status = pending`; notification rows are logs).
+ *   Friend requests appear as ordinary notification rows and are
+ *   acted on at /friends, which is where the roster lives — this
+ *   sheet is a log, not a second inbox.
  *   • Activity log — every past push-worthy event, deep-linked.
  *
  * The activity list lazy-loads on first open via the
@@ -55,7 +52,6 @@ interface Props {
  * transition so the bell badge clears once the next render runs.
  */
 export function NotificationsSheet({
-  invites,
   unreadCount,
   open,
   onClose,
@@ -110,18 +106,9 @@ export function NotificationsSheet({
       open
       onClose={onClose}
       title="Notifications"
-      description="Crew invites and activity"
+      description="Recent activity"
     >
       <div className={styles.sheet}>
-        {invites.length > 0 ? (
-          <PendingInvitesCard invites={invites} />
-        ) : (
-          <section className={styles.section} aria-label="Crew invites">
-            <h2 className={styles.sectionHeading}>Crew invites</h2>
-            <p className={styles.empty}>No pending invites.</p>
-          </section>
-        )}
-
         <section className={styles.section} aria-label="Recent activity">
           <h2 className={styles.sectionHeading}>Activity</h2>
           {error ? (
@@ -164,7 +151,6 @@ export function NotificationsSheet({
 const KIND_ICONS: Record<NotificationIcon, IconType> = {
   "user-plus": FaUserPlus,
   check: FaCheck,
-  crown: FaCrown,
 };
 
 /**
@@ -183,7 +169,7 @@ function SegmentedTitle({ segments }: { segments: NotificationSegment[] }) {
           <Fragment key={i}>{s.text}</Fragment>
         ) : (
           <strong key={i}>
-            {s.type === "user" ? <Username username={s.username} /> : s.name}
+            <Username username={s.username} />
           </strong>
         ),
       )}

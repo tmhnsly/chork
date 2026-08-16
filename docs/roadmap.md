@@ -354,58 +354,39 @@ vocabulary these decisions produced.
       suggested from recent sends once there's history, so it can't
       be casually sandbagged.
 
-- [ ] **Mates (replaces Crew).** Crews need creating, inviting and
-      accepting — three steps before any value, and every crew is
-      empty at launch. Replace with a mutual link; value at one
-      connection. Design settled 2026-08-16 (grilled); nothing real to
-      migrate (1 crew, 26 rows, all seed).
+- [x] **Friends (replaced Crew).** *(Phases 1–2 shipped 2026-08-16,
+      migrations 104–108. Crews removed entirely.)* Mutual link,
+      candidates suggested from Matches you've shared, plus the
+      set-scoped board crews were actually for. `allow_friend_requests`
+      is enforced in `request_friend`, not just the UI.
 
-      **The link.** Mutual, both sides agreed — CLAUDE.md's rule that
-      there is no asymmetric relationship in the app still holds, so
-      "follow" was loose wording. Consent stays; what changes is
-      *discovery*, which is the actual cold-start problem. Candidates
-      are **suggested from Matches you shared**: after a Match,
-      everyone in it appears as "climbed with you today — add?". You
-      never have to know a handle, and having been on the mats
-      together is a strong signal.
+      **Still open — the moments feed.** Friends at different gyms
+      share no Set, so the board is empty for them and nothing else in
+      the app shows one to the other. That is the whole reason a feed
+      exists, and it resolves the apparent conflict with "the growth
+      loop is the group chat": that principle governs *your own*
+      results going out (the share card), not seeing someone else's.
 
-      **Two payoffs, because mates are not all at one gym.**
+      Four kinds, all DERIVED at read time — nothing stored, same rule
+      as points and community grades, so there's no backfill and a
+      missed write can't lose a moment forever:
 
-      1. *Same gym* — a mates leaderboard replaces the crew one. Your
-         mates are your private board on the current Set. It exists
-         the moment you link one person, with no group to name.
-         `get_crew_leaderboard` is already set-scoped, so it mostly
-         re-points at a different roster.
-      2. *Different gyms* — a **moments feed**. This is why the feed
-         exists at all, and the answer to the apparent conflict with
-         "the growth loop is the group chat": that principle governs
-         *your own* results going out (the share card, shipped). Two
-         mates at different gyms share no Set, so a board is empty for
-         them and nothing else in the app shows one to the other.
-
-      **A moment is one of four, and all four are DERIVED at read
-      time — nothing new is stored.** Same rule as points and
-      community grades: derive from live rows, so there is no
-      backfill and a missed write can't lose a moment forever. Mate
-      counts are small enough that the query cost is fine.
-
-      - New personal best grade, per discipline (`route_logs` +
-        the route's declared/community grade — the same shape the
-        grade pyramid already computes)
-      - Won a Match (archived Match where they ranked 1; taps through
-        to the public result card)
+      - New personal best grade, per discipline
+      - Won a Match (taps through to the public result card)
       - Earned an achievement (`user_achievements.earned_at`)
       - Placed in a gym competition (`competition_participants` +
-        `get_competition_leaderboard`, gym via `competition_gyms`)
+        `get_competition_leaderboard`, gym via `competition_gyms`) —
+        the most commercially interesting of the four, since it makes
+        a gym's comp visible to climbers at other gyms
 
       Deliberately NOT a moment: "flashed above their usual grade".
       "Usual" needs a fuzzy rule, and a fuzzy rule produces moments
       people argue with.
 
-      Note `activity_events` is written only by gym-wall sends and
-      comments — 2 rows total, per-send, none gymless. Wrong grain and
-      effectively greenfield; deriving sidesteps it entirely rather
-      than fixing it.
+      `src/lib/data/activity-time.ts` (`relativeDay`) is kept unused
+      for this: coarse timestamps are a privacy contract with
+      anti-regression tests, and re-deriving them later is how the
+      rule stops being true.
 
 - [ ] **Game modes.** Chork (the HORSE variant) and whatever follows.
       Blocked on the convergence — build them on one engine or build

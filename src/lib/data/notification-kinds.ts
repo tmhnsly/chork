@@ -23,19 +23,6 @@
 
 // ── Payload shapes (persisted rows — snake_case, string fields) ──
 
-export interface CrewInviteReceivedPayload {
-  crew_id: string;
-  crew_name: string;
-  invite_id: string;
-  inviter_username: string;
-}
-
-export interface CrewInviteAcceptedPayload {
-  crew_id: string;
-  crew_name: string;
-  accepter_username: string;
-}
-
 export interface FriendRequestReceivedPayload {
   /** The link's own id — the in-app row acts on it directly. */
   friend_id: string;
@@ -46,12 +33,6 @@ export interface FriendRequestAcceptedPayload {
   accepter_username: string;
 }
 
-export interface CrewOwnershipTransferredPayload {
-  crew_id: string;
-  crew_name: string;
-  from_username: string;
-}
-
 /**
  * kind → payload map. `NotificationKind` derives from these keys, so
  * the union and the table can never drift: adding a key here without
@@ -59,9 +40,6 @@ export interface CrewOwnershipTransferredPayload {
  * versa. The DB check constraint (migration 033) mirrors this set.
  */
 export interface NotificationPayloads {
-  crew_invite_received: CrewInviteReceivedPayload;
-  crew_invite_accepted: CrewInviteAcceptedPayload;
-  crew_ownership_transferred: CrewOwnershipTransferredPayload;
   friend_request_received: FriendRequestReceivedPayload;
   friend_request_accepted: FriendRequestAcceptedPayload;
 }
@@ -77,24 +55,6 @@ export type NotificationPayload = NotificationPayloads[NotificationKind];
  * makes it non-optional on that branch of `NotificationEvent`.
  */
 export interface NotificationEventFields {
-  crew_invite_received: {
-    crewId: string;
-    crewName: string;
-    inviteId: string;
-    inviterUsername: string;
-  };
-  crew_invite_accepted: {
-    actor: string;
-    crewId: string;
-    crewName: string;
-    accepterUsername: string;
-  };
-  crew_ownership_transferred: {
-    actor: string;
-    crewId: string;
-    crewName: string;
-    fromUsername: string;
-  };
   friend_request_received: {
     actor: string;
     friendId: string;
@@ -142,18 +102,17 @@ export interface PushContent {
  * sheet holds an exhaustive `Record<NotificationIcon, IconType>`
  * map, so a new key here forces a one-line icon mapping there.
  */
-export type NotificationIcon = "user-plus" | "check" | "crown";
+export type NotificationIcon = "user-plus" | "check";
 
 /**
  * Structured in-app message parts. The sheet renders these
- * generically: `text` as plain text, `user` as a bold `@username`,
- * `crew` as a bold crew name. Usernames are stored WITHOUT the `@`
+ * generically: `text` as plain text and `user` as a bold `@username`.
+ * Usernames are stored WITHOUT the `@`
  * prefix — the renderer adds it (one place, per the domain rule).
  */
 export type NotificationSegment =
   | { type: "text"; text: string }
-  | { type: "user"; username: string }
-  | { type: "crew"; name: string };
+  | { type: "user"; username: string };
 
 export interface InAppContent {
   icon: NotificationIcon;
@@ -175,88 +134,22 @@ export interface NotificationKindDef<K extends NotificationKind> {
 export const notificationKinds: {
   [K in NotificationKind]: NotificationKindDef<K>;
 } = {
-  crew_invite_received: {
-    toPayload: (e) => ({
-      crew_id: e.crewId,
-      crew_name: e.crewName,
-      invite_id: e.inviteId,
-      inviter_username: e.inviterUsername,
-    }),
-    push: (p) => ({
-      title: "New crew invite",
-      body: `@${p.inviter_username} invited you to ${p.crew_name}.`,
-      url: "/crew",
-      category: "invite_received",
-    }),
-    inApp: (p) => ({
-      icon: "user-plus",
-      href: "/crew",
-      segments: [
-        { type: "user", username: p.inviter_username },
-        { type: "text", text: " invited you to " },
-        { type: "crew", name: p.crew_name },
-      ],
-    }),
-  },
 
-  crew_invite_accepted: {
-    toPayload: (e) => ({
-      crew_id: e.crewId,
-      crew_name: e.crewName,
-      accepter_username: e.accepterUsername,
-    }),
-    push: (p) => ({
-      title: "Invite accepted",
-      body: `@${p.accepter_username} joined ${p.crew_name}.`,
-      url: "/crew",
-      category: "invite_accepted",
-    }),
-    inApp: (p) => ({
-      icon: "check",
-      href: `/crew/${p.crew_id}`,
-      segments: [
-        { type: "user", username: p.accepter_username },
-        { type: "text", text: " joined " },
-        { type: "crew", name: p.crew_name },
-      ],
-    }),
-  },
 
-  crew_ownership_transferred: {
-    toPayload: (e) => ({
-      crew_id: e.crewId,
-      crew_name: e.crewName,
-      from_username: e.fromUsername,
-    }),
-    push: (p) => ({
-      title: "You're now the crew creator",
-      body: `@${p.from_username} handed ${p.crew_name} over to you.`,
-      url: `/crew/${p.crew_id}`,
-      category: "ownership_changed",
-    }),
-    inApp: (p) => ({
-      icon: "crown",
-      href: `/crew/${p.crew_id}`,
-      segments: [
-        { type: "user", username: p.from_username },
-        { type: "text", text: " made you the creator of " },
-        { type: "crew", name: p.crew_name },
-      ],
-    }),
-  },
 
-  // Mates reuse the crew push CATEGORIES (`invite_received` /
-  // `invite_accepted`) rather than adding opt-in columns: the two
-  // already mean "tell me when someone asks" and "tell me when
-  // someone says yes", and mates are what replaces crews.
+  // Friend requests reuse the push CATEGORIES that came in with crew
+  // invites (`invite_received` / `invite_accepted`). The opt-in
+  // columns outlived crews on purpose: "tell me when someone asks"
+  // and "tell me when someone says yes" are the same preference
+  // whatever the thing being asked is.
   friend_request_received: {
     toPayload: (e) => ({
       friend_id: e.friendId,
       from_username: e.fromUsername,
     }),
     push: (p) => ({
-      title: "New mate request",
-      body: `@${p.from_username} wants to be mates.`,
+      title: "New friend request",
+      body: `@${p.from_username} wants to be friends.`,
       url: "/friends",
       category: "invite_received",
     }),
@@ -265,7 +158,7 @@ export const notificationKinds: {
       href: "/friends",
       segments: [
         { type: "user", username: p.from_username },
-        { type: "text", text: " wants to be mates" },
+        { type: "text", text: " wants to be friends" },
       ],
     }),
   },
@@ -275,8 +168,8 @@ export const notificationKinds: {
       accepter_username: e.accepterUsername,
     }),
     push: (p) => ({
-      title: "You're mates",
-      body: `@${p.accepter_username} accepted your mate request.`,
+      title: "You're friends",
+      body: `@${p.accepter_username} accepted your friend request.`,
       url: "/friends",
       category: "invite_accepted",
     }),
@@ -285,7 +178,7 @@ export const notificationKinds: {
       href: "/friends",
       segments: [
         { type: "user", username: p.accepter_username },
-        { type: "text", text: " accepted your mate request" },
+        { type: "text", text: " accepted your friend request" },
       ],
     }),
   },
