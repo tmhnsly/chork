@@ -16,6 +16,7 @@ function mkPlayer(user_id: string, username: string): MatchPlayerView {
     avatar_url: null,
     joined_at: "2026-04-01T00:00:00Z",
     is_host: false,
+    has_left: false,
   };
 }
 

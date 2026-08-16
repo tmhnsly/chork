@@ -167,7 +167,21 @@
 
 .playerHandle {
   @include type.typography(meta, $step: xs);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
   color: var(--mono-text-low-contrast);
+}
+
+// A climber who parked their seat mid-Match. They keep their points
+// and their place — migration 102 — so the row needs to say why a
+// name nobody remembers finishing is still on the board.
+.playerLeft {
+  @include type.typography(label, $step: xs);
+  color: var(--mono-text-low-contrast);
+  background: var(--mono-subtle-bg);
+  border-radius: var(--radius-1);
+  padding: var(--space-1) var(--space-2);
 }
 
 .playerStats {

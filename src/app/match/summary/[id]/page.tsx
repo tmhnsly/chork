@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { format, parseISO } from "date-fns";
@@ -10,10 +11,26 @@ import { UserAvatar, Username } from "@/components/ui";
 import { ShareResultButton } from "@/components/Match/ShareResultButton";
 import styles from "./summary.module.scss";
 import { formatHandicapPoints } from "@/lib/data/handicap";
+import { countOf, countOfFormatted } from "@/lib/plural";
+import { isUuid } from "@/lib/validation";
 
 interface Props {
   params: Promise<{ id: string }>;
   searchParams: Promise<{ fresh?: string }>;
+}
+
+/**
+ * The Match's own name in the tab — this is the page a climber has
+ * open when they hand someone their phone. The layout appends
+ * "· Chork"; see `src/app/metadata.test.ts`.
+ */
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  if (!isUuid(id)) return { title: "Match result" };
+  const auth = await requireSignedIn();
+  if ("error" in auth) return { title: "Match result" };
+  const state = await getMatchStateForUser(createServiceClient(), id, auth.userId);
+  return { title: state?.match.name?.trim() || "Match result" };
 }
 
 export default async function MatchSummaryPage({ params, searchParams }: Props) {
@@ -125,6 +142,10 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
             // the join can miss — show the placeholder rather than an
             // empty row, so the standings stay complete.
             const username = p.username ?? "unknown";
+            // A guest has no account, so no handle to show. "@unknown"
+            // under someone's name reads as a bug to everyone and as
+            // rudeness to them.
+            const isGuest = p.is_guest;
             return (
             <li
               key={p.user_id || `unknown-${p.rank}-${i}`}
@@ -144,16 +165,23 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
               />
               <div className={styles.playerIdentity}>
                 <span className={styles.playerName}>
-                  {p.display_name || username}
+                  {p.display_name || (isGuest ? "Guest" : username)}
                 </span>
-                <Username username={username} className={styles.playerHandle} />
+                <span className={styles.playerHandle}>
+                  {isGuest ? (
+                    "Guest"
+                  ) : (
+                    <Username username={username} />
+                  )}
+                  {p.has_left && <span className={styles.playerLeft}>Left</span>}
+                </span>
               </div>
               <div className={styles.playerStats}>
-                <span>{p.sends} {p.sends === 1 ? "send" : "sends"}</span>
-                <span>
-                  {p.flashes} {p.flashes === 1 ? "flash" : "flashes"}
+                <span>{countOf(p.sends, "send")}</span>
+                <span>{countOf(p.flashes, "flash", "flashes")}</span>
+                <span className={styles.playerPoints}>
+                  {countOfFormatted(formatHandicapPoints(p.points_tenths), "pt")}
                 </span>
-                <span className={styles.playerPoints}>{formatHandicapPoints(p.points_tenths)} pts</span>
               </div>
             </li>
             );

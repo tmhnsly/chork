@@ -77,7 +77,9 @@ Platform hardening:
 
 ## Known fragility
 
-- [ ] **Production builds depend on fonts.gstatic.com.**
+- [x] **Production builds depend on fonts.gstatic.com.** *(Fixed
+      2026-08-15 — self-hosted via `next/font/local`; `src/lib/fonts.ts`
+      is the single swap point. Original note kept for the reasoning.)*
       `src/app/layout.tsx` uses `next/font/google` (Archivo), and both
       OG image routes fetch a Google font at request time via
       `src/lib/og-fonts.ts`. A build that can't reach Google fails
@@ -178,7 +180,8 @@ vocabulary these decisions produced.
 
 ### Need a design pass first
 
-- [ ] **The Set convergence.** The structural change everything else
+- [x] **The Set convergence.** *(Shipped 2026-08-15, migrations 082–093.)*
+      The structural change everything else
       waits on. A Match and a gym Set are one primitive at different
       settings (owner, lifetime, route source), so they become one
       family instead of `jam_*` mirroring `route_*`. Decided with
@@ -319,7 +322,8 @@ vocabulary these decisions produced.
             arguably better: it can cover gym and Match sends
             together, from live rows, per discipline.
 
-- [ ] **Guest players (the growth unlock).** Joining is the thirty
+- [x] **Guest players (the growth unlock).** *(Shipped 2026-08-15, migrations 095–097. Guests have no account at all — a named seat the host logs for.)*
+      Joining is the thirty
       seconds in which one climber recruits another, and today it
       costs install → sign up → code. `jam_players.user_id` is NOT
       NULL against `profiles`, so identity *is* the account.
@@ -341,7 +345,8 @@ vocabulary these decisions produced.
       It's mates on mats; the social contract is the enforcement.
       Verification machinery belongs only to gym-sanctioned Sets.
 
-- [ ] **Handicap.** Scores each send relative to the climber's own
+- [x] **Handicap.** *(Shipped 2026-08-15, migrations 098–101. Taper 1 / .7 / .4 then nothing; the cutoff IS the balance — see `src/lib/data/handicap.ts`.)*
+      Scores each send relative to the climber's own
       ceiling, so a V3 and a V8 climber can share a board honestly.
       **Matches only, never gym Sets** (a gym Set carries the gym's
       name and prizes; handicap is self-declared and soft).
@@ -367,18 +372,34 @@ vocabulary these decisions produced.
       Blocked on the convergence — build them on one engine or build
       each one twice.
 
-- [ ] **Match UX/robustness overhaul.** Shipped half-baked; the
-      feature works but doesn't hang together yet. Known gaps (audit
-      2026-08-10): live-player realtime never dispatched
-      (`set-players` reducer action is unused, so friends who join
-      mid-Match don't appear until reload); no leave UI (server
-      `leaveJam` is ready, no call site); ending gives no signal to
-      other open sessions; add/edit/end-route and end have no error
-      handling; live leaderboard caps at 5 of 20. Needs one coherent
-      pass, not piecemeal fixes — and best done *with* the
-      convergence rather than before it, since the container is
-      changing underneath. (The offline-queue data loss from this
-      list was fixed 2026-08-14.)
+- [x] **Match UX/robustness overhaul.** *(Shipped 2026-08-16,
+      migrations 102–103.)* Every gap from the 2026-08-10 audit is
+      closed:
+
+      - **Live-player realtime.** The `set-players` action existed and
+        was tested but nothing dispatched it — `useReducer`'s third
+        argument runs once, so the `router.refresh()` on join/leave
+        fetched a fresh roster the reducer then discarded. Now synced
+        from the prop at render time.
+      - **Leave.** `leaveMatchAction` has a call site. Leaving parks
+        the seat: you keep your points and your rank, marked "Left",
+        and lose only the ability to log more. That needed the
+        `is_set_player` (read) / `is_active_set_player` (write) split
+        in migration 102 — the same rule gym memberships already use.
+      - **Ending signals other sessions.** `sets` joined the realtime
+        publication; other open screens navigate themselves to the
+        result instead of sitting on a board that silently refuses
+        writes.
+      - **Ending is the host's.** It never was — `end_match` only
+        asked "are you a player", so anyone could end it for
+        everyone. Non-hosts now get "Leave match" instead.
+      - **Board no longer hides you.** Was `slice(0, 5)` of up to 20;
+        now top-of-table plus your own row, always, with expand.
+      - Error handling on add/edit/end-route was already in place by
+        the time this pass ran.
+
+      Still open: no hand-over if the host wants to leave rather than
+      end (pg_cron's `end_stale_matches` is the backstop).
 
 - [ ] **Card + Ranks merge.** Agreed in principle: they're the same
       context ("my gym, right now") and the bottom nav is one tab

@@ -1,11 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { FaPlus, FaEllipsisVertical, FaFlag } from "react-icons/fa6";
 import { LeaderboardRow } from "@/components/ui";
 import type { MatchState } from "@/lib/data/match-types";
 import { ownerIdOf } from "@/lib/data/match-types";
 import { formatHandicapPoints } from "@/lib/data/handicap";
 import { makeGradeLabeller } from "@/lib/data/grade-label";
+import { visibleBoardRows, BOARD_PREVIEW_SIZE } from "@/lib/data/match-board";
+import { countOf } from "@/lib/plural";
 import { MatchGrid } from "./MatchGrid";
 import { MatchLogSheet } from "./MatchLogSheet";
 import { MatchAddRouteSheet } from "./MatchAddRouteSheet";
@@ -43,7 +46,17 @@ export function MatchScreen({ initialState, userId }: Props) {
     handleAddGuest,
     handleSetCeiling,
     handleEnd,
+    handleLeave,
   } = useMatchScreenState({ initialState, userId });
+
+  // The board shows the top of the table and you, always — see
+  // match-board.ts for why the bare top-5 was a bug.
+  const [boardExpanded, setBoardExpanded] = useState(false);
+  const board = visibleBoardRows(
+    leaderboard,
+    (row) => row.user_id === userId,
+    boardExpanded,
+  );
 
   const { panel } = state;
   // Panels store route ids and derive the row at render time so a
@@ -100,8 +113,7 @@ export function MatchScreen({ initialState, userId }: Props) {
           </h1>
           <div className={styles.metaRow}>
             <span className={styles.metaChip}>
-              {state.players.length}{" "}
-              {state.players.length === 1 ? "player" : "players"}
+              {countOf(state.players.length, "player")}
             </span>
             {initialState.match.location && (
               <span className={styles.metaChip}>{initialState.match.location}</span>
@@ -134,10 +146,19 @@ export function MatchScreen({ initialState, userId }: Props) {
       </header>
 
       <ul className={styles.leaderboardStrip} aria-label="Leaderboard">
-        {leaderboard.slice(0, 5).map((row) => {
+        {board.rows.map((row, i) => {
           const isSelf = row.user_id === userId;
           return (
-            <li key={row.player_id}>
+            <li
+              key={row.player_id}
+              // Marks the jump when the viewer is pinned in from
+              // below, so #4 and #9 don't read as adjacent.
+              className={
+                board.selfPinned && i === board.rows.length - 1
+                  ? styles.pinnedRow
+                  : undefined
+              }
+            >
               <LeaderboardRow
                 entry={{
                   userId: ownerIdOf(row),
@@ -152,6 +173,10 @@ export function MatchScreen({ initialState, userId }: Props) {
                   flashes: row.flashes,
                 }}
                 isGuest={row.is_guest}
+                // They parked their seat but keep what they earned —
+                // migration 102. The word is the only thing that
+                // changes; the rank and points are real.
+                note={row.has_left ? "Left" : undefined}
                 highlighted={isSelf}
                 // Tapping any row (including your own) peeks the
                 // climber's per-route grid. Their logs are already in
@@ -162,7 +187,7 @@ export function MatchScreen({ initialState, userId }: Props) {
                   row.zones > 0 ? (
                     <span
                       className={styles.zoneCount}
-                      aria-label={`${row.zones} zones`}
+                      aria-label={countOf(row.zones, "zone")}
                     >
                       <FaFlag aria-hidden /> {row.zones}
                     </span>
@@ -173,6 +198,24 @@ export function MatchScreen({ initialState, userId }: Props) {
           );
         })}
       </ul>
+      {board.hiddenCount > 0 && (
+        <button
+          type="button"
+          className={styles.expandBoard}
+          onClick={() => setBoardExpanded(true)}
+        >
+          {`Show all ${countOf(leaderboard.length, "player")}`}
+        </button>
+      )}
+      {boardExpanded && leaderboard.length > BOARD_PREVIEW_SIZE && (
+        <button
+          type="button"
+          className={styles.expandBoard}
+          onClick={() => setBoardExpanded(false)}
+        >
+          Show less
+        </button>
+      )}
 
       <MatchGrid
         routes={state.routes}
@@ -244,6 +287,7 @@ export function MatchScreen({ initialState, userId }: Props) {
           onAddGuest={() => openPanel({ kind: "add-guest" })}
           onClose={closePanel}
           onEnd={handleEnd}
+          onLeave={handleLeave}
           pending={isPending}
         />
       )}

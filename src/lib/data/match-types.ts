@@ -137,6 +137,15 @@ export interface MatchPlayerView {
   joined_at: string;
   is_host: boolean;
   /**
+   * Their seat is parked — they left the Match (migration 102).
+   *
+   * They keep their points and their board position; leaving is not a
+   * way to erase a bad session, and their mates already watched them
+   * earn it. What they lose is the ability to log anything more,
+   * which RLS enforces rather than this flag.
+   */
+  has_left: boolean;
+  /**
    * This player's declared limit, as an index into the Match's scale.
    * Null = no handicap for them; they score base points.
    */
@@ -162,6 +171,8 @@ export interface MatchLeaderboardRow {
   sends: number;
   flashes: number;
   zones: number;
+  /** This seat was parked — see `MatchPlayerView.has_left`. */
+  has_left: boolean;
   points: number;
   /** Own count only — every other player reads 0. */
   attempts: number;

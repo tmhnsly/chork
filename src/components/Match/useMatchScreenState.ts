@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useReducer, useTransition } from "react";
+import { useCallback, useMemo, useReducer, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { showToast } from "@/components/ui";
 import { useMatchRealtime } from "@/hooks/use-match-realtime";
@@ -12,6 +12,7 @@ import {
   addMatchRouteAction,
   updateMatchRouteAction,
   endMatchAction,
+  leaveMatchAction,
   addMatchGuestAction,
   setMatchCeilingAction,
   removeMatchGuestAction,
@@ -47,6 +48,36 @@ export function useMatchScreenState({
   const [isPending, startTransition] = useTransition();
   const [state, dispatch] = useReducer(matchReducer, initialState, initMatchState);
 
+  /**
+   * Take the roster back off the server after a refresh.
+   *
+   * `useReducer`'s third argument runs ONCE. Join and leave events
+   * called `router.refresh()`, which re-ran the server component and
+   * handed down a fresh `initialState` — that the reducer then threw
+   * away, because it had already initialised. Net effect: a mate who
+   * joined mid-Match stayed invisible until someone reloaded the
+   * page, on the one screen where "who else is here" is the point.
+   *
+   * Routes and logs never had this problem: their realtime payloads
+   * carry the whole row, so they dispatch straight from the event. A
+   * `set_players` row can't — it holds a `user_id`, not a username or
+   * an avatar — which is why joins take the server round-trip at all.
+   *
+   * Adjusting state during render rather than in an effect is the
+   * documented React pattern for "prop changed, derive state again",
+   * and the only one `react-hooks/set-state-in-effect` allows.
+   * Keyed on a roster signature, not object identity, so an unrelated
+   * refresh doesn't churn the board.
+   */
+  const rosterKey = initialState.players
+    .map((p) => `${p.player_id}:${p.has_left ? 1 : 0}`)
+    .join(",");
+  const [syncedRoster, setSyncedRoster] = useState(rosterKey);
+  if (rosterKey !== syncedRoster) {
+    setSyncedRoster(rosterKey);
+    dispatch({ type: "set-players", players: initialState.players });
+  }
+
   useMatchRealtime(initialState.match.id, {
     onRouteChange: (evt) => {
       if (evt.eventType === "DELETE") {
@@ -71,8 +102,20 @@ export function useMatchScreenState({
     onPlayerChange: () => {
       // Player changes come as scattered events — a full state
       // refresh is cheaper to reason about than hand-patched set
-      // maths when someone joins or leaves.
+      // maths when someone joins or leaves. The refreshed roster
+      // reaches the reducer via the render-time sync above.
       router.refresh();
+    },
+    onMatchChange: (evt) => {
+      // The host ended it. Everyone else is looking at a board that
+      // has silently stopped accepting writes, so move them to the
+      // result rather than let them tap into a dead screen.
+      //
+      // `replace`, not `push`: back from the summary should reach
+      // wherever they came from, not a live screen that no longer is.
+      if (evt.new?.status === "archived") {
+        router.replace(`/match/summary/${initialState.match.id}`);
+      }
     },
   });
 
@@ -172,6 +215,7 @@ export function useMatchScreenState({
             avatar_url: null,
             joined_at: result.player.joined_at,
             is_host: false,
+            has_left: false,
             // The host declares it separately, after seating them.
             ceiling: null,
           },
@@ -314,6 +358,24 @@ export function useMatchScreenState({
     [initialState.match.id, state.logs, userId],
   );
 
+  /**
+   * Park your seat and go.
+   *
+   * Straight to the Match list rather than the summary: the Match is
+   * still running for everyone else, and dropping the leaver on a
+   * result page for a live contest reads as though it ended.
+   */
+  const handleLeave = useCallback(() => {
+    startTransition(async () => {
+      const result = await leaveMatchAction(initialState.match.id);
+      if ("error" in result) {
+        showToast(result.error, "error");
+        return;
+      }
+      router.push("/match");
+    });
+  }, [initialState.match.id, router]);
+
   const handleEnd = useCallback(() => {
     startTransition(async () => {
       const result = await endMatchAction(initialState.match.id);
@@ -339,5 +401,6 @@ export function useMatchScreenState({
     handleUpdateRoute,
     handleLog,
     handleEnd,
+    handleLeave,
   };
 }
