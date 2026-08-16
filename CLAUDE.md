@@ -3,10 +3,10 @@
 Multi-gym bouldering competition tracker PWA. Climbers log attempts on
 numbered routes within a gym's active set, earn points on a public
 gym-wide leaderboard ("Chorkboard"), and can compete inside private
-groups called **crews**.
+climb alongside the friends they add.
 
 > Deep dives:
-> - `docs/architecture.md` — data access, auth, push, crew model
+> - `docs/architecture.md` — data access, auth, push, friends model
 > - `docs/schema.md` — Supabase tables, RPCs, RLS patterns
 > - `docs/migrations.md` — one-line-per-migration catalogue
 > - `docs/testing.md` — test patterns + stability invariants
@@ -111,7 +111,7 @@ Two supabase clients:
 - Queries: one `*-queries.ts` module per domain surface —
   `route-log-queries` / `route-queries` / `set-queries` /
   `gym-queries` / `profile-queries` / `leaderboard-queries` /
-  `crew-queries` / `competition-queries` / `admin-queries` /
+  `friend-queries` / `competition-queries` / `admin-queries` /
   `dashboard-queries` / `match-queries` / `comment-queries` /
   `achievement-queries`. Every read takes `supabase` as first arg.
   (There is no catch-all `queries.ts`; it was split per-surface.)
@@ -120,18 +120,18 @@ Two supabase clients:
   server-only `getListedGyms` for `"use client"` callers. Components
   never query Supabase tables directly, even client-side
 - Mutations: `src/lib/data/mutations.ts` (climber writes) and
-  `crew-lifecycle.ts` — server-side only; some use service role for
+  server-side only; some use service role for
   cross-user writes. Admin + match writes live inline in their server
   action (single-caller wrappers were deliberately inlined — don't
   reintroduce a pass-through mutation module for them)
 - Server actions live next to their pages:
   `src/app/(app)/actions.ts`, `src/app/admin/actions.ts`,
-  `src/app/crew/actions.ts`
+  `src/app/friends/actions.ts`
 - Types: `src/lib/data/types.ts` derives from `database.types.ts`
   (regenerated after every migration)
 - Pure logic (easily testable, no Supabase dependency):
   `src/lib/data/logs.ts` (`computePoints`, `isFlash`,
-  `deriveTileState`), `grade-label.ts`, `crew-time.ts`,
+  `deriveTileState`), `grade-label.ts`, `activity-time.ts`,
   `set-label.ts`, `profile-stats.ts`
 
 ### Caching + revalidation
@@ -453,7 +453,7 @@ navbar + home indicator), max-width, and centering.
 - **Beta spray uses opacity, not blur.** `opacity: 0.4 + filter: blur(3px)`
   with a reveal toggle
 - **Activity feed timestamps are coarse.** `relativeDay()` in
-  `src/lib/data/crew-time.ts` — "today" / "yesterday" / "N days ago".
+  `src/lib/data/activity-time.ts` — "today" / "yesterday" / "N days ago".
   Never clock time, hours, am/pm. Privacy-first so climbers can't
   infer when mates are physically at the gym
 
@@ -466,7 +466,7 @@ baseline. Never write code that assumes `profile.active_gym_id` is
 set.
 
 - `requireSignedIn()` for anything that works without a gym (matches,
-  crews, profiles, notifications). `requireAuth()` **only** for
+  friends, profiles, notifications). `requireAuth()` **only** for
   genuinely gym-scoped surfaces — it fails with "No gym selected"
 - Gymless routing already exists: `/` and `/leaderboard` redirect to
   `/match`, NavBar drops to its gymless variant (Crew / Match / Profile),
@@ -483,29 +483,55 @@ set.
   since set boards only count logs in that set
 
 Known gap: `activity_events` is only written by gym-wall sends and
-comments, so a gymless climber produces nothing for the crew feed.
-Decided direction is one event per match, parked pending the crew rework.
+comments, so a gymless climber produces nothing for a feed.
+Decided direction is one event per match, parked pending the moments
+feed (docs/roadmap.md), which is what friends at other gyms will see.
 
-### Crews replaced follows
+### Friends (crews are gone)
 
-The follow / followers feature was ripped out in migration 020 and
-replaced by the crew system (migration 021). There is no asymmetric
-relationship in the app — every social link is a mutual `crew_members`
-row that both sides agreed to. If you see `follower_count` or
-`getFollowers` anywhere, it's a stale reference and should be deleted.
+**There is no asymmetric relationship in this app.** Follows were
+ripped out in migration 020, crews replaced them, and friends
+replaced crews in migrations 104–108. Every social link is still one
+row both sides agreed to. `follower_count`, `getFollowers`, anything
+`crew*` — all stale, all should be deleted on sight.
 
-**Surfaces:** `/crew` is a picker (avatar-stack cards + pending
-invites + zero-state hero), `/crew/[id]` is the detail view with
-Activity / Leaderboard / Members tabs. Creator can transfer
-ownership to an active member (migration 031); if they try to
-leave with others present the server refuses.
+**Why crews went:** create, name, invite, accept — four steps before
+anything was worth looking at, and every crew started empty. A friend
+link is worth something at one connection.
+
+**`public.friends`** is one row per pair (`requester_id` /
+`addressee_id` only record who asked), unique on the *unordered* pair
+via an index on `(least, greatest)`. It has **no Data API grant** —
+every read and write goes through a SECURITY DEFINER RPC, so the
+table is unreachable from supabase-js and RLS is not the only gate.
+The RPC owns the state machine, and the states matter:
+
+- asking twice is idempotent — one row, one notification
+- asking someone who already asked *you* accepts
+- declining is silent, and the row persists so suggestions stop
+  offering them
+- the person declined cannot re-ask; the person who declined can
+  change their mind
+
+**Discovery, not search.** `get_friend_suggestions` reads Matches you
+have shared — never gym Sets, since everyone at your gym shares the
+current Set and that would be a directory. Guests are excluded; they
+have no account to link to.
+
+**`profiles.allow_friend_requests`** is enforced inside
+`request_friend` and hides you from suggestions. A privacy switch the
+server doesn't honour is decoration.
+
+**Surfaces:** `/friends` is roster + suggestions + the friends board
+(`get_friends_leaderboard`, set-scoped, always includes you). Friends
+at other gyms share no Set, so a board is empty for them — they are
+the reason the moments feed exists (docs/roadmap.md).
 
 ### Notifications
 
 Two layers: push (best-effort, transient) + persistent log
 (`notifications` table, migration 033). Every push-worthy event is
-tagged with a category (`invite_received` / `invite_accepted` /
-`ownership_changed`) — `sendPushToUsers(..., { category })` filters
+tagged with a category (`invite_received` / `invite_accepted`) — `sendPushToUsers(..., { category })` filters
 recipients by the opt-in bool on `profiles` (migration 032). The
 `notifyUser(userId, args)` helper writes a log row alongside so
 missed pushes are caught up in the NotificationsSheet.

@@ -48,12 +48,11 @@ const PROFILE_CACHE_TTL_MS = 60 * 60 * 1000; // 1h
  * `*` is used. Adding a column here is a conscious "this is safe to
  * expose client-side" decision.
  *
- * Currently excluded from auth surface (server-only): invites_sent_date,
- * invites_sent_today — rate-limit bookkeeping for crew invites that
- * has no UI consumer and shouldn't end up in the cache.
+ * Nothing is currently excluded — the crew invite quota columns that
+ * used to be were dropped with crews in migration 108.
  */
 const AUTH_PROFILE_COLUMNS =
-  "id, username, name, avatar_url, onboarded, active_gym_id, theme, allow_crew_invites, push_invite_received, push_invite_accepted, push_ownership_changed, created_at, updated_at";
+  "id, username, name, avatar_url, onboarded, active_gym_id, theme, allow_friend_requests, push_invite_received, push_invite_accepted, push_ownership_changed, created_at, updated_at";
 
 interface ProfileCacheEntry {
   profile: Profile;

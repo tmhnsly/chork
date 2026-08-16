@@ -23,7 +23,7 @@ import {
 import { ChorkMark } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
 import { createBrowserSupabase } from "@/lib/supabase/client";
-import { getPendingCrewInviteCount } from "@/lib/data/crew-queries";
+import { getPendingFriendRequestCount } from "@/lib/data/friend-queries";
 import { useClientResource } from "@/hooks/use-client-resource";
 import {
   createLocalStorageStore,
@@ -31,20 +31,20 @@ import {
 } from "@/lib/local-storage-store";
 import styles from "./navBar.module.scss";
 
-// Badge acknowledgement is client-side only: a user seeing the Crew tab
+// Badge acknowledgement is client-side only: a user seeing the Friends tab
 // clears the badge until a NEW invite arrives past the acknowledged
 // count. Persisted in localStorage keyed by userId so multi-account
 // usage on one device stays correct. The store bridges localStorage
 // into useSyncExternalStore — `storage` covers other tabs, the custom
-// "chork-crew-ack" event covers same-tab writes.
-const CREW_ACK_KEY_PREFIX = "chork-crew-invites-ack:";
+// "chork-friend-ack" event covers same-tab writes.
+const REQUEST_ACK_KEY_PREFIX = "chork-friend-requests-ack:";
 
 const ackStores = new Map<string, LocalStorageStore<number>>();
 function getAckStore(userId: string): LocalStorageStore<number> {
   let store = ackStores.get(userId);
   if (!store) {
-    store = createLocalStorageStore<number>(CREW_ACK_KEY_PREFIX + userId, {
-      eventName: "chork-crew-ack",
+    store = createLocalStorageStore<number>(REQUEST_ACK_KEY_PREFIX + userId, {
+      eventName: "chork-friend-ack",
       parse: (raw) => Number.parseInt(raw, 10) || 0,
       serialize: String,
     });
@@ -278,8 +278,8 @@ function AuthenticatedNav({
   const isOnCrew =
     pathname.startsWith("/friends") || pathname.startsWith("/crew");
   const { data: pendingData } = useClientResource<number>(
-    `crew-invites|${userId}|${isOnCrew}`,
-    () => getPendingCrewInviteCount(createBrowserSupabase(), userId),
+    `friend-requests|${userId}|${isOnCrew}`,
+    () => getPendingFriendRequestCount(createBrowserSupabase()),
     { keepPreviousData: true },
   );
   const pendingCount = pendingData ?? 0;

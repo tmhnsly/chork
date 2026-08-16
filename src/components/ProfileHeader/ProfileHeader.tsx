@@ -4,7 +4,6 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { FaBell, FaGear } from "react-icons/fa6";
 import type { Profile } from "@/lib/data";
-import type { PendingInvite } from "@/lib/data/crew-queries";
 import { UserAvatar } from "@/components/ui";
 import { RevealText } from "@/components/motion";
 import styles from "./profileHeader.module.scss";
@@ -36,13 +35,12 @@ interface Props {
    */
   contextLine?: string | null;
   /**
-   * Own-profile only: pending crew invites. Drives the badge dot on
+   * Own-profile only: unread notifications. Drives the badge dot on
    * the notification bell and hydrates the NotificationsSheet.
    */
-  invites?: PendingInvite[];
   /**
    * Own-profile only: count of unread notification rows. Badge dot
-   * lights up when invites or unreadCount > 0; the NotificationsSheet
+   * lights up when unreadCount > 0; the NotificationsSheet
    * lazy-loads its full list when first opened.
    */
   unreadCount?: number;
@@ -64,13 +62,12 @@ export function ProfileHeader({
   user,
   isOwnProfile,
   contextLine,
-  invites = [],
   unreadCount = 0,
 }: Props) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  const hasBadge = invites.length > 0 || unreadCount > 0;
+  const hasBadge = unreadCount > 0;
 
   return (
     <>
@@ -89,7 +86,7 @@ export function ProfileHeader({
                   onClick={() => setNotificationsOpen(true)}
                   aria-label={
                     hasBadge
-                      ? `Notifications (${invites.length + unreadCount} new)`
+                      ? `Notifications (${unreadCount} new)`
                       : "Notifications"
                   }
                 >
@@ -118,7 +115,6 @@ export function ProfileHeader({
       {isOwnProfile && (
         <>
           <NotificationsSheet
-            invites={invites}
             unreadCount={unreadCount}
             open={notificationsOpen}
             onClose={() => setNotificationsOpen(false)}

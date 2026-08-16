@@ -16,14 +16,13 @@ type Supabase = SupabaseClient<Database>;
  * per-kind definition table that also owns each kind's push and
  * in-app renders. Re-exported here so existing importers keep one
  * module path for notification data types. DB check constraint
- * mirrors the same kind set (migration 033).
+ * mirrors the same kind set (migration 033, narrowed by 108).
  */
 export type {
   NotificationKind,
   NotificationPayload,
-  CrewInviteReceivedPayload,
-  CrewInviteAcceptedPayload,
-  CrewOwnershipTransferredPayload,
+  FriendRequestReceivedPayload,
+  FriendRequestAcceptedPayload,
 } from "./notification-kinds";
 
 export interface NotificationRow<P = NotificationPayload> {

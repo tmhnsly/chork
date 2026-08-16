@@ -73,6 +73,21 @@ export async function getFriendSuggestions(
   );
 }
 
+/**
+ * How many people are waiting on you.
+ *
+ * Drives the nav badge, which used to count pending crew invites.
+ * Counted from `getFriends` rather than its own RPC — the list is
+ * small, already granted, and a second count function would be a
+ * second place for "what counts as pending" to drift.
+ */
+export async function getPendingFriendRequestCount(
+  supabase: Supabase,
+): Promise<number> {
+  const rows = await getFriends(supabase);
+  return rows.filter((r) => r.direction === "incoming").length;
+}
+
 /** Split for the UI, which shows the three groups separately. */
 export function partitionFriends(friends: Friend[]): {
   active: Friend[];

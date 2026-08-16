@@ -12,7 +12,7 @@ import { notify } from "./notify";
 
 const USER_A = "11111111-1111-1111-1111-111111111111";
 const USER_B = "22222222-2222-2222-2222-222222222222";
-const CREW_1 = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+const FRIEND_1 = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -20,45 +20,43 @@ beforeEach(() => {
 });
 
 describe("notify", () => {
-  it("crew_invite_received: writes log row + fires push with composed body", async () => {
+  it("friend_request_received: writes log row + fires push with composed body", async () => {
     const { sendPushInBackground } = await import("@/lib/push/server");
     const { revalidateTag } = await import("next/cache");
 
     await notify({
-      kind: "crew_invite_received",
+      kind: "friend_request_received",
       recipient: USER_B,
       actor: USER_A,
-      crewId: CREW_1,
-      crewName: "Tuesday Crew",
-      inviteId: "i1",
-      inviterUsername: "alice",
+      friendId: FRIEND_1,
+      fromUsername: "alice",
     });
 
     expect(rpc).toHaveBeenCalledWith(
       "notify_user",
       expect.objectContaining({
         p_user_id: USER_B,
-        p_kind: "crew_invite_received",
+        p_kind: "friend_request_received",
         p_payload: expect.objectContaining({
-          crew_id: CREW_1,
-          crew_name: "Tuesday Crew",
-          invite_id: "i1",
-          inviter_username: "alice",
+          friend_id: FRIEND_1,
+          from_username: "alice",
         }),
       }),
     );
     expect(sendPushInBackground).toHaveBeenCalledWith(
       [USER_B],
       {
-        title: "New crew invite",
-        body: "@alice invited you to Tuesday Crew.",
-        url: "/crew",
+        title: "New friend request",
+        body: "@alice wants to be friends.",
+        url: "/friends",
         // Per-kind tray tag: repeats of one kind coalesce, different
         // kinds stay separate. sw.js has always read this field;
         // nothing set it until 2026-08, so every notification shared
         // the generic fallback tag and collapsed into one entry.
-        tag: "chork-crew_invite_received",
+        tag: "chork-friend_request_received",
       },
+      // Reuses crew's opt-in category — the columns outlived crews
+      // because "tell me when someone asks" is the same preference.
       { category: "invite_received" },
     );
     // No cache bust: the inbox is read via an uncached server action
@@ -66,47 +64,24 @@ describe("notify", () => {
     expect(revalidateTag).not.toHaveBeenCalled();
   });
 
-  it("crew_invite_accepted: composes title with accepter username", async () => {
+  it("friend_request_accepted: names who accepted", async () => {
     const { sendPushInBackground } = await import("@/lib/push/server");
 
     await notify({
-      kind: "crew_invite_accepted",
+      kind: "friend_request_accepted",
       recipient: USER_A,
       actor: USER_B,
-      crewId: CREW_1,
-      crewName: "Tuesday Crew",
       accepterUsername: "bob",
     });
 
     expect(sendPushInBackground).toHaveBeenCalledWith(
       [USER_A],
       expect.objectContaining({
-        title: "Invite accepted",
-        body: "@bob joined Tuesday Crew.",
+        title: "You're friends",
+        body: "@bob accepted your friend request.",
+        url: "/friends",
       }),
       { category: "invite_accepted" },
-    );
-  });
-
-  it("crew_ownership_transferred: push url targets the specific crew", async () => {
-    const { sendPushInBackground } = await import("@/lib/push/server");
-
-    await notify({
-      kind: "crew_ownership_transferred",
-      recipient: USER_B,
-      actor: USER_A,
-      crewId: CREW_1,
-      crewName: "Tuesday Crew",
-      fromUsername: "alice",
-    });
-
-    expect(sendPushInBackground).toHaveBeenCalledWith(
-      [USER_B],
-      expect.objectContaining({
-        title: "You're now the crew creator",
-        url: `/crew/${CREW_1}`,
-      }),
-      { category: "ownership_changed" },
     );
   });
 
@@ -114,11 +89,9 @@ describe("notify", () => {
     const { sendPushInBackground } = await import("@/lib/push/server");
 
     await notify({
-      kind: "crew_invite_accepted",
+      kind: "friend_request_accepted",
       recipient: USER_A,
       actor: USER_A,
-      crewId: CREW_1,
-      crewName: "Tuesday Crew",
       accepterUsername: "alice",
     });
 
@@ -132,13 +105,11 @@ describe("notify", () => {
 
     await expect(
       notify({
-        kind: "crew_invite_received",
+        kind: "friend_request_received",
         recipient: USER_B,
         actor: USER_A,
-        crewId: CREW_1,
-        crewName: "Tuesday Crew",
-        inviteId: "i1",
-        inviterUsername: "alice",
+        friendId: FRIEND_1,
+        fromUsername: "alice",
       }),
     ).resolves.toBeUndefined();
 
@@ -153,13 +124,11 @@ describe("notify", () => {
 
     await expect(
       notify({
-        kind: "crew_invite_received",
+        kind: "friend_request_received",
         recipient: USER_B,
         actor: USER_A,
-        crewId: CREW_1,
-        crewName: "Tuesday Crew",
-        inviteId: "i1",
-        inviterUsername: "alice",
+        friendId: FRIEND_1,
+        fromUsername: "alice",
       }),
     ).resolves.toBeUndefined();
   });
@@ -172,13 +141,11 @@ describe("notify", () => {
 
     await expect(
       notify({
-        kind: "crew_invite_received",
+        kind: "friend_request_received",
         recipient: USER_B,
         actor: USER_A,
-        crewId: CREW_1,
-        crewName: "Tuesday Crew",
-        inviteId: "i1",
-        inviterUsername: "alice",
+        friendId: FRIEND_1,
+        fromUsername: "alice",
       }),
     ).resolves.toBeUndefined();
   });

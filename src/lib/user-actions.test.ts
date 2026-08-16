@@ -173,34 +173,4 @@ describe("deleteAccount", () => {
     expect(await deleteAccount()).toEqual({ error: "Not signed in" });
   });
 
-  it("hands an owned crew to its longest-standing active member before deleting the account", async () => {
-    const HEIR = "22222222-2222-2222-2222-222222222222";
-    const CREW = "33333333-3333-3333-3333-333333333333";
-    const { requireSignedIn } = await import("./auth");
-    vi.mocked(requireSignedIn).mockResolvedValue({ userId: USER_A } as never);
-
-    // crews SELECT → one owned crew; crew_members lookup → the heir.
-    const service = createMockSupabase({
-      "table:crews": { data: [{ id: CREW }] },
-      "table:crew_members": { data: { user_id: HEIR } },
-    });
-    service.auth.admin.deleteUser.mockResolvedValue({ error: null });
-    const { createServiceClient } = await import("./supabase/server");
-    vi.mocked(createServiceClient).mockReturnValue(service as never);
-
-    const { deleteAccount } = await import("./user-actions");
-    expect(await deleteAccount()).toEqual({ success: true });
-
-    // Invariant: ownership is transferred to the heir, and only THEN is
-    // the account deleted — otherwise the cascade wipes the crew for all.
-    expect(
-      service.calls.some(
-        (c) =>
-          c.source === "crews" &&
-          c.method === "update" &&
-          (c.args[0] as { created_by?: string })?.created_by === HEIR,
-      ),
-    ).toBe(true);
-    expect(service.auth.admin.deleteUser).toHaveBeenCalledWith(USER_A);
-  });
 });

@@ -26,8 +26,8 @@ const ONBOARDED_COOKIE = "chork-onboarded";
 //
 // Values:
 //   "u"    unauthed
-//   "ang"  authed, no gym   → Crew / Match / Profile tabs
-//   "awg"  authed with gym  → Wall / Board / Crew / Match / Profile tabs
+//   "ang"  authed, no gym   → Friends / Match / Profile tabs
+//   "awg"  authed with gym  → Wall / Board / Friends / Match / Profile
 //
 // Non-critical — a stale or missing value just means the nav may
 // briefly show the wrong shape, same as before this cookie existed.
@@ -78,7 +78,7 @@ export async function proxy(request: NextRequest) {
   // Stamp the nav shell cookie so `NavBarShell` paints the correct
   // variant on first byte. The gym-aware value lets the pre-hydration
   // nav hide Wall + Board for gymless users (who still have access
-  // to Crew / Match / Profile). We don't fire an extra SELECT just for
+  // to Friends / Match / Profile). We don't fire an extra SELECT just for
   // this — the onboarded-check below runs on the same request anyway,
   // and extending it to read `active_gym_id` is a single column.
   //
@@ -236,7 +236,6 @@ export const config = {
     "/profile/:path*",
     "/leaderboard/:path*",
     "/u/:path*",
-    "/crew/:path*",
     "/friends/:path*",
     "/competitions/:path*",
     "/admin/:path*",

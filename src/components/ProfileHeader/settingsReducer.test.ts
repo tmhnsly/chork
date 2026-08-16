@@ -12,7 +12,7 @@ function mkProfile(
   overrides: Partial<SettingsProfileSlice> = {},
 ): SettingsProfileSlice {
   return {
-    allow_crew_invites: true,
+    allow_friend_requests: true,
     push_invite_received: true,
     push_invite_accepted: true,
     push_ownership_changed: true,
@@ -23,7 +23,7 @@ function mkProfile(
 describe("initialSettingsState", () => {
   it("seeds flags from the profile", () => {
     const profile = mkProfile({
-      allow_crew_invites: false,
+      allow_friend_requests: false,
       push_invite_accepted: false,
     });
     const state = initialSettingsState(profile);
@@ -113,7 +113,7 @@ describe("reseed-from-profile", () => {
 
   it("reseeds allow-invites when the profile flag changes", () => {
     const state = initialSettingsState(mkProfile());
-    const refreshed = mkProfile({ allow_crew_invites: false });
+    const refreshed = mkProfile({ allow_friend_requests: false });
     const next = settingsReducer(state, {
       type: "reseed-from-profile",
       profile: refreshed,
@@ -144,7 +144,7 @@ describe("reseed-from-profile", () => {
   });
 
   it("is a no-op (same reference) when nothing changed", () => {
-    const profile = mkProfile({ allow_crew_invites: false });
+    const profile = mkProfile({ allow_friend_requests: false });
     const state = initialSettingsState(profile);
     const next = settingsReducer(state, {
       type: "reseed-from-profile",
@@ -187,17 +187,17 @@ describe("needsProfileReseed", () => {
     ).toBe(true);
   });
 
-  it("true when allow_crew_invites changed", () => {
+  it("true when allow_friend_requests changed", () => {
     const state = initialSettingsState(mkProfile());
     expect(
-      needsProfileReseed(state, mkProfile({ allow_crew_invites: false })),
+      needsProfileReseed(state, mkProfile({ allow_friend_requests: false })),
     ).toBe(true);
   });
 
   it("stays false after a reseed applied the new profile", () => {
     const state = initialSettingsState(mkProfile());
     const refreshed = mkProfile({
-      allow_crew_invites: false,
+      allow_friend_requests: false,
       push_invite_received: false,
     });
     const next = settingsReducer(state, {

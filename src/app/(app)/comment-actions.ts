@@ -51,8 +51,8 @@ export async function postComment(
     // tag-shape is registered in `tags.ts` so a future cache wrap
     // doesn't silently serve stale post-mutation.
     //
-    // No `revalidatePath("/crew")` here — CLAUDE.md forbids path
-    // revalidation. The crew activity feed picks up the new
+    // No `revalidatePath` here — CLAUDE.md forbids path
+    // revalidation. The activity feed picks up the new
     // beta-spray event on its next render (60s `staleTimes.dynamic`
     // window). When tighter freshness is needed, introduce a
     // dedicated `userCrewActivity` tag rather than re-adding a path
