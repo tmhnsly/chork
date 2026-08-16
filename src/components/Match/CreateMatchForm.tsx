@@ -8,6 +8,8 @@ import {
   FaArrowUp,
   FaArrowDown,
   FaScaleBalanced,
+  FaCube,
+  FaShuffle,
 } from "react-icons/fa6";
 import {
   Button,
@@ -22,6 +24,7 @@ import {
   DISCIPLINES,
   DISCIPLINE_LABEL,
   DISCIPLINE_SCALES,
+  disciplineFamily,
   type Discipline,
   type CustomGradeEntry,
 } from "@/lib/data/grade-label";
@@ -36,6 +39,7 @@ import {
   isFormulaScale,
   initialCreateMatchState,
   MAX_CUSTOM_GRADES,
+  type FormulaScale,
 } from "./createMatchReducer";
 import styles from "./createMatchForm.module.scss";
 
@@ -77,12 +81,17 @@ export function CreateMatchForm({ savedScales }: Props) {
   gameMode,
     handicap,
     scale,
+    altScale,
     ranges,
     customGrades,
     newGradeInput,
     saveScale,
     scaleName,
   } = state;
+
+  // Which family the Match's own scale grades for — names the
+  // single/mixed tiles and decides which ladder the alternate offers.
+  const primaryFamily = disciplineFamily(discipline);
 
   const canSubmit = deriveCanSubmit(state, pending);
 
@@ -225,7 +234,9 @@ export function CreateMatchForm({ savedScales }: Props) {
 
       {isFormulaScale(scale) && (
         <fieldset className={styles.fieldset}>
-          <legend className={styles.label}>Grade range</legend>
+          <legend className={styles.label}>
+            {altScale ? `${SCALE_LABEL[scale]} range` : "Grade range"}
+          </legend>
           <RangePicker
             scale={scale}
             customGrades={customGrades.map((label, ordinal) => ({ ordinal, label }))}
@@ -236,6 +247,83 @@ export function CreateMatchForm({ savedScales }: Props) {
             }
           />
         </fieldset>
+      )}
+
+      {/* A mixed day. Sport and top-rope grade the same way, so the
+          ceiling is two scales and never three — which is why this is
+          one toggle rather than a scale per discipline.
+
+          Only offered on a formula scale: a custom ladder is one
+          ladder and applies to whatever you climb, and points has no
+          grades to mix. */}
+      {isFormulaScale(scale) && (
+        <fieldset className={styles.fieldset}>
+          <legend className={styles.label}>What are you climbing</legend>
+          <ChoiceTiles<"single" | "mixed">
+            options={[
+              {
+                value: "single",
+                label: primaryFamily === "boulder" ? "Just boulders" : "Just ropes",
+                detail: "One scale",
+                icon:
+                  primaryFamily === "boulder" ? (
+                    <FaCube aria-hidden />
+                  ) : (
+                    <FaArrowUp aria-hidden />
+                  ),
+              },
+              {
+                value: "mixed",
+                label: "Mixed day",
+                detail: "Boulders and ropes",
+                icon: <FaShuffle aria-hidden />,
+              },
+            ]}
+            value={altScale ? "mixed" : "single"}
+            onChange={(next) =>
+              dispatch({ type: "set-mixed", value: next === "mixed" })
+            }
+            ariaLabel="Disciplines in this match"
+          />
+        </fieldset>
+      )}
+
+      {altScale && (
+        <>
+          <fieldset className={styles.fieldset}>
+            <legend className={styles.label}>
+              {primaryFamily === "boulder" ? "Rope scale" : "Boulder scale"}
+            </legend>
+            <ChoiceTiles<FormulaScale>
+              options={(primaryFamily === "boulder"
+                ? (["french", "yds"] as const)
+                : (["v", "font"] as const)
+              ).map((value) => ({ value, label: SCALE_LABEL[value] }))}
+              value={altScale}
+              onChange={(next) =>
+                dispatch({ type: "set-alt-scale", scale: next })
+              }
+              ariaLabel={
+                primaryFamily === "boulder" ? "Rope scale" : "Boulder scale"
+              }
+            />
+          </fieldset>
+
+          <fieldset className={styles.fieldset}>
+            <legend className={styles.label}>
+              {SCALE_LABEL[altScale]} range
+            </legend>
+            <RangePicker
+              scale={altScale}
+              customGrades={[]}
+              min={ranges[altScale][0]}
+              max={ranges[altScale][1]}
+              onChange={(min, max) =>
+                dispatch({ type: "set-range", scale: altScale, min, max })
+              }
+            />
+          </fieldset>
+        </>
       )}
       {scale === "custom" && (
         <div className={styles.customSection}>

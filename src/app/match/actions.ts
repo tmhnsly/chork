@@ -7,7 +7,11 @@ import { formatError, formatErrorForLog } from "@/lib/errors";
 import { buildBadgeContext } from "@/lib/achievements/context";
 import { evaluateAndPersistAchievements } from "@/lib/achievements/evaluate";
 import type { MatchGradingScale, MatchRoute } from "@/lib/data/match-types";
-import { isDiscipline, type Discipline } from "@/lib/data/grade-label";
+import {
+  isDiscipline,
+  scaleFamily,
+  type Discipline,
+} from "@/lib/data/grade-label";
 import { isUuid } from "@/lib/validation";
 import type { Database } from "@/lib/database.types";
 
@@ -68,6 +72,12 @@ function isScale(value: unknown): value is MatchGradingScale {
  * take a min/max range. `custom` carries its own ladder and `points`
  * has no grades at all.
  */
+function isFormulaScaleName(
+  scale: string,
+): scale is "v" | "font" | "yds" | "french" {
+  return scale === "v" || scale === "font" || scale === "yds" || scale === "french";
+}
+
 function isFormulaScale(scale: MatchGradingScale): boolean {
   return (
     scale === "v" || scale === "font" || scale === "yds" || scale === "french"
@@ -95,6 +105,15 @@ interface CreateMatchPayload {
   discipline?: Discipline | null;
   /** Score relative to each player's ceiling. Needs a graded scale. */
   handicap?: boolean;
+  /**
+   * A mixed day: the scale for the discipline family this Match's own
+   * discipline is NOT. Must be a formula scale in the OTHER family —
+   * the server refuses the same family twice, since that isn't a
+   * second scale, it's the first one written down again.
+   */
+  altGradingScale?: "v" | "font" | "yds" | "french" | null;
+  altMinGrade?: number | null;
+  altMaxGrade?: number | null;
 }
 
 export async function createMatchAction(
@@ -153,6 +172,35 @@ export async function createMatchAction(
   const discipline = payload.discipline ?? "boulder";
   if (!isDiscipline(discipline)) return { error: "Invalid discipline" };
 
+  // Validated here as well as in SQL: the action boundary rejects a
+  // malformed payload before any DB call, so the constraint isn't the
+  // only gate (CLAUDE.md "Validate ids at the action boundary").
+  const altScale = payload.altGradingScale ?? null;
+  let altMin: number | null = null;
+  let altMax: number | null = null;
+  if (altScale !== null) {
+    if (!isFormulaScaleName(altScale)) {
+      return { error: "Invalid second grading scale" };
+    }
+    if (scaleFamily(altScale) === scaleFamily(payload.gradingScale)) {
+      return { error: "The second scale must be for the other discipline" };
+    }
+    if (
+      typeof payload.altMinGrade !== "number" ||
+      typeof payload.altMaxGrade !== "number"
+    ) {
+      return { error: "Pick a min and max for the second scale" };
+    }
+    if (payload.altMinGrade < 0 || payload.altMinGrade > 30) {
+      return { error: "Second min grade out of range" };
+    }
+    if (payload.altMaxGrade < payload.altMinGrade || payload.altMaxGrade > 30) {
+      return { error: "Second max grade must be above min and ≤ 30" };
+    }
+    altMin = payload.altMinGrade;
+    altMax = payload.altMaxGrade;
+  }
+
   const { data, error } = await auth.supabase.rpc("create_match", {
     p_discipline: discipline,
     p_handicap: !!payload.handicap,
@@ -163,6 +211,9 @@ export async function createMatchAction(
     p_max_grade: undef(maxGrade),
     p_custom_grades: undef(customGrades),
     p_save_scale_name: undef(saveScaleName),
+    p_alt_grading_scale: undef(altScale),
+    p_alt_min_grade: undef(altMin),
+    p_alt_max_grade: undef(altMax),
   });
   if (error) return { error: formatError(error) };
   const rows = (data ?? []) as Array<{ id: string; code: string }>;
@@ -222,6 +273,13 @@ interface RoutePayload {
    * null, so inheriting stays inheriting.
    */
   discipline?: Discipline | null;
+  /**
+   * Set on a guest's behalf — host only, and the seat is what gets
+   * recorded. Without it a guest could never take their turn in
+   * Chork: the route went down under the host's account, so the pen
+   * bounced straight back off them (migration 116).
+   */
+  playerId?: string | null;
 }
 
 export async function addMatchRouteAction(
@@ -240,6 +298,7 @@ export async function addMatchRouteAction(
     p_description: undef(clampString(payload.description, MAX_DESCRIPTION_LEN)),
     p_grade: undef(typeof payload.grade === "number" ? payload.grade : null),
     p_has_zone: !!payload.hasZone,
+    p_player_id: undef(payload.playerId ?? null),
   });
   if (error) return { error: formatError(error) };
   // Return the full row so the client can dispatch `upsert-route`
@@ -434,6 +493,39 @@ export async function concedeChorkRound(
     p_set_id: matchId,
     p_route_id: routeId,
     p_player_id: playerId ?? undefined,
+  });
+  if (error) return { error: formatError(error) };
+  return { ok: true };
+}
+
+/**
+ * Take your own challenge back.
+ *
+ * The setter's own way out, and the only thing that moves the pen. A
+ * challenge nobody sent cleanly was never a round, so it costs nobody
+ * a letter and it leaves the wall — but the row survives, because the
+ * pen is derived from the routes and deleting the record of your turn
+ * would hand it straight back to you (migration 114).
+ *
+ * Refused once the setter has sent it: other climbers may already
+ * have spent goes answering, and taking it back would erase letters
+ * they have earned.
+ */
+export async function withdrawChorkRoute(
+  matchId: string,
+  routeId: string,
+  playerId?: string | null,
+): Promise<{ error: string } | { ok: true }> {
+  const auth = await gateSignedInMutation(matchId, "match id");
+  if ("error" in auth) return { error: auth.error };
+  if (!isUuid(routeId)) return { error: "Invalid route id" };
+  if (playerId != null && !isUuid(playerId)) {
+    return { error: "Invalid player id" };
+  }
+
+  const { error } = await auth.supabase.rpc("chork_withdraw_route", {
+    p_route_id: routeId,
+    p_player_id: undef(playerId ?? null),
   });
   if (error) return { error: formatError(error) };
   return { ok: true };

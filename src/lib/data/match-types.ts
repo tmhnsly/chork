@@ -52,6 +52,18 @@ export interface Match {
   max_grade: number | null;
   /** Default for this Match's routes; each may override it. */
   discipline: Discipline;
+  /**
+   * The scale for the discipline family this Match's own discipline is
+   * NOT — rope grades on a bouldering Match, or boulder grades on a
+   * roped one. Null means a single-discipline session (migration 117).
+   *
+   * Resolve a route's scale with `scaleForDiscipline`; never read this
+   * or `grading_scale` directly to grade a route, or a mixed day picks
+   * the wrong ladder.
+   */
+  alt_grading_scale: MatchGradingScale | null;
+  alt_min_grade: number | null;
+  alt_max_grade: number | null;
   status: MatchStatus;
   starts_at: string;
   /** Null while live — a Match is open-ended until someone ends it. */
@@ -93,6 +105,20 @@ export interface MatchRoute {
   community_grade: number | null;
   has_zone: boolean;
   added_by: string | null;
+  /**
+   * The SEAT that set it (migration 116). `added_by` is the account
+   * behind that seat and is null for a guest — Chork rotates the pen
+   * by seat, so this is the one to compare against a player.
+   */
+  added_by_player: string | null;
+  /**
+   * Chork: the setter put this up and could not send it, so it never
+   * became a round. `get_match_state_for_user` filters these out, so
+   * a route reaching the room is always null here — the field exists
+   * because a withdrawal reaches the client as a realtime UPDATE on
+   * the row, and that is how the reducer knows to drop it.
+   */
+  withdrawn_at: string | null;
   /**
    * Overrides the Match's discipline. Null = inherit, which is the
    * common case — the RPC normalises a value equal to the Match's own

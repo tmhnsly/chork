@@ -3,6 +3,7 @@ import {
   DISCIPLINE_SCALES,
   SCALE_DEFAULT_MAX,
   type Discipline,
+  scaleFamily,
 } from "@/lib/data/grade-label";
 
 /**
@@ -69,6 +70,17 @@ export interface CreateMatchState {
    */
   ranges: Record<FormulaScale, [number, number]>;
 
+  /**
+   * The scale for the OTHER discipline family — set on a mixed day, so
+   * boulders and ropes can both be graded in one Match (migration
+   * 117). Null is a single-discipline session.
+   *
+   * Its range lives in `ranges` like any other, which is exactly why
+   * that is a map: the alt needs one too, and a second bespoke pair of
+   * fields would be the same rule written twice.
+   */
+  altScale: FormulaScale | null;
+
   // custom — ordered easiest → hardest, plus its editing scratch.
   customGrades: string[];
   newGradeInput: string;
@@ -91,6 +103,13 @@ export type CreateMatchAction =
   | { type: "set-handicap"; value: boolean }
   | { type: "set-game-mode"; value: "points" | "chork" }
   | { type: "set-range"; scale: FormulaScale; min: number; max: number }
+  /**
+   * Turn a mixed day on or off. On picks the other family's default
+   * scale; off drops it. The ranges stay put either way, so toggling
+   * twice doesn't lose what was set.
+   */
+  | { type: "set-mixed"; value: boolean }
+  | { type: "set-alt-scale"; scale: FormulaScale }
   /**
    * Commit the pending grade input onto the list and clear the
    * input. No-op when the trimmed input is empty or the list is at
@@ -129,11 +148,17 @@ export function initialCreateMatchState(): CreateMatchState {
       yds: [0, SCALE_DEFAULT_MAX.yds],
       french: [0, SCALE_DEFAULT_MAX.french],
     },
+    altScale: null,
     customGrades: [],
     newGradeInput: "",
     saveScale: false,
     scaleName: "",
   };
+}
+
+/** The scale a mixed day reaches for by default, given the primary. */
+function defaultAltScale(scale: MatchGradingScale): FormulaScale {
+  return scaleFamily(scale) === "boulder" ? "french" : "v";
 }
 
 export function createMatchReducer(
@@ -152,10 +177,19 @@ export function createMatchReducer(
       // scale that has none turns it off rather than leaving a toggle
       // that silently does nothing.
       const keepsHandicap = isFormulaScale(action.scale);
+      // Only a formula scale has a family, so switching to custom or
+      // points drops the mixed setup: one ladder covers everything,
+      // and points has no grades to mix in the first place.
+      const keepsAlt = isFormulaScale(action.scale) && state.altScale !== null;
       return {
         ...state,
         scale: action.scale,
         handicap: keepsHandicap && state.handicap,
+        altScale: keepsAlt
+          ? scaleFamily(state.altScale!) === scaleFamily(action.scale)
+            ? defaultAltScale(action.scale)
+            : state.altScale
+          : null,
       };
     }
 
@@ -173,11 +207,38 @@ export function createMatchReducer(
       const keepScale =
         !isFormulaScale(state.scale)
         || (allowed as readonly MatchGradingScale[]).includes(state.scale);
+      const nextScale = keepScale ? state.scale : allowed[0];
+      // Switching a bouldering Match to Sport flips which family is
+      // "other" — the rope alt it was carrying is now the primary
+      // family, so the alt has to move to boulders or it is the same
+      // scale twice and every route resolves to whichever is read
+      // first. The server refuses that shape outright (migration 117).
+      const nextAlt =
+        state.altScale === null || !isFormulaScale(nextScale)
+          ? null
+          : scaleFamily(state.altScale) === scaleFamily(nextScale)
+            ? defaultAltScale(nextScale)
+            : state.altScale;
       return {
         ...state,
         discipline: action.discipline,
-        scale: keepScale ? state.scale : allowed[0],
+        scale: nextScale,
+        altScale: nextAlt,
       };
+    }
+
+    case "set-mixed": {
+      if (!action.value) return { ...state, altScale: null };
+      // Meaningless without two ladders to mix.
+      if (!isFormulaScale(state.scale)) return state;
+      return { ...state, altScale: defaultAltScale(state.scale) };
+    }
+
+    case "set-alt-scale": {
+      // Guard the invariant here as well as at the call site: an alt
+      // in the primary's own family is not a second scale.
+      if (scaleFamily(action.scale) === scaleFamily(state.scale)) return state;
+      return { ...state, altScale: action.scale };
     }
 
     case "set-range":
@@ -275,6 +336,10 @@ export interface CreateMatchFormPayload {
    * `create_match` — see the note on that action.
    */
   gameMode: "points" | "chork";
+  /** Null on a single-discipline day. */
+  altGradingScale: FormulaScale | null;
+  altMinGrade: number | null;
+  altMaxGrade: number | null;
 }
 
 /**
@@ -285,6 +350,7 @@ export function buildCreateMatchPayload(
   state: CreateMatchState,
 ): CreateMatchFormPayload {
   const range = isFormulaScale(state.scale) ? state.ranges[state.scale] : null;
+  const altRange = state.altScale ? state.ranges[state.altScale] : null;
   return {
     name: state.name.trim() || null,
     location: state.location.trim() || null,
@@ -299,5 +365,8 @@ export function buildCreateMatchPayload(
       state.scale === "custom" && state.saveScale && state.scaleName.trim()
         ? state.scaleName.trim()
         : null,
+    altGradingScale: state.altScale,
+    altMinGrade: altRange ? altRange[0] : null,
+    altMaxGrade: altRange ? altRange[1] : null,
   };
 }

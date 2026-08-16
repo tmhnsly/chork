@@ -87,6 +87,37 @@ export async function lookupMatchByCode(
   );
 }
 
+/**
+ * Chork standings for a finished Match, read server-side.
+ *
+ * The result page is a server component and has no points to show —
+ * Chork hasn't got any. Letters can't be derived here for the same
+ * reason they can't be derived on the client: every input is somebody
+ * else's private attempt count.
+ */
+export async function getChorkStandings(
+  service: Client,
+  setId: string,
+): Promise<ChorkStandingRow[]> {
+  return readMany<ChorkStandingRow>(
+    service.rpc("chork_standings", { p_set_id: setId }),
+    "getchorkstandings_failed",
+  );
+}
+
+export interface ChorkStandingRow {
+  player_id: string;
+  user_id: string | null;
+  username: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  is_guest: boolean;
+  letters: number;
+  is_out: boolean;
+  has_left: boolean;
+  has_pen: boolean;
+}
+
 /** Finished Matches the user played, newest first. Service-role. */
 export async function getUserMatches(
   service: Client,

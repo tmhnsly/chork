@@ -54,6 +54,7 @@ export function MatchScreen({ initialState, userId }: Props) {
     chorkPenSeatId,
     chorkAllowance,
     handleConcede,
+    handleWithdraw,
   } = useMatchScreenState({ initialState, userId });
 
   // The board shows the top of the table and you, always — see
@@ -123,6 +124,17 @@ export function MatchScreen({ initialState, userId }: Props) {
             : p.user_id === userId,
         ) ?? null
       : null;
+
+  // The log belongs to the SEAT being logged for, not to the viewer.
+  // Passing the viewer's own meant a host opening a guest's round saw
+  // their own attempts and send on it — "Route 1 — Dave" showing Tom's
+  // 2 goes and a tick.
+  const sheetLog =
+    activeRoute && loggingPlayer?.is_guest
+      ? state.logs.get(logKey(loggingPlayer.player_id, activeRoute.id)) ?? null
+      : activeRoute
+        ? myLogByRouteId.get(activeRoute.id) ?? null
+        : null;
 
   const ceilingPlayer =
     panel.kind === "ceiling"
@@ -258,7 +270,7 @@ export function MatchScreen({ initialState, userId }: Props) {
         routes={state.routes}
         myLogs={myLogByRouteId}
         grades={initialState.grades}
-        gradingScale={initialState.match.grading_scale}
+        match={initialState.match}
         onTileTap={(route) => openPanel({ kind: "log", routeId: route.id })}
         onAddTap={() => openPanel({ kind: "add" })}
         onTileLongPress={(route) => openPanel({ kind: "edit", routeId: route.id })}
@@ -267,19 +279,9 @@ export function MatchScreen({ initialState, userId }: Props) {
       {activeRoute && (
         <MatchLogSheet
           route={activeRoute}
-          // The log belongs to the SEAT being logged for, not to the
-          // viewer. Passing the viewer's own meant a host opening a
-          // guest's round saw their own attempts and send on it —
-          // "Route 1 — Dave" showing Tom's 2 goes and a tick.
-          log={
-            loggingPlayer?.is_guest
-              ? state.logs.get(logKey(loggingPlayer.player_id, activeRoute.id))
-                ?? null
-              : myLogByRouteId.get(activeRoute.id) ?? null
-          }
+          log={sheetLog}
           grades={initialState.grades}
-          gradingScale={initialState.match.grading_scale}
-          matchDiscipline={initialState.match.discipline}
+          match={initialState.match}
           handicap={initialState.match.handicap}
           // The seat being logged for — the guest when the host is
           // entering, otherwise the viewer's own.
@@ -306,6 +308,26 @@ export function MatchScreen({ initialState, userId }: Props) {
                       activeRoute.id,
                       loggingPlayer?.is_guest ? loggingPlayer.player_id : undefined,
                     ),
+                  // The seat's own challenge, not yet sent: the only
+                  // way to end that turn. Matched on the SEAT, so it
+                  // works for a guest the host is acting for — the
+                  // account behind a guest's route is null, and
+                  // comparing that to the viewer never matches.
+                  //
+                  // Once it HAS been sent the round is live for
+                  // everyone else and taking it back would erase
+                  // letters they've earned, so the server refuses and
+                  // the sheet stops offering it.
+                  onWithdraw:
+                    loggingPlayer &&
+                    activeRoute.added_by_player === loggingPlayer.player_id &&
+                    !sheetLog?.completed
+                      ? () =>
+                          handleWithdraw(
+                            activeRoute.id,
+                            loggingPlayer.is_guest ? loggingPlayer.player_id : null,
+                          )
+                      : undefined,
                 }
               : undefined
           }
@@ -320,13 +342,22 @@ export function MatchScreen({ initialState, userId }: Props) {
       {panel.kind === "add" && (
         <MatchAddRouteSheet
           mode="add"
+          isChork={isChork}
           grades={initialState.grades}
-          gradingScale={initialState.match.grading_scale}
-          minGrade={initialState.match.min_grade}
-          maxGrade={initialState.match.max_grade}
-          matchDiscipline={initialState.match.discipline}
+          match={initialState.match}
           onClose={closePanel}
-          onSubmit={handleAddRoute}
+          // In Chork the route belongs to whoever holds the pen. When
+          // that's a guest the host is tapping for them, so the seat
+          // has to travel with it — recorded under the host's own
+          // account, the pen bounced straight back and the guest never
+          // got a turn (migration 116).
+          onSubmit={(payload) =>
+            handleAddRoute({
+              ...payload,
+              playerId:
+                isChork && penPlayer?.is_guest ? penPlayer.player_id : null,
+            })
+          }
           pending={isPending}
         />
       )}
@@ -336,10 +367,7 @@ export function MatchScreen({ initialState, userId }: Props) {
           mode="edit"
           route={editRoute}
           grades={initialState.grades}
-          gradingScale={initialState.match.grading_scale}
-          minGrade={initialState.match.min_grade}
-          maxGrade={initialState.match.max_grade}
-          matchDiscipline={initialState.match.discipline}
+          match={initialState.match}
           onClose={closePanel}
           onSubmit={(payload) => handleUpdateRoute(editRoute.id, payload)}
           pending={isPending}
@@ -418,7 +446,7 @@ export function MatchScreen({ initialState, userId }: Props) {
           routes={state.routes}
           logs={state.logs}
           grades={initialState.grades}
-          gradingScale={initialState.match.grading_scale}
+          match={initialState.match}
           onClose={closePanel}
         />
       )}

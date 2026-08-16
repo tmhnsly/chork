@@ -62,16 +62,21 @@ describe("the SQL rules", () => {
     expect(body).toMatch(/coalesce\(p_attempts, 0\) >= p_allowance/);
   });
 
-  it("keeps the pen with a setter who sends, and moves it when they don't", async () => {
+  it("keeps the pen until the setter takes the challenge back", async () => {
     const { latestDefinition } = await import("@/test/sql-definitions");
     const { body } = latestDefinition("chork_standings");
 
     // The pen is a column on the standings, not a client-side guess —
     // it needs the setter's own attempt count, which is private.
     expect(body).toMatch(/has_pen boolean/);
-    // The last challenge PUT UP, sent or not: an unsent one is exactly
-    // what passes the pen, so it cannot be filtered out of `last_set`.
-    expect(body).toMatch(/was_sent/);
+    // Withdrawal is what moves it, NOT "hasn't sent it yet". Reading
+    // an unsent challenge as a failed one took the pen off you the
+    // instant you put a route up, while you were still tying in
+    // (migration 114) — so the rule turns on `was_withdrawn`.
+    expect(body).toMatch(/was_withdrawn/);
+    expect(body).not.toMatch(/was_sent/);
+    // And a withdrawn challenge is not a round, so it costs no letter.
+    expect(body).toMatch(/r\.withdrawn_at is null/);
     // Out players don't set either, so rotation runs over `eligible`.
     expect(body).toMatch(/t\.letters < 5/);
   });

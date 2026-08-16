@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { useRadioGroup } from "../useRadioGroup";
 import styles from "./choiceTiles.module.scss";
 
 export interface ChoiceTileOption<T extends string> {
@@ -17,8 +18,12 @@ interface Props<T extends string> {
   options: ChoiceTileOption<T>[];
   value: T;
   onChange: (value: T) => void;
-  /** Required — this is a radio group and needs naming. */
-  ariaLabel: string;
+  /** Names the group. Give this OR `ariaLabelledBy`, never both. */
+  ariaLabel?: string;
+  /** Id of a visible label — preferred when one is already on screen. */
+  ariaLabelledBy?: string;
+  /** Marks the group as needing an answer before the form can submit. */
+  required?: boolean;
 }
 
 /**
@@ -35,40 +40,46 @@ interface Props<T extends string> {
  * wear the same clothes. See CLAUDE.md "The tile is the app's
  * vocabulary".
  *
- * Radios rather than buttons: one of these is always chosen, arrow
- * keys move between them, and a screen reader announces "2 of 3"
- * without any of it being hand-rolled.
+ * Radios rather than buttons: one of these is always chosen, and a
+ * screen reader announces "2 of 3" without it being hand-rolled. The
+ * keyboard half comes from `useRadioGroup` — this component claimed
+ * arrow keys in this comment for a while before anything implemented
+ * them, which is why the contract now lives in one place.
  */
 export function ChoiceTiles<T extends string>({
   options,
   value,
   onChange,
   ariaLabel,
+  ariaLabelledBy,
+  required,
 }: Props<T>) {
+  const { groupProps, optionProps } = useRadioGroup({
+    options,
+    value,
+    onChange,
+    ariaLabel,
+    ariaLabelledBy,
+    required,
+  });
+
   return (
-    <div className={styles.grid} role="radiogroup" aria-label={ariaLabel}>
-      {options.map((opt) => {
-        const selected = opt.value === value;
-        return (
-          <button
-            key={opt.value}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            disabled={opt.disabled}
-            className={`${styles.tile} ${selected ? styles.selected : ""}`}
-            onClick={() => onChange(opt.value)}
-          >
-            {opt.icon && (
-              <span className={styles.icon} aria-hidden>
-                {opt.icon}
-              </span>
-            )}
-            <span className={styles.label}>{opt.label}</span>
-            {opt.detail && <span className={styles.detail}>{opt.detail}</span>}
-          </button>
-        );
-      })}
+    <div className={styles.grid} {...groupProps}>
+      {options.map((opt, i) => (
+        <button
+          key={opt.value}
+          {...optionProps(opt, i)}
+          className={`${styles.tile} ${opt.value === value ? styles.selected : ""}`}
+        >
+          {opt.icon && (
+            <span className={styles.icon} aria-hidden>
+              {opt.icon}
+            </span>
+          )}
+          <span className={styles.label}>{opt.label}</span>
+          {opt.detail && <span className={styles.detail}>{opt.detail}</span>}
+        </button>
+      ))}
     </div>
   );
 }

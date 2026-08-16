@@ -1,4 +1,4 @@
-import { CardSkeleton, shimmerStyles } from "@/components/ui";
+import { CardSkeleton, PageHeaderSkeleton } from "@/components/ui";
 import styles from "./loading.module.scss";
 
 /**
@@ -10,9 +10,7 @@ import styles from "./loading.module.scss";
 export default function LeaderboardLoading() {
   return (
     <main className={styles.page} aria-busy="true" aria-label="Loading Chorkboard">
-      <header className={styles.header}>
-        <div className={`${styles.title} ${shimmerStyles.skeleton}`} />
-      </header>
+      <PageHeaderSkeleton />
 
       <CardSkeleton height="7rem" ariaLabel="Loading gym stats" />
       <CardSkeleton height="3rem" ariaLabel="Loading filter" />

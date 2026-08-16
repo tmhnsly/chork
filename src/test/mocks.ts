@@ -39,6 +39,13 @@ export function mockRouteSet(overrides: Partial<RouteSet> & { id: string; gym_id
     status: "live",
     grading_scale: "v",
     max_grade: 10,
+    // Migration 117 — the scale for the OTHER discipline family, so a
+    // Match can run boulders and ropes on one day. Null on a gym Set,
+    // which is one discipline by definition (and the constraint says
+    // so).
+    alt_grading_scale: null,
+    alt_min_grade: null,
+    alt_max_grade: null,
     competition_id: null,
     closing_event: false,
     venue_gym_id: null,
@@ -57,6 +64,14 @@ export function mockRoute(overrides: Partial<Route> & { id: string; set_id: stri
     // be confused).
     description: null,
     added_by: null,
+    // Migration 116 — the SEAT that set it. A guest has a seat and no
+    // account, which is why this sits beside `added_by` rather than
+    // replacing it.
+    added_by_player: null,
+    // Migration 114 — Chork: a challenge whose setter took it back.
+    // Null on every route the room can see, since the state RPC
+    // filters withdrawn ones out.
+    withdrawn_at: null,
     declared_grade: null,
     // Null = inherit the Set's discipline (migration 091), which is
     // the common case — only a route that genuinely differs stores one.

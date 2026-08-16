@@ -806,6 +806,7 @@ export type Database = {
       routes: {
         Row: {
           added_by: string | null
+          added_by_player: string | null
           community_grade: number | null
           created_at: string
           declared_grade: number | null
@@ -818,9 +819,11 @@ export type Database = {
           set_id: string
           setter_name: string | null
           updated_at: string
+          withdrawn_at: string | null
         }
         Insert: {
           added_by?: string | null
+          added_by_player?: string | null
           community_grade?: number | null
           created_at?: string
           declared_grade?: number | null
@@ -833,9 +836,11 @@ export type Database = {
           set_id: string
           setter_name?: string | null
           updated_at?: string
+          withdrawn_at?: string | null
         }
         Update: {
           added_by?: string | null
+          added_by_player?: string | null
           community_grade?: number | null
           created_at?: string
           declared_grade?: number | null
@@ -848,6 +853,7 @@ export type Database = {
           set_id?: string
           setter_name?: string | null
           updated_at?: string
+          withdrawn_at?: string | null
         }
         Relationships: [
           {
@@ -855,6 +861,13 @@ export type Database = {
             columns: ["added_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "routes_added_by_player_fkey"
+            columns: ["added_by_player"]
+            isOneToOne: false
+            referencedRelation: "set_players"
             referencedColumns: ["id"]
           },
           {
@@ -943,6 +956,9 @@ export type Database = {
       sets: {
         Row: {
           active: boolean
+          alt_grading_scale: string | null
+          alt_max_grade: number | null
+          alt_min_grade: number | null
           closing_event: boolean
           code: string | null
           competition_id: string | null
@@ -969,6 +985,9 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          alt_grading_scale?: string | null
+          alt_max_grade?: number | null
+          alt_min_grade?: number | null
           closing_event?: boolean
           code?: string | null
           competition_id?: string | null
@@ -995,6 +1014,9 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          alt_grading_scale?: string | null
+          alt_max_grade?: number | null
+          alt_min_grade?: number | null
           closing_event?: boolean
           code?: string | null
           competition_id?: string | null
@@ -1203,10 +1225,12 @@ export type Database = {
           p_discipline?: string
           p_grade?: number
           p_has_zone?: boolean
+          p_player_id?: string
           p_set_id: string
         }
         Returns: {
           added_by: string | null
+          added_by_player: string | null
           community_grade: number | null
           created_at: string
           declared_grade: number | null
@@ -1219,6 +1243,7 @@ export type Database = {
           set_id: string
           setter_name: string | null
           updated_at: string
+          withdrawn_at: string | null
         }
         SetofOptions: {
           from: "*"
@@ -1286,6 +1311,32 @@ export type Database = {
           username: string
         }[]
       }
+      chork_withdraw_route: {
+        Args: { p_player_id?: string; p_route_id: string }
+        Returns: {
+          added_by: string | null
+          added_by_player: string | null
+          community_grade: number | null
+          created_at: string
+          declared_grade: number | null
+          description: string | null
+          discipline: string | null
+          grade_vote_count: number
+          has_zone: boolean
+          id: string
+          number: number
+          set_id: string
+          setter_name: string | null
+          updated_at: string
+          withdrawn_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "routes"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       compute_points: {
         Args: { p_attempts: number; p_completed: boolean; p_zone: boolean }
         Returns: number
@@ -1302,6 +1353,9 @@ export type Database = {
       }
       create_match: {
         Args: {
+          p_alt_grading_scale?: string
+          p_alt_max_grade?: number
+          p_alt_min_grade?: number
           p_custom_grades?: string[]
           p_discipline?: string
           p_grading_scale?: string
@@ -1317,10 +1371,14 @@ export type Database = {
           id: string
         }[]
       }
+      discipline_family: { Args: { p_discipline: string }; Returns: string }
       end_match: {
         Args: { p_set_id: string }
         Returns: {
           active: boolean
+          alt_grading_scale: string | null
+          alt_max_grade: number | null
+          alt_min_grade: number | null
           closing_event: boolean
           code: string | null
           competition_id: string | null
@@ -1912,6 +1970,9 @@ export type Database = {
         Args: { p_mode: string; p_set_id: string }
         Returns: {
           active: boolean
+          alt_grading_scale: string | null
+          alt_max_grade: number | null
+          alt_min_grade: number | null
           closing_event: boolean
           code: string | null
           competition_id: string | null
@@ -1947,6 +2008,9 @@ export type Database = {
         Args: { p_enabled: boolean; p_set_id: string }
         Returns: {
           active: boolean
+          alt_grading_scale: string | null
+          alt_max_grade: number | null
+          alt_min_grade: number | null
           closing_event: boolean
           code: string | null
           competition_id: string | null

@@ -16,10 +16,14 @@ import {
 } from "@/components/ui";
 import { BrandDivider } from "@/components/ui/BrandDivider";
 import { useDebouncedFlush } from "@/hooks/use-debounced-flush";
-import { makeGradeLabeller, partialCreditLabel, type Discipline } from "@/lib/data/grade-label";
+import {
+  makeRouteLabeller,
+  partialCreditLabel,
+  type MatchScales,
+} from "@/lib/data/grade-label";
 import { computePoints } from "@/lib/data/logs";
 import { handicapPointsTenths, tenthsToPoints } from "@/lib/data/handicap";
-import type { MatchRoute, MatchLog, MatchGradingScale } from "@/lib/data/match-types";
+import type { MatchRoute, MatchLog, } from "@/lib/data/match-types";
 import {
   initMatchLogDraft,
   matchLogReducer,
@@ -45,9 +49,15 @@ interface Props {
   chork?: {
     allowance: number | null;
     onConcede: () => void;
+    /**
+     * Present only on your own challenge, before you've sent it. Takes
+     * the route back off the wall and passes the pen — the setter's
+     * only way to end their turn, and the one thing that moves it
+     * (migration 114).
+     */
+    onWithdraw?: () => void;
   };
   /** The Match's default — the route may override it. */
-  matchDiscipline: Discipline;
   /**
    * Scoring context, so the sheet's points preview agrees with the
    * board. Without it the sheet showed base points while the board
@@ -61,7 +71,11 @@ interface Props {
   loggingFor?: string | null;
   log: MatchLog | null;
   grades: Array<{ ordinal: number; label: string }>;
-  gradingScale: MatchGradingScale;
+  /**
+   * The Match's discipline + both scales, so the route's grade reads
+   * in the scale ITS family grades on (migration 117).
+   */
+  match: MatchScales;
   onClose: () => void;
   onEdit: () => void;
   /**
@@ -100,20 +114,19 @@ interface Props {
 export function MatchLogSheet({
   route,
   chork,
-  matchDiscipline,
   handicap,
   ceiling,
   loggingFor,
   log,
   grades,
-  gradingScale,
+  match,
   onClose,
   onEdit,
   onSubmit,
 }: Props) {
   // Null on the route means inherit, so the effective discipline is
   // the route's own or the Match's.
-  const creditLabel = partialCreditLabel(route.discipline ?? matchDiscipline);
+  const creditLabel = partialCreditLabel(route.discipline ?? match.discipline);
 
   // The {attempts, completed, zone} triple is one draft value — every
   // submit ships all three — so it lives behind matchLogReducer instead
@@ -169,8 +182,8 @@ export function MatchLogSheet({
   // worth the keyed-cache gymnastics.
 
   const gradeLabel = useMemo(
-    () => makeGradeLabeller(gradingScale, grades)(route.declared_grade),
-    [route.declared_grade, gradingScale, grades],
+    () => makeRouteLabeller(match, grades)(route),
+    [route, match, grades],
   );
 
   // What the climber would earn if they completed at this attempt
@@ -338,6 +351,22 @@ export function MatchLogSheet({
                   Give up
                 </button>
               )}
+            </div>
+          )}
+
+          {/* Your own set, not yet sent. No allowance line here — the
+              setter has no allowance; their attempts are what defines
+              everyone else's. */}
+          {chork?.onWithdraw && (
+            <div className={styles.chorkRound}>
+              <span className={styles.chorkGoes}>Your challenge</span>
+              <button
+                type="button"
+                className={styles.chorkConcede}
+                onClick={chork.onWithdraw}
+              >
+                Couldn&rsquo;t do it
+              </button>
             </div>
           )}
 

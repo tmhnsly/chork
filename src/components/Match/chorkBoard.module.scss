@@ -63,25 +63,3 @@
   color: var(--mono-text-low-contrast);
 }
 
-// C H O R K, spaced so it reads as a word being spelled rather than
-// a score.
-.word {
-  display: flex;
-  gap: var(--space-1);
-  flex-shrink: 0;
-}
-
-.lit,
-.unlit {
-  @include type.typography(number, $step: sm);
-  width: var(--space-5);
-  text-align: center;
-}
-
-.lit {
-  color: var(--error-text);
-}
-
-.unlit {
-  color: var(--mono-border);
-}

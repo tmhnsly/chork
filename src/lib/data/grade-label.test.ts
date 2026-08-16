@@ -12,6 +12,10 @@ import {
   DISCIPLINE_SCALES,
   isDiscipline,
   partialCreditLabel,
+  disciplineFamily,
+  scaleFamily,
+  scaleForDiscipline,
+  makeRouteLabeller,
 } from "./grade-label";
 
 describe("formatGrade", () => {
@@ -264,5 +268,153 @@ describe("discipline", () => {
     for (const bad of ["Boulder", "trad", "", null, undefined, 1]) {
       expect(isDiscipline(bad)).toBe(false);
     }
+  });
+});
+
+// ── A mixed day (migration 117) ─────────────────────────────────
+
+describe("disciplineFamily", () => {
+  it("puts sport and top-rope on the same ladder", () => {
+    // The whole reason a Match needs two scales and never three.
+    expect(disciplineFamily("sport")).toBe("rope");
+    expect(disciplineFamily("top-rope")).toBe("rope");
+    expect(disciplineFamily("boulder")).toBe("boulder");
+  });
+
+  it("agrees with DISCIPLINE_SCALES", () => {
+    // The families exist because these two sets of scales are
+    // disjoint. If that ever stops being true the split is wrong, so
+    // derive the check from the table rather than restating it.
+    for (const d of DISCIPLINES) {
+      for (const scale of DISCIPLINE_SCALES[d]) {
+        expect(scaleFamily(scale), `${d}/${scale}`).toBe(disciplineFamily(d));
+      }
+    }
+  });
+});
+
+describe("scaleFamily", () => {
+  it("has none for custom or points", () => {
+    // A custom ladder is one ladder whatever you climb, and points has
+    // no grades at all — neither belongs to a discipline.
+    expect(scaleFamily("custom")).toBeNull();
+    expect(scaleFamily("points")).toBeNull();
+  });
+});
+
+describe("scaleForDiscipline", () => {
+  const boulderMatch = {
+    discipline: "boulder" as const,
+    grading_scale: "v" as const,
+    min_grade: 0,
+    max_grade: 8,
+    alt_grading_scale: null,
+    alt_min_grade: null,
+    alt_max_grade: null,
+  };
+  const mixed = {
+    ...boulderMatch,
+    alt_grading_scale: "french" as const,
+    alt_min_grade: 2,
+    alt_max_grade: 15,
+  };
+
+  it("uses the Match's own scale for its own family", () => {
+    expect(scaleForDiscipline(mixed, "boulder")).toEqual({
+      scale: "v",
+      min: 0,
+      max: 8,
+    });
+  });
+
+  it("uses the alternate for the other family", () => {
+    // The bug this exists for: before 117 a top-rope route on a
+    // V-scale Match had no scale at all and was forced ungraded.
+    expect(scaleForDiscipline(mixed, "top-rope")).toEqual({
+      scale: "french",
+      min: 2,
+      max: 15,
+    });
+  });
+
+  it("treats sport and top-rope identically", () => {
+    expect(scaleForDiscipline(mixed, "sport")).toEqual(
+      scaleForDiscipline(mixed, "top-rope"),
+    );
+  });
+
+  it("has nothing for the other family on a single-discipline day", () => {
+    // Still reachable: someone sets up boulders only, then switches a
+    // route to a rope. It stays ungraded, and the sheet says why.
+    expect(scaleForDiscipline(boulderMatch, "top-rope")).toBeNull();
+    expect(scaleForDiscipline(boulderMatch, "boulder")).not.toBeNull();
+  });
+
+  it("works the same way round from a roped Match", () => {
+    // The reason the column is `alt_` and not `rope_`: a Sport Match
+    // adding boulders needs exactly the same second slot.
+    const ropeFirst = {
+      discipline: "sport" as const,
+      grading_scale: "french" as const,
+      min_grade: 2,
+      max_grade: 15,
+      alt_grading_scale: "v" as const,
+      alt_min_grade: 0,
+      alt_max_grade: 8,
+    };
+    expect(scaleForDiscipline(ropeFirst, "sport")?.scale).toBe("french");
+    expect(scaleForDiscipline(ropeFirst, "boulder")?.scale).toBe("v");
+  });
+
+  it("applies one ladder to everything on custom or points", () => {
+    // A custom ladder's ordinals aren't tied to a discipline, so it
+    // covers whatever you climb rather than half of it.
+    for (const scale of ["custom", "points"] as const) {
+      const m = { ...boulderMatch, grading_scale: scale };
+      expect(scaleForDiscipline(m, "top-rope")?.scale, scale).toBe(scale);
+      expect(scaleForDiscipline(m, "boulder")?.scale, scale).toBe(scale);
+    }
+  });
+});
+
+describe("makeRouteLabeller", () => {
+  const mixed = {
+    discipline: "boulder" as const,
+    grading_scale: "v" as const,
+    min_grade: 0,
+    max_grade: 8,
+    alt_grading_scale: "french" as const,
+    alt_min_grade: 0,
+    alt_max_grade: 20,
+  };
+
+  /**
+   * The one that decides why this function exists. A French 6b and a
+   * V6 are BOTH ordinal 6 — labelling every route with the Match's own
+   * scale renders the rope as "V6", which is a grade the climber never
+   * gave and a discipline they didn't climb.
+   */
+  it("labels the same ordinal differently per family", () => {
+    const label = makeRouteLabeller(mixed, []);
+    expect(label({ declared_grade: 6, discipline: "boulder" })).toBe("V6");
+    expect(label({ declared_grade: 6, discipline: "top-rope" })).not.toBe("V6");
+  });
+
+  it("falls back to the Match's discipline when the route inherits", () => {
+    // Null discipline means "inherit", not "unknown".
+    const label = makeRouteLabeller(mixed, []);
+    expect(label({ declared_grade: 6, discipline: null })).toBe("V6");
+  });
+
+  it("says nothing for an ungraded route", () => {
+    const label = makeRouteLabeller(mixed, []);
+    expect(label({ declared_grade: null, discipline: "boulder" })).toBeNull();
+  });
+
+  it("says nothing when the family has no scale", () => {
+    // Reads the same to a climber as ungraded, which is what it is.
+    const single = { ...mixed, alt_grading_scale: null };
+    const label = makeRouteLabeller(single, []);
+    expect(label({ declared_grade: 6, discipline: "top-rope" })).toBeNull();
   });
 });

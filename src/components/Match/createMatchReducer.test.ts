@@ -219,6 +219,9 @@ describe("buildCreateMatchPayload per scale", () => {
       gradingScale: "v",
       minGrade: 2,
       maxGrade: 7,
+      altGradingScale: null,
+      altMinGrade: null,
+      altMaxGrade: null,
       customGrades: null,
       saveScaleName: null,
     });
@@ -263,6 +266,9 @@ describe("buildCreateMatchPayload per scale", () => {
       gradingScale: "points",
       minGrade: null,
       maxGrade: null,
+      altGradingScale: null,
+      altMinGrade: null,
+      altMaxGrade: null,
       customGrades: null,
       saveScaleName: null,
     });
@@ -452,5 +458,109 @@ describe("set-handicap", () => {
       value: true,
     });
     expect(buildCreateMatchPayload(state).handicap).toBe(true);
+  });
+});
+
+// ── A mixed day (migration 117) ─────────────────────────────────
+
+describe("mixing boulders and ropes", () => {
+  function mixed() {
+    return createMatchReducer(initialCreateMatchState(), {
+      type: "set-mixed",
+      value: true,
+    });
+  }
+
+  it("reaches for the other family", () => {
+    // A bouldering Match's second scale is a rope scale, or it isn't
+    // a second scale at all.
+    expect(mixed().altScale).toBe("french");
+  });
+
+  it("drops it again when the day is single-discipline", () => {
+    const off = createMatchReducer(mixed(), { type: "set-mixed", value: false });
+    expect(off.altScale).toBeNull();
+  });
+
+  it("keeps the ranges across a toggle", () => {
+    // Toggling twice must not lose what was set — the ranges map is
+    // per scale and independent of whether the alt is live.
+    const ranged = createMatchReducer(mixed(), {
+      type: "set-range",
+      scale: "french",
+      min: 4,
+      max: 9,
+    });
+    const off = createMatchReducer(ranged, { type: "set-mixed", value: false });
+    const back = createMatchReducer(off, { type: "set-mixed", value: true });
+    expect(back.ranges.french).toEqual([4, 9]);
+  });
+
+  it("refuses an alternate in the primary's own family", () => {
+    // Two boulder scales is the first one written down twice, and
+    // every route would resolve to whichever slot was read first.
+    // The server refuses this shape too.
+    const state = mixed();
+    expect(
+      createMatchReducer(state, { type: "set-alt-scale", scale: "font" }),
+    ).toBe(state);
+  });
+
+  it("moves the alternate when the discipline crosses families", () => {
+    // Boulder Match + rope alt, switched to Sport: the alt is now the
+    // PRIMARY family, so it has to become a boulder scale.
+    const sport = createMatchReducer(mixed(), {
+      type: "set-discipline",
+      discipline: "sport",
+    });
+    expect(sport.altScale).toBe("v");
+  });
+
+  it("stays put when the discipline moves inside one family", () => {
+    // Sport → top-rope grade identically, so nothing needs to change.
+    const rope = createMatchReducer(initialCreateMatchState(), {
+      type: "set-discipline",
+      discipline: "sport",
+    });
+    const withAlt = createMatchReducer(rope, { type: "set-mixed", value: true });
+    const topRope = createMatchReducer(withAlt, {
+      type: "set-discipline",
+      discipline: "top-rope",
+    });
+    expect(topRope.altScale).toBe(withAlt.altScale);
+  });
+
+  it("drops the alternate on a scale that has no family", () => {
+    // A custom ladder is ONE ladder and applies to whatever you climb;
+    // points has no grades to mix. Neither can have a second scale.
+    for (const scale of ["custom", "points"] as const) {
+      const next = createMatchReducer(mixed(), { type: "set-scale", scale });
+      expect(next.altScale, scale).toBeNull();
+    }
+  });
+
+  it("cannot be turned on without two ladders to mix", () => {
+    const points = createMatchReducer(initialCreateMatchState(), {
+      type: "set-scale",
+      scale: "points",
+    });
+    expect(
+      createMatchReducer(points, { type: "set-mixed", value: true }).altScale,
+    ).toBeNull();
+  });
+
+  it("sends both scales and both ranges", () => {
+    const payload = buildCreateMatchPayload(mixed());
+    expect(payload.gradingScale).toBe("v");
+    expect(payload.altGradingScale).toBe("french");
+    expect(payload.altMinGrade).not.toBeNull();
+    expect(payload.altMaxGrade).not.toBeNull();
+  });
+
+  it("sends nothing extra on a single-discipline day", () => {
+    const payload = buildCreateMatchPayload(initialCreateMatchState());
+    expect(payload.altGradingScale).toBeNull();
+    expect(payload.altMinGrade).toBeNull();
+    expect(payload.altMaxGrade).toBeNull();
   });
 });
