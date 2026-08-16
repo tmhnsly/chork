@@ -907,6 +907,7 @@ export type Database = {
       }
       set_players: {
         Row: {
+          alt_ceiling: number | null
           ceiling: number | null
           display_name: string | null
           id: string
@@ -917,6 +918,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          alt_ceiling?: number | null
           ceiling?: number | null
           display_name?: string | null
           id?: string
@@ -927,6 +929,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          alt_ceiling?: number | null
           ceiling?: number | null
           display_name?: string | null
           id?: string
@@ -1828,6 +1831,7 @@ export type Database = {
       join_match: {
         Args: { p_set_id: string }
         Returns: {
+          alt_ceiling: number | null
           ceiling: number | null
           display_name: string | null
           id: string
@@ -1847,7 +1851,9 @@ export type Database = {
       lookup_match_by_code: {
         Args: { p_code: string }
         Returns: {
+          alt_grading_scale: string
           at_cap: boolean
+          discipline: string
           grading_scale: string
           host_display_name: string
           host_username: string
@@ -1948,8 +1954,14 @@ export type Database = {
         }[]
       }
       set_match_ceiling: {
-        Args: { p_ceiling?: number; p_player_id: string; p_set_id: string }
+        Args: {
+          p_alt_ceiling?: number
+          p_ceiling?: number
+          p_player_id: string
+          p_set_id: string
+        }
         Returns: {
+          alt_ceiling: number | null
           ceiling: number | null
           display_name: string | null
           id: string

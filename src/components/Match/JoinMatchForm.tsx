@@ -11,7 +11,7 @@ import { joinMatchAction } from "@/app/match/actions";
 import type { JoinMatchLookup } from "@/lib/data/match-types";
 import { MATCH_CODE_RE } from "@/lib/validation";
 import styles from "./joinMatchForm.module.scss";
-import { SCALE_LABEL } from "@/lib/data/grade-label";
+import { SCALE_LABEL, DISCIPLINE_LABEL } from "@/lib/data/grade-label";
 
 // BarcodeDetector isn't in lib.dom yet (Chromium / Safari ship it,
 // Firefox + Edge don't). Declare the surface we use so the feature
@@ -155,7 +155,23 @@ export function JoinMatchForm({ initialCode }: Props) {
             </div>
             <div className={styles.previewRow}>
               <dt>Scale</dt>
-              <dd>{SCALE_LABEL[lookup.grading_scale]}</dd>
+              {/* Both ladders on a mixed day. Naming which family each
+                  belongs to matters more than the scale itself — "V-scale"
+                  alone read as "this is bouldering" on a Match that was
+                  also running ropes. */}
+              <dd>
+                {lookup.alt_grading_scale
+                  ? `${SCALE_LABEL[lookup.grading_scale]} · ${SCALE_LABEL[lookup.alt_grading_scale]}`
+                  : SCALE_LABEL[lookup.grading_scale]}
+              </dd>
+            </div>
+            <div className={styles.previewRow}>
+              <dt>Climbing</dt>
+              <dd>
+                {lookup.alt_grading_scale
+                  ? "Boulders and ropes"
+                  : DISCIPLINE_LABEL[lookup.discipline]}
+              </dd>
             </div>
           </dl>
           <Button type="button" onClick={handleJoin} disabled={pending} fullWidth>

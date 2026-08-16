@@ -390,12 +390,10 @@ export function MatchScreen({ initialState, userId }: Props) {
         <CeilingSheet
           player={ceilingPlayer}
           grades={initialState.grades}
-          gradingScale={initialState.match.grading_scale}
-          minGrade={initialState.match.min_grade}
-          maxGrade={initialState.match.max_grade}
+          match={initialState.match}
           onClose={closePanel}
-          onSubmit={(ceiling) =>
-            handleSetCeiling(ceilingPlayer.player_id, ceiling)
+          onSubmit={(ceiling, altCeiling) =>
+            handleSetCeiling(ceilingPlayer.player_id, ceiling, altCeiling)
           }
           pending={isPending}
         />

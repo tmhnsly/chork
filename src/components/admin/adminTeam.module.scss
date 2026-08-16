@@ -1,0 +1,182 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+@use "mixins/input" as input;
+@use "mixins/focus" as focus;
+@use "mixins/state" as state;
+@use "mixins/container-queries" as cq;
+
+.sections {
+  @include layout.stack(var(--space-5));
+}
+
+.card {
+  @include surface.card;
+  @include layout.stack(var(--space-4));
+  padding: var(--space-4);
+  // Named, so anything inside can use the `cq.*` mixins rather than
+  // reaching for the viewport.
+  container-type: inline-size;
+  container-name: tile;
+}
+
+.heading {
+  @include type.typography(card-title);
+  color: var(--mono-text);
+}
+
+.list {
+  @include layout.stack(var(--space-2));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-2);
+  background: var(--mono-subtle-bg);
+}
+
+.identity {
+  @include layout.stack(var(--space-1));
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  @include type.typography(body);
+  color: var(--mono-text);
+  overflow-wrap: anywhere;
+}
+
+.handle {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+.role {
+  @include type.typography(label, $step: xs);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--mono-bg);
+  color: var(--mono-text-low-contrast);
+}
+
+.roleOwner {
+  background: var(--accent-bg);
+  color: var(--accent-text);
+}
+
+// ── Invite form ───────────────────────────────────
+
+.inviteForm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+
+  // Side by side once the card is wide enough to hold both without
+  // squeezing the email field.
+  @include cq.split {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+}
+
+.field {
+  @include layout.stack(var(--space-1));
+  flex: 1;
+  min-width: 0;
+}
+
+.label {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.input {
+  @include input.field;
+}
+
+.select {
+  @include input.field;
+}
+
+// ── The invite link ───────────────────────────────
+// On screen until the next action, because there is no email yet and
+// losing it means the invite exists with no way to reach it.
+
+.linkBox {
+  @include layout.stack(var(--space-2));
+  padding: var(--space-3);
+  border-radius: var(--radius-2);
+  background: var(--accent-subtle-bg);
+}
+
+.linkNote {
+  @include type.typography(meta);
+  color: var(--accent-text);
+  margin: 0;
+}
+
+.linkRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+// Deliberately NOT `typography(code)`. That preset is the six-character
+// JOIN code — 48px, bold, wide tracking and `text-transform: uppercase`
+// — and a join code is uppercase by definition (`^[A-HJ-NP-Z2-9]{6}$`).
+// An invite token is base64url and case-sensitive, so uppercasing it
+// renders a link that is silently dead to anyone who reads it off the
+// screen rather than copying it.
+.link {
+  @include type.typography(meta);
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--mono-text);
+}
+
+.copyButton,
+.cancelButton {
+  @include focus.ring;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: var(--size-touch-target);
+  min-height: var(--size-touch-target);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--mono-border);
+  background: var(--mono-bg);
+  color: var(--mono-text-low-contrast);
+  cursor: pointer;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+
+  &:hover:not(:disabled) {
+    background: var(--mono-bg-hover);
+    color: var(--mono-text);
+  }
+
+  &:disabled {
+    @include state.disabled;
+  }
+}
+
+.expired {
+  @include type.typography(label, $step: xs);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}

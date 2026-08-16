@@ -177,10 +177,21 @@ export interface MatchPlayerView {
    */
   has_left: boolean;
   /**
-   * This player's declared limit, as an index into the Match's scale.
-   * Null = no handicap for them; they score base points.
+   * This player's declared limit, as an index into the Match's own
+   * scale. Null = no handicap for them; they score base points.
    */
   ceiling: number | null;
+  /**
+   * Their limit in the OTHER discipline family, on a mixed day
+   * (migration 121) — V4 on the boulders and 6b on the ropes are two
+   * different numbers on two different ladders. Null on a
+   * single-discipline Match, and null still means "not given", which
+   * scores flat.
+   *
+   * Resolve which one a route is measured against with
+   * `ceilingForDiscipline`; never read either directly.
+   */
+  alt_ceiling: number | null;
 }
 
 export interface MatchLeaderboardRow {
@@ -247,6 +258,13 @@ export interface JoinMatchLookup {
   host_display_name: string | null;
   player_count: number;
   grading_scale: MatchGradingScale;
+  /**
+   * The other family's scale on a mixed day, null on a
+   * single-discipline Match (migration 117). The preview shows both —
+   * it exists so nobody has to guess what they're joining.
+   */
+  alt_grading_scale: MatchGradingScale | null;
+  discipline: Discipline;
   status: MatchStatus;
   at_cap: boolean;
 }

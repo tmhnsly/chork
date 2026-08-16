@@ -210,6 +210,29 @@ export interface ResolvedScale {
  * Returns null for an ungraded route and for one whose family has no
  * scale, which reads the same to a climber — no grade to show.
  */
+/**
+ * Which of a climber's two limits a route is measured against.
+ *
+ * A ceiling is a number on a ladder, so it only means anything against
+ * the ladder it was given on: V4 and 6b are both "my limit" and share
+ * no arithmetic. On a single-discipline Match there is one, and this
+ * returns it for everything.
+ *
+ * Null means "not given", which every caller already handles by not
+ * adjusting — the handicap scores flat and the Chork allowance hands
+ * out no extra goes.
+ */
+export function ceilingForDiscipline(
+  match: Pick<MatchScales, "discipline">,
+  player: { ceiling: number | null; alt_ceiling: number | null },
+  discipline: Discipline | null,
+): number | null {
+  const routeFamily = disciplineFamily(discipline ?? match.discipline);
+  return routeFamily === disciplineFamily(match.discipline)
+    ? player.ceiling
+    : player.alt_ceiling;
+}
+
 export function makeRouteLabeller(
   match: MatchScales,
   grades: CustomGradeEntry[],

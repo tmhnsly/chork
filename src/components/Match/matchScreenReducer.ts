@@ -69,7 +69,12 @@ export type MatchAction =
    */
   | { type: "upsert-player"; player: MatchPlayerView }
   | { type: "remove-player"; playerId: string }
-  | { type: "set-ceiling"; playerId: string; ceiling: number | null }
+  | {
+      type: "set-ceiling";
+      playerId: string;
+      ceiling: number | null;
+      altCeiling: number | null;
+    }
   | { type: "upsert-log"; log: MatchLog; viewerId: string }
   | { type: "remove-log"; userId: string; routeId: string }
   | { type: "open-panel"; panel: MatchPanel }
@@ -144,7 +149,7 @@ export function matchReducer(
         ...state,
         players: state.players.map((p) =>
           p.player_id === action.playerId
-            ? { ...p, ceiling: action.ceiling }
+            ? { ...p, ceiling: action.ceiling, alt_ceiling: action.altCeiling }
             : p,
         ),
       };
