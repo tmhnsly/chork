@@ -73,9 +73,10 @@
 
 // ── Grade chips row (scrolls edge-to-edge) ────────
 // Container only — the chips themselves are `GradePicker`, shared with
-// every other place a grade is chosen. It wraps rather than scrolls,
-// so no grade hides past the right edge.
+// every other place a grade is chosen, and the scrolling belongs to
+// that component. Horizontal padding only, so the row can run to the
+// sheet's edges rather than stopping short of them.
 .gradeRow {
-  padding: var(--space-1) var(--space-3) var(--space-3);
+  padding: 0 var(--space-3) var(--space-3);
 }
 

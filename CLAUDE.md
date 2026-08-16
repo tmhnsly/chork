@@ -292,9 +292,11 @@ decoration; it means "you did this" or "this is yours".
 **Every grade is picked with `GradePicker`.** One control —
 `components/ui/GradePicker` — for the card's "Rate this climb" row,
 the log sheet, the ceiling sheet and both bounds of a Match's grade
-range. Round, touch-target chips that **wrap rather than scroll**: a
-scale you're choosing from can't hide half its options past the right
-edge. It is a real ARIA radiogroup (one tab stop, arrows select), so
+range. Round, touch-target chips in a **horizontally scrolling row** — the
+shape the card's picker always had. A wrapping grid was tried and
+reverted: a full V-scale wraps to three rows and pushes everything
+below it off the screen. It is a real ARIA radiogroup (one tab stop,
+arrows select), so
 don't hand-roll a row of grade buttons — a bespoke one appeared on the
 create-match screen and taught the wrong visual language.
 

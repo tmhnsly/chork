@@ -2,10 +2,31 @@
 @use "mixins/focus" as focus;
 @use "mixins/state" as state;
 
+// A scrolling row, which is what the card's "rate this climb" picker
+// always was. It got rebuilt as a wrapping grid on the way into this
+// shared component; three rows of chips is a wall, and it pushed
+// everything below the picker off the screen. Swiping a row of grades
+// is the gesture climbers already know here.
+//
+// The scrollbar is hidden rather than styled: this reads as a row of
+// controls, not as a scroll region, and the chips run past the edge
+// clearly enough to say "there's more".
 .row {
   display: flex;
-  flex-wrap: wrap;
   gap: var(--space-2);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  // Room for the focus ring, which is drawn outside the chip and gets
+  // clipped by `overflow-x` otherwise.
+  padding: var(--space-1) 0;
+  // Keeps the selected chip in view when arrow keys move the
+  // selection past either edge.
+  scroll-behavior: smooth;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .chip {
