@@ -400,9 +400,9 @@ vocabulary these decisions produced.
       anti-regression tests, and re-deriving them later is how the
       rule stops being true.
 
-- [ ] **Game modes.** Chork (the HORSE variant) and whatever follows.
-      Convergence unblocked it. **Rules designed 2026-08-16 — see
-      CONTEXT.md "Chork (the game mode)".**
+- [x] **Game modes.** Chork (the HORSE variant) and whatever follows.
+      *(Shipped 2026-08-16, migrations 111–113.)* Convergence
+      unblocked it. Rules in CONTEXT.md "Chork (the game mode)".
 
       One engine, as planned: `sets.game_mode` is a lens on a Match
       exactly like `handicap`, so the container, routes, players and
@@ -415,6 +415,23 @@ vocabulary these decisions produced.
       the streak tension, and setting well earns you nothing); and
       capping challenge difficulty for balance (takes the pen off the
       strongest climber rather than helping the weakest).
+
+      **Every rule lives in SQL**, and that was not a style choice.
+      Each one needs another climber's raw attempt count — the
+      allowance is the setter's, a letter is measured against it, and
+      the pen turns on whether the setter sent their own challenge —
+      and raw attempts are private to their owner. A first pass put
+      the pen on the client, where it could only compute from data it
+      was not allowed to have; every viewer who wasn't the setter saw
+      it on the wrong climber. `src/lib/data/chork.ts` is now the
+      display side only, and says so.
+
+      **Still open: the ceiling is self-declared.** The allowance
+      buys a climber one extra go per grade above their stated limit,
+      and nothing checks that limit against what they actually climb.
+      Among mates in a room that is fine; the fix when it matters is
+      to suggest a ceiling from send history rather than to police
+      the number.
 
 - [x] **Match UX/robustness overhaul.** *(Shipped 2026-08-16,
       migrations 102–103.)* Every gap from the 2026-08-10 audit is
