@@ -7,8 +7,13 @@ import { PageHeader } from "@/components/motion";
 import {
   getFriends,
   getFriendSuggestions,
+  getFriendsLeaderboard,
   partitionFriends,
 } from "@/lib/data/friend-queries";
+import { getServerProfile } from "@/lib/supabase/server";
+import { getCurrentSet } from "@/lib/data/set-queries";
+import { formatSetLabel } from "@/lib/data/set-label";
+import { FriendsBoard } from "@/components/Friends/FriendsBoard";
 import { FriendsList } from "@/components/Friends/FriendsList";
 import styles from "./friends.module.scss";
 
@@ -29,12 +34,24 @@ export default async function FriendsPage() {
   const auth = await requireSignedIn();
   if ("error" in auth) redirect("/login");
 
-  const [friends, suggestions] = await Promise.all([
+  const [friends, suggestions, profile] = await Promise.all([
     getFriends(auth.supabase),
     getFriendSuggestions(auth.supabase),
+    getServerProfile(),
   ]);
 
   const { active, incoming, outgoing } = partitionFriends(friends);
+
+  // The board only means anything where there is a Set to compare on
+  // — points don't compare across gyms, and a gymless climber has no
+  // Set at all. Friends elsewhere are served by moments, not by this.
+  const currentSet = profile?.active_gym_id
+    ? await getCurrentSet(profile.active_gym_id)
+    : null;
+  const board =
+    currentSet && active.length > 0
+      ? await getFriendsLeaderboard(auth.supabase, currentSet.id)
+      : [];
 
   return (
     <main className={styles.page}>
@@ -42,6 +59,9 @@ export default async function FriendsPage() {
         title="Friends"
         subtitle="The climbers you compete with."
       />
+      {currentSet && board.length > 1 && (
+        <FriendsBoard rows={board} setLabel={formatSetLabel(currentSet)} />
+      )}
       <FriendsList
         active={active}
         incoming={incoming}

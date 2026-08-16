@@ -1,0 +1,23 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+
+.section {
+  @include layout.stack(var(--space-3));
+}
+
+.heading {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.list {
+  @include layout.stack(var(--space-2));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sends {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
