@@ -142,6 +142,18 @@ const nextConfig: NextConfig = {
         hostname: "*.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
+      {
+        // Google account pictures, which arrive with an OAuth signup
+        // and are written straight onto the profile (migration 122).
+        // `UserAvatar` renders through `next/image`, and an
+        // unlisted host is REFUSED rather than merely unoptimized —
+        // so without this a climber who signed in with Google has no
+        // avatar at all. Wildcarded because Google serves them from
+        // lh3/lh4/lh5/lh6 interchangeably.
+        protocol: "https",
+        hostname: "*.googleusercontent.com",
+        pathname: "/**",
+      },
     ],
   },
 };

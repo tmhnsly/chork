@@ -83,10 +83,13 @@ Platform hardening:
 - [ ] Set VAPID env vars in Vercel (see `.env.example`) — push
       gracefully no-ops until these exist, so this is the difference
       between having notifications and not
-- [ ] **Google sign-in.** Genuinely unstarted, not "add back":
-      `signInWithOAuth` appears nowhere in `src`, and login is email +
-      password only. See "Next up" — this is the recommended next
-      build
+- [~] **Google sign-in — code built 2026-08-16, blocked on
+      credentials.** Button, handoff, and the metadata prefill
+      (migration 122) are in. It does nothing until a Google OAuth
+      client exists and Supabase knows about it: step-by-step in
+      `docs/google-signin-setup.md`, including the check that a
+      first-time OAuth user lands on `/onboarding` rather than the
+      Card
 - [ ] Apple Sign In — same shape as Google, but needs a paid Apple
       developer account. Worth doing after Google proves the callback
       flow, since iOS PWA users are the core audience

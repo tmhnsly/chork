@@ -2,11 +2,12 @@
 
 import { useActionState, useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { FaCircleCheck, FaArrowUpRightFromSquare } from "react-icons/fa6";
+import { FaCircleCheck, FaArrowUpRightFromSquare, FaGoogle } from "react-icons/fa6";
 import { useAuth } from "@/lib/auth-context";
 import { RevealText } from "@/components/motion";
 import { Button, ChorkMark, showToast } from "@/components/ui";
 import { signInAction, signUpAction, type AuthActionState } from "./actions";
+import { createBrowserSupabase } from "@/lib/supabase/client";
 import styles from "./login.module.scss";
 
 type Mode = "sign-in" | "sign-up";
@@ -90,6 +91,31 @@ export function LoginForm() {
   }, [errorKey]);
 
   const [mode, setMode] = useState<Mode>("sign-in");
+  // Only ever set to true. `signInWithOAuth` navigates away on
+  // success, so the button never needs to come back — it is cleared
+  // only when the handoff itself fails.
+  const [oauthPending, setOauthPending] = useState(false);
+
+  /**
+   * Come back from the provider and the button is idle again.
+   *
+   * `signInWithOAuth` navigates away, so nothing here ever clears the
+   * pending flag on the happy path — and it shouldn't, since flashing
+   * the button back to idle mid-handoff looks like a failure. But a
+   * climber who taps Google and then hits BACK gets this page restored
+   * from bfcache with its JS state intact, which is a button stuck
+   * disabled and no way to retry short of a reload.
+   *
+   * `pageshow` with `persisted` is the bfcache restore; the plain case
+   * fires on normal loads too and is harmless, since idle is the
+   * correct state for a page that just loaded.
+   */
+  useEffect(() => {
+    const onShow = () => setOauthPending(false);
+    window.addEventListener("pageshow", onShow);
+    return () => window.removeEventListener("pageshow", onShow);
+  }, []);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -262,6 +288,38 @@ export function LoginForm() {
     );
   }
 
+  /**
+   * Hand off to Google.
+   *
+   * `signInWithOAuth` navigates away, so there is no success path to
+   * handle here — only the failure to leave at all. `redirectTo`
+   * points at the existing `/auth/callback`, which already exchanges
+   * the code and guards `next` against open redirects; `next` rides
+   * along so a climber sent to sign in from a deep link lands back
+   * where they were.
+   *
+   * A first-time Google user has a profile row (the `handle_new_user`
+   * trigger) but `onboarded = false`, and the proxy forces the
+   * onboarding flow ahead of any app route — so there is deliberately
+   * no onboarding check here. One gate, not two that can disagree.
+   */
+  async function handleGoogle() {
+    setOauthPending(true);
+    const supabase = createBrowserSupabase();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      },
+    });
+    if (error) {
+      setOauthPending(false);
+      showToast(error.message, "error");
+    }
+    // No `finally` — on success the browser is already leaving, and
+    // clearing the flag would flash the button back to idle first.
+  }
+
   return (
     <main className={styles.page}>
       <div className={styles.content}>
@@ -270,8 +328,25 @@ export function LoginForm() {
           <RevealText text="Chork" as="h1" className={styles.title} />
         </div>
         <p className={styles.tagline}>
-          Track your sends. Compete with your crew.
+          Track your sends. Compete with your friends.
         </p>
+
+        {/* Above the form deliberately: it is one tap against eight
+            fields, and a climber signing up at a gym has chalk on
+            their hands. */}
+        <button
+          type="button"
+          className={styles.oauthButton}
+          onClick={handleGoogle}
+          disabled={oauthPending}
+        >
+          <FaGoogle aria-hidden />
+          {oauthPending ? "Taking you to Google…" : "Continue with Google"}
+        </button>
+
+        <div className={styles.divider}>
+          <span className={styles.dividerLabel}>or</span>
+        </div>
 
         {/*
           The form is keyed by `mode` so toggling between sign-in and

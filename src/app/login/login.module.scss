@@ -1,6 +1,8 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
 @use "mixins/input" as input;
+@use "mixins/focus" as focus;
+@use "mixins/state" as state;
 
 .page {
   display: flex;
@@ -228,4 +230,65 @@
   .confirmIconWrap {
     animation: none;
   }
+}
+
+// ── Continue with Google ──────────────────────────
+// Above the form: one tap against eight fields, and a climber signing
+// up at a gym has chalk on their hands.
+//
+// Deliberately NOT the accent `Button`. The accent means "you did
+// this" or "this is yours" across the app, and the primary action on
+// this screen is whichever one the climber chose — making the
+// provider button lime would rank it above the form for everyone,
+// including the people who came here to type a password.
+.oauthButton {
+  @include type.typography(button);
+  @include focus.ring;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--size-touch-target);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--mono-border);
+  border-radius: var(--radius-2);
+  background: var(--mono-bg);
+  color: var(--mono-text);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+
+  &:hover:not(:disabled) {
+    background: var(--mono-bg-hover);
+    border-color: var(--mono-border-hover, var(--mono-border));
+  }
+
+  &:disabled {
+    @include state.disabled;
+  }
+}
+
+// A rule with the word sitting in it, rather than a bare line — the
+// two routes are alternatives, and an unlabelled divider reads as
+// "and then" rather than "or".
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--mono-text-low-contrast);
+
+  &::before,
+  &::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--mono-border-subtle);
+  }
+}
+
+.dividerLabel {
+  @include type.typography(label);
 }
