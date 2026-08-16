@@ -1,0 +1,79 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+@use "mixins/state" as state;
+
+.board {
+  @include surface.card;
+  @include layout.stack(0);
+  list-style: none;
+  margin: 0 var(--gutter-x);
+  padding: var(--space-2);
+  max-width: var(--content-app);
+  width: calc(100% - 2 * var(--gutter-x));
+  box-sizing: border-box;
+  border-radius: var(--radius-3);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-inner-3-2, var(--radius-2));
+}
+
+.self {
+  background: var(--accent-subtle-bg);
+  box-shadow: inset var(--space-1) 0 0 0 var(--accent-solid);
+}
+
+// Out of the game. Not dimmed with opacity — that scales contrast
+// toward the background and an AA-compliant row silently stops being
+// one. The step change says it instead.
+.out {
+  @include state.disabled-bare;
+}
+
+.identity {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  @include type.typography(label, $step: sm);
+  color: var(--mono-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status {
+  @include type.typography(meta, $step: xs);
+  color: var(--mono-text-low-contrast);
+}
+
+// C H O R K, spaced so it reads as a word being spelled rather than
+// a score.
+.word {
+  display: flex;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.lit,
+.unlit {
+  @include type.typography(number, $step: sm);
+  width: var(--space-5);
+  text-align: center;
+}
+
+.lit {
+  color: var(--error-text);
+}
+
+.unlit {
+  color: var(--mono-border);
+}

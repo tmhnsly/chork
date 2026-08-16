@@ -204,6 +204,40 @@ the strip asks the server after a debounced burst of logging. See
 Nav went from six entries to five, one over the HIG's limit for
 anyone who runs a gym.
 
+## Chork (the game mode)
+
+HORSE, on a wall. Designed 2026-08-16.
+
+A Match with `game_mode = 'chork'`. Same container, same routes, same
+logs — only the win condition differs, which is what "one engine"
+means in the roadmap.
+
+**A round.** The setter puts up a route and sends it; the attempts
+their log records become **N**. That is the challenge: everyone else
+has N attempts to send the same route. You are safe if and only if
+you sent it in N or fewer. Otherwise you take a letter — C, H, O, R,
+K — and five letters puts you out. Last climber standing wins.
+
+**The pen.** The setter keeps setting while they keep sending their
+own challenges. It only passes when they fail to send one, and a
+failed set is not a round: nobody takes a letter from it. That is the
+tension of the game — a climber on a streak dictates, and the only
+brake is their own reach.
+
+**Mixed abilities.** Reuses the ceiling climbers declare for the
+handicap: a challenge above your limit buys one extra attempt per
+grade above it. Scaling the *allowance* is the only lever Chork has,
+since it has no points to scale. Off entirely when nobody has
+declared a ceiling.
+
+**Letters are derived, never stored.** Same rule as points. A round is
+a route plus its `added_by` setter plus that setter's own log; a
+player's letters are the rounds they failed. Failure is
+`attempts >= allowance AND NOT (completed AND attempts <= allowance)`
+— written that way on purpose, so a climber who keeps pulling after
+their allowance runs out and eventually sends does **not** erase the
+letter they already earned.
+
 ## Mates
 
 The social graph: climbers you follow, mutually. Replaces **Crew**,

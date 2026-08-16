@@ -59,6 +59,7 @@ export interface CreateMatchState {
    * difficulty scale, so the toggle is hidden on those.
    */
   handicap: boolean;
+  gameMode: "points" | "chork";
 
   /**
    * Numeric [min, max] index into the grade-label table, one per
@@ -88,6 +89,7 @@ export type CreateMatchAction =
    */
   | { type: "set-discipline"; discipline: Discipline }
   | { type: "set-handicap"; value: boolean }
+  | { type: "set-game-mode"; value: "points" | "chork" }
   | { type: "set-range"; scale: FormulaScale; min: number; max: number }
   /**
    * Commit the pending grade input onto the list and clear the
@@ -117,6 +119,7 @@ export function initialCreateMatchState(): CreateMatchState {
     location: "",
     discipline: "boulder",
     handicap: false,
+    gameMode: "points",
     scale: "v",
     ranges: {
       v: [0, 8],
@@ -155,6 +158,9 @@ export function createMatchReducer(
         handicap: keepsHandicap && state.handicap,
       };
     }
+
+    case "set-game-mode":
+      return { ...state, gameMode: action.value };
 
     case "set-handicap":
       return { ...state, handicap: action.value && isFormulaScale(state.scale) };
@@ -264,6 +270,11 @@ export interface CreateMatchFormPayload {
   maxGrade: number | null;
   customGrades: string[] | null;
   saveScaleName: string | null;
+  /**
+   * Applied after creation via `setMatchGameMode`, not by
+   * `create_match` — see the note on that action.
+   */
+  gameMode: "points" | "chork";
 }
 
 /**
@@ -279,6 +290,7 @@ export function buildCreateMatchPayload(
     location: state.location.trim() || null,
     discipline: state.discipline,
     handicap: state.handicap,
+    gameMode: state.gameMode,
     gradingScale: state.scale,
     minGrade: range ? range[0] : null,
     maxGrade: range ? range[1] : null,

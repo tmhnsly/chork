@@ -27,7 +27,7 @@ import {
   type Discipline,
 } from "@/lib/data/grade-label";
 import type { MatchGradingScale, SavedScale } from "@/lib/data/match-types";
-import { createMatchAction } from "@/app/match/actions";
+import { createMatchAction, setMatchGameMode } from "@/app/match/actions";
 import {
   buildCreateMatchPayload,
   canSubmit as deriveCanSubmit,
@@ -73,6 +73,7 @@ export function CreateMatchForm({ savedScales }: Props) {
     name,
     location,
     discipline,
+  gameMode,
     handicap,
     scale,
     ranges,
@@ -98,10 +99,19 @@ export function CreateMatchForm({ savedScales }: Props) {
     if (!canSubmit) return;
 
     startTransition(async () => {
-      const result = await createMatchAction(buildCreateMatchPayload(state));
+      const payload = buildCreateMatchPayload(state);
+      const result = await createMatchAction(payload);
       if ("error" in result) {
         showToast(result.error, "error");
         return;
+      }
+      // Set after creation rather than as a tenth argument to
+      // `create_match` — see the note on `setMatchGameMode`. Only
+      // fires when it isn't the default, and a failure here leaves a
+      // playable points Match rather than nothing.
+      if (payload.gameMode !== "points") {
+        const mode = await setMatchGameMode(result.id, payload.gameMode);
+        if ("error" in mode) showToast(mode.error, "error");
       }
       router.push(`/match/${result.id}`);
     });
@@ -136,7 +146,29 @@ export function CreateMatchForm({ savedScales }: Props) {
         />
       </label>
 
-      {/* Discipline first — it decides which scales are on offer. */}
+      {/* How it's won, before anything about grades — Chork changes
+          what the whole screen is for. */}
+      <fieldset className={styles.fieldset}>
+        <legend className={styles.label}>Game</legend>
+        <SegmentedControl<"points" | "chork">
+          options={[
+            { value: "points", label: "Points" },
+            { value: "chork", label: "Chork" },
+          ]}
+          value={gameMode}
+          onChange={(next) => dispatch({ type: "set-game-mode", value: next })}
+          ariaLabel="Game mode"
+        />
+        <p className={styles.scaleHint}>
+          {gameMode === "chork"
+            ? "HORSE, on a wall. Set a route and send it — everyone else "
+              + "gets as many goes as you took. Miss and you take a letter; "
+              + "spell CHORK and you're out."
+            : "Every send scores. Most points wins."}
+        </p>
+      </fieldset>
+
+      {/* Discipline next — it decides which scales are on offer. */}
       <fieldset className={styles.fieldset}>
         <legend className={styles.label}>Discipline</legend>
         <SegmentedControl<Discipline>

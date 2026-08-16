@@ -386,6 +386,58 @@ export async function setMatchCeilingAction(
   return { ok: true };
 }
 
+/**
+ * Chork standings: how much of the word each seat has spelled.
+ *
+ * Letters rather than attempts, deliberately. Chork needs everyone's
+ * attempt counts to work out who missed — but raw attempts are
+ * private (CONTEXT.md "Attempt privacy"), so the derivation happens
+ * server-side and only its public result comes back.
+ */
+export async function fetchChorkStandings(
+  matchId: string,
+): Promise<{ error: string } | { standings: ChorkStanding[] }> {
+  const auth = await gateSignedInMutation(matchId, "match id", {
+    rateLimit: null,
+  });
+  if ("error" in auth) return { error: auth.error };
+
+  const { data, error } = await auth.supabase.rpc("chork_standings", {
+    p_set_id: matchId,
+  });
+  if (error) return { error: formatError(error) };
+  return { standings: (data ?? []) as ChorkStanding[] };
+}
+
+export interface ChorkStanding {
+  player_id: string;
+  user_id: string | null;
+  letters: number;
+  is_out: boolean;
+}
+
+/**
+ * Choose how the Match is won. Host only, while it's live.
+ *
+ * Separate from `create_match` rather than a tenth parameter on it —
+ * that signature is already unwieldy, and adding to it means dropping
+ * the old overload, which is how migration 101 briefly deleted a
+ * function it had just written.
+ */
+export async function setMatchGameMode(
+  matchId: string,
+  mode: "points" | "chork",
+): Promise<{ error: string } | { ok: true }> {
+  const auth = await gateSignedInMutation(matchId, "match id");
+  if ("error" in auth) return { error: auth.error };
+  const { error } = await auth.supabase.rpc("set_match_game_mode", {
+    p_set_id: matchId,
+    p_mode: mode,
+  });
+  if (error) return { error: formatError(error) };
+  return { ok: true };
+}
+
 /** Turn the handicap on or off. Host only, while the Match is live. */
 export async function setMatchHandicapAction(
   matchId: string,

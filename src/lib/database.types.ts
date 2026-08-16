@@ -949,6 +949,7 @@ export type Database = {
           created_at: string
           discipline: string
           ends_at: string | null
+          game_mode: string
           grading_scale: string
           gym_id: string | null
           handicap: boolean
@@ -974,6 +975,7 @@ export type Database = {
           created_at?: string
           discipline?: string
           ends_at?: string | null
+          game_mode?: string
           grading_scale?: string
           gym_id?: string | null
           handicap?: boolean
@@ -999,6 +1001,7 @@ export type Database = {
           created_at?: string
           discipline?: string
           ends_at?: string | null
+          game_mode?: string
           grading_scale?: string
           gym_id?: string | null
           handicap?: boolean
@@ -1228,6 +1231,32 @@ export type Database = {
       auto_publish_due_sets: { Args: never; Returns: number }
       bump_invite_rate_limit: { Args: never; Returns: boolean }
       can_read_set: { Args: { p_set_id: string }; Returns: boolean }
+      chork_allowance: {
+        Args: {
+          p_ceiling: number
+          p_challenge_grade: number
+          p_setter_attempts: number
+        }
+        Returns: number
+      }
+      chork_is_letter: {
+        Args: { p_allowance: number; p_attempts: number; p_completed: boolean }
+        Returns: boolean
+      }
+      chork_standings: {
+        Args: { p_set_id: string }
+        Returns: {
+          avatar_url: string
+          display_name: string
+          has_left: boolean
+          is_guest: boolean
+          is_out: boolean
+          letters: number
+          player_id: string
+          user_id: string
+          username: string
+        }[]
+      }
       compute_points: {
         Args: { p_attempts: number; p_completed: boolean; p_zone: boolean }
         Returns: number
@@ -1269,6 +1298,7 @@ export type Database = {
           created_at: string
           discipline: string
           ends_at: string | null
+          game_mode: string
           grading_scale: string
           gym_id: string | null
           handicap: boolean
@@ -1849,6 +1879,41 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      set_match_game_mode: {
+        Args: { p_mode: string; p_set_id: string }
+        Returns: {
+          active: boolean
+          closing_event: boolean
+          code: string | null
+          competition_id: string | null
+          created_at: string
+          discipline: string
+          ends_at: string | null
+          game_mode: string
+          grading_scale: string
+          gym_id: string | null
+          handicap: boolean
+          host_id: string | null
+          id: string
+          last_activity_at: string | null
+          location: string | null
+          max_grade: number | null
+          min_grade: number | null
+          name: string | null
+          owner_kind: string
+          share_token: string | null
+          starts_at: string
+          status: string
+          updated_at: string
+          venue_gym_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "sets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       set_match_handicap: {
         Args: { p_enabled: boolean; p_set_id: string }
         Returns: {
@@ -1859,6 +1924,7 @@ export type Database = {
           created_at: string
           discipline: string
           ends_at: string | null
+          game_mode: string
           grading_scale: string
           gym_id: string | null
           handicap: boolean
