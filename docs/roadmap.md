@@ -356,17 +356,56 @@ vocabulary these decisions produced.
 
 - [ ] **Mates (replaces Crew).** Crews need creating, inviting and
       accepting — three steps before any value, and every crew is
-      empty at launch. Replace with a mutual follow graph; value at
-      one connection.
+      empty at launch. Replace with a mutual link; value at one
+      connection. Design settled 2026-08-16 (grilled); nothing real to
+      migrate (1 crew, 26 rows, all seed).
 
-      Feed content is **moments, not ticks**: first V6, project sent
-      after five sessions, flash above usual grade, Set won. Note
-      `activity_events` is currently written only by gym-wall sends
-      and comments, so a gymless climber generates nothing — exactly
-      backwards for a group-first product.
+      **The link.** Mutual, both sides agreed — CLAUDE.md's rule that
+      there is no asymmetric relationship in the app still holds, so
+      "follow" was loose wording. Consent stays; what changes is
+      *discovery*, which is the actual cold-start problem. Candidates
+      are **suggested from Matches you shared**: after a Match,
+      everyone in it appears as "climbed with you today — add?". You
+      never have to know a handle, and having been on the mats
+      together is a strong signal.
 
-      Ship the share card (above) *before* the feed: it works with no
-      network at all.
+      **Two payoffs, because mates are not all at one gym.**
+
+      1. *Same gym* — a mates leaderboard replaces the crew one. Your
+         mates are your private board on the current Set. It exists
+         the moment you link one person, with no group to name.
+         `get_crew_leaderboard` is already set-scoped, so it mostly
+         re-points at a different roster.
+      2. *Different gyms* — a **moments feed**. This is why the feed
+         exists at all, and the answer to the apparent conflict with
+         "the growth loop is the group chat": that principle governs
+         *your own* results going out (the share card, shipped). Two
+         mates at different gyms share no Set, so a board is empty for
+         them and nothing else in the app shows one to the other.
+
+      **A moment is one of four, and all four are DERIVED at read
+      time — nothing new is stored.** Same rule as points and
+      community grades: derive from live rows, so there is no
+      backfill and a missed write can't lose a moment forever. Mate
+      counts are small enough that the query cost is fine.
+
+      - New personal best grade, per discipline (`route_logs` +
+        the route's declared/community grade — the same shape the
+        grade pyramid already computes)
+      - Won a Match (archived Match where they ranked 1; taps through
+        to the public result card)
+      - Earned an achievement (`user_achievements.earned_at`)
+      - Placed in a gym competition (`competition_participants` +
+        `get_competition_leaderboard`, gym via `competition_gyms`)
+
+      Deliberately NOT a moment: "flashed above their usual grade".
+      "Usual" needs a fuzzy rule, and a fuzzy rule produces moments
+      people argue with.
+
+      Note `activity_events` is written only by gym-wall sends and
+      comments — 2 rows total, per-send, none gymless. Wrong grain and
+      effectively greenfield; deriving sidesteps it entirely rather
+      than fixing it.
 
 - [ ] **Game modes.** Chork (the HORSE variant) and whatever follows.
       Blocked on the convergence — build them on one engine or build
