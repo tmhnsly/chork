@@ -289,9 +289,14 @@ alike.
 — the same treatment a sent route gets. The accent is never
 decoration; it means "you did this" or "this is yours".
 
-**A range lights up contiguously.** `GradeRangeTiles` fills every
-tile between the two bounds rather than marking only the ends, so the
-range reads as a range at a glance.
+**Every grade is picked with `GradePicker`.** One control —
+`components/ui/GradePicker` — for the card's "Rate this climb" row,
+the log sheet, the ceiling sheet and both bounds of a Match's grade
+range. Round, touch-target chips that **wrap rather than scroll**: a
+scale you're choosing from can't hide half its options past the right
+edge. It is a real ARIA radiogroup (one tab stop, arrows select), so
+don't hand-roll a row of grade buttons — a bespoke one appeared on the
+create-match screen and taught the wrong visual language.
 
 Marketing surfaces are exempt; they have their own job.
 

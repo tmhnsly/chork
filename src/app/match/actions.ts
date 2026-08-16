@@ -467,6 +467,13 @@ export interface ChorkStanding {
   user_id: string | null;
   letters: number;
   is_out: boolean;
+  /**
+   * Whose turn it is to set. Derived here rather than on the client
+   * for the same reason as the letters: the rule turns on whether the
+   * setter sent their own challenge, which is their attempt count,
+   * which nobody else may read. Exactly one seat has it.
+   */
+  has_pen: boolean;
 }
 
 /**

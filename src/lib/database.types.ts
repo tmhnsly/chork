@@ -1277,6 +1277,7 @@ export type Database = {
           avatar_url: string
           display_name: string
           has_left: boolean
+          has_pen: boolean
           is_guest: boolean
           is_out: boolean
           letters: number

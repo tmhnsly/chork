@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useMemo, useReducer, useState, useTransition } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useState,
+  useTransition,
+} from "react";
 import { useDebouncedFlush } from "@/hooks/use-debounced-flush";
 import { useRouter } from "next/navigation";
 import { showToast } from "@/components/ui";
@@ -84,25 +91,53 @@ export function useMatchScreenState({
 
   // ── Chork ──────────────────────────────────────────────────────
   //
-  // Letters can't be worked out here: the maths needs every player's
-  // raw attempt count, and those are private to their owner
-  // (CONTEXT.md "Attempt privacy"). The server derives them and sends
-  // back only the public result. Same shape as the rank strip —
-  // debounced, because working a route is a burst.
+  // Nothing about Chork can be worked out here: letters AND whose turn
+  // it is to set both need every player's raw attempt count, and those
+  // are private to their owner (CONTEXT.md "Attempt privacy"). A
+  // viewer who isn't the setter can't see whether the setter sent
+  // their own challenge, which is the whole pen rule. The server
+  // derives both and sends back only the public result. Same shape as
+  // the rank strip — debounced, because working a route is a burst.
   const isChork = initialState.match.game_mode === "chork";
-  const [chorkLetters, setChorkLetters] = useState<Map<string, number>>(
-    () => new Map(),
-  );
+  const [chork, setChork] = useState<{
+    letters: Map<string, number>;
+    penSeatId: string | null;
+  }>(() => ({ letters: new Map(), penSeatId: null }));
+
+  // Fetch only — the caller decides whether to keep the answer, which
+  // is what lets the mount-time load below drop a result that landed
+  // after a fresher one.
+  const loadChork = useCallback(async () => {
+    if (!isChork) return null;
+    const result = await fetchChorkStandings(initialState.match.id);
+    if ("error" in result) return null;
+    return {
+      letters: new Map(result.standings.map((s) => [s.player_id, s.letters])),
+      penSeatId: result.standings.find((s) => s.has_pen)?.player_id ?? null,
+    };
+  }, [isChork, initialState.match.id]);
+
+  // The board starts empty and a log event is not guaranteed to
+  // arrive, so without this someone opening a match already in
+  // progress reads every seat as nought letters and nobody setting.
+  // `live` is per effect run, not a mounted ref — StrictMode's second
+  // run gets its own, which is exactly the trap that left the browse
+  // buttons dead after one press.
+  useEffect(() => {
+    let live = true;
+    void loadChork().then((next) => {
+      if (live && next) setChork(next);
+    });
+    return () => {
+      live = false;
+    };
+  }, [loadChork]);
 
   const { schedule: scheduleChork } = useDebouncedFlush<void>({
     delayMs: 1000,
     flush: async () => {
-      if (!isChork) return;
-      const result = await fetchChorkStandings(initialState.match.id);
-      if ("error" in result) return;
-      setChorkLetters(
-        new Map(result.standings.map((s) => [s.player_id, s.letters])),
-      );
+      const next = await loadChork();
+      if (next) setChork(next);
     },
   });
 
@@ -489,7 +524,8 @@ export function useMatchScreenState({
     handleEnd,
     handleLeave,
     isChork,
-    chorkLetters,
+    chorkLetters: chork.letters,
+    chorkPenSeatId: chork.penSeatId,
     chorkAllowance,
     handleConcede,
   };

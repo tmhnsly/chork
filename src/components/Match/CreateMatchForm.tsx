@@ -369,29 +369,18 @@ export function CreateMatchForm({ savedScales }: Props) {
 }
 
 /**
- * Apple-iOS Settings-style grouped range card. Two stepper rows
- * (easiest / hardest), one hairline between them, both sharing the
- * same surface so the picker reads as a single "range" control.
- *
- * Earlier this surface was 58 separate pills across two TabPills
- * rows — every grade as its own dot. Visually overwhelming for a
- * value the climber actually thinks about as "from X to Y." The
- * stepper holds the same data with two big readable numbers and a
- * ◀ ▶ pair, and the disabled-state logic keeps the range valid
- * without the picker drawing every option.
- */
-/**
  * The grade range, picked with the SAME control as everywhere else.
  *
- * `GradePicker` is the control the card's Rate-this-climb row uses,
- * sheet and the ceiling sheet all use: a scrolling row of round,
- * tappable grades. One row per bound. Every place a climber picks a
- * grade now looks and behaves identically, which is the point — this
- * screen had a bespoke stepper before, and it taught the wrong thing.
+ * One `GradePicker` per bound — the round, wrapping row of tappable
+ * grades that the card's "Rate this climb" row, the log sheet and the
+ * ceiling sheet all use. Every place a climber picks a grade now looks
+ * and behaves identically, which is the whole point: this screen had a
+ * bespoke ◀ ▶ stepper before, and a control that appears once teaches
+ * nothing.
  *
  * The full scale is offered on both rows rather than only the legal
- * half; the impossible options are disabled, so the row doesn't
- * reflow under your thumb as you move the other bound.
+ * half; the impossible options are disabled, so the row doesn't reflow
+ * under your thumb as you move the other bound.
  */
 function RangePicker({
   scale,
