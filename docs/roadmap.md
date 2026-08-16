@@ -103,7 +103,12 @@ Platform hardening:
       `src/lib/rate-limit.ts`)
 - [x] Error monitoring (Sentry — `sentry.{client,server,edge}.config.ts`)
 - [ ] Database connection pooling (Supabase config verify)
-- [ ] Scheduled backups verified restorable
+- [ ] Scheduled backups verified restorable — **still not verified**,
+      but the checklist is now written: `docs/backup-restore.md` has
+      the inventory a restore has to reproduce and the two things
+      easiest to lose silently (RLS flags, `pg_cron` jobs). Blocked on
+      a scratch project to restore INTO; `supabase db dump` also needs
+      Docker, which isn't installed
 
 ## Recently shipped — UI
 

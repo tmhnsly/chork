@@ -11,6 +11,7 @@ climb alongside the friends they add.
 > - `docs/migrations.md` — one-line-per-migration catalogue
 > - `docs/testing.md` — test patterns + stability invariants
 > - `docs/db-audit.md` — findings from the last hardening pass
+> - `docs/backup-restore.md` — what to check when a restore is tested
 > - `docs/roadmap.md` — shipped / next / planned
 
 ---
