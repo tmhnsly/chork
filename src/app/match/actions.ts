@@ -387,6 +387,59 @@ export async function setMatchCeilingAction(
 }
 
 /**
+ * How many goes the caller (or a guest they host) gets on this round.
+ *
+ * Server-side because the allowance is the SETTER's attempt count plus
+ * the ceiling bonus, and raw attempts are private to their owner. Null
+ * when the setter hasn't sent their own challenge — there is no round
+ * to answer yet.
+ */
+export async function fetchChorkAllowance(
+  matchId: string,
+  routeId: string,
+  playerId?: string,
+): Promise<{ error: string } | { allowance: number | null }> {
+  const auth = await gateSignedInMutation(matchId, "match id", {
+    rateLimit: null,
+  });
+  if ("error" in auth) return { error: auth.error };
+
+  const { data, error } = await auth.supabase.rpc("chork_round_allowance", {
+    p_set_id: matchId,
+    p_route_id: routeId,
+    p_player_id: playerId ?? undefined,
+  });
+  if (error) return { error: formatError(error) };
+  return { allowance: (data as number | null) ?? null };
+}
+
+/**
+ * Give up on a round.
+ *
+ * Letters are derived from attempts reaching the allowance without a
+ * send, which works while you're pulling and leaves nothing to say
+ * "I'm done with this one" — so a climber who walks away sits
+ * unresolved and the round never closes. Conceding reaches the same
+ * derivation deliberately rather than storing anything new.
+ */
+export async function concedeChorkRound(
+  matchId: string,
+  routeId: string,
+  playerId?: string,
+): Promise<{ error: string } | { ok: true }> {
+  const auth = await gateSignedInMutation(matchId, "match id");
+  if ("error" in auth) return { error: auth.error };
+
+  const { error } = await auth.supabase.rpc("chork_concede", {
+    p_set_id: matchId,
+    p_route_id: routeId,
+    p_player_id: playerId ?? undefined,
+  });
+  if (error) return { error: formatError(error) };
+  return { ok: true };
+}
+
+/**
  * Chork standings: how much of the word each seat has spelled.
  *
  * Letters rather than attempts, deliberately. Chork needs everyone's

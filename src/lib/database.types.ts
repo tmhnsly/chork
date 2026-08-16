@@ -1239,9 +1239,37 @@ export type Database = {
         }
         Returns: number
       }
+      chork_concede: {
+        Args: { p_player_id?: string; p_route_id: string; p_set_id: string }
+        Returns: {
+          attempts: number
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          grade_vote: number | null
+          gym_id: string | null
+          id: string
+          player_id: string | null
+          route_id: string
+          set_id: string
+          updated_at: string
+          user_id: string | null
+          zone: boolean
+        }
+        SetofOptions: {
+          from: "*"
+          to: "route_logs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       chork_is_letter: {
         Args: { p_allowance: number; p_attempts: number; p_completed: boolean }
         Returns: boolean
+      }
+      chork_round_allowance: {
+        Args: { p_player_id?: string; p_route_id: string; p_set_id: string }
+        Returns: number
       }
       chork_standings: {
         Args: { p_set_id: string }

@@ -2,6 +2,7 @@
 @use "mixins/typography" as type;
 @use "mixins/surfaces" as surface;
 @use "mixins/state" as state;
+@use "mixins/focus" as focus;
 
 .board {
   @include surface.card;
@@ -16,6 +17,13 @@
 }
 
 .row {
+  @include focus.ring;
+  width: 100%;
+  border: none;
+  background: none;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
   display: flex;
   align-items: center;
   gap: var(--space-3);

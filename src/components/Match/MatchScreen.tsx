@@ -18,6 +18,7 @@ import { MatchMenuSheet } from "./MatchMenuSheet";
 import { AddGuestSheet } from "./AddGuestSheet";
 import { CeilingSheet } from "./CeilingSheet";
 import { MatchPlayerGridSheet } from "./MatchPlayerGridSheet";
+import { logKey } from "./matchScreenReducer";
 import { useMatchScreenState } from "./useMatchScreenState";
 import styles from "./matchScreen.module.scss";
 
@@ -51,6 +52,8 @@ export function MatchScreen({ initialState, userId }: Props) {
     handleLeave,
     isChork,
     chorkLetters,
+    chorkAllowance,
+    handleConcede,
   } = useMatchScreenState({ initialState, userId });
 
   // The board shows the top of the table and you, always — see
@@ -179,6 +182,7 @@ export function MatchScreen({ initialState, userId }: Props) {
           lettersBySeat={chorkLetters}
           penSeatId={penSeatId}
           viewerId={userId}
+          onPress={(seatId) => openPanel({ kind: "peek", playerId: seatId })}
         />
       ) : (
       <ul className={styles.leaderboardStrip} aria-label="Leaderboard">
@@ -267,7 +271,16 @@ export function MatchScreen({ initialState, userId }: Props) {
       {activeRoute && (
         <MatchLogSheet
           route={activeRoute}
-          log={myLogByRouteId.get(activeRoute.id) ?? null}
+          // The log belongs to the SEAT being logged for, not to the
+          // viewer. Passing the viewer's own meant a host opening a
+          // guest's round saw their own attempts and send on it —
+          // "Route 1 — Dave" showing Tom's 2 goes and a tick.
+          log={
+            loggingPlayer?.is_guest
+              ? state.logs.get(logKey(loggingPlayer.player_id, activeRoute.id))
+                ?? null
+              : myLogByRouteId.get(activeRoute.id) ?? null
+          }
           grades={initialState.grades}
           gradingScale={initialState.match.grading_scale}
           matchDiscipline={initialState.match.discipline}
@@ -279,6 +292,26 @@ export function MatchScreen({ initialState, userId }: Props) {
             loggingPlayer && loggingPlayer.is_guest
               ? loggingPlayer.display_name
               : null
+          }
+          chork={
+            isChork
+              ? {
+                  // Only trust the fetched value when it belongs to
+                  // THIS round and seat — otherwise a fast switch
+                  // between routes would show the previous one's
+                  // allowance for a frame.
+                  allowance:
+                    chorkAllowance?.key
+                      === `${activeRoute.id}:${loggingPlayer?.is_guest ? loggingPlayer.player_id : "me"}`
+                      ? chorkAllowance.value
+                      : null,
+                  onConcede: () =>
+                    handleConcede(
+                      activeRoute.id,
+                      loggingPlayer?.is_guest ? loggingPlayer.player_id : undefined,
+                    ),
+                }
+              : undefined
           }
           onClose={closePanel}
           onEdit={() => openPanel({ kind: "edit", routeId: activeRoute.id })}

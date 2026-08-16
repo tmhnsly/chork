@@ -15,6 +15,8 @@ import {
   endMatchAction,
   leaveMatchAction,
   fetchChorkStandings,
+  fetchChorkAllowance,
+  concedeChorkRound,
   addMatchGuestAction,
   setMatchCeilingAction,
   removeMatchGuestAction,
@@ -185,9 +187,43 @@ export function useMatchScreenState({
     return map;
   }, [state.logs, userId]);
 
+  /**
+   * The allowance for the open round, fetched because it depends on
+   * the setter's attempt count and those are private to them.
+   * Keyed on route + seat so switching either refetches.
+   */
+  const [chorkAllowance, setChorkAllowance] = useState<{
+    key: string;
+    value: number | null;
+  } | null>(null);
+
+  const loadChorkAllowance = useCallback(
+    (routeId: string, playerId?: string) => {
+      const key = `${routeId}:${playerId ?? "me"}`;
+      startTransition(async () => {
+        const result = await fetchChorkAllowance(
+          initialState.match.id,
+          routeId,
+          playerId,
+        );
+        if ("error" in result) return;
+        setChorkAllowance({ key, value: result.allowance });
+      });
+    },
+    [initialState.match.id],
+  );
+
   const openPanel = useCallback(
-    (panel: MatchPanel) => dispatch({ type: "open-panel", panel }),
-    [],
+    (panel: MatchPanel) => {
+      dispatch({ type: "open-panel", panel });
+      // Opening a round is the moment to find out how many goes it
+      // carries. Fetched rather than derived because the allowance
+      // depends on the setter's attempt count, which is theirs alone.
+      if (isChork && panel.kind === "log") {
+        loadChorkAllowance(panel.routeId, panel.playerId);
+      }
+    },
+    [isChork, loadChorkAllowance],
   );
   const closePanel = useCallback(() => dispatch({ type: "close-panel" }), []);
 
@@ -394,6 +430,27 @@ export function useMatchScreenState({
    * still running for everyone else, and dropping the leaver on a
    * result page for a live contest reads as though it ended.
    */
+
+  const handleConcede = useCallback(
+    (routeId: string, playerId?: string) => {
+      startTransition(async () => {
+        const result = await concedeChorkRound(
+          initialState.match.id,
+          routeId,
+          playerId,
+        );
+        if ("error" in result) {
+          showToast(result.error, "error");
+          return;
+        }
+        dispatch({ type: "close-panel" });
+        scheduleChork(undefined);
+        router.refresh();
+      });
+    },
+    [initialState.match.id, router, scheduleChork],
+  );
+
   const handleLeave = useCallback(() => {
     startTransition(async () => {
       const result = await leaveMatchAction(initialState.match.id);
@@ -433,5 +490,7 @@ export function useMatchScreenState({
     handleLeave,
     isChork,
     chorkLetters,
+    chorkAllowance,
+    handleConcede,
   };
 }
