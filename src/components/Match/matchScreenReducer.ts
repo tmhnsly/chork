@@ -106,6 +106,15 @@ export function matchReducer(
     case "set-routes":
       return { ...state, routes: action.routes };
     case "upsert-route": {
+      // A withdrawal arrives as an UPDATE, not a DELETE — the row
+      // survives so the Chork pen can still read whose go it was. To
+      // the room it is gone, so this is the one upsert that removes.
+      if (action.route.withdrawn_at !== null) {
+        return {
+          ...state,
+          routes: state.routes.filter((r) => r.id !== action.route.id),
+        };
+      }
       const existingIdx = state.routes.findIndex(
         (r) => r.id === action.route.id,
       );

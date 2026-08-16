@@ -24,6 +24,7 @@ import {
   fetchChorkStandings,
   fetchChorkAllowance,
   concedeChorkRound,
+  withdrawChorkRoute,
   addMatchGuestAction,
   setMatchCeilingAction,
   removeMatchGuestAction,
@@ -148,6 +149,11 @@ export function useMatchScreenState({
       } else {
         dispatch({ type: "upsert-route", route: evt.new });
       }
+      // A route IS a round, so putting one up moves the pen and can
+      // change who owes a letter. This listened only to log events, so
+      // the board sat on the previous setter until somebody happened
+      // to log something.
+      if (isChork) scheduleChork(undefined);
     },
     onLogChange: (evt) => {
       if (evt.eventType === "DELETE") {
@@ -268,6 +274,12 @@ export function useMatchScreenState({
       grade: number | null;
       hasZone: boolean;
       discipline: Discipline;
+      /**
+       * Whose turn it is, when that's a guest and the host is tapping
+       * for them. The route is recorded against the SEAT, so the pen
+       * stays where it belongs instead of bouncing back to the host.
+       */
+      playerId?: string | null;
     }) => {
       startTransition(async () => {
         const result = await addMatchRouteAction({
@@ -276,6 +288,7 @@ export function useMatchScreenState({
           grade: payload.grade,
           hasZone: payload.hasZone,
           discipline: payload.discipline,
+          playerId: payload.playerId ?? null,
         });
         if ("error" in result) {
           showToast(result.error, "error");
@@ -486,6 +499,33 @@ export function useMatchScreenState({
     [initialState.match.id, router, scheduleChork],
   );
 
+  /**
+   * The setter's way out, and the only thing that moves the pen. The
+   * route leaves the room optimistically — the realtime UPDATE that
+   * follows carries `withdrawn_at`, which the reducer treats as a
+   * removal, so the echo is a no-op rather than a resurrection.
+   */
+  const handleWithdraw = useCallback(
+    (routeId: string, playerId?: string | null) => {
+      startTransition(async () => {
+        const result = await withdrawChorkRoute(
+          initialState.match.id,
+          routeId,
+          playerId,
+        );
+        if ("error" in result) {
+          showToast(result.error, "error");
+          return;
+        }
+        dispatch({ type: "remove-route", id: routeId });
+        dispatch({ type: "close-panel" });
+        scheduleChork(undefined);
+        router.refresh();
+      });
+    },
+    [initialState.match.id, router, scheduleChork],
+  );
+
   const handleLeave = useCallback(() => {
     startTransition(async () => {
       const result = await leaveMatchAction(initialState.match.id);
@@ -528,5 +568,6 @@ export function useMatchScreenState({
     chorkPenSeatId: chork.penSeatId,
     chorkAllowance,
     handleConcede,
+    handleWithdraw,
   };
 }

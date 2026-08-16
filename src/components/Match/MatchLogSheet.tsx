@@ -45,6 +45,13 @@ interface Props {
   chork?: {
     allowance: number | null;
     onConcede: () => void;
+    /**
+     * Present only on your own challenge, before you've sent it. Takes
+     * the route back off the wall and passes the pen — the setter's
+     * only way to end their turn, and the one thing that moves it
+     * (migration 114).
+     */
+    onWithdraw?: () => void;
   };
   /** The Match's default — the route may override it. */
   matchDiscipline: Discipline;
@@ -338,6 +345,22 @@ export function MatchLogSheet({
                   Give up
                 </button>
               )}
+            </div>
+          )}
+
+          {/* Your own set, not yet sent. No allowance line here — the
+              setter has no allowance; their attempts are what defines
+              everyone else's. */}
+          {chork?.onWithdraw && (
+            <div className={styles.chorkRound}>
+              <span className={styles.chorkGoes}>Your challenge</span>
+              <button
+                type="button"
+                className={styles.chorkConcede}
+                onClick={chork.onWithdraw}
+              >
+                Couldn&rsquo;t do it
+              </button>
             </div>
           )}
 

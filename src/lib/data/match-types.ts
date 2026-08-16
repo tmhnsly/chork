@@ -94,6 +94,20 @@ export interface MatchRoute {
   has_zone: boolean;
   added_by: string | null;
   /**
+   * The SEAT that set it (migration 116). `added_by` is the account
+   * behind that seat and is null for a guest — Chork rotates the pen
+   * by seat, so this is the one to compare against a player.
+   */
+  added_by_player: string | null;
+  /**
+   * Chork: the setter put this up and could not send it, so it never
+   * became a round. `get_match_state_for_user` filters these out, so
+   * a route reaching the room is always null here — the field exists
+   * because a withdrawal reaches the client as a realtime UPDATE on
+   * the row, and that is how the reducer knows to drop it.
+   */
+  withdrawn_at: string | null;
+  /**
    * Overrides the Match's discipline. Null = inherit, which is the
    * common case — the RPC normalises a value equal to the Match's own
    * back to null, so changing the Match default still moves this

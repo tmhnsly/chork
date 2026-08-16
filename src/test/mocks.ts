@@ -57,6 +57,14 @@ export function mockRoute(overrides: Partial<Route> & { id: string; set_id: stri
     // be confused).
     description: null,
     added_by: null,
+    // Migration 116 — the SEAT that set it. A guest has a seat and no
+    // account, which is why this sits beside `added_by` rather than
+    // replacing it.
+    added_by_player: null,
+    // Migration 114 — Chork: a challenge whose setter took it back.
+    // Null on every route the room can see, since the state RPC
+    // filters withdrawn ones out.
+    withdrawn_at: null,
     declared_grade: null,
     // Null = inherit the Set's discipline (migration 091), which is
     // the common case — only a route that genuinely differs stores one.

@@ -222,6 +222,13 @@ interface RoutePayload {
    * null, so inheriting stays inheriting.
    */
   discipline?: Discipline | null;
+  /**
+   * Set on a guest's behalf — host only, and the seat is what gets
+   * recorded. Without it a guest could never take their turn in
+   * Chork: the route went down under the host's account, so the pen
+   * bounced straight back off them (migration 116).
+   */
+  playerId?: string | null;
 }
 
 export async function addMatchRouteAction(
@@ -240,6 +247,7 @@ export async function addMatchRouteAction(
     p_description: undef(clampString(payload.description, MAX_DESCRIPTION_LEN)),
     p_grade: undef(typeof payload.grade === "number" ? payload.grade : null),
     p_has_zone: !!payload.hasZone,
+    p_player_id: undef(payload.playerId ?? null),
   });
   if (error) return { error: formatError(error) };
   // Return the full row so the client can dispatch `upsert-route`
@@ -434,6 +442,39 @@ export async function concedeChorkRound(
     p_set_id: matchId,
     p_route_id: routeId,
     p_player_id: playerId ?? undefined,
+  });
+  if (error) return { error: formatError(error) };
+  return { ok: true };
+}
+
+/**
+ * Take your own challenge back.
+ *
+ * The setter's own way out, and the only thing that moves the pen. A
+ * challenge nobody sent cleanly was never a round, so it costs nobody
+ * a letter and it leaves the wall — but the row survives, because the
+ * pen is derived from the routes and deleting the record of your turn
+ * would hand it straight back to you (migration 114).
+ *
+ * Refused once the setter has sent it: other climbers may already
+ * have spent goes answering, and taking it back would erase letters
+ * they have earned.
+ */
+export async function withdrawChorkRoute(
+  matchId: string,
+  routeId: string,
+  playerId?: string | null,
+): Promise<{ error: string } | { ok: true }> {
+  const auth = await gateSignedInMutation(matchId, "match id");
+  if ("error" in auth) return { error: auth.error };
+  if (!isUuid(routeId)) return { error: "Invalid route id" };
+  if (playerId != null && !isUuid(playerId)) {
+    return { error: "Invalid player id" };
+  }
+
+  const { error } = await auth.supabase.rpc("chork_withdraw_route", {
+    p_route_id: routeId,
+    p_player_id: undef(playerId ?? null),
   });
   if (error) return { error: formatError(error) };
   return { ok: true };
