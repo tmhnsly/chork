@@ -8,12 +8,24 @@ import {
 } from "./notification-kinds";
 
 const CREW_1 = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+const FRIEND_1 = "cccccccc-cccc-cccc-cccc-cccccccccccc";
 
-/** The closed kind set — mirrors the DB check constraint (migration 033). */
+/**
+ * The closed kind set — mirrors the DB check constraint (migration
+ * 033, extended by 105 for mates).
+ *
+ * Spelled out by hand on purpose: deriving it from `notificationKinds`
+ * would make the test pass for any pair of matching mistakes. This is
+ * the list you have to change deliberately, and changing it without
+ * the migration means a `notify()` that typechecks and then fails at
+ * insert with a 23514.
+ */
 const EXPECTED_KINDS: NotificationKind[] = [
   "crew_invite_received",
   "crew_invite_accepted",
   "crew_ownership_transferred",
+  "friend_request_received",
+  "friend_request_accepted",
 ];
 
 describe("notificationKinds table", () => {
@@ -59,6 +71,19 @@ describe("notificationKinds table", () => {
         crewId: CREW_1,
         crewName: "Tuesday Crew",
         fromUsername: "alice",
+      },
+      {
+        kind: "friend_request_received",
+        recipient: "u2",
+        actor: "u1",
+        friendId: FRIEND_1,
+        fromUsername: "alice",
+      },
+      {
+        kind: "friend_request_accepted",
+        recipient: "u1",
+        actor: "u2",
+        accepterUsername: "bob",
       },
     ];
     expect(events.map((e) => e.kind).sort()).toEqual([...EXPECTED_KINDS].sort());
@@ -234,6 +259,45 @@ describe("unknown / future kinds", () => {
     expect(content).not.toBeNull();
     expect(content?.href).toBe(`/crew/${CREW_1}`);
     expect(content?.segments).toContainEqual({
+      type: "user",
+      username: "bob",
+    });
+  });
+});
+
+describe("friend_request_received", () => {
+  const def = notificationKinds.friend_request_received;
+  const payload = def.toPayload({
+    actor: "u1",
+    friendId: FRIEND_1,
+    fromUsername: "alice",
+  });
+
+  it("carries the link id, so the in-app row can act on it", () => {
+    expect(payload.friend_id).toBe(FRIEND_1);
+  });
+
+  it("adds the @ at render, never in storage", () => {
+    // The domain rule lives in the renderer — a stored "@alice" would
+    // come back out as "@@alice".
+    expect(payload.from_username).toBe("alice");
+    expect(def.push(payload).body).toContain("@alice");
+  });
+
+  it("reuses the crew invite opt-in category", () => {
+    // Mates replace crews; a climber who muted crew invites has said
+    // what they think about being asked things.
+    expect(def.push(payload).category).toBe("invite_received");
+  });
+});
+
+describe("friend_request_accepted", () => {
+  const def = notificationKinds.friend_request_accepted;
+  const payload = def.toPayload({ actor: "u2", accepterUsername: "bob" });
+
+  it("names who accepted", () => {
+    expect(def.push(payload).body).toContain("@bob");
+    expect(def.inApp(payload).segments[0]).toEqual({
       type: "user",
       username: "bob",
     });

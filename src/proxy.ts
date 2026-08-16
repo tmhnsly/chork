@@ -31,7 +31,26 @@ const ONBOARDED_COOKIE = "chork-onboarded";
 //
 // Non-critical — a stale or missing value just means the nav may
 // briefly show the wrong shape, same as before this cookie existed.
-const AUTH_SHELL_COOKIE = "chork-auth-shell";
+// Bumped to v2 when the admin suffix was added. A v1 cookie holds
+// "awg" / "ang", which is indistinguishable from "signed in and
+// definitely not an admin" — so without a new name every existing
+// user would resolve isAdmin=false forever and the tab would keep
+// popping in for exactly the people who complained. Same reasoning as
+// the v2 bump on the localStorage profile cache.
+const AUTH_SHELL_COOKIE = "chork-auth-shell-v2";
+
+/**
+ * The nav variant, encoded for `NavBarShell`.
+ *
+ *   u     signed out
+ *   ang   signed in, no gym
+ *   awg   signed in, with a gym
+ *   …a    …and runs at least one gym (the Admin tab)
+ *
+ * Kept as a short opaque token rather than JSON because it is signed
+ * on every write and compared on every read.
+ */
+type ShellValue = "u" | "ang" | "awg" | "anga" | "awga";
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -73,7 +92,7 @@ export async function proxy(request: NextRequest) {
   // `CHORK_COOKIE_SECRET` is configured, the helpers degrade to
   // pass-through so local dev still boots.
   const existingShell = await verify(request.cookies.get(AUTH_SHELL_COOKIE)?.value);
-  let nextShell: "u" | "ang" | "awg" = isAuthenticated ? "ang" : "u";
+  let nextShell: ShellValue = isAuthenticated ? "ang" : "u";
 
   // Signed-in users never need the login page.
   if (isAuthRoute && isAuthenticated) {
@@ -106,6 +125,7 @@ export async function proxy(request: NextRequest) {
   const expected = `${user.id}:1`;
   let isOnboarded = cached === expected;
   let hasGym: boolean | null = null;
+  let isAdmin: boolean | null = null;
 
   if (!isOnboarded) {
     const { data: profile } = await supabase
@@ -148,7 +168,35 @@ export async function proxy(request: NextRequest) {
         hasGym = !!profile?.active_gym_id;
       }
     }
-    nextShell = hasGym ? "awg" : "ang";
+    // The admin suffix. Without it the server always renders the nav
+    // WITHOUT the Admin tab and hydration adds it a beat later — the
+    // tab visibly pops in on every single page load for anyone who
+    // runs a gym. `isAdmin` is already in the localStorage profile
+    // cache, which is why the rest of the nav paints correctly; the
+    // server simply had no way to know.
+    //
+    // Costs one indexed lookup, and only on the cold path — once the
+    // cookie is stamped, every subsequent nav reads it for free. Like
+    // the rest of this cookie it is a PAINT HINT, never an auth
+    // decision: /admin re-checks `requireGymAdmin` regardless, and a
+    // stale value self-corrects on hydration.
+    if (isAdmin === null) {
+      if (existingShell === "awga" || existingShell === "anga") {
+        isAdmin = true;
+      } else if (existingShell === "awg" || existingShell === "ang") {
+        isAdmin = false;
+      } else {
+        const { data: adminRow } = await supabase
+          .from("gym_admins")
+          .select("user_id")
+          .eq("user_id", user.id)
+          .limit(1)
+          .maybeSingle();
+        isAdmin = !!adminRow;
+      }
+    }
+
+    nextShell = `${hasGym ? "awg" : "ang"}${isAdmin ? "a" : ""}` as ShellValue;
   }
 
   // Write the shell cookie whenever its value differs from what the

@@ -126,7 +126,7 @@ describe("signOutAction", () => {
     await signOutAction();
 
     expect(cookieDelete).toHaveBeenCalledWith("chork-onboarded");
-    expect(cookieDelete).toHaveBeenCalledWith("chork-auth-shell");
+    expect(cookieDelete).toHaveBeenCalledWith("chork-auth-shell-v2");
   });
 
   it("wipes stale cookies even when Supabase signOut errors", async () => {
@@ -143,6 +143,6 @@ describe("signOutAction", () => {
 
     expect(result.error).toBeDefined();
     expect(cookieDelete).toHaveBeenCalledWith("chork-onboarded");
-    expect(cookieDelete).toHaveBeenCalledWith("chork-auth-shell");
+    expect(cookieDelete).toHaveBeenCalledWith("chork-auth-shell-v2");
   });
 });

@@ -36,6 +36,16 @@ export interface CrewInviteAcceptedPayload {
   accepter_username: string;
 }
 
+export interface FriendRequestReceivedPayload {
+  /** The link's own id — the in-app row acts on it directly. */
+  friend_id: string;
+  from_username: string;
+}
+
+export interface FriendRequestAcceptedPayload {
+  accepter_username: string;
+}
+
 export interface CrewOwnershipTransferredPayload {
   crew_id: string;
   crew_name: string;
@@ -52,6 +62,8 @@ export interface NotificationPayloads {
   crew_invite_received: CrewInviteReceivedPayload;
   crew_invite_accepted: CrewInviteAcceptedPayload;
   crew_ownership_transferred: CrewOwnershipTransferredPayload;
+  friend_request_received: FriendRequestReceivedPayload;
+  friend_request_accepted: FriendRequestAcceptedPayload;
 }
 
 export type NotificationKind = keyof NotificationPayloads;
@@ -82,6 +94,15 @@ export interface NotificationEventFields {
     crewId: string;
     crewName: string;
     fromUsername: string;
+  };
+  friend_request_received: {
+    actor: string;
+    friendId: string;
+    fromUsername: string;
+  };
+  friend_request_accepted: {
+    actor: string;
+    accepterUsername: string;
   };
 }
 
@@ -220,6 +241,51 @@ export const notificationKinds: {
         { type: "user", username: p.from_username },
         { type: "text", text: " made you the creator of " },
         { type: "crew", name: p.crew_name },
+      ],
+    }),
+  },
+
+  // Mates reuse the crew push CATEGORIES (`invite_received` /
+  // `invite_accepted`) rather than adding opt-in columns: the two
+  // already mean "tell me when someone asks" and "tell me when
+  // someone says yes", and mates are what replaces crews.
+  friend_request_received: {
+    toPayload: (e) => ({
+      friend_id: e.friendId,
+      from_username: e.fromUsername,
+    }),
+    push: (p) => ({
+      title: "New mate request",
+      body: `@${p.from_username} wants to be mates.`,
+      url: "/friends",
+      category: "invite_received",
+    }),
+    inApp: (p) => ({
+      icon: "user-plus",
+      href: "/friends",
+      segments: [
+        { type: "user", username: p.from_username },
+        { type: "text", text: " wants to be mates" },
+      ],
+    }),
+  },
+
+  friend_request_accepted: {
+    toPayload: (e) => ({
+      accepter_username: e.accepterUsername,
+    }),
+    push: (p) => ({
+      title: "You're mates",
+      body: `@${p.accepter_username} accepted your mate request.`,
+      url: "/friends",
+      category: "invite_accepted",
+    }),
+    inApp: (p) => ({
+      icon: "check",
+      href: "/friends",
+      segments: [
+        { type: "user", username: p.accepter_username },
+        { type: "text", text: " accepted your mate request" },
       ],
     }),
   },
