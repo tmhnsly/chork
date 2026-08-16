@@ -44,9 +44,9 @@ export function InviteCard({ gymName }: Props) {
         <FaUserPlus />
       </div>
       <div className={styles.text}>
-        <h2 id="invite-heading" className={styles.heading}>Bring the crew</h2>
+        <h2 id="invite-heading" className={styles.heading}>Bring your friends</h2>
         <p className={styles.body}>
-          Share Chork with your {gymName} mates to see them on the board.
+          Share Chork with your {gymName} friends to see them on the board.
         </p>
       </div>
       <button type="button" className={styles.cta} onClick={handleCopy}>

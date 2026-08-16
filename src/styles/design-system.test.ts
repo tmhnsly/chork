@@ -319,6 +319,34 @@ describe("interactive nesting", () => {
   });
 });
 
+describe("tab panels", () => {
+  it("gives every tabpanel its own layout", () => {
+    // A `role="tabpanel"` wrapper is a child of the page's stack, so
+    // it RECEIVES that gap and passes none on. Everything it contains
+    // then has no vertical rhythm at all — which is how the
+    // Chorkboard shipped with the podium's plinths butted straight
+    // into rank 4 and every card below touching the one above.
+    //
+    // Nothing errors and nothing looks obviously wrong in review; it
+    // just reads as cramped. So: a tabpanel must carry a className,
+    // and it is on the author to make that class lay its children
+    // out.
+    const offenders = tsx.flatMap(({ path, text }) => {
+      // The opening tag, from `<div` through the `>` that closes it.
+      const tags = text.match(/<div[^>]*role="tabpanel"[^>]*>/g) ?? [];
+      return tags
+        .filter((tag) => !/className=/.test(tag))
+        .map(() => relative(process.cwd(), path));
+    });
+
+    expect(
+      offenders,
+      "A tabpanel needs a className that lays its children out — "
+        + "the page stack's gap stops at the panel, not inside it",
+    ).toEqual([]);
+  });
+});
+
 describe("tab semantics", () => {
   // `role="tab"` is a promise: AT announces "tab 2 of 3, selected"
   // and expects somewhere to move to. Ten surfaces made that promise

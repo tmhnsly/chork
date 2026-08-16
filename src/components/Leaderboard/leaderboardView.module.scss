@@ -5,6 +5,12 @@
   @include layout.stack(var(--space-5));
 }
 
+// The tabpanel is a child of `.view`, so it receives that stack's
+// gap but doesn't pass one on. Its own contents need the same rhythm.
+.panel {
+  @include layout.stack(var(--space-5));
+}
+
 .segmentRow {
   display: flex;
   justify-content: flex-start;

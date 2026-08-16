@@ -90,6 +90,7 @@ export function AdminDashboard({
 
       <div
         id={DASHBOARD_PANEL_ID}
+        className={styles.panel}
         role="tabpanel"
         tabIndex={0}
         aria-labelledby={tabId(DASHBOARD_PANEL_ID, tab)}
