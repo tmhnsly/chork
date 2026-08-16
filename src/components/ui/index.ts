@@ -14,6 +14,7 @@ export { SheetBody } from "./SheetBody";
 export { spaceVar, contentVar } from "./spacing";
 export type { SpaceStep, ContentWidth } from "./spacing";
 export { CardSkeleton } from "./CardSkeleton";
+export { PageHeaderSkeleton } from "./PageHeaderSkeleton";
 export { ChorkMark } from "./ChorkMark";
 export { Legend } from "./Legend";
 export { ChoiceTiles } from "./ChoiceTiles/ChoiceTiles";

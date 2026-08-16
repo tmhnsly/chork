@@ -3,13 +3,3 @@
 .page {
   @include layout.page;
 }
-
-.header {
-  @include layout.stack(var(--space-1));
-}
-
-.title {
-  height: var(--text-5xl);
-  width: 40%;
-  border-radius: var(--radius-1);
-}

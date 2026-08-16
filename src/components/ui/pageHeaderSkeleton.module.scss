@@ -1,0 +1,31 @@
+@use "mixins/layout" as layout;
+
+// Mirrors `motion/pageHeader.module.scss` — same stack gap, same
+// container so the title's clamp resolves against the same width.
+.header {
+  @include layout.stack(var(--space-2));
+  container-type: inline-size;
+}
+
+// A block standing in for text has to be the size of the text's BOX,
+// not its font-size — the two differ by the leading, and the gap is
+// visible as a jump the moment the real header paints. So both rungs
+// below are `font-size × leading`, taken from the same tokens the
+// presets use: the title is `display` (`--leading-tight`) at the
+// clamp `PageHeader` sets, the subtitle is `label` on the xs step.
+//
+// Matching the clamp rather than picking one height is the other half
+// of the same point: a fixed value is only correct at one viewport.
+.title {
+  height: calc(
+    clamp(var(--text-2xl), 7cqi, var(--text-4xl)) * var(--leading-tight)
+  );
+  width: 45%;
+  border-radius: var(--radius-1);
+}
+
+.subtitle {
+  height: calc(var(--text-xs) * var(--leading-xs));
+  width: 70%;
+  border-radius: var(--radius-1);
+}
