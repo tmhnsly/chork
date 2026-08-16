@@ -2,10 +2,54 @@
 @use "mixins/focus" as focus;
 @use "mixins/state" as state;
 
+// A scrolling row, which is what the card's "rate this climb" picker
+// always was. It got rebuilt as a wrapping grid on the way into this
+// shared component; three rows of chips is a wall, and it pushed
+// everything below the picker off the screen. Swiping a row of grades
+// is the gesture climbers already know here.
+//
+// The scrollbar is hidden rather than styled: this reads as a row of
+// controls, not as a scroll region, and the chips run past the edge
+// clearly enough to say "there's more".
 .row {
   display: flex;
-  flex-wrap: wrap;
   gap: var(--space-2);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+
+  // A flex item defaults to `min-width: auto`, which means it refuses
+  // to shrink below its content — so `overflow-x` never engaged, the
+  // row grew to the full width of every chip, and the PAGE scrolled
+  // sideways instead of the row. That is what made the gutter look
+  // like it had vanished and the chips look cut off at the screen
+  // edge: the page was simply scrolled right.
+  min-width: 0;
+
+  // Run to the container's edges rather than stopping at its padding,
+  // so a chip scrolls off the edge instead of being sliced in half at
+  // an invisible boundary. The bleed is the container's own horizontal
+  // padding, given by whoever renders the picker; the matching inline
+  // padding puts the first and last chip back on the gutter, so at
+  // rest the row lines up with the label above it.
+  --_bleed: var(--grade-picker-bleed, 0px);
+  margin-inline: calc(var(--_bleed) * -1);
+  padding-inline: var(--_bleed);
+  // Same inset for keyboard scrolling, or arrowing to the first chip
+  // parks it flush against the edge.
+  scroll-padding-inline: var(--_bleed);
+
+  // Room for the focus ring, which is drawn outside the chip and would
+  // be clipped by `overflow-x`.
+  padding-block: var(--space-1);
+
+  // Arrow keys move the selection; this brings the next chip into view
+  // rather than jumping to it.
+  scroll-behavior: smooth;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .chip {
