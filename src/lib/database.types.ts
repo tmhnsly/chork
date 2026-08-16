@@ -1567,6 +1567,21 @@ export type Database = {
           username: string
         }[]
       }
+      get_friends_leaderboard: {
+        Args: { p_limit?: number; p_offset?: number; p_set_id: string }
+        Returns: {
+          avatar_url: string
+          flashes: number
+          is_self: boolean
+          name: string
+          points: number
+          rank: number
+          sends: number
+          user_id: string
+          username: string
+          zones: number
+        }[]
+      }
       get_grade_distribution: {
         Args: { p_user_id: string }
         Returns: {

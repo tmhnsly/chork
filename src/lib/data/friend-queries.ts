@@ -85,3 +85,46 @@ export function partitionFriends(friends: Friend[]): {
     outgoing: friends.filter((m) => m.direction === "outgoing"),
   };
 }
+
+/**
+ * One row of the friends board.
+ *
+ * `rank` is null for a friend who hasn't scored on this Set yet.
+ * They still appear — someone who turned up and hasn't sent anything
+ * is more interesting than a gap — but they aren't given a placing.
+ */
+export interface FriendBoardRow {
+  user_id: string;
+  username: string | null;
+  name: string | null;
+  avatar_url: string | null;
+  rank: number | null;
+  sends: number;
+  flashes: number;
+  zones: number;
+  points: number;
+  is_self: boolean;
+}
+
+/**
+ * You and your friends, ranked on one Set.
+ *
+ * What a crew was actually for. Set-scoped because points only
+ * compare inside one Set — friends at another gym are climbing a
+ * different wall on a different reset, and they're served by moments
+ * rather than by this.
+ */
+export async function getFriendsLeaderboard(
+  supabase: Supabase,
+  setId: string,
+  limit = 50,
+): Promise<FriendBoardRow[]> {
+  return readMany<FriendBoardRow>(
+    supabase.rpc("get_friends_leaderboard", {
+      p_set_id: setId,
+      p_limit: limit,
+      p_offset: 0,
+    }),
+    "getFriendsLeaderboard",
+  );
+}
