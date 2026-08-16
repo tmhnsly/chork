@@ -426,6 +426,21 @@ vocabulary these decisions produced.
       it on the wrong climber. `src/lib/data/chork.ts` is now the
       display side only, and says so.
 
+      **Two bugs no SQL test would have caught**, both found by
+      playing a game rather than reading the rules (114–116). The pen
+      left you the instant you set a route, because an unsent
+      challenge read as a failed one — right for a finished round,
+      wrong for the minute between putting a route up and pulling on
+      it. And a guest could never take a turn at all: a route the host
+      set on their behalf was recorded against the host's account, so
+      the pen bounced straight back. Chork is now expressed entirely
+      in seats, which removes the identifier translation that had
+      produced four separate bugs.
+
+      The lesson is cheap to write down and was expensive to learn:
+      dry-running the rules proves the arithmetic, and says nothing
+      about whether the game can be played.
+
       **Still open: the ceiling is self-declared.** The allowance
       buys a climber one extra go per grade above their stated limit,
       and nothing checks that limit against what they actually climb.
