@@ -436,7 +436,10 @@ function RangePicker({
           ariaLabel="Hardest grade"
         />
       </div>
-      <p className={styles.rangeSummary}>{countOf(count, "grade")} in range</p>
+      <p className={styles.rangeSummary}>
+        {all.find((o) => o.value === min)?.label} –{" "}
+        {all.find((o) => o.value === max)?.label} · {countOf(count, "grade")}
+      </p>
     </div>
   );
 }

@@ -67,26 +67,40 @@
 // One row per bound, both using the same scrolling grade pills the
 // sheets use. A label beside each so "which end am I setting" never
 // needs working out.
+// Label hugs its own chips — tighter than the gap between the two
+// bounds above, so grouping does the explaining.
 .rangeRow {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
 }
 
+// Subordinate to the section legend above it, so the hierarchy is
+// legible: GRADE RANGE names the section, Easiest / Hardest name the
+// rows inside it.
 .rangeLabel {
-  @include type.typography(label, $step: xs);
+  @include type.typography(meta, $step: xs);
   color: var(--mono-text-low-contrast);
 }
 
+// The two bounds are separate groups, so they sit a section apart —
+// otherwise "EASIEST" and "HARDEST" read as one undifferentiated
+// stack of low-contrast labels above a wall of chips.
 .rangePicker {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-5);
 }
 
+// The answer, said back. Accent because it's the thing the two rows
+// above were for, and because in this app accent means "yours".
 .rangeSummary {
-  @include type.typography(meta, $step: xs);
-  color: var(--mono-text-low-contrast);
+  @include type.typography(label, $step: xs);
+  align-self: flex-start;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--accent-subtle-bg);
+  color: var(--accent-text);
   margin: 0;
   text-align: center;
 }
