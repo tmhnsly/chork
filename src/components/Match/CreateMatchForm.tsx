@@ -12,22 +12,23 @@ import {
 import {
   Button,
   ChoiceTiles,
-  GradeRangeTiles,
+  TabPills,
   ToggleRow,
   showToast,
 } from "@/components/ui";
 import {
-  gradeLabels,
-  SCALE_HARD_MAX,
+  gradeOptions,
   SCALE_LABEL,
   DISCIPLINES,
   DISCIPLINE_LABEL,
   DISCIPLINE_SCALES,
   type Discipline,
+  type CustomGradeEntry,
 } from "@/lib/data/grade-label";
 import type { MatchGradingScale, SavedScale } from "@/lib/data/match-types";
 import { createMatchAction, setMatchGameMode } from "@/app/match/actions";
 import { countOf } from "@/lib/plural";
+import type { TabPillOption } from "@/components/ui/TabPills";
 import {
   buildCreateMatchPayload,
   canSubmit as deriveCanSubmit,
@@ -226,7 +227,8 @@ export function CreateMatchForm({ savedScales }: Props) {
         <fieldset className={styles.fieldset}>
           <legend className={styles.label}>Grade range</legend>
           <RangePicker
-            labels={gradeLabels(scale, SCALE_HARD_MAX[scale])}
+            scale={scale}
+            customGrades={customGrades.map((label, ordinal) => ({ ordinal, label }))}
             min={ranges[scale][0]}
             max={ranges[scale][1]}
             onChange={(min, max) =>
@@ -379,28 +381,61 @@ export function CreateMatchForm({ savedScales }: Props) {
  * without the picker drawing every option.
  */
 /**
- * The grade range as a lit band of tiles.
+ * The grade range, picked with the SAME control as everywhere else.
  *
- * Was a pair of steppers — one tap per grade, eight to open a V0-V8
- * Set — then briefly two rows of pills, which fixed the tapping but
- * still made you read two values to know the range. Filling every
- * tile between the bounds means you see it instead.
+ * `TabPills` + `gradeOptions` is what the log sheet, the add-route
+ * sheet and the ceiling sheet all use: a scrolling row of round,
+ * tappable grades. One row per bound. Every place a climber picks a
+ * grade now looks and behaves identically, which is the point — this
+ * screen had a bespoke stepper before, and it taught the wrong thing.
+ *
+ * The full scale is offered on both rows rather than only the legal
+ * half; the impossible options are disabled, so the row doesn't
+ * reflow under your thumb as you move the other bound.
  */
 function RangePicker({
-  labels,
+  scale,
+  customGrades,
   min,
   max,
   onChange,
 }: {
-  labels: string[];
+  scale: MatchGradingScale;
+  customGrades: readonly CustomGradeEntry[];
   min: number;
   max: number;
   onChange: (min: number, max: number) => void;
 }) {
+  const all = gradeOptions(scale, { customGrades });
   const count = max - min + 1;
+
+  const options = (bound: "min" | "max"): TabPillOption<number>[] =>
+    all.map((o) => ({
+      value: o.value,
+      label: o.label,
+      disabled: bound === "min" ? o.value > max : o.value < min,
+    }));
+
   return (
     <div className={styles.rangePicker}>
-      <GradeRangeTiles labels={labels} min={min} max={max} onChange={onChange} />
+      <div className={styles.rangeRow}>
+        <span className={styles.rangeLabel}>Easiest</span>
+        <TabPills<number>
+          options={options("min")}
+          value={min}
+          onChange={(next) => onChange(next, max)}
+          ariaLabel="Easiest grade"
+        />
+      </div>
+      <div className={styles.rangeRow}>
+        <span className={styles.rangeLabel}>Hardest</span>
+        <TabPills<number>
+          options={options("max")}
+          value={max}
+          onChange={(next) => onChange(min, next)}
+          ariaLabel="Hardest grade"
+        />
+      </div>
       <p className={styles.rangeSummary}>{countOf(count, "grade")} in range</p>
     </div>
   );

@@ -64,6 +64,20 @@
 // Card + summary share one column stack so the summary feels
 // paired with the card above rather than floating. Uses the same
 // space-3 internal rhythm as every other label→control pair.
+// One row per bound, both using the same scrolling grade pills the
+// sheets use. A label beside each so "which end am I setting" never
+// needs working out.
+.rangeRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.rangeLabel {
+  @include type.typography(label, $step: xs);
+  color: var(--mono-text-low-contrast);
+}
+
 .rangePicker {
   display: flex;
   flex-direction: column;
