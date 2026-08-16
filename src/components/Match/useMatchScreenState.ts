@@ -14,7 +14,7 @@ import { showToast } from "@/components/ui";
 import { useMatchRealtime } from "@/hooks/use-match-realtime";
 import { computeMatchLeaderboard } from "@/lib/data/match-leaderboard";
 import type { MatchState, MatchRoute, MatchLog } from "@/lib/data/match-types";
-import type { Discipline } from "@/lib/data/grade-label";
+import { disciplineFamily, type Discipline } from "@/lib/data/grade-label";
 import { ownerIdOf } from "@/lib/data/match-types";
 import {
   addMatchRouteAction,
@@ -198,15 +198,27 @@ export function useMatchScreenState({
   // A log knows its route id but not its grade, and the handicap
   // needs the grade. Same resolution the server uses: what the adder
   // declared, else what climbers voted.
+  //
+  // A ceiling is ONE number in ONE scale — the Match's own. On a mixed
+  // day an off-family route's ordinal is not comparable to it: a 6b
+  // rope and a V6 boulder are both ordinal 6, so scoring the rope
+  // against a V4 ceiling would read as "two grades above your limit"
+  // on a scale the climber never gave a limit for. Those routes go in
+  // with a null grade, which `handicapPointsTenths` already scores at
+  // full value — the same "guessing is worse than not helping" rule
+  // the Chork allowance uses for an unknown.
   const gradeByRouteId = useMemo(
     () =>
       new Map(
         state.routes.map((r) => [
           r.id,
-          r.declared_grade ?? r.community_grade ?? null,
+          disciplineFamily(r.discipline ?? initialState.match.discipline)
+            === disciplineFamily(initialState.match.discipline)
+            ? r.declared_grade ?? r.community_grade ?? null
+            : null,
         ]),
       ),
-    [state.routes],
+    [state.routes, initialState.match.discipline],
   );
 
   const leaderboard = useMemo(

@@ -441,6 +441,16 @@ vocabulary these decisions produced.
       dry-running the rules proves the arithmetic, and says nothing
       about whether the game can be played.
 
+      **Still open: one ceiling, two ladders.** A mixed day
+      (migration 117) can be graded in both V and French, but a
+      climber's ceiling is a single number in the Match's own scale.
+      Migration 118 makes the honest call — an off-family route reads
+      as "limit unknown", so it scores flat and buys no allowance —
+      but the fuller answer is a ceiling per family, asked for on a
+      mixed day. It needs a second picker on the ceiling sheet, which
+      is also the surface a host drives for a guest, so it is not a
+      two-line change.
+
       **Still open: the ceiling is self-declared.** The allowance
       buys a climber one extra go per grade above their stated limit,
       and nothing checks that limit against what they actually climb.
