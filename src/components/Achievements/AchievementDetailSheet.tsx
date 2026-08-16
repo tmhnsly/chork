@@ -3,7 +3,7 @@
 import { FaCheck, FaLock } from "react-icons/fa6";
 import { format, parseISO } from "date-fns";
 import { BottomSheet } from "@/components/ui/BottomSheet";
-import { ProgressRing } from "@/components/ui/BadgeShelf/BadgeShelf";
+import { ProgressRing } from "@/components/ui/ProgressRing/ProgressRing";
 import { ICON_MAP } from "@/lib/badge-icons";
 import { badgeFamily } from "@/lib/badges";
 import type { BadgeStatus, ProgressKey } from "@/lib/badges";
@@ -101,7 +101,13 @@ export function AchievementDetailSheet({ badge, open, onClose }: Props) {
             <div className={styles.progressBar}>
               <div
                 className={styles.progressFill}
-                style={{ "--progress": `${progressPct}%` } as React.CSSProperties}
+                style={
+                  {
+                    "--progress": `${progressPct}%`,
+                    // Same family as the hero ring above it.
+                    "--progress-family": `var(--${family ?? "accent"}-solid)`,
+                  } as React.CSSProperties
+                }
               />
             </div>
             <span className={styles.progressLabel}>

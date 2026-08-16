@@ -127,7 +127,12 @@
 .progressFill {
   height: 100%;
   width: var(--progress, 0%);
-  background: var(--accent-solid);
+  // The badge's own family, not a flat accent. The hero ring directly
+  // above already reads amber for a flash badge and teal for a zone
+  // one, so a lime bar underneath said the two halves of the same
+  // sheet belonged to different achievements. Falls back to accent for
+  // anything with no family.
+  background: var(--progress-family, var(--accent-solid));
   border-radius: var(--radius-full);
   transition: width var(--duration-normal) var(--ease-out);
 }

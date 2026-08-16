@@ -55,6 +55,12 @@
   // Intentionally empty — see block comment above.
 }
 
+// ── The "+N more" pill ───────────────────────────
+// All that is left of the old inline slot. Every real achievement is
+// an `AchievementCard` now — shared with the catalogue, so the shelf
+// and the grid are the same thing in two layouts. This one is not an
+// achievement, so it keeps its own shape.
+//
 // ── Slot (icon circle + name below) ───────────────
 // Each shelf entry is a tap target — circle on top, name below.
 //
@@ -126,65 +132,6 @@
   // A whole word spilling a couple of px into the slot's dead space
   // reads better than a broken one.
   overflow-wrap: normal;
-}
-
-// ── Earned ─────────────────────────────────────────
-// Family-scoped colouring so flash / zone achievements visually match
-// their equivalents on a SendGridTile (amber / teal) rather than every
-// earned badge reading as lime.
-.slot--earned.slot--accent {
-  .circle {
-    background: var(--accent-bg);
-    border-color: var(--accent-border);
-    color: var(--accent-text);
-  }
-  .name { color: var(--accent-text); }
-}
-
-.slot--earned.slot--flash {
-  .circle {
-    background: var(--flash-bg);
-    border-color: var(--flash-border);
-    color: var(--flash-text);
-  }
-  .name { color: var(--flash-text); }
-}
-
-.slot--earned.slot--success {
-  .circle {
-    background: var(--success-bg);
-    border-color: var(--success-border);
-    color: var(--success-text);
-  }
-  .name { color: var(--success-text); }
-}
-
-// ── In-progress quantifiable ──────────────────────
-// Mono circle wrapped in a family-coloured progress ring. The icon
-// inside stays in the default mono palette so the slot doesn't
-// falsely signal completion — the coloured ring (driven by the
-// family prop on `<ProgressRing>`) is the sole "you're working on
-// this" hint. The SVG replaces the circle's own border so the ring
-// track sits exactly where the badge edge used to be — no visual
-// jump when a progress badge finally earns and flips to the solid-
-// border earned state.
-.slot--progress .circle {
-  border-color: transparent;
-}
-
-.progressRing {
-  position: absolute;
-  // Extends slightly outside the circle so the stroke sits on the
-  // edge rather than inside it — matches Activity Rings' visual.
-  inset: -2px;
-  width: calc(100% + 4px);
-  height: calc(100% + 4px);
-  pointer-events: none;
-}
-
-// ── Fully muted (locked condition / secret) ───────
-.slot--muted .circle {
-  opacity: 0.5;
 }
 
 // ── "+N more" trailing pill ───────────────────────

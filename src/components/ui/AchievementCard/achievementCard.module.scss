@@ -1,0 +1,116 @@
+@use "mixins/typography" as type;
+@use "mixins/focus" as focus;
+
+// The card is a tap target, not a panel: circle on top, name under.
+// Centred rather than left-pinned, because in a grid it has a column
+// of its own to sit in — the shelf's left-pinning existed so the first
+// circle landed on the page gutter, which a grid cell handles itself.
+.card {
+  @include focus.ring;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-1);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-2);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    background var(--duration-fast) var(--ease-out);
+
+  &:active {
+    transform: scale(0.96);
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      background: var(--mono-subtle-bg);
+    }
+  }
+}
+
+.circle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--radius-full);
+  font-size: var(--size-icon-lg);
+  line-height: var(--leading-none);
+  background: var(--mono-bg);
+  border: 1px solid var(--mono-border);
+  color: var(--mono-text-low-contrast);
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.name {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+  text-align: center;
+  hyphens: auto;
+  text-wrap: balance;
+  // Wider than the circle, unlike the shelf's slot: a grid cell has
+  // the room, and two lines of a long name read better than a hard
+  // clamp at the circle's width.
+  max-width: 6rem;
+  // Deliberately NOT `overflow-wrap: anywhere` — that is a
+  // last-resort break and will happily split a word mid-syllable.
+}
+
+// ── Earned: the family tint, filled ───────────────
+
+.card--earned.card--accent {
+  .circle {
+    background: var(--accent-bg);
+    border-color: var(--accent-border);
+    color: var(--accent-text);
+  }
+  .name { color: var(--accent-text); }
+}
+
+.card--earned.card--flash {
+  .circle {
+    background: var(--flash-bg);
+    border-color: var(--flash-border);
+    color: var(--flash-text);
+  }
+  .name { color: var(--flash-text); }
+}
+
+.card--earned.card--success {
+  .circle {
+    background: var(--success-bg);
+    border-color: var(--success-border);
+    color: var(--success-text);
+  }
+  .name { color: var(--success-text); }
+}
+
+// ── In progress: mono circle, coloured ring only ──
+// No tint. The ring is the whole signal, so a badge at 90% can't be
+// mistaken for one that's finished.
+.card--progress {
+  .circle {
+    background: var(--mono-bg);
+    border-color: transparent;
+  }
+}
+
+// ── Muted: a locked condition, or a secret ────────
+
+.card--muted {
+  .circle {
+    background: var(--mono-subtle-bg);
+    border-color: var(--mono-border);
+    color: var(--mono-solid);
+  }
+  .name { color: var(--mono-text-low-contrast); }
+}

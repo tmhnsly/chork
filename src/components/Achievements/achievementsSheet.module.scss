@@ -1,157 +1,26 @@
-@use "mixins/typography" as type;
-@use "mixins/layout" as layout;
-
-// ── List ──────────────────────────────────────────
-.list {
-  @include layout.stack(var(--space-2));
+// ── Grid ──────────────────────────────────────────
+// Cards, not rows. `auto-fill` with a 5rem floor gives four columns
+// on a phone and more on a tablet without a media query — a card is
+// a circle plus a wrapped label, so it has no width it must have.
+//
+// The whole row-based stylesheet that used to live here went with the
+// rows themselves: icon, name, description, progress bar, tick and
+// earned date all inline. That detail is behind a tap now, in the one
+// detail sheet both entry points share.
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(5rem, 1fr));
+  gap: var(--space-3) var(--space-2);
   list-style: none;
   padding: 0;
   margin: 0;
-}
+  // Cards vary in label height (one line vs two); pinning each cell's
+  // content to the top keeps every circle on the same baseline across
+  // a row.
+  align-items: start;
 
-// Rows are informational only — no hover / tap state, no detail
-// sheet. Plain inset surface, static.
-.row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  width: 100%;
-  padding: var(--space-3);
-  background: var(--mono-subtle-bg);
-  border: 1px solid var(--mono-border-subtle);
-  border-radius: var(--radius-2);
-  text-align: left;
-}
-
-// Right-hand cluster: earned date + tick. Dates use `--mono-text-low-
-// contrast` (step 11) so they sit as metadata, not competing with the
-// bolder accent tick.
-.rowRight {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex-shrink: 0;
-}
-
-.rowIcon {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--space-10);
-  height: var(--space-10);
-  border-radius: var(--radius-full);
-  background: var(--mono-bg);
-  color: var(--mono-solid);
-  font-size: var(--size-icon-md);
-}
-
-// Earned icon carries the row's family tint (accent / flash /
-// success). The per-family overrides below supply the colour for
-// flashes (amber) and zones (teal); the default accent lime handles
-// sends, matches, and every condition badge that isn't zone-themed.
-.rowIconEarned {
-  background: var(--accent-bg);
-  color: var(--accent-text-low-contrast);
-}
-
-.row--flash .rowIconEarned {
-  background: var(--flash-bg);
-  color: var(--flash-text-low-contrast);
-}
-
-.row--success .rowIconEarned {
-  background: var(--success-bg);
-  color: var(--success-text-low-contrast);
-}
-
-.rowText {
-  @include layout.stack(var(--space-1));
-  flex: 1;
-  min-width: 0;
-}
-
-.rowName {
-  @include type.typography(label);
-  color: var(--mono-text);
-}
-
-.rowDesc {
-  @include type.typography(meta);
-  color: var(--mono-text-low-contrast);
-}
-
-.progress {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  margin-top: var(--space-1);
-}
-
-.progressBar {
-  flex: 1;
-  height: var(--space-1);
-  background: var(--mono-border);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-}
-
-.progressFill {
-  display: block;
-  height: 100%;
-  width: var(--progress, 0%);
-  background: var(--accent-solid);
-  border-radius: var(--radius-full);
-  transition: width var(--duration-normal) var(--ease-out);
-}
-
-// Family-tinted progress fill so a flash / zone ladder's bar reads
-// in its own colour while it grows — matches the ring colour on the
-// shelf above.
-.row--flash .progressFill {
-  background: var(--flash-solid);
-}
-
-.row--success .progressFill {
-  background: var(--success-solid);
-}
-
-.progressText {
-  @include type.typography(label);
-  color: var(--mono-text-low-contrast);
-}
-
-.earnedDate {
-  @include type.typography(meta);
-  color: var(--mono-text-low-contrast);
-  font-variant-numeric: tabular-nums;
-}
-
-// Tick uses the Radix accent scale: step-9 solid background, the
-// semantic `on-solid` foreground token from `colors.scss` (which
-// resolves to high-contrast text for the accent fill). No one-off
-// hex values — matches every other "accent + on-solid" pair in the
-// app (Button primary, medal, active states). Family overrides swap
-// the scale so flashes tick amber, zones tick teal.
-.tick {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--space-6);
-  height: var(--space-6);
-  border-radius: var(--radius-full);
-  background: var(--accent-solid);
-  color: var(--accent-on-solid);
-  font-size: var(--text-xs);
-}
-
-.row--flash .tick {
-  background: var(--flash-solid);
-  color: var(--flash-on-solid);
-}
-
-.row--success .tick {
-  background: var(--success-solid);
-  color: var(--success-on-solid);
+  > li {
+    display: flex;
+    justify-content: center;
+  }
 }

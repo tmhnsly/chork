@@ -1,0 +1,9 @@
+.ring {
+  position: absolute;
+  // Extends slightly outside the circle so the stroke sits on the
+  // edge rather than inside it — matches Activity Rings' visual.
+  inset: -2px;
+  width: calc(100% + 4px);
+  height: calc(100% + 4px);
+  pointer-events: none;
+}
