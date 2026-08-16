@@ -237,6 +237,7 @@ export const config = {
     "/leaderboard/:path*",
     "/u/:path*",
     "/crew/:path*",
+    "/friends/:path*",
     "/competitions/:path*",
     "/admin/:path*",
     "/privacy/:path*",
