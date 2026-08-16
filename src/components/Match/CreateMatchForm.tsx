@@ -7,13 +7,12 @@ import {
   FaXmark,
   FaArrowUp,
   FaArrowDown,
-  FaChevronLeft,
-  FaChevronRight,
   FaScaleBalanced,
 } from "react-icons/fa6";
 import {
   Button,
   SegmentedControl,
+  TabPills,
   ToggleRow,
   showToast,
 } from "@/components/ui";
@@ -27,7 +26,9 @@ import {
   type Discipline,
 } from "@/lib/data/grade-label";
 import type { MatchGradingScale, SavedScale } from "@/lib/data/match-types";
-import { createMatchAction } from "@/app/match/actions";
+import { createMatchAction, setMatchGameMode } from "@/app/match/actions";
+import { countOf } from "@/lib/plural";
+import type { TabPillOption } from "@/components/ui/TabPills";
 import {
   buildCreateMatchPayload,
   canSubmit as deriveCanSubmit,
@@ -73,6 +74,7 @@ export function CreateMatchForm({ savedScales }: Props) {
     name,
     location,
     discipline,
+  gameMode,
     handicap,
     scale,
     ranges,
@@ -98,10 +100,19 @@ export function CreateMatchForm({ savedScales }: Props) {
     if (!canSubmit) return;
 
     startTransition(async () => {
-      const result = await createMatchAction(buildCreateMatchPayload(state));
+      const payload = buildCreateMatchPayload(state);
+      const result = await createMatchAction(payload);
       if ("error" in result) {
         showToast(result.error, "error");
         return;
+      }
+      // Set after creation rather than as a tenth argument to
+      // `create_match` — see the note on `setMatchGameMode`. Only
+      // fires when it isn't the default, and a failure here leaves a
+      // playable points Match rather than nothing.
+      if (payload.gameMode !== "points") {
+        const mode = await setMatchGameMode(result.id, payload.gameMode);
+        if ("error" in mode) showToast(mode.error, "error");
       }
       router.push(`/match/${result.id}`);
     });
@@ -136,7 +147,29 @@ export function CreateMatchForm({ savedScales }: Props) {
         />
       </label>
 
-      {/* Discipline first — it decides which scales are on offer. */}
+      {/* How it's won, before anything about grades — Chork changes
+          what the whole screen is for. */}
+      <fieldset className={styles.fieldset}>
+        <legend className={styles.label}>Game</legend>
+        <SegmentedControl<"points" | "chork">
+          options={[
+            { value: "points", label: "Points" },
+            { value: "chork", label: "Chork" },
+          ]}
+          value={gameMode}
+          onChange={(next) => dispatch({ type: "set-game-mode", value: next })}
+          ariaLabel="Game mode"
+        />
+        <p className={styles.scaleHint}>
+          {gameMode === "chork"
+            ? "HORSE, on a wall. Set a route and send it — everyone else "
+              + "gets as many goes as you took. Miss and you take a letter; "
+              + "spell CHORK and you're out."
+            : "Every send scores. Most points wins."}
+        </p>
+      </fieldset>
+
+      {/* Discipline next — it decides which scales are on offer. */}
       <fieldset className={styles.fieldset}>
         <legend className={styles.label}>Discipline</legend>
         <SegmentedControl<Discipline>
@@ -339,6 +372,17 @@ export function CreateMatchForm({ savedScales }: Props) {
  * ◀ ▶ pair, and the disabled-state logic keeps the range valid
  * without the picker drawing every option.
  */
+/**
+ * Pick the range with the same pills the log and add-route sheets
+ * use, rather than a pair of steppers.
+ *
+ * The steppers were one tap per grade — eight taps to open a V0–V8
+ * Set — and they looked nothing like the picker a climber meets
+ * everywhere else in the app. Two labelled rows keep it unambiguous
+ * (a single row where you tap two ends is fewer controls but you have
+ * to be told how it works), and the impossible half of each row is
+ * disabled rather than hidden, so the range reads as a range.
+ */
 function RangePicker({
   labels,
   min,
@@ -351,74 +395,37 @@ function RangePicker({
   onChange: (min: number, max: number) => void;
 }) {
   const count = max - min + 1;
+  const options = (bound: "min" | "max"): TabPillOption<number>[] =>
+    labels.map((label, value) => ({
+      value,
+      label,
+      disabled: bound === "min" ? value > max : value < min,
+    }));
+
   return (
     <div className={styles.rangePicker}>
-      <div className={styles.rangeCard}>
-        <StepperRow
-          label="Easiest"
-          value={labels[min] ?? ""}
-          canDecrement={min > 0}
-          canIncrement={min < max}
-          onDecrement={() => onChange(min - 1, max)}
-          onIncrement={() => onChange(min + 1, max)}
+      <div className={styles.rangeRow}>
+        <span className={styles.rangeLabel}>Easiest</span>
+        <TabPills<number>
+          options={options("min")}
+          value={min}
+          onChange={(next) => onChange(next, max)}
+          ariaLabel="Easiest grade"
         />
-        <StepperRow
-          label="Hardest"
-          value={labels[max] ?? ""}
-          canDecrement={max > min}
-          canIncrement={max < labels.length - 1}
-          onDecrement={() => onChange(min, max - 1)}
-          onIncrement={() => onChange(min, max + 1)}
+      </div>
+      <div className={styles.rangeRow}>
+        <span className={styles.rangeLabel}>Hardest</span>
+        <TabPills<number>
+          options={options("max")}
+          value={max}
+          onChange={(next) => onChange(min, next)}
+          ariaLabel="Hardest grade"
         />
       </div>
       <p className={styles.rangeSummary}>
-        {count} {count === 1 ? "grade" : "grades"} in range
+        {countOf(count, "grade")} in range
       </p>
     </div>
   );
 }
 
-function StepperRow({
-  label,
-  value,
-  canDecrement,
-  canIncrement,
-  onDecrement,
-  onIncrement,
-}: {
-  label: string;
-  value: string;
-  canDecrement: boolean;
-  canIncrement: boolean;
-  onDecrement: () => void;
-  onIncrement: () => void;
-}) {
-  return (
-    <div className={styles.stepperRow}>
-      <span className={styles.stepperLabel}>{label}</span>
-      <div className={styles.stepperControl}>
-        <button
-          type="button"
-          className={styles.stepperBtn}
-          onClick={onDecrement}
-          disabled={!canDecrement}
-          aria-label={`Lower ${label.toLowerCase()} grade`}
-        >
-          <FaChevronLeft aria-hidden />
-        </button>
-        <span className={styles.stepperValue} aria-live="polite">
-          {value}
-        </span>
-        <button
-          type="button"
-          className={styles.stepperBtn}
-          onClick={onIncrement}
-          disabled={!canIncrement}
-          aria-label={`Raise ${label.toLowerCase()} grade`}
-        >
-          <FaChevronRight aria-hidden />
-        </button>
-      </div>
-    </div>
-  );
-}

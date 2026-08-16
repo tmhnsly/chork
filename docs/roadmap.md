@@ -401,8 +401,20 @@ vocabulary these decisions produced.
       rule stops being true.
 
 - [ ] **Game modes.** Chork (the HORSE variant) and whatever follows.
-      Blocked on the convergence — build them on one engine or build
-      each one twice.
+      Convergence unblocked it. **Rules designed 2026-08-16 — see
+      CONTEXT.md "Chork (the game mode)".**
+
+      One engine, as planned: `sets.game_mode` is a lens on a Match
+      exactly like `handicap`, so the container, routes, players and
+      logs are all reused and only the win condition differs.
+
+      Rejected on the way: flash-for-flash (comes free as the N=1 case
+      of the rule we chose, so nothing is lost); setter names a
+      free-text constraint (unverifiable — the app stops refereeing
+      and becomes a scoreboard); rotating the pen every round (loses
+      the streak tension, and setting well earns you nothing); and
+      capping challenge difficulty for balance (takes the pen off the
+      strongest climber rather than helping the weakest).
 
 - [x] **Match UX/robustness overhaul.** *(Shipped 2026-08-16,
       migrations 102–103.)* Every gap from the 2026-08-10 audit is

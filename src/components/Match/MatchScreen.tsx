@@ -8,7 +8,9 @@ import { ownerIdOf } from "@/lib/data/match-types";
 import { formatHandicapPoints } from "@/lib/data/handicap";
 import { makeGradeLabeller } from "@/lib/data/grade-label";
 import { visibleBoardRows, BOARD_PREVIEW_SIZE } from "@/lib/data/match-board";
+import { penHolder } from "@/lib/data/chork";
 import { countOf } from "@/lib/plural";
+import { ChorkBoard } from "./ChorkBoard";
 import { MatchGrid } from "./MatchGrid";
 import { MatchLogSheet } from "./MatchLogSheet";
 import { MatchAddRouteSheet } from "./MatchAddRouteSheet";
@@ -47,6 +49,8 @@ export function MatchScreen({ initialState, userId }: Props) {
     handleSetCeiling,
     handleEnd,
     handleLeave,
+    isChork,
+    chorkLetters,
   } = useMatchScreenState({ initialState, userId });
 
   // The board shows the top of the table and you, always — see
@@ -57,6 +61,28 @@ export function MatchScreen({ initialState, userId }: Props) {
     (row) => row.user_id === userId,
     boardExpanded,
   );
+
+  // Whose turn it is to set. A round is a route its adder has sent;
+  // the pen stays with a setter who keeps sending. `penHolder` owns
+  // the rule — see src/lib/data/chork.ts.
+  const penSeatId = isChork
+    ? penHolder(
+        state.routes.map((r) => ({
+          routeId: r.id,
+          setterId: r.added_by ?? "",
+          // The adder's own log lives in `my_logs` only when the
+          // viewer IS the adder, so a null here reads as "not sent
+          // yet" for other viewers — which is what the standings
+          // refresh corrects a beat later.
+          setterAttempts:
+            myLogByRouteId.get(r.id)?.completed
+              ? myLogByRouteId.get(r.id)?.attempts ?? null
+              : null,
+        })),
+        state.players.map((p) => p.player_id),
+        (seatId) => (chorkLetters.get(seatId) ?? 0) >= 5,
+      )
+    : null;
 
   const { panel } = state;
   // Panels store route ids and derive the row at render time so a
@@ -145,6 +171,16 @@ export function MatchScreen({ initialState, userId }: Props) {
         </button>
       </header>
 
+      {/* Chork has no points, so it has no points board. Same
+          players, same routes — a different question being asked. */}
+      {isChork ? (
+        <ChorkBoard
+          players={state.players}
+          lettersBySeat={chorkLetters}
+          penSeatId={penSeatId}
+          viewerId={userId}
+        />
+      ) : (
       <ul className={styles.leaderboardStrip} aria-label="Leaderboard">
         {board.rows.map((row, i) => {
           const isSelf = row.user_id === userId;
@@ -198,7 +234,8 @@ export function MatchScreen({ initialState, userId }: Props) {
           );
         })}
       </ul>
-      {board.hiddenCount > 0 && (
+      )}
+      {!isChork && board.hiddenCount > 0 && (
         <button
           type="button"
           className={styles.expandBoard}
@@ -207,7 +244,7 @@ export function MatchScreen({ initialState, userId }: Props) {
           {`Show all ${countOf(leaderboard.length, "player")}`}
         </button>
       )}
-      {boardExpanded && leaderboard.length > BOARD_PREVIEW_SIZE && (
+      {!isChork && boardExpanded && leaderboard.length > BOARD_PREVIEW_SIZE && (
         <button
           type="button"
           className={styles.expandBoard}

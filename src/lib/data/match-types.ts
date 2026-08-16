@@ -37,6 +37,11 @@ export type MatchStatus = "live" | "archived";
 export interface Match {
   /** Score relative to each player's ceiling. Matches only. */
   handicap: boolean;
+  /**
+   * How the Match is won. `points` is the default; `chork` is HORSE
+   * — five letters and you're out. Migration 111.
+   */
+  game_mode: "points" | "chork";
   id: string;
   code: string;
   name: string | null;

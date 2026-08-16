@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useReducer, useState, useTransition } from "react";
+import { useDebouncedFlush } from "@/hooks/use-debounced-flush";
 import { useRouter } from "next/navigation";
 import { showToast } from "@/components/ui";
 import { useMatchRealtime } from "@/hooks/use-match-realtime";
@@ -13,6 +14,7 @@ import {
   updateMatchRouteAction,
   endMatchAction,
   leaveMatchAction,
+  fetchChorkStandings,
   addMatchGuestAction,
   setMatchCeilingAction,
   removeMatchGuestAction,
@@ -78,6 +80,30 @@ export function useMatchScreenState({
     dispatch({ type: "set-players", players: initialState.players });
   }
 
+  // ── Chork ──────────────────────────────────────────────────────
+  //
+  // Letters can't be worked out here: the maths needs every player's
+  // raw attempt count, and those are private to their owner
+  // (CONTEXT.md "Attempt privacy"). The server derives them and sends
+  // back only the public result. Same shape as the rank strip —
+  // debounced, because working a route is a burst.
+  const isChork = initialState.match.game_mode === "chork";
+  const [chorkLetters, setChorkLetters] = useState<Map<string, number>>(
+    () => new Map(),
+  );
+
+  const { schedule: scheduleChork } = useDebouncedFlush<void>({
+    delayMs: 1000,
+    flush: async () => {
+      if (!isChork) return;
+      const result = await fetchChorkStandings(initialState.match.id);
+      if ("error" in result) return;
+      setChorkLetters(
+        new Map(result.standings.map((s) => [s.player_id, s.letters])),
+      );
+    },
+  });
+
   useMatchRealtime(initialState.match.id, {
     onRouteChange: (evt) => {
       if (evt.eventType === "DELETE") {
@@ -98,6 +124,9 @@ export function useMatchScreenState({
         // this call site just declares who is looking.
         dispatch({ type: "upsert-log", log: evt.new, viewerId: userId });
       }
+      // Anyone's log can change who owes a letter, so this listens to
+      // every log event rather than only the viewer's own.
+      if (isChork) scheduleChork(undefined);
     },
     onPlayerChange: () => {
       // Player changes come as scattered events — a full state
@@ -402,5 +431,7 @@ export function useMatchScreenState({
     handleLog,
     handleEnd,
     handleLeave,
+    isChork,
+    chorkLetters,
   };
 }

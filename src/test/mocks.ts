@@ -28,6 +28,9 @@ export function mockRouteSet(overrides: Partial<RouteSet> & { id: string; gym_id
     // Migration 098. Off by default, and a CHECK forbids it on a gym
     // Set anyway — a gym's scoring has to be comparable.
     handicap: false,
+    // Migration 111. Same story: a gym Set is always points, so the
+    // fixture default is the only value it could legally hold.
+    game_mode: "points",
     // Migration 085 — null until a player taps Share.
     share_token: null,
     // Columns added in migration 014 — defaults mirror the SQL defaults so
