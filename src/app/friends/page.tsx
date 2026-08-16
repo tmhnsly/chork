@@ -1,6 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { FaUsers } from "react-icons/fa6";
 import { redirect } from "next/navigation";
 import { requireSignedIn } from "@/lib/auth";
 import { PageHeader } from "@/components/motion";
@@ -8,12 +6,14 @@ import {
   getFriends,
   getFriendSuggestions,
   getFriendsLeaderboard,
+  getFriendMoments,
   partitionFriends,
 } from "@/lib/data/friend-queries";
 import { getServerProfile } from "@/lib/supabase/server";
 import { getCurrentSet } from "@/lib/data/set-queries";
 import { formatSetLabel } from "@/lib/data/set-label";
 import { FriendsBoard } from "@/components/Friends/FriendsBoard";
+import { MomentsFeed } from "@/components/Friends/MomentsFeed";
 import { FriendsList } from "@/components/Friends/FriendsList";
 import styles from "./friends.module.scss";
 
@@ -34,10 +34,11 @@ export default async function FriendsPage() {
   const auth = await requireSignedIn();
   if ("error" in auth) redirect("/login");
 
-  const [friends, suggestions, profile] = await Promise.all([
+  const [friends, suggestions, profile, moments] = await Promise.all([
     getFriends(auth.supabase),
     getFriendSuggestions(auth.supabase),
     getServerProfile(),
+    getFriendMoments(auth.supabase),
   ]);
 
   const { active, incoming, outgoing } = partitionFriends(friends);
@@ -62,18 +63,16 @@ export default async function FriendsPage() {
       {currentSet && board.length > 1 && (
         <FriendsBoard rows={board} setLabel={formatSetLabel(currentSet)} />
       )}
+      {/* Below the board deliberately. If you share a Set with someone
+          the board is the better answer; moments are what you get for
+          the friends you don't. */}
+      <MomentsFeed moments={moments} />
       <FriendsList
         active={active}
         incoming={incoming}
         outgoing={outgoing}
         suggestions={suggestions}
       />
-      {/* Crews still own the private leaderboard until phase 2 folds
-          it in here, so they stay one tap away rather than stranded
-          behind a URL. The link goes when the friends board lands. */}
-      <Link href="/crew" className={styles.crewLink}>
-        <FaUsers aria-hidden /> Your crews
-      </Link>
     </main>
   );
 }

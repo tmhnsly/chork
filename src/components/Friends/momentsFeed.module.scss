@@ -1,0 +1,55 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+@use "mixins/focus" as focus;
+
+.section {
+  @include layout.stack(var(--space-3));
+}
+
+.heading {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.list {
+  @include layout.stack(var(--space-2));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.row {
+  @include surface.card;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-3);
+  text-decoration: none;
+  color: inherit;
+
+  @include focus.ring;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.line {
+  @include type.typography(body, $step: sm);
+  color: var(--mono-text);
+}
+
+.when {
+  @include type.typography(meta, $step: xs);
+  color: var(--mono-text-low-contrast);
+}
+
+.icon {
+  flex-shrink: 0;
+  color: var(--accent-text);
+}

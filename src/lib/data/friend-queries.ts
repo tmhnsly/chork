@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { readMany } from "./read";
+import type { Moment } from "./moments";
 
 type Supabase = SupabaseClient<Database>;
 
@@ -141,5 +142,26 @@ export async function getFriendsLeaderboard(
       p_offset: 0,
     }),
     "getFriendsLeaderboard",
+  );
+}
+
+/**
+ * What your friends have been up to.
+ *
+ * The only surface that shows you a friend at a different gym: the
+ * board is set-scoped, so two friends who share no Set share no board
+ * and nothing else in the app would connect them.
+ *
+ * Derived at read time — see migration 109. Dates only, never clock
+ * times; that's enforced in SQL, not here.
+ */
+export async function getFriendMoments(
+  supabase: Supabase,
+  limit = 20,
+  days = 30,
+): Promise<Moment[]> {
+  return readMany<Moment>(
+    supabase.rpc("get_friend_moments", { p_limit: limit, p_days: days }),
+    "getFriendMoments",
   );
 }

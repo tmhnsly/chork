@@ -1380,6 +1380,18 @@ export type Database = {
           username: string
         }[]
       }
+      get_friend_moments: {
+        Args: { p_days?: number; p_limit?: number }
+        Returns: {
+          avatar_url: string
+          detail: Json
+          kind: string
+          name: string
+          occurred_on: string
+          user_id: string
+          username: string
+        }[]
+      }
       get_friend_suggestions: {
         Args: { p_limit?: number }
         Returns: {

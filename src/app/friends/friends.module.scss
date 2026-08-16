@@ -6,26 +6,3 @@
   @include layout.page;
 }
 
-// Crews still hold the private leaderboard, so they stay one tap
-// away rather than stranded behind a URL. Goes when phase 2 folds
-// that board into friends.
-.crewLink {
-  @include type.typography(label, $step: sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
-  min-height: var(--size-touch-target);
-  padding: var(--space-3) var(--space-4);
-  border: 1px dashed var(--mono-border);
-  border-radius: var(--radius-3);
-  color: var(--mono-text-low-contrast);
-  text-decoration: none;
-
-  @include focus.ring;
-
-  &:hover {
-    color: var(--mono-text);
-    border-color: var(--accent-border);
-  }
-}

@@ -360,7 +360,8 @@ vocabulary these decisions produced.
       set-scoped board crews were actually for. `allow_friend_requests`
       is enforced in `request_friend`, not just the UI.
 
-      **Still open — the moments feed.** Friends at different gyms
+      **Moments shipped 2026-08-16** (migrations 109–110). Friends at
+      different gyms
       share no Set, so the board is empty for them and nothing else in
       the app shows one to the other. That is the whole reason a feed
       exists, and it resolves the apparent conflict with "the growth
@@ -382,6 +383,17 @@ vocabulary these decisions produced.
       Deliberately NOT a moment: "flashed above their usual grade".
       "Usual" needs a fuzzy rule, and a fuzzy rule produces moments
       people argue with.
+
+      Two things the build settled that the design hadn't: personal
+      bests partition by discipline AND grading scale (a V5 and a
+      font 5 are different climbs), and only the hardest best per day
+      survives — the first version reported every rung of a session.
+
+      Competition placings are podium-only. "Finished 47th" is a fact,
+      not a moment, and the reason the kind exists is to make one
+      gym's comp visible to climbers at another — which a podium does
+      and a long tail doesn't. Untested against real data: there are
+      no competitions yet.
 
       `src/lib/data/activity-time.ts` (`relativeDay`) is kept unused
       for this: coarse timestamps are a privacy contract with
