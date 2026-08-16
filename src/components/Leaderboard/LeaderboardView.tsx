@@ -2,6 +2,8 @@
 
 import { useState, useTransition, useCallback, useRef, useEffect } from "react";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
+import Link from "next/link";
+import { FaChevronLeft } from "react-icons/fa6";
 import { tabId } from "@/components/ui/tab-ids";
 import { showToast } from "@/components/ui";
 import { Podium } from "./Podium";
@@ -161,6 +163,13 @@ export function LeaderboardView({
       {/* One word — see CONTEXT.md "Wall vs Chorkboard". The tab
           title, the loading aria-label and 12 other uses all say
           Chorkboard; only this heading said "Chork Board". */}
+      {/* The board shares a nav entry with the Card, so the nav can't
+          take you back — its one gym tab is already lit. Without this
+          the only way out was the browser's back button, which a PWA
+          on a phone doesn't show. */}
+      <Link href="/" className={styles.backToCard}>
+        <FaChevronLeft aria-hidden /> Card
+      </Link>
       <PageHeader title="Chorkboard" />
 
       <GymStatsStrip
