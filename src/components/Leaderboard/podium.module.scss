@@ -24,6 +24,13 @@
   }
   list-style: none;
   margin: 0;
+  // The floor the plinths stand on. They carry a top-only radius and
+  // `border-bottom: none` — designed to sit flush on something — and
+  // for a while that something was accidentally the leaderboard list,
+  // because the tabpanel wrapper had no stack and the two touched.
+  // With the gap restored they need a real baseline or they read as
+  // sliced off.
+  border-bottom: 1px solid var(--mono-border-subtle);
 
   > li {
     display: flex;

@@ -16,6 +16,14 @@
 // Responsive grid: single column on mobile, two columns on tablet+.
 // Wide widgets span both columns so heavier visualisations always get
 // full width.
+// The panel lays its own children out. Only one grid lives in here
+// today, so nothing depends on the gap yet — but a tabpanel inherits
+// the page stack's gap without passing one on, so the second child
+// added here would silently have no rhythm. See design-system.test.ts.
+.panel {
+  @include layout.stack(var(--space-5));
+}
+
 .grid {
   display: grid;
   grid-template-columns: 1fr;

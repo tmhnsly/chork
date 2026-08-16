@@ -186,8 +186,16 @@ export function LeaderboardView({
         {isPending ? "Loading…" : ""}
       </div>
 
+      {/* The panel needs the stack itself. `.view` is a flex column
+          with a gap, so its gap reaches its OWN children — and this
+          wrapper is one of them. Everything the panel contains
+          (podium, list, browse, scoring, invite) sits a level deeper
+          and had no vertical rhythm at all: the podium's plinths
+          butted straight into rank 4, and every card below touched
+          the one above it. */}
       <div
         id={BOARD_PANEL_ID}
+        className={styles.panel}
         role="tabpanel"
         tabIndex={0}
         aria-labelledby={tabId(BOARD_PANEL_ID, tab)}
