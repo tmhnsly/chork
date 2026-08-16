@@ -1,7 +1,8 @@
 "use client";
 
 import { UserAvatar, Username } from "@/components/ui";
-import { CHORK_LETTERS, playerState } from "@/lib/data/chork";
+import { playerState } from "@/lib/data/chork";
+import { ChorkWord } from "./ChorkWord";
 import type { MatchPlayerView } from "@/lib/data/match-types";
 import { ownerIdOf } from "@/lib/data/match-types";
 import styles from "./chorkBoard.module.scss";
@@ -87,26 +88,10 @@ export function ChorkBoard({
               </span>
             </span>
 
-            {/* The word, with earned letters lit. Reading it is the
-                whole board — you can see who's one away. */}
-            <span
-              className={styles.word}
-              aria-label={
-                state.letters === 0
-                  ? "No letters"
-                  : `${state.spelled.join("")}, ${state.letters} of ${CHORK_LETTERS.length}`
-              }
-            >
-              {CHORK_LETTERS.map((letter, i) => (
-                <span
-                  key={letter}
-                  className={i < state.letters ? styles.lit : styles.unlit}
-                  aria-hidden
-                >
-                  {letter}
-                </span>
-              ))}
-            </span>
+            {/* Reading the word is the whole board — you can see
+                who's one away. Shared with the final result so the
+                letters you finish on look like the ones you earned. */}
+            <ChorkWord letters={state.letters} />
             </button>
           </li>
         );

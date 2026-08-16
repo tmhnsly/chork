@@ -5,7 +5,8 @@ import { format, parseISO } from "date-fns";
 import { FaCrown, FaArrowLeft } from "react-icons/fa6";
 import { requireSignedIn } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getMatchStateForUser } from "@/lib/data/match-queries";
+import { getMatchStateForUser, getChorkStandings } from "@/lib/data/match-queries";
+import { ChorkWord } from "@/components/Match/ChorkWord";
 import { PageHeader } from "@/components/motion";
 import { UserAvatar, Username } from "@/components/ui";
 import { ShareResultButton } from "@/components/Match/ShareResultButton";
@@ -63,6 +64,25 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
   const summary = state.match;
   const players = state.leaderboard;
 
+  // Chork has no points, so it cannot have a points board or a
+  // points winner. Ending one used to crown whoever happened to send
+  // the most and print "12 points" underneath, on a game whose whole
+  // rule is that you lose by spelling a word.
+  const isChork = summary.game_mode === "chork";
+  const chork = isChork ? await getChorkStandings(service, id) : [];
+  // Fewest letters among those still standing. A tie shares it, the
+  // same way rank 1 does on the points board — and when the game runs
+  // to its end there is exactly one climber left, which is the win
+  // condition stated properly.
+  const chorkAlive = chork.filter((p) => !p.is_out);
+  const fewestLetters = chorkAlive.length
+    ? Math.min(...chorkAlive.map((p) => p.letters))
+    : null;
+  const chorkWinners =
+    fewestLetters === null
+      ? []
+      : chorkAlive.filter((p) => p.letters === fewestLetters);
+
   // Rank 1 IS the win, and dense_rank means a tie shares it — so a
   // drawn Match shows both winners rather than picking one.
   const winner = players.find((p) => p.rank === 1);
@@ -107,7 +127,28 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
         label={summary.name?.trim() || "Match"}
       />
 
-      {winner && (
+      {isChork && chorkWinners.length > 0 && (
+        <section
+          className={`${styles.winnerCard} ${fresh ? styles.winnerCardFresh : ""}`}
+        >
+          <FaCrown aria-hidden className={styles.winnerIcon} />
+          <div className={styles.winnerBody}>
+            <span className={styles.winnerEyebrow}>
+              {chorkWinners.length > 1 ? "Still standing" : "Winner"}
+            </span>
+            <span className={styles.winnerName}>
+              {chorkWinners
+                .map((w) => w.display_name || w.username || "Climber")
+                .join(", ")}
+            </span>
+          </div>
+          <div className={styles.winnerStats}>
+            <ChorkWord letters={chorkWinners[0].letters} />
+          </div>
+        </section>
+      )}
+
+      {!isChork && winner && (
         <section
           className={`${styles.winnerCard} ${fresh ? styles.winnerCardFresh : ""}`}
         >
@@ -135,6 +176,40 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
         <h2 id="final-board" className={styles.sectionHeading}>
           Final board
         </h2>
+        {isChork ? (
+          <ol className={styles.playerList}>
+            {chork.map((p, i) => {
+              const username = p.username ?? "unknown";
+              return (
+                <li key={p.player_id} className={styles.playerRow}>
+                  <span className={styles.playerRank}>#{i + 1}</span>
+                  <UserAvatar
+                    user={{
+                      id: p.user_id ?? p.player_id,
+                      username,
+                      name: p.display_name ?? username,
+                      avatar_url: p.avatar_url ?? "",
+                    }}
+                    size="row"
+                  />
+                  <div className={styles.playerIdentity}>
+                    <span className={styles.playerName}>
+                      {p.display_name || (p.is_guest ? "Guest" : username)}
+                    </span>
+                    <span className={styles.playerHandle}>
+                      {p.is_guest ? "Guest" : <Username username={username} />}
+                      {p.is_out && <span className={styles.playerLeft}>Out</span>}
+                      {p.has_left && <span className={styles.playerLeft}>Left</span>}
+                    </span>
+                  </div>
+                  <div className={styles.playerStats}>
+                    <ChorkWord letters={p.letters} />
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        ) : (
         <ol className={styles.playerList}>
           {players.map((p, i) => {
             // The old summary denormalised names at end time, so a
@@ -187,6 +262,7 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
             );
           })}
         </ol>
+        )}
       </section>
     </main>
   );

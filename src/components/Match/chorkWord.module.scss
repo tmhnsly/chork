@@ -1,0 +1,25 @@
+@use "mixins/typography" as type;
+
+.word {
+  display: flex;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.lit,
+.unlit {
+  @include type.typography(number, $step: sm);
+  width: var(--space-5);
+  text-align: center;
+}
+
+// Red, because a letter is the thing you did not want. It is the one
+// place in the app the error colour means something to the player
+// rather than something to the app.
+.lit {
+  color: var(--error-text);
+}
+
+.unlit {
+  color: var(--mono-border);
+}
