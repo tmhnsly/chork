@@ -6,6 +6,14 @@ import styles from "./match.module.scss";
  * than a parallel one, so the gutters, max-width and safe-area insets
  * are the same rules and not a copy that drifts.
  *
+ * **In a route group so it does not cascade.** A `loading.tsx` wraps
+ * its whole subtree, and `/match` has four children — new, join, the
+ * live room and the result — none of which look anything like this.
+ * Sitting one level up, these two measured cards flashed as the
+ * skeleton for all of them; the result page in particular showed a
+ * tall "start and join" block and then collapsed. `(landing)` is not
+ * in the URL and exists only to stop that.
+ *
  * **The active-match banner is deliberately absent.** It renders only
  * when you're mid-match, which is the rarer state — reserving its
  * height would push the whole page down for everyone else and then
