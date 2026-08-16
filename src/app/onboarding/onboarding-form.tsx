@@ -2,11 +2,19 @@
 
 import { useState, useEffect, type FormEvent } from "react";
 import Image from "next/image";
-import { FaCheck, FaSpinner } from "react-icons/fa6";
+import { FaCheck, FaSpinner, FaLayerGroup, FaUserGroup } from "react-icons/fa6";
 import { useAuth } from "@/lib/auth-context";
 import { useUsernameValidation } from "@/hooks/use-username-validation";
 import { RevealText } from "@/components/motion";
-import { FormField, InputError, Button, showToast, shimmerStyles, Username } from "@/components/ui";
+import {
+  FormField,
+  InputError,
+  Button,
+  ChoiceTiles,
+  showToast,
+  shimmerStyles,
+  Username,
+} from "@/components/ui";
 import { completeOnboarding, fetchListedGyms } from "./actions";
 import type { Gym } from "@/lib/data";
 import { withTimeout } from "@/lib/async";
@@ -26,7 +34,7 @@ export function OnboardingForm() {
 
   // Gym branch — climbers whose gym has Chork proceed through the
   // picker; climbers who don't can still sign up and start using
-  // matches + crews without a gym. They can add one later from settings.
+  // matches + friends without a gym. They can add one later from settings.
   const [gymChoice, setGymChoice] = useState<GymChoice>("unchosen");
   const [allGyms, setAllGyms] = useState<Gym[]>([]);
   const [gymQuery, setGymQuery] = useState("");
@@ -230,81 +238,38 @@ export function OnboardingForm() {
             Does your gym have Chork? *
           </span>
           {/*
-            Mutually-exclusive choice → `radiogroup` + `radio` is the
-            semantically correct shape. `aria-pressed` on buttons reads
-            as an independent toggle to screen readers, which this
-            isn't (selecting one deselects the other).
-
-            Roving tabindex: only one radio is in the tab order at a
-            time. Before the user picks, that's the first option —
-            otherwise keyboard users land on nothing when they tab
-            into the section. Arrow keys (↑↓ and ←→) move focus AND
-            selection, matching the WAI-ARIA radiogroup pattern.
+            The first choice a climber makes, so it gets the same tile
+            the rest of the app uses for a choice that matters (CLAUDE.md
+            "The tile is the app's vocabulary"). It used to be a
+            hand-rolled radiogroup with its own roving tabindex and a
+            rAF focus dance, whose selected state was a tinted outline
+            rather than the accent fill everything else means "chosen"
+            with — two ways to drift from one rule.
           */}
-          <div
-            className={styles.gymChoiceRow}
-            role="radiogroup"
-            aria-labelledby="gym-choice-label"
-            aria-required
-            onKeyDown={(e) => {
-              if (
-                e.key !== "ArrowDown" &&
-                e.key !== "ArrowRight" &&
-                e.key !== "ArrowUp" &&
-                e.key !== "ArrowLeft"
-              ) {
-                return;
-              }
-              e.preventDefault();
-              const next = gymChoice === "has-chork" ? "no-chork" : "has-chork";
+          <ChoiceTiles<GymChoice>
+            options={[
+              {
+                value: "has-chork",
+                label: "Yes, pick my gym",
+                detail: "Log sends, climb the gym leaderboard, see set history.",
+                icon: <FaLayerGroup aria-hidden />,
+              },
+              {
+                value: "no-chork",
+                label: "Not yet",
+                detail:
+                  "Run matches with friends anywhere. Add a gym later from settings.",
+                icon: <FaUserGroup aria-hidden />,
+              },
+            ]}
+            value={gymChoice}
+            onChange={(next) => {
               setGymChoice(next);
               if (next === "no-chork") setSelectedGym(null);
-              // Move focus to whichever radio becomes aria-checked.
-              // State update commits synchronously in React 19 event
-              // handlers, so aria-checked is already flipped by the
-              // next paint — rAF fires just before paint, close
-              // enough that querying for the active radio returns
-              // the freshly-selected one.
-              const group = e.currentTarget;
-              requestAnimationFrame(() => {
-                group
-                  .querySelector<HTMLButtonElement>(`button[aria-checked="true"]`)
-                  ?.focus();
-              });
             }}
-          >
-            <button
-              type="button"
-              role="radio"
-              aria-checked={gymChoice === "has-chork"}
-              tabIndex={
-                gymChoice === "has-chork" || gymChoice === "unchosen" ? 0 : -1
-              }
-              className={`${styles.gymChoiceOption} ${gymChoice === "has-chork" ? styles.gymChoiceOptionActive : ""}`}
-              onClick={() => setGymChoice("has-chork")}
-            >
-              <span className={styles.gymChoiceTitle}>Yes, pick my gym</span>
-              <span className={styles.gymChoiceDetail}>
-                Log sends, climb the gym leaderboard, see set history.
-              </span>
-            </button>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={gymChoice === "no-chork"}
-              tabIndex={gymChoice === "no-chork" ? 0 : -1}
-              className={`${styles.gymChoiceOption} ${gymChoice === "no-chork" ? styles.gymChoiceOptionActive : ""}`}
-              onClick={() => {
-                setGymChoice("no-chork");
-                setSelectedGym(null);
-              }}
-            >
-              <span className={styles.gymChoiceTitle}>Not yet</span>
-              <span className={styles.gymChoiceDetail}>
-                Run matches with friends anywhere. Add a gym later from settings.
-              </span>
-            </button>
-          </div>
+            ariaLabelledBy="gym-choice-label"
+            required
+          />
         </div>
 
         {gymChoice === "has-chork" && (

@@ -388,6 +388,53 @@ describe("tab semantics", () => {
   });
 });
 
+describe("radiogroup semantics", () => {
+  // `role="radio"` is the same kind of promise `role="tab"` is, and it
+  // was broken the same way. Two components wrote the roles and
+  // stopped: no roving tabindex, no key handler. AT announces a
+  // composite widget, the user presses an arrow, and nothing happens —
+  // worse than plain buttons, which at least behave as announced.
+  // `ChoiceTiles` went as far as claiming arrow keys in its own doc
+  // comment while implementing none.
+  //
+  // The contract lives in `useRadioGroup` now. This pins that nothing
+  // hand-rolls the roles again, because fixing one of the two and not
+  // the other is exactly how it happened.
+  const RADIO_PRIMITIVES = [
+    "components/ui/GradePicker",
+    "components/ui/ChoiceTiles",
+  ];
+
+  it("only the shared controls emit role=radio", () => {
+    const bad = tsx
+      .filter(({ path }) => !RADIO_PRIMITIVES.some((p) => path.startsWith(p)))
+      .filter(({ text }) => /role=["']radio["']|role=\{["']radio["']\}/.test(text))
+      .map(({ path }) => path);
+    expect(
+      bad,
+      "Use <GradePicker> for grades / <ChoiceTiles> for choices. Both " +
+        "get roving tabindex and arrow-select from useRadioGroup, so " +
+        "the roles match what the widget actually does.",
+    ).toEqual([]);
+  });
+
+  it("every radiogroup gets its keyboard contract from the hook", () => {
+    // The other half: a primitive could keep the roles and quietly
+    // drop the hook, which is the state both were already in.
+    const bad = tsx
+      .filter(({ path }) => RADIO_PRIMITIVES.some((p) => path.startsWith(p)))
+      .filter(({ path }) => !path.endsWith(".stories.tsx"))
+      .filter(({ text }) => /role=["']radiogroup["']|groupProps/.test(text))
+      .filter(({ text }) => !/useRadioGroup/.test(text))
+      .map(({ path }) => path);
+    expect(
+      bad,
+      "A radiogroup must take its roles from useRadioGroup — the roles " +
+        "without the roving tabindex and arrow handler are a lie.",
+    ).toEqual([]);
+  });
+});
+
 describe("light/dark mechanism", () => {
   // Light/dark works through a coupling with no representation in
   // this repo: next-themes writes `class="dark"` on <html>, and the
