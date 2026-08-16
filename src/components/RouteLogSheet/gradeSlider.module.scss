@@ -77,6 +77,12 @@
 // that component. Horizontal padding only, so the row can run to the
 // sheet's edges rather than stopping short of them.
 .gradeRow {
-  padding: 0 var(--space-3) var(--space-3);
+  padding-bottom: var(--space-3);
+  // The chips run to the sheet's edges instead of stopping at its
+  // gutter, so one scrolls off the side rather than being sliced in
+  // half at an invisible boundary. `GradePicker` puts the gutter back
+  // as its own inline padding, so at rest the row still lines up with
+  // everything above it.
+  --grade-picker-bleed: var(--gutter-x);
 }
 

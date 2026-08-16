@@ -17,11 +17,34 @@
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  // Room for the focus ring, which is drawn outside the chip and gets
-  // clipped by `overflow-x` otherwise.
-  padding: var(--space-1) 0;
-  // Keeps the selected chip in view when arrow keys move the
-  // selection past either edge.
+
+  // A flex item defaults to `min-width: auto`, which means it refuses
+  // to shrink below its content — so `overflow-x` never engaged, the
+  // row grew to the full width of every chip, and the PAGE scrolled
+  // sideways instead of the row. That is what made the gutter look
+  // like it had vanished and the chips look cut off at the screen
+  // edge: the page was simply scrolled right.
+  min-width: 0;
+
+  // Run to the container's edges rather than stopping at its padding,
+  // so a chip scrolls off the edge instead of being sliced in half at
+  // an invisible boundary. The bleed is the container's own horizontal
+  // padding, given by whoever renders the picker; the matching inline
+  // padding puts the first and last chip back on the gutter, so at
+  // rest the row lines up with the label above it.
+  --_bleed: var(--grade-picker-bleed, 0px);
+  margin-inline: calc(var(--_bleed) * -1);
+  padding-inline: var(--_bleed);
+  // Same inset for keyboard scrolling, or arrowing to the first chip
+  // parks it flush against the edge.
+  scroll-padding-inline: var(--_bleed);
+
+  // Room for the focus ring, which is drawn outside the chip and would
+  // be clipped by `overflow-x`.
+  padding-block: var(--space-1);
+
+  // Arrow keys move the selection; this brings the next chip into view
+  // rather than jumping to it.
   scroll-behavior: smooth;
 
   &::-webkit-scrollbar {

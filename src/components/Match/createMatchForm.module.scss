@@ -47,6 +47,13 @@
   border: none;
   padding: 0;
   margin: 0;
+  // Browsers give <fieldset> a UA `min-width: min-content`, which the
+  // reset does not clear. With a horizontally scrolling row inside,
+  // min-content is the full width of 18 grade chips — so the fieldset
+  // grew to 957px inside a 561px form, the row never got a width to
+  // overflow, and the PAGE scrolled sideways instead. That is what
+  // made the gutter look like it had vanished.
+  min-width: 0;
 }
 
 .scaleHint {
@@ -73,6 +80,13 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+  // Chips scroll to the page's edges rather than being clipped at its
+  // gutter — see the note in gradePicker.module.scss.
+  --grade-picker-bleed: var(--gutter-x);
+  // See `.fieldset` — every ancestor between the scrolling row and a
+  // width-constrained box has to allow shrinking, or the row never
+  // gets a width to overflow.
+  min-width: 0;
 }
 
 // Subordinate to the section legend above it, so the hierarchy is
@@ -90,6 +104,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
+  min-width: 0;
 }
 
 // The answer, said back. Accent because it's the thing the two rows
