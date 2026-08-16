@@ -56,83 +56,18 @@
 }
 
 // ── Grade range card ────────────────────────────────
-// Apple Settings–style grouped row card. Two stepper rows with a
-// hairline divider between them. Replaces an earlier attempt that
-// rendered every grade as a separate pill (≈29 pills × 2 rows) —
-// scanned as noise, not a range picker.
-.rangeCard {
-  @include surface.card;
-  border-radius: var(--radius-3);
-  overflow: hidden;
+// Grade range: the same pills the log + add-route sheets use, one
+// labelled row per bound. Replaced a pair of steppers that cost a tap
+// per grade and matched nothing else in the app.
+.rangeRow {
+  @include layout.stack(var(--space-2));
 }
 
-.stepperRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  // Generous vertical padding so the stepper reads as a roomy iOS
-  // Settings cell rather than a tight CRUD row.
-  padding: var(--space-4);
-
-  & + & {
-    border-top: 1px solid var(--mono-border-subtle);
-  }
+.rangeLabel {
+  @include type.typography(label, $step: xs);
+  color: var(--mono-text-low-contrast);
 }
 
-.stepperLabel {
-  @include type.typography(label, $step: sm);
-  color: var(--mono-text);
-}
-
-.stepperControl {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.stepperBtn {
-  width: var(--size-touch-target);
-  height: var(--size-touch-target);
-  border-radius: var(--radius-full);
-  border: 1px solid var(--mono-border-subtle);
-  background: var(--mono-app-bg);
-  color: var(--mono-text);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition:
-    border-color var(--duration-fast) var(--ease-out),
-    color var(--duration-fast) var(--ease-out),
-    background var(--duration-fast) var(--ease-out);
-
-  &:hover:not(:disabled) {
-    border-color: var(--accent-border);
-    color: var(--accent-text);
-  }
-
-  &:active:not(:disabled) {
-    background: var(--mono-bg-hover);
-  }
-
-  &:disabled {
-    @include state.disabled;
-  }
-
-  @include focus.ring;
-}
-
-.stepperValue {
-  @include type.typography(number, $step: xl);
-  color: var(--accent-text);
-  font-variant-numeric: tabular-nums;
-  min-width: 3.5rem;
-  text-align: center;
-  // Smooth value swaps without layout jitter on long labels (e.g.
-  // V0 → V10) — fixed minWidth + tabular-nums keep the column
-  // calm as climbers scrub through the range.
-}
 
 // Card + summary share one column stack so the summary feels
 // paired with the card above rather than floating. Uses the same

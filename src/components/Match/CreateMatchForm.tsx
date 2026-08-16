@@ -7,13 +7,12 @@ import {
   FaXmark,
   FaArrowUp,
   FaArrowDown,
-  FaChevronLeft,
-  FaChevronRight,
   FaScaleBalanced,
 } from "react-icons/fa6";
 import {
   Button,
   SegmentedControl,
+  TabPills,
   ToggleRow,
   showToast,
 } from "@/components/ui";
@@ -28,6 +27,8 @@ import {
 } from "@/lib/data/grade-label";
 import type { MatchGradingScale, SavedScale } from "@/lib/data/match-types";
 import { createMatchAction, setMatchGameMode } from "@/app/match/actions";
+import { countOf } from "@/lib/plural";
+import type { TabPillOption } from "@/components/ui/TabPills";
 import {
   buildCreateMatchPayload,
   canSubmit as deriveCanSubmit,
@@ -371,6 +372,17 @@ export function CreateMatchForm({ savedScales }: Props) {
  * ◀ ▶ pair, and the disabled-state logic keeps the range valid
  * without the picker drawing every option.
  */
+/**
+ * Pick the range with the same pills the log and add-route sheets
+ * use, rather than a pair of steppers.
+ *
+ * The steppers were one tap per grade — eight taps to open a V0–V8
+ * Set — and they looked nothing like the picker a climber meets
+ * everywhere else in the app. Two labelled rows keep it unambiguous
+ * (a single row where you tap two ends is fewer controls but you have
+ * to be told how it works), and the impossible half of each row is
+ * disabled rather than hidden, so the range reads as a range.
+ */
 function RangePicker({
   labels,
   min,
@@ -383,74 +395,37 @@ function RangePicker({
   onChange: (min: number, max: number) => void;
 }) {
   const count = max - min + 1;
+  const options = (bound: "min" | "max"): TabPillOption<number>[] =>
+    labels.map((label, value) => ({
+      value,
+      label,
+      disabled: bound === "min" ? value > max : value < min,
+    }));
+
   return (
     <div className={styles.rangePicker}>
-      <div className={styles.rangeCard}>
-        <StepperRow
-          label="Easiest"
-          value={labels[min] ?? ""}
-          canDecrement={min > 0}
-          canIncrement={min < max}
-          onDecrement={() => onChange(min - 1, max)}
-          onIncrement={() => onChange(min + 1, max)}
+      <div className={styles.rangeRow}>
+        <span className={styles.rangeLabel}>Easiest</span>
+        <TabPills<number>
+          options={options("min")}
+          value={min}
+          onChange={(next) => onChange(next, max)}
+          ariaLabel="Easiest grade"
         />
-        <StepperRow
-          label="Hardest"
-          value={labels[max] ?? ""}
-          canDecrement={max > min}
-          canIncrement={max < labels.length - 1}
-          onDecrement={() => onChange(min, max - 1)}
-          onIncrement={() => onChange(min, max + 1)}
+      </div>
+      <div className={styles.rangeRow}>
+        <span className={styles.rangeLabel}>Hardest</span>
+        <TabPills<number>
+          options={options("max")}
+          value={max}
+          onChange={(next) => onChange(min, next)}
+          ariaLabel="Hardest grade"
         />
       </div>
       <p className={styles.rangeSummary}>
-        {count} {count === 1 ? "grade" : "grades"} in range
+        {countOf(count, "grade")} in range
       </p>
     </div>
   );
 }
 
-function StepperRow({
-  label,
-  value,
-  canDecrement,
-  canIncrement,
-  onDecrement,
-  onIncrement,
-}: {
-  label: string;
-  value: string;
-  canDecrement: boolean;
-  canIncrement: boolean;
-  onDecrement: () => void;
-  onIncrement: () => void;
-}) {
-  return (
-    <div className={styles.stepperRow}>
-      <span className={styles.stepperLabel}>{label}</span>
-      <div className={styles.stepperControl}>
-        <button
-          type="button"
-          className={styles.stepperBtn}
-          onClick={onDecrement}
-          disabled={!canDecrement}
-          aria-label={`Lower ${label.toLowerCase()} grade`}
-        >
-          <FaChevronLeft aria-hidden />
-        </button>
-        <span className={styles.stepperValue} aria-live="polite">
-          {value}
-        </span>
-        <button
-          type="button"
-          className={styles.stepperBtn}
-          onClick={onIncrement}
-          disabled={!canIncrement}
-          aria-label={`Raise ${label.toLowerCase()} grade`}
-        >
-          <FaChevronRight aria-hidden />
-        </button>
-      </div>
-    </div>
-  );
-}
