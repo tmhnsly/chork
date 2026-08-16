@@ -1,0 +1,71 @@
+@use "mixins/typography" as type;
+@use "mixins/focus" as focus;
+@use "mixins/state" as state;
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: var(--space-2);
+}
+
+// The route tile, with a label where the number goes. Deliberately
+// not square — a word needs the width — but everything else is the
+// same: chunky, step-9 when chosen, on-solid text.
+.tile {
+  @include focus.ring-inset;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--space-1);
+  min-height: calc(var(--size-touch-target) * 1.4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--mono-border-subtle);
+  border-radius: var(--radius-2);
+  background: var(--mono-bg);
+  color: var(--mono-text);
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+
+  &:hover:not(:disabled) {
+    background: var(--mono-bg-hover);
+  }
+
+  &:disabled {
+    @include state.disabled;
+  }
+}
+
+.selected {
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
+  color: var(--accent-on-solid);
+
+  &:hover:not(:disabled) {
+    background: var(--accent-solid-hover);
+    border-color: var(--accent-solid-hover);
+  }
+
+  .detail,
+  .icon {
+    color: var(--accent-on-solid);
+  }
+}
+
+.icon {
+  display: flex;
+  font-size: var(--text-lg);
+  color: var(--mono-text-low-contrast);
+}
+
+.label {
+  @include type.typography(label, $step: sm);
+}
+
+.detail {
+  @include type.typography(meta, $step: xs);
+  color: var(--mono-text-low-contrast);
+}

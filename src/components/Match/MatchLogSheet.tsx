@@ -25,6 +25,7 @@ import {
   matchLogReducer,
   type MatchLogDraftAction,
 } from "./matchLogReducer";
+import { countOf } from "@/lib/plural";
 import styles from "./matchLogSheet.module.scss";
 
 /**
@@ -36,6 +37,15 @@ const ATTEMPTS_DEBOUNCE_MS = 800;
 
 interface Props {
   route: MatchRoute;
+  /**
+   * Chork only: how many goes this climber has on this round, and a
+   * way to give up. Null allowance means the setter hasn't sent their
+   * own challenge yet, so there is nothing to answer.
+   */
+  chork?: {
+    allowance: number | null;
+    onConcede: () => void;
+  };
   /** The Match's default — the route may override it. */
   matchDiscipline: Discipline;
   /**
@@ -89,6 +99,7 @@ interface Props {
  */
 export function MatchLogSheet({
   route,
+  chork,
   matchDiscipline,
   handicap,
   ceiling,
@@ -306,6 +317,28 @@ export function MatchLogSheet({
                 hasAttempts={attempts > 0}
               />
             </Collapse>
+          )}
+
+          {/* Chork: the allowance is the whole tension of an answer —
+              without it a climber can't tell whether the next pull is
+              their last. Conceding exists because letters are derived
+              from attempts reaching the allowance, which leaves a
+              climber who walks away unresolved forever. */}
+          {chork?.allowance != null && !completed && (
+            <div className={styles.chorkRound}>
+              <span className={styles.chorkGoes}>
+                {attempts} of {countOf(chork.allowance, "go", "goes")}
+              </span>
+              {attempts < chork.allowance && (
+                <button
+                  type="button"
+                  className={styles.chorkConcede}
+                  onClick={chork.onConcede}
+                >
+                  Give up
+                </button>
+              )}
+            </div>
           )}
 
           {completed ? (

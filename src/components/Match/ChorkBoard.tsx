@@ -13,6 +13,12 @@ interface Props {
   /** Whose turn it is to set, by seat id. */
   penSeatId: string | null;
   viewerId: string;
+  /**
+   * Open a climber's grid. The host reaches a guest's round this way
+   * to log or concede for them, exactly as on the points board — a
+   * board you can't tap would strand every guest in a Chork match.
+   */
+  onPress: (seatId: string) => void;
 }
 
 /**
@@ -23,7 +29,13 @@ interface Props {
  * as "how close is everyone to being out", which is the only
  * question the game asks.
  */
-export function ChorkBoard({ players, lettersBySeat, penSeatId, viewerId }: Props) {
+export function ChorkBoard({
+  players,
+  lettersBySeat,
+  penSeatId,
+  viewerId,
+  onPress,
+}: Props) {
   return (
     <ul className={styles.board} aria-label="Chork standings">
       {players.map((player) => {
@@ -36,14 +48,16 @@ export function ChorkBoard({ players, lettersBySeat, penSeatId, viewerId }: Prop
         const name = player.display_name || player.username || "Climber";
 
         return (
-          <li
-            key={player.player_id}
-            className={[
-              styles.row,
-              isSelf ? styles.self : "",
-              state.isOut ? styles.out : "",
-            ].filter(Boolean).join(" ")}
-          >
+          <li key={player.player_id}>
+            <button
+              type="button"
+              onClick={() => onPress(ownerIdOf(player))}
+              className={[
+                styles.row,
+                isSelf ? styles.self : "",
+                state.isOut ? styles.out : "",
+              ].filter(Boolean).join(" ")}
+            >
             <UserAvatar
               user={{
                 id: ownerIdOf(player),
@@ -93,6 +107,7 @@ export function ChorkBoard({ players, lettersBySeat, penSeatId, viewerId }: Prop
                 </span>
               ))}
             </span>
+            </button>
           </li>
         );
       })}

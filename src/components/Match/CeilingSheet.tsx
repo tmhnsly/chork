@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { BottomSheet, Button, SheetBody, TabPills } from "@/components/ui";
-import type { TabPillOption } from "@/components/ui";
+import { BottomSheet, Button, GradePicker, SheetBody } from "@/components/ui";
+import type { GradeChoice } from "@/components/ui";
 import { gradeOptions } from "@/lib/data/grade-label";
 import type { MatchGradingScale, MatchPlayerView } from "@/lib/data/match-types";
 import styles from "./ceilingSheet.module.scss";
@@ -42,7 +42,7 @@ export function CeilingSheet({
 }: Props) {
   const [ceiling, setCeiling] = useState<number | null>(player.ceiling);
 
-  const options: TabPillOption<number | null>[] = [
+  const options: GradeChoice<number | null>[] = [
     { value: null, label: "Not set" },
     ...gradeOptions(gradingScale, {
       customGrades: grades,
@@ -65,12 +65,11 @@ export function CeilingSheet({
 
         <div className={styles.field}>
           <span className={styles.label}>Limit</span>
-          <TabPills<number | null>
+          <GradePicker<number | null>
             options={options}
             value={ceiling}
             onChange={setCeiling}
             ariaLabel="Limit"
-            layout="wrap"
           />
         </div>
 

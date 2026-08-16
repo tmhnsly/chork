@@ -12,24 +12,6 @@
   @include layout.stack(var(--space-5));
 }
 
-.backToCard {
-  @include type.typography(label, $step: sm);
-  display: inline-flex;
-  align-items: center;
-  align-self: flex-start;
-  gap: var(--space-2);
-  min-height: var(--size-touch-target);
-  padding-right: var(--space-2);
-  color: var(--mono-text-low-contrast);
-  text-decoration: none;
-
-  @include focus.ring;
-
-  &:hover {
-    color: var(--mono-text);
-  }
-}
-
 .segmentRow {
   display: flex;
   justify-content: flex-start;

@@ -11,24 +11,24 @@ import {
 } from "react-icons/fa6";
 import {
   Button,
-  SegmentedControl,
-  TabPills,
+  ChoiceTiles,
+  GradePicker,
   ToggleRow,
   showToast,
 } from "@/components/ui";
 import {
-  gradeLabels,
-  SCALE_HARD_MAX,
+  gradeOptions,
   SCALE_LABEL,
   DISCIPLINES,
   DISCIPLINE_LABEL,
   DISCIPLINE_SCALES,
   type Discipline,
+  type CustomGradeEntry,
 } from "@/lib/data/grade-label";
 import type { MatchGradingScale, SavedScale } from "@/lib/data/match-types";
 import { createMatchAction, setMatchGameMode } from "@/app/match/actions";
 import { countOf } from "@/lib/plural";
-import type { TabPillOption } from "@/components/ui/TabPills";
+import type { GradeChoice } from "@/components/ui";
 import {
   buildCreateMatchPayload,
   canSubmit as deriveCanSubmit,
@@ -151,28 +151,35 @@ export function CreateMatchForm({ savedScales }: Props) {
           what the whole screen is for. */}
       <fieldset className={styles.fieldset}>
         <legend className={styles.label}>Game</legend>
-        <SegmentedControl<"points" | "chork">
+        <ChoiceTiles<"points" | "chork">
           options={[
-            { value: "points", label: "Points" },
-            { value: "chork", label: "Chork" },
+            {
+              value: "points",
+              label: "Points",
+              detail: "Most points wins",
+            },
+            {
+              value: "chork",
+              label: "Chork",
+              detail: "Miss and take a letter",
+            },
           ]}
           value={gameMode}
           onChange={(next) => dispatch({ type: "set-game-mode", value: next })}
           ariaLabel="Game mode"
         />
-        <p className={styles.scaleHint}>
-          {gameMode === "chork"
-            ? "HORSE, on a wall. Set a route and send it — everyone else "
-              + "gets as many goes as you took. Miss and you take a letter; "
-              + "spell CHORK and you're out."
-            : "Every send scores. Most points wins."}
-        </p>
+        {gameMode === "chork" && (
+          <p className={styles.scaleHint}>
+            Set a route and send it — everyone else gets as many goes as
+            you took. Spell CHORK and you&rsquo;re out.
+          </p>
+        )}
       </fieldset>
 
       {/* Discipline next — it decides which scales are on offer. */}
       <fieldset className={styles.fieldset}>
         <legend className={styles.label}>Discipline</legend>
-        <SegmentedControl<Discipline>
+        <ChoiceTiles<Discipline>
           options={DISCIPLINE_OPTIONS}
           value={discipline}
           onChange={(next) =>
@@ -189,7 +196,7 @@ export function CreateMatchForm({ savedScales }: Props) {
       {/* Scale picker — the discipline's own scales, plus Custom / Points */}
       <fieldset className={styles.fieldset}>
         <legend className={styles.label}>Grading scale</legend>
-        <SegmentedControl<ScaleTab>
+        <ChoiceTiles<ScaleTab>
           options={scaleOptions(discipline)}
           value={scale}
           onChange={(next) => dispatch({ type: "set-scale", scale: next })}
@@ -220,7 +227,8 @@ export function CreateMatchForm({ savedScales }: Props) {
         <fieldset className={styles.fieldset}>
           <legend className={styles.label}>Grade range</legend>
           <RangePicker
-            labels={gradeLabels(scale, SCALE_HARD_MAX[scale])}
+            scale={scale}
+            customGrades={customGrades.map((label, ordinal) => ({ ordinal, label }))}
             min={ranges[scale][0]}
             max={ranges[scale][1]}
             onChange={(min, max) =>
@@ -361,52 +369,47 @@ export function CreateMatchForm({ savedScales }: Props) {
 }
 
 /**
- * Apple-iOS Settings-style grouped range card. Two stepper rows
- * (easiest / hardest), one hairline between them, both sharing the
- * same surface so the picker reads as a single "range" control.
+ * The grade range, picked with the SAME control as everywhere else.
  *
- * Earlier this surface was 58 separate pills across two TabPills
- * rows — every grade as its own dot. Visually overwhelming for a
- * value the climber actually thinks about as "from X to Y." The
- * stepper holds the same data with two big readable numbers and a
- * ◀ ▶ pair, and the disabled-state logic keeps the range valid
- * without the picker drawing every option.
- */
-/**
- * Pick the range with the same pills the log and add-route sheets
- * use, rather than a pair of steppers.
+ * One `GradePicker` per bound — the round, wrapping row of tappable
+ * grades that the card's "Rate this climb" row, the log sheet and the
+ * ceiling sheet all use. Every place a climber picks a grade now looks
+ * and behaves identically, which is the whole point: this screen had a
+ * bespoke ◀ ▶ stepper before, and a control that appears once teaches
+ * nothing.
  *
- * The steppers were one tap per grade — eight taps to open a V0–V8
- * Set — and they looked nothing like the picker a climber meets
- * everywhere else in the app. Two labelled rows keep it unambiguous
- * (a single row where you tap two ends is fewer controls but you have
- * to be told how it works), and the impossible half of each row is
- * disabled rather than hidden, so the range reads as a range.
+ * The full scale is offered on both rows rather than only the legal
+ * half; the impossible options are disabled, so the row doesn't reflow
+ * under your thumb as you move the other bound.
  */
 function RangePicker({
-  labels,
+  scale,
+  customGrades,
   min,
   max,
   onChange,
 }: {
-  labels: string[];
+  scale: MatchGradingScale;
+  customGrades: readonly CustomGradeEntry[];
   min: number;
   max: number;
   onChange: (min: number, max: number) => void;
 }) {
+  const all = gradeOptions(scale, { customGrades });
   const count = max - min + 1;
-  const options = (bound: "min" | "max"): TabPillOption<number>[] =>
-    labels.map((label, value) => ({
-      value,
-      label,
-      disabled: bound === "min" ? value > max : value < min,
+
+  const options = (bound: "min" | "max"): GradeChoice<number>[] =>
+    all.map((o) => ({
+      value: o.value,
+      label: o.label,
+      disabled: bound === "min" ? o.value > max : o.value < min,
     }));
 
   return (
     <div className={styles.rangePicker}>
       <div className={styles.rangeRow}>
         <span className={styles.rangeLabel}>Easiest</span>
-        <TabPills<number>
+        <GradePicker<number>
           options={options("min")}
           value={min}
           onChange={(next) => onChange(next, max)}
@@ -415,7 +418,7 @@ function RangePicker({
       </div>
       <div className={styles.rangeRow}>
         <span className={styles.rangeLabel}>Hardest</span>
-        <TabPills<number>
+        <GradePicker<number>
           options={options("max")}
           value={max}
           onChange={(next) => onChange(min, next)}
@@ -423,7 +426,8 @@ function RangePicker({
         />
       </div>
       <p className={styles.rangeSummary}>
-        {countOf(count, "grade")} in range
+        {all.find((o) => o.value === min)?.label} –{" "}
+        {all.find((o) => o.value === max)?.label} · {countOf(count, "grade")}
       </p>
     </div>
   );

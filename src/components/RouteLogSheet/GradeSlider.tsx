@@ -7,6 +7,7 @@ import {
   SCALE_DEFAULT_MAX,
   type GradingScale,
 } from "@/lib/data/grade-label";
+import { GradePicker } from "@/components/ui";
 import styles from "./gradeSlider.module.scss";
 
 interface Props {
@@ -72,18 +73,13 @@ export function GradeSlider({ value, onChange, scale = "v", maxGrade }: Props) {
 
       <div className={`${styles.gradeSection} ${enabled ? styles.gradeSectionVisible : ""}`}>
         <div className={styles.gradeRow}>
-          {labels.map((label, i) => (
-            <button
-              key={label}
-              type="button"
-              className={`${styles.gradeChip} ${i === grade ? styles.gradeChipSelected : ""}`}
-              onClick={() => handleSelect(i)}
-              disabled={!enabled}
-              onPointerDown={(e) => e.stopPropagation()}
-            >
-              {label}
-            </button>
-          ))}
+          <GradePicker<number>
+            options={labels.map((label, value) => ({ value, label }))}
+            value={grade ?? -1}
+            onChange={handleSelect}
+            ariaLabel="Your grade for this climb"
+            disabled={!enabled}
+          />
         </div>
       </div>
     </div>

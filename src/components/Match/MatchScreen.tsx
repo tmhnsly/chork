@@ -8,7 +8,6 @@ import { ownerIdOf } from "@/lib/data/match-types";
 import { formatHandicapPoints } from "@/lib/data/handicap";
 import { makeGradeLabeller } from "@/lib/data/grade-label";
 import { visibleBoardRows, BOARD_PREVIEW_SIZE } from "@/lib/data/match-board";
-import { penHolder } from "@/lib/data/chork";
 import { countOf } from "@/lib/plural";
 import { ChorkBoard } from "./ChorkBoard";
 import { MatchGrid } from "./MatchGrid";
@@ -18,6 +17,7 @@ import { MatchMenuSheet } from "./MatchMenuSheet";
 import { AddGuestSheet } from "./AddGuestSheet";
 import { CeilingSheet } from "./CeilingSheet";
 import { MatchPlayerGridSheet } from "./MatchPlayerGridSheet";
+import { logKey } from "./matchScreenReducer";
 import { useMatchScreenState } from "./useMatchScreenState";
 import styles from "./matchScreen.module.scss";
 
@@ -51,6 +51,9 @@ export function MatchScreen({ initialState, userId }: Props) {
     handleLeave,
     isChork,
     chorkLetters,
+    chorkPenSeatId,
+    chorkAllowance,
+    handleConcede,
   } = useMatchScreenState({ initialState, userId });
 
   // The board shows the top of the table and you, always — see
@@ -62,27 +65,23 @@ export function MatchScreen({ initialState, userId }: Props) {
     boardExpanded,
   );
 
-  // Whose turn it is to set. A round is a route its adder has sent;
-  // the pen stays with a setter who keeps sending. `penHolder` owns
-  // the rule — see src/lib/data/chork.ts.
-  const penSeatId = isChork
-    ? penHolder(
-        state.routes.map((r) => ({
-          routeId: r.id,
-          setterId: r.added_by ?? "",
-          // The adder's own log lives in `my_logs` only when the
-          // viewer IS the adder, so a null here reads as "not sent
-          // yet" for other viewers — which is what the standings
-          // refresh corrects a beat later.
-          setterAttempts:
-            myLogByRouteId.get(r.id)?.completed
-              ? myLogByRouteId.get(r.id)?.attempts ?? null
-              : null,
-        })),
-        state.players.map((p) => p.player_id),
-        (seatId) => (chorkLetters.get(seatId) ?? 0) >= 5,
-      )
-    : null;
+  // Who may put up the next route. Points: anyone. Chork: whoever
+  // holds the pen — or the host, when the pen sits with a guest, since
+  // a guest has no session to tap with.
+  //
+  // A null pen means the standings haven't landed (or the fetch
+  // failed), and that degrades to open rather than shut: locking the
+  // button on "don't know yet" would leave a whole match unable to
+  // start over one bad response.
+  const penPlayer =
+    isChork && chorkPenSeatId
+      ? state.players.find((p) => p.player_id === chorkPenSeatId) ?? null
+      : null;
+  const canSet =
+    !isChork ||
+    penPlayer === null ||
+    penPlayer.user_id === userId ||
+    (isHost && penPlayer.is_guest);
 
   const { panel } = state;
   // Panels store route ids and derive the row at render time so a
@@ -177,8 +176,9 @@ export function MatchScreen({ initialState, userId }: Props) {
         <ChorkBoard
           players={state.players}
           lettersBySeat={chorkLetters}
-          penSeatId={penSeatId}
+          penSeatId={chorkPenSeatId}
           viewerId={userId}
+          onPress={(seatId) => openPanel({ kind: "peek", playerId: seatId })}
         />
       ) : (
       <ul className={styles.leaderboardStrip} aria-label="Leaderboard">
@@ -267,7 +267,16 @@ export function MatchScreen({ initialState, userId }: Props) {
       {activeRoute && (
         <MatchLogSheet
           route={activeRoute}
-          log={myLogByRouteId.get(activeRoute.id) ?? null}
+          // The log belongs to the SEAT being logged for, not to the
+          // viewer. Passing the viewer's own meant a host opening a
+          // guest's round saw their own attempts and send on it —
+          // "Route 1 — Dave" showing Tom's 2 goes and a tick.
+          log={
+            loggingPlayer?.is_guest
+              ? state.logs.get(logKey(loggingPlayer.player_id, activeRoute.id))
+                ?? null
+              : myLogByRouteId.get(activeRoute.id) ?? null
+          }
           grades={initialState.grades}
           gradingScale={initialState.match.grading_scale}
           matchDiscipline={initialState.match.discipline}
@@ -279,6 +288,26 @@ export function MatchScreen({ initialState, userId }: Props) {
             loggingPlayer && loggingPlayer.is_guest
               ? loggingPlayer.display_name
               : null
+          }
+          chork={
+            isChork
+              ? {
+                  // Only trust the fetched value when it belongs to
+                  // THIS round and seat — otherwise a fast switch
+                  // between routes would show the previous one's
+                  // allowance for a frame.
+                  allowance:
+                    chorkAllowance?.key
+                      === `${activeRoute.id}:${loggingPlayer?.is_guest ? loggingPlayer.player_id : "me"}`
+                      ? chorkAllowance.value
+                      : null,
+                  onConcede: () =>
+                    handleConcede(
+                      activeRoute.id,
+                      loggingPlayer?.is_guest ? loggingPlayer.player_id : undefined,
+                    ),
+                }
+              : undefined
           }
           onClose={closePanel}
           onEdit={() => openPanel({ kind: "edit", routeId: activeRoute.id })}
@@ -394,14 +423,20 @@ export function MatchScreen({ initialState, userId }: Props) {
         />
       )}
 
-      <button
-        type="button"
-        className={styles.floatingAdd}
-        onClick={() => openPanel({ kind: "add" })}
-        aria-label="Add route"
-      >
-        <FaPlus aria-hidden />
-      </button>
+      {/* Chork is one setter at a time — that IS the game. Two routes
+          put up at once become two rounds, and everyone owes letters
+          on both. A points Match has no turn to take, so the button
+          stays open there. */}
+      {canSet && (
+        <button
+          type="button"
+          className={styles.floatingAdd}
+          onClick={() => openPanel({ kind: "add" })}
+          aria-label={isChork ? "Set the next challenge" : "Add route"}
+        >
+          <FaPlus aria-hidden />
+        </button>
+      )}
     </main>
   );
 }

@@ -72,66 +72,10 @@
 }
 
 // ── Grade chips row (scrolls edge-to-edge) ────────
+// Container only — the chips themselves are `GradePicker`, shared with
+// every other place a grade is chosen. It wraps rather than scrolls,
+// so no grade hides past the right edge.
 .gradeRow {
-  display: flex;
-  gap: var(--space-1);
   padding: var(--space-1) var(--space-3) var(--space-3);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-
-  &::-webkit-scrollbar {
-    display: none;
-  }
 }
 
-.gradeChip {
-  @include type.typography(label);
-  flex-shrink: 0;
-  min-width: var(--size-touch-target);
-  min-height: var(--size-touch-target);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 var(--space-2);
-  border: 1px solid var(--mono-border);
-  border-radius: var(--radius-full);
-  background: transparent;
-  color: var(--mono-text-low-contrast);
-  cursor: pointer;
-  @include focus.ring;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  // Animate `transform` only — `width`/`height`/border swaps were
-  // causing a brief reflow on selection that read as a pop-in
-  // when the new community grade landed and the row re-rendered.
-  transition:
-    background var(--duration-fast) var(--ease-out),
-    border-color var(--duration-fast) var(--ease-out),
-    color var(--duration-fast) var(--ease-out);
-
-  &:hover:not(:disabled) {
-    background: var(--mono-bg-hover);
-    border-color: var(--mono-border-hover);
-    color: var(--mono-text);
-  }
-
-  &:disabled {
-    background: var(--mono-subtle-bg);
-    border-color: var(--mono-border-subtle);
-    color: var(--mono-solid);
-    cursor: not-allowed;
-  }
-}
-
-.gradeChipSelected {
-  background: var(--accent-solid);
-  border-color: var(--accent-solid);
-  color: var(--accent-on-solid);
-
-  &:hover:not(:disabled) {
-    background: var(--accent-solid-hover);
-    border-color: var(--accent-solid-hover);
-    color: var(--accent-on-solid);
-  }
-}

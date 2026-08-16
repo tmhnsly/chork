@@ -32,7 +32,11 @@ const EMPTY_LOGS = new Map();
  */
 export function SendsGridSkeleton() {
   return (
-    <div className={styles.page} role="status" aria-busy="true" aria-label="Loading wall">
+    <div className={styles.page} role="status" aria-busy="true" aria-label="Loading card">
+      {/* The rank strip sits above the card on the real screen, so it
+          has to sit above it here too — otherwise the whole page
+          jumps down by a row the moment the data lands. */}
+      <div className={`${styles.rankStrip} ${shimmerStyles.skeleton}`} />
       <SectionCard
         title="Current Set"
         icon={<FaLayerGroup />}

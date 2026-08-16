@@ -269,6 +269,37 @@ Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
 - **Never dim text via opacity** — use the correct step
 - **No `color-mix()`** — use Radix tokens directly
 
+### The tile is the app's vocabulary
+
+Chork already had a good visual language and it was confined to one
+screen. The card's route tiles are chunky, square, and coloured by
+what you *did* — lime sent, amber flash, olive attempted. Everything
+else was full-width grey rectangles of identical weight: a settings
+app wearing the same shell.
+
+**A choice is a tile, not a bar.** Anywhere a climber picks between a
+small number of things that matter — the game, the discipline, a
+grade — use `ChoiceTile` / `ChoiceTiles`, which is the route tile with
+a label instead of a number. `SegmentedControl` stays for *filters*
+(This set / All time): switching what you're looking at is not the
+same act as choosing what you're going to do, and they shouldn't look
+alike.
+
+**Selected means accent, always.** Step 9 fill plus `--accent-on-solid`
+— the same treatment a sent route gets. The accent is never
+decoration; it means "you did this" or "this is yours".
+
+**Every grade is picked with `GradePicker`.** One control —
+`components/ui/GradePicker` — for the card's "Rate this climb" row,
+the log sheet, the ceiling sheet and both bounds of a Match's grade
+range. Round, touch-target chips that **wrap rather than scroll**: a
+scale you're choosing from can't hide half its options past the right
+edge. It is a real ARIA radiogroup (one tab stop, arrows select), so
+don't hand-roll a row of grade buttons — a bespoke one appeared on the
+create-match screen and taught the wrong visual language.
+
+Marketing surfaces are exempt; they have their own job.
+
 ### Tile state palette
 
 Completed = accent (lime) · Flash = flash (amber) · Attempted = mono
