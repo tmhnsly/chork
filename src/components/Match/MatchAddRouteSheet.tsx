@@ -31,6 +31,13 @@ interface Props {
   maxGrade: number | null;
   /** The Match's default — what this route inherits unless changed. */
   matchDiscipline: Discipline;
+  /**
+   * Chork changes what putting a route up IS: not one more thing to
+   * climb, but your turn — a challenge you now have to send yourself.
+   * The copy follows, and the zone toggle goes, because a zone is
+   * worth a bonus POINT and Chork hasn't got any.
+   */
+  isChork?: boolean;
   onClose: () => void;
   onSubmit: (payload: {
     description: string | null;
@@ -48,6 +55,7 @@ interface Props {
 export function MatchAddRouteSheet({
   mode,
   route,
+  isChork = false,
   grades,
   gradingScale,
   minGrade,
@@ -107,7 +115,13 @@ export function MatchAddRouteSheet({
     <BottomSheet
       open
       onClose={onClose}
-      title={mode === "add" ? "Add a route" : "Edit route"}
+      title={
+        mode === "edit"
+          ? "Edit route"
+          : isChork
+            ? "Set a challenge"
+            : "Add a route"
+      }
     >
       <SheetBody>
         <label className={styles.field}>
@@ -159,16 +173,27 @@ export function MatchAddRouteSheet({
           </div>
         )}
 
-        <ToggleRow
-          icon={<FaFlag aria-hidden />}
-          title={`${partialCreditLabel(discipline)}${discipline === "boulder" ? " hold" : ""}`}
-          detail="Climbers earn a bonus point for reaching it."
-          checked={hasZone}
-          onChange={setHasZone}
-        />
+        {/* A zone is worth a bonus POINT, and Chork does not have
+            any — the letter rule never looks at it. Offering the
+            toggle there was a control that did nothing. */}
+        {!isChork && (
+          <ToggleRow
+            icon={<FaFlag aria-hidden />}
+            title={`${partialCreditLabel(discipline)}${discipline === "boulder" ? " hold" : ""}`}
+            detail="Climbers earn a bonus point for reaching it."
+            checked={hasZone}
+            onChange={setHasZone}
+          />
+        )}
 
         <Button type="button" onClick={handleSubmit} disabled={pending} fullWidth>
-          {pending ? "Saving…" : mode === "add" ? "Add route" : "Save changes"}
+          {pending
+            ? "Saving…"
+            : mode === "edit"
+              ? "Save changes"
+              : isChork
+                ? "Set it"
+                : "Add route"}
         </Button>
       </SheetBody>
     </BottomSheet>

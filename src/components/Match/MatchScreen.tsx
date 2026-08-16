@@ -343,6 +343,7 @@ export function MatchScreen({ initialState, userId }: Props) {
       {panel.kind === "add" && (
         <MatchAddRouteSheet
           mode="add"
+          isChork={isChork}
           grades={initialState.grades}
           gradingScale={initialState.match.grading_scale}
           minGrade={initialState.match.min_grade}
