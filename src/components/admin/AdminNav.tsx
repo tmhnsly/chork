@@ -7,12 +7,13 @@ import styles from "./adminNav.module.scss";
 const LINKS = [
   { href: "/admin",              label: "Dashboard" },
   { href: "/admin/sets",         label: "Sets" },
+  { href: "/admin/team",         label: "Team" },
   { href: "/admin/competitions", label: "Competitions" },
 ];
 
 /** Gym-scoped sections. Competitions are organiser-scoped, so the
  *  gym choice is meaningless there and isn't carried onto that link. */
-const GYM_SCOPED = ["/admin", "/admin/sets"];
+const GYM_SCOPED = ["/admin", "/admin/sets", "/admin/team"];
 
 export interface AdminNavGym {
   id: string;

@@ -536,22 +536,30 @@ vocabulary these decisions produced.
       found the seams that implies. Open product questions first, then
       code:
 
-      **Multi-gym is unreachable.** All 6 admin pages call
-      `requireGymAdmin()` with no argument, which resolves to the
-      *oldest* `gym_admins` row. An owner of gyms A and B gets a hard
-      404 on every Set belonging to B (`sets/[id]/page.tsx` authorises
-      by `getAllSetsForAdminGym(gymId).find(...)` → `notFound()`).
-      There is no gym picker anywhere in the admin shell —
-      `AdminNav` is 3 static links, and `getAdminGymsForUser` exists
-      but is used only by the competition gym-link dropdown. Needs:
-      does an admin pick a gym in the shell (like the climber's gym
-      switcher), or does every admin route carry a gym in its path?
+      ~~**Multi-gym is unreachable.**~~ **Fixed — this entry was
+      stale.** Re-audited 2026-08-16: the shell answered the question
+      it poses (a picker, not a gym in the path). `AdminNav` renders a
+      gym `<select>` when you admin more than one, carries the choice
+      as `?gym=`, and `/admin`, `/admin/sets`, `/admin/sets/new` and
+      `/admin/team` all pass it to `requireGymAdmin(gymParam)`. The
+      two set-detail pages use `requireAdminOfSet(id)`, which
+      authorises against the SET's own gym rather than the admin's
+      default — the specific 404 this entry described. Competitions
+      are organiser-scoped and correctly gate on `requireSignedIn`.
 
-      **The invite journey is half-built.** `sendAdminInvite` +
-      `cancelAdminInvite` are fully implemented and tested, and have
-      **zero non-test callers** — no team/invites surface exists. Only
-      acceptance (`/admin/invite/[token]`) is reachable. Either build
-      the team screen or delete the endpoints.
+      ~~**The invite journey is half-built.**~~ **Built 2026-08-16.**
+      `sendAdminInvite` + `cancelAdminInvite` were fully implemented
+      and tested with zero non-test callers — an invite could be
+      accepted (`/admin/invite/[token]` always worked) but never
+      issued. `/admin/team` is the missing half: who runs this gym,
+      an invite form, and pending invites with cancel. Gym-scoped via
+      `?gym=` like the rest of the shell.
+
+      The invite link is shown for copying rather than emailed —
+      delivery is still a later phase, and `sendAdminInvite` returns
+      the URL precisely so the screen can hand it over meanwhile.
+      Saying that plainly beats a "sent!" toast for a mail that never
+      goes out.
 
       **Publish semantics need deciding, not patching.** Create-live
       now requires seeded routes (a live Set with no routes is an

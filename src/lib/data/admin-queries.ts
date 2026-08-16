@@ -90,6 +90,94 @@ export interface AdminSetSummary {
 }
 
 /** The one live set at this gym, if any. Null when no live set exists. */
+export interface GymTeamMember {
+  user_id: string;
+  username: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  role: "admin" | "owner";
+  since: string;
+}
+
+export interface GymPendingInvite {
+  id: string;
+  email: string;
+  role: "admin" | "owner";
+  invited_at: string;
+  expires_at: string;
+  /** Already past `expires_at`. Still listed — an admin needs to see
+   *  why nothing happened, and re-inviting the same email refreshes
+   *  the window rather than erroring. */
+  expired: boolean;
+}
+
+/**
+ * Who runs this gym, and who has been asked to.
+ *
+ * `gym_admins` is the authoritative source — NOT `gym_memberships.role`,
+ * which is cosmetic (CLAUDE.md "Admin vs climber vs organiser").
+ */
+export async function getGymTeam(
+  supabase: Supabase,
+  gymId: string,
+): Promise<GymTeamMember[]> {
+  const { data, error } = await supabase
+    .from("gym_admins")
+    .select("user_id, role, created_at, profiles:user_id (username, name, avatar_url)")
+    .eq("gym_id", gymId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    logger.warn("getgymteam_failed", { err: formatErrorForLog(error) });
+    return [];
+  }
+
+  return (data ?? []).map((row) => {
+    const profile = one(row.profiles);
+    return {
+      user_id: row.user_id,
+      username: profile?.username ?? null,
+      display_name: profile?.name ?? null,
+      avatar_url: profile?.avatar_url ?? null,
+      role: row.role as "admin" | "owner",
+      since: row.created_at,
+    };
+  });
+}
+
+/**
+ * Invites that haven't been accepted yet, expired ones included.
+ *
+ * Hiding the expired ones would answer "why has nothing happened?"
+ * with an empty list, which is the least useful possible answer.
+ */
+export async function getPendingInvites(
+  supabase: Supabase,
+  gymId: string,
+): Promise<GymPendingInvite[]> {
+  const { data, error } = await supabase
+    .from("gym_invites")
+    .select("id, email, role, invited_at, expires_at")
+    .eq("gym_id", gymId)
+    .is("accepted_at", null)
+    .order("invited_at", { ascending: false });
+
+  if (error) {
+    logger.warn("getpendinginvites_failed", { err: formatErrorForLog(error) });
+    return [];
+  }
+
+  const now = Date.now();
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    email: row.email,
+    role: row.role as "admin" | "owner",
+    invited_at: row.invited_at,
+    expires_at: row.expires_at,
+    expired: new Date(row.expires_at).getTime() < now,
+  }));
+}
+
 export async function getActiveSetForAdminGym(
   supabase: Supabase,
   gymId: string

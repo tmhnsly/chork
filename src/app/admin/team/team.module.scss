@@ -1,0 +1,10 @@
+@use "mixins/layout" as layout;
+
+// Just a stack. `.shell` in the admin layout already owns the page
+// gutters, max-width and safe-area insets — adding a second
+// `layout.page-*` here put auto inline margins on a flex item, which
+// overrides stretch and collapsed the whole page to its content width.
+// Every other admin page is a bare stack for exactly this reason.
+.page {
+  @include layout.stack(var(--space-5));
+}
