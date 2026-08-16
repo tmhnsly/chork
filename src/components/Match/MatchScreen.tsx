@@ -270,7 +270,7 @@ export function MatchScreen({ initialState, userId }: Props) {
         routes={state.routes}
         myLogs={myLogByRouteId}
         grades={initialState.grades}
-        gradingScale={initialState.match.grading_scale}
+        match={initialState.match}
         onTileTap={(route) => openPanel({ kind: "log", routeId: route.id })}
         onAddTap={() => openPanel({ kind: "add" })}
         onTileLongPress={(route) => openPanel({ kind: "edit", routeId: route.id })}
@@ -281,8 +281,7 @@ export function MatchScreen({ initialState, userId }: Props) {
           route={activeRoute}
           log={sheetLog}
           grades={initialState.grades}
-          gradingScale={initialState.match.grading_scale}
-          matchDiscipline={initialState.match.discipline}
+          match={initialState.match}
           handicap={initialState.match.handicap}
           // The seat being logged for — the guest when the host is
           // entering, otherwise the viewer's own.
@@ -345,10 +344,7 @@ export function MatchScreen({ initialState, userId }: Props) {
           mode="add"
           isChork={isChork}
           grades={initialState.grades}
-          gradingScale={initialState.match.grading_scale}
-          minGrade={initialState.match.min_grade}
-          maxGrade={initialState.match.max_grade}
-          matchDiscipline={initialState.match.discipline}
+          match={initialState.match}
           onClose={closePanel}
           // In Chork the route belongs to whoever holds the pen. When
           // that's a guest the host is tapping for them, so the seat
@@ -371,10 +367,7 @@ export function MatchScreen({ initialState, userId }: Props) {
           mode="edit"
           route={editRoute}
           grades={initialState.grades}
-          gradingScale={initialState.match.grading_scale}
-          minGrade={initialState.match.min_grade}
-          maxGrade={initialState.match.max_grade}
-          matchDiscipline={initialState.match.discipline}
+          match={initialState.match}
           onClose={closePanel}
           onSubmit={(payload) => handleUpdateRoute(editRoute.id, payload)}
           pending={isPending}
@@ -453,7 +446,7 @@ export function MatchScreen({ initialState, userId }: Props) {
           routes={state.routes}
           logs={state.logs}
           grades={initialState.grades}
-          gradingScale={initialState.match.grading_scale}
+          match={initialState.match}
           onClose={closePanel}
         />
       )}

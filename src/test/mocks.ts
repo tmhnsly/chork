@@ -39,6 +39,13 @@ export function mockRouteSet(overrides: Partial<RouteSet> & { id: string; gym_id
     status: "live",
     grading_scale: "v",
     max_grade: 10,
+    // Migration 117 — the scale for the OTHER discipline family, so a
+    // Match can run boulders and ropes on one day. Null on a gym Set,
+    // which is one discipline by definition (and the constraint says
+    // so).
+    alt_grading_scale: null,
+    alt_min_grade: null,
+    alt_max_grade: null,
     competition_id: null,
     closing_event: false,
     venue_gym_id: null,

@@ -52,6 +52,18 @@ export interface Match {
   max_grade: number | null;
   /** Default for this Match's routes; each may override it. */
   discipline: Discipline;
+  /**
+   * The scale for the discipline family this Match's own discipline is
+   * NOT — rope grades on a bouldering Match, or boulder grades on a
+   * roped one. Null means a single-discipline session (migration 117).
+   *
+   * Resolve a route's scale with `scaleForDiscipline`; never read this
+   * or `grading_scale` directly to grade a route, or a mixed day picks
+   * the wrong ladder.
+   */
+  alt_grading_scale: MatchGradingScale | null;
+  alt_min_grade: number | null;
+  alt_max_grade: number | null;
   status: MatchStatus;
   starts_at: string;
   /** Null while live — a Match is open-ended until someone ends it. */

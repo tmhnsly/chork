@@ -148,6 +148,113 @@ export const DISCIPLINE_SCALES: Record<Discipline, readonly GradingScale[]> = {
 };
 
 /**
+ * Which grading family a discipline belongs to.
+ *
+ * Sport and top-rope grade identically — French / YDS — and
+ * bouldering does not. So a session that mixes disciplines needs at
+ * most TWO scales, never three, which is the whole reason a Match
+ * carries one alternate rather than one per discipline.
+ *
+ * Mirrored in SQL as `discipline_family` (migration 117), the same
+ * way `computePoints` is mirrored by `compute_points`.
+ */
+export type DisciplineFamily = "boulder" | "rope";
+
+export function disciplineFamily(discipline: Discipline): DisciplineFamily {
+  return discipline === "boulder" ? "boulder" : "rope";
+}
+
+/** The family a scale grades for. `custom` and `points` have none. */
+export function scaleFamily(
+  scale: GradingScaleWithCustom,
+): DisciplineFamily | null {
+  if (scale === "v" || scale === "font") return "boulder";
+  if (scale === "french" || scale === "yds") return "rope";
+  return null;
+}
+
+/**
+ * The scale + range a route is graded on, given the Match it lives in.
+ *
+ * A Match's own scale covers its own discipline family; `alt_*` covers
+ * the other one, and is null for a single-discipline session. A route
+ * whose family has no scale returns null and stays ungraded — which
+ * before migration 117 was every rope route on a bouldering Match, and
+ * is now only a route someone switched to a family they said they
+ * weren't climbing.
+ */
+export interface MatchScales {
+  discipline: Discipline;
+  grading_scale: GradingScaleWithCustom;
+  min_grade: number | null;
+  max_grade: number | null;
+  alt_grading_scale: GradingScaleWithCustom | null;
+  alt_min_grade: number | null;
+  alt_max_grade: number | null;
+}
+
+export interface ResolvedScale {
+  scale: GradingScaleWithCustom;
+  min: number | null;
+  max: number | null;
+}
+
+/**
+ * Label a ROUTE's grade in the scale that route is actually graded on.
+ *
+ * Never label a Match route with `makeGradeLabeller(match.grading_scale)`
+ * directly: on a mixed day a 6b top-rope route and a V6 boulder share
+ * the ordinal 6, and the Match's own scale would render both as "V6".
+ * This resolves each route's family first.
+ *
+ * Returns null for an ungraded route and for one whose family has no
+ * scale, which reads the same to a climber — no grade to show.
+ */
+export function makeRouteLabeller(
+  match: MatchScales,
+  grades: CustomGradeEntry[],
+): (route: { declared_grade: number | null; discipline: Discipline | null }) => string | null {
+  return (route) => {
+    if (route.declared_grade === null) return null;
+    const resolved = scaleForDiscipline(
+      match,
+      route.discipline ?? match.discipline,
+    );
+    if (resolved === null) return null;
+    return makeGradeLabeller(resolved.scale, grades)(route.declared_grade);
+  };
+}
+
+export function scaleForDiscipline(
+  match: MatchScales,
+  discipline: Discipline,
+): ResolvedScale | null {
+  // A custom ladder or a points-only Match has one scale by
+  // definition, and it applies whatever you climb — the ordinals
+  // aren't tied to a discipline in the first place.
+  if (match.grading_scale === "custom" || match.grading_scale === "points") {
+    return {
+      scale: match.grading_scale,
+      min: match.min_grade,
+      max: match.max_grade,
+    };
+  }
+  if (disciplineFamily(discipline) === disciplineFamily(match.discipline)) {
+    return {
+      scale: match.grading_scale,
+      min: match.min_grade,
+      max: match.max_grade,
+    };
+  }
+  if (match.alt_grading_scale === null) return null;
+  return {
+    scale: match.alt_grading_scale,
+    min: match.alt_min_grade,
+    max: match.alt_max_grade,
+  };
+}
+
+/**
  * How a scale names itself in a picker or a summary row.
  *
  * Covers `custom` as well, so the Match create form, the join

@@ -6,12 +6,11 @@ import { BottomSheet } from "@/components/ui/BottomSheet";
 import { ClimberPeekHeader, SheetBody } from "@/components/ui";
 import { SendGridTile } from "@/components/ui/SendGridTile/SendGridTile";
 import { deriveTileState } from "@/lib/data/logs";
-import { makeGradeLabeller } from "@/lib/data/grade-label";
+import { makeRouteLabeller, type MatchScales } from "@/lib/data/grade-label";
 import type {
   MatchLog,
   MatchPlayerView,
   MatchRoute,
-  MatchGradingScale,
   MatchLeaderboardRow, } from "@/lib/data/match-types";
 import { ownerIdOf } from "@/lib/data/match-types";
 import { formatHandicapPoints } from "@/lib/data/handicap";
@@ -27,7 +26,8 @@ interface Props {
   /** Every player's logs, keyed by `${userId}:${routeId}` per logKey. */
   logs: Map<string, MatchLog>;
   grades: Array<{ ordinal: number; label: string }>;
-  gradingScale: MatchGradingScale;
+  /** Discipline + both scales — a route reads in its own family's. */
+  match: MatchScales;
   /**
    * When set, each tile is tappable and opens the log sheet for this
    * player. Only passed for a GUEST viewed by the host, who is the
@@ -62,15 +62,15 @@ export function MatchPlayerGridSheet({
   routes,
   logs,
   grades,
-  gradingScale,
+  match,
   onLogRoute,
   onSetCeiling,
   ceilingLabel,
   onClose,
 }: Props) {
-  const labelForGrade = useMemo(
-    () => makeGradeLabeller(gradingScale, grades),
-    [gradingScale, grades],
+  const labelForRoute = useMemo(
+    () => makeRouteLabeller(match, grades),
+    [match, grades],
   );
 
   // A guest has no account, so no username and no profile to link to.
@@ -128,7 +128,7 @@ export function MatchPlayerGridSheet({
           {routes.map((route) => {
             const log = logs.get(logKey(ownerIdOf(player), route.id)) ?? null;
             const state = deriveTileState(log);
-            const gradeLabel = labelForGrade(route.declared_grade);
+            const gradeLabel = labelForRoute(route);
             return (
               <SendGridTile
                 key={route.id}

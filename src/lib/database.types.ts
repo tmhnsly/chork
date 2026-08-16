@@ -956,6 +956,9 @@ export type Database = {
       sets: {
         Row: {
           active: boolean
+          alt_grading_scale: string | null
+          alt_max_grade: number | null
+          alt_min_grade: number | null
           closing_event: boolean
           code: string | null
           competition_id: string | null
@@ -982,6 +985,9 @@ export type Database = {
         }
         Insert: {
           active?: boolean
+          alt_grading_scale?: string | null
+          alt_max_grade?: number | null
+          alt_min_grade?: number | null
           closing_event?: boolean
           code?: string | null
           competition_id?: string | null
@@ -1008,6 +1014,9 @@ export type Database = {
         }
         Update: {
           active?: boolean
+          alt_grading_scale?: string | null
+          alt_max_grade?: number | null
+          alt_min_grade?: number | null
           closing_event?: boolean
           code?: string | null
           competition_id?: string | null
@@ -1344,6 +1353,9 @@ export type Database = {
       }
       create_match: {
         Args: {
+          p_alt_grading_scale?: string
+          p_alt_max_grade?: number
+          p_alt_min_grade?: number
           p_custom_grades?: string[]
           p_discipline?: string
           p_grading_scale?: string
@@ -1359,10 +1371,14 @@ export type Database = {
           id: string
         }[]
       }
+      discipline_family: { Args: { p_discipline: string }; Returns: string }
       end_match: {
         Args: { p_set_id: string }
         Returns: {
           active: boolean
+          alt_grading_scale: string | null
+          alt_max_grade: number | null
+          alt_min_grade: number | null
           closing_event: boolean
           code: string | null
           competition_id: string | null
@@ -1954,6 +1970,9 @@ export type Database = {
         Args: { p_mode: string; p_set_id: string }
         Returns: {
           active: boolean
+          alt_grading_scale: string | null
+          alt_max_grade: number | null
+          alt_min_grade: number | null
           closing_event: boolean
           code: string | null
           competition_id: string | null
@@ -1989,6 +2008,9 @@ export type Database = {
         Args: { p_enabled: boolean; p_set_id: string }
         Returns: {
           active: boolean
+          alt_grading_scale: string | null
+          alt_max_grade: number | null
+          alt_min_grade: number | null
           closing_event: boolean
           code: string | null
           competition_id: string | null
