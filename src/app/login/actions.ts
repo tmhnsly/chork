@@ -98,7 +98,8 @@ export async function signOutAction(): Promise<{ error?: string }> {
   // on first byte (authed-with-gym / authed-no-gym / unauthed).
   const jar = await cookies();
   jar.delete("chork-onboarded");
-  jar.delete("chork-auth-shell");
+  // v2 carries the admin suffix; see proxy.ts.
+  jar.delete("chork-auth-shell-v2");
 
   if (error) {
     return { error: formatError(error) };

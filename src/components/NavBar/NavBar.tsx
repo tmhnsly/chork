@@ -100,9 +100,19 @@ interface NavBarProps {
    * correctly for users who've not yet added a gym.
    */
   initialShell: InitialShell;
+  /**
+   * Whether the server cookie says this viewer runs a gym.
+   *
+   * Without it the skeleton always omitted the Admin tab and
+   * hydration added it, so the tab visibly popped in on every load
+   * for anyone who has one. Paint hint only — `useAuth().isAdmin`
+   * takes over the moment bootstrap finishes, and /admin re-checks
+   * server-side regardless.
+   */
+  initialIsAdmin?: boolean;
 }
 
-export function NavBar({ initialShell }: NavBarProps) {
+export function NavBar({ initialShell, initialIsAdmin = false }: NavBarProps) {
   const { profile, isAdmin, isLoading } = useAuth();
   const pathname = usePathname();
 
@@ -135,27 +145,44 @@ export function NavBar({ initialShell }: NavBarProps) {
   // authenticated nav (minus badges + admin tab), so the eventual
   // swap to the full component is a no-op visually for most users.
   if (initialShell === "authed-with-gym") {
-    return <AuthedNavSkeleton pathname={pathname} hasGym={true} />;
+    return (
+      <AuthedNavSkeleton pathname={pathname} hasGym={true} isAdmin={initialIsAdmin} />
+    );
   }
   if (initialShell === "authed-no-gym") {
-    return <AuthedNavSkeleton pathname={pathname} hasGym={false} />;
+    return (
+      <AuthedNavSkeleton pathname={pathname} hasGym={false} isAdmin={initialIsAdmin} />
+    );
   }
   return <UnauthenticatedNav pathname={pathname} />;
 }
 
 // Minimal authed shell — rendered on first paint when the server
 // cookie indicates the user is signed in but `AuthProvider` hasn't
-// finished its bootstrap yet. Drops the badge counts and the Admin
-// tab (neither is knowable without the profile). The full
+// finished its bootstrap yet. Drops the badge counts, which aren't
+// knowable without the profile — but NOT the Admin tab, which the
+// shell cookie now carries precisely so it stops popping in. The full
 // `AuthenticatedNav` takes over as soon as bootstrap completes.
-function AuthedNavSkeleton({ pathname, hasGym }: { pathname: string; hasGym: boolean }) {
+function AuthedNavSkeleton({
+  pathname,
+  hasGym,
+  isAdmin,
+}: {
+  pathname: string;
+  hasGym: boolean;
+  isAdmin: boolean;
+}) {
   const homeActive = pathname === "/";
   const leaderboardActive = pathname.startsWith("/leaderboard");
-  const crewActive = pathname.startsWith("/crew");
+  const crewActive =
+    pathname.startsWith("/friends") || pathname.startsWith("/crew");
   const matchActive = pathname.startsWith("/match");
+  const adminActive = pathname.startsWith("/admin");
   const profileActive = pathname.startsWith("/profile") || pathname.startsWith("/u/");
 
-  const { tabsRef, pillRef } = useSlidingPill(pathname, hasGym);
+  // Same inputs the real nav's pill uses, so the underline lands in
+  // the same place before and after hydration.
+  const { tabsRef, pillRef } = useSlidingPill(pathname, 0, hasGym, isAdmin);
 
   return (
     <nav className={styles.bar}>
@@ -179,14 +206,22 @@ function AuthedNavSkeleton({ pathname, hasGym }: { pathname: string; hasGym: boo
               <span className={styles.tabLabel}>Board</span>
             </Link>
           )}
-          <Link href="/crew" className={`${styles.tab} ${crewActive ? styles.tabActive : ""}`} aria-current={crewActive ? "page" : undefined}>
+          <Link href="/friends" className={`${styles.tab} ${crewActive ? styles.tabActive : ""}`} aria-current={crewActive ? "page" : undefined}>
             <FaUserGroup className={styles.tabIcon} aria-hidden />
-            <span className={styles.tabLabel}>Crew</span>
+            <span className={styles.tabLabel}>Friends</span>
           </Link>
           <Link href="/match" className={`${styles.tab} ${matchActive ? styles.tabActive : ""}`} aria-current={matchActive ? "page" : undefined}>
             <FaFire className={styles.tabIcon} aria-hidden />
             <span className={styles.tabLabel}>Match</span>
           </Link>
+          {/* From the shell cookie, so the tab is in the server HTML
+              rather than appearing a frame after hydration. */}
+          {isAdmin && (
+            <Link href="/admin" className={`${styles.tab} ${adminActive ? styles.tabActive : ""}`} aria-current={adminActive ? "page" : undefined}>
+              <FaScrewdriverWrench className={styles.tabIcon} aria-hidden />
+              <span className={styles.tabLabel}>Admin</span>
+            </Link>
+          )}
           <Link href="/profile" className={`${styles.tab} ${profileActive ? styles.tabActive : ""}`} aria-current={profileActive ? "page" : undefined}>
             <FaUser className={styles.tabIcon} aria-hidden />
             <span className={styles.tabLabel}>Profile</span>
@@ -212,7 +247,8 @@ function AuthenticatedNav({
 }) {
   const homeActive = pathname === "/";
   const leaderboardActive = pathname.startsWith("/leaderboard");
-  const crewActive = pathname.startsWith("/crew");
+  const crewActive =
+    pathname.startsWith("/friends") || pathname.startsWith("/crew");
   const matchActive = pathname.startsWith("/match");
   const adminActive = pathname.startsWith("/admin");
   const profileActive = pathname.startsWith("/profile") || pathname.startsWith("/u/");
@@ -239,7 +275,8 @@ function AuthenticatedNav({
   // change refetches, so the badge never flashes to zero. Data access
   // goes through the lib/data/ helper (CLAUDE.md); the browser client
   // is created in the fetcher because NavBar is "use client".
-  const isOnCrew = pathname.startsWith("/crew");
+  const isOnCrew =
+    pathname.startsWith("/friends") || pathname.startsWith("/crew");
   const { data: pendingData } = useClientResource<number>(
     `crew-invites|${userId}|${isOnCrew}`,
     () => getPendingCrewInviteCount(createBrowserSupabase(), userId),
@@ -295,7 +332,7 @@ function AuthenticatedNav({
             </Link>
           )}
           <Link
-            href="/crew"
+            href="/friends"
             className={`${styles.tab} ${crewActive ? styles.tabActive : ""}`}
             aria-current={crewActive ? "page" : undefined}
           >
@@ -307,7 +344,7 @@ function AuthenticatedNav({
                 </span>
               )}
             </span>
-            <span className={styles.tabLabel}>Crew</span>
+            <span className={styles.tabLabel}>Friends</span>
           </Link>
           <Link
             href="/match"

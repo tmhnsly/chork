@@ -1,0 +1,59 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+
+.stack {
+  @include layout.stack(var(--space-6));
+}
+
+.section {
+  @include layout.stack(var(--space-3));
+}
+
+.heading {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.hint {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  margin-top: calc(-1 * var(--space-2));
+}
+
+.list {
+  @include layout.stack(var(--space-2));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+// ── Zero state ──
+//
+// Says what to do rather than what's missing. A crew's zero state
+// asked you to name a group before anything existed; this one points
+// at the thing that fills the list.
+.zero {
+  @include surface.card;
+  @include layout.stack(var(--space-2));
+  align-items: center;
+  text-align: center;
+  padding: var(--space-8) var(--space-6);
+  border-radius: var(--radius-3);
+}
+
+.zeroIcon {
+  font-size: var(--text-3xl);
+  color: var(--accent-solid);
+}
+
+.zeroTitle {
+  @include type.typography(card-title);
+  color: var(--mono-text);
+}
+
+.zeroBody {
+  @include type.typography(body);
+  color: var(--mono-text-low-contrast);
+  max-width: 34ch;
+}

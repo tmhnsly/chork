@@ -404,6 +404,48 @@ export type Database = {
           },
         ]
       }
+      friends: {
+        Row: {
+          addressee_id: string
+          created_at: string
+          id: string
+          requester_id: string
+          responded_at: string | null
+          status: string
+        }
+        Insert: {
+          addressee_id: string
+          created_at?: string
+          id?: string
+          requester_id: string
+          responded_at?: string | null
+          status?: string
+        }
+        Update: {
+          addressee_id?: string
+          created_at?: string
+          id?: string
+          requester_id?: string
+          responded_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mates_addressee_id_fkey"
+            columns: ["addressee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mates_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gym_admins: {
         Row: {
           created_at: string
@@ -1501,6 +1543,30 @@ export type Database = {
           username: string
         }[]
       }
+      get_friend_suggestions: {
+        Args: { p_limit?: number }
+        Returns: {
+          avatar_url: string
+          last_climbed_at: string
+          name: string
+          shared_matches: number
+          user_id: string
+          username: string
+        }[]
+      }
+      get_friends: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          created_at: string
+          direction: string
+          friend_id: string
+          name: string
+          status: string
+          user_id: string
+          username: string
+        }[]
+      }
       get_grade_distribution: {
         Args: { p_user_id: string }
         Returns: {
@@ -1774,6 +1840,7 @@ export type Database = {
         Args: { p_competition_id: string }
         Returns: boolean
       }
+      is_friend: { Args: { p_user_id: string }; Returns: boolean }
       is_gym_admin: { Args: { p_gym_id: string }; Returns: boolean }
       is_gym_member: { Args: { p_gym_id: string }; Returns: boolean }
       is_gym_owner: { Args: { p_gym_id: string }; Returns: boolean }
@@ -1842,6 +1909,24 @@ export type Database = {
         Args: { p_route_id: string }
         Returns: undefined
       }
+      remove_friend: { Args: { p_user_id: string }; Returns: undefined }
+      request_friend: {
+        Args: { p_user_id: string }
+        Returns: {
+          addressee_id: string
+          created_at: string
+          id: string
+          requester_id: string
+          responded_at: string | null
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "friends"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       resolve_admin_invite: {
         Args: { p_token: string }
         Returns: {
@@ -1853,6 +1938,23 @@ export type Database = {
           id: string
           role: string
         }[]
+      }
+      respond_to_friend: {
+        Args: { p_accept: boolean; p_friend_id: string }
+        Returns: {
+          addressee_id: string
+          created_at: string
+          id: string
+          requester_id: string
+          responded_at: string | null
+          status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "friends"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       search_climbers_fuzzy: {
         Args: { p_caller_id: string; p_limit?: number; p_query: string }

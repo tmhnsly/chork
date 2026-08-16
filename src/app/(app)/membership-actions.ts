@@ -140,7 +140,8 @@ export async function leaveCompetition(
  */
 async function invalidateNavShell(): Promise<void> {
   const jar = await cookies();
-  jar.delete("chork-auth-shell");
+  // v2 carries the admin suffix; see proxy.ts.
+  jar.delete("chork-auth-shell-v2");
 }
 
 /**

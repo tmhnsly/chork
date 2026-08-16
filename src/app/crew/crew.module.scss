@@ -1,5 +1,6 @@
 @use "mixins/layout" as layout;
 @use "mixins/typography" as type;
+@use "mixins/focus" as focus;
 
 .page {
   @include layout.page;
@@ -18,3 +19,4 @@
   @include type.typography(body);
   color: var(--mono-text-low-contrast);
 }
+

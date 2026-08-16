@@ -100,7 +100,7 @@ describe("clearActiveGym", () => {
     const { clearActiveGym } = await import("./membership-actions");
     await clearActiveGym();
 
-    expect(cookieDelete).toHaveBeenCalledWith("chork-auth-shell");
+    expect(cookieDelete).toHaveBeenCalledWith("chork-auth-shell-v2");
   });
 
   it("busts the profile cache so the nav drops to its gymless variant", async () => {
@@ -179,7 +179,7 @@ describe("switchActiveGym", () => {
     const { switchActiveGym } = await import("./membership-actions");
     await switchActiveGym(GYM_1);
 
-    expect(cookieDelete).toHaveBeenCalledWith("chork-auth-shell");
+    expect(cookieDelete).toHaveBeenCalledWith("chork-auth-shell-v2");
   });
 
   it("keeps previous memberships when switching", async () => {

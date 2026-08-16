@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { verify } from "@/lib/cookie-sign";
 import { NavBar, type InitialShell } from "./NavBar";
 
-const AUTH_SHELL_COOKIE = "chork-auth-shell";
+const AUTH_SHELL_COOKIE = "chork-auth-shell-v2";
 
 /**
  * Map a **verified** shell cookie value to the nav variant.
@@ -12,9 +12,24 @@ const AUTH_SHELL_COOKIE = "chork-auth-shell";
  * verified — see the test.
  */
 export function shellFromCookie(value: string | null): InitialShell {
-  if (value === "awg") return "authed-with-gym";
-  if (value === "ang") return "authed-no-gym";
+  if (value === "awg" || value === "awga") return "authed-with-gym";
+  if (value === "ang" || value === "anga") return "authed-no-gym";
   return "unauthed";
+}
+
+/**
+ * Does the pre-hydration nav include the Admin tab?
+ *
+ * Separate from the shell because admin is orthogonal to gym
+ * membership — a climber can run a gym they don't climb at. Trailing
+ * "a" is the flag; see `ShellValue` in proxy.ts.
+ *
+ * Unknown / missing / forged all read false, which is the safe way
+ * round: a missing tab appears on hydration, whereas a wrongly-shown
+ * one would flash an entry point the viewer can't use.
+ */
+export function isAdminFromCookie(value: string | null): boolean {
+  return value === "awga" || value === "anga";
 }
 
 /**
@@ -53,5 +68,10 @@ export function shellFromCookie(value: string | null): InitialShell {
 export async function NavBarShell() {
   const cookieStore = await cookies();
   const value = await verify(cookieStore.get(AUTH_SHELL_COOKIE)?.value);
-  return <NavBar initialShell={shellFromCookie(value)} />;
+  return (
+    <NavBar
+      initialShell={shellFromCookie(value)}
+      initialIsAdmin={isAdminFromCookie(value)}
+    />
+  );
 }
