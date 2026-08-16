@@ -34,7 +34,7 @@ const missing = skipReason({
 test.describe("auth flow", () => {
   test.skip(missing !== null, missing ?? "");
 
-  test("sign-in redirects to the wall + nav reflects authed state", async ({ page }) => {
+  test("sign-in redirects to the card + nav reflects authed state", async ({ page }) => {
     await page.goto("/login");
 
     // Form labelled inputs catch a11y regressions too.
@@ -49,11 +49,13 @@ test.describe("auth flow", () => {
       page.getByRole("button", { name: /sign in/i }).click(),
     ]);
 
-    // Authenticated wall: the nav surfaces the climber tabs (Wall /
-    // Board / Crew / Profile + optional Admin). The Wall tab should
+    // Authenticated card: the nav surfaces the climber tabs (Card /
+    // Friends / Match / Profile + optional Admin). Card and the
+    // Chorkboard share one entry — the board is reached from the rank
+    // strip, not the nav (CONTEXT.md). The Card tab should
     // be present + active.
-    const wallTab = page.getByRole("link", { name: /wall/i });
-    await expect(wallTab).toBeVisible({ timeout: 10_000 });
+    const cardTab = page.getByRole("link", { name: /card/i });
+    await expect(cardTab).toBeVisible({ timeout: 10_000 });
   });
 
   test("sign-in honours ?next= for deep-link redirect", async ({ page }) => {

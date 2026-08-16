@@ -12,7 +12,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   FaBorderAll,
-  FaTrophy,
   FaUser,
   FaRightToBracket,
   FaUserGroup,
@@ -172,8 +171,8 @@ function AuthedNavSkeleton({
   hasGym: boolean;
   isAdmin: boolean;
 }) {
-  const homeActive = pathname === "/";
-  const leaderboardActive = pathname.startsWith("/leaderboard");
+  // One nav entry covers the card and the board it links to.
+  const gymActive = pathname === "/" || pathname.startsWith("/leaderboard");
   const crewActive =
     pathname.startsWith("/friends") || pathname.startsWith("/crew");
   const matchActive = pathname.startsWith("/match");
@@ -194,16 +193,14 @@ function AuthedNavSkeleton({
 
         <div className={styles.tabs} ref={tabsRef}>
           <span className={styles.pill} ref={pillRef} aria-hidden />
+          {/* One entry for both. The board is reached from the rank
+              strip on the card, where it means something — see
+              CONTEXT.md "Card, Ranks, Chorkboard". Six tabs was also
+              one over the HIG's five for anyone who runs a gym. */}
           {hasGym && (
-            <Link href="/" className={`${styles.tab} ${homeActive ? styles.tabActive : ""}`} aria-current={homeActive ? "page" : undefined}>
+            <Link href="/" className={`${styles.tab} ${gymActive ? styles.tabActive : ""}`} aria-current={gymActive ? "page" : undefined}>
               <FaBorderAll className={styles.tabIcon} aria-hidden />
-              <span className={styles.tabLabel}>Wall</span>
-            </Link>
-          )}
-          {hasGym && (
-            <Link href="/leaderboard" className={`${styles.tab} ${leaderboardActive ? styles.tabActive : ""}`} aria-current={leaderboardActive ? "page" : undefined}>
-              <FaTrophy className={styles.tabIcon} aria-hidden />
-              <span className={styles.tabLabel}>Board</span>
+              <span className={styles.tabLabel}>Card</span>
             </Link>
           )}
           <Link href="/friends" className={`${styles.tab} ${crewActive ? styles.tabActive : ""}`} aria-current={crewActive ? "page" : undefined}>
@@ -245,8 +242,8 @@ function AuthenticatedNav({
   isAdmin: boolean;
   hasGym: boolean;
 }) {
-  const homeActive = pathname === "/";
-  const leaderboardActive = pathname.startsWith("/leaderboard");
+  // One nav entry covers the card and the board it links to.
+  const gymActive = pathname === "/" || pathname.startsWith("/leaderboard");
   const crewActive =
     pathname.startsWith("/friends") || pathname.startsWith("/crew");
   const matchActive = pathname.startsWith("/match");
@@ -319,16 +316,14 @@ function AuthenticatedNav({
             ref={pillRef}
             aria-hidden
           />
+          {/* One entry for both. The board is reached from the rank
+              strip on the card, where it means something — see
+              CONTEXT.md "Card, Ranks, Chorkboard". Six tabs was also
+              one over the HIG's five for anyone who runs a gym. */}
           {hasGym && (
-            <Link href="/" className={`${styles.tab} ${homeActive ? styles.tabActive : ""}`} aria-current={homeActive ? "page" : undefined}>
+            <Link href="/" className={`${styles.tab} ${gymActive ? styles.tabActive : ""}`} aria-current={gymActive ? "page" : undefined}>
               <FaBorderAll className={styles.tabIcon} aria-hidden />
-              <span className={styles.tabLabel}>Wall</span>
-            </Link>
-          )}
-          {hasGym && (
-            <Link href="/leaderboard" className={`${styles.tab} ${leaderboardActive ? styles.tabActive : ""}`} aria-current={leaderboardActive ? "page" : undefined}>
-              <FaTrophy className={styles.tabIcon} aria-hidden />
-              <span className={styles.tabLabel}>Board</span>
+              <span className={styles.tabLabel}>Card</span>
             </Link>
           )}
           <Link

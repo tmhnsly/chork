@@ -6,7 +6,8 @@ import { getRoutesBySet } from "@/lib/data/route-queries";
 import { getLogsBySetForUser } from "@/lib/data/route-log-queries";
 import { getGym } from "@/lib/data/gym-queries";
 import { isGymAdminOf } from "@/lib/data/admin-queries";
-import { SendsGrid } from "@/components/SendsGrid/SendsGrid";
+import { fetchMyRank } from "./(app)/rank-actions";
+import { GymScreen } from "@/components/SendsGrid/GymScreen";
 import { SendsGridSkeleton } from "@/components/SendsGrid/SendsGridSkeleton";
 import { PageHeader } from "@/components/motion";
 import { CreateSetForm } from "@/components/AdminControls/CreateSetForm";
@@ -47,7 +48,7 @@ export default async function Home() {
       {/* h1: this is the app's primary authed route and its heading.
           It was the only `as="h2"` of 16 PageHeader call sites, which
           left `/` with no h1 at all. */}
-      <PageHeader title="The Wall" />
+      <PageHeader title="Card" />
       <Suspense fallback={<SendsGridSkeleton />}>
         <AuthenticatedHome userId={userId} gymId={gymId} />
       </Suspense>
@@ -73,15 +74,24 @@ async function AuthenticatedHome({ userId, gymId }: { userId: string; gymId: str
     return <p className={styles.empty}>No active set right now.</p>;
   }
 
-  const [routes, logs] = await Promise.all([
+  const [routes, logs, rank] = await Promise.all([
     getRoutesBySet(set.id),
     getLogsBySetForUser(supabase, set.id, userId),
+    // Where they stand, for the strip above the card. One indexed
+    // lookup plus the cached gym-stats RPC — no board is fetched.
+    fetchMyRank(),
   ]);
 
   // Admin set-management actions (end set, edit, etc.) live on
   // /admin — climbers + admins both see the same Wall here. The Admin
   // tab in NavBar is the entry point for the admin dashboard.
   return (
-    <SendsGrid set={set} routes={routes} initialLogs={logs} gymName={gymName} />
+    <GymScreen
+      set={set}
+      routes={routes}
+      initialLogs={logs}
+      gymName={gymName}
+      initialRank={rank ?? { rank: null, points: 0, climberCount: 0 }}
+    />
   );
 }

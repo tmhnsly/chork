@@ -1,0 +1,90 @@
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+@use "mixins/focus" as focus;
+
+.strip {
+  @include surface.card;
+  @include focus.ring;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--size-touch-target);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-3);
+  text-decoration: none;
+  color: inherit;
+
+  &:hover .chevron {
+    color: var(--mono-text);
+  }
+}
+
+.body {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+}
+
+.rank {
+  @include type.typography(number, $step: lg);
+  color: var(--mono-text);
+}
+
+// Smaller than the number it belongs to, so "#41" reads as one token
+// with the 41 carrying it.
+.hash {
+  @include type.typography(number, $step: sm);
+  color: var(--mono-text-low-contrast);
+}
+
+.of,
+.points,
+.dot {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+.prompt {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+// Places gained since the screen opened. Accent, because it is the
+// one genuinely good piece of news the strip can carry.
+.gained {
+  @include type.typography(label, $step: xs);
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-1);
+  color: var(--accent-on-solid);
+  background: var(--accent-solid);
+  animation: rise var(--duration-normal) var(--ease-out);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-2));
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gained {
+    animation: none;
+  }
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: var(--mono-text-low-contrast);
+  transition: color var(--duration-fast) var(--ease-out);
+}
