@@ -2,8 +2,15 @@
 
 import { useMemo, useState } from "react";
 import { FaFlag } from "react-icons/fa6";
-import { BottomSheet, Button, SheetBody, TabPills, ToggleRow } from "@/components/ui";
-import type { TabPillOption } from "@/components/ui";
+import {
+  BottomSheet,
+  Button,
+  GradePicker,
+  SheetBody,
+  TabPills,
+  ToggleRow,
+} from "@/components/ui";
+import type { GradeChoice } from "@/components/ui";
 import {
   gradeOptions,
   partialCreditLabel,
@@ -72,9 +79,9 @@ export function MatchAddRouteSheet({
   // Points-only matches skip the picker entirely (no grade = no options).
   // First option is `null` ("Ungraded") so climbers without a strong
   // grading opinion can still add the route.
-  const options = useMemo<TabPillOption<number | null>[]>(() => {
+  const options = useMemo<GradeChoice<number | null>[]>(() => {
     if (pointsOnly) return [];
-    const ungraded: TabPillOption<number | null> = { value: null, label: "Ungraded" };
+    const ungraded: GradeChoice<number | null> = { value: null, label: "Ungraded" };
     return [
       ungraded,
       ...gradeOptions(gradingScale, {
@@ -143,12 +150,11 @@ export function MatchAddRouteSheet({
         {!pointsOnly && !offScale && (
           <div className={styles.field}>
             <span className={styles.label}>Grade</span>
-            <TabPills<number | null>
+            <GradePicker<number | null>
               options={options}
               value={grade}
               onChange={setGrade}
               ariaLabel="Grade"
-              layout="wrap"
             />
           </div>
         )}

@@ -18,6 +18,8 @@ export { ChorkMark } from "./ChorkMark";
 export { Legend } from "./Legend";
 export { ChoiceTiles } from "./ChoiceTiles/ChoiceTiles";
 export type { ChoiceTileOption } from "./ChoiceTiles/ChoiceTiles";
+export { GradePicker } from "./GradePicker/GradePicker";
+export type { GradeChoice } from "./GradePicker/GradePicker";
 export { SearchField } from "./SearchField";
 export { SendGridTile } from "./SendGridTile/SendGridTile";
 export { AttemptCounter, CompletedRow, LogSheetHeader } from "./LogSheet";

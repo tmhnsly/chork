@@ -12,7 +12,7 @@ import {
 import {
   Button,
   ChoiceTiles,
-  TabPills,
+  GradePicker,
   ToggleRow,
   showToast,
 } from "@/components/ui";
@@ -28,7 +28,7 @@ import {
 import type { MatchGradingScale, SavedScale } from "@/lib/data/match-types";
 import { createMatchAction, setMatchGameMode } from "@/app/match/actions";
 import { countOf } from "@/lib/plural";
-import type { TabPillOption } from "@/components/ui/TabPills";
+import type { GradeChoice } from "@/components/ui";
 import {
   buildCreateMatchPayload,
   canSubmit as deriveCanSubmit,
@@ -383,7 +383,7 @@ export function CreateMatchForm({ savedScales }: Props) {
 /**
  * The grade range, picked with the SAME control as everywhere else.
  *
- * `TabPills` + `gradeOptions` is what the log sheet, the add-route
+ * `GradePicker` is the control the card's Rate-this-climb row uses,
  * sheet and the ceiling sheet all use: a scrolling row of round,
  * tappable grades. One row per bound. Every place a climber picks a
  * grade now looks and behaves identically, which is the point — this
@@ -409,7 +409,7 @@ function RangePicker({
   const all = gradeOptions(scale, { customGrades });
   const count = max - min + 1;
 
-  const options = (bound: "min" | "max"): TabPillOption<number>[] =>
+  const options = (bound: "min" | "max"): GradeChoice<number>[] =>
     all.map((o) => ({
       value: o.value,
       label: o.label,
@@ -420,7 +420,7 @@ function RangePicker({
     <div className={styles.rangePicker}>
       <div className={styles.rangeRow}>
         <span className={styles.rangeLabel}>Easiest</span>
-        <TabPills<number>
+        <GradePicker<number>
           options={options("min")}
           value={min}
           onChange={(next) => onChange(next, max)}
@@ -429,7 +429,7 @@ function RangePicker({
       </div>
       <div className={styles.rangeRow}>
         <span className={styles.rangeLabel}>Hardest</span>
-        <TabPills<number>
+        <GradePicker<number>
           options={options("max")}
           value={max}
           onChange={(next) => onChange(min, next)}
