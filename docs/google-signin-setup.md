@@ -1,75 +1,108 @@
 # Google sign-in: the half that isn't code
 
-The app side is built and merged. It does nothing until a Google OAuth
-client exists and Supabase knows about it — until then the button
-returns "Unsupported provider" and the climber is stuck on `/login`.
+The app side is built. It does nothing until a Google OAuth client
+exists and Supabase knows about it — until then the button returns
+"Unsupported provider".
 
-## 1. Google Cloud
+Project ref: **`cfyagiwtzrgfjtwaevlh`**. Every link below is
+pre-pointed at it.
 
-1. **Google Cloud Console** → new project (or reuse one).
-2. **APIs & Services → OAuth consent screen.** External. Fill in the
-   app name, support email, and the `chork.app` domain.
-3. **Credentials → Create credentials → OAuth client ID → Web
-   application.**
-4. **Authorised redirect URI** — this is Supabase's callback, *not*
-   ours:
+## Not this screen
+
+Supabase's **organisation** settings has a page called **OAuth Apps**
+(Settings → Connections → OAuth Apps). That is for publishing an app
+that integrates with *Supabase's own API* — third-party tools that
+read your projects, like the Resend and Claude Code entries listed
+there. It has nothing to do with signing in to Chork, and the "client
+ID" column on it is not the one we want.
+
+Google sign-in is configured **per project**, under Authentication.
+
+## 1. Google Cloud — create the client
+
+⚠️ Google moved this. It used to be *APIs & Services → Credentials*;
+it is now the **Google Auth Platform**, and the old path leads
+somewhere that looks similar and isn't.
+
+1. <https://console.cloud.google.com/auth/clients> — create or pick a
+   project.
+2. If prompted, configure the **branding / consent screen** first:
+   app name, support email, and `chork.app` as the authorised domain.
+   External user type.
+3. **Create client** → application type **Web application**.
+4. **Authorised JavaScript origins**:
 
    ```
-   https://<project-ref>.supabase.co/auth/v1/callback
+   http://localhost:3000
+   https://chork.app
    ```
 
-   Get `<project-ref>` from `supabase/.temp/project-ref` or the
-   Supabase dashboard URL. Google will not accept a wildcard here, and
-   a mismatch fails with `redirect_uri_mismatch` at Google's end
-   before Supabase is ever reached.
+5. **Authorised redirect URIs** — this is **Supabase's** callback, not
+   ours. Google will not accept a wildcard, and a mismatch fails at
+   Google's end with `redirect_uri_mismatch` before Supabase is ever
+   reached:
 
-5. Copy the **client ID** and **client secret**.
+   ```
+   https://cfyagiwtzrgfjtwaevlh.supabase.co/auth/v1/callback
+   ```
 
-## 2. Supabase
+6. Create. Google now shows the **Client ID** and **Client secret** —
+   this is the only place they exist. The secret is shown once; copy
+   it now.
 
-**Authentication → Providers → Google.** Enable it, paste the client
-ID and secret, save.
+## 2. Supabase — paste them in
 
-**Authentication → URL Configuration.** Add both, or the callback
-lands nowhere in whichever environment you forgot:
+<https://supabase.com/dashboard/project/cfyagiwtzrgfjtwaevlh/auth/providers>
 
-```
-http://localhost:3000/auth/callback
-https://chork.app/auth/callback
-```
+Find **Google** in the provider list (newer dashboards label the
+section **Sign In / Providers**). Enable it, paste the Client ID and
+Client Secret, save.
 
-Site URL should be `https://chork.app`.
+That page also shows the callback URL Google wants — worth comparing
+against what you pasted in step 5 rather than trusting this file.
 
-## 3. Check it
+## 3. Supabase — allow our redirect back
 
-Sign in with a Google account **that has never used the app**, because
-the interesting path is the first-time one:
+<https://supabase.com/dashboard/project/cfyagiwtzrgfjtwaevlh/auth/url-configuration>
+
+- **Site URL**: `https://chork.app`
+- **Redirect URLs** — add both, or the callback lands nowhere in
+  whichever environment you forgot:
+
+  ```
+  http://localhost:3000/auth/callback
+  https://chork.app/auth/callback
+  ```
+
+## 4. Check it
+
+Sign in with a Google account that has **never used the app** — the
+first-time path is the one that can break.
 
 - [ ] The button leaves for Google and comes back signed in.
 - [ ] You land on **`/onboarding`**, not the Card. A fresh OAuth
-      account has a profile row (the `handle_new_user` trigger) with
-      `onboarded = false`, and the proxy forces the flow — if you land
-      on the Card, that guard has regressed.
+      account has a profile row (`handle_new_user`) with
+      `onboarded = false`, and the proxy forces the flow. Landing on
+      the Card means that guard has regressed.
 - [ ] The display-name field is **prefilled with your Google name**
       (migration 122).
-- [ ] Your Google avatar shows. If it is missing, check
-      `next.config.ts` still allows `*.googleusercontent.com` —
-      `next/image` REFUSES an unlisted host rather than falling back
-      to unoptimised, so the avatar disappears entirely.
+- [ ] Your Google avatar shows. If not, check `next.config.ts` still
+      allows `*.googleusercontent.com` — `next/image` REFUSES an
+      unlisted host rather than falling back to unoptimised, so the
+      avatar disappears entirely.
 - [ ] Tap Google, then hit **back** before completing. The button
       should be tappable again, not stuck on "Taking you to Google…".
-- [ ] Sign in again with the same Google account: straight to the
-      Card, no second onboarding.
+- [ ] Sign in again with the same account: straight to the Card, no
+      second onboarding.
 
 ## Notes
 
-- **Nothing here weakens email + password.** The two are alternatives
-  on the same screen; existing accounts are untouched.
+- **Email + password is untouched.** The two are alternatives on the
+  same screen; existing accounts keep working.
 - An email account and a Google account with the same address are
   **separate identities** unless account linking is enabled in
-  Supabase. Worth deciding before launch rather than after someone
-  signs up twice and wonders where their sends went.
+  Supabase. Worth deciding before launch, not after someone signs up
+  twice and wonders where their sends went.
 - Apple Sign In is the same shape and needs a paid Apple developer
-  account. Do it after this one works — the callback route and the
-  onboarding routing are already shared, so it is mostly provider
-  config again.
+  account. The callback route and onboarding routing are already
+  shared, so it is mostly provider config again.
