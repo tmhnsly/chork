@@ -52,6 +52,40 @@ const AUTH_SHELL_COOKIE = "chork-auth-shell-v2";
  */
 type ShellValue = "u" | "ang" | "awg" | "anga" | "awga";
 
+/**
+ * Is this the auth layer telling us the session is dead, rather than
+ * something transient?
+ *
+ * A deleted user, a revoked session, or a rotated refresh token all
+ * come back 400/401 — the stored token will never work again, so the
+ * cookies holding it are litter and have to go or every subsequent
+ * request repeats the same failure. A 500 or a network wobble is a
+ * different thing: the session may be perfectly good, so we degrade to
+ * signed-out for THIS request and leave the cookies alone.
+ */
+function isDeadSession(error: unknown): boolean {
+  const status = (error as { status?: number } | null)?.status;
+  return status === 400 || status === 401;
+}
+
+/**
+ * Drop every cookie that carries the dead session.
+ *
+ * Supabase stores its token as `sb-<ref>-auth-token`, chunked across
+ * `.0`, `.1`, … once it outgrows a single cookie — so this matches on
+ * shape rather than an exact name. Our two derived cookies go too:
+ * both describe a user who no longer exists.
+ */
+function clearSession(request: NextRequest, response: NextResponse): void {
+  for (const cookie of request.cookies.getAll()) {
+    if (cookie.name.startsWith("sb-") && cookie.name.includes("-auth-token")) {
+      response.cookies.delete(cookie.name);
+    }
+  }
+  response.cookies.delete(AUTH_SHELL_COOKIE);
+  response.cookies.delete(ONBOARDED_COOKIE);
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -63,7 +97,27 @@ export async function proxy(request: NextRequest) {
   }
 
   const { supabase, response } = createMiddlewareSupabase(request);
-  const { data: { user } } = await supabase.auth.getUser();
+
+  // `getUser()` THROWS when the stored refresh token is rejected — it
+  // does not merely return an error — so an unhandled call here takes
+  // down every request the middleware touches. That is what a deleted
+  // account looks like from the browser that was signed into it:
+  // "Invalid Refresh Token: Refresh Token Not Found", on every
+  // navigation, with no way out from inside the app.
+  //
+  // Treat it as signed-out, and if the session is genuinely dead, bin
+  // the cookies so the next request is a clean anonymous one rather
+  // than the same failure again.
+  const user = await (async () => {
+    try {
+      const { data, error } = await supabase.auth.getUser();
+      if (error) throw error;
+      return data.user;
+    } catch (error) {
+      if (isDeadSession(error)) clearSession(request, response);
+      return null;
+    }
+  })();
   const isAuthenticated = !!user;
   // Match AUTH_ROUTES the same way PUBLIC_ROUTES does — exact
   // match OR prefix-with-slash. Plain `startsWith(r)` meant

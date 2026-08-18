@@ -50,8 +50,18 @@ export const createServerSupabase = cache(async () => {
  */
 export const getServerUser = cache(async () => {
   const supabase = await createServerSupabase();
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (error) throw error;
+    return data.user;
+  } catch {
+    // `getUser()` throws on a rejected refresh token rather than
+    // returning an error, so an unhandled call takes the whole render
+    // with it. Signed-out is the honest answer here: a server
+    // component cannot set cookies, so it cannot clear the dead
+    // session — the middleware does that on the same request.
+    return null;
+  }
 });
 
 /**
