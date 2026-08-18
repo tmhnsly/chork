@@ -2,10 +2,10 @@
 
 import { useActionState, useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { FaCircleCheck, FaArrowUpRightFromSquare, FaGoogle } from "react-icons/fa6";
+import { FaArrowUpRightFromSquare, FaGoogle } from "react-icons/fa6";
 import { useAuth } from "@/lib/auth-context";
 import { RevealText } from "@/components/motion";
-import { Button, ChorkMark, showToast } from "@/components/ui";
+import { Button, ChorkMark, SuccessTick, showToast } from "@/components/ui";
 import { signInAction, signUpAction, type AuthActionState } from "./actions";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import styles from "./login.module.scss";
@@ -494,9 +494,7 @@ function ConfirmEmailScreen({
   return (
     <main className={styles.page}>
       <div className={styles.content}>
-        <div className={styles.confirmIconWrap} aria-hidden="true">
-          <FaCircleCheck className={styles.confirmIcon} />
-        </div>
+        <SuccessTick className={styles.confirmIconWrap} />
         <RevealText
           text="Check your inbox"
           as="h1"

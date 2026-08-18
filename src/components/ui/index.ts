@@ -15,6 +15,7 @@ export { spaceVar, contentVar } from "./spacing";
 export type { SpaceStep, ContentWidth } from "./spacing";
 export { CardSkeleton } from "./CardSkeleton";
 export { PageHeaderSkeleton } from "./PageHeaderSkeleton";
+export { SuccessTick } from "./SuccessTick/SuccessTick";
 export { ChorkMark } from "./ChorkMark";
 export { Legend } from "./Legend";
 export { ChoiceTiles } from "./ChoiceTiles/ChoiceTiles";

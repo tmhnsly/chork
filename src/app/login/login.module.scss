@@ -115,30 +115,14 @@
 // click the verification email. Replaces the form entirely — the
 // previous toast was too easy to miss, leaving new users staring at
 // an unchanged form wondering whether submit worked.
+// Positioning and the entrance only. The disc, the tick and their
+// colours belong to `SuccessTick` — this used to own all of it and
+// got the contrast wrong in dark mode.
 .confirmIconWrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 5rem;
-  height: 5rem;
-  border-radius: var(--radius-full);
-  // Brand lime (step 9 — `--accent-solid`). The checkmark uses
-  // `--mono-text` so it flips with app theme (near-black on light,
-  // near-white on dark) instead of Radix's fixed paired contrast
-  // which reads dark on both. Lime-9 is saturated enough that the
-  // decorative icon reads cleanly either way.
-  background: var(--accent-solid);
-  color: var(--mono-text);
-  // Gentle entrance so the icon doesn't slam in after form submit —
-  // respects `prefers-reduced-motion` via the no-animation media
-  // override at the bottom of this block.
-  animation: confirmIconIn var(--duration-normal) var(--ease-out-expo) both;
+  align-self: center;
+ animation: confirmIconIn var(--duration-normal) var(--ease-out-expo) both;
 }
 
-.confirmIcon {
-  width: 2.5rem;
-  height: 2.5rem;
-}
 
 .confirmHeading {
   @include type.typography(display);
