@@ -6,10 +6,16 @@ import { describe, it, expect } from "vitest";
  * the schema: break it and nobody can sign up at all, and the failure
  * shows up at the auth layer rather than anywhere obviously ours.
  *
- * Migration 122 widened it to carry an OAuth account's display name
- * and avatar through to the profile, so onboarding can prefill them.
- * These read the migration text and pin the parts that are load
- * bearing rather than incidental.
+ * ⚠️ These read the migration TEXT, and that is not enough on its own.
+ * Migration 122 broke email signup for a day — it inserted NULL into
+ * `profiles.name`, which is NOT NULL — and every test in this file
+ * passed the whole time, because none of them assert the function can
+ * actually run. The check that would have caught it inserts a real
+ * `auth.users` row inside a transaction and rolls it back; it lives in
+ * migration 123's header, and belongs in any future change here.
+ *
+ * So: treat these as a guard against someone quietly dropping a
+ * provider spelling, not as evidence that signup works.
  */
 describe("handle_new_user", () => {
   it("still writes a placeholder username for every account", async () => {
@@ -42,6 +48,27 @@ describe("handle_new_user", () => {
     // A provider sending "   " would otherwise prefill onboarding with
     // nothing, which reads as a broken field rather than an empty one.
     expect(body).toMatch(/nullif\(trim\(coalesce\(/);
+  });
+
+  it("never writes null into a NOT NULL column", async () => {
+    const { latestDefinition } = await import("@/test/sql-definitions");
+    const { body } = latestDefinition("handle_new_user");
+
+    // `profiles.name` and `profiles.avatar_url` are NOT NULL with ''
+    // defaults. Listing them in the INSERT means the trigger owns the
+    // value, and `nullif(trim(...), '')` is NULL for any signup with
+    // no provider metadata — every email signup. Migration 122 did
+    // exactly that and took account creation down with it.
+    //
+    // The outer coalesce is what lands on the column's own empty
+    // string instead. Nothing downstream cares: onboarding reads
+    // `profile?.name ?? ""`.
+    const inserted = body.slice(body.indexOf("insert into public.profiles"));
+    const nullifs = inserted.match(/nullif\(trim\(coalesce\(/g) ?? [];
+    const wrapped = inserted.match(/coalesce\(\s*nullif\(trim\(coalesce\(/g) ?? [];
+    expect(nullifs.length).toBeGreaterThan(0);
+    expect(wrapped.length, "every nullif must be wrapped in a coalesce")
+      .toBe(nullifs.length);
   });
 
   it("stays idempotent", async () => {
