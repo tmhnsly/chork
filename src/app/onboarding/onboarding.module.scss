@@ -120,17 +120,22 @@
   color: var(--mono-text-low-contrast);
 }
 
-.gymInput {
-  @include input.field;
-}
-
 .gymList {
   list-style: none;
   padding: 0;
   margin: 0;
   border: 1px solid var(--mono-border);
+  // Squircle, like every other boxed surface. This and the rows below
+  // were the only bordered boxes in the app with square corners.
+  border-radius: var(--radius-2);
+  // Clips the first and last row's corners to the container's.
+  overflow: hidden;
   max-height: 240px;
   overflow-y: auto;
+  // Holds the height of the three skeleton rows, so results arriving
+  // do not shrink the box under the climber's thumb. The skeleton is
+  // the tallest honest guess we have before the fetch returns.
+  min-height: calc(var(--space-14) * 3);
 }
 
 // Skeleton row — matches .gymOption dimensions to prevent layout shift
@@ -214,6 +219,7 @@
   min-height: var(--space-14);
   padding: var(--space-3);
   border: 1px solid var(--accent-border);
+  border-radius: var(--radius-2);
   background: var(--accent-subtle-bg);
 }
 
@@ -245,6 +251,8 @@
 .confirmDetails {
   @include layout.stack(0);
   border: 1px solid var(--mono-border-subtle);
+  border-radius: var(--radius-2);
+  overflow: hidden;
 }
 
 .confirmRow {
