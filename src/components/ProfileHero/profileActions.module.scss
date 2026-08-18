@@ -60,3 +60,21 @@
   cursor: default;
 }
 
+
+// Removing a friend, after the confirm tap. Error red on a control that
+// severs something is the one place the app uses that colour on a
+// button — it should look like what it does.
+.danger {
+  @extend %action;
+  background: var(--error-bg);
+  border-color: var(--error-border);
+  color: var(--error-text);
+
+  &:hover {
+    background: var(--error-bg-hover, var(--error-bg));
+  }
+}
+
+%action:disabled {
+  cursor: progress;
+}

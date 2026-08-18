@@ -2,8 +2,13 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { createServerSupabase, getServerUser } from "@/lib/supabase/server";
 import { getProfileByUsername } from "@/lib/data/profile-queries";
-import { getUnreadNotificationCount } from "@/lib/data/notifications";
-import { ProfileHeader } from "@/components/ProfileHeader/ProfileHeader";
+import { getProfileSummary } from "@/lib/data/profile-queries";
+import { getFriendStatus } from "@/lib/data/friend-queries";
+import { getGym } from "@/lib/data/gym-queries";
+import { getAllSets } from "@/lib/data/set-queries";
+import { computeSetStreak } from "@/lib/data/profile-stats";
+import { flashRate, pointsPerSend, completionRate } from "@/lib/data/profile-stats";
+import { ProfileHero } from "@/components/ProfileHero/ProfileHero";
 import { ProfileStats } from "./_components/ProfileStats";
 import { ProfileStatsSkeleton } from "./_components/ProfileStats.skeleton";
 import { ProfileAchievementsSection } from "./_components/ProfileAchievementsSection";
@@ -35,21 +40,43 @@ export default async function UserProfilePage({ params }: Props) {
   const isOwnProfile = authUser?.id === profileUser.id;
   const gymId = profileUser.active_gym_id;
 
-  // Header chrome data — small queries, fetched sync so the header
-  // renders fully on shell paint (bell badge + meta line don't pop in
-  // late). Own-profile-only data resolves to empty/zero for visitors.
-  // Notification list itself lazy-loads inside the sheet on open;
-  // the shell only needs the unread count for the badge.
-  // Admin entry moved into NavBar — no admin lookup needed here.
-  const unreadCount = isOwnProfile
-    ? await getUnreadNotificationCount(supabase, profileUser.id)
-    : 0;
-
-  // `contextLine` used to read "N crews" for a visitor. Nothing fills
-  // it now that crews are gone — a friend count would, but it would
-  // also publish who is popular to anyone who looks, which is a
-  // decision worth making on purpose rather than by inheritance.
-  const contextLine: string | null = null;
+  // The hero card wants three totals and how the viewer stands with
+  // this climber. `getProfileSummary` is React-cached per render, so
+  // ProfileStats calling it again below costs nothing — one query,
+  // two readers.
+  //
+  // The notification bell that used to sit here is gone: friend
+  // requests surface on /friends, and match invites will surface in
+  // Match. A bell that duplicated both was a second place to keep in
+  // step, and it was only ever visible on your own profile anyway.
+  const [summary, standing, gym, orderedSets] = await Promise.all([
+    gymId ? getProfileSummary(supabase, profileUser.id, gymId) : null,
+    authUser ? getFriendStatus(supabase, profileUser.id) : null,
+    gymId ? getGym(gymId) : null,
+    gymId ? getAllSets(gymId, profileUser.created_at) : [],
+  ]);
+  const totals = (summary?.per_set ?? []).reduce(
+    (acc, s) => {
+      acc.sends += s.sends;
+      acc.flashes += s.flashes;
+      acc.points += s.points;
+      return acc;
+    },
+    { sends: 0, flashes: 0, points: 0 },
+  );
+  const sentSetIds = new Set((summary?.per_set ?? []).map((s) => s.set_id));
+  const streak = computeSetStreak(
+    orderedSets.map((s) => ({ hasSend: sentSetIds.has(s.id) })),
+  );
+  const ratios = summary
+    ? {
+        flashRate: flashRate(totals.sends, totals.flashes) ?? 0,
+        pointsPerSend: pointsPerSend(totals.points, totals.sends) ?? 0,
+        completionRate:
+          completionRate(totals.sends, summary.unique_routes_attempted) ?? 0,
+        streakCurrent: streak.current,
+      }
+    : null;
 
   // Show another climber's profile in *their* chosen theme — viewer's
   // theme restores when they leave the route. Scoped to <main> so the
@@ -61,11 +88,14 @@ export default async function UserProfilePage({ params }: Props) {
 
   return (
     <main className={styles.page} {...otherThemeAttr}>
-      <ProfileHeader
+      <ProfileHero
         user={profileUser}
-        isOwnProfile={isOwnProfile}
-        contextLine={contextLine}
-        unreadCount={unreadCount}
+        gymName={gym?.name ?? null}
+        totals={totals}
+        ratios={ratios}
+        // A signed-out viewer can't be friends with anyone; "none"
+        // renders Add, which the action gate will bounce to /login.
+        standing={standing ?? { status: "none", friendId: null }}
       />
 
       {/* Gym-scoped widgets (current set + previous sets) are only
@@ -78,7 +108,6 @@ export default async function UserProfilePage({ params }: Props) {
           <ProfileStats
             userId={profileUser.id}
             gymId={gymId}
-            createdAt={profileUser.created_at}
             isOwnProfile={isOwnProfile}
           />
         </Suspense>

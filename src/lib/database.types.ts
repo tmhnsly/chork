@@ -1414,7 +1414,13 @@ export type Database = {
         }
       }
       end_stale_matches: { Args: never; Returns: number }
-      friend_status: { Args: { p_user_id: string }; Returns: string }
+      friend_status: {
+        Args: { p_user_id: string }
+        Returns: {
+          friend_id: string
+          status: string
+        }[]
+      }
       generate_set_code: { Args: never; Returns: string }
       get_active_climber_count: { Args: { p_set_id: string }; Returns: number }
       get_active_match_for_user: {

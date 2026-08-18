@@ -2,26 +2,17 @@ import { formatSetResetCountdown } from "@/lib/data/set-label";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getProfileSummary } from "@/lib/data/profile-queries";
 import { getGym } from "@/lib/data/gym-queries";
-import { getCurrentSet, getAllSets } from "@/lib/data/set-queries";
+import { getCurrentSet } from "@/lib/data/set-queries";
 import { getRoutesBySet } from "@/lib/data/route-queries";
 import { getLeaderboardUserRow } from "@/lib/data/leaderboard-queries";
 import { visibleAttempts } from "@/lib/data/logs";
 import { ClimberStats } from "@/components/ClimberStats/ClimberStats";
 import {
-  flashRate,
-  pointsPerSend,
-  completionRate,
-  computeSetStreak,
 } from "@/lib/data/profile-stats";
 
 interface Props {
   userId: string;
   gymId: string;
-  /**
-   * profileUser.created_at — used by getAllSets to scope the streak
-   * calculation to sets that overlapped the climber's tenure.
-   */
-  createdAt: string;
   /**
    * Gates private stats (raw attempt counts). When false, `totalAttempts`
    * is nulled out before reaching the client so visitors never see it.
@@ -29,7 +20,7 @@ interface Props {
   isOwnProfile: boolean;
 }
 
-export async function ProfileStats({ userId, gymId, createdAt, isOwnProfile }: Props) {
+export async function ProfileStats({ userId, gymId, isOwnProfile }: Props) {
   const supabase = await createServerSupabase();
 
   const [summary, activeSet, gym] = await Promise.all([
@@ -41,52 +32,17 @@ export async function ProfileStats({ userId, gymId, createdAt, isOwnProfile }: P
   // All-time totals come from per-set aggregates (sums across user_set_stats
   // rows for this gym). totalAttempts + uniqueRoutesAttempted are direct
   // RPC fields populated by migration 038.
-  const totals = summary.per_set.reduce(
-    (acc, s) => {
-      acc.sends += s.sends;
-      acc.flashes += s.flashes;
-      acc.points += s.points;
-      return acc;
-    },
-    { sends: 0, flashes: 0, points: 0 },
-  );
 
   // Second wave — three independent fetches. Running these in parallel
   // shaves one round trip off the profile render; previously each await
   // blocked the next (orderedSets → routes → rankRow), turning a three-
   // query fan-out into a three-step waterfall.
-  //
-  // `getAllSets` feeds the streak calculation: per_set membership ≈
-  // hasSend=true (migration 013's trigger deletes empty rows), but a
-  // newer set the climber hasn't touched still has to count as a
-  // break, so we reconcile the ordered set list against summary.per_set
-  // below. Cheap enough — getAllSets is server-cached via the
-  // `gym:{id}:active-set` tag.
-  const [orderedSets, routes, rankRow] = await Promise.all([
-    getAllSets(gymId, createdAt),
+  const [routes, rankRow] = await Promise.all([
     activeSet ? getRoutesBySet(activeSet.id) : Promise.resolve([]),
     activeSet
       ? getLeaderboardUserRow(supabase, gymId, userId, activeSet.id)
       : Promise.resolve(null),
   ]);
-
-  const sentSetIds = new Set(summary.per_set.map((s) => s.set_id));
-  const streak = computeSetStreak(
-    orderedSets.map((s) => ({ hasSend: sentSetIds.has(s.id) })),
-  );
-
-  const allTimeExtras = {
-    flashRate: flashRate(totals.sends, totals.flashes),
-    pointsPerSend: pointsPerSend(totals.points, totals.sends),
-    // Privacy: raw attempts are owner-only. Null hides the cell entirely
-    // in ClimberStats so the existence of the metric isn't telegraphed.
-    totalAttempts: isOwnProfile ? summary.total_attempts : null,
-    completionRate: completionRate(totals.sends, summary.unique_routes_attempted),
-    uniqueRoutesAttempted: summary.unique_routes_attempted,
-    totalRoutesInGym: summary.total_routes_in_gym,
-    streakCurrent: streak.current,
-    streakBest: streak.best,
-  };
 
   const activeSetStats = activeSet
     ? summary.per_set.find((s) => s.set_id === activeSet.id) ?? {
@@ -142,10 +98,6 @@ export async function ProfileStats({ userId, gymId, createdAt, isOwnProfile }: P
   return (
     <ClimberStats
       currentSet={currentSet}
-      allTimeCompletions={totals.sends}
-      allTimeFlashes={totals.flashes}
-      allTimePoints={totals.points}
-      allTimeExtras={allTimeExtras}
       gymName={gym?.name}
       routeIds={routes.length > 0 ? routes.map((r) => r.id) : undefined}
       routeHasZone={routes.length > 0 ? routes.map((r) => r.has_zone) : undefined}
