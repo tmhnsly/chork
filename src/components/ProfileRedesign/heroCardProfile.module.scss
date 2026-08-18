@@ -1,0 +1,85 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+@use "mixins/surfaces" as surface;
+@use "mixins/container-queries" as cq;
+
+.card {
+  @include surface.card;
+  @include layout.stack(var(--space-4));
+  padding: var(--space-4);
+  container-type: inline-size;
+  container-name: tile;
+}
+
+.identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.names {
+  @include layout.stack(var(--space-1));
+  min-width: 0;
+}
+
+.username {
+  @include type.typography(display, $step: 3xl);
+  color: var(--accent-text);
+  overflow-wrap: anywhere;
+}
+
+.meta {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+// ── The three that matter ─────────────────────────
+// Equal columns, unequal weight: colour does the ranking rather than
+// size, so the row keeps one baseline and still says which is which.
+.headline {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.stat {
+  @include layout.stack(var(--space-1));
+  align-items: center;
+  padding: var(--space-3) var(--space-2);
+  border-radius: var(--radius-2);
+  background: var(--mono-subtle-bg);
+  text-align: center;
+}
+
+.statPrimary {
+  background: var(--accent-bg);
+
+  .value { color: var(--accent-text); }
+  .label { color: var(--accent-text-low-contrast); }
+}
+
+.statFlash {
+  background: var(--flash-bg);
+
+  .value { color: var(--flash-text); }
+  .label { color: var(--flash-text-low-contrast); }
+}
+
+.value {
+  @include type.typography(number, $step: 3xl);
+  color: var(--mono-text);
+}
+
+.label {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+// ── Context, not headlines ────────────────────────
+.ratios {
+  @include type.typography(meta);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  color: var(--mono-text-low-contrast);
+}
