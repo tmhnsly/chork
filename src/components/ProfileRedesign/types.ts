@@ -18,6 +18,20 @@ export interface ProfileMockData {
   completionRate: number;
   streakCurrent: number;
   streakBest: number;
-  /** How the viewer relates to this profile — drives the action row. */
-  relation: "self" | "friend" | "stranger" | "requested";
+  /**
+   * How the viewer stands with this climber, straight from the
+   * `friend_status` RPC (migration 124). Six states because "Add
+   * friend" is right in exactly one of them.
+   *
+   * `declined_by_me` is only ever returned to the person who did the
+   * declining — a decline is silent to the person declined, so they
+   * see `none`.
+   */
+  relation:
+    | "self"
+    | "none"
+    | "sent"
+    | "received"
+    | "friends"
+    | "declined_by_me";
 }

@@ -7,10 +7,6 @@
   flex-wrap: wrap;
 }
 
-.compact {
-  flex-wrap: nowrap;
-}
-
 %action {
   @include type.typography(button);
   @include focus.ring;
@@ -64,7 +60,3 @@
   cursor: default;
 }
 
-.compact %action {
-  flex: 0 0 auto;
-  padding: 0 var(--space-3);
-}

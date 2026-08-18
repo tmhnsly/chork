@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import { HeroCardProfile } from "./HeroCardProfile";
-import { TileGridProfile } from "./TileGridProfile";
 import type { ProfileMockData } from "./types";
 
 /**
@@ -24,7 +23,7 @@ const base: ProfileMockData = {
   completionRate: 0.67,
   streakCurrent: 4,
   streakBest: 9,
-  relation: "stranger",
+  relation: "none",
 };
 
 const meta = {
@@ -35,24 +34,9 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Variant A — identity, numbers and actions fused into one card. */
-export const A_HeroCard: Story = {
+/** The chosen direction: identity, numbers and actions in one card. */
+export const HeroCard: Story = {
   render: () => <HeroCardProfile data={base} />,
-};
-
-/** Variant B — current layout, all-time rebuilt as weighted tiles. */
-export const B_TileGrid: Story = {
-  render: () => <TileGridProfile data={base} />,
-};
-
-/** Both, stacked, for a direct read. */
-export const SideBySide: Story = {
-  render: () => (
-    <div style={{ display: "grid", gap: "3rem" }}>
-      <HeroCardProfile data={base} />
-      <TileGridProfile data={base} />
-    </div>
-  ),
 };
 
 /**
@@ -64,9 +48,11 @@ export const SideBySide: Story = {
 export const ActionStates: Story = {
   render: () => (
     <div style={{ display: "grid", gap: "1.5rem" }}>
-      <HeroCardProfile data={{ ...base, relation: "stranger" }} />
-      <HeroCardProfile data={{ ...base, relation: "requested" }} />
-      <HeroCardProfile data={{ ...base, relation: "friend" }} />
+      <HeroCardProfile data={{ ...base, relation: "none" }} />
+      <HeroCardProfile data={{ ...base, relation: "sent" }} />
+      <HeroCardProfile data={{ ...base, relation: "received" }} />
+      <HeroCardProfile data={{ ...base, relation: "friends" }} />
+      <HeroCardProfile data={{ ...base, relation: "declined_by_me" }} />
       <HeroCardProfile data={{ ...base, relation: "self" }} />
     </div>
   ),

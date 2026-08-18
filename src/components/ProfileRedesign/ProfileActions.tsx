@@ -1,85 +1,104 @@
 "use client";
 
-import { FaUserPlus, FaUserCheck, FaBolt, FaGear, FaClock } from "react-icons/fa6";
+import {
+  FaUserPlus,
+  FaUserCheck,
+  FaBolt,
+  FaGear,
+  FaClock,
+  FaCheck,
+} from "react-icons/fa6";
 import type { ProfileMockData } from "./types";
 import styles from "./profileActions.module.scss";
 
 /**
- * What you can do about the person whose profile you're looking at.
+ * What you can do about the climber whose profile you're looking at.
  *
  * The gap this fills: a profile currently offers nothing. You can see
- * a climber, and there is no way to add them, no way to pull them into
- * a match, no way to remove them — the social loop dead-ends on the
- * one screen where acting on it is the obvious thing to want.
+ * someone and there is no way to add them, pull them into a match, or
+ * tell that you already asked — the social loop dead-ends on the one
+ * screen where acting on it is the obvious want.
  *
- * Four states, because "add friend" is only correct in one of them,
- * and showing it in the others is how an app teaches you not to trust
- * its buttons:
+ * Six states, from `friend_status` (migration 124), because "Add
+ * friend" is correct in exactly one. Offering it in the others is how
+ * an app teaches you not to trust its buttons: `request_friend` is
+ * idempotent, so tapping Add on someone you already asked does nothing
+ * visible and you learn to stop reading.
  *
- *   self       — settings, and nothing social
- *   stranger   — add them
- *   requested  — you already asked; say so and stop offering
- *   friend     — the interesting one: they are already yours, so the
- *                primary action becomes climbing together
- *
- * Shared by both mockups so the comparison is about layout, not about
- * one of them having better buttons.
+ *   self           settings, nothing social
+ *   none           ask them
+ *   sent           you already did — a label, not a dead button
+ *   received       THEY asked; accepting is the action, not asking back
+ *   friends        already yours, so the primary becomes climbing together
+ *   declined_by_me you said no and may change your mind
  */
 export function ProfileActions({
   relation,
-  compact = false,
 }: {
   relation: ProfileMockData["relation"];
-  /** Icon-only, for sitting beside a name rather than under it. */
-  compact?: boolean;
 }) {
   if (relation === "self") {
     return (
-      <div className={`${styles.row} ${compact ? styles.compact : ""}`}>
-        <button type="button" className={styles.secondary} aria-label="Settings">
+      <div className={styles.row}>
+        <button type="button" className={styles.secondary}>
           <FaGear aria-hidden />
-          {!compact && <span>Settings</span>}
+          <span>Settings</span>
         </button>
       </div>
     );
   }
 
   return (
-    <div className={`${styles.row} ${compact ? styles.compact : ""}`}>
-      {relation === "stranger" && (
+    <div className={styles.row}>
+      {relation === "none" && (
         <button type="button" className={styles.primary}>
           <FaUserPlus aria-hidden />
-          {!compact && <span>Add friend</span>}
+          <span>Add friend</span>
         </button>
       )}
 
-      {relation === "requested" && (
-        // Not a button. There is nothing to do but wait, and a
-        // disabled control that looks tappable is worse than a label.
+      {relation === "declined_by_me" && (
+        // Worded as a fresh ask rather than "undo": the other climber
+        // was never told, so from their side nothing happened.
+        <button type="button" className={styles.secondary}>
+          <FaUserPlus aria-hidden />
+          <span>Add friend</span>
+        </button>
+      )}
+
+      {relation === "sent" && (
+        // Nothing to do but wait. A disabled control that still looks
+        // tappable is worse than a label that admits it.
         <span className={styles.pending}>
           <FaClock aria-hidden />
-          {!compact && <span>Request sent</span>}
+          <span>Request sent</span>
         </span>
       )}
 
-      {relation === "friend" && (
-        <button type="button" className={styles.secondary}>
-          <FaUserCheck aria-hidden />
-          {!compact && <span>Friends</span>}
+      {relation === "received" && (
+        <button type="button" className={styles.primary}>
+          <FaCheck aria-hidden />
+          <span>Accept request</span>
         </button>
       )}
 
-      {/* Inviting someone to a match does not require them to be a
-          friend — a match is the thing that MAKES you friends here
-          (suggestions come from shared matches), so gating it behind
-          the link you are trying to create would close the loop it
-          exists to open. */}
+      {relation === "friends" && (
+        <button type="button" className={styles.secondary}>
+          <FaUserCheck aria-hidden />
+          <span>Friends</span>
+        </button>
+      )}
+
+      {/* Inviting is deliberately NOT gated on friendship. Suggestions
+          come from shared matches, so a match is the thing that MAKES
+          you friends here — requiring the link first would close the
+          loop it exists to open. */}
       <button
         type="button"
-        className={relation === "friend" ? styles.primary : styles.secondary}
+        className={relation === "friends" ? styles.primary : styles.secondary}
       >
         <FaBolt aria-hidden />
-        {!compact && <span>Invite to match</span>}
+        <span>Invite to match</span>
       </button>
     </div>
   );
