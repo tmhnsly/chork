@@ -114,3 +114,18 @@
   }
   .name { color: var(--mono-text-low-contrast); }
 }
+
+// ── The "+N more" tile ────────────────────────────
+// Same box, same circle, same label rung as a real achievement — only
+// the fill differs, so the row keeps one baseline.
+.card--more .name {
+  color: var(--mono-text-low-contrast);
+}
+
+.moreCircle {
+  @include type.typography(number, $step: sm);
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--mono-border);
+  color: var(--mono-text-low-contrast);
+}

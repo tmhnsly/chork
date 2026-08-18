@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import type { BadgeStatus } from "@/lib/badges";
 import { AchievementCard } from "@/components/ui/AchievementCard/AchievementCard";
+import { MoreAchievementsCard } from "@/components/ui/AchievementCard/MoreAchievementsCard";
 import { BrandDivider } from "@/components/ui/BrandDivider";
 import { HorizontalScroller } from "@/components/ui/HorizontalScroller";
 import styles from "./badgeShelf.module.scss";
@@ -106,15 +107,7 @@ export function BadgeShelf({ badges, onSeeAll, onTapBadge }: Props) {
         ))}
 
         {remainingCount > 0 && onSeeAll && (
-          <button
-            type="button"
-            className={`${styles.slot} ${styles["slot--more"]}`}
-            onClick={onSeeAll}
-            aria-label={`See all ${remainingCount} more achievements`}
-          >
-            <span className={styles.circle}>+{remainingCount}</span>
-            <span className={styles.name}>More</span>
-          </button>
+          <MoreAchievementsCard count={remainingCount} onPress={onSeeAll} />
         )}
       </HorizontalScroller>
     </section>
