@@ -1,0 +1,225 @@
+name: Backup drill
+
+# An untested backup is not a backup. Two jobs, both against a real
+# Supabase stack (the CLI's, in Docker, on the runner):
+#
+# `replay` — rebuild the schema from nothing but the repo. Every
+#   migration in supabase/migrations/ is applied to an empty local
+#   stack, and the result is inventoried: tables, the RLS flag on each
+#   (must equal the table count), policies, functions, indexes,
+#   triggers, cron jobs. This is the half of disaster recovery the
+#   repo owns, and it needs no secret, so it runs on every schedule
+#   and on every change to the migrations.
+#
+# `restore` — dump production (roles, schema, data) with the CLI's
+#   own `db dump`, restore the three files into an EMPTY local stack
+#   with the documented psql one-liner, then run the same inventory
+#   against production and the copy and diff them. Row counts per
+#   table included. This is the drill: it proves the backup we can
+#   take actually comes back. It needs `SUPABASE_DB_URL` (the session
+#   pooler connection string, with the password, percent-encoded —
+#   docs/backup-restore.md). Without it the job skips LOUDLY, because
+#   a drill that quietly never ran is how the day comes when nothing
+#   restores.
+#
+# Nothing is uploaded. The repo is public; the dump lives and dies on
+# the runner. This workflow verifies restorability — it is not an
+# off-site copy, and docs/backup-restore.md says what is.
+
+on:
+  schedule:
+    # Mondays, 06:17 UTC — the gym is shut and the board is quiet, so
+    # the row counts on both ends stand still long enough to compare.
+    - cron: "17 6 * * 1"
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+      - "scripts/backup/**"
+      - ".github/workflows/backup-drill.yml"
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - "scripts/backup/**"
+      - ".github/workflows/backup-drill.yml"
+
+concurrency:
+  group: backup-drill-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+# Everything the local stack doesn't need to prove a restore. Fewer
+# images to pull, and the runner has no use for a Studio.
+env:
+  STACK_EXCLUDES: realtime,imgproxy,mailpit,studio,edge-runtime,logflare,vector,supavisor,postgres-meta
+
+jobs:
+  replay:
+    name: Schema rebuilds from the repo
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # The repo keeps no config.toml — it links to the hosted project
+      # and never ran a local stack. The stack needs one; generate it
+      # here and pin the Postgres major to production's.
+      - name: Local stack config
+        run: |
+          [ -f supabase/config.toml ] || supabase init --yes >/dev/null
+          sed -i 's/^major_version = .*/major_version = 17/' supabase/config.toml
+          grep -n "^major_version" supabase/config.toml
+
+      - name: Start the stack and apply every migration
+        run: |
+          supabase start -x "$STACK_EXCLUDES"
+          # `start` applies migrations on a fresh volume; `reset` makes
+          # that explicit and deterministic — drop, recreate, apply all.
+          supabase db reset --local
+
+      - name: Inventory the rebuilt schema
+        run: |
+          DB_URL=$(supabase status -o env | sed -n 's/^DB_URL="\{0,1\}\([^"]*\)"\{0,1\}$/\1/p')
+          psql "$DB_URL" -At -F '|' -f scripts/backup/inventory.sql | LC_ALL=C sort > replay.txt
+          {
+            echo "## Schema replay — $(ls supabase/migrations/*.sql | wc -l | tr -d ' ') migration files"
+            echo
+            echo '| fact | n |'; echo '|---|---|'
+            grep '^shape:' replay.txt | sed 's/^shape:\([^|]*\)|\(.*\)$/| \1 | \2 |/'
+          } >> "$GITHUB_STEP_SUMMARY"
+          cat replay.txt
+
+      - name: Every table has RLS, and the cron jobs came back
+        run: |
+          tables=$(grep '^shape:tables|' replay.txt | cut -d'|' -f2)
+          rls=$(grep '^shape:tables_with_rls|' replay.txt | cut -d'|' -f2)
+          cron=$(grep '^shape:cron_jobs|' replay.txt | cut -d'|' -f2)
+          if [ "$tables" != "$rls" ]; then
+            echo "::error::$tables tables but only $rls with RLS enabled after replay — a migration created a table without row level security."
+            exit 1
+          fi
+          if ! [ "$cron" -gt 0 ] 2>/dev/null; then
+            echo "::error::No pg_cron jobs after replay (got '$cron'). Set auto-publish and auto-archive depend on them (migration 071)."
+            exit 1
+          fi
+          echo "$tables tables, all with RLS; $cron cron jobs."
+
+  restore:
+    name: Dump production, restore it, diff
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      # Secrets cannot gate a job, only a step — so the gate is a step,
+      # and a missing secret is a warning in the run AND the summary,
+      # never a quiet green.
+      - name: Is the drill configured?
+        id: gate
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Backup drill SKIPPED — repo secret SUPABASE_DB_URL is not set. Nothing has proven a production backup restores. See docs/backup-restore.md."
+            {
+              echo "## ⚠️ Restore drill skipped"
+              echo
+              echo "\`SUPABASE_DB_URL\` is not set. Until it is, **no automated check proves a production backup restores.** docs/backup-restore.md says how to set it."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+            echo "drill configured."
+          fi
+
+      - uses: supabase/setup-cli@v1
+        if: steps.gate.outputs.configured == 'true'
+        with:
+          version: latest
+
+      # An EMPTY stack — its own workdir, no migrations of ours — is
+      # exactly what a brand-new Supabase project is, which is what the
+      # documented restore recipe targets. Restoring into the stack the
+      # `replay` job builds would prove nothing: the schema would
+      # already be there.
+      - name: Start an empty stack
+        if: steps.gate.outputs.configured == 'true'
+        run: |
+          mkdir -p "$RUNNER_TEMP/stack" && cd "$RUNNER_TEMP/stack"
+          supabase init --yes >/dev/null
+          sed -i 's/^major_version = .*/major_version = 17/' supabase/config.toml
+          supabase start -x "$STACK_EXCLUDES"
+          supabase status -o env | sed -n 's/^DB_URL="\{0,1\}\([^"]*\)"\{0,1\}$/LOCAL_DB_URL=\1/p' >> "$GITHUB_ENV"
+
+      # Three files, the way Supabase documents a project migration:
+      # roles (custom ones — managed roles are filtered out, so this
+      # can't change the stack's postgres password), schema (public
+      # and any custom schema; managed schemas are excluded because the
+      # target already has them), data (public, auth, storage, cron —
+      # COPY statements, triggers off).
+      - name: Dump production
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/dump"
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f "$RUNNER_TEMP/dump/roles.sql" --role-only
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f "$RUNNER_TEMP/dump/schema.sql"
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f "$RUNNER_TEMP/dump/data.sql" --data-only --use-copy
+          wc -c "$RUNNER_TEMP"/dump/*.sql
+
+      # The one-liner from Supabase's own restore guide.
+      - name: Restore into the empty stack
+        if: steps.gate.outputs.configured == 'true'
+        run: |
+          psql "$LOCAL_DB_URL" \
+            --single-transaction \
+            --variable ON_ERROR_STOP=1 \
+            --file "$RUNNER_TEMP/dump/roles.sql" \
+            --file "$RUNNER_TEMP/dump/schema.sql" \
+            --command 'SET session_replication_role = replica' \
+            --file "$RUNNER_TEMP/dump/data.sql" \
+            --quiet
+
+      - name: Inventory both ends and diff
+        if: steps.gate.outputs.configured == 'true'
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          psql "$SUPABASE_DB_URL" -At -F '|' -f scripts/backup/inventory.sql | LC_ALL=C sort > production.txt
+          psql "$LOCAL_DB_URL"    -At -F '|' -f scripts/backup/inventory.sql | LC_ALL=C sort > restored.txt
+          {
+            echo "## Restore drill — production vs restored copy"
+            echo
+            echo '| fact | production | restored |'; echo '|---|---|---|'
+            join -t '|' production.txt restored.txt | sed 's/^\([^|]*\)|\([^|]*\)|\(.*\)$/| \1 | \2 | \3 |/'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if diff -u production.txt restored.txt; then
+            echo "Restored copy matches production: every table, every RLS flag, every policy, function, index, trigger and cron job, and every row count."
+          else
+            echo "::error::The restored copy differs from production — see the diff above. A shape difference is a lost object; a rows difference on a quiet Monday morning is a table the dump did not carry."
+            exit 1
+          fi
+
+      # The copy is the same rows as production, so prove the guard is
+      # up before anyone reads it: RLS must be ON in the copy, and an
+      # anonymous reader must see nothing.
+      - name: RLS is live in the copy
+        if: steps.gate.outputs.configured == 'true'
+        run: |
+          n=$(psql "$LOCAL_DB_URL" -At -c "set role anon; select count(*) from public.route_logs;")
+          if [ "$n" != "0" ]; then
+            echo "::error::anon can read $n route_logs rows in the restored copy — RLS did not come back with the schema."
+            exit 1
+          fi
+          echo "anon sees 0 route_logs rows in the copy; RLS is doing its job."
+
+      - name: Leave nothing behind
+        if: always() && steps.gate.outputs.configured == 'true'
+        run: |
+          rm -rf "$RUNNER_TEMP/dump" production.txt restored.txt
+          (cd "$RUNNER_TEMP/stack" && supabase stop --no-backup) || true
