@@ -253,13 +253,32 @@ export async function uploadAvatar(
  * Delete the authenticated user's account.
  * Uses the service role to call auth.admin.deleteUser, which cascades
  * through profiles and all related tables.
+ *
+ * The by-username profile cache is busted too, before and after. It
+ * wasn't: `/u/{username}` kept serving the deleted climber's name,
+ * face and gym for the cache TTL plus one stale-while-revalidate
+ * render — and if someone claimed the freed handle meanwhile, the
+ * page could hand THEIR visitors the old profile, id and all. Seen
+ * for real on 2026-08-19: a handle re-registered after a hand-deleted
+ * account rendered its new owner's own profile as a stranger's, with
+ * the old avatar, for one request. Before the delete because the
+ * username lookup needs the row; after because a request between the
+ * two could re-cache it.
  */
 export async function deleteAccount(): Promise<{ error: string } | { success: true }> {
   const auth = await requireSignedIn();
   if ("error" in auth) return { error: auth.error };
-  const { userId } = auth;
+  const { supabase, userId } = auth;
 
   try {
+    const { data: row } = await supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", userId)
+      .maybeSingle();
+    const username = row?.username ?? null;
+    if (username) revalidateTag(tags.userByUsername(username), "max");
+
     const service = createServiceClient();
 
     // Crews used to need a hand-off here: `crews.created_by` cascades
@@ -269,6 +288,7 @@ export async function deleteAccount(): Promise<{ error: string } | { success: tr
     // sides and takes nothing with it.
     const { error } = await service.auth.admin.deleteUser(userId);
     if (error) return { error: formatError(error) };
+    if (username) revalidateTag(tags.userByUsername(username), "max");
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };

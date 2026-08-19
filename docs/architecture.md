@@ -486,6 +486,20 @@ busting; helper `revalidateUserProfile(supabase, userId)` in
 `updateProfile` itself doesn't use the helper because it already has
 both old + new username in scope from its rename-aware logic.
 
+**Deletion busts too — and a deletion done outside the app can't.**
+`deleteAccount` busts the handle's tag before and after the
+`auth.admin.deleteUser` call (before: the lookup needs the row; after:
+a request in between could re-cache it). A user removed by hand in SQL
+gets no bust, and the entry outlives the row: `revalidate: 300` is
+stale-while-revalidate, so after the TTL the next visitor is served
+the stale row ONCE while it refetches. Seen on 2026-08-19 — a handle
+re-registered after a hand-deleted account rendered its new owner's
+own profile as a stranger's (old id, old avatar) for exactly one
+request. If you delete users by SQL, accept that, or do it through the
+app. The same SWR-once applies to any profile edit that bypasses the
+mutations (e.g. a SQL fix-up); it is by design for edits, and a
+surprise only for deletions.
+
 ### Factory-per-call pattern (Layer 2)
 
 `unstable_cache` stringifies every argument when keying, so a

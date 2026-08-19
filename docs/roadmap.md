@@ -79,17 +79,21 @@ Platform hardening:
       `hello@chork.app`
 - [x] Inbound email forwarding (Porkbun → dedicated Gmail)
 - [ ] Enable "confirm email" in Supabase Auth
-- [ ] Update Supabase redirect URLs for production domain
+- [x] Update Supabase redirect URLs for production domain — proven
+      2026-08-19: a Google sign-in on chork.app came back to
+      `https://chork.app/auth/callback` (the runtime log shows the 307
+      there), which Supabase only does for a listed URL; an unlisted
+      one is silently swapped for the Site URL
 - [ ] Set VAPID env vars in Vercel (see `.env.example`) — push
       gracefully no-ops until these exist, so this is the difference
       between having notifications and not
-- [~] **Google sign-in — code built 2026-08-16, blocked on
-      credentials.** Button, handoff, and the metadata prefill
-      (migration 122) are in. It does nothing until a Google OAuth
-      client exists and Supabase knows about it: step-by-step in
-      `docs/google-signin-setup.md`, including the check that a
-      first-time OAuth user lands on `/onboarding` rather than the
-      Card
+- [x] **Google sign-in — live and verified 2026-08-19.** Provider
+      enabled, first-time path run for real (Google-only account,
+      prefilled name, Google avatar, onboarding), returning path run,
+      handshake pinned in CI by `e2e/google.spec.ts`. Two dashboard
+      checks remain a human's — the consent screen's publishing status
+      (*Testing* blocks strangers at Google's door) and the localhost
+      redirect entry — both in `docs/google-signin-setup.md`
 - [ ] Apple Sign In — same shape as Google, but needs a paid Apple
       developer account. Worth doing after Google proves the callback
       flow, since iOS PWA users are the core audience
@@ -129,39 +133,40 @@ Platform hardening:
       a scratch project to restore INTO; `supabase db dump` also needs
       Docker, which isn't installed
 
-## Recommended next: Google sign-in
+## Google sign-in — shipped (2026-08-17 → 19, migrations 122–123)
 
-Picked over the alternatives on 2026-08-16, after checking what was
-actually left rather than what the list claimed.
+Picked on 2026-08-16 as the one unchecked pre-launch item that both
+blocked launch and was mostly code, and because sign-up is the top of
+the growth funnel: the app asked a climber to type a password, on a
+phone, at a gym, with chalk on their hands. It was never "add back" —
+`signInWithOAuth` appeared nowhere in `src`; this was the first OAuth.
 
-**Why this one.** It is the only unchecked pre-launch item that both
-blocks launch and is mostly code. Everything else up there is a
-dashboard Tom has to click. And the goal is community growth — sign-up
-is the top of that funnel, and the app currently asks a climber to
-type a password, on a phone, at a gym, with chalk on their hands. That
-is the worst possible context for the worst possible input.
+**What shipped.** A provider button above the form on `/login`
+(deliberately not the accent — the primary action on that screen is
+whichever route the climber chose); `signInWithOAuth` into the
+existing `/auth/callback`, which already exchanged codes and guarded
+`next`; the proxy's onboarding gate left to do its job, so a first-
+time OAuth user lands on `/onboarding` and nobody added a second gate
+to disagree with the first. Migration 122 has `handle_new_user` read
+the provider's name and picture into `profiles`; 123 fixed the day it
+broke every email signup, and the lesson about text-level test pins is
+written into both. `next/image` refuses an unlisted host, so
+`*.googleusercontent.com` went into `remotePatterns`; a bfcache-
+restored login page un-sticks its button on `pageshow`.
 
-**It is not "add back".** The old line said that; `signInWithOAuth`
-appears nowhere in `src` and login is email + password only. Treat it
-as unstarted.
+**Verified.** The from-scratch path ran for real in production on
+2026-08-18 (Google-only account, prefilled name, Google avatar,
+onboarding completed) and the returning path on the 19th;
+`e2e/google.spec.ts` now asserts the handshake — provider enabled,
+client id, Supabase's callback, our return address — against the live
+project on every push. What is still a human's: the consent screen's
+publishing status in Google Cloud (*Testing* turns strangers away at
+Google's door and no test can see it), and the localhost entry on the
+redirect allow-list. Both in `docs/google-signin-setup.md`.
 
-**Split of work.** The code half is small and ours: a provider button
-on `/login`, `supabase.auth.signInWithOAuth`, and a callback route
-that exchanges the code and lands the climber on onboarding or home
-depending on `onboarded`. The other half is Tom's and can't be
-skipped — a Google Cloud OAuth client, and the redirect URLs added in
-Supabase Auth.
-
-**Watch for.** Onboarding assumes a climber picks a username, and an
-OAuth account arrives with a display name and no username — the
-callback has to route a first-time OAuth user into onboarding rather
-than home, or they land on a Card with no profile. `middleware`
-already reads the `chork-onboarded` cookie, so the check exists;
-it just has to run on the callback path.
-
-**Then Apple**, same shape, once Google has proved the callback. It
-needs a paid Apple developer account, and iOS PWA users are the core
-audience, so it matters — just not first.
+**Then Apple**, same shape, once there is a paid Apple developer
+account; iOS PWA users are the core audience, so it matters — just not
+first.
 
 ### Considered and not chosen
 

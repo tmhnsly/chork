@@ -76,33 +76,76 @@ against what you pasted in step 5 rather than trusting this file.
 
 ## 4. Check it
 
-Sign in with a Google account that has **never used the app** — the
-first-time path is the one that can break.
+### Verified — 2026-08-19
 
-- [ ] The button leaves for Google and comes back signed in.
-- [ ] You land on **`/onboarding`**, not the Card. A fresh OAuth
-      account has a profile row (`handle_new_user`) with
-      `onboarded = false`, and the proxy forces the flow. Landing on
-      the Card means that guard has regressed.
-- [ ] The display-name field is **prefilled with your Google name**
-      (migration 122).
-- [ ] Your Google avatar shows. If not, check `next.config.ts` still
-      allows `*.googleusercontent.com` — `next/image` REFUSES an
-      unlisted host rather than falling back to unoptimised, so the
-      avatar disappears entirely.
+The first-time path has been run for real, in production, by a Google
+account that had never used the app (`tomhinsley@me.com`, 2026-08-18
+22:01 UTC), and the evidence is in the database rather than in
+anyone's memory:
+
+- `auth.users.raw_app_meta_data.providers = ["google"]`, one `google`
+  identity, no password — the account came in through the button.
+- `profiles.avatar_url` is a `lh3.googleusercontent.com` URL and the
+  profile's name was prefilled from Google's `full_name` and then
+  edited in onboarding — migration 122 did its job.
+- `onboarded = true` with a gym set — the proxy's onboarding gate ran
+  and the flow completed; a first-time OAuth user cannot reach the
+  Card without it.
+- The Google avatar renders on `/u/tom` on chork.app — the
+  `*.googleusercontent.com` entry in `next.config.ts` is right.
+- **Returning:** tapping the button again on chork.app landed straight
+  on the Card in ~20s with no second onboarding (09:38 UTC the next
+  morning). Google skipped its account chooser because the browser's
+  one Google session had already consented; expect the chooser the
+  first time.
+
+And the part that can be checked without a human signing in is now a
+test: `e2e/google.spec.ts` clicks the button and asserts that Supabase
+answers `/auth/v1/authorize?provider=google` with a 302 to
+`accounts.google.com` carrying a `.apps.googleusercontent.com` client
+id, Supabase's own callback as `redirect_uri`, and our
+`/auth/callback?next=` as the return address. Runs in CI on every push
+against the live project, so a provider switched off or a client id
+pasted wrong fails the build, not launch day.
+
+### Still human
+
+- [ ] **Publishing status in Google Cloud.** If the consent screen is
+      in *Testing*, only listed test users get through — everyone
+      else is turned away at Google's door with "Access blocked" — and
+      nothing above can see that, because the owner is always a test
+      user. Check <https://console.cloud.google.com/auth/audience>
+      says *In production*, or sign in once with a Google account that
+      is neither the project owner nor on the test-user list.
+- [ ] **Redirect allow-list.** Supabase validates `redirect_to`
+      server-side and silently substitutes the Site URL for an
+      unlisted origin; the validated value is only observable when
+      Supabase sends the climber back. Signing in from **localhost**
+      and landing on `localhost:3000/auth/callback` (not bounced to
+      chork.app) is the check. The 2026-08-18 signup was most likely
+      made from the dev server — the client id went into `.env.local`
+      that day — but nothing recorded where, so count it once, and
+      again whenever the list is edited.
 - [ ] Tap Google, then hit **back** before completing. The button
       should be tappable again, not stuck on "Taking you to Google…".
-- [ ] Sign in again with the same account: straight to the Card, no
-      second onboarding.
+      (The `pageshow` handler that does this is in `login-form.tsx`;
+      Google auto-approves a consented session too fast to test it
+      from a browser that has already said yes.)
 
 ## Notes
 
 - **Email + password is untouched.** The two are alternatives on the
   same screen; existing accounts keep working.
-- An email account and a Google account with the same address are
-  **separate identities** unless account linking is enabled in
-  Supabase. Worth deciding before launch, not after someone signs up
-  twice and wonders where their sends went.
+- **Same email, two ways in → one account.** Supabase's default is
+  *automatic linking*: a Google sign-in whose verified email matches an
+  existing, confirmed email+password account attaches the Google
+  identity to THAT user rather than creating a second one. So someone
+  who signed up with a password and later taps Google with the same
+  address gets their sends, not a blank profile. A *different* email
+  is a different account — `hello@` and `tomhinsley@me.com` are two
+  people as far as Chork knows. (Manual linking — letting a signed-in
+  user attach a second identity from settings — is a separate,
+  off-by-default feature; nothing in the app calls it.)
 - Apple Sign In is the same shape and needs a paid Apple developer
   account. The callback route and onboarding routing are already
   shared, so it is mostly provider config again.

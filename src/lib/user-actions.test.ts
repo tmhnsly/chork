@@ -173,4 +173,42 @@ describe("deleteAccount", () => {
     expect(await deleteAccount()).toEqual({ error: "Not signed in" });
   });
 
+  it("busts the by-username profile cache around the delete", async () => {
+    // Without this, /u/{username} kept serving the deleted climber
+    // for the TTL plus one stale render — and could serve it to the
+    // handle's NEXT owner. Before (the lookup needs the row) and after
+    // (a request in between could re-cache it).
+    const { requireSignedIn } = await import("./auth");
+    const sb = createMockSupabase({ "table:profiles": { data: { username: "gone" } } });
+    vi.mocked(requireSignedIn).mockResolvedValue({ supabase: sb, userId: USER_A } as never);
+    const { createServiceClient } = await import("./supabase/server");
+    const deleteUser = vi.fn().mockResolvedValue({ error: null });
+    vi.mocked(createServiceClient).mockReturnValue({ auth: { admin: { deleteUser } } } as never);
+
+    const { revalidateTag } = await import("next/cache");
+    const { deleteAccount } = await import("./user-actions");
+    expect(await deleteAccount()).toEqual({ success: true });
+
+    expect(deleteUser).toHaveBeenCalledWith(USER_A);
+    const busts = vi.mocked(revalidateTag).mock.calls.map((c) => c[0]);
+    expect(busts.filter((t) => t === "user:username-gone:profile")).toHaveLength(2);
+    // Order: one bust before the delete, one after.
+    const order = vi.mocked(revalidateTag).mock.invocationCallOrder;
+    const del = deleteUser.mock.invocationCallOrder[0];
+    expect(order[0]).toBeLessThan(del);
+    expect(order[1]).toBeGreaterThan(del);
+  });
+
+  it("still deletes when the profile row is already gone — nothing to bust", async () => {
+    const { requireSignedIn } = await import("./auth");
+    const sb = createMockSupabase({ "table:profiles": { data: null } });
+    vi.mocked(requireSignedIn).mockResolvedValue({ supabase: sb, userId: USER_A } as never);
+    const { createServiceClient } = await import("./supabase/server");
+    const deleteUser = vi.fn().mockResolvedValue({ error: null });
+    vi.mocked(createServiceClient).mockReturnValue({ auth: { admin: { deleteUser } } } as never);
+    const { revalidateTag } = await import("next/cache");
+    const { deleteAccount } = await import("./user-actions");
+    expect(await deleteAccount()).toEqual({ success: true });
+    expect(vi.mocked(revalidateTag)).not.toHaveBeenCalled();
+  });
 });
