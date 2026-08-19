@@ -9,7 +9,10 @@ name: Backup drill
 #   (must equal the table count), policies, functions, indexes,
 #   triggers, cron jobs. This is the half of disaster recovery the
 #   repo owns, and it needs no secret, so it runs on every schedule
-#   and on every change to the migrations.
+#   and on every change to the migrations. It then runs the restore
+#   drill AGAINST ITSELF — dumps that stack, restores into a second
+#   empty one, diffs — so the drill's own machinery is proven on every
+#   run whether or not the production secret exists.
 #
 # `restore` — dump production (roles, schema, data) with the CLI's
 #   own `db dump`, restore the three files into an EMPTY local stack
@@ -108,6 +111,25 @@ jobs:
           fi
           echo "$tables tables, all with RLS; $cron cron jobs."
 
+      # Self-test of the drill: this stack is the "production", a second
+      # empty stack on shifted ports is the target. Same script as the
+      # real drill below, so a broken dump flag or restore recipe fails
+      # here, on every run, not on the morning it is needed.
+      - name: Start a second, empty stack on shifted ports
+        run: |
+          mkdir -p "$RUNNER_TEMP/stack-b" && cd "$RUNNER_TEMP/stack-b"
+          supabase init --yes >/dev/null
+          sed -i 's/^major_version = .*/major_version = 17/' supabase/config.toml
+          # Every port 543xx → 553xx so the two stacks don't collide.
+          sed -i -E 's/^(port|shadow_port) = 543/\1 = 553/' supabase/config.toml
+          supabase start -x "$STACK_EXCLUDES"
+          supabase status -o env | sed -n 's/^DB_URL="\{0,1\}\([^"]*\)"\{0,1\}$/STACK_B_DB_URL=\1/p' >> "$GITHUB_ENV"
+
+      - name: Drill self-test — dump this stack, restore into the second, diff
+        run: |
+          STACK_A_DB_URL=$(supabase status -o env | sed -n 's/^DB_URL="\{0,1\}\([^"]*\)"\{0,1\}$/\1/p')
+          scripts/backup/restore-drill.sh "$STACK_A_DB_URL" "$STACK_B_DB_URL" --local
+
   restore:
     name: Dump production, restore it, diff
     runs-on: ubuntu-latest
@@ -155,71 +177,14 @@ jobs:
           supabase start -x "$STACK_EXCLUDES"
           supabase status -o env | sed -n 's/^DB_URL="\{0,1\}\([^"]*\)"\{0,1\}$/LOCAL_DB_URL=\1/p' >> "$GITHUB_ENV"
 
-      # Three files, the way Supabase documents a project migration:
-      # roles (custom ones — managed roles are filtered out, so this
-      # can't change the stack's postgres password), schema (public
-      # and any custom schema; managed schemas are excluded because the
-      # target already has them), data (public, auth, storage, cron —
-      # COPY statements, triggers off).
-      - name: Dump production
+      - name: Drill — dump production, restore into the empty stack, diff
         if: steps.gate.outputs.configured == 'true'
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: |
-          mkdir -p "$RUNNER_TEMP/dump"
-          supabase db dump --db-url "$SUPABASE_DB_URL" -f "$RUNNER_TEMP/dump/roles.sql" --role-only
-          supabase db dump --db-url "$SUPABASE_DB_URL" -f "$RUNNER_TEMP/dump/schema.sql"
-          supabase db dump --db-url "$SUPABASE_DB_URL" -f "$RUNNER_TEMP/dump/data.sql" --data-only --use-copy
-          wc -c "$RUNNER_TEMP"/dump/*.sql
+        run: scripts/backup/restore-drill.sh "$SUPABASE_DB_URL" "$LOCAL_DB_URL" --db-url "$SUPABASE_DB_URL"
 
-      # The one-liner from Supabase's own restore guide.
-      - name: Restore into the empty stack
-        if: steps.gate.outputs.configured == 'true'
-        run: |
-          psql "$LOCAL_DB_URL" \
-            --single-transaction \
-            --variable ON_ERROR_STOP=1 \
-            --file "$RUNNER_TEMP/dump/roles.sql" \
-            --file "$RUNNER_TEMP/dump/schema.sql" \
-            --command 'SET session_replication_role = replica' \
-            --file "$RUNNER_TEMP/dump/data.sql" \
-            --quiet
-
-      - name: Inventory both ends and diff
-        if: steps.gate.outputs.configured == 'true'
-        env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
-        run: |
-          psql "$SUPABASE_DB_URL" -At -F '|' -f scripts/backup/inventory.sql | LC_ALL=C sort > production.txt
-          psql "$LOCAL_DB_URL"    -At -F '|' -f scripts/backup/inventory.sql | LC_ALL=C sort > restored.txt
-          {
-            echo "## Restore drill — production vs restored copy"
-            echo
-            echo '| fact | production | restored |'; echo '|---|---|---|'
-            join -t '|' production.txt restored.txt | sed 's/^\([^|]*\)|\([^|]*\)|\(.*\)$/| \1 | \2 | \3 |/'
-          } >> "$GITHUB_STEP_SUMMARY"
-          if diff -u production.txt restored.txt; then
-            echo "Restored copy matches production: every table, every RLS flag, every policy, function, index, trigger and cron job, and every row count."
-          else
-            echo "::error::The restored copy differs from production — see the diff above. A shape difference is a lost object; a rows difference on a quiet Monday morning is a table the dump did not carry."
-            exit 1
-          fi
-
-      # The copy is the same rows as production, so prove the guard is
-      # up before anyone reads it: RLS must be ON in the copy, and an
-      # anonymous reader must see nothing.
-      - name: RLS is live in the copy
-        if: steps.gate.outputs.configured == 'true'
-        run: |
-          n=$(psql "$LOCAL_DB_URL" -At -c "set role anon; select count(*) from public.route_logs;")
-          if [ "$n" != "0" ]; then
-            echo "::error::anon can read $n route_logs rows in the restored copy — RLS did not come back with the schema."
-            exit 1
-          fi
-          echo "anon sees 0 route_logs rows in the copy; RLS is doing its job."
-
+      # The script deletes its dump files on exit; this stops the stack
+      # so the runner's copy of production rows goes with it.
       - name: Leave nothing behind
         if: always() && steps.gate.outputs.configured == 'true'
-        run: |
-          rm -rf "$RUNNER_TEMP/dump" production.txt restored.txt
-          (cd "$RUNNER_TEMP/stack" && supabase stop --no-backup) || true
+        run: (cd "$RUNNER_TEMP/stack" && supabase stop --no-backup) || true
