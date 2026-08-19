@@ -17,7 +17,7 @@
   flex: 1;
   min-height: var(--size-touch-target);
   padding: 0 var(--space-4);
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-card-inner);
   border: 1px solid transparent;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -77,4 +77,65 @@
 
 %action:disabled {
   cursor: progress;
+}
+
+// ── Own profile: your people, and settings in the corner ─────────
+
+// Fills the row like the buttons do, so the card's bottom edge keeps
+// one rhythm whether it is your profile or someone else's.
+.friendsRow {
+  @extend %action;
+  @include focus.ring;
+  justify-content: flex-start;
+  gap: var(--space-3);
+  background: var(--mono-subtle-bg);
+  border-color: transparent;
+  color: var(--mono-text);
+  text-decoration: none;
+
+  &:hover {
+    background: var(--mono-bg-hover);
+  }
+}
+
+// Overlapping avatars, first on top. The negative margin is the
+// stack's own gap; the ring separates faces that touch.
+.stack {
+  display: inline-flex;
+  flex-shrink: 0;
+
+  > * {
+    margin-inline-start: calc(var(--space-2) * -1);
+    box-shadow: 0 0 0 2px var(--mono-subtle-bg);
+    border-radius: var(--radius-full);
+  }
+  > :first-child {
+    margin-inline-start: 0;
+  }
+}
+
+.friendsLabel {
+  @include type.typography(button);
+}
+
+// Chrome, sized as chrome: a square touch target that does not
+// compete with the row beside it.
+.iconButton {
+  @include focus.ring;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: var(--size-touch-target);
+  min-height: var(--size-touch-target);
+  border-radius: var(--radius-card-inner);
+  border: 1px solid var(--mono-border);
+  background: var(--mono-bg);
+  color: var(--mono-text-low-contrast);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--mono-text);
+    background: var(--mono-bg-hover);
+  }
 }

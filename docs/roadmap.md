@@ -177,6 +177,57 @@ audience, so it matters — just not first.
 
 ## Recently shipped — UI
 
+- [x] **The profile is one family of cards.** *(2026-08-17 → 19,
+      migrations 124–131.)* Tom's brief: "the all time section looks
+      terrible… full audit… heavy design frontend skills", and after
+      the first pass, "the border radii are inconsistent, the profile
+      still looks amateur." Two mockups were built for comparison and
+      A chosen — as long as it used the shared card components.
+
+      What shipped. A **hero card** replaces the header + the six-grey-
+      rectangles All Time card: face, handle, three headline tiles
+      (points on accent, flashes on flash amber — the tile language
+      reaching the one surface it never had), a quiet ratio line, and
+      the action row — six friend states from `friend_status`
+      (124/125), and on your own profile a friends row (avatar stack +
+      count, or "Find friends") beside a corner settings gear. No
+      match button on a profile: starting a match FROM someone reads
+      as doing something to them, so it became an **invite**
+      (129/130 — which is how the friend-request notifications were
+      found to have been failing since 108). **Every section is a
+      `SectionCard`** with one header shape (icon + title, meta on the
+      right, no subtitles), radii derived from `--radius-card` /
+      `--radius-card-inner` (the golden formula gave 0 for a 12px card
+      with 16px padding), and Sets is history only — the live set was
+      drawn twice.
+
+      **Achievements shelf.** No scroller (it punched through the
+      card's padding, and hid most of what it held): six fixed slots,
+      five badges + "more" always last, ranked by RECENCY of activity
+      — recently earned, recently contributed towards, not closest to
+      earning (Tom corrected that twice; `pickShelfBadges` and its
+      tests pin it, 131 supplies the dates). Six across on a tablet
+      column, 3×2 on a phone: a badge name like CENTURY is ~62px in
+      12px caps and six phone columns are ~45px, and hyphenation is
+      not a floor (Chrome's dictionaries are an optional download and
+      Title Case words are skipped). Row fills from the catalogue when
+      activity can't, so a new climber sees "what to go for" rather
+      than a gap.
+
+      **Phone width was broken in two places nobody had measured.** On
+      a 375px phone — Tom's own — the current-set row's stats ran under
+      the points ("ZONES 14 PTS" overprinted); the ring now gives (72 →
+      ~61) and the numbers never do. And the handle broke as "@HAZEL_ /
+      SHOES" in 30px letters; it steps xl → 2xl → 3xl by container
+      width. **Skeletons that follow width:** the hero, the current-set
+      card and the shelf all change height with the width they land
+      in, so their skeletons are the real layout with blank content
+      under one shimmer (`ProfileHeroSkeleton`, `StatsWidgetSkeleton`,
+      `BadgeShelfSkeleton`) — measured 0–2px shift on hand-off at 375
+      and 500. Fixed-rem blocks remain only for sections that don't
+      reflow, and the previous-sets block is reserved only when the
+      page already knows there IS history.
+
 - [x] **Achievements as cards.** *(2026-08-16.)* The catalogue was
       full-width rows carrying name, description, progress bar, tick
       and earned date on one line each — too wide to scan, and a

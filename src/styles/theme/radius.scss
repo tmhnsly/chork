@@ -17,4 +17,19 @@
   --radius-inner-4-3: max(0px, calc(var(--radius-4) - var(--space-3)));
   --radius-inner-4-4: max(0px, calc(var(--radius-4) - var(--space-4)));
   --radius-inner-4-6: max(0px, calc(var(--radius-4) - var(--space-6)));
+
+  // ── The card pair ─────────────────────────────────────────────
+  // A SectionCard is --radius-3 (12px) with --space-4 (16px) padding.
+  // The golden formula gives that pair an inner radius of 0, which is
+  // correct maths and wrong feel — square stat tiles inside a rounded
+  // card read as broken, not as derived. Every nested surface in the
+  // app had quietly settled on --radius-2 (8px) instead, including the
+  // ChoiceTiles that ship. That is a good rule; it just wasn't written
+  // down, so the profile ended up with 12 / 8 / 6 mixed by guesswork.
+  //
+  // Named so a caller reaches for the RELATIONSHIP, not a step. If the
+  // card's radius ever moves, this moves with it and nothing else has
+  // to be re-picked.
+  --radius-card: var(--radius-3);
+  --radius-card-inner: var(--radius-2);
 }

@@ -2,7 +2,7 @@ import { UserAvatar } from "@/components/ui";
 import { CountUpNumber } from "@/components/ui/CountUpNumber/CountUpNumber";
 import { RevealText } from "@/components/motion";
 import { ProfileActions } from "./ProfileActions";
-import type { FriendStanding } from "@/lib/data/friend-queries";
+import type { FriendStanding, Friend } from "@/lib/data/friend-queries";
 import styles from "./profileHero.module.scss";
 
 interface Props {
@@ -22,6 +22,8 @@ interface Props {
     streakCurrent: number;
   } | null;
   standing: FriendStanding;
+  /** Own profile only — see ProfileActions. */
+  friends?: Friend[];
 }
 
 /**
@@ -44,7 +46,7 @@ interface Props {
  * does not USE it, because that component owns a title header and this
  * card's title is the climber's face and handle.
  */
-export function ProfileHero({ user, gymName, totals, ratios, standing }: Props) {
+export function ProfileHero({ user, gymName, totals, ratios, standing, friends }: Props) {
   return (
     <section className={styles.card} aria-label={`@${user.username}`}>
       <div className={styles.identity}>
@@ -76,21 +78,23 @@ export function ProfileHero({ user, gymName, totals, ratios, standing }: Props) 
 
       {ratios && totals.sends > 0 && (
         <p className={styles.ratios}>
-          <span>{Math.round(ratios.flashRate * 100)}% flashed</span>
-          <span aria-hidden>·</span>
-          <span>{ratios.pointsPerSend.toFixed(1)} pts / send</span>
-          <span aria-hidden>·</span>
-          <span>{Math.round(ratios.completionRate * 100)}% completion</span>
-          {ratios.streakCurrent > 0 && (
-            <>
-              <span aria-hidden>·</span>
-              <span>{ratios.streakCurrent} set streak</span>
-            </>
-          )}
+          <span className={styles.pair}>
+            <span>{Math.round(ratios.flashRate * 100)}% flashed</span>
+            <span>{ratios.pointsPerSend.toFixed(1)} pts / send</span>
+          </span>
+          <span className={styles.pair}>
+            <span>{Math.round(ratios.completionRate * 100)}% completion</span>
+            {ratios.streakCurrent > 0 && <span>{ratios.streakCurrent} set streak</span>}
+          </span>
         </p>
       )}
 
-      <ProfileActions userId={user.id} username={user.username} standing={standing} />
+      <ProfileActions
+        userId={user.id}
+        username={user.username}
+        standing={standing}
+        friends={friends}
+      />
     </section>
   );
 }

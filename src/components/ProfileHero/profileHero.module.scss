@@ -11,7 +11,7 @@
 .card {
   @include surface.card;
   @include layout.stack(var(--space-4));
-  border-radius: var(--radius-3);
+  border-radius: var(--radius-card);
   padding: var(--space-4);
   container-type: inline-size;
   container-name: tile;
@@ -28,10 +28,38 @@
   min-width: 0;
 }
 
+// The skeleton's stand-in for the hero avatar: the same rung, so the
+// identity row is the same height before the face arrives.
+.avatarSlot {
+  flex-shrink: 0;
+  width: var(--size-avatar-hero);
+  height: var(--size-avatar-hero);
+  border-radius: var(--radius-full);
+  background: var(--mono-bg);
+}
+
+// The handle is the page title, and handles are long: twelve
+// characters is ordinary, twenty is allowed. At the 3xl step a
+// twelve-character handle is ~290px, and beside a hero avatar on a
+// 375px phone it has ~225px — so it broke as "@HAZEL_ / SHOES" in
+// letters an inch high. The step follows the room: xl on a phone,
+// 2xl on a large phone, 3xl from a tablet column up. Each rung moves
+// size, leading and tracking together, which is why it is a step
+// change and not a fluid `font-size`. `overflow-wrap: anywhere` is
+// the backstop for a handle no step can hold; it is meant to be
+// rare, not the design.
 .username {
-  @include type.typography(display, $step: 3xl);
+  @include type.typography(display, $step: xl);
   color: var(--accent-text);
   overflow-wrap: anywhere;
+
+  @include cq.at(22rem) {
+    @include type.typography(display, $step: 2xl);
+  }
+
+  @include cq.at(26rem) {
+    @include type.typography(display, $step: 3xl);
+  }
 }
 
 .meta {
@@ -52,7 +80,7 @@
   @include layout.stack(var(--space-1));
   align-items: center;
   padding: var(--space-3) var(--space-2);
-  border-radius: var(--radius-2);
+  border-radius: var(--radius-card-inner);
   background: var(--mono-subtle-bg);
   text-align: center;
 }
@@ -82,10 +110,27 @@
 }
 
 // ── Context, not headlines ────────────────────────
+// Four facts in pairs. On a phone the line has to wrap, and a flat
+// run of items wrapped wherever it ran out — leaving a separator
+// dangling at the end of a line and a lone fact on the next. Pairs
+// wrap as units: one line of four, or two lines of two.
 .ratios {
   @include type.typography(meta);
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  column-gap: var(--space-3);
+  row-gap: var(--space-1);
   color: var(--mono-text-low-contrast);
+}
+
+.pair {
+  white-space: nowrap;
+
+  // The dot lives INSIDE the pair, between its two facts. Between
+  // pairs there is only the column gap — a dot there would lead the
+  // second line whenever the pairs wrap.
+  span + span::before {
+    content: "·";
+    margin: 0 var(--space-2);
+  }
 }

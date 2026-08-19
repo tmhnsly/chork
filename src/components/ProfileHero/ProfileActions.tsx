@@ -11,7 +11,9 @@ import {
   FaClock,
   FaCheck,
 } from "react-icons/fa6";
-import { showToast } from "@/components/ui";
+import { showToast, UserAvatar } from "@/components/ui";
+import Link from "next/link";
+import type { Friend } from "@/lib/data/friend-queries";
 import { requestFriend, respondToFriend, removeFriend } from "@/app/friends/actions";
 import type { FriendStanding } from "@/lib/data/friend-queries";
 import styles from "./profileActions.module.scss";
@@ -27,6 +29,13 @@ interface Props {
   userId: string;
   username: string;
   standing: FriendStanding;
+  /**
+   * Own profile only: the climber's active friends, for the row that
+   * takes the place a stranger sees "Add friend" in. Undefined for a
+   * visited profile — `get_friends` is caller-only on purpose, so a
+   * friend count is never published to whoever happens to look.
+   */
+  friends?: Friend[];
 }
 
 /**
@@ -50,7 +59,7 @@ interface Props {
  * id rides along in `standing` because Accept needs it, and Remove
  * confirms in place — one mis-tap should not sever a friendship.
  */
-export function ProfileActions({ userId, username, standing: initial }: Props) {
+export function ProfileActions({ userId, username, standing: initial, friends }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [standing, setStanding] = useState(initial);
@@ -95,16 +104,51 @@ export function ProfileActions({ userId, username, standing: initial }: Props) {
   }
 
   if (standing.status === "self") {
+    // Your own card leads with your PEOPLE, not with settings. A
+    // full-width Settings button was the most prominent thing on the
+    // page and the least interesting — chrome given hero weight.
+    // Settings goes to the corner where chrome belongs; the slot a
+    // stranger sees "Add friend" in shows who you climb with, and
+    // opens the list.
+    const active = (friends ?? []).filter((f) => f.status === "active");
     return (
       <>
         <div className={styles.row}>
+          <Link href="/friends" className={styles.friendsRow}>
+            {active.length > 0 ? (
+              <>
+                <span className={styles.stack} aria-hidden>
+                  {active.slice(0, 4).map((f) => (
+                    <UserAvatar
+                      key={f.user_id}
+                      user={{
+                        id: f.user_id,
+                        username: f.username ?? "unknown",
+                        name: f.name ?? "",
+                        avatar_url: f.avatar_url ?? "",
+                      }}
+                      size="stack"
+                    />
+                  ))}
+                </span>
+                <span className={styles.friendsLabel}>
+                  {active.length === 1 ? "1 friend" : `${active.length} friends`}
+                </span>
+              </>
+            ) : (
+              <>
+                <FaUserPlus aria-hidden />
+                <span className={styles.friendsLabel}>Find friends</span>
+              </>
+            )}
+          </Link>
           <button
             type="button"
-            className={styles.secondary}
+            className={styles.iconButton}
             onClick={() => setSettingsOpen(true)}
+            aria-label="Settings"
           >
             <FaGear aria-hidden />
-            <span>Settings</span>
           </button>
         </div>
         {settingsOpen && (

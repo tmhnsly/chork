@@ -2,6 +2,8 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { getGradeDistribution } from "@/lib/data/profile-queries";
 import { buildGradeDistribution } from "@/lib/data/grade-distribution";
 import { GradePyramid } from "@/components/ui";
+import { SectionCard } from "@/components/ui/SectionCard";
+import { FaChartSimple } from "react-icons/fa6";
 import styles from "./profileGradesSection.module.scss";
 
 interface Props {
@@ -31,17 +33,12 @@ export async function ProfileGradesSection({ userId }: Props) {
   if (pyramids.length === 0) return null;
 
   return (
-    <section className={styles.section} aria-labelledby="grades-heading">
-      <div className={styles.header}>
-        <h2 id="grades-heading" className={styles.heading}>
-          Grades
-        </h2>
-        {/* The gym stats above this are gym-only, so without saying
-            so the two disagree — a climber sees "2 sends" up there and
-            counts three bars down here. */}
-        <p className={styles.scope}>Gym and matches</p>
-      </div>
-
+    // Same SectionCard shell as every other section — icon + title on
+    // the left, one meta item on the right, nothing else in the header.
+    // The scope note rides in meta: the gym stats above are gym-only,
+    // so without saying so the two disagree — "2 sends" up there and
+    // three bars down here.
+    <SectionCard title="Grades" icon={<FaChartSimple />} meta="Gym and matches">
       <div className={styles.pyramids}>
         {pyramids.map((pyramid) => (
           <GradePyramid
@@ -60,6 +57,6 @@ export async function ProfileGradesSection({ userId }: Props) {
           comparable grade.
         </p>
       )}
-    </section>
+    </SectionCard>
   );
 }
