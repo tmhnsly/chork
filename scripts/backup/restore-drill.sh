@@ -130,7 +130,7 @@ step "RLS is live in the copy"
 # must see nothing: either the table grant is absent (permission
 # denied, which is a fence in front of the gate) or RLS filters every
 # row. A count above zero is the one unacceptable answer.
-out=$(psql "$TARGET_URL" -At -c "set role authenticated; select count(*) from public.route_logs;" 2>&1 || true)
+out=$(psql "$TARGET_URL" -qAt -c "set role authenticated; select count(*) from public.route_logs;" 2>&1 | tail -n1 || true)
 case "$out" in
   0) echo "authenticated-without-a-session sees 0 route_logs rows: RLS is filtering." ;;
   *"permission denied"*) echo "authenticated has no grant on route_logs in the copy (fence before the gate): fine." ;;
