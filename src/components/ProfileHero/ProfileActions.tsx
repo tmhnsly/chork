@@ -14,6 +14,7 @@ import {
 } from "react-icons/fa6";
 import { showToast } from "@/components/ui";
 import { requestFriend, respondToFriend, removeFriend } from "@/app/friends/actions";
+import { inviteToMatch } from "@/app/match/actions";
 import type { FriendStanding } from "@/lib/data/friend-queries";
 import styles from "./profileActions.module.scss";
 
@@ -57,6 +58,10 @@ export function ProfileActions({ userId, username, standing: initial }: Props) {
   const [standing, setStanding] = useState(initial);
   const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  // Sent this session. An invite is idempotent to a fault — the server
+  // would happily send a second — so the button retires itself after
+  // one, which is the anti-spam property at the tap.
+  const [invited, setInvited] = useState(false);
 
   const fail = (msg: string) => showToast(msg, "error");
 
@@ -81,6 +86,28 @@ export function ProfileActions({ userId, username, standing: initial }: Props) {
       setStanding({ status: "friends", friendId });
       showToast(`You and @${username} are friends`, "success");
       router.refresh();
+    });
+  }
+
+  function invite() {
+    startTransition(async () => {
+      const r = await inviteToMatch(userId);
+      if ("error" in r) {
+        // The one error that has a next step: no live match to invite
+        // them to. Offer to start one rather than leave them reading
+        // an error about a match that doesn't exist yet.
+        if (/not in a live match/i.test(r.error)) {
+          showToast("Start a match first, then invite from here.", "error");
+          router.push("/match/new");
+          return;
+        }
+        return fail(r.error);
+      }
+      setInvited(true);
+      showToast(
+        `Invited @${username} to ${r.matchName ?? "your match"}`,
+        "success",
+      );
     });
   }
 
@@ -180,19 +207,29 @@ export function ProfileActions({ userId, username, standing: initial }: Props) {
         </button>
       )}
 
-      {/* Deliberately NOT gated on friendship. Suggestions come from
-          shared matches, so a match is the thing that MAKES you friends
-          here — requiring the link first would close the loop it exists
-          to open. There is no invite-by-user yet (roadmap: friends
-          pass), so this starts a match; the host shares the code. */}
-      <button
-        type="button"
-        className={standing.status === "friends" ? styles.primary : styles.secondary}
-        onClick={() => router.push("/match/new")}
-      >
-        <FaBolt aria-hidden />
-        <span>Start a match</span>
-      </button>
+      {/* An INVITE, not "start a match from their profile" — that read
+          as doing something to them and gave them nothing to decline.
+          The invite is a message with the join code; they join by
+          their own action or ignore it. Deliberately not gated on
+          friendship: suggestions come from shared matches, so a match
+          is the thing that MAKES you friends, and requiring the link
+          first would close the loop it exists to open. */}
+      {invited ? (
+        <span className={styles.pending}>
+          <FaCheck aria-hidden />
+          <span>Invited</span>
+        </span>
+      ) : (
+        <button
+          type="button"
+          className={standing.status === "friends" ? styles.primary : styles.secondary}
+          onClick={invite}
+          disabled={pending}
+        >
+          <FaBolt aria-hidden />
+          <span>Invite to match</span>
+        </button>
+      )}
     </div>
   );
 }

@@ -19,7 +19,8 @@ type MatchPlayerRow = Database["public"]["Tables"]["set_players"]["Row"];
 
 import { logger } from "@/lib/logger";
 import { env } from "@/lib/env";
-import { getMatchStateForUser } from "@/lib/data/match-queries";
+import { getMatchStateForUser, getActiveMatchForUserById } from "@/lib/data/match-queries";
+import { notify } from "@/lib/notify";
 import { mintShareToken } from "@/lib/data/shared-result";
 
 // Match writes go through SECURITY DEFINER RPCs (migrations 084-086)
@@ -571,6 +572,68 @@ export interface ChorkStanding {
    * which nobody else may read. Exactly one seat has it.
    */
   has_pen: boolean;
+}
+
+/**
+ * Invite a climber to the match you're in.
+ *
+ * An invite is a MESSAGE carrying the join code, not a seat. It does
+ * not add them to anything: they tap through to /match/join with the
+ * code filled in and join by their own action, or ignore it. So an
+ * ignored invite leaves no trace in anyone's stats, a declined one
+ * needs no state, and a spammer can inflict nothing but a
+ * notification — capped by the `invitesSend` rate limit here (10/hour)
+ * and by the recipient's own `push_invite_received` opt-out.
+ *
+ * "The match you're in" rather than a picker: a climber has at most
+ * one live match, and inviting from a profile is a thing you do
+ * mid-session — "come and join this" — not a scheduling gesture.
+ * With no live match there is nothing to invite them TO; the profile
+ * offers to start one instead.
+ */
+export async function inviteToMatch(
+  targetUserId: string,
+): Promise<{ error: string } | { ok: true; matchName: string | null }> {
+  const auth = await gateSignedInMutation(targetUserId, "climber id", {
+    rateLimit: "invitesSend",
+  });
+  if ("error" in auth) return { error: auth.error };
+  if (targetUserId === auth.userId) return { error: "That's you." };
+
+  const service = createServiceClient();
+  const active = await getActiveMatchForUserById(service, auth.userId);
+  if (!active) {
+    return { error: "You're not in a live match — start one first." };
+  }
+
+  // Never invite someone who is already in it. Cheap to check and it
+  // stops a double-tap producing two notifications for one seat.
+  const { data: seat } = await service
+    .from("set_players")
+    .select("id")
+    .eq("set_id", active.set_id)
+    .eq("user_id", targetUserId)
+    .is("left_at", null)
+    .maybeSingle();
+  if (seat) return { error: "They're already in this match." };
+
+  const { data: me } = await service
+    .from("profiles")
+    .select("username")
+    .eq("id", auth.userId)
+    .maybeSingle();
+
+  await notify({
+    kind: "match_invite_received",
+    recipient: targetUserId,
+    actor: auth.userId,
+    setId: active.set_id,
+    code: active.code,
+    matchName: active.name,
+    fromUsername: me?.username ?? "someone",
+  });
+
+  return { ok: true, matchName: active.name };
 }
 
 /**

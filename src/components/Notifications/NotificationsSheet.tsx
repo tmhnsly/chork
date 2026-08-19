@@ -8,6 +8,7 @@ import {
   FaUserPlus,
   FaCheck,
   FaXmark,
+  FaBolt,
 } from "react-icons/fa6";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/Button";
@@ -150,6 +151,7 @@ export function NotificationsSheet({
 // a component. Kinds that reuse an existing key need nothing.
 const KIND_ICONS: Record<NotificationIcon, IconType> = {
   "user-plus": FaUserPlus,
+  bolt: FaBolt,
   check: FaCheck,
 };
 
