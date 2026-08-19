@@ -51,8 +51,25 @@ export interface FriendSuggestion {
   username: string | null;
   name: string | null;
   avatar_url: string | null;
-  shared_matches: number;
+  /**
+   * Where the suggestion came from (migration 126). Shown to the
+   * climber, because "2 mutual friends" is a claim they can check
+   * against their own memory and a bare avatar with an Add button is
+   * not. `mutual_friends` outranks `shared_match` — a warmer signal.
+   */
+  reason: "mutual_friends" | "shared_match";
+  /** Mutual friends, or matches shared, depending on `reason`. */
+  reason_count: number;
+  /** Only set for `shared_match`. */
   last_climbed_at: string | null;
+}
+
+/** The suggestion's reason as a line under the name. */
+export function suggestionReason(s: FriendSuggestion): string {
+  if (s.reason === "mutual_friends") {
+    return s.reason_count === 1 ? "1 mutual friend" : `${s.reason_count} mutual friends`;
+  }
+  return s.reason_count === 1 ? "Climbed together" : `Climbed together ${s.reason_count}×`;
 }
 
 /**

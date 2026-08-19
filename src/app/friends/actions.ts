@@ -8,6 +8,7 @@ import { formatError, formatErrorForLog } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { notify } from "@/lib/notify";
 import type { ActionResult } from "@/lib/action-result";
+import { getFriendStatus, type FriendStatus } from "@/lib/data/friend-queries";
 
 /**
  * Friend graph mutations.
@@ -48,6 +49,59 @@ interface FriendRow {
   status: "pending" | "active" | "declined";
   requester_id: string;
   addressee_id: string;
+}
+
+export interface ClimberSearchHit {
+  user_id: string;
+  username: string;
+  name: string | null;
+  avatar_url: string | null;
+  friend_status: FriendStatus;
+}
+
+/**
+ * Find a climber by handle or name.
+ *
+ * `search_climbers` (migration 127) already respects
+ * `allow_friend_requests`, never returns the caller, and carries how
+ * you stand with each hit so the row can render Add / Sent / Friends
+ * without a second call. Rate-limited like any other mutation gate —
+ * the results are public in-app already, so a bespoke quota would be
+ * a second thing to keep correct for no threat it would stop.
+ */
+export async function searchClimbers(
+  query: string,
+): Promise<ActionResult<{ hits: ClimberSearchHit[] }>> {
+  const trimmed = (query ?? "").trim();
+  // The RPC returns nothing under two characters; short-circuit here
+  // so a keystroke on an empty box doesn't cost a round-trip.
+  if (trimmed.length < 2) return { success: true, hits: [] };
+
+  const auth = await gateSignedInMutation(null, "search");
+  if ("error" in auth) return { error: auth.error };
+
+  const { data, error } = await auth.supabase.rpc("search_climbers", {
+    p_query: trimmed.slice(0, 60),
+    p_limit: 20,
+  });
+  if (error) return { error: formatError(error) };
+  return { success: true, hits: (data ?? []) as ClimberSearchHit[] };
+}
+
+/**
+ * How the caller stands with one climber, plus the friends row id
+ * Accept needs. Read-only, so no rate limit — it exists so a search
+ * hit can accept a request without every result paying for the lookup.
+ */
+export async function getFriendStatusAction(
+  targetUserId: string,
+): Promise<ActionResult<{ status: FriendStatus; friendId: string | null }>> {
+  const auth = await gateSignedInMutation(targetUserId, "climber id", {
+    rateLimit: null,
+  });
+  if ("error" in auth) return { error: auth.error };
+  const standing = await getFriendStatus(auth.supabase, targetUserId);
+  return { success: true, ...standing };
 }
 
 export async function requestFriend(

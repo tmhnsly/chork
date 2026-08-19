@@ -1525,7 +1525,8 @@ export type Database = {
           avatar_url: string
           last_climbed_at: string
           name: string
-          shared_matches: number
+          reason: string
+          reason_count: number
           user_id: string
           username: string
         }[]
@@ -1948,15 +1949,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      search_climbers_fuzzy: {
-        Args: { p_caller_id: string; p_limit?: number; p_query: string }
+      search_climbers: {
+        Args: { p_limit?: number; p_query: string }
         Returns: {
-          active_gym_id: string
-          allow_crew_invites: boolean
           avatar_url: string
-          id: string
+          friend_status: string
           name: string
           score: number
+          user_id: string
           username: string
         }[]
       }

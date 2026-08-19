@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { FaUserPlus, FaCheck, FaXmark, FaUserGroup } from "react-icons/fa6";
 import { Button, showToast } from "@/components/ui";
-import type { Friend, FriendSuggestion } from "@/lib/data/friend-queries";
+import { suggestionReason, type Friend, type FriendSuggestion } from "@/lib/data/friend-queries";
 import type { ActionResult } from "@/lib/action-result";
 import { countOf } from "@/lib/plural";
 import { requestFriend, respondToFriend } from "@/app/friends/actions";
@@ -120,7 +120,7 @@ export function FriendsList({ active, incoming, outgoing, suggestions }: Props) 
               <li key={s.user_id}>
                 <FriendRow
                   climber={s}
-                  meta={countOf(s.shared_matches, "match", "matches")}
+                  meta={suggestionReason(s)}
                   note={acted[s.user_id]}
                   actions={
                     acted[s.user_id] ? null : (
