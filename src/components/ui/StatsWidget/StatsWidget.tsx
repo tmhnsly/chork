@@ -5,7 +5,6 @@ import { SetMeta } from "@/components/ui";
 import { computeMaxPoints } from "@/lib/data";
 import type { RouteLog } from "@/lib/data";
 import styles from "./statsWidget.module.scss";
-import { RING_SIZES } from "@/components/ui/ActivityRings/ring-sizes";
 
 interface Props {
   completions: number;
@@ -79,7 +78,6 @@ export function StatsWidget({
         totalRoutes={total}
         zoneCompletions={zoneCompletions}
         maxPoints={maxPoints}
-        size={RING_SIZES.card}
       />
 
       <div className={styles.chartBlock}>

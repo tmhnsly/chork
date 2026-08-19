@@ -38,8 +38,6 @@ interface Props {
    * previous-sets drawer). Ignored when `rank` resolves to a number.
    */
   rankLoading?: boolean;
-  /** Ring size — pass a rung from `RING_SIZES`, not a literal. */
-  size?: number;
 }
 
 /**
@@ -65,7 +63,6 @@ export function RingStatsRow({
   maxPoints,
   rank,
   rankLoading = false,
-  size = RING_SIZES.card,
 }: Props) {
   const completionRate = totalRoutes ? completions / totalRoutes : 1;
   const flashRate = completions > 0 ? flashes / completions : 0;
@@ -81,7 +78,10 @@ export function RingStatsRow({
 
   return (
     <div className={styles.row}>
-      <ActivityRings rings={rings} size={size} />
+      {/* Drawn at `card` — every caller is a card hero — and DISPLAYED
+          at card when the row has room. `.rings` lets it shrink toward
+          `compact` when it does not; see the stylesheet. */}
+      <ActivityRings rings={rings} size={RING_SIZES.card} className={styles.rings} />
       <div className={styles.stats}>
         <div className={styles.stat}>
           <span className={`${styles.label} ${styles.accentLabel}`}>SENDS</span>

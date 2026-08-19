@@ -45,6 +45,17 @@
   --size-avatar-hero: 4.5rem;     // 72px — profile header, edit dialog
   --size-avatar-podiumWin: 5.5rem; // 88px — podium winner
 
+  // ── Ring rungs ────────────────────────────────────────────────
+  // Mirrors RING_SIZES in `components/ui/ActivityRings/ring-sizes.ts`,
+  // the source of truth (the SVG computes stroke + radii from a real
+  // number). These exist for the one place CSS sizes a ring: the
+  // stats row lets its `card` ring give way to `compact` when a
+  // narrow phone cannot fit ring + stats + points on one line.
+  // `ring-sizes.test.ts` keeps the two in step.
+  --size-ring-preview: 2.5rem;    // 40px — theme swatch miniature
+  --size-ring-compact: 3.5rem;    // 56px — inline where numbers lead
+  --size-ring-card: 4.5rem;       // 72px — card hero
+
   // Overlap between adjacent avatars in a stack. Was -12px on the
   // crew card and -10px on the crew detail view, for the same visual.
   --avatar-stack-overlap: 0.75rem; // 12px

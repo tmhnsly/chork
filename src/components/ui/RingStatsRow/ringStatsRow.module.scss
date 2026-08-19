@@ -6,11 +6,31 @@
   gap: var(--space-4);
 }
 
+// The ring is what gives when the row is short of room. On a 375px
+// phone the card holds ~310px of content, and a 72px ring, three stats
+// and the points cell need ~320 — so the stats ran under the points
+// (ZONES and 14 PTS overprinted on Tom's own phone). The stats and the
+// points never shrink: numbers that overlap are worse than a smaller
+// ring. The ring shrinks instead, from `card` toward `compact`, and
+// keeps its aspect through the viewBox — a 61px ring is still the
+// same drawing.
+//
+// `min-width` is what allows the shrink at all: a replaced element's
+// automatic minimum is its intrinsic size, so without an explicit
+// floor the SVG never gives an inch and the row overflows.
+.rings {
+  flex: 0 1 auto;
+  min-width: var(--size-ring-compact);
+  height: auto;
+}
+
+// Grows to take whatever the ring and points leave, and never shrinks
+// (basis auto, shrink 0) — so its width is always at least the three
+// stats at the gap below, and the ring above is what yields.
 .stats {
   display: flex;
-  gap: var(--space-4);
-  flex: 1;
-  min-width: 0;
+  gap: var(--space-3);
+  flex: 1 0 auto;
 }
 
 .stat {
@@ -55,6 +75,9 @@
   align-items: flex-start;
   gap: var(--space-3);
   margin-left: auto;
+  // Never shrinks, for the same reason as `.stats`: squeezed, the
+  // score wrapped to "14 / /61 / PTS" on three lines. The ring gives.
+  flex: none;
 }
 
 .totalsCell {

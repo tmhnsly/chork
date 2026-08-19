@@ -1,31 +1,17 @@
-import { FaLayerGroup } from "react-icons/fa6";
 import { shimmerStyles, Legend } from "@/components/ui";
-import { SectionCard } from "@/components/ui/SectionCard";
-import { RingStatsRow } from "@/components/ui/RingStatsRow/RingStatsRow";
-import { RouteChart } from "@/components/ui/RouteChart/RouteChart";
+import { StatsWidgetSkeleton } from "@/components/ui/StatsWidget/StatsWidgetSkeleton";
 import { SendGridTile } from "@/components/ui/SendGridTile/SendGridTile";
 import styles from "./sendsGrid.module.scss";
-import { RING_SIZES } from "@/components/ui/ActivityRings/ring-sizes";
 
 const PLACEHOLDER_COUNT = 14;
-
-// Stable synthetic identifiers for the empty RouteChart — same count
-// as the tile grid so the bar density matches the real layout.
-const EMPTY_ROUTE_IDS = Array.from({ length: PLACEHOLDER_COUNT }, (_, i) => `skeleton-${i}`);
-const EMPTY_ROUTE_HAS_ZONE = Array.from({ length: PLACEHOLDER_COUNT }, () => false);
-const EMPTY_ROUTE_NUMBERS = Array.from({ length: PLACEHOLDER_COUNT }, (_, i) => i + 1);
-const EMPTY_LOGS = new Map();
 
 /**
  * Loading skeleton for the wall page.
  *
- * Stats widget: one big shimmer over the whole `SectionCard`. The
- * card renders its real shell + real (zero-data) RingStatsRow and
- * RouteChart so its height is byte-identical to the hydrated widget —
- * no layout jump. Applying `.skeleton` directly to the card replaces
- * its bg with the shimmer gradient and forces `color: transparent`
- * on every text/icon inside, hiding the placeholder numbers beneath
- * a single seamless shimmer surface.
+ * Stats widget: `StatsWidgetSkeleton` — the real card shell with
+ * zero data under one shimmer, so its height matches the hydrated
+ * widget at every width. Shared with the profile, which loads the
+ * same card.
  *
  * Tile grid: real `SendGridTile` placeholders each get a shimmer class
  * for the same height-matching reason.
@@ -37,27 +23,7 @@ export function SendsGridSkeleton() {
           has to sit above it here too — otherwise the whole page
           jumps down by a row the moment the data lands. */}
       <div className={`${styles.rankStrip} ${shimmerStyles.skeleton}`} />
-      <SectionCard
-        title="Current Set"
-        icon={<FaLayerGroup />}
-        className={shimmerStyles.skeleton}
-      >
-        <RingStatsRow
-          completions={0}
-          flashes={0}
-          zones={0}
-          points={0}
-          totalRoutes={PLACEHOLDER_COUNT}
-          zoneCompletions={0}
-          size={RING_SIZES.card}
-        />
-        <RouteChart
-          logs={EMPTY_LOGS}
-          routeIds={EMPTY_ROUTE_IDS}
-          routeHasZone={EMPTY_ROUTE_HAS_ZONE}
-          routeNumbers={EMPTY_ROUTE_NUMBERS}
-        />
-      </SectionCard>
+      <StatsWidgetSkeleton />
 
       <Legend />
 
