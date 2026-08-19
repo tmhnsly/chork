@@ -4,7 +4,6 @@ import { useState } from "react";
 import dynamic from "next/dynamic";
 import { BadgeShelf } from "@/components/ui/BadgeShelf/BadgeShelf";
 import type { BadgeStatus } from "@/lib/badges";
-import type { AchievementActivity } from "@/lib/data/achievement-queries";
 
 // Lazy — sheets only open on user gesture.
 const AchievementsSheet = dynamic(
@@ -18,8 +17,8 @@ const AchievementDetailSheet = dynamic(
 
 interface Props {
   badges: BadgeStatus[];
-  /** When each ladder last moved — the shelf ranks by it. */
-  activity: AchievementActivity;
+  /** The shelf's slots, chosen server-side — see `pickShelfBadges`. */
+  shelf: BadgeStatus[];
 }
 
 /**
@@ -37,7 +36,7 @@ interface Props {
  * opens from a card inside the catalogue it stacks on top and closing
  * it returns you to the grid rather than to the profile.
  */
-export function ProfileAchievements({ badges, activity }: Props) {
+export function ProfileAchievements({ badges, shelf }: Props) {
   const [allOpen, setAllOpen] = useState(false);
   const [openBadge, setOpenBadge] = useState<BadgeStatus | null>(null);
 
@@ -45,7 +44,7 @@ export function ProfileAchievements({ badges, activity }: Props) {
     <>
       <BadgeShelf
         badges={badges}
-        activity={activity}
+        shelf={shelf}
         onSeeAll={() => setAllOpen(true)}
         onTapBadge={setOpenBadge}
       />

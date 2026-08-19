@@ -62,7 +62,7 @@ There is an `is_gym_member(gym_id)` helper but no `is_gym_admin(gym_id)` or `is_
 
 Verified: `gyms`, `profiles`, `gym_memberships`, `sets`, `routes`, `route_logs`, `comments`, `comment_likes`, `activity_events`, `follows`, `user_achievements` — all have `alter table ... enable row level security`. No public tables are unprotected. ✅
 
-Some tables have SELECT-only policies by design (`routes`, `sets`, `gyms`, `user_achievements`) — writes are intentionally service-role-only. This is correct and documented in each migration.
+Some tables have SELECT-only policies by design (`routes`, `sets`, `gyms`, `user_achievements`) — writes are intentionally service-role-only. This is correct and documented in each migration. (`user_achievements`' SELECT went from `using (true)` to own-rows in migration 132; and "service-role-only writes" turned out to be a policy the wall's own code path wasn't honouring — the evaluator got the climber's client and every upsert was refused. Worth checking, when a table is write-by-service-only, that the callers actually pass the service client.)
 
 ### A5. No recursive RLS risk
 

@@ -45,9 +45,9 @@ const inProgress = (
 });
 
 const quiet: AchievementActivity = {
-  last_flash_at: null,
-  last_send_at: null,
-  last_match_at: null,
+  last_flash_on: null,
+  last_send_on: null,
+  last_match_on: null,
 };
 
 describe("pickShelfBadges", () => {
@@ -59,19 +59,19 @@ describe("pickShelfBadges", () => {
     ];
     const activity: AchievementActivity = {
       ...quiet,
-      last_send_at: "2026-08-18T00:00:00Z",
-      last_match_at: "2026-07-01T00:00:00Z",
+      last_send_on: "2026-08-18",
+      last_match_on: "2026-07-01",
     };
     expect(pickShelfBadges(badges, activity, 1).map((b) => b.badge.id)).toEqual(["nudged"]);
   });
 
   it("interleaves earned and in-progress by their one date", () => {
     const badges = [
-      earned("old-win", "2026-06-01T00:00:00Z"),
+      earned("old-win", "2026-06-01"),
       inProgress("recent-nudge", "flashes", 2),
-      earned("new-win", "2026-08-10T00:00:00Z"),
+      earned("new-win", "2026-08-10"),
     ];
-    const activity = { ...quiet, last_flash_at: "2026-08-15T00:00:00Z" };
+    const activity = { ...quiet, last_flash_on: "2026-08-15" };
     expect(pickShelfBadges(badges, activity).map((b) => b.badge.id)).toEqual([
       "recent-nudge",
       "new-win",
@@ -86,7 +86,7 @@ describe("pickShelfBadges", () => {
       inProgress("sends-50", "sends", 3),
       inProgress("sends-100", "sends", 3),
     ];
-    const activity = { ...quiet, last_send_at: "2026-08-18T00:00:00Z" };
+    const activity = { ...quiet, last_send_on: "2026-08-18" };
     expect(pickShelfBadges(badges, activity).map((b) => b.badge.id)).toEqual([
       "sends-10",
       "sends-50",
@@ -100,12 +100,12 @@ describe("pickShelfBadges", () => {
       inProgress("secret-zero", "sends", 0, { isSecret: true }),
       inProgress("plain", "sends", 0),
     ];
-    const activity = { ...quiet, last_send_at: "2026-08-18T00:00:00Z" };
+    const activity = { ...quiet, last_send_on: "2026-08-18" };
     expect(pickShelfBadges(badges, activity).map((b) => b.badge.id)).toEqual(["plain"]);
   });
 
   it("shows an earned secret like any earned badge", () => {
-    const badges = [earned("revealed", "2026-08-01T00:00:00Z", { isSecret: true })];
+    const badges = [earned("revealed", "2026-08-01", { isSecret: true })];
     expect(pickShelfBadges(badges, quiet).map((b) => b.badge.id)).toEqual(["revealed"]);
   });
 
@@ -114,17 +114,83 @@ describe("pickShelfBadges", () => {
     const badges = [
       inProgress("a-zero", "sends", 0),
       inProgress("b-zero", "sends", 0),
-      earned("won", "2026-08-01T00:00:00Z"),
+      earned("won", "2026-08-01"),
       inProgress("c-zero", "sends", 0),
       inProgress("moved", "flashes", 1),
       inProgress("d-zero", "sends", 0),
     ];
-    const activity = { ...quiet, last_flash_at: "2026-08-18T00:00:00Z" };
+    const activity = { ...quiet, last_flash_on: "2026-08-18" };
     const ids = pickShelfBadges(badges, activity).map((b) => b.badge.id);
     expect(ids).toHaveLength(SHELF_SLOTS);
     // Activity leads; the fill is catalogue order from the top,
     // skipping what is already on the shelf.
     expect(ids).toEqual(["moved", "won", "a-zero", "b-zero", "c-zero"]);
+  });
+
+  it("fills touched ladders before untouched ones", () => {
+    // Nothing dated at all (no earned dates, no activity), so it is
+    // ALL fill — and a ladder someone has started belongs ahead of one
+    // they have not, whatever the catalogue order says.
+    const badges = [
+      inProgress("a-zero", "sends", 0),
+      inProgress("b-half", "sends", 5),
+      inProgress("c-zero", "sends", 0),
+      inProgress("d-one", "matches_played", 1),
+    ];
+    expect(pickShelfBadges(badges, quiet).map((b) => b.badge.id)).toEqual([
+      "b-half",
+      "d-one",
+      "a-zero",
+      "c-zero",
+    ]);
+  });
+
+  it("with no activity (a visited profile), ranks earned by day and never dates progress", () => {
+    // Migration 132: when a ladder last moved is the owner's business.
+    // A visitor's shelf still shows earned badges newest first, and
+    // in-progress ones through the fill — but nothing here could have
+    // read a date a visitor is not allowed to know.
+    const badges = [
+      inProgress("nudged", "sends", 3),
+      earned("older", "2026-08-01"),
+      earned("newer", "2026-08-10"),
+      inProgress("zero", "sends", 0),
+    ];
+    expect(pickShelfBadges(badges, null).map((b) => b.badge.id)).toEqual([
+      "newer",
+      "older",
+      "nudged",
+      "zero",
+    ]);
+  });
+
+  it("compares by DAY, so a clock time never out-ranks a date on the same day", () => {
+    // Earned dates arrive as YYYY-MM-DD from the RPC now, but an ISO
+    // string from an older fixture must not sort as "later" than a
+    // date-only string for the same day.
+    const badges = [
+      earned("iso", "2026-08-10T23:59:00Z"),
+      inProgress("nudged", "flashes", 1),
+    ];
+    const activity = { ...quiet, last_flash_on: "2026-08-10" };
+    // Same day → tie → catalogue order.
+    expect(pickShelfBadges(badges, activity).map((b) => b.badge.id)).toEqual(["iso", "nudged"]);
+  });
+
+  it("an earned badge with no date is fill, not ranked — undated cannot be 'recent'", () => {
+    // The wall never persisted a badge before 132's app-side fix, so
+    // every earned-but-undated badge is exactly this case, and it must
+    // still make the shelf ahead of untouched ladders.
+    const badges = [
+      inProgress("zero", "sends", 0),
+      { badge: def("undated", "sends"), earned: true as const },
+      earned("dated", "2026-08-01"),
+    ];
+    expect(pickShelfBadges(badges, quiet).map((b) => b.badge.id)).toEqual([
+      "dated",
+      "undated",
+      "zero",
+    ]);
   });
 
   it("returns fewer than the slots only when the catalogue itself is short", () => {
@@ -133,9 +199,7 @@ describe("pickShelfBadges", () => {
   });
 
   it("caps at the slot count when activity alone overflows it", () => {
-    const badges = Array.from({ length: 8 }, (_, i) =>
-      earned(`w${i}`, `2026-08-0${i + 1}T00:00:00Z`),
-    );
+    const badges = Array.from({ length: 8 }, (_, i) => earned(`w${i}`, `2026-08-0${i + 1}`));
     const ids = pickShelfBadges(badges, quiet).map((b) => b.badge.id);
     expect(ids).toEqual(["w7", "w6", "w5", "w4", "w3"]);
   });

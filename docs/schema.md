@@ -330,6 +330,21 @@ Persistent `earned_at` per `(user_id, badge_id)`. Badge definitions
 stay in TS (`src/lib/badges.ts`) — only the timestamp is stored.
 Unique `(user_id, badge_id)`.
 
+**Reads are own-rows-only** (migration 132); every other climber's
+badges come through `get_earned_achievements(uid)`, which returns the
+DAY (`earned_on date`), never the time — a badge is earned by a send,
+so `earned_at` is a send time, and clock times of sends don't leave
+the database for anyone but their owner. **Writes are service-role
+only** (no INSERT policy): `completeRoute` and `endMatchAction` both
+hand the evaluator `createServiceClient()`. The wall passed the
+climber's own client for four months and RLS silently refused every
+upsert — see 132.
+
+`get_achievement_activity()` — no argument, the caller's own — returns
+the days the caller's ladders last moved (last flash / send / archived
+match) for the profile shelf's recency ranking. Only the owner's view
+asks for it; a visitor's shelf ranks by earned days alone.
+
 ---
 
 ## PWA push

@@ -2,17 +2,20 @@
 
 import { FaMedal } from "react-icons/fa6";
 import type { BadgeStatus } from "@/lib/badges";
-import type { AchievementActivity } from "@/lib/data/achievement-queries";
-import { pickShelfBadges, SHELF_SLOTS } from "@/lib/achievements/shelf";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { AchievementCard } from "@/components/ui/AchievementCard/AchievementCard";
 import { MoreAchievementsCard } from "@/components/ui/AchievementCard/MoreAchievementsCard";
 import styles from "./badgeShelf.module.scss";
 
 interface Props {
+  /** The whole catalogue — the header counts it. */
   badges: BadgeStatus[];
-  /** When each ladder last moved — what the shelf ranks by. */
-  activity: AchievementActivity;
+  /**
+   * The slots, already chosen — by `pickShelfBadges` on the server,
+   * which is where the dates it ranks by are allowed to be. This
+   * component only draws.
+   */
+  shelf: BadgeStatus[];
   /** Opens the full catalogue. Rendered as the last slot, always. */
   onSeeAll: () => void;
   onTapBadge?: (badge: BadgeStatus) => void;
@@ -27,15 +30,16 @@ interface Props {
  * padding, and even bare on the page a scroller hides most of what it
  * holds. So: no scroller. Five slots, filled by RECENCY of activity —
  * recently earned, recently contributed towards — and the sixth is
- * always the way to the rest. See `pickShelfBadges` for the rule.
+ * always the way to the rest. See `pickShelfBadges` for the rule; it
+ * runs on the server, so the dates it ranks by never reach the
+ * browser (migration 132).
  *
  * The count in the header is earned / total, and tapping it opens the
  * catalogue too.
  */
-export function BadgeShelf({ badges, activity, onSeeAll, onTapBadge }: Props) {
-  const shown = pickShelfBadges(badges, activity, SHELF_SLOTS);
+export function BadgeShelf({ badges, shelf, onSeeAll, onTapBadge }: Props) {
   const totalEarned = badges.filter((b) => b.earned).length;
-  const remaining = badges.length - shown.length;
+  const remaining = badges.length - shelf.length;
 
   return (
     <SectionCard
@@ -53,7 +57,7 @@ export function BadgeShelf({ badges, activity, onSeeAll, onTapBadge }: Props) {
       }
     >
       <ul className={styles.row} aria-label="Recent achievements">
-        {shown.map((b) => (
+        {shelf.map((b) => (
           <li key={b.badge.id}>
             <AchievementCard badge={b} onPress={(x) => onTapBadge?.(x)} />
           </li>

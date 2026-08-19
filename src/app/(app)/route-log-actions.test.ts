@@ -251,6 +251,35 @@ describe("completeRoute", () => {
     expect(result).toMatchObject({ success: true, earnedBadges: [badge] });
   });
 
+  it("evaluates and persists badges as the SERVICE role, never as the climber", async () => {
+    // `user_achievements` has no INSERT policy — writes are service-
+    // only by design (migration 010) — and this call passed the
+    // climber's own client from the day it landed. RLS refused every
+    // upsert, the evaluator swallowed it, and the badge toast never
+    // fired for a wall send. Migration 132 tells the story; this pins
+    // the fix. The CONTEXT is still built as the climber (their own
+    // logs, RLS is the right gate for a read).
+    const sb = createMockSupabase({
+      "table:route_logs": { data: logRow(), error: null },
+      "table:activity_events": { data: { id: "evt1" }, error: null },
+    });
+    await primeAuth(sb);
+    const service = createMockSupabase();
+    const { createServiceClient } = await import("@/lib/supabase/server");
+    vi.mocked(createServiceClient).mockReturnValue(service as never);
+    const { buildBadgeContext } = await import("@/lib/achievements/context");
+    const { evaluateAndPersistAchievements } = await import("@/lib/achievements/evaluate");
+    vi.mocked(buildBadgeContext).mockResolvedValue({} as never);
+    vi.mocked(evaluateAndPersistAchievements).mockResolvedValue([] as never);
+
+    const { completeRoute } = await import("./route-log-actions");
+    await completeRoute(ROUTE_1, 2, null, false);
+
+    expect(vi.mocked(buildBadgeContext).mock.calls[0]?.[0]).toBe(sb);
+    expect(vi.mocked(evaluateAndPersistAchievements).mock.calls[0]?.[0]).toBe(service);
+    expect(vi.mocked(evaluateAndPersistAchievements).mock.calls[0]?.[0]).not.toBe(sb);
+  });
+
   it("omits earnedBadges entirely when nothing new was earned", async () => {
     const sb = createMockSupabase({
       "table:route_logs": { data: logRow(), error: null },

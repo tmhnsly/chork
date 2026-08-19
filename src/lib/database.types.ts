@@ -1423,11 +1423,11 @@ export type Database = {
       }
       generate_set_code: { Args: never; Returns: string }
       get_achievement_activity: {
-        Args: { p_user_id: string }
+        Args: never
         Returns: {
-          last_flash_at: string
-          last_match_at: string
-          last_send_at: string
+          last_flash_on: string
+          last_match_on: string
+          last_send_on: string
         }[]
       }
       get_active_climber_count: { Args: { p_set_id: string }; Returns: number }
@@ -1493,6 +1493,13 @@ export type Database = {
           set_count: number
           total_flashes: number
           total_sends: number
+        }[]
+      }
+      get_earned_achievements: {
+        Args: { p_user_id: string }
+        Returns: {
+          badge_id: string
+          earned_on: string
         }[]
       }
       get_engagement_trend: {
