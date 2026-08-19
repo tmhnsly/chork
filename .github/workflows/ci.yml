@@ -123,7 +123,38 @@ jobs:
           fi
           echo "e2e config present."
 
-      - run: pnpm exec playwright install --with-deps chromium
+      # Browsers come from Playwright's CDN and are cached per Playwright
+      # version; OS libraries come from apt and are NOT allowed to hold
+      # the build hostage. `--with-deps` ran `apt-get update` against
+      # Azure's Ubuntu mirror on every run, and on 2026-08-19 that
+      # mirror was down: three consecutive main runs sat on the step
+      # until the 15-minute job timeout cancelled them, for a commit
+      # whose identical PR run had passed in two minutes. So: the
+      # browser install never touches apt, and the deps install is
+      # bounded at two minutes and advisory — the ubuntu-latest image
+      # already ships Chrome's shared libraries, so a missing lib would
+      # fail the E2E step itself, loudly, rather than hang here.
+      - name: Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@v4
+        id: pw-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}-chromium
+
+      - if: steps.pw-cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install chromium
+
+      - name: Playwright OS deps (bounded, advisory)
+        run: |
+          # `timeout` (no --foreground) signals the whole process group, so
+          # the sudo'd apt-get underneath dies with it instead of lingering
+          # on the step's stdout; -k makes sure of it.
+          if ! timeout -k 15 120 pnpm exec playwright install-deps chromium </dev/null; then
+            echo "::warning::apt could not install Playwright's OS deps within 2 minutes (mirror down?); relying on the runner image's libraries."
+          fi
 
       - run: pnpm build
 
