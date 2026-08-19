@@ -50,8 +50,8 @@ describe("momentCopy", () => {
     // would be counting the winner as their own opponent.
     const copy = momentCopy(
       moment({
-        kind: "match_won",
-        detail: { match_name: "Friday sesh", player_count: 4 },
+        kind: "match_placed",
+        detail: { match_name: "Friday sesh", player_count: 4, rank: 1 },
       }),
     );
     expect(copy?.text).toContain("against 3 others");
@@ -60,9 +60,48 @@ describe("momentCopy", () => {
 
   it("drops the opponent clause for a solo match", () => {
     const copy = momentCopy(
-      moment({ kind: "match_won", detail: { player_count: 1 } }),
+      moment({ kind: "match_placed", detail: { player_count: 1, rank: 1 } }),
     );
     expect(copy?.text).not.toContain("against");
+  });
+
+  it("says a match podium as a placing, and a win as a win", () => {
+    // Rank 1 keeps the sentence match_won had — the rename lost
+    // nothing. 2nd and 3rd read as placings, because "results" means
+    // how your friends did, not only who won.
+    const second = momentCopy(
+      moment({
+        kind: "match_placed",
+        detail: { match_name: "Friday sesh", player_count: 5, rank: 2 },
+      }),
+    );
+    expect(second?.text).toBe("came 2nd of 5 in a match at Friday sesh");
+    expect(second?.icon).toBe("podium");
+    const first = momentCopy(
+      moment({ kind: "match_placed", detail: { player_count: 5, rank: 1 } }),
+    );
+    expect(first?.text).toContain("won a match");
+    expect(first?.icon).toBe("crown");
+  });
+
+  it("refuses a match placing off the podium", () => {
+    // The SQL only emits rank <= 3, but a row can outlive the rule
+    // that produced it. Nobody's highlight reel says "came 7th".
+    expect(
+      momentCopy(moment({ kind: "match_placed", detail: { rank: 7 } })),
+    ).toBeNull();
+  });
+
+  it("names the set and the gym for a set placing", () => {
+    // The kind that shows a friend at ANOTHER gym doing well — the
+    // gym has to be in the sentence or it is just a number.
+    const copy = momentCopy(
+      moment({
+        kind: "set_placed",
+        detail: { set_name: "August", gym_name: "Yonder", rank: 3 },
+      }),
+    );
+    expect(copy?.text).toBe("finished 3rd on August at Yonder");
   });
 
   it("names a real badge and ignores one that no longer exists", () => {

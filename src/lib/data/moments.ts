@@ -4,8 +4,9 @@ import { formatGrade, type GradingScale } from "./grade-label";
 /**
  * A friend's moment, and the sentence it becomes.
  *
- * Four kinds, all DERIVED at read time by `get_friend_moments` —
- * nothing is stored. See migration 109 for why.
+ * Five kinds, all DERIVED at read time by `get_friend_moments` —
+ * nothing is stored. See migration 109 for why, and 128 for the two
+ * placement kinds.
  *
  * The date is a `date`, not a timestamp, and that is enforced in SQL
  * rather than here: the coarse-timestamp rule exists so nobody can
@@ -15,7 +16,8 @@ import { formatGrade, type GradingScale } from "./grade-label";
 
 export type MomentKind =
   | "personal_best"
-  | "match_won"
+  | "match_placed"
+  | "set_placed"
   | "achievement"
   | "competition_placing";
 
@@ -84,15 +86,41 @@ export function momentCopy(moment: Moment): MomentCopy | null {
       };
     }
 
-    case "match_won": {
+    // Podium in a match. Rank 1 keeps the sentence the old `match_won`
+    // kind had — the feed lost nothing in the rename — and 2nd/3rd
+    // are said as placings, since "results" means how your friends
+    // did, not only who won.
+    case "match_placed": {
+      const rank = num(d, "rank");
       const name = str(d, "match_name");
       const players = num(d, "player_count");
+      if (rank === null || rank < 1 || rank > 3) return null;
       const where = name ? ` at ${name}` : "";
-      const against =
-        players && players > 1 ? ` against ${players - 1} others` : "";
+      if (rank === 1) {
+        const against =
+          players && players > 1 ? ` against ${players - 1} others` : "";
+        return { icon: "crown", text: `won a match${where}${against}`, href: null };
+      }
+      const of = players ? ` of ${players}` : "";
       return {
-        icon: "crown",
-        text: `won a match${where}${against}`,
+        icon: "podium",
+        text: `came ${ORDINALS[rank]}${of} in a match${where}`,
+        href: null,
+      };
+    }
+
+    // Podium on a gym Set — the most ordinary good news a climber has,
+    // and the kind that shows a friend at ANOTHER gym doing well.
+    case "set_placed": {
+      const rank = num(d, "rank");
+      const gym = str(d, "gym_name");
+      const setName = str(d, "set_name");
+      if (rank === null || rank < 1 || rank > 3) return null;
+      const which = setName ? ` on ${setName}` : " on the set";
+      const where = gym ? ` at ${gym}` : "";
+      return {
+        icon: "podium",
+        text: `finished ${ORDINALS[rank]}${which}${where}`,
         href: null,
       };
     }
