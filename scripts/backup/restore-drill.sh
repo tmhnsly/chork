@@ -38,6 +38,11 @@ supabase db dump "${DUMP_ARGS[@]}" -f "$WORK/roles.sql"  --role-only
 supabase db dump "${DUMP_ARGS[@]}" -f "$WORK/schema.sql"
 supabase db dump "${DUMP_ARGS[@]}" -f "$WORK/data.sql"   --data-only --use-copy
 wc -c "$WORK"/roles.sql "$WORK"/schema.sql "$WORK"/data.sql | sed 's#'"$WORK"'/##'
+# The role file is tiny and carries no passwords (`--no-role-passwords`);
+# show it, because a restore that fails usually fails HERE — a role
+# setting the target's postgres may not set — and line numbers beat
+# guessing.
+echo "roles.sql:"; nl -ba "$WORK/roles.sql"
 
 step "restore into the empty target"
 # Supabase's documented recipe, verbatim: one transaction, stop on the
