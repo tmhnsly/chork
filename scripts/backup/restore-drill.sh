@@ -54,7 +54,18 @@ fi
 supabase db dump "${DUMP_ARGS[@]}" -f "$WORK/roles.sql"  --role-only
 supabase db dump "${DUMP_ARGS[@]}" -f "$WORK/schema.sql"
 supabase db dump "${DUMP_ARGS[@]}" -f "$WORK/data.sql"   --data-only --use-copy "${EXCLUDE[@]}"
-wc -c "$WORK"/roles.sql "$WORK"/schema.sql "$WORK"/data.sql | sed 's#'"$WORK"'/##'
+# The fourth file the CLI does not make, and the first run of this
+# drill proved it: `db dump` carries no pg_cron jobs — they live in
+# the `cron` schema, which the schema dump excludes, and the data dump
+# brought back none of them. Set auto-publish and auto-archive depend
+# on them (migration 071). So the jobs are dumped here as the
+# `cron.schedule` calls that recreate them, and replayed after the
+# data. In a real restore the source is gone — this file is why the
+# jobs are not.
+psql "$SOURCE_URL" -At -c \
+  "select format('select cron.schedule(%L, %L, %L);', jobname, schedule, command)
+     from cron.job order by jobid" > "$WORK/cron.sql"
+wc -c "$WORK"/roles.sql "$WORK"/schema.sql "$WORK"/data.sql "$WORK"/cron.sql | sed 's#'"$WORK"'/##'
 # The role file is tiny and carries no passwords (`--no-role-passwords`);
 # show it, because a restore that fails usually fails HERE — a role
 # setting the target's postgres may not set — and line numbers beat
@@ -86,6 +97,10 @@ psql "$TARGET_URL" \
   --file "$WORK/schema.sql" \
   --command 'SET session_replication_role = replica' \
   --file "$WORK/data.sql"
+
+step "reschedule the cron jobs"
+psql "$TARGET_URL" --variable ON_ERROR_STOP=1 --quiet --file "$WORK/cron.sql" >/dev/null
+echo "$(grep -c . "$WORK/cron.sql") jobs scheduled."
 
 step "inventory both ends"
 psql "$SOURCE_URL" -At -F '|' -f "$INVENTORY" | LC_ALL=C sort > "$WORK/source.txt"
