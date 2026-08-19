@@ -126,12 +126,23 @@ Platform hardening:
       `src/lib/rate-limit.ts`)
 - [x] Error monitoring (Sentry — `sentry.{client,server,edge}.config.ts`)
 - [ ] Database connection pooling (Supabase config verify)
-- [ ] Scheduled backups verified restorable — **still not verified**,
-      but the checklist is now written: `docs/backup-restore.md` has
-      the inventory a restore has to reproduce and the two things
-      easiest to lose silently (RLS flags, `pg_cron` jobs). Blocked on
-      a scratch project to restore INTO; `supabase db dump` also needs
-      Docker, which isn't installed
+- [~] **Backups — the restore is proven; the backup is the open
+      question.** *(2026-08-19.)* `.github/workflows/backup-drill.yml`
+      rebuilds the schema from the repo on a real Supabase stack every
+      Monday and gets production's shape back exactly, then dumps that
+      stack and restores it into a second one and diffs — the dump
+      flags and the psql recipe are proven on every run. Its first
+      runs found three things a real restore would have tripped on
+      (a platform grant, storage's internal tables, and **`db dump`
+      carries no pg_cron jobs** — 5 became 0) and the script carries
+      the fixes. Against production it needs `SUPABASE_DB_URL`
+      (session pooler string; `gh secret set`) and skips loudly until
+      it has it. **Still open, and it is the bigger half:** the API
+      lists no Supabase-managed backups and PITR off — consistent
+      with the Free plan, where a lost database is simply lost. The
+      drill proves restorability; it keeps no copy (public repo, PII).
+      Decide Pro ($25/mo, daily backups, the target this drill
+      rehearses) before launch. `docs/backup-restore.md` has the lot
 
 ## Google sign-in — shipped (2026-08-17 → 19, migrations 122–123)
 
