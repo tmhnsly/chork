@@ -1,6 +1,20 @@
 import type { Meta, StoryObj } from "@storybook/nextjs";
 import { BadgeShelf } from "./BadgeShelf";
-import { evaluateBadges, type BadgeContext } from "@/lib/badges";
+import { evaluateBadges, type BadgeContext, type BadgeStatus } from "@/lib/badges";
+import { pickShelfBadges } from "@/lib/achievements/shelf";
+
+// The owner's own view: ladders last moved on these days. The page
+// does this pick on the server; a story does it inline.
+const ACTIVITY = {
+  last_flash_on: "2026-08-18",
+  last_send_on: "2026-08-19",
+  last_match_on: "2026-08-17",
+};
+const withShelf = (badges: BadgeStatus[]) => ({
+  badges,
+  shelf: pickShelfBadges(badges, ACTIVITY),
+  onSeeAll: () => {},
+});
 
 const meta = {
   title: "Components/BadgeShelf",
@@ -37,13 +51,13 @@ const emptyCtx: BadgeContext = {
 
 /** No badges earned yet — all locked with zero progress. */
 export const AllLocked: Story = {
-  args: { badges: evaluateBadges(emptyCtx) },
+  args: withShelf(evaluateBadges(emptyCtx)),
 };
 
 /** Mixed earned and locked badges with progress. */
 export const MixedProgress: Story = {
-  args: {
-    badges: evaluateBadges({
+  args: withShelf(
+    evaluateBadges({
       totalFlashes: 3,
       totalSends: 8,
       totalPoints: 42,
@@ -59,13 +73,13 @@ export const MixedProgress: Story = {
       uniqueMatchCoplayers: 3,
       ironCrewMaxPairCount: 2,
     }),
-  },
+  ),
 };
 
 /** All badges earned. */
 export const AllEarned: Story = {
-  args: {
-    badges: evaluateBadges({
+  args: withShelf(
+    evaluateBadges({
       totalFlashes: 1200,
       totalSends: 1200,
       totalPoints: 5000,
@@ -81,5 +95,5 @@ export const AllEarned: Story = {
       uniqueMatchCoplayers: 25,
       ironCrewMaxPairCount: 15,
     }),
-  },
+  ),
 };

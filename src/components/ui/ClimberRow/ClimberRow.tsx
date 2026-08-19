@@ -3,15 +3,15 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { UserAvatar, Username } from "@/components/ui";
-import styles from "./friendRow.module.scss";
+import styles from "./climberRow.module.scss";
 
 /**
- * The shape both a friend and a suggestion share. Kept structural
- * rather than a union so the row doesn't have to know which list it
- * is in — everything that differs arrives as `meta`, `note` or
- * `actions`.
+ * The shape every climber list shares — a friend, a suggestion, a
+ * search hit, someone to invite. Kept structural rather than a union
+ * so the row doesn't have to know which list it is in — everything
+ * that differs arrives as `meta`, `note` or `actions`.
  */
-interface Climber {
+export interface ClimberRowClimber {
   user_id: string;
   username: string | null;
   name: string | null;
@@ -19,7 +19,7 @@ interface Climber {
 }
 
 interface Props {
-  climber: Climber;
+  climber: ClimberRowClimber;
   /** Small line under the handle — "3 matches" on a suggestion. */
   meta?: string;
   /** Terminal state word where the buttons were: "Asked", "Friends". */
@@ -28,13 +28,18 @@ interface Props {
 }
 
 /**
- * One climber in any of the friends lists.
+ * One climber in a list — the friends roster, suggestions, search
+ * results, the invite sheet on a match. It began life as the friends
+ * screen's `FriendRow` and moved here the day the match screen needed
+ * the same row: one feature must not import another's component, and
+ * a row that is nothing but identity + slots was a primitive all
+ * along.
  *
  * The identity is a link to their profile and the buttons sit outside
  * it — nesting a button inside an anchor is invalid HTML and, more to
  * the point, makes "accept" a coin flip on a phone.
  */
-export function FriendRow({ climber, meta, note, actions }: Props) {
+export function ClimberRow({ climber, meta, note, actions }: Props) {
   const username = climber.username ?? "unknown";
 
   return (

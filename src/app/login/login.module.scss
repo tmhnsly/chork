@@ -1,6 +1,8 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
 @use "mixins/input" as input;
+@use "mixins/focus" as focus;
+@use "mixins/state" as state;
 
 .page {
   display: flex;
@@ -113,30 +115,14 @@
 // click the verification email. Replaces the form entirely — the
 // previous toast was too easy to miss, leaving new users staring at
 // an unchanged form wondering whether submit worked.
+// Positioning and the entrance only. The disc, the tick and their
+// colours belong to `SuccessTick` — this used to own all of it and
+// got the contrast wrong in dark mode.
 .confirmIconWrap {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 5rem;
-  height: 5rem;
-  border-radius: var(--radius-full);
-  // Brand lime (step 9 — `--accent-solid`). The checkmark uses
-  // `--mono-text` so it flips with app theme (near-black on light,
-  // near-white on dark) instead of Radix's fixed paired contrast
-  // which reads dark on both. Lime-9 is saturated enough that the
-  // decorative icon reads cleanly either way.
-  background: var(--accent-solid);
-  color: var(--mono-text);
-  // Gentle entrance so the icon doesn't slam in after form submit —
-  // respects `prefers-reduced-motion` via the no-animation media
-  // override at the bottom of this block.
-  animation: confirmIconIn var(--duration-normal) var(--ease-out-expo) both;
+  align-self: center;
+ animation: confirmIconIn var(--duration-normal) var(--ease-out-expo) both;
 }
 
-.confirmIcon {
-  width: 2.5rem;
-  height: 2.5rem;
-}
 
 .confirmHeading {
   @include type.typography(display);
@@ -228,4 +214,65 @@
   .confirmIconWrap {
     animation: none;
   }
+}
+
+// ── Continue with Google ──────────────────────────
+// Above the form: one tap against eight fields, and a climber signing
+// up at a gym has chalk on their hands.
+//
+// Deliberately NOT the accent `Button`. The accent means "you did
+// this" or "this is yours" across the app, and the primary action on
+// this screen is whichever one the climber chose — making the
+// provider button lime would rank it above the form for everyone,
+// including the people who came here to type a password.
+.oauthButton {
+  @include type.typography(button);
+  @include focus.ring;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-height: var(--size-touch-target);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--mono-border);
+  border-radius: var(--radius-2);
+  background: var(--mono-bg);
+  color: var(--mono-text);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+
+  &:hover:not(:disabled) {
+    background: var(--mono-bg-hover);
+    border-color: var(--mono-border-hover, var(--mono-border));
+  }
+
+  &:disabled {
+    @include state.disabled;
+  }
+}
+
+// A rule with the word sitting in it, rather than a bare line — the
+// two routes are alternatives, and an unlabelled divider reads as
+// "and then" rather than "or".
+.divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--mono-text-low-contrast);
+
+  &::before,
+  &::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--mono-border-subtle);
+  }
+}
+
+.dividerLabel {
+  @include type.typography(label);
 }

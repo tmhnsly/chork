@@ -3,11 +3,11 @@
 import { useState, useTransition } from "react";
 import { FaUserPlus, FaCheck, FaXmark, FaUserGroup } from "react-icons/fa6";
 import { Button, showToast } from "@/components/ui";
-import type { Friend, FriendSuggestion } from "@/lib/data/friend-queries";
+import { suggestionReason, type Friend, type FriendSuggestion } from "@/lib/data/friend-queries";
 import type { ActionResult } from "@/lib/action-result";
 import { countOf } from "@/lib/plural";
 import { requestFriend, respondToFriend } from "@/app/friends/actions";
-import { FriendRow } from "./FriendRow";
+import { ClimberRow } from "@/components/ui/ClimberRow/ClimberRow";
 import styles from "./friendsList.module.scss";
 
 interface Props {
@@ -67,7 +67,7 @@ export function FriendsList({ active, incoming, outgoing, suggestions }: Props) 
           <ul className={styles.list}>
             {incoming.map((m) => (
               <li key={m.friend_id}>
-                <FriendRow
+                <ClimberRow
                   climber={m}
                   note={acted[m.user_id]}
                   actions={
@@ -118,9 +118,9 @@ export function FriendsList({ active, incoming, outgoing, suggestions }: Props) 
           <ul className={styles.list}>
             {suggestions.map((s) => (
               <li key={s.user_id}>
-                <FriendRow
+                <ClimberRow
                   climber={s}
-                  meta={countOf(s.shared_matches, "match", "matches")}
+                  meta={suggestionReason(s)}
                   note={acted[s.user_id]}
                   actions={
                     acted[s.user_id] ? null : (
@@ -151,7 +151,7 @@ export function FriendsList({ active, incoming, outgoing, suggestions }: Props) 
           <ul className={styles.list}>
             {active.map((m) => (
               <li key={m.friend_id}>
-                <FriendRow climber={m} />
+                <ClimberRow climber={m} />
               </li>
             ))}
           </ul>
@@ -166,7 +166,7 @@ export function FriendsList({ active, incoming, outgoing, suggestions }: Props) 
           <ul className={styles.list}>
             {outgoing.map((m) => (
               <li key={m.friend_id}>
-                <FriendRow climber={m} note="Asked" />
+                <ClimberRow climber={m} note="Asked" />
               </li>
             ))}
           </ul>

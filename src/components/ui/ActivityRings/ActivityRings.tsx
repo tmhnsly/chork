@@ -59,21 +59,28 @@ export function ActivityRings({ rings, size = RING_SIZES.card, className }: Prop
               strokeWidth={strokeWidth}
               strokeLinecap="round"
             />
-            <circle
-              cx={center}
-              cy={center}
-              r={radius}
-              fill="none"
-              stroke={ring.color}
-              strokeWidth={strokeWidth}
-              strokeLinecap="round"
-              pathLength={1}
-              strokeDasharray={1}
-              strokeDashoffset={offset}
-              transform={`rotate(-90 ${center} ${center})`}
-              className={styles.ring}
-              style={{ "--ring-delay": `${i * 150}ms` } as React.CSSProperties}
-            />
+            {/* Not drawn at all at zero. A round line-cap paints a
+                semicircle of stroke-width/2 at the path's start even
+                when the dash is zero-length, so an empty ring showed a
+                lone amber dot at twelve o'clock on a brand-new profile
+                — a "you did something" mark on someone who hadn't. */}
+            {progress > 0 && (
+              <circle
+                cx={center}
+                cy={center}
+                r={radius}
+                fill="none"
+                stroke={ring.color}
+                strokeWidth={strokeWidth}
+                strokeLinecap="round"
+                pathLength={1}
+                strokeDasharray={1}
+                strokeDashoffset={offset}
+                transform={`rotate(-90 ${center} ${center})`}
+                className={styles.ring}
+                style={{ "--ring-delay": `${i * 150}ms` } as React.CSSProperties}
+              />
+            )}
           </g>
         );
       })}

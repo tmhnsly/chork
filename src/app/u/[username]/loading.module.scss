@@ -3,64 +3,11 @@
 // Matches the real profile page's page layout + section spacing so
 // the skeleton cards land in the same vertical positions as the real
 // content below them. Keep in sync with user.module.scss .page.
+//
+// The header-mirroring rules that used to live here (avatar, identity
+// stack, a 44px meta row reserved for action buttons) went with the
+// header they mirrored. The hero is one card, so it gets one block.
 .page {
   @include layout.page;
   @include layout.stack(var(--space-7));
-}
-
-// Profile header skeleton mirrors `ProfileHeader` exactly:
-// avatar LEFT (72px), identity column on the RIGHT with username +
-// meta row. Any divergence here is a layout shift on hand-off — the
-// real header's height + flow has to land in the same pixel
-// positions as this skeleton or the page jumps when content streams
-// in (which the bottom nav reads as a brief "nav up then down"
-// because the viewport content height changes).
-.header {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-4);
-}
-
-// Same rung the real header's <UserAvatar size="hero"> renders at.
-// Previously a hand-copied 4.5rem with a comment pointing at the
-// number it had to match — the two could drift apart silently, and
-// drifting apart is precisely the layout shift described above.
-.avatar {
-  width: var(--size-avatar-hero);
-  height: var(--size-avatar-hero);
-  border-radius: var(--radius-full);
-  flex-shrink: 0;
-}
-
-.identity {
-  @include layout.stack(var(--space-1));
-  flex: 1;
-  min-width: 0;
-}
-
-// Username placeholder — matches the real `.username`'s clamp() font
-// size at the desktop ceiling so vertical space stays reserved.
-.lineUsername {
-  height: var(--text-2xl);
-  width: 60%;
-  border-radius: var(--radius-1);
-}
-
-// Meta row stand-in — height matches `--size-touch-target` (44px)
-// because the real meta row carries the notifications + settings
-// action buttons on own profile, which set that minimum height.
-// Reserving the same row height on every skeleton render avoids a
-// shift when the real header swaps in for the signed-in user.
-.metaRow {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: var(--size-touch-target);
-}
-
-.lineName {
-  height: var(--text-md);
-  width: 35%;
-  border-radius: var(--radius-1);
-  flex: 1;
 }

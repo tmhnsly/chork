@@ -19,7 +19,9 @@ type MatchPlayerRow = Database["public"]["Tables"]["set_players"]["Row"];
 
 import { logger } from "@/lib/logger";
 import { env } from "@/lib/env";
-import { getMatchStateForUser } from "@/lib/data/match-queries";
+import { getMatchStateForUser, getActiveMatchForUserById } from "@/lib/data/match-queries";
+import { getFriends } from "@/lib/data/friend-queries";
+import { notify } from "@/lib/notify";
 import { mintShareToken } from "@/lib/data/shared-result";
 
 // Match writes go through SECURITY DEFINER RPCs (migrations 084-086)
@@ -571,6 +573,137 @@ export interface ChorkStanding {
    * which nobody else may read. Exactly one seat has it.
    */
   has_pen: boolean;
+}
+
+export interface InvitableFriend {
+  user_id: string;
+  username: string | null;
+  name: string | null;
+  avatar_url: string | null;
+  /**
+   * Someone in this match already invited them. Read back from the
+   * notification log rather than remembered on the client, so a
+   * closed-and-reopened sheet (or a second phone) still says
+   * "Invited" instead of offering the button again.
+   */
+  invited: boolean;
+}
+
+/**
+ * The friends you could invite to the match you're in: every active
+ * friend who isn't already seated. Read-only, so no rate limit — the
+ * write it leads to (`inviteToMatch`) has one.
+ *
+ * Friends only, not a search: an invite reaches someone's phone, and
+ * the friend link is what says they agreed to hear from you. Everyone
+ * else gets the join code, which they have to act on themselves.
+ */
+export async function getInvitableFriends(): Promise<
+  { error: string } | { friends: InvitableFriend[]; matchName: string | null }
+> {
+  const auth = await gateSignedInMutation(null, "match", { rateLimit: null });
+  if ("error" in auth) return { error: auth.error };
+
+  const service = createServiceClient();
+  const active = await getActiveMatchForUserById(service, auth.userId);
+  if (!active) return { error: "You're not in a live match." };
+
+  // `get_friends` is caller-scoped: it can only ever list MY friends.
+  const friends = (await getFriends(auth.supabase)).filter((f) => f.status === "active");
+  if (friends.length === 0) return { friends: [], matchName: active.name };
+  const friendIds = friends.map((f) => f.user_id);
+
+  const [{ data: seats }, { data: invites }] = await Promise.all([
+    service
+      .from("set_players")
+      .select("user_id")
+      .eq("set_id", active.set_id)
+      .is("left_at", null)
+      .in("user_id", friendIds),
+    service
+      .from("notifications")
+      .select("user_id")
+      .eq("kind", "match_invite_received")
+      .eq("payload->>set_id", active.set_id)
+      .in("user_id", friendIds),
+  ]);
+  const seated = new Set((seats ?? []).map((s) => s.user_id));
+  const invited = new Set((invites ?? []).map((n) => n.user_id));
+
+  return {
+    matchName: active.name,
+    friends: friends
+      .filter((f) => !seated.has(f.user_id))
+      .map((f) => ({
+        user_id: f.user_id,
+        username: f.username,
+        name: f.name,
+        avatar_url: f.avatar_url,
+        invited: invited.has(f.user_id),
+      })),
+  };
+}
+
+/**
+ * Invite a climber to the match you're in.
+ *
+ * An invite is a MESSAGE carrying the join code, not a seat. It does
+ * not add them to anything: they tap through to /match/join with the
+ * code filled in and join by their own action, or ignore it. So an
+ * ignored invite leaves no trace in anyone's stats, a declined one
+ * needs no state, and a spammer can inflict nothing but a
+ * notification — capped by the `invitesSend` rate limit here (10/hour)
+ * and by the recipient's own `push_invite_received` opt-out.
+ *
+ * "The match you're in" rather than a picker: a climber has at most
+ * one live match, and inviting from a profile is a thing you do
+ * mid-session — "come and join this" — not a scheduling gesture.
+ * With no live match there is nothing to invite them TO; the profile
+ * offers to start one instead.
+ */
+export async function inviteToMatch(
+  targetUserId: string,
+): Promise<{ error: string } | { ok: true; matchName: string | null }> {
+  const auth = await gateSignedInMutation(targetUserId, "climber id", {
+    rateLimit: "invitesSend",
+  });
+  if ("error" in auth) return { error: auth.error };
+  if (targetUserId === auth.userId) return { error: "That's you." };
+
+  const service = createServiceClient();
+  const active = await getActiveMatchForUserById(service, auth.userId);
+  if (!active) {
+    return { error: "You're not in a live match — start one first." };
+  }
+
+  // Never invite someone who is already in it. Cheap to check and it
+  // stops a double-tap producing two notifications for one seat.
+  const { data: seat } = await service
+    .from("set_players")
+    .select("id")
+    .eq("set_id", active.set_id)
+    .eq("user_id", targetUserId)
+    .is("left_at", null)
+    .maybeSingle();
+  if (seat) return { error: "They're already in this match." };
+
+  const { data: me } = await service
+    .from("profiles")
+    .select("username")
+    .eq("id", auth.userId)
+    .maybeSingle();
+
+  await notify({
+    kind: "match_invite_received",
+    recipient: targetUserId,
+    actor: auth.userId,
+    setId: active.set_id,
+    code: active.code,
+    matchName: active.name,
+    fromUsername: me?.username ?? "someone",
+  });
+
+  return { ok: true, matchName: active.name };
 }
 
 /**

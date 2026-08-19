@@ -32,19 +32,24 @@ export function ProgressRing({ progress, family = "accent" }: Props) {
   return (
     <svg className={styles.ring} viewBox="0 0 100 100" aria-hidden="true">
       <circle cx={50} cy={50} r={46} fill="none" stroke="var(--mono-border)" strokeWidth={6} />
-      <circle
-        cx={50}
-        cy={50}
-        r={46}
-        fill="none"
-        stroke={`var(--${family}-solid)`}
-        strokeWidth={6}
-        strokeLinecap="round"
-        pathLength={1}
-        strokeDasharray={1}
-        strokeDashoffset={1 - clamped}
-        transform="rotate(-90 50 50)"
-      />
+      {/* Same rule as ActivityRings: a round cap paints a dot even at
+          zero length, so an untouched badge would show a mark it has
+          not earned. Nothing to show → nothing drawn. */}
+      {clamped > 0 && (
+        <circle
+          cx={50}
+          cy={50}
+          r={46}
+          fill="none"
+          stroke={`var(--${family}-solid)`}
+          strokeWidth={6}
+          strokeLinecap="round"
+          pathLength={1}
+          strokeDasharray={1}
+          strokeDashoffset={1 - clamped}
+          transform="rotate(-90 50 50)"
+        />
+      )}
     </svg>
   );
 }

@@ -1,6 +1,6 @@
 import { createServerSupabase } from "@/lib/supabase/server";
 import { getAllSets } from "@/lib/data/set-queries";
-import { getRoutesBySet, getRoutesBySetIds } from "@/lib/data/route-queries";
+import { getRoutesBySetIds } from "@/lib/data/route-queries";
 import { getAllRouteDataForUserInGym } from "@/lib/data/route-log-queries";
 import type { Route, RouteSet } from "@/lib/data";
 import { computeMaxPoints } from "@/lib/data";
@@ -35,7 +35,6 @@ export async function PreviousSetsSection({ userId, gymId, createdAt, isOwnProfi
   // Sets the climber could have touched. createdAt scopes out sets that
   // ended before they joined.
   const allSets = await getAllSets(gymId, createdAt);
-  const activeSet = allSets.find((s) => s.active) ?? null;
   const previousSetRecords = allSets.filter((s) => !s.active);
 
   // Per-set badges need raw log info (which route numbers were
@@ -43,8 +42,11 @@ export async function PreviousSetsSection({ userId, gymId, createdAt, isOwnProfi
   // because the new RPC only returns active-set raw detail. This component
   // streams under its own Suspense boundary so the heavier query doesn't
   // block the shell or the all-time stats card.
-  const [activeRoutes, previousRoutesById, routeData] = await Promise.all([
-    activeSet ? getRoutesBySet(activeSet.id) : Promise.resolve<Route[]>([]),
+  //
+  // The active set's routes were fetched here too, to draw it as a
+  // tile in this section — a duplicate of the card above. Dropping
+  // the tile dropped that query.
+  const [previousRoutesById, routeData] = await Promise.all([
     getRoutesBySetIds(supabase, previousSetRecords.map((s) => s.id)),
     getAllRouteDataForUserInGym(supabase, gymId, userId, allSets.map((s) => s.id)),
   ]);
@@ -135,21 +137,28 @@ export async function PreviousSetsSection({ userId, gymId, createdAt, isOwnProfi
     };
   }
 
-  const setCells: SetCell[] = [];
-  if (activeSet) setCells.push(buildSetCell(activeSet, activeRoutes, true));
-  for (const set of previousSetRecords) {
-    const routes = previousRoutesById.get(set.id) ?? [];
-    setCells.push(buildSetCell(set, routes, false));
-  }
-
-  const showSetsEmpty = activeSet !== null && previousSetRecords.length === 0;
+  // Previous sets ONLY. The live set used to be pushed in here too,
+  // which put it on the page twice — once in full in the Current Set
+  // card directly above, and again as a lone "CURRENT" tile down here.
+  // On a first set that tile was the section's whole content: one
+  // square floating in a card, duplicating what was above it. That
+  // was the single most amateur thing on the page.
+  //
+  // With nothing previous, the section renders nothing. An empty-state
+  // card saying "check back after the reset" is a promise about the
+  // future in a place meant for the past; the Current Set card already
+  // says when the reset is.
+  const setCells: SetCell[] = previousSetRecords.map((set) =>
+    buildSetCell(set, previousRoutesById.get(set.id) ?? [], false),
+  );
+  if (setCells.length === 0) return null;
 
   return (
     <PreviousSetsGrid
       sets={setCells}
       gymId={gymId}
       userId={userId}
-      showEmptyState={showSetsEmpty}
+      showEmptyState={false}
     />
   );
 }

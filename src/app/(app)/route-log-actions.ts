@@ -3,6 +3,7 @@
 import { revalidateTag } from "next/cache";
 import { revalidateRouteLogTags } from "@/lib/cache/revalidate";
 import { gateClimberMutation } from "@/lib/auth";
+import { createServiceClient } from "@/lib/supabase/server";
 import {
   upsertRouteLog,
   createActivityEvent,
@@ -111,11 +112,21 @@ export async function completeRoute(
     // internally and returns [] on failure, so a flaky badge query
     // can never propagate up and turn a successful send into an
     // error response.
+    //
+    // The evaluator gets the SERVICE client. `user_achievements` has
+    // no INSERT policy — writes were always meant to be service-role
+    // (migration 010) — and this call passed the climber's own client
+    // from the day it landed, so every upsert was refused by RLS, the
+    // evaluator swallowed it, and the badge toast never fired for a
+    // wall send. Nobody saw it because the profile derives earned
+    // state live and only overlays the persisted date. Migration 132
+    // has the story. The CONTEXT still reads as the climber: it is
+    // their own logs, and RLS is the right gate for a read.
     let earnedBadges: BadgeDefinition[] = [];
     try {
       const ctx = await buildBadgeContext(supabase, userId, gymId);
       if (ctx) {
-        earnedBadges = await evaluateAndPersistAchievements(supabase, userId, ctx);
+        earnedBadges = await evaluateAndPersistAchievements(createServiceClient(), userId, ctx);
       }
     } catch (err) {
       console.error("[achievements] post-send evaluation failed", err);

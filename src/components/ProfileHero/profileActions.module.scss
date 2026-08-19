@@ -1,0 +1,141 @@
+@use "mixins/typography" as type;
+@use "mixins/focus" as focus;
+
+.row {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+%action {
+  @include type.typography(button);
+  @include focus.ring;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-height: var(--size-touch-target);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-card-inner);
+  border: 1px solid transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    background var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+// Accent means "this is the thing to do" — one per row, never two.
+.primary {
+  @extend %action;
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
+  color: var(--accent-on-solid);
+
+  &:hover {
+    background: var(--accent-solid-hover);
+    border-color: var(--accent-solid-hover);
+  }
+}
+
+.secondary {
+  @extend %action;
+  background: var(--mono-bg);
+  border-color: var(--mono-border);
+  color: var(--mono-text);
+
+  &:hover {
+    background: var(--mono-bg-hover);
+  }
+}
+
+// A state, not a control. Same footprint so the row does not resize
+// the instant you tap Add.
+.pending {
+  @extend %action;
+  background: var(--mono-subtle-bg);
+  border-color: var(--mono-border-subtle);
+  color: var(--mono-text-low-contrast);
+  cursor: default;
+}
+
+
+// Removing a friend, after the confirm tap. Error red on a control that
+// severs something is the one place the app uses that colour on a
+// button — it should look like what it does.
+.danger {
+  @extend %action;
+  background: var(--error-bg);
+  border-color: var(--error-border);
+  color: var(--error-text);
+
+  &:hover {
+    background: var(--error-bg-hover, var(--error-bg));
+  }
+}
+
+%action:disabled {
+  cursor: progress;
+}
+
+// ── Own profile: your people, and settings in the corner ─────────
+
+// Fills the row like the buttons do, so the card's bottom edge keeps
+// one rhythm whether it is your profile or someone else's.
+.friendsRow {
+  @extend %action;
+  @include focus.ring;
+  justify-content: flex-start;
+  gap: var(--space-3);
+  background: var(--mono-subtle-bg);
+  border-color: transparent;
+  color: var(--mono-text);
+  text-decoration: none;
+
+  &:hover {
+    background: var(--mono-bg-hover);
+  }
+}
+
+// Overlapping avatars, first on top. The negative margin is the
+// stack's own gap; the ring separates faces that touch.
+.stack {
+  display: inline-flex;
+  flex-shrink: 0;
+
+  > * {
+    margin-inline-start: calc(var(--space-2) * -1);
+    box-shadow: 0 0 0 2px var(--mono-subtle-bg);
+    border-radius: var(--radius-full);
+  }
+  > :first-child {
+    margin-inline-start: 0;
+  }
+}
+
+.friendsLabel {
+  @include type.typography(button);
+}
+
+// Chrome, sized as chrome: a square touch target that does not
+// compete with the row beside it.
+.iconButton {
+  @include focus.ring;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: var(--size-touch-target);
+  min-height: var(--size-touch-target);
+  border-radius: var(--radius-card-inner);
+  border: 1px solid var(--mono-border);
+  background: var(--mono-bg);
+  color: var(--mono-text-low-contrast);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--mono-text);
+    background: var(--mono-bg-hover);
+  }
+}

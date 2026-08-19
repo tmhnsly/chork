@@ -11,7 +11,7 @@ const FRIEND_1 = "cccccccc-cccc-cccc-cccc-cccccccccccc";
 
 /**
  * The closed kind set — mirrors the DB check constraint (migration 033,
- * narrowed to friends-only by 108).
+ * narrowed to friends-only by 108, widened by 129 for match invites).
  *
  * Spelled out by hand on purpose: deriving it from `notificationKinds`
  * would make the test pass for any pair of matching mistakes. This is
@@ -22,6 +22,7 @@ const FRIEND_1 = "cccccccc-cccc-cccc-cccc-cccccccccccc";
 const EXPECTED_KINDS: NotificationKind[] = [
   "friend_request_received",
   "friend_request_accepted",
+  "match_invite_received",
 ];
 
 describe("notificationKinds table", () => {
@@ -56,6 +57,15 @@ describe("notificationKinds table", () => {
         recipient: "u1",
         actor: "u2",
         accepterUsername: "bob",
+      },
+      {
+        kind: "match_invite_received",
+        recipient: "u2",
+        actor: "u1",
+        setId: FRIEND_1,
+        code: "AB2CD3",
+        matchName: "Friday sesh",
+        fromUsername: "alice",
       },
     ];
     expect(events.map((e) => e.kind).sort()).toEqual([...EXPECTED_KINDS].sort());
@@ -154,5 +164,43 @@ describe("friend_request_accepted", () => {
       type: "user",
       username: "bob",
     });
+  });
+});
+
+describe("match_invite_received", () => {
+  const event = {
+    kind: "match_invite_received" as const,
+    recipient: "u2",
+    actor: "u1",
+    setId: FRIEND_1,
+    code: "AB2CD3",
+    matchName: "Friday sesh",
+    fromUsername: "alice",
+  };
+
+  it("carries the join code into the tap target", () => {
+    // The invite IS the code. Tapping it must land on the join page
+    // with the code already filled in — that is what makes it an
+    // invite the recipient can act on in one tap, rather than a
+    // message they have to transcribe from.
+    const { push, payload } = renderNotification(event);
+    expect(push.url).toBe("/match/join?code=AB2CD3");
+    expect(renderNotificationInApp(event.kind, payload)?.href).toBe(
+      "/match/join?code=AB2CD3",
+    );
+  });
+
+  it("uses the invite push category, so the opt-out applies", () => {
+    // `push_invite_received` is the recipient's switch for "tell me
+    // when someone asks". A match invite that bypassed it would be
+    // exactly the spam that switch exists to stop.
+    expect(renderNotification(event).push.category).toBe("invite_received");
+  });
+
+  it("names the match, or says 'a match' when it has no name", () => {
+    expect(renderNotification(event).push.body).toContain("Friday sesh");
+    const unnamed = renderNotification({ ...event, matchName: null });
+    expect(unnamed.push.body).toContain("a match");
+    expect(unnamed.push.body).not.toContain("null");
   });
 });

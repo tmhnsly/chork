@@ -1,6 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { readMany } from "./read";
+import { logger } from "@/lib/logger";
+import { formatErrorForLog } from "@/lib/errors";
 import type { Moment } from "./moments";
 
 type Supabase = SupabaseClient<Database>;
@@ -49,8 +51,25 @@ export interface FriendSuggestion {
   username: string | null;
   name: string | null;
   avatar_url: string | null;
-  shared_matches: number;
+  /**
+   * Where the suggestion came from (migration 126). Shown to the
+   * climber, because "2 mutual friends" is a claim they can check
+   * against their own memory and a bare avatar with an Add button is
+   * not. `mutual_friends` outranks `shared_match` — a warmer signal.
+   */
+  reason: "mutual_friends" | "shared_match";
+  /** Mutual friends, or matches shared, depending on `reason`. */
+  reason_count: number;
+  /** Only set for `shared_match`. */
   last_climbed_at: string | null;
+}
+
+/** The suggestion's reason as a line under the name. */
+export function suggestionReason(s: FriendSuggestion): string {
+  if (s.reason === "mutual_friends") {
+    return s.reason_count === 1 ? "1 mutual friend" : `${s.reason_count} mutual friends`;
+  }
+  return s.reason_count === 1 ? "Climbed together" : `Climbed together ${s.reason_count}×`;
 }
 
 /**
@@ -60,6 +79,53 @@ export interface FriendSuggestion {
  * who declined, and an answer we deliberately don't give to the person
  * declined.
  */
+/**
+ * How the caller stands with one climber — the six-way answer the
+ * profile's action row is built on (migration 124). `is_friend` is a
+ * boolean and collapses "not asked", "I asked", "they asked" and
+ * "declined" into one word, which is four different buttons.
+ *
+ * A decline is silent to the person declined: they get `none`, the
+ * same as never having asked. Only the decliner sees `declined_by_me`.
+ */
+export type FriendStatus =
+  | "self"
+  | "none"
+  | "sent"
+  | "received"
+  | "friends"
+  | "declined_by_me";
+
+export interface FriendStanding {
+  status: FriendStatus;
+  /**
+   * The friends row, when there is one to act on: what `respondToFriend`
+   * takes for Accept. Null in every state with nothing to respond to,
+   * and always null to the person who was declined.
+   */
+  friendId: string | null;
+}
+
+export async function getFriendStatus(
+  supabase: Supabase,
+  userId: string,
+): Promise<FriendStanding> {
+  const { data, error } = await supabase
+    .rpc("friend_status", { p_user_id: userId })
+    .maybeSingle();
+  if (error || !data) {
+    if (error) {
+      logger.warn("getfriendstatus_failed", { err: formatErrorForLog(error) });
+    }
+    // The safe default offers Add, which is idempotent server-side.
+    return { status: "none", friendId: null };
+  }
+  return {
+    status: (data.status as FriendStatus) ?? "none",
+    friendId: data.friend_id ?? null,
+  };
+}
+
 export async function getFriends(supabase: Supabase): Promise<Friend[]> {
   return readMany<Friend>(supabase.rpc("get_friends"), "getFriends");
 }

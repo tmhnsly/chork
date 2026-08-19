@@ -1414,7 +1414,22 @@ export type Database = {
         }
       }
       end_stale_matches: { Args: never; Returns: number }
+      friend_status: {
+        Args: { p_user_id: string }
+        Returns: {
+          friend_id: string
+          status: string
+        }[]
+      }
       generate_set_code: { Args: never; Returns: string }
+      get_achievement_activity: {
+        Args: never
+        Returns: {
+          last_flash_on: string
+          last_match_on: string
+          last_send_on: string
+        }[]
+      }
       get_active_climber_count: { Args: { p_set_id: string }; Returns: number }
       get_active_match_for_user: {
         Args: { p_user_id: string }
@@ -1480,6 +1495,13 @@ export type Database = {
           total_sends: number
         }[]
       }
+      get_earned_achievements: {
+        Args: { p_user_id: string }
+        Returns: {
+          badge_id: string
+          earned_on: string
+        }[]
+      }
       get_engagement_trend: {
         Args: { p_gym_id: string; p_limit?: number }
         Returns: {
@@ -1518,7 +1540,8 @@ export type Database = {
           avatar_url: string
           last_climbed_at: string
           name: string
-          shared_matches: number
+          reason: string
+          reason_count: number
           user_id: string
           username: string
         }[]
@@ -1941,15 +1964,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      search_climbers_fuzzy: {
-        Args: { p_caller_id: string; p_limit?: number; p_query: string }
+      search_climbers: {
+        Args: { p_limit?: number; p_query: string }
         Returns: {
-          active_gym_id: string
-          allow_crew_invites: boolean
           avatar_url: string
-          id: string
+          friend_status: string
           name: string
           score: number
+          user_id: string
           username: string
         }[]
       }

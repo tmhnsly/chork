@@ -1,10 +1,11 @@
 import { createServerSupabase, createServiceClient } from "@/lib/supabase/server";
 import { getProfileSummary } from "@/lib/data/profile-queries";
-import { getEarnedAchievements } from "@/lib/data/achievement-queries";
+import { getEarnedAchievements, getAchievementActivity } from "@/lib/data/achievement-queries";
 import { getAllSets } from "@/lib/data/set-queries";
 import { getRoutesBySet, getRoutesBySetIds } from "@/lib/data/route-queries";
 import { getMatchAchievementContext } from "@/lib/data/match-queries";
 import { evaluateBadges } from "@/lib/badges";
+import { pickShelfBadges } from "@/lib/achievements/shelf";
 import type { Route } from "@/lib/data";
 import { ProfileAchievements } from "@/components/Achievements/ProfileAchievements";
 import { ACHIEVEMENTS } from "@/config/achievements";
@@ -21,10 +22,24 @@ interface Props {
    */
   gymId: string | null;
   createdAt: string;
+  /**
+   * Whether the viewer IS this climber. The shelf ranks by recency of
+   * activity, and when a ladder last moved is the owner's own business
+   * — the RPC that answers it is self-only (migration 132) — so only
+   * the owner's view asks. A visitor's shelf ranks by earned dates,
+   * which are public at day grain.
+   */
+  isOwnProfile: boolean;
 }
 
-export async function ProfileAchievementsSection({ userId, gymId, createdAt }: Props) {
+export async function ProfileAchievementsSection({
+  userId,
+  gymId,
+  createdAt,
+  isOwnProfile,
+}: Props) {
   const supabase = await createServerSupabase();
+  const activityPromise = isOwnProfile ? getAchievementActivity(supabase) : Promise.resolve(null);
 
   // Gymless path — just hydrate persisted earned_at values onto the
   // badge catalogue. Re-evaluation needs gym-scoped set/route data;
@@ -32,21 +47,25 @@ export async function ProfileAchievementsSection({ userId, gymId, createdAt }: P
   // Match-end achievements are evaluated server-side when the match
   // ends, so they're in the table by the time the profile reads it.
   if (!gymId) {
-    const earnedAchievements = await getEarnedAchievements(supabase, userId);
+    const [earnedAchievements, activity] = await Promise.all([
+      getEarnedAchievements(supabase, userId),
+      activityPromise,
+    ]);
     const badges = ACHIEVEMENTS.map((badge) => {
       const earnedAt = earnedAchievements.get(badge.id);
       return earnedAt
         ? { badge, earned: true as const, earnedAt }
         : { badge, earned: false as const, progress: null, current: null };
     });
-    return <ProfileAchievements badges={badges} />;
+    return <ProfileAchievements badges={badges} shelf={pickShelfBadges(badges, activity)} />;
   }
 
-  const [summary, earnedAchievements, allSets, matchAchievements] = await Promise.all([
+  const [summary, earnedAchievements, allSets, matchAchievements, activity] = await Promise.all([
     getProfileSummary(supabase, userId, gymId),
     getEarnedAchievements(supabase, userId),
     getAllSets(gymId, createdAt),
     getMatchAchievementContext(createServiceClient(), userId),
+    activityPromise,
   ]);
 
   const activeSet = allSets.find((s) => s.active) ?? null;
@@ -145,5 +164,7 @@ export async function ProfileAchievementsSection({ userId, gymId, createdAt }: P
     return b;
   });
 
-  return <ProfileAchievements badges={badges} />;
+  // Picked here, not in the browser: the shelf's ranking is the one
+  // place the activity dates are read, and this is where they stay.
+  return <ProfileAchievements badges={badges} shelf={pickShelfBadges(badges, activity)} />;
 }

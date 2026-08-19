@@ -1,0 +1,29 @@
+// Accent disc, tick in `--accent-on-solid`.
+//
+// No `.dark` override and none needed: `--accent-on-solid` is the
+// contrast Radix pairs with `--accent-solid`, and both re-map together
+// per palette and per theme. A hand-picked colour here would have to
+// be re-picked for all four palettes and both themes — which is how
+// the login screen ended up with a white blob on lime.
+.tick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+  line-height: var(--leading-none);
+}
+
+.hero {
+  width: 5rem;
+  height: 5rem;
+  font-size: var(--text-3xl);
+}
+
+.inline {
+  width: var(--space-6);
+  height: var(--space-6);
+  font-size: var(--text-xs);
+}

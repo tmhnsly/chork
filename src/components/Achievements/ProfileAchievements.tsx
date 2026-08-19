@@ -17,6 +17,8 @@ const AchievementDetailSheet = dynamic(
 
 interface Props {
   badges: BadgeStatus[];
+  /** The shelf's slots, chosen server-side — see `pickShelfBadges`. */
+  shelf: BadgeStatus[];
 }
 
 /**
@@ -34,7 +36,7 @@ interface Props {
  * opens from a card inside the catalogue it stacks on top and closing
  * it returns you to the grid rather than to the profile.
  */
-export function ProfileAchievements({ badges }: Props) {
+export function ProfileAchievements({ badges, shelf }: Props) {
   const [allOpen, setAllOpen] = useState(false);
   const [openBadge, setOpenBadge] = useState<BadgeStatus | null>(null);
 
@@ -42,6 +44,7 @@ export function ProfileAchievements({ badges }: Props) {
     <>
       <BadgeShelf
         badges={badges}
+        shelf={shelf}
         onSeeAll={() => setAllOpen(true)}
         onTapBadge={setOpenBadge}
       />

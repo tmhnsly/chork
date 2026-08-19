@@ -1,0 +1,19 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+
+.section {
+  @include layout.stack(var(--space-3));
+}
+
+.list {
+  @include layout.stack(var(--space-2));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.empty {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  padding: var(--space-3);
+}

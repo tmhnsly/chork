@@ -4,7 +4,7 @@
 // skeleton and its loaded counterpart occupy the same visual space.
 .card {
   @include surface.card;
-  border-radius: var(--radius-3);
+  border-radius: var(--radius-card);
   width: 100%;
   // `--skeleton-min-h` is set per-call so the skeleton reserves the
   // expected height of the populated state. Falls back to 9rem so a

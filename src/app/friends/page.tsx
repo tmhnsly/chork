@@ -14,6 +14,7 @@ import { getCurrentSet } from "@/lib/data/set-queries";
 import { formatSetLabel } from "@/lib/data/set-label";
 import { FriendsBoard } from "@/components/Friends/FriendsBoard";
 import { MomentsFeed } from "@/components/Friends/MomentsFeed";
+import { FriendSearch } from "@/components/Friends/FriendSearch";
 import { FriendsList } from "@/components/Friends/FriendsList";
 import styles from "./friends.module.scss";
 
@@ -60,6 +61,9 @@ export default async function FriendsPage() {
         title="Friends"
         subtitle="The climbers you compete with."
       />
+      {/* Above everything: the person you KNOW you know and can't see
+          on the list is the most impatient case on this page. */}
+      <FriendSearch />
       {currentSet && board.length > 1 && (
         <FriendsBoard rows={board} setLabel={formatSetLabel(currentSet)} />
       )}

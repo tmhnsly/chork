@@ -11,6 +11,7 @@ import {
   InputError,
   Button,
   ChoiceTiles,
+  SearchField,
   showToast,
   shimmerStyles,
   Username,
@@ -39,19 +40,30 @@ export function OnboardingForm() {
   const [allGyms, setAllGyms] = useState<Gym[]>([]);
   const [gymQuery, setGymQuery] = useState("");
   const [selectedGym, setSelectedGym] = useState<Gym | null>(null);
-  const [loadingGyms, setLoadingGyms] = useState(false);
+  // Whether the fetch has come back, NOT whether it is in flight.
+  // Derived from that, `loadingGyms` is already true on the very first
+  // render after the climber picks "Yes, pick my gym" — where a
+  // `setLoadingGyms(true)` inside the effect could only flip it AFTER
+  // that paint, so the list rendered "No gyms available" for a frame
+  // and then jumped to skeletons. That was the pop-in.
+  const [gymsLoaded, setGymsLoaded] = useState(false);
+  const loadingGyms = gymChoice === "has-chork" && !gymsLoaded;
 
   // Only fetch the gym list when the user actually needs it. Saves
   // the fetch entirely for the "no Chork at my gym" path.
   useEffect(() => {
     if (gymChoice !== "has-chork") return;
-    if (allGyms.length > 0) return;
-    setLoadingGyms(true);
+    if (gymsLoaded) return;
+    let live = true;
     fetchListedGyms().then((gyms) => {
+      if (!live) return;
       setAllGyms(gyms);
-      setLoadingGyms(false);
+      setGymsLoaded(true);
     });
-  }, [gymChoice, allGyms.length]);
+    return () => {
+      live = false;
+    };
+  }, [gymChoice, gymsLoaded]);
 
   // Debounced live username validation. 400ms is long enough that a
   // climber typing a name doesn't fire a request per keystroke, short
@@ -295,13 +307,12 @@ export function OnboardingForm() {
               </div>
             ) : (
               <>
-                <input
+                <SearchField
                   id="gymSearch"
-                  type="text"
-                  className={styles.gymInput}
                   value={gymQuery}
                   onChange={(e) => setGymQuery(e.target.value)}
-                  placeholder="Search for your gym..."
+                  placeholder="Search for your gym"
+                  ariaLabel="Search for your gym"
                 />
                 <ul className={styles.gymList} aria-busy={loadingGyms}>
                   {loadingGyms ? (

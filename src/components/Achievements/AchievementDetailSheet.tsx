@@ -1,8 +1,9 @@
 "use client";
 
-import { FaCheck, FaLock } from "react-icons/fa6";
+import { FaLock } from "react-icons/fa6";
 import { format, parseISO } from "date-fns";
 import { BottomSheet } from "@/components/ui/BottomSheet";
+import { SuccessTick } from "@/components/ui";
 import { ProgressRing } from "@/components/ui/ProgressRing/ProgressRing";
 import { ICON_MAP } from "@/lib/badge-icons";
 import { badgeFamily } from "@/lib/badges";
@@ -89,7 +90,7 @@ export function AchievementDetailSheet({ badge, open, onClose }: Props) {
 
         {badge.earned ? (
           <div className={styles.earnedRow}>
-            <span className={styles.tick} aria-hidden><FaCheck /></span>
+            <SuccessTick size="inline" />
             <span className={styles.earnedLabel}>
               {badge.earnedAt
                 ? `Earned ${format(parseISO(badge.earnedAt), "MMM d, yyyy")}`

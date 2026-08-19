@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { ActivityRings } from "@/components/ui/ActivityRings/ActivityRings";
 import { SetDetailSheet } from "./SetDetailSheet";
-import { BrandDivider } from "@/components/ui/BrandDivider";
+import { SectionCard } from "@/components/ui/SectionCard";
+import { FaLayerGroup } from "react-icons/fa6";
 import type { Route, RouteLog } from "@/lib/data";
 import type { BadgeDefinition } from "@/lib/badges";
 import styles from "./previousSetsGrid.module.scss";
@@ -44,25 +45,24 @@ export function PreviousSetsGrid({ sets, gymId, userId, showEmptyState = false }
   if (sets.length === 0) {
     if (!showEmptyState) return null;
     return (
-      <section className={styles.section}>
-        <h2 className={styles.title}>Sets</h2>
+      <SectionCard title="Sets" icon={<FaLayerGroup />}>
         <p className={styles.empty}>
           You&apos;re on your first set — check back after the reset to see it here.
         </p>
-      </section>
+      </SectionCard>
     );
   }
 
+  // In the same SectionCard shell as every other profile section. It
+  // used to be a bare heading over a grid of tiles floating in the
+  // page — one lonely tile with nothing around it on a new profile —
+  // which is the thing that made the page read as assembled rather
+  // than designed. The legend rides in the header's meta slot.
   return (
-    <section className={styles.section}>
-      <header className={styles.sectionHeader}>
-        <div className={styles.titleGroup}>
-          <h2 className={styles.title}>Sets</h2>
-          <BrandDivider />
-          <span className={styles.count} aria-label={countOf(sets.length, "set")}>
-            {sets.length}
-          </span>
-        </div>
+    <SectionCard
+      title="Sets"
+      icon={<FaLayerGroup />}
+      meta={
         <ul className={styles.legend} aria-label="Ring colours">
           <li className={styles.legendItem}>
             <span className={`${styles.legendDot} ${styles.legendSends}`} aria-hidden="true" />
@@ -77,17 +77,15 @@ export function PreviousSetsGrid({ sets, gymId, userId, showEmptyState = false }
             Zones
           </li>
         </ul>
-      </header>
-
-      <div className={styles.gridWrapper}>
-        <ul className={styles.grid}>
-          {sets.map((set) => (
-            <li key={set.id}>
-              <SetTile set={set} onOpen={() => setOpenSet(set)} />
-            </li>
-          ))}
-        </ul>
-      </div>
+      }
+    >
+      <ul className={styles.grid}>
+        {sets.map((set) => (
+          <li key={set.id}>
+            <SetTile set={set} onOpen={() => setOpenSet(set)} />
+          </li>
+        ))}
+      </ul>
 
       {openSet && (
         <SetDetailSheet
@@ -97,7 +95,7 @@ export function PreviousSetsGrid({ sets, gymId, userId, showEmptyState = false }
           onClose={() => setOpenSet(null)}
         />
       )}
-    </section>
+    </SectionCard>
   );
 }
 

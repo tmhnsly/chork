@@ -15,6 +15,7 @@ import { MatchLogSheet } from "./MatchLogSheet";
 import { MatchAddRouteSheet } from "./MatchAddRouteSheet";
 import { MatchMenuSheet } from "./MatchMenuSheet";
 import { AddGuestSheet } from "./AddGuestSheet";
+import { InviteFriendsSheet } from "./InviteFriendsSheet";
 import { CeilingSheet } from "./CeilingSheet";
 import { MatchPlayerGridSheet } from "./MatchPlayerGridSheet";
 import { logKey } from "./matchScreenReducer";
@@ -379,6 +380,7 @@ export function MatchScreen({ initialState, userId }: Props) {
           match={initialState.match}
           isHost={isHost}
           onAddGuest={() => openPanel({ kind: "add-guest" })}
+          onInviteFriends={() => openPanel({ kind: "invite-friends" })}
           onClose={closePanel}
           onEnd={handleEnd}
           onLeave={handleLeave}
@@ -406,6 +408,8 @@ export function MatchScreen({ initialState, userId }: Props) {
           pending={isPending}
         />
       )}
+
+      {panel.kind === "invite-friends" && <InviteFriendsSheet onClose={closePanel} />}
 
       {peekedPlayer && (
         <MatchPlayerGridSheet

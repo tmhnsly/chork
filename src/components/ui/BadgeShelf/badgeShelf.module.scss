@@ -1,145 +1,96 @@
 @use "mixins/typography" as type;
-@use "mixins/layout" as layout;
-@use "mixins/focus";
+@use "mixins/focus" as focus;
+@use "mixins/container-queries" as cq;
 
-.shelf {
-  @include layout.stack(var(--space-3));
-}
-
-// ── Section header ────────────────────────────────
-// Uppercase label on the left, bold-italic "X / Y" on the right —
-// matches the `typography(number)` + `--accent-text` pattern used
-// by the stat values in RingStatsRow / ClimberStats.
-.header {
-  display: flex;
-  align-items: baseline;
-  // Title + brand divider + count read as a single line; no longer
-  // pushed to opposite edges, which was leaving a big empty gap.
+// ── The row ───────────────────────────────────────
+// Six slots: five badges and "View all", always. Sits inside the
+// card's own padding — no bleed, no scroller — so the first card lines
+// up with the title and the last with the card's edge, and nothing is
+// ever cut off.
+//
+// Six across when the card can hold it, three-by-two when it cannot.
+// The constraint is the LABEL, not the circle: a badge name is one or
+// two words in 12px caps, and a single word like CENTURY or THUNDER is
+// ~62px wide. On a phone six columns are ~45px each, and a word wider
+// than its column has nowhere to go — `hyphens: auto` is not a floor
+// (Chrome ships its dictionaries as an optional download, and the
+// names are Title Case, which most hyphenators leave alone). So until
+// the card's content box reaches 412px — six 62px columns plus five
+// gaps; a container query measures the CONTENT box, padding excluded —
+// the six slots wrap to two rows of three, which is exactly the
+// density the full catalogue has on a phone. Same six slots, same
+// order, "more" still last. Every phone gets 3×2; a 500px tablet
+// column and up gets the single row.
+//
+// Explicit column counts rather than auto-fit, because six only tiles
+// cleanly as 6×1 or 3×2 — auto-fit lands on 4 or 5 columns and leaves
+// a ragged second row.
+.row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-2);
-}
 
-.heading {
-  @include type.typography(label);
-  color: var(--mono-text-low-contrast);
+  @include cq.at(25.75rem) {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+  list-style: none;
+  padding: 0;
   margin: 0;
+  // Every card's circle sits on the same line however its label
+  // wraps below.
+  align-items: start;
+
+  > li {
+    display: flex;
+    justify-content: center;
+    min-width: 0;
+  }
 }
 
+// ── The earned count ──────────────────────────────
+// Bold-italic "X / Y" — the same `typography(number)` + accent
+// pattern the stat values use. Tapping it opens the catalogue.
 .count {
   @include type.typography(number, $step: lg);
+  @include focus.ring;
   color: var(--accent-text);
   background: transparent;
   border: none;
   padding: 0;
   cursor: pointer;
-  @include focus.ring;
-  -webkit-tap-highlight-color: transparent;
-
-  &:hover {
-    color: var(--accent-text-low-contrast);
-  }
 
   small {
-    @include type.typography(label);
-    margin-left: var(--space-1);
-    font-style: normal;
-    color: var(--accent-text-low-contrast);
+    @include type.typography(number, $step: sm);
+    color: var(--mono-text-low-contrast);
   }
 }
 
-// ── Shelf track ───────────────────────────────────
-// Scroll + bleed-out behaviour now lives in the shared
-// `HorizontalScroller` primitive (`src/components/ui/HorizontalScroller`).
-// This class is just a stable hook for any shelf-specific layout
-// overrides — intentionally left empty.
-.grid {
-  // Intentionally empty — see block comment above.
-}
-
-// ── The "+N more" pill ───────────────────────────
-// All that is left of the old inline slot. Every real achievement is
-// an `AchievementCard` now — shared with the catalogue, so the shelf
-// and the grid are the same thing in two layouts. This one is not an
-// achievement, so it keeps its own shape.
-//
-// ── Slot (icon circle + name below) ───────────────
-// Each shelf entry is a tap target — circle on top, name below.
-//
-// The slot's flex box is wider than the circle (4.5 vs 3.5rem) so
-// the slot between two slots has enough gap for the name to wrap
-// nicely on longer labels like "THUNDER SHOCK". Circle + name are
-// both pinned to the slot's left edge — NOT centre-aligned — so
-// the circle's left edge IS the slot's left edge, and that drops
-// cleanly onto the page gutter via the scroller's track padding.
-// The name below matches the circle's width and text-aligns its
-// content internally, keeping the label visually centred under
-// the circle even though its flex box is flush-left.
+// ── Skeleton slots ────────────────────────────────
+// A blank achievement card: the same box (`AchievementCard`'s
+// column, padding and gap), a circle of the same size, and two lines'
+// worth of label — so `BadgeShelfSkeleton`'s row measures what a real
+// row does, at every column count. `2lh` is two of the label's own
+// lines; a real name wraps to two on most shelves, and the row is as
+// tall as its tallest card.
 .slot {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--space-2);
-  flex-shrink: 0;
-  width: 4.5rem;
-  padding: 0;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  @include focus.ring;
-  -webkit-tap-highlight-color: transparent;
-  transition: transform var(--duration-fast) var(--ease-out);
-
-  &:hover,
-  &:focus-visible {
-    transform: translateY(-1px);
-  }
+  width: 100%;
+  padding: var(--space-2) 0;
 }
 
-.circle {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.slotCircle {
   width: 3.5rem;
   height: 3.5rem;
   border-radius: var(--radius-full);
-  font-size: var(--size-icon-lg);
-  line-height: var(--leading-none);
   background: var(--mono-bg);
-  border: 1px solid var(--mono-border);
-  color: var(--mono-text-low-contrast);
-  transition:
-    background var(--duration-fast) var(--ease-out),
-    border-color var(--duration-fast) var(--ease-out),
-    color var(--duration-fast) var(--ease-out);
 }
 
-.name {
+.slotLabel {
   @include type.typography(label);
-  color: var(--mono-text-low-contrast);
-  text-align: center;
-  hyphens: auto;
-  text-wrap: balance;
-  // Match the circle's width so the text's natural centre lines up
-  // with the circle's centre above it. The slot's extra 1rem on the
-  // right is kept as dead space — it gives the name a bit of room
-  // to wrap without letting the text extend past the circle and
-  // look off-centre from the icon.
-  width: 3.5rem;
-  // Deliberately NOT `overflow-wrap: anywhere`. At the old 10px this
-  // box fit "THUNDER"; at the 12px reading floor it doesn't, and
-  // `anywhere` is a last-resort break that will happily split a word
-  // mid-glyph — the shelf rendered "THUNDE R SHOCK" and "CENTUR Y".
-  // A whole word spilling a couple of px into the slot's dead space
-  // reads better than a broken one.
-  overflow-wrap: normal;
-}
-
-// ── "+N more" trailing pill ───────────────────────
-// Dashed, muted, same footprint as the other slots so the shelf
-// keeps a consistent rhythm to the end.
-.slot--more .circle {
-  background: transparent;
-  border: 1px dashed var(--mono-border);
-  color: var(--mono-text-low-contrast);
-  @include type.typography(number, $step: md);
+  display: block;
+  width: 100%;
+  height: 2lh;
 }

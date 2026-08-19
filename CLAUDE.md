@@ -12,6 +12,7 @@ climb alongside the friends they add.
 > - `docs/testing.md` — test patterns + stability invariants
 > - `docs/db-audit.md` — findings from the last hardening pass
 > - `docs/backup-restore.md` — what to check when a restore is tested
+> - `docs/google-signin-setup.md` — the dashboard half of Google sign-in
 > - `docs/roadmap.md` — shipped / next / planned
 
 ---

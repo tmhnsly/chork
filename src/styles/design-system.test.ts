@@ -388,6 +388,35 @@ describe("tab semantics", () => {
   });
 });
 
+describe("text on an accent fill", () => {
+  // `--accent-solid` is brand-fixed: the same lime in light AND dark,
+  // because the accent is what distinguishes a palette (CLAUDE.md).
+  // `--mono-text` is not — it is near-black in light and near-white in
+  // dark. Put one on the other and light mode looks right while dark
+  // mode is white-on-lime, which is how the login confirmation screen
+  // shipped with an unreadable tick.
+  //
+  // `--accent-on-solid` is the pairing Radix computes for exactly this
+  // and is correct in both themes without an override.
+  it("never puts --mono-text on --accent-solid", () => {
+    const bad: string[] = [];
+    for (const { path, text } of scssModules) {
+      // Rule bodies: split on `}` and check each block that paints an
+      // accent-solid background for a mono-text colour.
+      for (const block of text.split("}")) {
+        if (!/background:\s*var\(--accent-solid\)/.test(block)) continue;
+        if (/color:\s*var\(--mono-text\)/.test(block)) bad.push(path);
+      }
+    }
+    expect(
+      [...new Set(bad)],
+      "Use --accent-on-solid. The accent fill is the same in both " +
+        "themes, so a theme-flipping text colour is only ever right " +
+        "in one of them.",
+    ).toEqual([]);
+  });
+});
+
 describe("radiogroup semantics", () => {
   // `role="radio"` is the same kind of promise `role="tab"` is, and it
   // was broken the same way. Two components wrote the roles and

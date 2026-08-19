@@ -38,6 +38,8 @@ import type { CachedRouteData } from "./types";
 
 const ATTEMPTS_DEBOUNCE_MS = 800;
 const GRADE_DEBOUNCE_MS = 600;
+/** More than this many badges from one send is a catch-up, not a send. */
+const MAX_INDIVIDUAL_BADGE_TOASTS = 3;
 
 interface Args {
   set: RouteSet;
@@ -312,10 +314,24 @@ export function useRouteLogState({
         dispatch({ type: "set-log", log: result.log });
         onLogUpdate(route.id, result.log);
         if (result.earnedBadges) {
-          result.earnedBadges.forEach((badge, i) => {
-            const id = setTimeout(() => showAchievementToast(badge), i * 250);
-            badgeToastTimersRef.current.push(id);
-          });
+          // One send earns one or two badges; a BURST means the
+          // evaluator is catching up on history — which every wall
+          // climber's first send after migration 132 will do, since
+          // nothing was ever persisted before it. Toasting twelve
+          // "Achievement unlocked" cards at 250ms intervals is not
+          // a celebration, it is a stuck notification tray. Past a
+          // handful, one card says so and points at the profile.
+          if (result.earnedBadges.length > MAX_INDIVIDUAL_BADGE_TOASTS) {
+            showToast(
+              `${result.earnedBadges.length} achievements unlocked — see them on your profile`,
+              "success",
+            );
+          } else {
+            result.earnedBadges.forEach((badge, i) => {
+              const id = setTimeout(() => showAchievementToast(badge), i * 250);
+              badgeToastTimersRef.current.push(id);
+            });
+          }
         }
       }
     } catch (err) {

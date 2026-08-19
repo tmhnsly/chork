@@ -90,18 +90,6 @@
   color: var(--accent-text);
 }
 
-.tick {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--space-6);
-  height: var(--space-6);
-  border-radius: var(--radius-full);
-  background: var(--accent-solid);
-  color: var(--accent-on-solid);
-  font-size: var(--text-xs);
-}
-
 .earnedLabel {
   @include type.typography(label);
 }

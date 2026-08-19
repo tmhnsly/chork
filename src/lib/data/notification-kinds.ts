@@ -39,9 +39,18 @@ export interface FriendRequestAcceptedPayload {
  * a matching `notificationKinds` entry fails the build, and vice
  * versa. The DB check constraint (migration 033) mirrors this set.
  */
+export interface MatchInviteReceivedPayload {
+  set_id: string;
+  /** The join code — the invite IS the code. */
+  code: string;
+  match_name: string | null;
+  from_username: string;
+}
+
 export interface NotificationPayloads {
   friend_request_received: FriendRequestReceivedPayload;
   friend_request_accepted: FriendRequestAcceptedPayload;
+  match_invite_received: MatchInviteReceivedPayload;
 }
 
 export type NotificationKind = keyof NotificationPayloads;
@@ -63,6 +72,13 @@ export interface NotificationEventFields {
   friend_request_accepted: {
     actor: string;
     accepterUsername: string;
+  };
+  match_invite_received: {
+    actor: string;
+    setId: string;
+    code: string;
+    matchName: string | null;
+    fromUsername: string;
   };
 }
 
@@ -102,7 +118,7 @@ export interface PushContent {
  * sheet holds an exhaustive `Record<NotificationIcon, IconType>`
  * map, so a new key here forces a one-line icon mapping there.
  */
-export type NotificationIcon = "user-plus" | "check";
+export type NotificationIcon = "user-plus" | "check" | "bolt";
 
 /**
  * Structured in-app message parts. The sheet renders these
@@ -179,6 +195,34 @@ export const notificationKinds: {
       segments: [
         { type: "user", username: p.accepter_username },
         { type: "text", text: " accepted your friend request" },
+      ],
+    }),
+  },
+
+  // A match invite is a MESSAGE carrying the join code, not a seat.
+  // Tapping it lands on the join page with the code filled in; the
+  // recipient joins by their own action or ignores it, so a spammer
+  // can inflict nothing but a notification — and the `invite_received`
+  // opt-out plus the sender's rate limit already cover that.
+  match_invite_received: {
+    toPayload: (e) => ({
+      set_id: e.setId,
+      code: e.code,
+      match_name: e.matchName,
+      from_username: e.fromUsername,
+    }),
+    push: (p) => ({
+      title: "Match invite",
+      body: `@${p.from_username} invited you to ${p.match_name ?? "a match"}. Code ${p.code}.`,
+      url: `/match/join?code=${encodeURIComponent(p.code)}`,
+      category: "invite_received",
+    }),
+    inApp: (p) => ({
+      icon: "bolt",
+      href: `/match/join?code=${encodeURIComponent(p.code)}`,
+      segments: [
+        { type: "user", username: p.from_username },
+        { type: "text", text: ` invited you to ${p.match_name ?? "a match"}` },
       ],
     }),
   },
