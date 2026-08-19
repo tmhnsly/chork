@@ -125,11 +125,14 @@ else
 fi
 
 step "RLS is live in the copy"
-# Same rows as the source, so prove the guard came back with them: an
-# anonymous reader must see nothing.
-n=$(psql "$TARGET_URL" -At -c "set role anon; select count(*) from public.route_logs;")
-if [ "$n" != "0" ]; then
-  echo "::error::anon can read $n route_logs rows in the restored copy — RLS did not come back with the schema."
-  exit 1
-fi
-echo "anon sees 0 route_logs rows in the copy."
+# Same rows as the source, so prove the guard came back with them. The
+# Data API's own role, with no JWT behind it — `auth.uid()` is null —
+# must see nothing: either the table grant is absent (permission
+# denied, which is a fence in front of the gate) or RLS filters every
+# row. A count above zero is the one unacceptable answer.
+out=$(psql "$TARGET_URL" -At -c "set role authenticated; select count(*) from public.route_logs;" 2>&1 || true)
+case "$out" in
+  0) echo "authenticated-without-a-session sees 0 route_logs rows: RLS is filtering." ;;
+  *"permission denied"*) echo "authenticated has no grant on route_logs in the copy (fence before the gate): fine." ;;
+  *) echo "::error::authenticated-without-a-session can read route_logs in the restored copy (got: $out) — RLS did not come back with the schema."; exit 1 ;;
+esac
