@@ -44,6 +44,20 @@ wc -c "$WORK"/roles.sql "$WORK"/schema.sql "$WORK"/data.sql | sed 's#'"$WORK"'/#
 # guessing.
 echo "roles.sql:"; nl -ba "$WORK/roles.sql"
 
+# Found by this drill's first run: the role dump carries a platform
+# grant — `GRANT SET ON PARAMETER "log_min_messages" TO
+# "supabase_realtime_admin"` — that the CLI's role filter does not
+# catch, and that the target's `postgres` (not a superuser, on hosted
+# and local alike) is not allowed to make. The target already has it:
+# it is Realtime's, and Realtime is on every Supabase stack. Strip
+# parameter grants to managed roles, and say so, because the
+# documented restore recipe stops dead here otherwise.
+if grep -qE '^GRANT .* ON PARAMETER .* TO "(supabase_.*|anon|authenticated|authenticator|service_role|postgres|dashboard_user|pgbouncer)";' "$WORK/roles.sql"; then
+  echo "stripping platform parameter grants from roles.sql (the target already has them):"
+  grep -E '^GRANT .* ON PARAMETER' "$WORK/roles.sql" | sed 's/^/  - /'
+  sed -i -E '/^GRANT .* ON PARAMETER .* TO "(supabase_.*|anon|authenticated|authenticator|service_role|postgres|dashboard_user|pgbouncer)";/d' "$WORK/roles.sql"
+fi
+
 step "restore into the empty target"
 # Supabase's documented recipe, verbatim: one transaction, stop on the
 # first error, triggers and FK checks off for the data load.
