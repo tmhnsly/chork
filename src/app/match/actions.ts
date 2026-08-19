@@ -20,6 +20,7 @@ type MatchPlayerRow = Database["public"]["Tables"]["set_players"]["Row"];
 import { logger } from "@/lib/logger";
 import { env } from "@/lib/env";
 import { getMatchStateForUser, getActiveMatchForUserById } from "@/lib/data/match-queries";
+import { getFriends } from "@/lib/data/friend-queries";
 import { notify } from "@/lib/notify";
 import { mintShareToken } from "@/lib/data/shared-result";
 
@@ -572,6 +573,75 @@ export interface ChorkStanding {
    * which nobody else may read. Exactly one seat has it.
    */
   has_pen: boolean;
+}
+
+export interface InvitableFriend {
+  user_id: string;
+  username: string | null;
+  name: string | null;
+  avatar_url: string | null;
+  /**
+   * Someone in this match already invited them. Read back from the
+   * notification log rather than remembered on the client, so a
+   * closed-and-reopened sheet (or a second phone) still says
+   * "Invited" instead of offering the button again.
+   */
+  invited: boolean;
+}
+
+/**
+ * The friends you could invite to the match you're in: every active
+ * friend who isn't already seated. Read-only, so no rate limit — the
+ * write it leads to (`inviteToMatch`) has one.
+ *
+ * Friends only, not a search: an invite reaches someone's phone, and
+ * the friend link is what says they agreed to hear from you. Everyone
+ * else gets the join code, which they have to act on themselves.
+ */
+export async function getInvitableFriends(): Promise<
+  { error: string } | { friends: InvitableFriend[]; matchName: string | null }
+> {
+  const auth = await gateSignedInMutation(null, "match", { rateLimit: null });
+  if ("error" in auth) return { error: auth.error };
+
+  const service = createServiceClient();
+  const active = await getActiveMatchForUserById(service, auth.userId);
+  if (!active) return { error: "You're not in a live match." };
+
+  // `get_friends` is caller-scoped: it can only ever list MY friends.
+  const friends = (await getFriends(auth.supabase)).filter((f) => f.status === "active");
+  if (friends.length === 0) return { friends: [], matchName: active.name };
+  const friendIds = friends.map((f) => f.user_id);
+
+  const [{ data: seats }, { data: invites }] = await Promise.all([
+    service
+      .from("set_players")
+      .select("user_id")
+      .eq("set_id", active.set_id)
+      .is("left_at", null)
+      .in("user_id", friendIds),
+    service
+      .from("notifications")
+      .select("user_id")
+      .eq("kind", "match_invite_received")
+      .eq("payload->>set_id", active.set_id)
+      .in("user_id", friendIds),
+  ]);
+  const seated = new Set((seats ?? []).map((s) => s.user_id));
+  const invited = new Set((invites ?? []).map((n) => n.user_id));
+
+  return {
+    matchName: active.name,
+    friends: friends
+      .filter((f) => !seated.has(f.user_id))
+      .map((f) => ({
+        user_id: f.user_id,
+        username: f.username,
+        name: f.name,
+        avatar_url: f.avatar_url,
+        invited: invited.has(f.user_id),
+      })),
+  };
 }
 
 /**

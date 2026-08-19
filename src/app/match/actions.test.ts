@@ -20,6 +20,7 @@ vi.mock("@/lib/supabase/server", () => ({
   getServerProfile: vi.fn(),
 }));
 vi.mock("@/lib/rate-limit", () => ({ enforce: vi.fn() }));
+vi.mock("@/lib/notify", () => ({ notify: vi.fn() }));
 vi.mock("@/lib/achievements/context", () => ({
   buildBadgeContext: vi.fn().mockResolvedValue(null),
 }));
@@ -468,5 +469,159 @@ describe("endMatchAction", () => {
     expect(await endMatchAction(MATCH_1)).toEqual({
       error: "You don't have permission to do that.",
     });
+  });
+});
+
+// ── Invites ─────────────────────────────────────────
+
+const USER_B = "22222222-2222-2222-2222-222222222222";
+const USER_C = "33333333-3333-3333-3333-333333333333";
+const SET_1 = "cccccccc-cccc-cccc-cccc-cccccccccccc";
+
+/** A service client that says the caller is in one live match. */
+async function mockServiceWithActiveMatch(
+  primed: Parameters<typeof createMockSupabase>[0] = {},
+) {
+  const service = createMockSupabase({
+    "rpc:get_active_match_for_user": {
+      data: { set_id: SET_1, code: "ABC123", name: "Tuesday" },
+    },
+    ...primed,
+  });
+  const { createServiceClient } = await import("@/lib/supabase/server");
+  vi.mocked(createServiceClient).mockReturnValue(service as never);
+  return service;
+}
+
+describe("inviteToMatch", () => {
+  it("rejects a malformed climber id before any auth or DB work", async () => {
+    const { inviteToMatch } = await import("./actions");
+    expect(await inviteToMatch("not-a-uuid")).toEqual({ error: "Invalid climber id" });
+  });
+
+  it("surfaces auth failure", async () => {
+    await mockAuthFailure();
+    const { inviteToMatch } = await import("./actions");
+    expect(await inviteToMatch(USER_B)).toEqual({ error: AUTH_REQUIRED });
+  });
+
+  it("is rate limited on the invitesSend bucket", async () => {
+    await mockSignedIn();
+    const { enforce } = await import("@/lib/rate-limit");
+    vi.mocked(enforce).mockResolvedValue({ ok: false, error: "Slow down", retryAfter: 60 });
+    const { inviteToMatch } = await import("./actions");
+    expect(await inviteToMatch(USER_B)).toEqual({ error: "Slow down" });
+    expect(vi.mocked(enforce).mock.calls[0]?.[0]).toBe("invitesSend");
+  });
+
+  it("refuses to invite yourself", async () => {
+    await mockSignedIn();
+    const { inviteToMatch } = await import("./actions");
+    expect(await inviteToMatch(USER_A)).toEqual({ error: "That's you." });
+  });
+
+  it("needs a live match to invite TO", async () => {
+    await mockSignedIn();
+    // Default service client: no active match.
+    const { inviteToMatch } = await import("./actions");
+    expect(await inviteToMatch(USER_B)).toEqual({
+      error: "You're not in a live match — start one first.",
+    });
+    const { notify } = await import("@/lib/notify");
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it("does not invite someone already seated", async () => {
+    await mockSignedIn();
+    await mockServiceWithActiveMatch({
+      "table:set_players": { data: { id: "seat-1" } },
+    });
+    const { inviteToMatch } = await import("./actions");
+    expect(await inviteToMatch(USER_B)).toEqual({ error: "They're already in this match." });
+    const { notify } = await import("@/lib/notify");
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it("sends ONE notification carrying the join code, and no seat", async () => {
+    await mockSignedIn();
+    const service = await mockServiceWithActiveMatch({
+      "table:set_players": { data: null },
+      "table:profiles": { data: { username: "alice" } },
+    });
+    const { inviteToMatch } = await import("./actions");
+    expect(await inviteToMatch(USER_B)).toEqual({ ok: true, matchName: "Tuesday" });
+
+    const { notify } = await import("@/lib/notify");
+    expect(notify).toHaveBeenCalledTimes(1);
+    expect(vi.mocked(notify).mock.calls[0]?.[0]).toMatchObject({
+      kind: "match_invite_received",
+      recipient: USER_B,
+      actor: USER_A,
+      setId: SET_1,
+      code: "ABC123",
+      fromUsername: "alice",
+    });
+    // An invite is a message: nothing is written to the seat table.
+    expect(
+      service.calls.some((c) => c.source === "set_players" && c.method === "insert"),
+    ).toBe(false);
+  });
+});
+
+describe("getInvitableFriends", () => {
+  it("surfaces auth failure", async () => {
+    await mockAuthFailure();
+    const { getInvitableFriends } = await import("./actions");
+    expect(await getInvitableFriends()).toEqual({ error: AUTH_REQUIRED });
+  });
+
+  it("needs a live match", async () => {
+    await mockSignedIn();
+    const { getInvitableFriends } = await import("./actions");
+    expect(await getInvitableFriends()).toEqual({ error: "You're not in a live match." });
+  });
+
+  it("lists active friends only, drops the seated, and marks the invited", async () => {
+    const friend = (user_id: string, username: string, status: "active" | "pending") => ({
+      friend_id: `link-${username}`,
+      user_id,
+      username,
+      name: null,
+      avatar_url: null,
+      status,
+      direction: "sent",
+      created_at: "2026-08-01T00:00:00Z",
+    });
+    await mockSignedIn({
+      "rpc:get_friends": {
+        data: [
+          friend(USER_B, "bea", "active"),
+          friend(USER_C, "cal", "active"),
+          friend("44444444-4444-4444-4444-444444444444", "dee", "pending"),
+        ],
+      },
+    });
+    await mockServiceWithActiveMatch({
+      // Cal is already seated; Bea has already been invited.
+      "table:set_players": { data: [{ user_id: USER_C }] },
+      "table:notifications": { data: [{ user_id: USER_B }] },
+    });
+    const { getInvitableFriends } = await import("./actions");
+    const r = await getInvitableFriends();
+    expect(r).toEqual({
+      matchName: "Tuesday",
+      friends: [
+        { user_id: USER_B, username: "bea", name: null, avatar_url: null, invited: true },
+      ],
+    });
+  });
+
+  it("does not hit the seat or notification tables with no friends to check", async () => {
+    await mockSignedIn({ "rpc:get_friends": { data: [] } });
+    const service = await mockServiceWithActiveMatch();
+    const { getInvitableFriends } = await import("./actions");
+    expect(await getInvitableFriends()).toEqual({ friends: [], matchName: "Tuesday" });
+    expect(service.calls.some((c) => c.source === "set_players")).toBe(false);
+    expect(service.calls.some((c) => c.source === "notifications")).toBe(false);
   });
 });

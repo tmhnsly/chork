@@ -4,7 +4,7 @@ import { useState, useTransition, useEffect } from "react";
 import { FaUserPlus, FaCheck } from "react-icons/fa6";
 import { SearchField, Button, showToast } from "@/components/ui";
 import { useDebouncedFlush } from "@/hooks/use-debounced-flush";
-import { FriendRow } from "./FriendRow";
+import { ClimberRow } from "@/components/ui/ClimberRow/ClimberRow";
 import {
   searchClimbers,
   requestFriend,
@@ -101,7 +101,7 @@ export function FriendSearch() {
                   : undefined);
             return (
               <li key={hit.user_id}>
-                <FriendRow
+                <ClimberRow
                   climber={hit}
                   note={note}
                   actions={

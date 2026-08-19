@@ -49,6 +49,8 @@ export type MatchPanel =
   | { kind: "peek"; playerId: string }
   /** Host adding a guest seat. */
   | { kind: "add-guest" }
+  /** Anyone in the match inviting friends — a notification, not a seat. */
+  | { kind: "invite-friends" }
   /** Declaring a player's limit for the handicap. */
   | { kind: "ceiling"; playerId: string };
 

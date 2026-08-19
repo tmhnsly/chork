@@ -6,6 +6,7 @@ import {
   FaShare,
   FaFlag,
   FaUserPlus,
+  FaPaperPlane,
   FaRightFromBracket,
 } from "react-icons/fa6";
 import { QRCodeSVG } from "qrcode.react";
@@ -24,6 +25,8 @@ interface Props {
   /** Only the host may seat a guest — they enter the guest's sends. */
   isHost: boolean;
   onAddGuest: () => void;
+  /** Anyone in the match can invite their friends. */
+  onInviteFriends: () => void;
   onClose: () => void;
   onEnd: () => void;
   /**
@@ -40,6 +43,7 @@ export function MatchMenuSheet({
   match,
   isHost,
   onAddGuest,
+  onInviteFriends,
   onClose,
   onEnd,
   onLeave,
@@ -127,6 +131,16 @@ export function MatchMenuSheet({
             No need to type — camera does it for you.
           </span>
         </section>
+
+        {/* The code reaches anyone; this reaches the people who already
+            agreed to hear from you. Everyone in the match can invite —
+            it sends a notification, not a seat, so there is nothing
+            for it to be host-only ABOUT. */}
+        {confirming === null && (
+          <Button type="button" variant="secondary" onClick={onInviteFriends} fullWidth>
+            <FaPaperPlane aria-hidden /> Invite friends
+          </Button>
+        )}
 
         {/* Guests are the recruiting path: someone climbing with you
             who hasn't got the app still appears on the board, with
