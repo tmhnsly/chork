@@ -2,6 +2,12 @@ import type { Meta, StoryObj } from "@storybook/nextjs";
 import { BadgeShelf } from "./BadgeShelf";
 import { evaluateBadges, type BadgeContext } from "@/lib/badges";
 
+const ACTIVITY = {
+  last_flash_at: "2026-08-18T10:00:00Z",
+  last_send_at: "2026-08-19T10:00:00Z",
+  last_match_at: "2026-08-17T10:00:00Z",
+};
+
 const meta = {
   title: "Components/BadgeShelf",
   component: BadgeShelf,
@@ -37,12 +43,14 @@ const emptyCtx: BadgeContext = {
 
 /** No badges earned yet — all locked with zero progress. */
 export const AllLocked: Story = {
-  args: { badges: evaluateBadges(emptyCtx) },
+  args: { badges: evaluateBadges(emptyCtx), activity: ACTIVITY, onSeeAll: () => {} },
 };
 
 /** Mixed earned and locked badges with progress. */
 export const MixedProgress: Story = {
   args: {
+    activity: ACTIVITY,
+    onSeeAll: () => {},
     badges: evaluateBadges({
       totalFlashes: 3,
       totalSends: 8,
@@ -65,6 +73,8 @@ export const MixedProgress: Story = {
 /** All badges earned. */
 export const AllEarned: Story = {
   args: {
+    activity: ACTIVITY,
+    onSeeAll: () => {},
     badges: evaluateBadges({
       totalFlashes: 1200,
       totalSends: 1200,

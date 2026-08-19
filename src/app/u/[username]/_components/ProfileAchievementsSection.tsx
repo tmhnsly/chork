@@ -1,6 +1,6 @@
 import { createServerSupabase, createServiceClient } from "@/lib/supabase/server";
 import { getProfileSummary } from "@/lib/data/profile-queries";
-import { getEarnedAchievements } from "@/lib/data/achievement-queries";
+import { getEarnedAchievements, getAchievementActivity } from "@/lib/data/achievement-queries";
 import { getAllSets } from "@/lib/data/set-queries";
 import { getRoutesBySet, getRoutesBySetIds } from "@/lib/data/route-queries";
 import { getMatchAchievementContext } from "@/lib/data/match-queries";
@@ -32,21 +32,25 @@ export async function ProfileAchievementsSection({ userId, gymId, createdAt }: P
   // Match-end achievements are evaluated server-side when the match
   // ends, so they're in the table by the time the profile reads it.
   if (!gymId) {
-    const earnedAchievements = await getEarnedAchievements(supabase, userId);
+    const [earnedAchievements, activity] = await Promise.all([
+      getEarnedAchievements(supabase, userId),
+      getAchievementActivity(supabase, userId),
+    ]);
     const badges = ACHIEVEMENTS.map((badge) => {
       const earnedAt = earnedAchievements.get(badge.id);
       return earnedAt
         ? { badge, earned: true as const, earnedAt }
         : { badge, earned: false as const, progress: null, current: null };
     });
-    return <ProfileAchievements badges={badges} />;
+    return <ProfileAchievements badges={badges} activity={activity} />;
   }
 
-  const [summary, earnedAchievements, allSets, matchAchievements] = await Promise.all([
+  const [summary, earnedAchievements, allSets, matchAchievements, activity] = await Promise.all([
     getProfileSummary(supabase, userId, gymId),
     getEarnedAchievements(supabase, userId),
     getAllSets(gymId, createdAt),
     getMatchAchievementContext(createServiceClient(), userId),
+    getAchievementActivity(supabase, userId),
   ]);
 
   const activeSet = allSets.find((s) => s.active) ?? null;
@@ -145,5 +149,5 @@ export async function ProfileAchievementsSection({ userId, gymId, createdAt }: P
     return b;
   });
 
-  return <ProfileAchievements badges={badges} />;
+  return <ProfileAchievements badges={badges} activity={activity} />;
 }

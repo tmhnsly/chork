@@ -1422,6 +1422,14 @@ export type Database = {
         }[]
       }
       generate_set_code: { Args: never; Returns: string }
+      get_achievement_activity: {
+        Args: { p_user_id: string }
+        Returns: {
+          last_flash_at: string
+          last_match_at: string
+          last_send_at: string
+        }[]
+      }
       get_active_climber_count: { Args: { p_set_id: string }; Returns: number }
       get_active_match_for_user: {
         Args: { p_user_id: string }

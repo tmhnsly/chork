@@ -11,7 +11,13 @@
   flex-direction: column;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-1);
+  // Fills its column and never overflows it. The grids that hold it
+  // (shelf, catalogue) guarantee a column wide enough for the circle
+  // and a two-line label — see the shelf's row for why that matters
+  // on a phone.
+  width: 100%;
+  min-width: 0;
+  padding: var(--space-2) 0;
   background: transparent;
   border: none;
   border-radius: var(--radius-2);
@@ -57,10 +63,14 @@
   text-align: center;
   hyphens: auto;
   text-wrap: balance;
-  // Wider than the circle, unlike the shelf's slot: a grid cell has
-  // the room, and two lines of a long name read better than a hard
-  // clamp at the circle's width.
-  max-width: 6rem;
+  // The column is the width. Two lines of a long name are fine;
+  // more than that and the row's rhythm breaks — so long names clamp
+  // at two and get their full text from the aria-label.
+  width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   // Deliberately NOT `overflow-wrap: anywhere` — that is a
   // last-resort break and will happily split a word mid-syllable.
 }

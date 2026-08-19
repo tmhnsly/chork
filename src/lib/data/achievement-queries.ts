@@ -21,3 +21,31 @@ export async function getEarnedAchievements(
   );
   return new Map(rows.map((r) => [r.badge_id, r.earned_at]));
 }
+
+/**
+ * When the climber last moved each achievement ladder.
+ *
+ * The shelf ranks by RECENCY of activity — recently earned, recently
+ * contributed towards — not by proximity to a target. Progress is a
+ * count with no timestamp, so this is derived: the last flash, the
+ * last send (which also moves points), and the last finished match.
+ * Six progress keys collapse to those three dates.
+ */
+export interface AchievementActivity {
+  last_flash_at: string | null;
+  last_send_at: string | null;
+  last_match_at: string | null;
+}
+
+export async function getAchievementActivity(
+  supabase: Supabase,
+  userId: string,
+): Promise<AchievementActivity> {
+  const { data, error } = await supabase
+    .rpc("get_achievement_activity", { p_user_id: userId })
+    .maybeSingle();
+  if (error || !data) {
+    return { last_flash_at: null, last_send_at: null, last_match_at: null };
+  }
+  return data as AchievementActivity;
+}
