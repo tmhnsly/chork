@@ -34,9 +34,26 @@ trap 'rm -rf "$WORK"' EXIT
 step() { printf '\n\033[1m— %s\033[0m\n' "$*"; }
 
 step "dump: roles, schema, data"
+# Storage's INTERNAL tables (vectors, analytics, multipart uploads,
+# prefixes — whatever this storage-api version keeps) are platform
+# bookkeeping: the target's `postgres` may not write them, and a
+# restore does not want them. The two that are ours — `buckets` and
+# `objects`, the avatar files' metadata — stay in. Computed from the
+# source each run rather than listed, because the internal set changes
+# with storage-api versions and a stale denylist is how the drill would
+# break on a Monday for no reason of ours.
+STORAGE_INTERNAL=$(psql "$SOURCE_URL" -At -c \
+  "select string_agg('storage.' || tablename, ',' order by tablename)
+     from pg_tables where schemaname = 'storage' and tablename not in ('buckets', 'objects', 'migrations')")
+if [ -n "$STORAGE_INTERNAL" ]; then
+  echo "leaving storage internals out of the data dump: $STORAGE_INTERNAL"
+  EXCLUDE=(-x "$STORAGE_INTERNAL")
+else
+  EXCLUDE=()
+fi
 supabase db dump "${DUMP_ARGS[@]}" -f "$WORK/roles.sql"  --role-only
 supabase db dump "${DUMP_ARGS[@]}" -f "$WORK/schema.sql"
-supabase db dump "${DUMP_ARGS[@]}" -f "$WORK/data.sql"   --data-only --use-copy
+supabase db dump "${DUMP_ARGS[@]}" -f "$WORK/data.sql"   --data-only --use-copy "${EXCLUDE[@]}"
 wc -c "$WORK"/roles.sql "$WORK"/schema.sql "$WORK"/data.sql | sed 's#'"$WORK"'/##'
 # The role file is tiny and carries no passwords (`--no-role-passwords`);
 # show it, because a restore that fails usually fails HERE — a role
