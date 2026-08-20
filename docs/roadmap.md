@@ -78,7 +78,11 @@ Platform hardening:
 - [x] Configure Supabase SMTP with Resend — sending from
       `hello@chork.app`
 - [x] Inbound email forwarding (Porkbun → dedicated Gmail)
-- [ ] Enable "confirm email" in Supabase Auth
+- [x] Enable "confirm email" in Supabase Auth — was already on; the
+      list hadn't caught up (again). Proven from `auth.users`: the
+      2026-08-18 email signup has 71 seconds between `created_at` and
+      `email_confirmed_at` — a real click on a real Resend-delivered
+      link. Autoconfirm would make that gap zero
 - [x] Update Supabase redirect URLs for production domain — proven
       2026-08-19: a Google sign-in on chork.app came back to
       `https://chork.app/auth/callback` (the runtime log shows the 307
