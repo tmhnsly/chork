@@ -1,10 +1,17 @@
 # Backups: what exists, what the drill proves, what is still yours
 
-**Status (2026-08-19):** the restore procedure is built, automated and
-proven against a real Supabase stack every Monday — and against
-production the moment one secret exists. Until it does, and until the
-plan question below is settled, **the data has no backup at all.**
-Read the first section even if you read nothing else.
+**Status (2026-08-20):** the restore procedure is built, automated and
+proven against a real Supabase stack every Monday. **The plan question
+is settled for now: no paid backups** — Tom's call, because 50 of 53
+accounts and 452 of 459 route logs are seed data, so a total loss
+today costs about an hour of re-seeding (migrations rebuild the
+schema, seed scripts rebuild the fake climbers). **The trigger to
+revisit: the first real climbers logging real sends.** From that day,
+their data is not ours to lose — flip on Pro, or ask Claude for the
+free fallback (weekly dump encrypted with a repo-secret passphrase,
+stored as a GitHub artifact). The production half of the drill also
+stays parked until then; its Monday "skipped" warning is that decision
+showing, not a fault.
 
 ## What backs up production today
 

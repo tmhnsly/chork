@@ -84,9 +84,9 @@ Platform hardening:
       `https://chork.app/auth/callback` (the runtime log shows the 307
       there), which Supabase only does for a listed URL; an unlisted
       one is silently swapped for the Site URL
-- [ ] Set VAPID env vars in Vercel (see `.env.example`) — push
-      gracefully no-ops until these exist, so this is the difference
-      between having notifications and not
+- [x] Set VAPID env vars in Vercel — done 2026-08-20: all three set
+      on Production and the redeployed bundle verified to carry the
+      public key, so push is live end-to-end
 - [x] **Google sign-in — live and verified 2026-08-19.** Provider
       enabled, first-time path run for real (Google-only account,
       prefilled name, Google avatar, onboarding), returning path run,
@@ -94,9 +94,10 @@ Platform hardening:
       checks remain a human's — the consent screen's publishing status
       (*Testing* blocks strangers at Google's door) and the localhost
       redirect entry — both in `docs/google-signin-setup.md`
-- [ ] Apple Sign In — same shape as Google, but needs a paid Apple
-      developer account. Worth doing after Google proves the callback
-      flow, since iOS PWA users are the core audience
+- [ ] Apple Sign In — **decided against for now (Tom, 2026-08-20)**:
+      needs the paid developer account and Google covers sign-up.
+      Revisit if iOS PWA users ask; same shape as Google, mostly
+      provider config
 
 > The first four were already done and this list hadn't caught up.
 > Verify before believing an unticked box here.
@@ -125,24 +126,24 @@ Platform hardening:
 - [x] Rate limiting on server actions (Upstash sliding-window,
       `src/lib/rate-limit.ts`)
 - [x] Error monitoring (Sentry — `sentry.{client,server,edge}.config.ts`)
-- [ ] Database connection pooling (Supabase config verify)
-- [~] **Backups — the restore is proven; the backup is the open
-      question.** *(2026-08-19.)* `.github/workflows/backup-drill.yml`
-      rebuilds the schema from the repo on a real Supabase stack every
-      Monday and gets production's shape back exactly, then dumps that
-      stack and restores it into a second one and diffs — the dump
-      flags and the psql recipe are proven on every run. Its first
-      runs found three things a real restore would have tripped on
-      (a platform grant, storage's internal tables, and **`db dump`
-      carries no pg_cron jobs** — 5 became 0) and the script carries
-      the fixes. Against production it needs `SUPABASE_DB_URL`
-      (session pooler string; `gh secret set`) and skips loudly until
-      it has it. **Still open, and it is the bigger half:** the API
-      lists no Supabase-managed backups and PITR off — consistent
-      with the Free plan, where a lost database is simply lost. The
-      drill proves restorability; it keeps no copy (public repo, PII).
-      Decide Pro ($25/mo, daily backups, the target this drill
-      rehearses) before launch. `docs/backup-restore.md` has the lot
+- [x] Database connection pooling — verified moot 2026-08-20: the app
+      opens no direct Postgres connections (no `pg`, no `postgres://`
+      anywhere in src; every read and write goes through supabase-js →
+      PostgREST, which pools server-side). The only PG-protocol
+      consumers are tooling (CLI dumps, the backup drill), which use
+      the session pooler by construction
+- [x] **Backups — restore proven; no paid backups by decision.**
+      *(2026-08-19 → 20.)* The weekly backup drill rebuilds the schema
+      from the repo on a real Supabase stack and dump→restore→diffs
+      it against a second one — green, and it caught three real
+      restore-stoppers on the way (a platform grant, storage
+      internals, and `db dump` carrying no pg_cron jobs). **Tom's
+      call, 2026-08-20: no Pro plan and no dump-keeping yet** — 50 of
+      53 accounts and 452 of 459 route logs are seed data, so a total
+      loss costs about an hour of re-seeding. THE TRIGGER: the day
+      real climbers are logging, backups go on (Pro, or the free
+      encrypted-artifact fallback described in
+      `docs/backup-restore.md`) — their data is not ours to lose
 
 ## Google sign-in — shipped (2026-08-17 → 19, migrations 122–123)
 
