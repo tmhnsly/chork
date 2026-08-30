@@ -22,6 +22,7 @@ export function mockRouteSet(overrides: Partial<RouteSet> & { id: string; gym_id
     // and ends on its schedule rather than on inactivity.
     location: null,
     last_activity_at: null,
+    league_id: null,
     // Migration 091. Chork shipped boulder-only, so that's the default
     // a fixture should look like unless a test says otherwise.
     discipline: "boulder",
