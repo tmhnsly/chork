@@ -62,6 +62,26 @@ in the roadmap.
 A Match can be **promoted to a gym Set** — that upgrade path is why
 the two are one primitive rather than two systems.
 
+## League
+
+**A series of Matches with a cumulative table.** A Match is an event;
+a League is a fixture — "our Tuesday league" — and fixtures are what
+bring people back next week. Migrations 133–134; design in
+`docs/superpowers/specs/2026-08-30-league-design.md`.
+
+- A **week** is one finished Match in the League. The list shows the
+  newest first; "Week n" counts from the oldest.
+- The **table** is never stored. Each week's own board is ranked as
+  it already is; placing pays 10 / 8 / 6 / 5 / 4 / 3 / 2 / then 1,
+  tied places share the higher; a missed week is 0. From 4 weeks your
+  lowest is dropped, from 8 your lowest two. Ranked by points, then
+  most 1sts, 2nds, 3rds; still tied → shared.
+- **Guests place but get no row.** They push account-holders down in
+  the week; the table is the reason to make an account.
+- **The host writes, the roster reads.** The host of the first Match
+  hosts the League. Anyone with a seat in a week can see the table.
+- No Data API grant — every read and write is an RPC, like friends.
+
 ## Discipline
 
 Boulder / sport / top-rope — Chork is not boulder-only.

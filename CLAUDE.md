@@ -123,11 +123,12 @@ Two supabase clients:
   `gym-queries` / `profile-queries` / `leaderboard-queries` /
   `friend-queries` / `competition-queries` / `admin-queries` /
   `dashboard-queries` / `match-queries` / `comment-queries` /
-  `achievement-queries`. Every read takes `supabase` as first arg.
-  (There is no catch-all `queries.ts`; it was split per-surface.)
-  Alongside them sit pure/derived modules that aren't query surfaces:
-  `moments` / `match-board` / `match-leaderboard` / `match-stats` /
-  `match-types` / `chork` / `handicap` / `grade-distribution` /
+  `achievement-queries` / `league-queries`. Every read takes
+  `supabase` as first arg. (There is no catch-all `queries.ts`; it was
+  split per-surface.) Alongside them sit pure/derived modules that
+  aren't query surfaces: `moments` / `match-board` /
+  `match-leaderboard` / `match-stats` / `match-types` / `league` /
+  `league-types` / `chork` / `handicap` / `grade-distribution` /
   `shared-result` / `notifications` / `username-display`
 - Client-reachable data modules use a `*.client.ts` suffix (no
   `server-only` import) — e.g. `gym-queries.client.ts` mirrors the
@@ -502,6 +503,10 @@ navbar + home indicator), max-width, and centering.
   the single set-creation/publish path. Still not a DB constraint;
   the pg_cron auto-publish path relies on migration 071's
   auto-archive of ended sets
+- **League placement points live in two homes** — `league_placement_points`
+  / `league_drops` in migration 134 and `LEAGUE_LADDER` / `dropsFor`
+  in `src/lib/data/league.ts` — pinned equal by `league.test.ts`. The
+  table is computed on read by `league_standings`; never store it
 - **Archived / draft sets are read-only** for climbers. Migration 003
   blocks inserts against non-live sets at the RLS layer
 - **Legacy `sets.active` is derived from `sets.status`** via a
