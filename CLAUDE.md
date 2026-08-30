@@ -10,7 +10,10 @@ climb alongside the friends they add.
 > - `docs/schema.md` — Supabase tables, RPCs, RLS patterns
 > - `docs/migrations.md` — one-line-per-migration catalogue
 > - `docs/testing.md` — test patterns + stability invariants
-> - `docs/db-audit.md` — findings from the last hardening pass
+> - `docs/strategy.md` — market position, monetisation, what to build
+> - `docs/db-audit.md` / `docs/db-audit-2.md` — findings from the two
+>   hardening passes (both historical snapshots; `schema.md` is the
+>   always-current reference)
 > - `docs/backup-restore.md` — what to check when a restore is tested
 > - `docs/google-signin-setup.md` — the dashboard half of Google sign-in
 > - `docs/roadmap.md` — shipped / next / planned
@@ -117,6 +120,10 @@ Two supabase clients:
   `dashboard-queries` / `match-queries` / `comment-queries` /
   `achievement-queries`. Every read takes `supabase` as first arg.
   (There is no catch-all `queries.ts`; it was split per-surface.)
+  Alongside them sit pure/derived modules that aren't query surfaces:
+  `moments` / `match-board` / `match-leaderboard` / `match-stats` /
+  `match-types` / `chork` / `handicap` / `grade-distribution` /
+  `shared-result` / `notifications` / `username-display`
 - Client-reachable data modules use a `*.client.ts` suffix (no
   `server-only` import) — e.g. `gym-queries.client.ts` mirrors the
   server-only `getListedGyms` for `"use client"` callers. Components
@@ -126,9 +133,15 @@ Two supabase clients:
   cross-user writes. Admin + match writes live inline in their server
   action (single-caller wrappers were deliberately inlined — don't
   reintroduce a pass-through mutation module for them)
-- Server actions live next to their pages:
-  `src/app/(app)/actions.ts`, `src/app/admin/actions.ts`,
-  `src/app/friends/actions.ts`
+- Server actions live next to their pages — ~20 modules, the largest
+  being `src/app/match/actions.ts` (20 actions), then
+  `src/app/admin/sets-actions.ts`, `src/app/(app)/route-log-actions.ts`,
+  `src/app/friends/actions.ts`, `src/app/(app)/membership-actions.ts`.
+  `src/app/(app)/actions.ts` and `src/app/admin/actions.ts` are
+  `export *` barrels that exist only for their own test files —
+  nothing in the app imports them. `src/lib/user-actions.ts` is the
+  one action module outside `src/app/`, which is why sweeps that grep
+  `src/app/**/*actions.ts` keep missing it
 - Types: `src/lib/data/types.ts` derives from `database.types.ts`
   (regenerated after every migration)
 - Pure logic (easily testable, no Supabase dependency):
@@ -504,9 +517,10 @@ set.
   friends, profiles, notifications). `requireAuth()` **only** for
   genuinely gym-scoped surfaces — it fails with "No gym selected"
 - Gymless routing already exists: `/` and `/leaderboard` redirect to
-  `/match`, NavBar drops to its gymless variant (Crew / Match / Profile),
-  and the profile page guards its gym sections. Onboarding can be
-  completed without a gym
+  `/match`, NavBar drops to its gymless variant (Friends / Match /
+  Profile — the gym'd variant is Card / Friends / Match / Profile,
+  plus Admin for gym admins), and the profile page guards its gym
+  sections. Onboarding can be completed without a gym
 - **Leaving a gym parks it, never severs it.** `clearActiveGym` nulls
   `active_gym_id` and keeps the `gym_memberships` row, because
   `route_logs` SELECT is gated on `is_gym_member(gym_id)` — dropping
@@ -518,9 +532,11 @@ set.
   since set boards only count logs in that set
 
 Known gap: `activity_events` is only written by gym-wall sends and
-comments, so a gymless climber produces nothing for a feed.
-Decided direction is one event per match, parked pending the moments
-feed (docs/roadmap.md), which is what friends at other gyms will see.
+comments, so a gymless climber produces nothing for it. The moments
+feed shipped separately and does not read that table — `MomentsFeed`
+on `/friends` is fed by `get_friend_moments` (migrations 109–110, one
+best moment per climber per day), which is what friends at other gyms
+see. One event per Match remains unbuilt.
 
 ### Friends (crews are gone)
 
@@ -566,10 +582,20 @@ the reason the moments feed exists (docs/roadmap.md).
 
 Two layers: push (best-effort, transient) + persistent log
 (`notifications` table, migration 033). Every push-worthy event is
-tagged with a category (`invite_received` / `invite_accepted`) — `sendPushToUsers(..., { category })` filters
+tagged with a category (`invite_received` / `invite_accepted`;
+`ownership_changed` still has a column but nothing sends it — it went
+with crews) — `sendPushToUsers(..., { category })` filters
 recipients by the opt-in bool on `profiles` (migration 032). The
 `notifyUser(userId, args)` helper writes a log row alongside so
 missed pushes are caught up in the NotificationsSheet.
+
+The live kinds are `friend_request_received`,
+`friend_request_accepted` and `match_invite_received`, defined in
+`src/lib/data/notification-kinds.ts`. **The category union is
+duplicated in five places** (`push/server.ts` ×3,
+`notification-kinds.ts`, `user-actions.ts`) because the push module
+is server-only and the kinds table must stay client-safe — adding a
+category is five coordinated edits and the compiler catches two.
 
 `notify_user` RPC is service-role-only (migration 040) — prior to
 that, any signed-in user could call it with an arbitrary target

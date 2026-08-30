@@ -1,7 +1,20 @@
 # ADR 0002 — No generic lifecycle orchestrator
 
-**Status:** Accepted, 2026-05-21
+**Status:** Accepted, 2026-05-21. Still stands (re-checked 2026-08-20).
 **Context links:** session that proposed it (architecture-improvement skill, opportunity #3)
+
+> **The exemplars are gone; the decision isn't.** `crew-lifecycle.ts`
+> and its `sendCrewInvite` / `acceptCrewInvite` /
+> `transferCrewOwnership` were deleted with crews (migration 108).
+> Read the rule against today's multi-step actions instead — the
+> friends and match write paths have the same shape.
+>
+> The "extract named sub-functions past ~80 LOC" clause is the live
+> half: `createSet` (106 LOC) and `updateSet` (126 LOC) in
+> `admin/sets-actions.ts` are both over it and duplicate three rules
+> between them (go-live announce, archive-the-incumbent, the
+> no-routes refusal). That's the clause firing, not an argument for
+> a generic runner.
 
 ## Decision
 

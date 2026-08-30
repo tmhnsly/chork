@@ -7,11 +7,14 @@ CLAUDE.md is the authoritative source for project rules. Architectural
 deep-dives live in `docs/architecture.md`. This file holds **terminology**
 that needs a single canonical definition.
 
-> **Vocabulary is ahead of the code (decided 2026-08-14).** The terms
-> below are the agreed product language; the codebase still says
-> `match*` / "Wall" / "Crew" in places and will until the convergence
-> work in `docs/roadmap.md` lands. Where they differ, this file is the
-> target and the code is the lag. Don't "correct" this file back.
+> **Vocabulary and code converged (2026-08-20).** The 2026-08-14
+> language decisions have shipped: the codebase says `match*`, Card,
+> and Friends. Two deliberate remnants: the offline queue's
+> `upsertJamLog` action key is frozen so queued mutations from old
+> clients still replay (`src/lib/offline/registry.ts`), and historical
+> migrations keep their original names. From here, a term mismatch
+> between this file and the code is a bug in one of them — fix the
+> laggard, don't assume this file wins.
 
 ---
 
@@ -238,20 +241,24 @@ player's letters are the rounds they failed. Failure is
 their allowance runs out and eventually sends does **not** erase the
 letter they already earned.
 
-## Mates
+## Friends
 
-The social graph: climbers you follow, mutually. Replaces **Crew**,
-which required creating a group and waiting for invites to be
-accepted — three steps before any value, and every crew empty at
-launch. A follow gives value at one connection.
+The social graph: a mutual link between two climbers — one row both
+sides agreed to. Replaces **Crew**, which required creating a group
+and waiting for invites to be accepted — three steps before any
+value, and every crew empty at launch. A friend link is worth
+something at one connection. ("Mates" was the working name in the
+2026-08 planning sessions; the shipped surface, tables and
+notification kinds all say Friends, confirmed canonical 2026-08-20.)
 
 The feed shows **moments, not ticks**: a first V6, a project sent
 after five sessions, a flash above someone's usual grade, a Set won.
 "Tom sent #14" is noise.
 
-Crews replaced follows entirely in migrations 020 + 021, so any
-`follower_count` / `getFollowers` reference from *before* that is
-still dead code — the new graph is a fresh design, not a revival.
+Lineage, for greppers: follows were removed in migrations 020 + 021
+(crews replaced them), and friends replaced crews in migrations
+104–108. Any `follower_count` / `getFollowers` reference is dead
+code twice over, and anything `crew*` should be deleted on sight.
 
 ## Climber, admin, organiser
 
@@ -291,8 +298,10 @@ action triggered it), and a category. When `actor === recipient` the
 dispatch is a no-op (self-skip). Implemented by `notify(event)` in
 `src/lib/notify.ts`.
 
-Examples: `crew_invite_received`, `crew_invite_accepted`,
-`crew_ownership_transferred`. Future: comment likes, friend requests.
+Examples (the live kind union in
+`src/lib/data/notification-kinds.ts`): `friend_request_received`,
+`friend_request_accepted`, `match_invite_received`. Future: comment
+likes.
 
 ## Notification kind
 

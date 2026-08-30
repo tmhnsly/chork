@@ -17,9 +17,9 @@ Server component / server action
         │
         ├── (reads)    src/lib/data/<surface>-queries.ts
         ├── (admin r.) src/lib/data/admin-queries.ts
-        ├── (crew r.)  src/lib/data/crew-queries.ts
-        └── (writes)   src/lib/data/mutations.ts, crew-lifecycle.ts,
-                       or inline in the owning server action
+        ├── (social r.) src/lib/data/friend-queries.ts
+        └── (writes)   src/lib/data/mutations.ts, or inline in the
+                       owning server action
                                 │
                                 └── Supabase client (RLS applies)
 ```
@@ -29,8 +29,8 @@ doing it wrong — add a helper instead.
 
 **Writes and the deletion test.** A `*-mutations.ts` module earns its
 keep only when a write has more than one caller or carries real
-orchestration (`mutations.ts` upsert semantics, `crew-lifecycle.ts`
-flows). Single-caller pass-through wrappers do not: `admin-mutations.ts`
+orchestration (`mutations.ts` upsert semantics). Single-caller
+pass-through wrappers do not: `admin-mutations.ts`
 (13 functions, 13 callers, 1:1) and `jam-mutations.ts` (7 RPC
 wrappers — the Match feature was called "jams" then) were inlined into
 their owning server actions in 2026-08 —
@@ -113,7 +113,7 @@ top-level try/catch.
 - Caller (server action) wraps the call in `try { ... } catch (err)
   { return { error: formatError(err) } }`.
 
-#### Discriminated-return contract (`crew-lifecycle.ts`, inline action writes)
+#### Discriminated-return contract (inline action writes)
 
 Used by writes that produce **known, user-facing business errors** —
 duplicate slug, expired invite, rate-limit exceeded, "you're already
@@ -214,75 +214,82 @@ three gyms (only two of which they admin) — all simultaneously.
 
 ---
 
-## The crew feature
+## The friends feature
 
-A crew is a mutual, named group of climbers. Invitations are
-bilateral: both sides must agree. Replaced the old follow /
-followers system entirely.
+> **Crews are gone.** Follows were removed in migrations 020–021 and
+> replaced by crews; crews were removed in migrations 104–108 and
+> replaced by friends. Anything `crew*`, `follower_count` or
+> `getFollowers` is dead on sight. The `crews`, `crew_members` and
+> `blocked_users` tables no longer exist.
+>
+> **Why crews went:** create, name, invite, accept — four steps before
+> anything was worth looking at, and every crew started empty. A
+> friend link is worth something at one connection.
 
-Tables (see `docs/schema.md` for columns):
+A friend link is one row per pair, unique on the **unordered** pair
+via an index on `(least, greatest)`. `requester_id` / `addressee_id`
+only record who asked — there is no asymmetric relationship in this
+app.
 
-- `crews` — id, name, created_by
-- `crew_members` — `(crew_id, user_id, invited_by, status in
-  ('pending','active'))`. Unique on `(crew_id, user_id)`
-- `blocked_users` — `(blocker_id, blocked_id)`. Powers the filter
-  on user search
+**`public.friends` has no Data API grant.** Every read and write goes
+through a SECURITY DEFINER RPC, so the table is unreachable from
+supabase-js and RLS is not the only gate.
 
-Trigger `seat_crew_creator` inserts the creator as `active` in the
-same transaction as the crew insert, so the creator is never
-momentarily outside their own crew.
+### The RPC surface
+
+Writes (`src/app/friends/actions.ts`): `request_friend`,
+`respond_to_friend`, `remove_friend`, `search_climbers`.
+Reads (`src/lib/data/friend-queries.ts`): `friend_status`,
+`get_friends`, `get_friend_suggestions`, `get_friends_leaderboard`,
+`get_friend_moments`.
+
+### The state machine (migration 106 owns it)
+
+`pending` → asked, awaiting an answer. `active` → friends.
+`declined` → refused, and the row **persists** so suggestions stop
+offering them.
+
+- Asking twice is idempotent — one row, one notification.
+- Asking someone who already asked *you* accepts.
+- Declining is silent. The person declined **cannot** re-ask; the
+  person who declined can change their mind.
+
+### Notifications
+
+`friend_request_received` → the addressee; `friend_request_accepted`
+→ the original requester. Both go through `notifyUser` (log row) plus
+a category-gated push. `friends/actions.ts` wraps `notify()` in a
+local try/catch, which is belt-and-braces — `notify()` already
+swallows both halves internally.
+
+### Discovery, not search
+
+`get_friend_suggestions` reads **Matches you have shared** — never gym
+Sets, since everyone at your gym shares the current Set and that would
+turn suggestions into a directory. Guests are excluded; they have no
+account to link to.
 
 ### Surfaces
 
-- `/crew` — picker. Avatar-stack cards for every crew the caller is
-  in, pending invites pinned to the top, zero-crew hero with the
-  primary Create CTA. No activity / leaderboard at this level.
-- `/crew/[id]` — detail. Header with name + member avatar stack,
-  SegmentedControl tabs for **Activity** · **Leaderboard** ·
-  **Members**. Each tab loads independently; the shared components
-  (CrewActivityFeed, CrewLeaderboardPanel, CrewMembersList) live in
-  `src/components/Crew/`.
+`/friends` is roster + suggestions + the friends board
+(`get_friends_leaderboard`, set-scoped, always includes you) + the
+moments feed. Components live in `src/components/Friends/`:
+`FriendsList`, `FriendSearch`, `FriendsBoard`, `MomentsFeed`.
 
-### Invite lifecycle
-
-```
-            inviteToCrew() ────► row inserted status='pending'
-                  │
-                  ├── notifyUser(kind=crew_invite_received)
-                  └── sendPushToUsers(..., category=invite_received)
-                              │
-              ┌───────────────┴───────────────┐
-              │                               │
-      acceptCrewInvite()             declineCrewInvite()
-      UPDATE status='active'          DELETE row
-              │
-              ├── notifyUser(kind=crew_invite_accepted)  → inviter
-              └── sendPushToUsers(..., category=invite_accepted) → inviter
-```
-
-Leaving: `leaveCrew()` has three branches:
-- Non-creator → plain delete of own row.
-- Creator alone → crew is deleted; FK cascades take care of pending
-  invites + member rows.
-- Creator with other members → refused. They must transfer ownership
-  first (`transferCrewOwnership(crewId, newOwnerId)` — creator-only,
-  target must be an active member) which also fires a `notifyUser
-  (kind=crew_ownership_transferred)` + category-gated push.
-
-### Rate limit
-
-`bump_invite_rate_limit()` is an atomic SECURITY DEFINER function.
-Returns true and increments `invites_sent_today` if under the cap
-(10/day). Returns false when the cap is hit. Resets automatically
-when `invites_sent_date != current_date`. Stops any one account
-from spamming search results.
+Friends at other gyms share no Set, so the board is empty for them —
+that is precisely why `MomentsFeed` exists (`get_friend_moments`,
+migrations 109–110, one best moment per day).
 
 ### Privacy surfaces
 
-- `allow_crew_invites` (boolean on profiles) — when false, hides
-  the user from search and blocks incoming invites server-side
-- `blocked_users` — bidirectional block check in search and invite
-- `relativeDay()` — no clock time ever on the activity feed
+- `profiles.allow_friend_requests` — enforced **inside**
+  `request_friend` and hides you from suggestions. A privacy switch
+  the server doesn't honour is decoration.
+- Rate limiting comes from the `gate*` helpers, not a bespoke
+  `bump_invite_rate_limit` (that went with crews). Read-only status
+  lookups opt out explicitly with `{ rateLimit: null }` so a search
+  result doesn't pay for the check.
+- `relativeDay()` — no clock time ever on the moments feed.
 
 ---
 
@@ -296,9 +303,9 @@ Every aggregate is a Postgres RPC, not a JS reduce:
   `get_setter_breakdown`, `get_all_time_overview`
 - Cross-gym: `get_competition_leaderboard`,
   `get_competition_venue_stats`
-- Crew: `get_crew_leaderboard`, `get_crew_activity_feed(...)` (two
-  signatures — cross-crew and per-crew, see migration 029),
-  `get_crew_member_previews`, `get_crew_member_counts`
+- Social: `get_friends`, `get_friends_leaderboard`,
+  `get_friend_suggestions`, `get_friend_moments`, `friend_status`
+  (migrations 104–110)
 
 All have `SECURITY DEFINER` with the appropriate is-member /
 is-admin / is-organiser gate inside. Calling them without permission
@@ -341,12 +348,17 @@ unwind the user-visible mutation.
 - **Set goes live**: `updateSet` in `src/app/admin/actions.ts`
   detects `draft → live` and notifies `getGymClimberUserIds(gym_id)`
   — everyone with activity at that gym
-- **Crew invite received**: `inviteToCrew` — push to recipient
+- **Friend request received**: `requestFriend` — push to the
+  addressee (`category=invite_received`)
+- **Friend request accepted**: `respondToFriend` — push to the
+  original requester (`category=invite_accepted`)
+- **Match invite received**: push to the invited climber
   (`category=invite_received`)
-- **Crew invite accepted**: `acceptCrewInvite` — push to the
-  original inviter (`category=invite_accepted`)
-- **Crew ownership transferred**: `transferCrewOwnership` — push
-  to the new creator (`category=ownership_changed`)
+
+> The `ownership_changed` category still has a column on `profiles`
+> and an entry in `CATEGORY_COLUMN`, but **nothing sends it** — it
+> went with crew ownership transfer. Retire it or reuse it; don't
+> assume it's live.
 
 ### Per-category opt-out
 
@@ -406,9 +418,10 @@ Root group:
   notifications bell + settings gear on the header; other climbers
   show only identity + context line
 - `/profile` — redirects to `/u/<own-username>`
-- `/crew` — picker (avatar-stack cards for your crews + pending
-  invites)
-- `/crew/[id]` — detail (tabs for Activity · Leaderboard · Members)
+- `/friends` — roster + suggestions + friends board + moments feed
+- `/match`, `/match/new`, `/match/join`, `/match/[id]`,
+  `/match/summary/[id]` — the Match tree
+- `/r/[token]` — public Match result card (capability token)
 - `/competitions/[id]` — climber-facing comp view
 
 Admin group (`/admin/*`): gated by a signed-in check in the layout;

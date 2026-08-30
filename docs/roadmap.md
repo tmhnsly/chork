@@ -283,28 +283,100 @@ first.
 > **Session convention:** these are picked up when Tom says
 > **"feature time"**. Bug-fix sessions leave this list alone.
 
-### Product direction (decided 2026-08-14, grilled)
+### 0. Hardening first (decided 2026-08-20)
 
-The strategy every item below serves. See CONTEXT.md for the
-vocabulary these decisions produced.
+Features wait until this block clears. Every item was found by the
+2026-08-20 architecture audit and each is a defect in shipped code,
+not a refactor.
 
-- **Group-first, not solo-first.** Griptonite and Redpoint own the
-  solo logbook; we won't win there and shouldn't try. Chork is
-  deliberately thin for a lone climber and excellent for 2–6 mates.
-  The defensible product is what happens on the mats between people.
-- **The free thing becomes the paid thing.** A Match is the same
-  primitive as a gym Set, so the sales conversation is "your members
-  ran 40 Matches here last month — press this to make Tuesday's comp
-  official", not "buy this admin system you've never used". Every
-  Match at a gym is also outbound signal.
-- **What gyms actually buy is repeat footfall.** A long-running
-  numbered Set gives members a reason to come back midweek. That's
-  the monthly value; comps and dashboards are how it's delivered.
+- [ ] **16 write actions have no rate limit** because they hand-roll
+      the auth prelude instead of using a `gate*` helper. Includes
+      `acceptAdminInvite` / `cancelAdminInvite` (a privilege grant) and
+      `uploadAvatar` (a 500 KB Storage write per call). `auth.ts:420`
+      already documents this exact failure mode from last time.
+- [ ] **`uploadAvatar` never busts the profile cache.** A new avatar
+      doesn't reach `/u/{username}` for up to 300s — `getProfileByUsername`
+      is a `cachedQuery` on that tag. `updatePushCategory` and
+      `setAllowFriendRequests` miss the same bust.
+- [ ] **`ChorkStanding` is declared twice for one RPC** and the copy in
+      `match/actions.ts` drops five fields (username, display_name,
+      avatar_url, is_guest, has_left), so the live Chork board can't
+      show names the RPC is already returning.
+- [ ] **`proxy()` has no test** — 195 lines on every page nav, with
+      three production war stories written into its comments (dead
+      sessions, the `/login-wall-of-shame` prefix bug, the onboarded
+      cookie). Its one test never calls the function.
+- [ ] **Chork game mode has zero server-action tests** — 10 of 20
+      match actions untested, including every Chork one. The pure
+      module is tested; the orchestration that breaks is not.
+- [ ] **The action-result contract has four shapes** across 78 actions
+      (`ActionResult<T>`, `{ok:true}`, hand-rolled `{success:true}`,
+      bare payload). Pin one with a hygiene test in the style of
+      `tags.test.ts`.
+- [ ] Delete the two `export *` action barrels that exist only for
+      their own tests (`(app)/actions.ts`, `admin/actions.ts`), and
+      move `src/lib/user-actions.ts` into `src/app/` — its `lib/`
+      placement is why it escaped all three sweeps above.
+
+### 1. League — the missing primitive
+
+*(Designed 2026-08-20; see `docs/strategy.md` for why this is first.)*
+
+A **League** is a repeating series of Sets with cumulative standings.
+One primitive, three markets: a gym's season, a gym's weekly social
+night, and a friend group's standing fixture — which is exactly the
+three uses Chork is meant for, and the thing that turns an event into
+a habit.
+
+- Built as an aggregation over member Sets. `computePoints` does not
+  change; there is no second ladder.
+- **Drop-lowest-N** scoring so missing a week doesn't end your league.
+  That rule is what makes casual participation survive.
+- Multi-site standings from the start — 36% of UK walls are now in
+  groups averaging 4.5 sites, so a chain is one sale, not four.
+- The organiser-pays consumer line hangs off this, so the payer/free
+  split needs to exist in the model before Stripe does.
+
+### Product direction (revised 2026-08-20 — research-backed)
+
+The strategy every item below serves. Full reasoning, numbers and
+sources in **`docs/strategy.md`** — read that before arguing with this
+order. CONTEXT.md holds the vocabulary these decisions produced.
+
+- **Group-first, with solo as the Card.** Griptonite and Redpoint own
+  the solo logbook; we won't win there and shouldn't try. A lone
+  climber gets the Card and the gym's board — that's a real, complete
+  thing, and it's the whole solo offer. Everything past it assumes 2–6
+  mates.
+- **Gyms pay, climbers never do.** £59–79/mo, which is the band the
+  category already pays (TopLogger $89.95, Griptonite $85–90,
+  KAYA ~$100). A free tier below a member threshold is the proven
+  wedge shape.
+- **No per-comp pricing** *(decided 2026-08-20, reversing the earlier
+  event-pass idea)*. It prices the rarest thing a gym does and says
+  "for special Saturdays" — the opposite of a product meant to be open
+  on a Tuesday. One subscription covers the main Set, the weekly
+  social, the league and the comp.
+- **The consumer line is organiser-pays, never pay-to-join.** One
+  payer per friend group; joining is free forever. Strava paywalls
+  both halves of a private Group Challenge — it can afford to tax the
+  join at 180M users, we cannot, because the thirty-second recruit is
+  the whole growth loop.
+- **What gyms actually buy is repeat footfall.** A long-running Set
+  gives members a reason to come back midweek. That's the monthly
+  value; leagues, comps and dashboards are how it's delivered.
 - **Multi-discipline from the start.** Boulder, sport, top-rope.
   Discipline defaults per Set, overridable per route. *(Shipped
   2026-08-15, migrations 091–093.)*
 - **The growth loop is the group chat, not an in-app feed.** Climbers
   already have WhatsApp. Don't compete with it — feed it.
+- **The consumer layer is distribution and moat, not revenue.** At a
+  3% freemium conversion, £10k MRR from climbers needs more registered
+  users than the UK has regular climbers. Don't plan on it.
+
+**Status: still pre-launch.** Prod is real (live domain, SMTP, VAPID,
+Google sign-in, an e2e account) but nothing is promoted. The
+pre-launch checklist above is still the gate.
 
 ### Designed and ready to build
 
@@ -742,11 +814,51 @@ vocabulary these decisions produced.
 
 ## Planned
 
+### 2. Competitions — the gym-facing differentiator
+
+*(Scoped 2026-08-20 from the competitive review in `docs/strategy.md`.
+The tables and organiser role exist; the surface barely does.)*
+
+**Table stakes — without these a gym can't run its one big event:**
+
+- [ ] Categories (age / gender / ability) with separate standings
+- [ ] Registration with a cap, and an organiser-editable roster
+- [ ] Qualification → finals rounds (what separates a comp from a
+      big Set, and the credibility bar for any real event)
+
+**Differentiating — where we're visibly better:**
+
+- [ ] **Guest entrants.** Comp day is full of visitors who'll never
+      make an account. The guest seat already solves this and no
+      incumbent does it as cleanly.
+- [ ] **Projector board** — read-only, high-contrast, auto-cycling
+      standings. Griptonite sells a hardware box for this; for us it's
+      a route.
+- [ ] **Handicap divisions** — already built and tested, and the thing
+      that makes a mixed-ability gym comp fun rather than a formality.
+
+**Deliberately not building:** judged/IFSC-grade scoring, isolation
+zones, federation results. Vertical-Life *is* the IFSC and USA
+Climbing results stack; that fight is unwinnable and those customers
+aren't ours.
+
+### 3. Monetisation plumbing
+
+- [ ] Gym subscription billing (Stripe → `plan_tier`), £59–79/mo with
+      a free tier below a member threshold
+- [ ] Organiser-pays on Leagues — one payer per group, joining always
+      free
+
+### Everything else
+
+- [ ] Join code on the Match result card — the one explicit gap left
+      from the share-card work, and the thing that makes it an ad
+      rather than a souvenir
 - [ ] Kudos / reactions on activity events
 - [x] Grade pyramids on profiles — shipped; `ProfileGradesSection`
       renders `GradePyramid`, fed by `get_grade_distribution`
       (corrected in migration 119 to read each route's own scale)
-- [ ] Gym subscription billing (Stripe wired into `plan_tier`)
-- [ ] Competition event management UI (rounds, qualifiers, finals)
+      (both billing and competition UI moved up into their own
+      sections above, 2026-08-20)
 - [ ] Climber-facing streaks and personal records
 - [ ] Setter-facing analytics (engagement per author across sets)

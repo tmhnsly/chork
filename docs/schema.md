@@ -260,37 +260,36 @@ Many-to-many links. Climbers self-select a category via
 
 ---
 
-## Social layer (crews)
+## Social layer (friends)
 
-Replaced the old follow / follower system entirely in migration 020.
+> **`crews`, `crew_members` and `blocked_users` were dropped in
+> migration 108.** Follows (removed 020–021) → crews → friends
+> (104–108). Nothing named `crew*` or `follower*` exists.
 
-### crews
+### friends
 
-| Field        | Type    | Notes |
+| Field          | Type          | Notes |
 |---|---|---|
-| `name`       | text    | 1..60 chars |
-| `created_by` | uuid FK | Trigger seats them as the first active member |
+| `id`           | uuid PK       | |
+| `requester_id` | uuid FK       | Who asked — records history, not hierarchy |
+| `addressee_id` | uuid FK       | Who was asked; decides who may accept |
+| `status`       | text          | `pending` / `active` / `declined` |
+| `created_at`   | timestamptz   | |
+| `responded_at` | timestamptz?  | Null until answered |
 
-### crew_members
+**One row per pair, unique on the *unordered* pair** via an index on
+`(least(requester_id, addressee_id), greatest(...))` — so asking
+someone who already asked you can't create a second row.
 
-| Field        | Type    | Notes |
-|---|---|---|
-| `crew_id`    | uuid FK | |
-| `user_id`    | uuid FK | |
-| `invited_by` | uuid FK | |
-| `status`     | text    | `pending` / `active` |
+**No Data API grant.** The table is unreachable from supabase-js;
+every read and write goes through a SECURITY DEFINER RPC
+(`request_friend`, `respond_to_friend`, `remove_friend`,
+`friend_status`, `get_friends`, `get_friend_suggestions`,
+`get_friends_leaderboard`, `get_friend_moments`). RLS is therefore
+not the only gate — see `docs/architecture.md` for the state machine.
 
-Unique `(crew_id, user_id)`. A user can delete their own row at any
-time — accept + leave share the DELETE policy.
-
-### blocked_users
-
-| Field        | Type    | Notes |
-|---|---|---|
-| `blocker_id` | uuid FK | |
-| `blocked_id` | uuid FK | |
-
-Unique `(blocker_id, blocked_id)`. Self-block rejected via CHECK.
+Blocking went with `blocked_users`: a `declined` row persists and
+suppresses future suggestions, and the declined party cannot re-ask.
 
 ---
 

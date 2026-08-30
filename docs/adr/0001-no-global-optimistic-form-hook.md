@@ -1,7 +1,13 @@
 # ADR 0001 — No global optimistic-form hook
 
-**Status:** Accepted, 2026-05-21
+**Status:** Accepted, 2026-05-21. Still stands (re-checked 2026-08-20).
 **Context links:** session that proposed it (architecture-improvement skill, opportunity #5)
+
+> **Names have moved since this was written.** `JamLogSheet` is now
+> `src/components/Match/MatchLogSheet.tsx` (the Match rename); the
+> decision is unaffected — it still delegates to its parent rather
+> than owning an optimistic-revert cycle. `RoutesAdmin` and
+> `useRouteLogState` are unchanged.
 
 ## Decision
 
