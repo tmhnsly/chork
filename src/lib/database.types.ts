@@ -1980,6 +1980,14 @@ export type Database = {
         Args: { p_league_id: string; p_user_id: string }
         Returns: boolean
       }
+      league_week_placings: {
+        Args: { p_set_id: string }
+        Returns: {
+          player_id: string
+          rank: number
+          user_id: string
+        }[]
+      }
       lookup_match_by_code: {
         Args: { p_code: string }
         Returns: {
