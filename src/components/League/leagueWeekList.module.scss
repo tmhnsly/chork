@@ -1,0 +1,62 @@
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+@use "mixins/state" as state;
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.row {
+  @include surface.card;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-2);
+}
+
+.body {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+  color: inherit;
+  text-decoration: none;
+}
+
+.label {
+  @include type.typography(label);
+  color: var(--mono-text);
+}
+
+.meta {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crown {
+  color: var(--flash-solid);
+}
+
+.remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--size-touch-target);
+  min-height: var(--size-touch-target);
+  border: 0;
+  background: transparent;
+  color: var(--mono-text-low-contrast);
+  border-radius: var(--radius-2);
+
+  &:disabled {
+    @include state.disabled-bare;
+  }
+}

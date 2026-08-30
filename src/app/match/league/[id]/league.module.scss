@@ -1,0 +1,45 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+
+.page {
+  @include layout.page;
+  display: grid;
+  gap: var(--space-6);
+}
+
+.topRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.backLink {
+  @include type.typography(label);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--mono-text-low-contrast);
+  text-decoration: none;
+
+  &:hover {
+    color: var(--mono-text);
+  }
+}
+
+.section {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.heading {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+  margin: 0;
+}
+
+.empty {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  margin: 0;
+}
