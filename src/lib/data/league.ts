@@ -1,3 +1,5 @@
+import type { LeagueWeek } from "./league-types";
+
 /**
  * League scoring — the TS mirror of migration 134's two rules.
  *
@@ -37,4 +39,15 @@ export function describeDropRule(weeks: number): string {
   }
   const dropped = drops === 1 ? "your lowest week is dropped" : "your lowest two weeks are dropped";
   return `Best ${countingWeeks(weeks)} of ${weeks} count — ${dropped}.`;
+}
+
+/**
+ * "Week n" counts from the oldest, because that is how the group
+ * talks about it — but the list shows the newest at the top, so the
+ * number is derived from position among the ARCHIVED weeks only. A
+ * live Match is not a week yet; it is this week, in progress.
+ */
+export function weekLabel(week: LeagueWeek, index: number, archivedTotal: number): string {
+  if (week.status === "live") return "This week — in progress";
+  return `Week ${archivedTotal - index}`;
 }

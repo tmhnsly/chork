@@ -7,6 +7,7 @@ import {
   describeDropRule,
   dropsFor,
   placementPoints,
+  weekLabel,
 } from "./league";
 
 describe("placementPoints", () => {
@@ -43,6 +44,30 @@ describe("describeDropRule", () => {
     expect(describeDropRule(3)).toBe("Every week counts. From 4 weeks your lowest is dropped.");
     expect(describeDropRule(5)).toBe("Best 4 of 5 count — your lowest week is dropped.");
     expect(describeDropRule(8)).toBe("Best 6 of 8 count — your lowest two weeks are dropped.");
+  });
+});
+
+describe("weekLabel", () => {
+  const week = (overrides: Partial<Parameters<typeof weekLabel>[0]>) => ({
+    set_id: "s",
+    name: null,
+    status: "archived" as const,
+    game_mode: "points" as const,
+    starts_at: "2026-08-04T18:00:00.000Z",
+    ends_at: "2026-08-04T20:00:00.000Z",
+    player_count: 4,
+    winner_user_id: null,
+    ...overrides,
+  });
+
+  it("numbers archived weeks oldest-first even though the list is newest-first", () => {
+    // Three weeks, list order newest → oldest: index 0 is week 3.
+    expect(weekLabel(week({}), 0, 3)).toBe("Week 3");
+    expect(weekLabel(week({}), 2, 3)).toBe("Week 1");
+  });
+
+  it("calls a live one 'this week'", () => {
+    expect(weekLabel(week({ status: "live", ends_at: null }), 0, 3)).toBe("This week — in progress");
   });
 });
 

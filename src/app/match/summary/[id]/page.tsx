@@ -12,7 +12,7 @@ import { PageHeader } from "@/components/motion";
 import { UserAvatar, Username } from "@/components/ui";
 import { ShareResultButton } from "@/components/Match/ShareResultButton";
 import { FixtureControls } from "@/components/League/FixtureControls";
-import { weekLabel } from "@/components/League/LeagueWeekList";
+import { weekLabel } from "@/lib/data/league";
 import styles from "./summary.module.scss";
 import { formatHandicapPoints } from "@/lib/data/handicap";
 import { countOf, countOfFormatted } from "@/lib/plural";
@@ -81,6 +81,9 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
   // same tested arithmetic `LeagueWeekList` uses rather than
   // re-deriving it here.
   const archivedWeeks = inLeague?.weeks.filter((w) => w.status === "archived") ?? [];
+  // Can't actually miss — only an archived Match ever carries a
+  // `league_id` (RPC-enforced) — but guard anyway so a bad row hides
+  // the line rather than printing a wrong week number.
   const thisWeekIndex = archivedWeeks.findIndex((w) => w.set_id === id);
 
   // Chork has no points, so it cannot have a points board or a

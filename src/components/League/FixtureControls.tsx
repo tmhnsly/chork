@@ -58,11 +58,23 @@ export function FixtureControls({ setId, matchName, leagues }: Props) {
 
   return (
     <div className={styles.controls}>
-      <Button type="button" variant="secondary" fullWidth onClick={() => setSheet("create")}>
+      <Button
+        type="button"
+        variant="secondary"
+        fullWidth
+        disabled={pending}
+        onClick={() => setSheet("create")}
+      >
         <FaTrophy aria-hidden /> Make this a fixture
       </Button>
       {leagues.length > 0 && (
-        <Button type="button" variant="secondary" fullWidth onClick={() => setSheet("add")}>
+        <Button
+          type="button"
+          variant="secondary"
+          fullWidth
+          disabled={pending}
+          onClick={() => setSheet("add")}
+        >
           <FaCalendarPlus aria-hidden /> Add to a league
         </Button>
       )}

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { format, parseISO } from "date-fns";
 import { FaCrown, FaXmark } from "react-icons/fa6";
 import type { LeagueWeek } from "@/lib/data/league-types";
+import { weekLabel } from "@/lib/data/league";
 import { removeMatchFromLeagueAction } from "@/app/match/league-actions";
 import { showToast } from "@/components/ui";
 import { countOf } from "@/lib/plural";
@@ -17,17 +18,6 @@ interface Props {
   weeks: LeagueWeek[];
   /** The host can take a week out while the League is running. */
   canRemove: boolean;
-}
-
-/**
- * "Week n" counts from the oldest, because that is how the group
- * talks about it — but the list shows the newest at the top, so the
- * number is derived from position among the ARCHIVED weeks only. A
- * live Match is not a week yet; it is this week, in progress.
- */
-export function weekLabel(week: LeagueWeek, index: number, archivedTotal: number): string {
-  if (week.status === "live") return "This week — in progress";
-  return `Week ${archivedTotal - index}`;
 }
 
 export function LeagueWeekList({ leagueId, weeks, canRemove }: Props) {
