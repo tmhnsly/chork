@@ -3,6 +3,7 @@
 import { requireAuth, requireSameGymScope } from "@/lib/auth";
 import { getLeaderboardUserRow } from "@/lib/data/leaderboard-queries";
 import { UUID_RE } from "@/lib/validation";
+import type { ActionResult } from "@/lib/action-result";
 
 /**
  * Fetch the leaderboard placement for the given user + set.
@@ -11,7 +12,7 @@ import { UUID_RE } from "@/lib/validation";
 export async function fetchSetPlacement(
   profileUserId: string,
   setId: string
-): Promise<{ rank: number | null } | { error: string }> {
+): Promise<ActionResult<{ rank: number | null }>> {
   if (!UUID_RE.test(profileUserId) || !UUID_RE.test(setId)) {
     return { error: "Invalid request" };
   }
@@ -27,5 +28,5 @@ export async function fetchSetPlacement(
   if ("error" in scope) return { error: scope.error };
 
   const row = await getLeaderboardUserRow(supabase, gymId, profileUserId, setId);
-  return { rank: row?.rank ?? null };
+  return { success: true, rank: row?.rank ?? null };
 }

@@ -36,7 +36,7 @@ export async function quickSetupSetRoutes(form: {
   if (form.zoneRouteNumbers.length > form.count) {
     return { error: "Zone route list exceeds route count." };
   }
-  const gate = await requireAdminOfSet(form.setId);
+  const gate = await requireAdminOfSet(form.setId, { rateLimit: "mutationsWrite" });
   if ("error" in gate) return { error: gate.error };
 
   // Idempotent on re-run — existing (set_id, number) rows are
@@ -71,7 +71,7 @@ export async function updateRoute(
     setterName?: string | null;
   }
 ): Promise<ActionResult> {
-  const gate = await requireAdminOfRoute(routeId);
+  const gate = await requireAdminOfRoute(routeId, { rateLimit: "mutationsWrite" });
   if ("error" in gate) return { error: gate.error };
 
   if (form.number !== undefined && (!Number.isInteger(form.number) || form.number < 1 || form.number > 999)) {
@@ -104,7 +104,7 @@ export async function updateRouteTags(
   routeId: string,
   tagIds: string[]
 ): Promise<ActionResult> {
-  const gate = await requireAdminOfRoute(routeId);
+  const gate = await requireAdminOfRoute(routeId, { rateLimit: "mutationsWrite" });
   if ("error" in gate) return { error: gate.error };
 
   if (!Array.isArray(tagIds)) {

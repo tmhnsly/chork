@@ -10,10 +10,7 @@ vi.mock("next/headers", () => ({
   cookies: vi.fn(async () => ({ delete: cookieDelete, get: vi.fn(), set: vi.fn() })),
 }));
 vi.mock("@/lib/cache/revalidate", () => ({ revalidateUserProfile: vi.fn() }));
-vi.mock("@/lib/auth", () => ({
-  requireAuth: vi.fn(),
-  requireSignedIn: vi.fn(),
-}));
+vi.mock("@/lib/auth", async () => (await import("@/test/mock-auth")).mockAuthModule());
 
 const USER_A = "11111111-1111-4111-8111-111111111111";
 const GYM_1 = "22222222-2222-4222-8222-222222222222";

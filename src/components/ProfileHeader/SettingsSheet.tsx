@@ -29,7 +29,7 @@ import { InstallPwaPanel } from "@/components/InstallPwa/InstallPwaPanel";
 /* eslint-enable no-restricted-imports */
 import { useAuth } from "@/lib/auth-context";
 import { useTheme, THEME_META, type ThemeName } from "@/lib/theme";
-import type { PushCategoryKey } from "@/lib/user-actions";
+import type { PushCategoryKey } from "@/app/profile/actions";
 import { useSettingsState } from "./useSettingsState";
 import type { SettingsPanel } from "./settingsReducer";
 import styles from "./settingsSheet.module.scss";

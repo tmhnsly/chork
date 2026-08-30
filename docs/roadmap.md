@@ -283,40 +283,46 @@ first.
 > **Session convention:** these are picked up when Tom says
 > **"feature time"**. Bug-fix sessions leave this list alone.
 
-### 0. Hardening first (decided 2026-08-20)
+### 0. Hardening — cleared 2026-08-30
 
-Features wait until this block clears. Every item was found by the
-2026-08-20 architecture audit and each is a defect in shipped code,
-not a refactor.
+Every item was found by the 2026-08-20 architecture audit; each was a
+defect in shipped code, not a refactor. What clearing them turned up:
 
-- [ ] **16 write actions have no rate limit** because they hand-roll
-      the auth prelude instead of using a `gate*` helper. Includes
-      `acceptAdminInvite` / `cancelAdminInvite` (a privilege grant) and
-      `uploadAvatar` (a 500 KB Storage write per call). `auth.ts:420`
-      already documents this exact failure mode from last time.
-- [ ] **`uploadAvatar` never busts the profile cache.** A new avatar
-      doesn't reach `/u/{username}` for up to 300s — `getProfileByUsername`
-      is a `cachedQuery` on that tag. `updatePushCategory` and
-      `setAllowFriendRequests` miss the same bust.
-- [ ] **`ChorkStanding` is declared twice for one RPC** and the copy in
-      `match/actions.ts` drops five fields (username, display_name,
-      avatar_url, is_guest, has_left), so the live Chork board can't
-      show names the RPC is already returning.
-- [ ] **`proxy()` has no test** — 195 lines on every page nav, with
-      three production war stories written into its comments (dead
-      sessions, the `/login-wall-of-shame` prefix bug, the onboarded
-      cookie). Its one test never calls the function.
-- [ ] **Chork game mode has zero server-action tests** — 10 of 20
-      match actions untested, including every Chork one. The pure
-      module is tested; the orchestration that breaks is not.
-- [ ] **The action-result contract has four shapes** across 78 actions
-      (`ActionResult<T>`, `{ok:true}`, hand-rolled `{success:true}`,
-      bare payload). Pin one with a hygiene test in the style of
-      `tags.test.ts`.
-- [ ] Delete the two `export *` action barrels that exist only for
-      their own tests (`(app)/actions.ts`, `admin/actions.ts`), and
-      move `src/lib/user-actions.ts` into `src/app/` — its `lib/`
-      placement is why it escaped all three sweeps above.
+- [x] **24 write actions had no rate limit** (the audit said 16 — it
+      missed the resource-gated admin writes). Every one now opens
+      with a `gate*` helper or hands its resource gate
+      `{ rateLimit: "mutationsWrite" }`; the resource gates grew that
+      option so pages keep paying nothing. Pinned by
+      `src/lib/action-hygiene.test.ts`, which sweeps
+      `src/app/**/*actions.ts` and fails a write with no bucket.
+      Found on the way: `updateProfile`, `updateThemePreference`,
+      `updatePushCategory` and `uploadAvatar` gated on `requireAuth`,
+      so a **gymless climber could not change their theme or face** —
+      the profile writes now use the gymless-safe gate.
+- [x] **`uploadAvatar` busts the profile cache** — and so do
+      `updatePushCategory` and `setAllowFriendRequests`.
+- [x] **One `ChorkStanding`**, in `match-types.ts`, with every field
+      the RPC returns. The live board can now name a seat; showing it
+      is a UI change still to make.
+- [x] **`proxy()` is driven directly** by 18 tests. Writing them found
+      a fourth war story: on a dead session the cookie purge was
+      written onto the pass-through response, but a protected route
+      returns a fresh `NextResponse.redirect`, so the dead cookies
+      survived to `/login` and failed once more there. Fixed.
+- [x] **Every Chork action has server-action tests** (37 new cases:
+      guests, ceilings, allowance, concede, withdraw, standings, game
+      mode, handicap, share). Three runtime checks the type system
+      alone had been carrying were added: `setMatchGameMode` rejects
+      an unknown mode, `setMatchHandicapAction` a non-boolean,
+      `fetchChorkAllowance` / `concedeChorkRound` a malformed route or
+      player id.
+- [x] **One result contract.** Every action declares
+      `Promise<ActionResult<…>>`; `{ ok: true }` and the bare payloads
+      are gone. Eight named exemptions (bare-value reads, the
+      `useActionState` form) in the hygiene test, each with a reason.
+- [x] Barrels deleted; their tests split per module. `user-actions.ts`
+      is `src/app/profile/actions.ts`. Six inline forks of the auth
+      mock collapsed into `src/test/mock-auth.ts`.
 
 ### 1. League — the missing primitive
 

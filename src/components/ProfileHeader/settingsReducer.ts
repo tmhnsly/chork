@@ -1,4 +1,4 @@
-import type { PushCategoryKey } from "@/lib/user-actions";
+import type { PushCategoryKey } from "@/app/profile/actions";
 import type { PushStatus } from "@/lib/push/client";
 
 /**

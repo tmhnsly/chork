@@ -6,13 +6,13 @@
  * defaults apply.
  *
  * (Ported from admin-mutations.test.ts when the pass-through
- * mutation layer was inlined into the actions, 2026-08. Barrel-level
- * validation + auth tests live in actions.test.ts.)
+ * mutation layer was inlined into the actions, 2026-08. The
+ * validation + auth tests joined it when the admin barrel went.)
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createMockSupabase } from "@/test/mock-supabase";
 
-vi.mock("@/lib/auth", () => ({ requireSignedIn: vi.fn() }));
+vi.mock("@/lib/auth", async () => (await import("@/test/mock-auth")).mockAuthModule());
 vi.mock("@/lib/rate-limit", () => ({ enforce: vi.fn() }));
 
 const USER_A = "11111111-1111-1111-1111-111111111111";
@@ -111,3 +111,55 @@ describe("signupGym", () => {
     ]);
   });
 });
+
+describe("signupGym — validation + auth", () => {
+  it("rejects names shorter than 2 chars", async () => {
+    const { signupGym } = await import("./gym-actions");
+    expect(await signupGym({ ...baseForm, name: "Y" })).toHaveProperty(
+      "error",
+      expect.stringContaining("2–80"),
+    );
+  });
+
+  it("rejects slugs that aren't lowercase kebab", async () => {
+    const { signupGym } = await import("./gym-actions");
+    expect(await signupGym({ ...baseForm, slug: "Yonder Gym" })).toHaveProperty(
+      "error",
+      expect.stringContaining("lowercase"),
+    );
+  });
+
+  it("rejects unknown plan tiers", async () => {
+    const { signupGym } = await import("./gym-actions");
+    expect(
+      await signupGym({
+        ...baseForm,
+        planTier: "lifetime" as unknown as typeof baseForm.planTier,
+      }),
+    ).toHaveProperty("error", "Invalid plan tier.");
+  });
+
+  it("surfaces auth failure from requireSignedIn", async () => {
+    const { requireSignedIn } = await import("@/lib/auth");
+    vi.mocked(requireSignedIn).mockResolvedValue({ error: "Not signed in" });
+    const { signupGym } = await import("./gym-actions");
+    expect(await signupGym(baseForm)).toEqual({ error: "Not signed in" });
+  });
+
+  it("returns the created gym id on success", async () => {
+    const { requireSignedIn } = await import("@/lib/auth");
+    vi.mocked(requireSignedIn).mockResolvedValue({
+      supabase: createMockSupabase({
+        "rpc:create_gym_with_owner_tx": { data: GYM_1, error: null },
+      }) as never,
+      userId: USER_A,
+    });
+
+    const { signupGym } = await import("./gym-actions");
+    expect(await signupGym(baseForm)).toEqual({ success: true, gymId: GYM_1 });
+  });
+});
+
+// ────────────────────────────────────────────────────────────────
+// sendAdminInvite — role gating
+// ────────────────────────────────────────────────────────────────

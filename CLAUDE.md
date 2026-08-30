@@ -106,7 +106,12 @@ Two supabase clients:
 - Mutation gates (uuid validate + auth + rate limit in one call —
   never re-type the prelude): `gateClimberMutation` (gym-scoped),
   `gateGymAdminMutation` (admin), `gateSignedInMutation` (gymless-safe,
-  rate limit ON by default — matches use this)
+  rate limit ON by default — matches, profile, notifications use
+  this). The resource gates (`requireAdminOfSet` / `requireAdminOfRoute`
+  / `requireCompetitionOrganiser` / `…OrGymAdmin`) take the same
+  `{ rateLimit }` option; pages omit it (a page view must never spend
+  write budget), actions pass `"mutationsWrite"`. Enforced by
+  `src/lib/action-hygiene.test.ts` — a write with no bucket fails CI
 - `requireSameGymScope(supabase, gymId, setId, targetUserId)` — the
   cross-gym exposure gate (set in caller's gym AND target is a
   member). Use it for any read that surfaces another climber's data
@@ -137,11 +142,15 @@ Two supabase clients:
   being `src/app/match/actions.ts` (20 actions), then
   `src/app/admin/sets-actions.ts`, `src/app/(app)/route-log-actions.ts`,
   `src/app/friends/actions.ts`, `src/app/(app)/membership-actions.ts`.
-  `src/app/(app)/actions.ts` and `src/app/admin/actions.ts` are
-  `export *` barrels that exist only for their own test files —
-  nothing in the app imports them. `src/lib/user-actions.ts` is the
-  one action module outside `src/app/`, which is why sweeps that grep
-  `src/app/**/*actions.ts` keep missing it
+  Account writes (profile, theme, push opt-ins, avatar, deletion) are
+  `src/app/profile/actions.ts`. **Every action module matches
+  `src/app/**/*actions.ts`** — there are no barrels and nothing lives
+  in `src/lib/` — because `src/lib/action-hygiene.test.ts` sweeps
+  that glob to enforce two rules: every write opens with a `gate*`
+  helper (or hands its resource gate a `rateLimit` bucket), and every
+  action returns `Promise<ActionResult<…>>`. A module outside the
+  glob is invisible to both rules, which is how `user-actions.ts`
+  dodged three audits
 - Types: `src/lib/data/types.ts` derives from `database.types.ts`
   (regenerated after every migration)
 - Pure logic (easily testable, no Supabase dependency):
@@ -593,7 +602,7 @@ The live kinds are `friend_request_received`,
 `friend_request_accepted` and `match_invite_received`, defined in
 `src/lib/data/notification-kinds.ts`. **The category union is
 duplicated in five places** (`push/server.ts` ×3,
-`notification-kinds.ts`, `user-actions.ts`) because the push module
+`notification-kinds.ts`, `profile/actions.ts`) because the push module
 is server-only and the kinds table must stay client-safe — adding a
 category is five coordinated edits and the compiler catches two.
 
@@ -650,7 +659,25 @@ Vitest-based. See `docs/testing.md` for patterns. Key rules:
   `avatar-sizes.test.ts` separately pins the TS avatar map to its CSS
   tokens
 - Server actions get tests for: input validation, auth failure, each
-  distinct user-visible error path, friendly-error mapping
+  distinct user-visible error path, friendly-error mapping. **One
+  auth double:** `vi.mock("@/lib/auth", async () => (await
+  import("@/test/mock-auth")).mockAuthModule())` — the `require*`
+  helpers are bare spies to prime, the `gate*Mutation` helpers keep
+  the real prelude shape (uuid check → primed `require*` → rate
+  limiter), so a "rejects a malformed id" assertion still tests the
+  check. Don't fork it inline. Tests that want the gate itself
+  exercised (`match/actions.test.ts`, `auth.test.ts`) mock the
+  supabase primitives instead
+- **Action-module hygiene is a test, not a review item.**
+  `src/lib/action-hygiene.test.ts` reads every `src/app/**/*actions.ts`
+  and fails a write that skips the rate limit or an action that
+  returns anything but `ActionResult<T>`. Exemptions are named with
+  a reason in the test (reads through a gate with the limit off,
+  the `useActionState` form contract)
+- `src/proxy.test.ts` drives `proxy()` itself with a doubled
+  middleware client — the dead-session cookie purge, the
+  `/login-wall-of-shame` prefix bug and the onboarded fast-path are
+  each pinned there, not just described in the comments
 - Fixtures must be realistic — Postgres errors need a `code` field,
   not just `message`. `formatError` maps known codes (23505 / 23503 /
   23514 / 23502 / 42501 / PGRST116 / PGRST301) to friendly user-facing

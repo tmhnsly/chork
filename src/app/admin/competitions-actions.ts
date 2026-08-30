@@ -2,14 +2,13 @@
 
 import { revalidateTag } from "next/cache";
 import {
+  gateSignedInMutation,
   requireCompetitionOrganiser,
   requireCompetitionOrganiserOrGymAdmin,
-  requireSignedIn,
 } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
 import { formatError } from "@/lib/errors";
 import { UUID_RE } from "@/lib/validation";
-import { enforce as enforceRateLimit } from "@/lib/rate-limit";
 import { tags } from "@/lib/cache/tags";
 import type { Database } from "@/lib/database.types";
 
@@ -36,14 +35,14 @@ export async function createNewCompetition(form: {
     return { error: "End date must be on or after the start date." };
   }
 
-  const auth = await requireSignedIn();
-  if ("error" in auth) return { error: auth.error };
-
-  // Rate limit — see lib/rate-limit.ts for sizing rationale. Without
-  // this, any signed-in user could spam-create competition rows
+  // Payload-validated above, so no resource id. The bucket is the
+  // dedicated one — see lib/rate-limit.ts for sizing: without it any
+  // signed-in user could spam-create competition rows
   // (`competitions.name` has no uniqueness constraint).
-  const rl = await enforceRateLimit("competitionsCreate", auth.userId);
-  if (!rl.ok) return { error: rl.error };
+  const auth = await gateSignedInMutation(null, "competition", {
+    rateLimit: "competitionsCreate",
+  });
+  if ("error" in auth) return { error: auth.error };
 
   const { data, error } = await auth.supabase
     .from("competitions")
@@ -73,7 +72,9 @@ export async function updateCompetitionAction(
     status?: "draft" | "live" | "archived";
   }
 ): Promise<ActionResult> {
-  const gate = await requireCompetitionOrganiser(competitionId);
+  const gate = await requireCompetitionOrganiser(competitionId, {
+    rateLimit: "mutationsWrite",
+  });
   if ("error" in gate) return { error: gate.error };
 
   if (form.name !== undefined) {
@@ -118,6 +119,7 @@ export async function linkCompetitionGym(form: {
   const gate = await requireCompetitionOrganiserOrGymAdmin(
     form.competitionId,
     form.gymId,
+    { rateLimit: "mutationsWrite" },
   );
   if ("error" in gate) return { error: gate.error };
 
@@ -140,6 +142,7 @@ export async function unlinkCompetitionGym(form: {
   const gate = await requireCompetitionOrganiserOrGymAdmin(
     form.competitionId,
     form.gymId,
+    { rateLimit: "mutationsWrite" },
   );
   if ("error" in gate) return { error: gate.error };
 
@@ -159,7 +162,9 @@ export async function addCompetitionCategory(form: {
   name: string;
   displayOrder?: number;
 }): Promise<ActionResult<{ categoryId: string }>> {
-  const gate = await requireCompetitionOrganiser(form.competitionId);
+  const gate = await requireCompetitionOrganiser(form.competitionId, {
+    rateLimit: "mutationsWrite",
+  });
   if ("error" in gate) return { error: gate.error };
 
   const name = (form.name ?? "").trim();
@@ -193,7 +198,9 @@ export async function removeCompetitionCategory(categoryId: string): Promise<Act
     .maybeSingle();
   if (!cat) return { error: "Category not found." };
 
-  const gate = await requireCompetitionOrganiser(cat.competition_id);
+  const gate = await requireCompetitionOrganiser(cat.competition_id, {
+    rateLimit: "mutationsWrite",
+  });
   if ("error" in gate) return { error: gate.error };
 
   const { error } = await gate.supabase

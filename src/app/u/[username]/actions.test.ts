@@ -112,7 +112,7 @@ describe("fetchSetPlacement", () => {
     });
 
     const { fetchSetPlacement } = await import("./actions");
-    expect(await fetchSetPlacement(USER_B, SET_1)).toEqual({ rank: 7 });
+    expect(await fetchSetPlacement(USER_B, SET_1)).toEqual({ success: true, rank: 7 });
   });
 
   it("returns rank: null when the user has no activity in the set", async () => {
@@ -129,6 +129,6 @@ describe("fetchSetPlacement", () => {
     vi.mocked(getLeaderboardUserRow).mockResolvedValue(null);
 
     const { fetchSetPlacement } = await import("./actions");
-    expect(await fetchSetPlacement(USER_B, SET_1)).toEqual({ rank: null });
+    expect(await fetchSetPlacement(USER_B, SET_1)).toEqual({ success: true, rank: null });
   });
 });

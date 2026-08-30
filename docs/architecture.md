@@ -345,7 +345,7 @@ unwind the user-visible mutation.
 
 ### Dispatch triggers
 
-- **Set goes live**: `updateSet` in `src/app/admin/actions.ts`
+- **Set goes live**: `updateSet` in `src/app/admin/sets-actions.ts`
   detects `draft → live` and notifies `getGymClimberUserIds(gym_id)`
   — everyone with activity at that gym
 - **Friend request received**: `requestFriend` — push to the

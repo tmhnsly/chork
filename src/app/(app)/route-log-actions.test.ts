@@ -26,21 +26,7 @@ vi.mock("@/lib/achievements/context", () => ({ buildBadgeContext: vi.fn() }));
 vi.mock("@/lib/achievements/evaluate", () => ({
   evaluateAndPersistAchievements: vi.fn(),
 }));
-vi.mock("@/lib/auth", () => {
-  const requireAuth = vi.fn();
-  // gateClimberMutation in production: UUID gate + requireAuth + rate
-  // limit. The mock forwards UUID failure inline and delegates the
-  // auth outcome to the requireAuth mock (same pattern as
-  // src/app/(app)/actions.test.ts) so per-test setups just prime
-  // requireAuth. Rate limiting is covered by lib/rate-limit's tests.
-  const UUID_RE =
-    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  const gateClimberMutation = vi.fn(async (id: string, label: string) => {
-    if (!UUID_RE.test(id)) return { error: `Invalid ${label}` };
-    return await requireAuth();
-  });
-  return { requireAuth, gateClimberMutation };
-});
+vi.mock("@/lib/auth", async () => (await import("@/test/mock-auth")).mockAuthModule());
 
 // Supabase double: shared harness (`createMockSupabase`) — records
 // every chained call (source + method + args) so tests can assert

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { checkUsernameAvailable } from "@/lib/user-actions";
+import { checkUsernameAvailable } from "@/app/profile/actions";
 import { validateUsername } from "@/lib/validation";
 
 import { logger } from "@/lib/logger";

@@ -1,10 +1,9 @@
 "use server";
 
-import { requireSignedIn } from "@/lib/auth";
+import { gateSignedInMutation, requireSignedIn } from "@/lib/auth";
 import { formatError } from "@/lib/errors";
 import { getNotifications } from "@/lib/data/notifications";
 import type { NotificationRow } from "@/lib/data/notifications";
-import { isUuid } from "@/lib/validation";
 import type { ActionResult } from "@/lib/action-result";
 
 /**
@@ -33,7 +32,7 @@ export async function fetchNotifications(
  * sends, so no IDs need to leave the browser.
  */
 export async function markAllNotificationsRead(): Promise<ActionResult> {
-  const auth = await requireSignedIn();
+  const auth = await gateSignedInMutation(null, "notification");
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId } = auth;
 
@@ -59,9 +58,7 @@ export async function markAllNotificationsRead(): Promise<ActionResult> {
  * dismiss action inside the NotificationsSheet.
  */
 export async function dismissNotification(id: string): Promise<ActionResult> {
-  if (!isUuid(id)) return { error: "Invalid notification" };
-
-  const auth = await requireSignedIn();
+  const auth = await gateSignedInMutation(id, "notification");
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId } = auth;
 

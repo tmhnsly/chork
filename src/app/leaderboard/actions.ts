@@ -9,13 +9,14 @@ import {
 } from "@/lib/data/leaderboard-queries";
 import { UUID_RE } from "@/lib/validation";
 import type { LeaderboardEntry } from "@/lib/data";
+import type { ActionResult } from "@/lib/action-result";
 
 const PAGE_LIMIT = 10;
 
 /** Fetch initial data for a tab — top 5, user's row, and neighbourhood. */
 export async function fetchLeaderboardTab(
   setId: string | null
-): Promise<{ data: LeaderboardTabData } | { error: string }> {
+): Promise<ActionResult<{ data: LeaderboardTabData }>> {
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId, gymId } = auth;
@@ -26,7 +27,7 @@ export async function fetchLeaderboardTab(
   // lives in getLeaderboardTabData, shared with the page's first
   // paint.
   const data = await getLeaderboardTabData(supabase, gymId, userId, setId);
-  return { data };
+  return { success: true, data };
 }
 
 /**
@@ -41,7 +42,7 @@ export async function fetchLeaderboardPage(
   setId: string | null,
   offset: number,
   limit: number = PAGE_LIMIT,
-): Promise<{ rows: LeaderboardEntry[]; limit: number } | { error: string }> {
+): Promise<ActionResult<{ rows: LeaderboardEntry[]; limit: number }>> {
   const auth = await requireAuth();
   if ("error" in auth) return { error: auth.error };
   const { gymId } = auth;
@@ -50,7 +51,7 @@ export async function fetchLeaderboardPage(
   // request the entire board or zero rows.
   const safeLimit = Math.max(1, Math.min(50, Math.floor(limit)));
   const rows = await getLeaderboardCached(gymId, setId, safeLimit, offset);
-  return { rows, limit: safeLimit };
+  return { success: true, rows, limit: safeLimit };
 }
 
 /**
@@ -75,7 +76,7 @@ export interface SanitisedLog {
 export async function fetchClimberSheetLogs(
   climberUserId: string,
   setId: string
-): Promise<{ logs: SanitisedLog[] } | { error: string }> {
+): Promise<ActionResult<{ logs: SanitisedLog[] }>> {
   if (!UUID_RE.test(climberUserId) || !UUID_RE.test(setId)) {
     return { error: "Invalid request" };
   }
@@ -101,5 +102,5 @@ export async function fetchClimberSheetLogs(
     grade_vote: l.grade_vote,
   }));
 
-  return { logs };
+  return { success: true, logs };
 }

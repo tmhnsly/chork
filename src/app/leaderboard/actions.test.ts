@@ -54,6 +54,7 @@ describe("fetchLeaderboardTab", () => {
     const { fetchLeaderboardTab } = await import("./actions");
     const result = await fetchLeaderboardTab(null);
     expect(result).toEqual({
+      success: true,
       data: { top: [], userRow: null, neighbourhood: [] },
     });
   });

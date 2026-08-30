@@ -1,8 +1,7 @@
 "use server";
 
-import { requireSignedIn } from "@/lib/auth";
+import { gateSignedInMutation } from "@/lib/auth";
 import { formatError } from "@/lib/errors";
-import { enforce as enforceRateLimit } from "@/lib/rate-limit";
 import type { ActionResult } from "@/lib/action-result";
 
 // ────────────────────────────────────────────────────────────────
@@ -41,12 +40,14 @@ export async function savePushSubscription(input: {
     return { error: "Invalid subscription keys." };
   }
 
-  const auth = await requireSignedIn();
+  // The endpoint is a URL, not a uuid — validated above, so the gate
+  // gets no resource id. `pushSubscribe` is the tighter bucket: a
+  // browser re-subscribes once per install, not dozens of times.
+  const auth = await gateSignedInMutation(null, "subscription", {
+    rateLimit: "pushSubscribe",
+  });
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId } = auth;
-
-  const rl = await enforceRateLimit("pushSubscribe", userId);
-  if (!rl.ok) return { error: rl.error };
 
   try {
     // Dedupe by device key (p256dh) rather than endpoint. When a push
@@ -96,7 +97,7 @@ export async function removePushSubscription(
     return { error: "Invalid subscription." };
   }
 
-  const auth = await requireSignedIn();
+  const auth = await gateSignedInMutation(null, "subscription");
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId } = auth;
 

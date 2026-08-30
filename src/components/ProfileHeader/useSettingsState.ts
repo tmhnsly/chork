@@ -4,7 +4,7 @@ import { useEffect, useReducer } from "react";
 import type { Profile } from "@/lib/data/types";
 import { savePushSubscription, removePushSubscription } from "@/app/(app)/push-actions";
 import { setAllowFriendRequests } from "@/app/friends/actions";
-import { updatePushCategory, type PushCategoryKey } from "@/lib/user-actions";
+import { updatePushCategory, type PushCategoryKey } from "@/app/profile/actions";
 import {
   isStandalonePwa,
   pushSupported,

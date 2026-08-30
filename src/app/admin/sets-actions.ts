@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidateTag } from "next/cache";
-import { gateGymAdminMutation, requireGymAdmin } from "@/lib/auth";
+import { gateGymAdminMutation } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
 import { formatError, formatErrorForLog } from "@/lib/errors";
 import type { Database } from "@/lib/database.types";
@@ -237,7 +237,12 @@ export async function updateSet(
   }
   const gymId = setRow.gym_id;
 
-  const auth = await requireGymAdmin(gymId);
+  // `gymId` is server-derived from the set row, never the client's —
+  // the gate re-checks it for shape, re-verifies admin rights, and
+  // applies the write limit that `requireGymAdmin` alone skips.
+  const auth = await gateGymAdminMutation(gymId, "gym", {
+    rateLimit: "mutationsWrite",
+  });
   if ("error" in auth) return { error: auth.error };
 
   // Validate the RESULTING set, not just the supplied fields: a patch

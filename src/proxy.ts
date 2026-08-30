@@ -108,13 +108,17 @@ export async function proxy(request: NextRequest) {
   // Treat it as signed-out, and if the session is genuinely dead, bin
   // the cookies so the next request is a clean anonymous one rather
   // than the same failure again.
+  let deadSession = false;
   const user = await (async () => {
     try {
       const { data, error } = await supabase.auth.getUser();
       if (error) throw error;
       return data.user;
     } catch (error) {
-      if (isDeadSession(error)) clearSession(request, response);
+      if (isDeadSession(error)) {
+        deadSession = true;
+        clearSession(request, response);
+      }
       return null;
     }
   })();
@@ -164,7 +168,14 @@ export async function proxy(request: NextRequest) {
       "next",
       request.nextUrl.pathname + request.nextUrl.search,
     );
-    return NextResponse.redirect(loginUrl);
+    // A redirect is a NEW response — the deletions `clearSession`
+    // wrote onto `response` above would not travel with it, so the
+    // dead cookies survived to the /login request and failed once
+    // more there before finally going. Write them onto the redirect
+    // too (found by proxy.test.ts, 2026-08-30).
+    const toLogin = NextResponse.redirect(loginUrl);
+    if (deadSession) clearSession(request, toLogin);
+    return toLogin;
   }
 
   // Authed from here on. Resolve onboarded state via the cookie

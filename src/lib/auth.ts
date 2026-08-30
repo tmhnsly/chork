@@ -20,6 +20,31 @@ type AuthSuccess = {
 type AuthFailure = { error: string };
 
 /**
+ * The rate-limit knob every gate below shares.
+ *
+ * `null` means "this call is a read". Pages hit the same resource
+ * gates as mutations do — `requireAdminOfSet` decides `notFound()` vs
+ * `redirect()` for the set screens — and a page view must never spend
+ * write budget. Actions pass a bucket. The default is `null` on the
+ * resource gates only because pages outnumber actions there; a write
+ * action that leaves it null is refused by `action-hygiene.test.ts`,
+ * which is what stops this from becoming the 2026-08 failure again
+ * (sixteen writes with no limit because each one re-typed the prelude
+ * by hand).
+ */
+type GateOptions = { rateLimit: RateLimitKey | null };
+const READ_ONLY: GateOptions = { rateLimit: null };
+
+async function applyRateLimit(
+  options: GateOptions,
+  userId: string,
+): Promise<AuthFailure | null> {
+  if (options.rateLimit === null) return null;
+  const rl = await enforceRateLimit(options.rateLimit, userId);
+  return rl.ok ? null : { error: rl.error };
+}
+
+/**
  * Auth check that only requires sign-in, no gym.
  * Use for onboarding and account setup.
  *
@@ -156,7 +181,11 @@ type AdminOfSetSuccess = {
  * this beats matching the user-facing copy, which reworded is a
  * silently-changed redirect (see NO_GYM_ERROR for the same lesson).
  */
-export type ResourceGateReason = "invalid" | "not-found" | "forbidden";
+export type ResourceGateReason =
+  | "invalid"
+  | "not-found"
+  | "forbidden"
+  | "rate-limited";
 
 export type ResourceGateFailure = AuthFailure & {
   reason: ResourceGateReason;
@@ -164,6 +193,7 @@ export type ResourceGateFailure = AuthFailure & {
 
 export async function requireAdminOfSet(
   setId: string,
+  options: GateOptions = READ_ONLY,
 ): Promise<AdminOfSetSuccess | ResourceGateFailure> {
   if (!UUID_RE.test(setId)) {
     return { error: "Invalid set.", reason: "invalid" };
@@ -185,6 +215,8 @@ export async function requireAdminOfSet(
   }
   const auth = await requireGymAdmin(setRow.gym_id);
   if ("error" in auth) return { error: auth.error, reason: "forbidden" };
+  const limited = await applyRateLimit(options, auth.userId);
+  if (limited) return { ...limited, reason: "rate-limited" };
   return { auth, setRow: { gym_id: setRow.gym_id } };
 }
 
@@ -195,6 +227,7 @@ type AdminOfRouteSuccess = {
 
 export async function requireAdminOfRoute(
   routeId: string,
+  options: GateOptions = READ_ONLY,
 ): Promise<AdminOfRouteSuccess | ResourceGateFailure> {
   if (!UUID_RE.test(routeId)) {
     return { error: "Invalid route.", reason: "invalid" };
@@ -214,6 +247,8 @@ export async function requireAdminOfRoute(
   if (!gymId) return { error: "Route not found.", reason: "not-found" };
   const auth = await requireGymAdmin(gymId);
   if ("error" in auth) return { error: auth.error, reason: "forbidden" };
+  const limited = await applyRateLimit(options, auth.userId);
+  if (limited) return { ...limited, reason: "rate-limited" };
   return { auth, routeRow: { id: routeRow.id, set_id: routeRow.set_id, gym_id: gymId } };
 }
 
@@ -277,6 +312,7 @@ export async function requireSameGymScope(
  */
 export async function requireCompetitionOrganiser(
   competitionId: string,
+  options: GateOptions = READ_ONLY,
 ): Promise<SignedInSuccess | AuthFailure> {
   if (!UUID_RE.test(competitionId)) return { error: "Invalid competition." };
   const auth = await requireSignedIn();
@@ -291,6 +327,8 @@ export async function requireCompetitionOrganiser(
   if (comp.organiser_id !== auth.userId) {
     return { error: "Only the organiser can manage this competition." };
   }
+  const limited = await applyRateLimit(options, auth.userId);
+  if (limited) return limited;
   return auth;
 }
 
@@ -319,27 +357,34 @@ type OrganiserOrGymAdminSuccess = {
 export async function requireCompetitionOrganiserOrGymAdmin(
   competitionId: string,
   gymId: string,
+  options: GateOptions = READ_ONLY,
 ): Promise<OrganiserOrGymAdminSuccess | AuthFailure> {
   if (!UUID_RE.test(competitionId)) return { error: "Invalid competition." };
   if (!UUID_RE.test(gymId)) return { error: "Invalid gym." };
 
+  // The organiser path is asked as a read: the limit is applied once,
+  // below, on whichever path won — otherwise a gym admin who is not
+  // the organiser would be charged for the miss AND the hit.
   const asOrganiser = await requireCompetitionOrganiser(competitionId);
-  if (!("error" in asOrganiser)) {
-    return {
-      supabase: asOrganiser.supabase,
-      userId: asOrganiser.userId,
-      role: "organiser",
-    };
-  }
-  const asAdmin = await requireGymAdmin(gymId);
-  if (!("error" in asAdmin)) {
-    return {
-      supabase: asAdmin.supabase,
-      userId: asAdmin.userId,
-      role: "gymAdmin",
-    };
-  }
-  return { error: "Not authorised to manage this competition/gym." };
+  const matched: OrganiserOrGymAdminSuccess | null = !("error" in asOrganiser)
+    ? {
+        supabase: asOrganiser.supabase,
+        userId: asOrganiser.userId,
+        role: "organiser",
+      }
+    : await (async () => {
+        const asAdmin = await requireGymAdmin(gymId);
+        if ("error" in asAdmin) return null;
+        return {
+          supabase: asAdmin.supabase,
+          userId: asAdmin.userId,
+          role: "gymAdmin" as const,
+        };
+      })();
+  if (!matched) return { error: "Not authorised to manage this competition/gym." };
+  const limited = await applyRateLimit(options, matched.userId);
+  if (limited) return limited;
+  return matched;
 }
 
 /**
@@ -396,15 +441,13 @@ export async function gateClimberMutation(
 export async function gateGymAdminMutation(
   gymId: string,
   resourceLabel: string,
-  options: { rateLimit: RateLimitKey | null } = { rateLimit: null },
+  options: GateOptions = READ_ONLY,
 ): Promise<AdminAuthSuccess | AuthFailure> {
   if (!UUID_RE.test(gymId)) return { error: `Invalid ${resourceLabel}` };
   const auth = await requireGymAdmin(gymId);
   if ("error" in auth) return { error: auth.error };
-  if (options.rateLimit !== null) {
-    const rl = await enforceRateLimit(options.rateLimit, auth.userId);
-    if (!rl.ok) return { error: rl.error };
-  }
+  const limited = await applyRateLimit(options, auth.userId);
+  if (limited) return limited;
   return auth;
 }
 
@@ -427,16 +470,14 @@ export async function gateGymAdminMutation(
 export async function gateSignedInMutation(
   resourceId: string | null,
   resourceLabel: string,
-  options: { rateLimit: RateLimitKey | null } = { rateLimit: "mutationsWrite" },
+  options: GateOptions = { rateLimit: "mutationsWrite" },
 ): Promise<SignedInSuccess | AuthFailure> {
   if (resourceId !== null && !UUID_RE.test(resourceId)) {
     return { error: `Invalid ${resourceLabel}` };
   }
   const auth = await requireSignedIn();
   if ("error" in auth) return { error: auth.error };
-  if (options.rateLimit !== null) {
-    const rl = await enforceRateLimit(options.rateLimit, auth.userId);
-    if (!rl.ok) return { error: rl.error };
-  }
+  const limited = await applyRateLimit(options, auth.userId);
+  if (limited) return limited;
   return auth;
 }

@@ -276,6 +276,34 @@ export interface JoinMatchLookup {
  * from a stored snapshot — which is what keeps a tied Match ranked
  * the same here as it is on the board.
  */
+/**
+ * One seat's Chork standing, as `chork_standings` returns it — read
+ * live through `fetchChorkStandings` and at rest through
+ * `getChorkStandings`. One shape for both: the action used to declare
+ * its own five-field copy and silently dropped the name, face and
+ * guest flag the RPC was already sending, so the live board could not
+ * show who a letter belonged to.
+ */
+export interface ChorkStanding {
+  player_id: string;
+  user_id: string | null;
+  username: string | null;
+  display_name: string | null;
+  avatar_url: string | null;
+  is_guest: boolean;
+  /** How much of C·H·O·R·K this seat has spelled. */
+  letters: number;
+  is_out: boolean;
+  has_left: boolean;
+  /**
+   * Whose turn it is to set. Derived in SQL rather than on the client
+   * for the same reason as the letters: the rule turns on whether the
+   * setter sent their own challenge, which is their attempt count,
+   * which nobody else may read. Exactly one seat has it.
+   */
+  has_pen: boolean;
+}
+
 export interface MatchHistoryRow {
   set_id: string;
   name: string | null;

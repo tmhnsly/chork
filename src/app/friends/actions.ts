@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { gateSignedInMutation } from "@/lib/auth";
+import { revalidateUserProfile } from "@/lib/cache/revalidate";
 import { formatError, formatErrorForLog } from "@/lib/errors";
 import { logger } from "@/lib/logger";
 import { notify } from "@/lib/notify";
@@ -216,6 +217,11 @@ export async function setAllowFriendRequests(
     .eq("id", auth.userId);
   if (error) return { error: formatError(error) };
 
+  // `allow_friend_requests` is a profile column, and the profile row
+  // is cached whole by username — without this bust /u/{username}
+  // keeps offering the Add-friend button for up to 300s after it was
+  // switched off, and `request_friend` then refuses it server-side.
+  await revalidateUserProfile(auth.supabase, auth.userId);
   revalidatePath("/friends");
   return { success: true, ok: true };
 }

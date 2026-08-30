@@ -6,7 +6,8 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { formatError, formatErrorForLog } from "@/lib/errors";
 import { buildBadgeContext } from "@/lib/achievements/context";
 import { evaluateAndPersistAchievements } from "@/lib/achievements/evaluate";
-import type { MatchGradingScale, MatchRoute } from "@/lib/data/match-types";
+import type { ChorkStanding, MatchGradingScale, MatchRoute } from "@/lib/data/match-types";
+import type { ActionResult } from "@/lib/action-result";
 import {
   isDiscipline,
   scaleFamily,
@@ -120,7 +121,7 @@ interface CreateMatchPayload {
 
 export async function createMatchAction(
   payload: CreateMatchPayload,
-): Promise<{ error: string } | { id: string; code: string }> {
+): Promise<ActionResult<{ id: string; code: string }>> {
   if (!isScale(payload.gradingScale)) {
     return { error: "Invalid grading scale" };
   }
@@ -220,21 +221,21 @@ export async function createMatchAction(
   if (error) return { error: formatError(error) };
   const rows = (data ?? []) as Array<{ id: string; code: string }>;
   if (rows.length === 0) return { error: "Could not create the match." };
-  return rows[0];
+  return { success: true, ...rows[0] };
 }
 
 // ── Join ──────────────────────────────────────────
 
 export async function joinMatchAction(
   matchId: string,
-): Promise<{ error: string } | { ok: true }> {
+): Promise<ActionResult> {
   const auth = await gateSignedInMutation(matchId, "match id");
   if ("error" in auth) return { error: auth.error };
   const { error } = await auth.supabase.rpc("join_match", {
     p_set_id: matchId,
   });
   if (error) return { error: formatError(error) };
-  return { ok: true };
+  return { success: true };
 }
 
 /**
@@ -248,7 +249,7 @@ export async function joinMatchAction(
  */
 export async function leaveMatchAction(
   matchId: string,
-): Promise<{ error: string } | { ok: true }> {
+): Promise<ActionResult> {
   const auth = await gateSignedInMutation(matchId, "match id");
   if ("error" in auth) return { error: auth.error };
   const { error } = await auth.supabase
@@ -258,7 +259,7 @@ export async function leaveMatchAction(
     .eq("user_id", auth.userId)
     .is("left_at", null);
   if (error) return { error: formatError(error) };
-  return { ok: true };
+  return { success: true };
 }
 
 // ── Routes ────────────────────────────────────────
@@ -286,7 +287,7 @@ interface RoutePayload {
 
 export async function addMatchRouteAction(
   payload: RoutePayload,
-): Promise<{ error: string } | { route: MatchRoute }> {
+): Promise<ActionResult<{ route: MatchRoute }>> {
   const auth = await gateSignedInMutation(payload.matchId, "match id");
   if ("error" in auth) return { error: auth.error };
 
@@ -307,7 +308,7 @@ export async function addMatchRouteAction(
   // immediately — the match grid must not wait on the realtime
   // self-echo, which drops often enough for the creator to see a
   // stale list until they refresh.
-  return { route: data as MatchRoute };
+  return { success: true, route: data as MatchRoute };
 }
 
 interface UpdateRoutePayload {
@@ -325,7 +326,7 @@ interface UpdateRoutePayload {
 
 export async function updateMatchRouteAction(
   payload: UpdateRoutePayload,
-): Promise<{ error: string } | { route: MatchRoute }> {
+): Promise<ActionResult<{ route: MatchRoute }>> {
   if (payload.discipline != null && !isDiscipline(payload.discipline)) {
     return { error: "Invalid discipline" };
   }
@@ -356,7 +357,7 @@ export async function updateMatchRouteAction(
   if (error) return { error: formatError(error) };
   // RLS filtered every row out — not a player, or the Match has ended.
   if (!data) return { error: "You can't edit that route." };
-  return { route: data as MatchRoute };
+  return { success: true, route: data as MatchRoute };
 }
 
 // ── Guests ────────────────────────────────────────
@@ -375,7 +376,7 @@ const MAX_GUEST_NAME_LEN = 40;
 export async function addMatchGuestAction(
   matchId: string,
   name: string,
-): Promise<{ error: string } | { player: MatchPlayerRow }> {
+): Promise<ActionResult<{ player: MatchPlayerRow }>> {
   const auth = await gateSignedInMutation(matchId, "match id");
   if ("error" in auth) return { error: auth.error };
 
@@ -389,7 +390,7 @@ export async function addMatchGuestAction(
     .maybeSingle();
   if (error) return { error: formatError(error) };
   if (!data) return { error: "Only the host can add a guest." };
-  return { player: data as MatchPlayerRow };
+  return { success: true, player: data as MatchPlayerRow };
 }
 
 /**
@@ -399,7 +400,7 @@ export async function addMatchGuestAction(
  */
 export async function removeMatchGuestAction(
   playerId: string,
-): Promise<{ error: string } | { ok: true }> {
+): Promise<ActionResult> {
   const auth = await gateSignedInMutation(playerId, "player id");
   if ("error" in auth) return { error: auth.error };
 
@@ -410,7 +411,7 @@ export async function removeMatchGuestAction(
     .is("user_id", null)
     .is("left_at", null);
   if (error) return { error: formatError(error) };
-  return { ok: true };
+  return { success: true };
 }
 
 /**
@@ -426,7 +427,7 @@ export async function setMatchCeilingAction(
   ceiling: number | null,
   /** The other family's limit on a mixed day — see migration 121. */
   altCeiling: number | null = null,
-): Promise<{ error: string } | { ok: true }> {
+): Promise<ActionResult> {
   const auth = await gateSignedInMutation(playerId, "player id");
   if ("error" in auth) return { error: auth.error };
   if (!isUuid(matchId)) return { error: "Invalid match id" };
@@ -449,7 +450,7 @@ export async function setMatchCeilingAction(
     p_alt_ceiling: altCeiling ?? undefined,
   });
   if (error) return { error: formatError(error) };
-  return { ok: true };
+  return { success: true };
 }
 
 /**
@@ -464,11 +465,15 @@ export async function fetchChorkAllowance(
   matchId: string,
   routeId: string,
   playerId?: string,
-): Promise<{ error: string } | { allowance: number | null }> {
+): Promise<ActionResult<{ allowance: number | null }>> {
   const auth = await gateSignedInMutation(matchId, "match id", {
     rateLimit: null,
   });
   if ("error" in auth) return { error: auth.error };
+  if (!isUuid(routeId)) return { error: "Invalid route id" };
+  if (playerId != null && !isUuid(playerId)) {
+    return { error: "Invalid player id" };
+  }
 
   const { data, error } = await auth.supabase.rpc("chork_round_allowance", {
     p_set_id: matchId,
@@ -476,7 +481,7 @@ export async function fetchChorkAllowance(
     p_player_id: playerId ?? undefined,
   });
   if (error) return { error: formatError(error) };
-  return { allowance: (data as number | null) ?? null };
+  return { success: true, allowance: (data as number | null) ?? null };
 }
 
 /**
@@ -492,9 +497,13 @@ export async function concedeChorkRound(
   matchId: string,
   routeId: string,
   playerId?: string,
-): Promise<{ error: string } | { ok: true }> {
+): Promise<ActionResult> {
   const auth = await gateSignedInMutation(matchId, "match id");
   if ("error" in auth) return { error: auth.error };
+  if (!isUuid(routeId)) return { error: "Invalid route id" };
+  if (playerId != null && !isUuid(playerId)) {
+    return { error: "Invalid player id" };
+  }
 
   const { error } = await auth.supabase.rpc("chork_concede", {
     p_set_id: matchId,
@@ -502,7 +511,7 @@ export async function concedeChorkRound(
     p_player_id: playerId ?? undefined,
   });
   if (error) return { error: formatError(error) };
-  return { ok: true };
+  return { success: true };
 }
 
 /**
@@ -522,7 +531,7 @@ export async function withdrawChorkRoute(
   matchId: string,
   routeId: string,
   playerId?: string | null,
-): Promise<{ error: string } | { ok: true }> {
+): Promise<ActionResult> {
   const auth = await gateSignedInMutation(matchId, "match id");
   if ("error" in auth) return { error: auth.error };
   if (!isUuid(routeId)) return { error: "Invalid route id" };
@@ -535,7 +544,7 @@ export async function withdrawChorkRoute(
     p_player_id: undef(playerId ?? null),
   });
   if (error) return { error: formatError(error) };
-  return { ok: true };
+  return { success: true };
 }
 
 /**
@@ -548,7 +557,7 @@ export async function withdrawChorkRoute(
  */
 export async function fetchChorkStandings(
   matchId: string,
-): Promise<{ error: string } | { standings: ChorkStanding[] }> {
+): Promise<ActionResult<{ standings: ChorkStanding[] }>> {
   const auth = await gateSignedInMutation(matchId, "match id", {
     rateLimit: null,
   });
@@ -558,21 +567,7 @@ export async function fetchChorkStandings(
     p_set_id: matchId,
   });
   if (error) return { error: formatError(error) };
-  return { standings: (data ?? []) as ChorkStanding[] };
-}
-
-export interface ChorkStanding {
-  player_id: string;
-  user_id: string | null;
-  letters: number;
-  is_out: boolean;
-  /**
-   * Whose turn it is to set. Derived here rather than on the client
-   * for the same reason as the letters: the rule turns on whether the
-   * setter sent their own challenge, which is their attempt count,
-   * which nobody else may read. Exactly one seat has it.
-   */
-  has_pen: boolean;
+  return { success: true, standings: (data ?? []) as ChorkStanding[] };
 }
 
 export interface InvitableFriend {
@@ -599,7 +594,7 @@ export interface InvitableFriend {
  * else gets the join code, which they have to act on themselves.
  */
 export async function getInvitableFriends(): Promise<
-  { error: string } | { friends: InvitableFriend[]; matchName: string | null }
+  ActionResult<{ friends: InvitableFriend[]; matchName: string | null }>
 > {
   const auth = await gateSignedInMutation(null, "match", { rateLimit: null });
   if ("error" in auth) return { error: auth.error };
@@ -610,7 +605,7 @@ export async function getInvitableFriends(): Promise<
 
   // `get_friends` is caller-scoped: it can only ever list MY friends.
   const friends = (await getFriends(auth.supabase)).filter((f) => f.status === "active");
-  if (friends.length === 0) return { friends: [], matchName: active.name };
+  if (friends.length === 0) return { success: true, friends: [], matchName: active.name };
   const friendIds = friends.map((f) => f.user_id);
 
   const [{ data: seats }, { data: invites }] = await Promise.all([
@@ -631,6 +626,7 @@ export async function getInvitableFriends(): Promise<
   const invited = new Set((invites ?? []).map((n) => n.user_id));
 
   return {
+    success: true,
     matchName: active.name,
     friends: friends
       .filter((f) => !seated.has(f.user_id))
@@ -663,7 +659,7 @@ export async function getInvitableFriends(): Promise<
  */
 export async function inviteToMatch(
   targetUserId: string,
-): Promise<{ error: string } | { ok: true; matchName: string | null }> {
+): Promise<ActionResult<{ matchName: string | null }>> {
   const auth = await gateSignedInMutation(targetUserId, "climber id", {
     rateLimit: "invitesSend",
   });
@@ -703,7 +699,7 @@ export async function inviteToMatch(
     fromUsername: me?.username ?? "someone",
   });
 
-  return { ok: true, matchName: active.name };
+  return { success: true, matchName: active.name };
 }
 
 /**
@@ -717,31 +713,37 @@ export async function inviteToMatch(
 export async function setMatchGameMode(
   matchId: string,
   mode: "points" | "chork",
-): Promise<{ error: string } | { ok: true }> {
+): Promise<ActionResult> {
   const auth = await gateSignedInMutation(matchId, "match id");
   if ("error" in auth) return { error: auth.error };
+  // The union is a compile-time promise only; the wire carries
+  // whatever the client sent.
+  if (mode !== "points" && mode !== "chork") {
+    return { error: "Invalid game mode" };
+  }
   const { error } = await auth.supabase.rpc("set_match_game_mode", {
     p_set_id: matchId,
     p_mode: mode,
   });
   if (error) return { error: formatError(error) };
-  return { ok: true };
+  return { success: true };
 }
 
 /** Turn the handicap on or off. Host only, while the Match is live. */
 export async function setMatchHandicapAction(
   matchId: string,
   enabled: boolean,
-): Promise<{ error: string } | { ok: true }> {
+): Promise<ActionResult> {
   const auth = await gateSignedInMutation(matchId, "match id");
   if ("error" in auth) return { error: auth.error };
+  if (typeof enabled !== "boolean") return { error: "Invalid value" };
 
   const { error } = await auth.supabase.rpc("set_match_handicap", {
     p_set_id: matchId,
     p_enabled: enabled,
   });
   if (error) return { error: formatError(error) };
-  return { ok: true };
+  return { success: true };
 }
 
 // ── Log an attempt ────────────────────────────────
@@ -761,7 +763,7 @@ interface UpsertLogPayload {
 
 export async function upsertMatchLogAction(
   payload: UpsertLogPayload,
-): Promise<{ error: string } | { success: true; log: null }> {
+): Promise<ActionResult<{ log: null }>> {
   if (
     typeof payload.attempts !== "number" ||
     payload.attempts < 0 ||
@@ -810,7 +812,7 @@ export async function upsertMatchLogAction(
  */
 export async function endMatchAction(
   matchId: string,
-): Promise<{ error: string } | { summaryId: string }> {
+): Promise<ActionResult<{ summaryId: string }>> {
   const auth = await gateSignedInMutation(matchId, "match id");
   if ("error" in auth) return { error: auth.error };
 
@@ -868,7 +870,7 @@ export async function endMatchAction(
       }
     });
 
-    return { summaryId };
+    return { success: true, summaryId };
   } catch (err) {
     return { error: formatError(err) };
   }
@@ -889,7 +891,7 @@ export async function endMatchAction(
  */
 export async function shareResultAction(
   summaryId: string,
-): Promise<{ error: string } | { url: string }> {
+): Promise<ActionResult<{ url: string }>> {
   const auth = await gateSignedInMutation(summaryId, "result");
   if ("error" in auth) return { error: auth.error };
 
@@ -902,5 +904,5 @@ export async function shareResultAction(
   const token = await mintShareToken(summaryId);
   if (!token) return { error: "Couldn't create a share link — try again." };
 
-  return { url: `${env.SITE_URL}/r/${token}` };
+  return { success: true, url: `${env.SITE_URL}/r/${token}` };
 }

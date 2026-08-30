@@ -5,7 +5,7 @@ vi.mock("next/cache", () => ({
   revalidateTag: vi.fn(),
 }));
 vi.mock("@/lib/supabase/server", () => ({ createServerSupabase: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ requireSignedIn: vi.fn() }));
+vi.mock("@/lib/auth", async () => (await import("@/test/mock-auth")).mockAuthModule());
 vi.mock("@/lib/data/mutations", () => ({ createGymMembership: vi.fn() }));
 
 import { createMockSupabase } from "@/test/mock-supabase";

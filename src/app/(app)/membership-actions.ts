@@ -3,7 +3,7 @@
 import { revalidateTag } from "next/cache";
 import { cookies } from "next/headers";
 import { revalidateUserProfile } from "@/lib/cache/revalidate";
-import { requireAuth, requireSignedIn } from "@/lib/auth";
+import { gateClimberMutation, gateSignedInMutation } from "@/lib/auth";
 import { formatError } from "@/lib/errors";
 import { UUID_RE } from "@/lib/validation";
 import { tags } from "@/lib/cache/tags";
@@ -22,18 +22,15 @@ export async function joinCompetition(
   competitionId: string,
   categoryId: string | null = null
 ): Promise<ActionResult> {
-  if (typeof competitionId !== "string" || !UUID_RE.test(competitionId)) {
-    return { error: "Invalid competition" };
-  }
   if (categoryId !== null && (typeof categoryId !== "string" || !UUID_RE.test(categoryId))) {
     return { error: "Invalid category" };
   }
 
-  // requireAuth (not just signed-in) — joining a competition makes
-  // the climber visible on gym-scoped leaderboards, so they must
-  // have an active gym context and be a member of a gym that's
-  // actually linked to this competition.
-  const auth = await requireAuth();
+  // The gym-scoped gate (not the signed-in one) — joining a
+  // competition makes the climber visible on gym-scoped leaderboards,
+  // so they must have an active gym context and be a member of a gym
+  // that's actually linked to this competition.
+  const auth = await gateClimberMutation(competitionId, "competition");
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId, gymId } = auth;
 
@@ -88,11 +85,7 @@ export async function joinCompetition(
 export async function leaveCompetition(
   competitionId: string
 ): Promise<ActionResult> {
-  if (typeof competitionId !== "string" || !UUID_RE.test(competitionId)) {
-    return { error: "Invalid competition" };
-  }
-
-  const auth = await requireSignedIn();
+  const auth = await gateSignedInMutation(competitionId, "competition");
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId } = auth;
 
@@ -154,11 +147,7 @@ async function invalidateNavShell(): Promise<void> {
 export async function switchActiveGym(
   gymId: string
 ): Promise<ActionResult<{ gymId: string }>> {
-  if (typeof gymId !== "string" || !UUID_RE.test(gymId)) {
-    return { error: "Invalid gym" };
-  }
-
-  const auth = await requireSignedIn();
+  const auth = await gateSignedInMutation(gymId, "gym");
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId } = auth;
 
@@ -236,7 +225,7 @@ export async function switchActiveGym(
  * rolls over, since set boards only count logs in that set.
  */
 export async function clearActiveGym(): Promise<ActionResult<{ gymId: null }>> {
-  const auth = await requireSignedIn();
+  const auth = await gateSignedInMutation(null, "profile");
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId } = auth;
 

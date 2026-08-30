@@ -1,12 +1,13 @@
 "use server";
 
 import { revalidateTag } from "next/cache";
-import { requireSignedIn } from "@/lib/auth";
+import { gateSignedInMutation, requireSignedIn } from "@/lib/auth";
 import { validateUsername, UUID_RE } from "@/lib/validation";
 import { createGymMembership } from "@/lib/data/mutations";
 import { formatError, formatErrorForLog } from "@/lib/errors";
 import { revalidateUserProfile } from "@/lib/cache/revalidate";
 import type { Gym } from "@/lib/data";
+import type { ActionResult } from "@/lib/action-result";
 
 import { logger } from "@/lib/logger";
 import { tags } from "@/lib/cache/tags";
@@ -36,7 +37,7 @@ export async function completeOnboarding(
   username: string,
   name: string,
   gymId: string | null
-): Promise<{ error: string } | { success: true }> {
+): Promise<ActionResult> {
   // Input validation
   const { error: usernameError } = validateUsername(username);
   if (usernameError) return { error: usernameError };
@@ -53,7 +54,10 @@ export async function completeOnboarding(
 
   const trimmedName = name.trim().slice(0, MAX_NAME_LENGTH);
 
-  const auth = await requireSignedIn();
+  // The gym id was validated above (it may legitimately be null), so
+  // the gate gets no resource id; the label only shapes an error it
+  // can no longer produce.
+  const auth = await gateSignedInMutation(null, "gym");
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId } = auth;
 

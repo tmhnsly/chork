@@ -17,7 +17,7 @@ import { logger } from "@/lib/logger";
 import { tags } from "@/lib/cache/tags";
 import type { ActionResult } from "@/lib/action-result";
 
-type CommentResult = { error: string } | { comment: Comment };
+type CommentResult = ActionResult<{ comment: Comment }>;
 
 export async function postComment(
   routeId: string,
@@ -58,7 +58,7 @@ export async function postComment(
     // dedicated `userCrewActivity` tag rather than re-adding a path
     // call.
     revalidateTag(tags.routeComments(routeId), "max");
-    return { comment };
+    return { success: true, comment };
   } catch (err) {
     return { error: formatError(err) };
   }
@@ -169,7 +169,7 @@ export async function editComment(
     // Mirror postComment — bust the per-route comment cache tag so
     // a future cache wrap doesn't serve stale edited text.
     revalidateTag(tags.routeComments(existing.route_id), "max");
-    return { comment };
+    return { success: true, comment };
   } catch (err) {
     return { error: formatError(err) };
   }

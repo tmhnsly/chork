@@ -65,7 +65,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     if (!profile?.id) return;
     void (async () => {
       try {
-        const { updateThemePreference } = await import("@/lib/user-actions");
+        const { updateThemePreference } = await import("@/app/profile/actions");
         await updateThemePreference(next);
         await refreshProfile();
       } catch (err) {

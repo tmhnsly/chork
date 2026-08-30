@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { deleteAccount } from "@/lib/user-actions";
+import { deleteAccount } from "@/app/profile/actions";
 import { AppDialog, Button, SheetActions, showToast } from "@/components/ui";
 import styles from "./deleteAccountDialog.module.scss";
 

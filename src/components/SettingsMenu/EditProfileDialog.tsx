@@ -6,7 +6,7 @@ import { FaCamera } from "react-icons/fa6";
 import type { Profile } from "@/lib/data";
 import { useAuth } from "@/lib/auth-context";
 import { useUsernameValidation } from "@/hooks/use-username-validation";
-import { updateProfile, uploadAvatar } from "@/lib/user-actions";
+import { updateProfile, uploadAvatar } from "@/app/profile/actions";
 import { resizeAvatar } from "@/lib/image";
 import {
   AppDialog,

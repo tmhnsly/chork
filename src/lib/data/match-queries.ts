@@ -19,6 +19,7 @@ import { formatErrorForLog } from "../errors";
 import { MATCH_CODE_RE } from "../validation";
 import type {
   ActiveMatchSummary,
+  ChorkStanding,
   MatchAchievementContext,
   MatchHistoryRow,
   MatchState,
@@ -98,24 +99,11 @@ export async function lookupMatchByCode(
 export async function getChorkStandings(
   service: Client,
   setId: string,
-): Promise<ChorkStandingRow[]> {
-  return readMany<ChorkStandingRow>(
+): Promise<ChorkStanding[]> {
+  return readMany<ChorkStanding>(
     service.rpc("chork_standings", { p_set_id: setId }),
     "getchorkstandings_failed",
   );
-}
-
-export interface ChorkStandingRow {
-  player_id: string;
-  user_id: string | null;
-  username: string | null;
-  display_name: string | null;
-  avatar_url: string | null;
-  is_guest: boolean;
-  letters: number;
-  is_out: boolean;
-  has_left: boolean;
-  has_pen: boolean;
 }
 
 /** Finished Matches the user played, newest first. Service-role. */

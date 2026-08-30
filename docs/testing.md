@@ -62,9 +62,22 @@ Every server action tests:
   already-committed DB write
 
 Examples:
-- `src/app/(app)/actions.test.ts` — climber-side actions
-- `src/app/crew/actions.test.ts` — crew lifecycle (31 tests)
+- `src/app/(app)/route-log-actions.test.ts` — the card's writes,
+  driven through the real mutations layer
+- `src/app/match/actions.test.ts` — every match action, auth run for
+  real over doubled supabase primitives (the gate + rate limit are
+  under test, not mocked)
+- `src/app/admin/sets-actions.test.ts` — publishing a set
 - `src/app/onboarding/actions.test.ts` — onboarding
+
+Two hygiene rules sit above the per-action tests, in
+`src/lib/action-hygiene.test.ts`: every write action opens with a
+`gate*Mutation` helper (or hands its resource gate a `rateLimit`
+bucket), and every action returns `Promise<ActionResult<…>>`. Both
+read source text across `src/app/**/*actions.ts`, so a new action
+module is covered the moment it exists — and one placed outside that
+glob is covered by neither, which is why there are no action modules
+in `src/lib/`.
 
 ### 3. Pure helpers
 
@@ -117,7 +130,7 @@ a mutation twice, no duplicate log rows. Tests assert the
 
 ### Mocking server actions
 
-Follow the pattern in `src/app/(app)/actions.test.ts`:
+Follow the pattern in `src/app/(app)/comment-actions.test.ts`:
 
 ```ts
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
@@ -125,9 +138,21 @@ vi.mock("@/lib/supabase/server", () => ({
   createServerSupabase: vi.fn(),
   createServiceClient: vi.fn(),
 }));
-vi.mock("@/lib/auth", () => ({ requireAuth: vi.fn(), requireSignedIn: vi.fn() }));
+vi.mock("@/lib/auth", async () => (await import("@/test/mock-auth")).mockAuthModule());
 vi.mock("@/lib/data/mutations", () => ({ /* mock each used fn */ }));
 ```
+
+**One auth double: `mockAuthModule()` from `src/test/mock-auth.ts`.**
+The `require*` helpers come back as bare spies the test primes
+(`vi.mocked(requireSignedIn).mockResolvedValue({ supabase, userId })`).
+The three `gate*Mutation` helpers are spies whose implementation is
+the real prelude shape — uuid check with the caller's label, then the
+primed `require*`, then `enforce` from `@/lib/rate-limit` — so a
+subject that moves from a hand-rolled prelude to the gate keeps its
+tests, a "rejects a malformed id" assertion still exercises the check,
+and `expect(gateClimberMutation).not.toHaveBeenCalled()` still proves
+validation ran first. Six inline forks of that delegation existed
+before 2026-08-30; don't add a seventh.
 
 Import the module under test **inside each test** via `await import(…)`
 so `vi.mock()` is applied before the first import.

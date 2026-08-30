@@ -2,13 +2,26 @@
 
 import { createHash } from "node:crypto";
 import { revalidateTag } from "next/cache";
-import { createServiceClient } from "./supabase/server";
-import { revalidateUserProfile } from "./cache/revalidate";
-import { requireAuth, requireSignedIn } from "./auth";
-import { validateUsername } from "./validation";
-import { formatError } from "./errors";
-
+import { createServiceClient } from "@/lib/supabase/server";
+import { revalidateUserProfile } from "@/lib/cache/revalidate";
+import { gateSignedInMutation, requireSignedIn } from "@/lib/auth";
+import { validateUsername } from "@/lib/validation";
+import { formatError } from "@/lib/errors";
 import { tags } from "@/lib/cache/tags";
+import type { ActionResult } from "@/lib/action-result";
+
+// The climber's own account: profile fields, theme, push opt-ins, the
+// avatar, deletion. Every write here is gymless-safe by design — a
+// climber with no active gym still owns their name and their face —
+// which is why these gate on `gateSignedInMutation`, never the
+// gym-scoped `requireAuth` (CLAUDE.md "A gym is optional"). Until
+// 2026-08 four of them used `requireAuth`, so a gymless climber
+// couldn't change their theme.
+//
+// Lived at `src/lib/user-actions.ts` until 2026-08-30; moved under
+// `src/app/` so the action-module sweeps (and `action-hygiene.test.ts`)
+// find it.
+
 /**
  * Check if a username is available.
  * Requires authentication - derives userId from session, ignores client-supplied value.
@@ -39,8 +52,8 @@ export async function checkUsernameAvailable(
  */
 export async function updateProfile(
   updates: { name?: string; username?: string }
-): Promise<{ error: string } | { success: true }> {
-  const auth = await requireAuth();
+): Promise<ActionResult> {
+  const auth = await gateSignedInMutation(null, "profile");
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId } = auth;
 
@@ -106,12 +119,12 @@ export async function updateProfile(
  */
 export async function updateThemePreference(
   theme: string,
-): Promise<{ error: string } | { success: true }> {
+): Promise<ActionResult> {
   if (typeof theme !== "string" || theme.length > 32) {
     return { error: "Invalid theme" };
   }
 
-  const auth = await requireAuth();
+  const auth = await gateSignedInMutation(null, "profile");
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId } = auth;
 
@@ -143,7 +156,7 @@ export type PushCategoryKey = keyof typeof PUSH_CATEGORY_COLUMN;
 export async function updatePushCategory(
   category: string,
   enabled: boolean,
-): Promise<{ error: string } | { success: true }> {
+): Promise<ActionResult> {
   if (!(category in PUSH_CATEGORY_COLUMN)) {
     return { error: "Unknown notification category" };
   }
@@ -151,7 +164,7 @@ export async function updatePushCategory(
     return { error: "Invalid value" };
   }
 
-  const auth = await requireAuth();
+  const auth = await gateSignedInMutation(null, "profile");
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId } = auth;
 
@@ -166,6 +179,10 @@ export async function updatePushCategory(
       .update({ [column]: enabled } as never)
       .eq("id", userId);
     if (error) return { error: formatError(error) };
+    // The opt-in bools live on the profile row, which is cached whole
+    // by username — bust it so the settings sheet reads back what was
+    // just written rather than the cached copy.
+    await revalidateUserProfile(supabase, userId);
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
@@ -178,8 +195,10 @@ export async function updatePushCategory(
  */
 export async function uploadAvatar(
   formData: FormData
-): Promise<{ error: string } | { success: true; url: string }> {
-  const auth = await requireAuth();
+): Promise<ActionResult<{ url: string }>> {
+  // 500 KB of Storage per call — the write limit matters here more
+  // than on a row update.
+  const auth = await gateSignedInMutation(null, "profile");
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId } = auth;
 
@@ -237,12 +256,13 @@ export async function uploadAvatar(
 
     if (profileError) return { error: formatError(profileError) };
 
-    // Deliberately NOT calling `revalidatePath("/", "layout")` here —
-    // it busts every cached RSC segment under root (heavy) and isn't
-    // needed: the returned URL already has a `?t=` cache-buster, and
-    // the client calls refreshProfile() + router.refresh() itself.
-    // Including it here added ~1-2s of perceived "Uploading…" time
-    // after the actual upload finished.
+    // Bust the by-username profile cache — `avatar_url` is on the row
+    // `getProfileByUsername` caches for 300s, so without this a new
+    // face reached the climber's own nav (refreshProfile) but not
+    // /u/{username} for five minutes. A tag bust, not
+    // `revalidatePath("/", "layout")`: that scorched every RSC segment
+    // under root and added ~1-2s of perceived "Uploading…".
+    await revalidateUserProfile(supabase, userId);
     return { success: true, url: publicUrl };
   } catch (err) {
     return { error: formatError(err) };
@@ -265,8 +285,8 @@ export async function uploadAvatar(
  * username lookup needs the row; after because a request between the
  * two could re-cache it.
  */
-export async function deleteAccount(): Promise<{ error: string } | { success: true }> {
-  const auth = await requireSignedIn();
+export async function deleteAccount(): Promise<ActionResult> {
+  const auth = await gateSignedInMutation(null, "account");
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId } = auth;
 
@@ -294,6 +314,3 @@ export async function deleteAccount(): Promise<{ error: string } | { success: tr
     return { error: formatError(err) };
   }
 }
-
-// fetchFollowers / fetchFollowing removed — the follows feature was
-// replaced by crews in migration 021.

@@ -1,8 +1,7 @@
 "use server";
 
-import { requireSignedIn } from "@/lib/auth";
+import { gateSignedInMutation } from "@/lib/auth";
 import { formatError } from "@/lib/errors";
-import { enforce as enforceRateLimit } from "@/lib/rate-limit";
 import type { ActionResult } from "@/lib/action-result";
 import { SLUG_RE } from "@/lib/validation";
 
@@ -33,17 +32,16 @@ export async function signupGym(form: {
     return { error: "Invalid plan tier." };
   }
 
-  const auth = await requireSignedIn();
+  // Payload-validated above, so no resource id. Gym signups are rare
+  // in legitimate use (one per admin onboarding session); without the
+  // dedicated bucket a single authed user could mass-create gym rows
+  // — `gyms.name` has no uniqueness constraint, so spam wouldn't even
+  // fail at the DB layer until the per-call slug collision check. See
+  // lib/rate-limit.ts for sizing.
+  const auth = await gateSignedInMutation(null, "gym", {
+    rateLimit: "gymSignup",
+  });
   if ("error" in auth) return { error: auth.error };
-
-  // Rate-limit: gym signups are rare in legitimate use (one per
-  // admin onboarding session). Without this, a single authed user
-  // could mass-create gym rows — `gyms.name` has no uniqueness
-  // constraint, so spam wouldn't even fail at the DB layer until
-  // the per-call slug collision check. See lib/rate-limit.ts for
-  // bucket sizing.
-  const rl = await enforceRateLimit("gymSignup", auth.userId);
-  if (!rl.ok) return { error: rl.error };
 
   // create_gym_with_owner_tx (migration 061): both inserts (gyms +
   // gym_admins) happen in one implicit transaction, so a failure on

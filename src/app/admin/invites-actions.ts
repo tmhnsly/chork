@@ -1,10 +1,10 @@
 "use server";
 
-import { gateGymAdminMutation, requireSignedIn } from "@/lib/auth";
+import { gateGymAdminMutation, gateSignedInMutation } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
 import { formatError, formatErrorForLog } from "@/lib/errors";
 import { logger } from "@/lib/logger";
-import { UUID_RE, EMAIL_RE } from "@/lib/validation";
+import { EMAIL_RE } from "@/lib/validation";
 import { env } from "@/lib/env";
 import { randomBytes } from "node:crypto";
 
@@ -83,9 +83,7 @@ export async function sendAdminInvite(form: {
 }
 
 export async function cancelAdminInvite(inviteId: string): Promise<ActionResult> {
-  if (!UUID_RE.test(inviteId)) return { error: "Invalid invite." };
-
-  const auth = await requireSignedIn();
+  const auth = await gateSignedInMutation(inviteId, "invite");
   if ("error" in auth) return { error: auth.error };
 
   // gym_invites DELETE is RLS-gated to `is_gym_admin(gym_id)` (migration
@@ -109,7 +107,10 @@ export async function acceptAdminInvite(token: string): Promise<ActionResult<{ g
   if (typeof token !== "string" || token.length < 20) {
     return { error: "Invalid invite link." };
   }
-  const auth = await requireSignedIn();
+  // A privilege grant: this seats the caller as a gym admin. The
+  // token is opaque, not a uuid, so the gate gets no resource id —
+  // the rate limit is the point here (see auth.ts, gateSignedInMutation).
+  const auth = await gateSignedInMutation(null, "invite");
   if ("error" in auth) return { error: auth.error };
 
   // Runs under the service role so the chicken-and-egg check on
