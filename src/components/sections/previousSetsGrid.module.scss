@@ -1,6 +1,7 @@
 @use "mixins/typography" as type;
 @use "mixins/layout" as layout;
 @use "mixins/surfaces" as surface;
+@use "mixins/container-queries" as cq;
 @use "mixins/focus";
 
 // ── Legend ────────────────────────────────────────
@@ -38,7 +39,10 @@
   padding: 0;
   margin: 0;
 
-  @container (min-width: 32rem) {
+  // The grid lives inside SectionCard's named `tile` container.
+  // 32rem is a tuned one-off between cq's split (28rem) and large
+  // rungs — the escape hatch exists for exactly this.
+  @include cq.at(32rem) {
     grid-template-columns: repeat(3, 1fr);
   }
 }
@@ -85,8 +89,13 @@ div.tile {
   }
 }
 
+// Archived sets recede by chrome, not opacity — an opacity dim scales
+// the label's contrast toward the background (see _state.scss), and
+// these tiles are still tappable so `state.disabled*` would lie about
+// the cursor. The flatter background says "past" while the text keeps
+// its contrast.
 .tileInactive {
-  opacity: 0.7;
+  background: var(--mono-app-bg);
 }
 
 .label {

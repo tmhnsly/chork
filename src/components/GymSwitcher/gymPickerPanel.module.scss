@@ -38,6 +38,10 @@
 
 .search {
   @include input.field;
+  // WebKit gives type="search" its own native appearance on iOS/Safari,
+  // which overrides the radius token at runtime — strip it (same fix as
+  // ui/SearchField; not in the mixin because admin <select>s use it).
+  appearance: none;
   padding-left: var(--space-8);
 }
 

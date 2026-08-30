@@ -6,6 +6,9 @@
 .hero {
   position: relative;
   background: var(--mono-app-bg);
+
+  // Entrance stagger — copy lands, then the CTA row one beat later.
+  --stagger-hero: 0.2s;
 }
 
 .inner {
@@ -45,7 +48,7 @@
 .devNoticeDot {
   width: 0.5em;
   height: 0.5em;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   background: var(--flash-solid);
   flex-shrink: 0;
 }
@@ -126,11 +129,11 @@
   // (--mono-text) keeps the visual hierarchy quiet vs the
   // headline weight while clearing contrast on every theme.
   color: var(--mono-text);
-  animation: heroIn var(--duration-hero) var(--ease-out) 200ms both;
+  animation: heroIn var(--duration-hero) var(--ease-out) var(--stagger-hero) both;
 }
 
 .ctaRow {
-  animation: heroIn var(--duration-hero) var(--ease-out) 400ms both;
+  animation: heroIn var(--duration-hero) var(--ease-out) calc(var(--stagger-hero) * 2) both;
 
   > * {
     width: 100%;

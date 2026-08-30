@@ -28,7 +28,8 @@
 
 // ── Variants ────────────────────────────────────────
 .toast--info {
-  .icon { color: var(--info-text-low-contrast); }
+  // Accent, not a bespoke info family — see ui.module.scss .banner--info.
+  .icon { color: var(--accent-text-low-contrast); }
 }
 
 .toast--success {
@@ -84,7 +85,6 @@
 .achievementEyebrow {
   @include type.typography(label);
   color: var(--mono-text-low-contrast);
-  text-transform: uppercase;
 }
 
 .achievementName {

@@ -22,7 +22,7 @@
 }
 
 .tileEntrance {
-  animation: tileIn var(--duration-tile-in) ease backwards;
+  animation: tileIn var(--duration-tile-in) var(--ease-out) backwards;
   animation-delay: calc(var(--i, 0) * 12ms);
 
   @media (prefers-reduced-motion: reduce) {

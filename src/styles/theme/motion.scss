@@ -59,6 +59,28 @@
   --duration-spin: 0.8s;
   --duration-shimmer: 2s;
 
+  /* General loop periods for ambient/decorative animation. Pick the
+     nearest rung; don't tune per-site.
+
+     When a scene needs timings these rungs can't express (parallel
+     loops deliberately detuned so they drift instead of syncing),
+     declare named custom properties on that module's root class —
+     never a bare literal in `animation`/`transition`, which
+     design-system.test.ts rejects everywhere including marketing.
+     Three prefixes, three meanings:
+
+       --period-*   how long one cycle of a loop takes
+       --offset-*   a fixed phase offset INTO a loop, so siblings
+                    on the same period feel choreographed
+       --stagger-*  an entrance increment, multiplied per item
+                    via calc()
+
+     `src/components/landing/featureGrid.module.scss` is the
+     reference implementation of all three. */
+  --duration-loop-pulse: 1s; /* live dots, cursors, attention blips */
+  --duration-loop: 6s;       /* ambient drift */
+  --duration-loop-slow: 12s; /* background wash */
+
   /* ── Choreography ───────────────────────────────────────────
      One-off entrance timings that are tuned against a stagger
      rather than against the state-change scale above. Named here so

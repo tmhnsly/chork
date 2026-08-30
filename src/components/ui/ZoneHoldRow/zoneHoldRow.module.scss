@@ -58,9 +58,8 @@
 
 // ── Hint (shown when disabled) ────────────────────
 .hint {
-  @include type.typography(meta);
+  @include type.typography(aside);
   color: var(--mono-text-low-contrast);
-  font-style: italic;
 }
 
 // ── Toggle ────────────────────────────────────────

@@ -82,6 +82,16 @@ $_typography: (
     family: var(--font-heading),
     style: italic,
   ),
+  // Container-scaled glyph in a tile corner — SendGridTile's grade
+  // overlay. The heading voice without number's italic; size comes
+  // from `cqi` at the call site (sanctioned for tile innards), so the
+  // preset's step is only the zero-container fallback.
+  tile-glyph: (
+    step: xs,
+    leading: none,
+    weight: var(--weight-bold),
+    family: var(--font-heading),
+  ),
   // Uppercase labels — "CURRENT SESSION", "FLASH RATE", "COMPLETED".
   // 12px, the floor for text that has to be read.
   label: (
@@ -89,6 +99,16 @@ $_typography: (
     weight: var(--weight-semibold),
     family: var(--font-heading),
     transform: uppercase,
+  ),
+  // Unit suffix riding a number — "pts", "sends", the quiet word
+  // after a numeral. Label's rung without label's shout: lowercase,
+  // regular weight. (Lowercase presets take plain step tracking —
+  // the caps modifier is uppercase-only, see the mixin.)
+  unit: (
+    step: xs,
+    weight: var(--weight-regular),
+    family: var(--font-heading),
+    transform: lowercase,
   ),
   // A word captioning a glyph — bottom-nav tab labels today, and any
   // future toolbar or icon button on the same terms. Sits on the
@@ -114,6 +134,14 @@ $_typography: (
     step: sm,
     weight: var(--weight-medium),
     family: var(--font-body),
+  ),
+  // Parenthetical aside — hints, empty-state whispers, "why you
+  // can't" explanations. Meta's metrics with an italic voice.
+  aside: (
+    step: sm,
+    weight: var(--weight-medium),
+    family: var(--font-body),
+    style: italic,
   ),
   // Button text. Opts out of the step's leading — a button's height is
   // set by its padding and tap target, and step leading would fight it.

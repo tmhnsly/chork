@@ -234,6 +234,18 @@
   --overlay-media: rgb(0 0 0 / 0.4);
   --overlay-media-fg: #fff;
   --overlay-media-track: rgb(255 255 255 / 0.3);
+
+  /* Shine sweep for shimmer/gloss gradients over dark decorative
+     tiles — white at low alpha, theme-fixed for the same reason the
+     media overlay is: the surface underneath is always the dark
+     illustration, never a themed app surface. */
+  --overlay-shine: rgb(255 255 255 / 0.35);
+
+  /* QR quiet zone — pinned white in every theme AND palette. Scanner
+     read-rates drop sharply on dark or tinted backgrounds, so this is
+     a hardware constraint, not a style choice. Caller: matchMenuSheet
+     .qrFrame. */
+  --surface-scan: #fff;
 }
 /*
  * ── The theme table ──────────────────────────────────────────

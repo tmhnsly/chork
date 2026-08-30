@@ -26,7 +26,7 @@
   }
   50% {
     opacity: 1;
-    box-shadow: 0 0 16px 0
+    box-shadow: 0 0 var(--glow-md) 0
       var(--skeleton-glow);
   }
 }
@@ -44,7 +44,7 @@
   // circular, line skeletons are radius-1 — each surface keeps its
   // shape so the placeholder reads as "this thing, loading" rather
   // than "an unrelated rounded box".
-  animation: skeletonGlow var(--duration-shimmer) ease-in-out infinite;
+  animation: skeletonGlow var(--duration-shimmer) var(--ease-in-out) infinite;
 
   // Everything inside melts into the pulse.
   * {
@@ -69,7 +69,7 @@
   margin: var(--space-1) 0;
   background: var(--mono-bg-hover);
   border-radius: var(--radius-2);
-  animation: skeletonGlow var(--duration-shimmer) ease-in-out infinite;
+  animation: skeletonGlow var(--duration-shimmer) var(--ease-in-out) infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;

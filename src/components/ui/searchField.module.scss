@@ -21,6 +21,11 @@
 .input {
   @include input.field;
   padding-left: var(--space-9);
+  // WebKit gives type="search" its own native appearance on iOS/Safari,
+  // which overrides the radius token at runtime. Strip it so the
+  // --radius-2 from input.field actually wins. (Not in the mixin itself:
+  // four admin <select>s share input.field and need their UA arrow.)
+  appearance: none;
 }
 
 // Button-mode mirrors the input styling so both reads look identical.

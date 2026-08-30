@@ -89,9 +89,10 @@ export async function completeOnboarding(
     }
 
     // Onboarding sets username, name, active_gym_id and the onboarded
-    // flag — all profile-row fields. revalidateUserProfile busts both
-    // user:{uid}:profile and user:username-{u}:profile so the next
-    // /u/{username} render picks up the freshly-set name + theme.
+    // flag — all profile-row fields. revalidateUserProfile busts
+    // user:username-{u}:profile (the uid-keyed tag was retired in the
+    // 2026-08 reader-first sweep — see ADR 0004's addendum) so the
+    // next /u/{username} render picks up the freshly-set name + theme.
     // Active-set tag is busted too so the home page wall renders the
     // climber's new gym's set without waiting for TTL.
     await revalidateUserProfile(supabase, userId);

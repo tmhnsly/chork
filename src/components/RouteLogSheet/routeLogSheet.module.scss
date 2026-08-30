@@ -164,7 +164,7 @@
 .betaDrawerOpen .betaContent {
   opacity: 1;
   transform: none;
-  transition-delay: 0.12s;
+  transition-delay: var(--duration-instant);
 }
 
 .betaEmptyLabel {
@@ -195,7 +195,7 @@
 
 .postFormVisible .commentForm {
   opacity: 1;
-  transition-delay: 0.1s;
+  transition-delay: var(--duration-instant);
 }
 
 .sectionLabel {

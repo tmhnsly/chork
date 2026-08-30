@@ -188,7 +188,7 @@
   max-width: 60ch;
   grid-column: 2 / -1;
 
-  @media (max-width: 47.99rem) {
+  @include bp.mobile {
     grid-column: 1 / -1;
   }
 }

@@ -16,11 +16,19 @@ import { describe, expect, it } from "vitest";
  * add the token rather than widening an exemption here.
  *
  * Marketing surfaces (`components/landing/`, `app/gyms/`) are exempt
- * from the size and rhythm rules by decision, not by oversight: they
- * are container-relative illustrations tuned against `cqi` inside
- * fixed-aspect boxes, which the app scales don't model, and they are
- * due a homepage refresh of their own. Everything else — colour,
- * motion, breakpoints — still applies to them.
+ * from the SIZE AND RHYTHM rules only (type sizes, spacing scale) —
+ * by decision, not oversight: they are container-relative
+ * illustrations tuned against `cqi` inside fixed-aspect boxes, which
+ * the app scales don't model, and they are due a homepage refresh of
+ * their own. Colour, motion, radius and breakpoints all apply to them
+ * (narrowed 2026-08-20 — the skips used to be wider than the written
+ * rule). Loop periods a scene needs beyond the `--duration-loop-*`
+ * rungs are declared as named `--period-*` / `--stagger-*` custom
+ * properties at the top of that module, never as bare literals.
+ *
+ * The two `opengraph-image.tsx` routes are exempt from the inline-
+ * style rule: Satori supports neither CSS modules nor custom
+ * properties, so literals there are forced by the renderer.
  */
 
 const SRC = join(process.cwd(), "src");
@@ -81,6 +89,27 @@ function hits(
 
 const notMarketing = (p: string) => MARKETING.some((d) => p.startsWith(d));
 const notTokenLayer = (p: string) => TOKEN_LAYER.some((d) => p.startsWith(d));
+
+/** Blank out `var(...)` calls and any `calc(...)` that references one,
+ *  so literals living inside them — fallbacks like `var(--x, 0ms)` and
+ *  token-anchored staggers like `calc(var(--i) * 12ms)` — don't
+ *  false-positive the raw-value rules. */
+function stripTokenCalls(code: string): string {
+  let out = code;
+  // Collapse each var() to a paren-free marker first, so a calc()
+  // holding SEVERAL of them still matches — the canonical stagger
+  // nests two: calc(var(--delay, 0s) + var(--i, 0) * 0.05s).
+  // Only a calc() containing a marker is stripped; one built purely
+  // from literals is still a raw value and must be caught.
+  for (let i = 0; i < 5; i++) {
+    const next = out
+      .replace(/var\([^()]*\)/g, "~")
+      .replace(/calc\([^()]*~[^()]*\)/g, "~");
+    if (next === out) break;
+    out = next;
+  }
+  return out;
+}
 
 describe("type scale", () => {
   it("makes a role own its whole voice, resets included", () => {
@@ -182,11 +211,46 @@ describe("state + colour", () => {
     ).toEqual([]);
   });
 
-  it("never open-codes a raw rgb/rgba colour", () => {
+  it("never open-codes a raw rgb/rgba/hsl colour", () => {
     expect(
-      hits(allScss, /\brgba?\(/, (p) => notTokenLayer(p) || notMarketing(p)),
+      hits(allScss, /\b(rgba?|hsla?)\(/, notTokenLayer),
       "Use a Radix token, or add a named one to the token layer with the " +
-        "reason — `--overlay-media` and `--shadow-glyph` are the precedent.",
+        "reason — `--overlay-media`, `--overlay-shine` and `--shadow-glyph` " +
+        "are the precedent. Marketing is NOT exempt: colour is outside the " +
+        "size-and-rhythm carve-out.",
+    ).toEqual([]);
+  });
+
+  it("never hardcodes a hex colour", () => {
+    // The two OG image routes are .tsx (Satori-forced literals) and this
+    // sweep is SCSS-only, so no path exemption is needed.
+    expect(
+      hits(allScss, /#[0-9a-fA-F]{3,8}\b/, notTokenLayer),
+      "Hex belongs in the token layer only (`--*-on-solid`, `--surface-scan`). " +
+        "Components consume the named token.",
+    ).toEqual([]);
+  });
+
+  it("keeps named colours out of paint (mask alpha is the one carve-out)", () => {
+    // In a mask-image gradient only the alpha channel is read, so
+    // `black`/`transparent` there are alpha idioms, not colours — a
+    // Radix token would be actively wrong. Everywhere else a named
+    // colour is paint and must be a token.
+    const bad: string[] = [];
+    for (const { path, text } of allScss) {
+      if (notTokenLayer(path)) continue;
+      text.split("\n").forEach((line, i) => {
+        const code = line.replace(/\/\/.*$/, "");
+        if (/mask-image|-webkit-mask/.test(code)) return;
+        if (/(^|[\s:,(])(white|black)([\s,;)]|$)/.test(code) && /:/.test(code)) {
+          bad.push(`${path}:${i + 1}  ${line.trim()}`);
+        }
+      });
+    }
+    expect(
+      bad,
+      "Named colours are only permitted inside mask-image gradients, " +
+        "where they denote alpha. Paint uses tokens.",
     ).toEqual([]);
   });
 
@@ -201,16 +265,50 @@ describe("state + colour", () => {
 });
 
 describe("motion", () => {
-  it("never sets a raw duration", () => {
+  it("never sets a raw duration or delay", () => {
+    // `-delay` used to slip the regex entirely, and literals inside
+    // `var()` fallbacks / token-anchored `calc()` staggers are legal —
+    // so test the residue after stripping those, and let zero through.
+    const bad: string[] = [];
+    for (const { path, text } of scssModules) {
+      text.split("\n").forEach((line, i) => {
+        const code = stripTokenCalls(line.replace(/\/\/.*$/, ""));
+        if (!/(transition|animation)(-duration|-delay|-timing-function)?:/.test(code)) return;
+        for (const m of code.matchAll(/\b([0-9]*\.?[0-9]+)m?s\b/g)) {
+          if (parseFloat(m[1]) !== 0) {
+            bad.push(`${path}:${i + 1}  ${line.trim()}`);
+            break;
+          }
+        }
+      });
+    }
     expect(
-      hits(
-        scssModules,
-        /(transition|animation)(-duration)?:[^;]*\b[0-9.]+m?s\b/,
-        notMarketing,
-      ),
-      "Use `--duration-*`. State changes and loops are separate axes — " +
-        "`--duration-spin` / `--duration-shimmer` exist so a spinner " +
-        "doesn't borrow a state-change token.",
+      bad,
+      "Use `--duration-*` (state changes), `--duration-spin/shimmer/" +
+        "loop-*` (loops), or a named `--period-*`/`--stagger-*` local " +
+        "for scene choreography. Bare time literals are never allowed — " +
+        "marketing included.",
+    ).toEqual([]);
+  });
+
+  it("never uses a bare easing keyword", () => {
+    // Only `cubic-bezier(` was grepped before, so `ease-in-out` and
+    // friends sailed through. `linear` and `steps()` are legitimate
+    // (constant-rate loops); everything else has an `--ease-*` token.
+    const bad: string[] = [];
+    for (const { path, text } of scssModules) {
+      text.split("\n").forEach((line, i) => {
+        const code = stripTokenCalls(line.replace(/\/\/.*$/, ""));
+        if (!/(transition|animation)/.test(code)) return;
+        if (/\bease(-in-out|-out|-in)?\b/.test(code)) {
+          bad.push(`${path}:${i + 1}  ${line.trim()}`);
+        }
+      });
+    }
+    expect(
+      bad,
+      "Use `var(--ease-*)`. Bare keywords fork the app's motion " +
+        "character; `linear` / `steps()` stay for constant-rate loops.",
     ).toEqual([]);
   });
 
@@ -218,6 +316,43 @@ describe("motion", () => {
     expect(
       hits(allScss, /cubic-bezier\(/, notTokenLayer),
       "Use an `--ease-*` token so the app keeps one motion character.",
+    ).toEqual([]);
+  });
+});
+
+describe("radius", () => {
+  it("never sets a raw border-radius", () => {
+    // The gap that let the search-bar bug class exist: radius had zero
+    // enforcement. `cqi` stays legal (container-relative tile art).
+    const bad: string[] = [];
+    for (const { path, text } of scssModules) {
+      text.split("\n").forEach((line, i) => {
+        const code = stripTokenCalls(line.replace(/\/\/.*$/, ""));
+        if (!/border-radius:/.test(code)) return;
+        if (/\b[0-9]*\.?[0-9]+(px|rem|em|%)/.test(code)) {
+          bad.push(`${path}:${i + 1}  ${line.trim()}`);
+        }
+      });
+    }
+    expect(
+      bad,
+      "Use the scale: `--radius-0..4`, `--radius-full` (pills, circles), " +
+        "or a `--radius-inner-*` golden-radius token for nesting. " +
+        "`50%` and `999px` are `--radius-full`.",
+    ).toEqual([]);
+  });
+});
+
+describe("stacking", () => {
+  it("never hardcodes a scale-worthy z-index", () => {
+    // Local 0 / 1 / -1 inside a component's own stacking context are
+    // ordinary layering. Anything two digits and up is claiming a
+    // place on the app-wide scale and must say which rung.
+    expect(
+      hits(allScss, /z-index:\s*-?[0-9]{2,}/, notTokenLayer),
+      "Use the scale in `theme/z-index.scss` — `--z-page-wash`, " +
+        "`--z-fab`, `--z-navbar`, `--z-overlay`, `--z-skip-link`. A new " +
+        "layer gets a new rung there, not a bigger number here.",
     ).toEqual([]);
   });
 });
@@ -241,14 +376,138 @@ describe("layout", () => {
     // a px-only check. Width media queries carry a number in *some*
     // unit, so match the unit rather than one spelling of it.
     expect(
-      hits(
-        allScss,
-        /@media[^{]*\((min|max)-width:[^)]*[0-9]/,
-        (p) => notTokenLayer(p) || notMarketing(p),
-      ),
+      hits(allScss, /@media[^{]*\((min|max)-width:[^)]*[0-9]/, notTokenLayer),
       "Use `bp.tablet` / `bp.desktop` for page layout and `cq.*` for " +
         "components. Both live in the mixin layer so a breakpoint is " +
-        "named once, not re-guessed per file.",
+        "named once, not re-guessed per file — marketing included " +
+        "(breakpoints sit outside the size-and-rhythm carve-out).",
+    ).toEqual([]);
+  });
+
+  it("addresses containers by name", () => {
+    // `@container (min-width: …)` binds to the nearest container of
+    // ANY name — or silently never matches when there isn't one. The
+    // cq.* mixins all query `@container tile`; a raw at-rule in a
+    // module is either a re-guessed breakpoint or an unaddressable
+    // query, and both have bitten (see _container-queries.scss).
+    expect(
+      hits(scssModules, /@container\s/),
+      "Use `cq.split` / `cq.at($min)` — they query the named `tile` " +
+        "container that `SectionCard` provides.",
+    ).toEqual([]);
+  });
+});
+
+describe("inline styles", () => {
+  it("only pipes custom properties through style={{ }}", () => {
+    // The one sanctioned use of a style prop is passing a CSS custom
+    // property down to the SCSS rule that owns the real declaration.
+    // Satori's OG routes are exempt: it reads neither CSS modules nor
+    // custom properties, so literals there are renderer-forced.
+    const bad: string[] = [];
+    for (const { path, text } of tsx) {
+      // Satori reads neither CSS modules nor custom properties, and a
+      // story's inline styles scaffold the Storybook canvas around the
+      // component rather than styling shipped UI.
+      if (path.endsWith("opengraph-image.tsx")) continue;
+      if (path.endsWith(".stories.tsx")) continue;
+      for (const m of text.matchAll(/style=\{\{([\s\S]{0,400}?)\}\}/g)) {
+        for (const k of m[1].matchAll(/[{,]\s*["']?(-{0,2}[\w-]+)["']?\s*:/g)) {
+          if (!k[1].startsWith("--")) {
+            bad.push(`${path}  sets \`${k[1]}\``);
+            break;
+          }
+        }
+      }
+    }
+    expect(
+      bad,
+      "style={{}} is a value pipe: every key must be a `--custom-property` " +
+        "consumed by the module's SCSS. Real CSS properties belong in the " +
+        "stylesheet.",
+    ).toEqual([]);
+  });
+});
+
+describe("tokens resolve", () => {
+  // A `var()` naming a property nothing defines is invalid at
+  // computed-value time — the declaration silently collapses to
+  // inherit/initial. Three shipped at once (`--info-*` on the banner,
+  // a `--mono-text-low` typo, `--size-avatar-md`), all invisible to
+  // value-grepping because the value IS a token. So: every var()
+  // reference must resolve to (a) a property defined in src/styles,
+  // (b) one generated by the Radix scale mixins (allowlisted by
+  // family), (c) one defined in the same module, or (d) one piped in
+  // from TSX via a style={{}} custom property.
+  const GENERATED_FAMILIES =
+    /^--(mono|accent|zone|flash|success|warning|error|bronze)-/;
+
+  const defined = new Set<string>();
+  for (const { path, text } of allScss) {
+    if (!path.startsWith("styles/")) continue;
+    for (const m of text.matchAll(/(--[\w-]+)\s*:/g)) defined.add(m[1]);
+  }
+  const allTs = ALL.filter((f) => f.endsWith(".ts") || f.endsWith(".tsx"));
+  for (const f of allTs) {
+    for (const m of readFileSync(f, "utf8").matchAll(/["'](--[\w-]+)["']/g)) {
+      defined.add(m[1]);
+    }
+  }
+
+  it("every var() names a property something defines", () => {
+    const bad: string[] = [];
+    for (const { path, text } of scssModules) {
+      const local = new Set<string>();
+      for (const m of text.matchAll(/(--[\w-]+)\s*:/g)) local.add(m[1]);
+      text.split("\n").forEach((line, i) => {
+        const code = line.replace(/\/\/.*$/, "");
+        // Fallback-less form only: `var(--x, fallback)` degrades by design.
+        for (const m of code.matchAll(/var\(\s*(--[\w-]+)\s*\)/g)) {
+          const name = m[1];
+          if (defined.has(name)) continue;
+          if (local.has(name)) continue;
+          if (GENERATED_FAMILIES.test(name)) continue;
+          bad.push(`${path}:${i + 1}  ${name}`);
+        }
+      });
+    }
+    expect(
+      bad,
+      "This var() resolves to nothing and the declaration silently " +
+        "drops. Define the token (src/styles), fix the name, or pipe it " +
+        "from the component.",
+    ).toEqual([]);
+  });
+});
+
+describe("opacity on text", () => {
+  // CLAUDE.md's rule is general — "never dim text via opacity" — but
+  // the old check only looked near `:disabled`. This looks at any
+  // rule block that both sets a type voice and dims. Decorative,
+  // text-free marks (watermarks, icons, skeleton pulses) don't carry
+  // a typography include, so they pass untouched; the beta-spray
+  // reveal is sanctioned by CLAUDE.md and listed explicitly.
+  const SANCTIONED = [
+    "components/RouteLogSheet/routeLogSheet.module.scss", // beta spray: opacity+blur by rule
+  ];
+
+  it("never dims a type-carrying block with opacity", () => {
+    const bad: string[] = [];
+    for (const { path, text } of scssModules) {
+      if (SANCTIONED.includes(path)) continue;
+      for (const block of text.split("}")) {
+        if (!/@include type\.typography/.test(block)) continue;
+        if (/opacity:\s*0?\.[0-9]/.test(block)) {
+          bad.push(path);
+          break;
+        }
+      }
+    }
+    expect(
+      bad,
+      "Dim with the scale — `--mono-text-low-contrast` (step 11), or " +
+        "`state.disabled*` for controls. Opacity scales contrast toward " +
+        "the background and an AA pass silently stops being one.",
     ).toEqual([]);
   });
 });

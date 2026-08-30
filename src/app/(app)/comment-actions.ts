@@ -46,10 +46,10 @@ export async function postComment(
     });
 
     // Bust the per-route comment cache so the next fetcher sees the
-    // new comment without waiting out the 60s staleTime. Safe no-op
-    // today (comments aren't wrapped in cachedQuery yet), but the
-    // tag-shape is registered in `tags.ts` so a future cache wrap
-    // doesn't silently serve stale post-mutation.
+    // new comment without waiting out the 60s staleTime. This is a
+    // live bust, not a no-op: `comment-queries.ts` registers the tag
+    // on a real `cachedQuery` reader (the comment says otherwise
+    // until 2026-08-20; it predated that wrap).
     //
     // No `revalidatePath` here — CLAUDE.md forbids path
     // revalidation. The activity feed picks up the new

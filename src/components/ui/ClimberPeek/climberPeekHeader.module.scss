@@ -92,7 +92,6 @@
 
 .statLabel {
   @include type.typography(label);
-  text-transform: uppercase;
   color: var(--mono-text-low-contrast);
 }
 

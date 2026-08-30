@@ -18,6 +18,6 @@
 .bar {
   width: 2px;
   height: 0.9em;
-  border-radius: 1px;
+  border-radius: var(--radius-full); // 2px bar → capsule ends
   margin: 0 0.4em;
 }

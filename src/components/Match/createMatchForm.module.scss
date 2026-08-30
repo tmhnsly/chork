@@ -28,7 +28,6 @@
 .label {
   @include type.typography(label);
   color: var(--mono-text-low-contrast);
-  text-transform: uppercase;
   display: block;
   padding: 0;
   // Reset <legend>'s native left padding so it lines up flush with

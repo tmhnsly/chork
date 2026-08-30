@@ -72,7 +72,7 @@
 
 .gymPickerLabel {
   @include type.typography(label);
-  color: var(--mono-text-low);
+  color: var(--mono-text-low-contrast);
 }
 
 .gymSelect {

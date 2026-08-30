@@ -10,6 +10,12 @@
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: var(--space-2);
   width: 100%;
+
+  // Cell entrance is faster than --duration-normal (0.4s) on purpose:
+  // 25 of them fire in a stagger, and the global rung reads sluggish
+  // at that multiplicity. The reveal loop is a scene period.
+  --duration-cell-grow: 0.35s;
+  --period-tile-reveal: 10s;
   // Collapse by half a tile height so overflow clips row 3 midway.
   // Tiles are square in a 5-col grid → each ≈ 20% of width →
   // half ≈ 10%.
@@ -18,7 +24,7 @@
 
 .cell {
   position: relative;
-  animation: cellGrow 0.35s var(--ease-out) backwards;
+  animation: cellGrow var(--duration-cell-grow) var(--ease-out) backwards;
   animation-delay: calc(var(--entrance-i, 0) * 50ms);
 }
 
@@ -37,7 +43,7 @@
 .stateLayer {
   position: absolute;
   inset: 0;
-  animation: tileReveal 10s var(--ease-out) both;
+  animation: tileReveal var(--period-tile-reveal) var(--ease-out) both;
   // Wait for cell entrance (15 tiles × 50ms = 750ms) + per-tile stagger
   animation-delay: calc(750ms + var(--reveal-i, 0) * 150ms);
 }

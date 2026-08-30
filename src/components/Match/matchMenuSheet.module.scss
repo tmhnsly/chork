@@ -44,7 +44,7 @@
 // so the quiet zone is visually balanced against the frame edge.
 .qrFrame {
   padding: var(--space-3);
-  background: #ffffff;
+  background: var(--surface-scan);
   border-radius: var(--radius-2);
   line-height: var(--leading-collapse);
 }

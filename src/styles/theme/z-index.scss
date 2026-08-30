@@ -2,11 +2,18 @@
  * Z-index scale — single source of truth for all stacking contexts.
  *
  *  -1  page-wash     Page backdrop (behind all content)
+ *  10  fab           Floating action buttons above page content
  *  50  navbar        Sticky navigation bar
  * 100  overlay       Modals, drawers, dialogs
+ * 200  skip-link     Skip-nav — must beat every overlay when focused
+ *
+ * Local 0 / 1 / -1 inside a component's own stacking context are
+ * ordinary layering, not scale entries — don't tokenise those.
  */
 :root {
   --z-page-wash: -1;
+  --z-fab: 10;
   --z-navbar: 50;
   --z-overlay: 100;
+  --z-skip-link: 200;
 }

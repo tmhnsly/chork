@@ -133,12 +133,9 @@
 }
 
 .progressUnit {
-  @include type.typography(label);
+  @include type.typography(unit);
   color: var(--mono-text-low-contrast);
   margin-left: 0.1em;
-  font-weight: var(--weight-regular);
-  font-style: normal;
-  text-transform: lowercase;
 }
 
 // ── Empty state (binary achievement) ──────────────

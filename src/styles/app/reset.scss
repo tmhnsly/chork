@@ -14,12 +14,12 @@
   position: absolute;
   top: -100%;
   left: var(--gutter-x);
-  z-index: 9999;
+  z-index: var(--z-skip-link);
   padding: var(--space-2) var(--space-4);
   background: var(--accent-solid);
   color: var(--accent-on-solid);
   border-radius: var(--radius-2);
-  font-weight: 600;
+  font-weight: var(--weight-semibold);
   text-decoration: none;
 
   &:focus {

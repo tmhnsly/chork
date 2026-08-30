@@ -95,7 +95,7 @@ interface NavBarProps {
    * stamps on every response. Prevents the "unauthed nav → authed
    * nav" flash on refresh by ensuring the server-rendered HTML
    * already matches the final authed shape. The 3-state value also
-   * lets the gymless variant (Crew / Match / Profile only) paint
+   * lets the gymless variant (Friends / Match / Profile only) paint
    * correctly for users who've not yet added a gym.
    */
   initialShell: InitialShell;

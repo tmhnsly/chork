@@ -156,7 +156,10 @@ button.slot:focus-visible .plinth,
 .placeLabel {
   @include type.typography(number, $step: xl);
   font-weight: var(--weight-bold);
-  opacity: 0.7;
+  // Step 11, not opacity — dimming via opacity scales contrast toward
+  // the background (see _state.scss). Gold/bronze override with their
+  // tier's text token below.
+  color: var(--mono-text-low-contrast);
 }
 
 // ── Per-place medal + plinth styling ────────────────
@@ -173,7 +176,7 @@ button.slot:focus-visible .plinth,
 }
 .place1 .medal {
   background: var(--flash-solid);
-  color: var(--flash-on-solid, #2c1810);
+  color: var(--flash-on-solid);
 }
 .place1 .points {
   @include type.typography(number, $step: md);
@@ -181,7 +184,6 @@ button.slot:focus-visible .plinth,
 }
 .place1 .placeLabel {
   color: var(--flash-text);
-  opacity: 1;
 }
 
 // 2nd — silver (mono). Mid plinth.
@@ -217,7 +219,6 @@ button.slot:focus-visible .plinth,
 }
 .place3 .placeLabel {
   color: var(--bronze-text);
-  opacity: 1;
 }
 
 // ── Self highlight ────────────────────────────────

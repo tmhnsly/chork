@@ -181,12 +181,16 @@
   min-width: 0;
 }
 
+// Informational = brand accent, deliberately. There is no --info-*
+// family: a fifth semantic hue would collide with the palette accents
+// (info-blue reads as "selected" on the Blue palette), and the accent
+// already means "Chork is talking to you". Decided 2026-08-20.
 .banner--info {
-  background: var(--info-subtle-bg);
-  border-left-color: var(--info-border);
-  color: var(--info-text-low-contrast);
+  background: var(--accent-subtle-bg);
+  border-left-color: var(--accent-border);
+  color: var(--accent-text-low-contrast);
 
-  .bannerIcon { color: var(--info-text-low-contrast); }
+  .bannerIcon { color: var(--accent-text-low-contrast); }
 }
 
 .banner--success {

@@ -110,10 +110,8 @@
   position: absolute;
   bottom: 8cqi;
   right: 8cqi;
-  font-family: var(--font-heading);
-  font-weight: var(--weight-bold);
-  font-size: 16cqi;
-  line-height: var(--leading-none);
+  @include type.typography(tile-glyph);
+  font-size: 16cqi; // container-scaled; the preset's step is the fallback
   .completed & { color: var(--accent-on-solid); }
   .flash &     { color: var(--flash-on-solid); }
 }

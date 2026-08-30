@@ -22,7 +22,31 @@ $tile-min-h: 17.5rem;
   width: 100%;
   padding: var(--section-gap) var(--gutter-x);
   background: var(--mono-subtle-bg);
-  box-shadow: 0 -12px 32px -8px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-lift-up);
+
+  // ── Scene periods ─────────────────────────────────
+  // Loop periods for the bento illustrations, inherited by every
+  // tile below. Named here rather than snapped to the global
+  // `--duration-loop-*` rungs because these scenes are deliberately
+  // detuned against each other: sibling loops sharing a period lock
+  // visibly into step, and the drift between them is the effect.
+  // Exact previous values, preserved.
+  --period-scene: 9s;
+  --period-scene-slow: 7s;
+  --period-flash: 4.4s;
+  --period-bob: 3.6s;
+  --period-bob-fast: 3s;
+  --period-pulse: 1.8s;
+
+  // Offsets into the scenes above — what makes siblings feel
+  // choreographed rather than simultaneous.
+  --offset-flash: 2.2s;
+  --offset-spark-a: 0.2s;
+  --offset-spark-b: 0.45s;
+  --offset-star-b: 1.2s;
+  --offset-star-c: 2.4s;
+  --offset-beta-b: 2s;
+  --offset-zone-pts: 0.4s;
 }
 
 // Bento — 8 tiles. Mobile stacks, tablet pairs squares, desktop
@@ -293,17 +317,17 @@ $tile-min-h: 17.5rem;
   width: clamp(96px, 36cqi, 200px);
   aspect-ratio: 1;
   transform: translate(-50%, -50%) scale(0.5);
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   border: clamp(2px, 0.9cqi, 4px) solid var(--flash-solid);
-  box-shadow: 0 0 18px var(--flash-bg);
+  box-shadow: 0 0 var(--glow-md) var(--flash-bg);
   opacity: 0;
-  animation: flashRing 4.4s ease-out infinite;
+  animation: flashRing var(--period-flash) var(--ease-out) infinite;
   pointer-events: none;
   z-index: 1;
 }
 
 .flashRing2 {
-  animation-delay: 2.2s;
+  animation-delay: var(--offset-flash);
 }
 
 .flashPts {
@@ -321,11 +345,11 @@ $tile-min-h: 17.5rem;
 @keyframes flashPulse {
   0%, 100% {
     transform: scale(1);
-    filter: drop-shadow(0 0 8px var(--flash-bg));
+    filter: drop-shadow(0 0 var(--glow-sm) var(--flash-bg));
   }
   50% {
     transform: scale(1.08);
-    filter: drop-shadow(0 0 22px var(--flash-bg));
+    filter: drop-shadow(0 0 var(--glow-lg) var(--flash-bg));
   }
 }
 
@@ -397,12 +421,12 @@ $tile-min-h: 17.5rem;
       120deg,
       transparent 0%,
       transparent 40%,
-      rgba(255, 255, 255, 0.35) 50%,
+      var(--overlay-shine) 50%,
       transparent 60%,
       transparent 100%
     );
     transform: translateX(-100%);
-    animation: podiumShimmer 6s ease-in-out infinite;
+    animation: podiumShimmer var(--duration-loop) var(--ease-in-out) infinite;
     pointer-events: none;
   }
 
@@ -422,14 +446,16 @@ $tile-min-h: 17.5rem;
   border-color: var(--bronze-border);
 }
 
+// Silver reads quieter than gold/bronze via the step-11 rung, not an
+// opacity dim — dimming scales the numeral's contrast toward the
+// plinth gradient behind it.
 .plinthNum {
   @include type.typography(number, $step: lg);
   font-size: clamp(var(--text-sm), 3.5cqi, var(--text-lg));
-  color: var(--mono-text);
-  opacity: 0.6;
+  color: var(--mono-text-low-contrast);
 
-  .plinthGold & { color: var(--flash-text); opacity: 1; }
-  .plinthBronze & { color: var(--bronze-text); opacity: 1; }
+  .plinthGold & { color: var(--flash-text); }
+  .plinthBronze & { color: var(--bronze-text); }
 }
 
 @keyframes podiumShimmer {
@@ -447,7 +473,7 @@ $tile-min-h: 17.5rem;
   height: var(--rider-h);
   transform: translateX(-50%);
   z-index: 5;
-  animation: youClimb 9s var(--ease-in-out) infinite;
+  animation: youClimb var(--period-scene) var(--ease-in-out) infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -459,7 +485,7 @@ $tile-min-h: 17.5rem;
 .youAvatar {
   width: 100%;
   height: 100%;
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   display: grid;
   place-items: center;
   background: var(--accent-solid);
@@ -479,7 +505,7 @@ $tile-min-h: 17.5rem;
   position: absolute;
   width: var(--rider-h);
   height: var(--rider-h);
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   display: grid;
   place-items: center;
   border: 3px solid var(--mono-app-bg);
@@ -499,8 +525,8 @@ $tile-min-h: 17.5rem;
   bottom: var(--plinth-silver);
   background: var(--mono-solid);
   color: var(--mono-app-bg);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.12);
-  animation: rivalKnockLeft 9s var(--ease-in-out) infinite;
+  box-shadow: var(--shadow-lg);
+  animation: rivalKnockLeft var(--period-scene) var(--ease-in-out) infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -512,8 +538,8 @@ $tile-min-h: 17.5rem;
   bottom: var(--plinth-gold);
   background: var(--flash-solid);
   color: var(--flash-on-solid);
-  box-shadow: 0 0 0 2px var(--flash-bg), 0 4px 14px rgba(0, 0, 0, 0.14);
-  animation: rivalKnockUp 9s var(--ease-in-out) infinite;
+  box-shadow: 0 0 0 2px var(--flash-bg), var(--shadow-lg);
+  animation: rivalKnockUp var(--period-scene) var(--ease-in-out) infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -530,9 +556,9 @@ $tile-min-h: 17.5rem;
   transform: translateX(-50%) rotate(0deg);
   font-size: clamp(20px, 7cqi, 34px);
   color: var(--flash-solid);
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+  filter: drop-shadow(var(--shadow-glyph));
   transform-origin: center 60%;
-  animation: crownSpin 9s linear infinite;
+  animation: crownSpin var(--period-scene) linear infinite;
   pointer-events: none;
   z-index: 6;
 
@@ -550,9 +576,9 @@ $tile-min-h: 17.5rem;
   place-items: center;
   font-size: clamp(10px, 3.5cqi, 16px);
   color: var(--flash-solid);
-  filter: drop-shadow(0 0 6px var(--flash-bg));
+  filter: drop-shadow(0 0 var(--glow-sm) var(--flash-bg));
   opacity: 0;
-  animation: sparkPop 9s var(--ease-out) infinite;
+  animation: sparkPop var(--period-scene) var(--ease-out) infinite;
   pointer-events: none;
 
   @media (prefers-reduced-motion: reduce) {
@@ -560,8 +586,8 @@ $tile-min-h: 17.5rem;
   }
 }
 
-.youSparkA { top: -20%; left: -28%; animation-delay: 0.2s; }
-.youSparkB { top: -12%; right: -32%; animation-delay: 0.45s; }
+.youSparkA { top: -20%; left: -28%; animation-delay: var(--offset-spark-a); }
+.youSparkB { top: -12%; right: -32%; animation-delay: var(--offset-spark-b); }
 
 // ── Keyframes (9s loop) ────────────────────────────
 // Timings are built so every knock fires ONLY after @YOU has actually
@@ -701,13 +727,13 @@ $tile-min-h: 17.5rem;
 .cell {
   position: relative;
   aspect-ratio: 1;
-  border-radius: max(3px, 1.2cqi);
+  border-radius: max(var(--radius-0), 1.2cqi);
   background: var(--mono-bg);
   container-type: inline-size;
 }
 
 .cell[class*="cell"] {
-  animation: cellCycle 9s ease-in-out infinite;
+  animation: cellCycle var(--period-scene) var(--ease-in-out) infinite;
   animation-delay: calc(var(--i, 0) * 110ms);
 }
 
@@ -730,7 +756,7 @@ $tile-min-h: 17.5rem;
   line-height: 1;
   color: var(--flash-on-solid);
   opacity: 0;
-  animation: boltReveal 9s ease-in-out infinite;
+  animation: boltReveal var(--period-scene) var(--ease-in-out) infinite;
   animation-delay: calc(var(--i, 0) * 110ms);
 }
 
@@ -783,7 +809,7 @@ $tile-min-h: 17.5rem;
   place-items: center;
   width: clamp(22px, 7cqi, 32px);
   height: clamp(22px, 7cqi, 32px);
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   border: 2px solid var(--mono-app-bg);
   font-family: var(--font-heading);
   font-weight: var(--weight-bold);
@@ -818,7 +844,7 @@ $tile-min-h: 17.5rem;
   border-radius: var(--radius-2);
   opacity: 0;
   transform: translateY(6px);
-  animation: matchRowAppear 6s ease-out infinite;
+  animation: matchRowAppear var(--duration-loop) var(--ease-out) infinite;
   animation-delay: calc(var(--i, 0) * 500ms);
 
   @media (prefers-reduced-motion: reduce) {
@@ -855,7 +881,7 @@ $tile-min-h: 17.5rem;
   place-items: center;
   width: clamp(20px, 5.5cqi, 28px);
   height: clamp(20px, 5.5cqi, 28px);
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   font-family: var(--font-heading);
   font-weight: var(--weight-bold);
   font-size: clamp(9px, 2.4cqi, 12px);
@@ -914,8 +940,8 @@ $tile-min-h: 17.5rem;
   color: var(--mono-text);
   opacity: 0;
   transform: translateY(6px);
-  animation: crewNameCycle 12s ease-in-out infinite;
-  animation-delay: calc(var(--i, 0) * 3s);
+  animation: crewNameCycle var(--duration-loop-slow) var(--ease-in-out) infinite;
+  animation-delay: calc(var(--i, 0) * var(--period-bob-fast));
   white-space: nowrap;
 
   @media (prefers-reduced-motion: reduce) {
@@ -953,7 +979,7 @@ $tile-min-h: 17.5rem;
   place-items: center;
   width: clamp(34px, 11cqi, 56px);
   height: clamp(34px, 11cqi, 56px);
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   border: 3px solid var(--mono-app-bg);
   font-family: var(--font-heading);
   font-weight: var(--weight-bold);
@@ -963,7 +989,7 @@ $tile-min-h: 17.5rem;
   margin-left: clamp(-16px, -3.5cqi, -10px);
   opacity: 0;
   transform: scale(0.6);
-  animation: crewPop 7s ease-out infinite;
+  animation: crewPop var(--period-scene-slow) var(--ease-out) infinite;
   animation-delay: calc(var(--i, 0) * 180ms);
 
   &:first-child { margin-left: 0; }
@@ -986,10 +1012,10 @@ $tile-min-h: 17.5rem;
   width: clamp(200px, 70cqi, 320px);
   height: clamp(80px, 28cqi, 140px);
   transform: translate(-50%, -50%) scale(0.92);
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   border: 1px dashed var(--accent-border);
   opacity: 0;
-  animation: crewHalo 7s ease-in-out infinite;
+  animation: crewHalo var(--period-scene-slow) var(--ease-in-out) infinite;
   pointer-events: none;
   z-index: 1;
 
@@ -1012,9 +1038,9 @@ $tile-min-h: 17.5rem;
 .crewActivityDot {
   width: clamp(5px, 1.5cqi, 7px);
   height: clamp(5px, 1.5cqi, 7px);
-  border-radius: 50%;
+  border-radius: var(--radius-full);
   background: var(--accent-solid);
-  animation: crewActivityPulse 1.8s ease-in-out infinite;
+  animation: crewActivityPulse var(--period-pulse) var(--ease-in-out) infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -1067,8 +1093,8 @@ $tile-min-h: 17.5rem;
 .flashBolt {
   font-size: clamp(2rem, 28cqi, 4rem);
   color: var(--flash-solid);
-  filter: drop-shadow(0 0 10px var(--flash-bg));
-  animation: flashPulse 4.4s ease-in-out infinite;
+  filter: drop-shadow(0 0 var(--glow-sm) var(--flash-bg));
+  animation: flashPulse var(--period-flash) var(--ease-in-out) infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -1090,8 +1116,8 @@ $tile-min-h: 17.5rem;
 .badgeIcon {
   font-size: clamp(48px, 32cqi, 140px);
   color: var(--accent-solid);
-  filter: drop-shadow(0 0 14px var(--accent-bg));
-  animation: badgeBob 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 var(--glow-md) var(--accent-bg));
+  animation: badgeBob var(--period-bob-fast) var(--ease-in-out) infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -1104,9 +1130,9 @@ $tile-min-h: 17.5rem;
   place-items: center;
   font-size: clamp(14px, 6cqi, 24px);
   color: var(--flash-solid);
-  filter: drop-shadow(0 0 6px var(--flash-bg));
+  filter: drop-shadow(0 0 var(--glow-sm) var(--flash-bg));
   opacity: 0;
-  animation: starPop 3.6s ease-out infinite;
+  animation: starPop var(--period-bob) var(--ease-out) infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -1115,8 +1141,8 @@ $tile-min-h: 17.5rem;
 }
 
 .badgeStarA { top: 6%;    left: 4%;   animation-delay: 0s; }
-.badgeStarB { top: 10%;   right: 2%;  animation-delay: 1.2s; }
-.badgeStarC { bottom: 6%; left: 14%;  animation-delay: 2.4s; }
+.badgeStarB { top: 10%;   right: 2%;  animation-delay: var(--offset-star-b); }
+.badgeStarC { bottom: 6%; left: 14%;  animation-delay: var(--offset-star-c); }
 
 @keyframes badgeBob {
   0%, 100% { transform: translateY(0) rotate(-2deg); }
@@ -1172,9 +1198,9 @@ $tile-min-h: 17.5rem;
   display: inline-block;
   opacity: 0.4;
   filter: blur(3px);
-  animation: betaReveal 7s ease-in-out infinite;
+  animation: betaReveal var(--period-scene-slow) var(--ease-in-out) infinite;
 
-  .betaBubbleB & { animation-delay: 2s; }
+  .betaBubbleB & { animation-delay: var(--offset-beta-b); }
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -1191,7 +1217,7 @@ $tile-min-h: 17.5rem;
   font-size: clamp(10px, 2.6cqi, 14px);
   color: var(--mono-text-low-contrast);
   opacity: 0.6;
-  animation: betaLockFade 7s ease-in-out infinite;
+  animation: betaLockFade var(--period-scene-slow) var(--ease-in-out) infinite;
 
   @media (prefers-reduced-motion: reduce) {
     animation: none;
@@ -1227,9 +1253,9 @@ $tile-min-h: 17.5rem;
   position: relative;
   font-size: clamp(60px, 38cqi, 156px);
   color: var(--success-solid);
-  filter: drop-shadow(0 0 16px var(--success-bg));
+  filter: drop-shadow(0 0 var(--glow-md) var(--success-bg));
   transform-origin: 22% 80%;
-  animation: zoneFlagWave 3.6s ease-in-out infinite;
+  animation: zoneFlagWave var(--period-bob) var(--ease-in-out) infinite;
   z-index: 2;
 
   @media (prefers-reduced-motion: reduce) {
@@ -1252,8 +1278,8 @@ $tile-min-h: 17.5rem;
   box-shadow: 0 4px 14px var(--success-bg);
   opacity: 0;
   transform: translateY(8px) scale(0.85);
-  animation: zonePtsPop 3.6s ease-out infinite;
-  animation-delay: 0.4s;
+  animation: zonePtsPop var(--period-bob) var(--ease-out) infinite;
+  animation-delay: var(--offset-zone-pts);
   z-index: 3;
 
   @media (prefers-reduced-motion: reduce) {
