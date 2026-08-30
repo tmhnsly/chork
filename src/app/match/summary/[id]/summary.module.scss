@@ -34,6 +34,20 @@
   color: var(--accent-on-solid);
 }
 
+.leagueLine {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  text-decoration: none;
+  min-height: var(--size-touch-target);
+  display: inline-flex;
+  align-items: center;
+
+  strong {
+    color: var(--mono-text);
+    margin: 0 var(--space-1);
+  }
+}
+
 // ── Winner card ───────────────────────────────────
 // Glass-surface treatment with an accent ring so it lifts off the
 // page. Just-completed matches (`?fresh=1`) get a slide-up + fade-in
