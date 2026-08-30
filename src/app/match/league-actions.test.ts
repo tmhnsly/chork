@@ -114,6 +114,31 @@ describe("renameLeagueAction", () => {
       p_name: "Wednesday",
     });
   });
+
+  it("surfaces auth failure", async () => {
+    await mockAuthFailure();
+    const { renameLeagueAction } = await import("./league-actions");
+    expect(await renameLeagueAction(LEAGUE_1, "Wednesday")).toEqual({ error: AUTH_REQUIRED });
+  });
+
+  it("is rate limited on the mutationsWrite bucket", async () => {
+    await mockSignedIn();
+    const { enforce } = await import("@/lib/rate-limit");
+    vi.mocked(enforce).mockResolvedValue({ ok: false, error: "Slow down", retryAfter: 60 });
+    const { renameLeagueAction } = await import("./league-actions");
+    expect(await renameLeagueAction(LEAGUE_1, "Wednesday")).toEqual({ error: "Slow down" });
+    expect(vi.mocked(enforce).mock.calls[0]?.[0]).toBe("mutationsWrite");
+  });
+
+  it("passes the RPC's own copy through on refusal", async () => {
+    await mockSignedIn({
+      "rpc:rename_league": { error: { code: "P0001", message: "Only the host can do that." } },
+    });
+    const { renameLeagueAction } = await import("./league-actions");
+    expect(await renameLeagueAction(LEAGUE_1, "Wednesday")).toEqual({
+      error: "Only the host can do that.",
+    });
+  });
 });
 
 describe("addMatchToLeagueAction / removeMatchFromLeagueAction", () => {
@@ -151,6 +176,36 @@ describe("addMatchToLeagueAction / removeMatchFromLeagueAction", () => {
     const { addMatchToLeagueAction } = await import("./league-actions");
     expect(await addMatchToLeagueAction(LEAGUE_1, SET_1)).toEqual({ error: "Only the host can do that." });
   });
+
+  it("surfaces auth failure for both", async () => {
+    await mockAuthFailure();
+    const { addMatchToLeagueAction, removeMatchFromLeagueAction } = await import("./league-actions");
+    expect(await addMatchToLeagueAction(LEAGUE_1, SET_1)).toEqual({ error: AUTH_REQUIRED });
+    expect(await removeMatchFromLeagueAction(LEAGUE_1, SET_1)).toEqual({ error: AUTH_REQUIRED });
+  });
+
+  it("is rate limited on the mutationsWrite bucket for both", async () => {
+    await mockSignedIn();
+    const { enforce } = await import("@/lib/rate-limit");
+    vi.mocked(enforce).mockResolvedValue({ ok: false, error: "Slow down", retryAfter: 60 });
+    const { addMatchToLeagueAction, removeMatchFromLeagueAction } = await import("./league-actions");
+    expect(await addMatchToLeagueAction(LEAGUE_1, SET_1)).toEqual({ error: "Slow down" });
+    expect(await removeMatchFromLeagueAction(LEAGUE_1, SET_1)).toEqual({ error: "Slow down" });
+    expect(vi.mocked(enforce).mock.calls[0]?.[0]).toBe("mutationsWrite");
+    expect(vi.mocked(enforce).mock.calls[1]?.[0]).toBe("mutationsWrite");
+  });
+
+  it("surfaces 'That match is not a week of this league.'", async () => {
+    await mockSignedIn({
+      "rpc:remove_match_from_league": {
+        error: { code: "P0001", message: "That match is not a week of this league." },
+      },
+    });
+    const { removeMatchFromLeagueAction } = await import("./league-actions");
+    expect(await removeMatchFromLeagueAction(LEAGUE_1, SET_1)).toEqual({
+      error: "That match is not a week of this league.",
+    });
+  });
 });
 
 describe("endLeagueAction", () => {
@@ -166,5 +221,22 @@ describe("endLeagueAction", () => {
     const { endLeagueAction } = await import("./league-actions");
     expect(await endLeagueAction(LEAGUE_1)).toEqual({ success: true });
     expect(sb.calls.find((c) => c.source === "end_league")?.args[0]).toEqual({ p_league_id: LEAGUE_1 });
+  });
+
+  it("is rate limited on the mutationsWrite bucket", async () => {
+    await mockSignedIn();
+    const { enforce } = await import("@/lib/rate-limit");
+    vi.mocked(enforce).mockResolvedValue({ ok: false, error: "Slow down", retryAfter: 60 });
+    const { endLeagueAction } = await import("./league-actions");
+    expect(await endLeagueAction(LEAGUE_1)).toEqual({ error: "Slow down" });
+    expect(vi.mocked(enforce).mock.calls[0]?.[0]).toBe("mutationsWrite");
+  });
+
+  it("passes the RPC's own copy through on refusal", async () => {
+    await mockSignedIn({
+      "rpc:end_league": { error: { code: "P0001", message: "This league has ended." } },
+    });
+    const { endLeagueAction } = await import("./league-actions");
+    expect(await endLeagueAction(LEAGUE_1)).toEqual({ error: "This league has ended." });
   });
 });
