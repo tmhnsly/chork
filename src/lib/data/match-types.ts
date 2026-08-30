@@ -69,6 +69,8 @@ export interface Match {
   /** Null while live — a Match is open-ended until someone ends it. */
   ends_at: string | null;
   last_activity_at: string | null;
+  /** The League this Match is a week of, or null (migration 133). */
+  league_id: string | null;
 }
 
 export interface MatchGrade {
