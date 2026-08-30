@@ -117,6 +117,11 @@ interface CreateMatchPayload {
   altGradingScale?: "v" | "font" | "yds" | "french" | null;
   altMinGrade?: number | null;
   altMaxGrade?: number | null;
+  /**
+   * Start this Match as the next week of a League the caller hosts.
+   * The RPC refuses anyone else and any League that has ended.
+   */
+  leagueId?: string | null;
 }
 
 export async function createMatchAction(
@@ -166,6 +171,9 @@ export async function createMatchAction(
     saveScaleName = clampString(payload.saveScaleName, MAX_SCALE_NAME_LEN);
   }
   // `points` falls through — no grades, no range, nothing to validate.
+
+  const leagueId = payload.leagueId ?? null;
+  if (leagueId !== null && !isUuid(leagueId)) return { error: "Invalid league" };
 
   // No resource id to validate (the payload was validated above) —
   // the gate still supplies signed-in auth + the write rate limit.
@@ -217,6 +225,7 @@ export async function createMatchAction(
     p_alt_grading_scale: undef(altScale),
     p_alt_min_grade: undef(altMin),
     p_alt_max_grade: undef(altMax),
+    p_league_id: undef(leagueId),
   });
   if (error) return { error: formatError(error) };
   const rows = (data ?? []) as Array<{ id: string; code: string }>;

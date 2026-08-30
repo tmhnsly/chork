@@ -224,6 +224,7 @@ describe("buildCreateMatchPayload per scale", () => {
       altMaxGrade: null,
       customGrades: null,
       saveScaleName: null,
+      leagueId: null,
     });
   });
 
@@ -271,6 +272,7 @@ describe("buildCreateMatchPayload per scale", () => {
       altMaxGrade: null,
       customGrades: null,
       saveScaleName: null,
+      leagueId: null,
     });
   });
 
@@ -562,5 +564,48 @@ describe("mixing boulders and ropes", () => {
     expect(payload.altGradingScale).toBeNull();
     expect(payload.altMinGrade).toBeNull();
     expect(payload.altMaxGrade).toBeNull();
+  });
+});
+
+describe("initialCreateMatchState with a League prefill", () => {
+  it("starts from the last week's settings and carries the league id", () => {
+    const state = initialCreateMatchState({
+      name: "Tuesday · week 4",
+      discipline: "boulder",
+      scale: "v",
+      handicap: true,
+      gameMode: "points",
+      minGrade: 2,
+      maxGrade: 7,
+      leagueId: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    });
+    expect(state.name).toBe("Tuesday · week 4");
+    expect(state.scale).toBe("v");
+    expect(state.handicap).toBe(true);
+    expect(state.ranges.v).toEqual([2, 7]);
+    expect(state.leagueId).toBe("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+    expect(buildCreateMatchPayload(state)).toMatchObject({
+      leagueId: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      name: "Tuesday · week 4",
+      gradingScale: "v",
+      handicap: true,
+    });
+  });
+
+  it("keeps the default range when the last week was ungraded", () => {
+    const fresh = initialCreateMatchState();
+    const state = initialCreateMatchState({
+      name: "Tuesday · week 2",
+      discipline: "boulder",
+      scale: "points",
+      handicap: false,
+      gameMode: "chork",
+      minGrade: null,
+      maxGrade: null,
+      leagueId: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    });
+    expect(state.ranges).toEqual(fresh.ranges);
+    expect(state.gameMode).toBe("chork");
+    expect(buildCreateMatchPayload(initialCreateMatchState())).toMatchObject({ leagueId: null });
   });
 });

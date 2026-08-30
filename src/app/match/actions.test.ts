@@ -187,6 +187,41 @@ describe("createMatchAction", () => {
       error: "You don't have permission to do that.",
     });
   });
+
+  it("rejects a malformed league id", async () => {
+    const { createMatchAction } = await import("./actions");
+    expect(
+      await createMatchAction({ name: null, location: null, gradingScale: "points", leagueId: "nope" }),
+    ).toEqual({ error: "Invalid league" });
+  });
+
+  it("stamps the league on the RPC when given one", async () => {
+    const sb = await mockSignedIn({
+      "rpc:create_match": { data: [{ id: MATCH_1, code: "ABCDEF" }] },
+    });
+    const { createMatchAction } = await import("./actions");
+    const result = await createMatchAction({
+      name: "Tuesday · week 3",
+      location: null,
+      gradingScale: "points",
+      leagueId: SET_1,
+    });
+    expect(result).toEqual({ success: true, id: MATCH_1, code: "ABCDEF" });
+    expect(sb.calls.find((c) => c.source === "create_match")?.args[0]).toMatchObject({
+      p_league_id: SET_1,
+    });
+  });
+
+  it("sends no league when none is given", async () => {
+    const sb = await mockSignedIn({
+      "rpc:create_match": { data: [{ id: MATCH_1, code: "ABCDEF" }] },
+    });
+    const { createMatchAction } = await import("./actions");
+    await createMatchAction({ name: null, location: null, gradingScale: "points" });
+    expect(sb.calls.find((c) => c.source === "create_match")?.args[0]).toMatchObject({
+      p_league_id: undefined,
+    });
+  });
 });
 
 describe("match write rate limiting", () => {
