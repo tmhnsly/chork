@@ -50,12 +50,17 @@ export function isFormulaScale(
  */
 export interface CreateMatchPrefill {
   name: string;
+  location: string | null;
   discipline: Discipline;
   scale: MatchGradingScale;
   handicap: boolean;
   gameMode: "points" | "chork";
   minGrade: number | null;
   maxGrade: number | null;
+  /** The other family's scale on a mixed day, null otherwise. */
+  altScale: FormulaScale | null;
+  altMinGrade: number | null;
+  altMaxGrade: number | null;
   leagueId: string;
 }
 
@@ -178,14 +183,22 @@ export function initialCreateMatchState(prefill?: CreateMatchPrefill): CreateMat
   if (isFormulaScale(prefill.scale) && prefill.minGrade !== null && prefill.maxGrade !== null) {
     ranges[prefill.scale] = [prefill.minGrade, prefill.maxGrade];
   }
+  // Mirror the primary-scale rule for the mixed-day ladder: only
+  // seed its range when both the alt scale and both its bounds
+  // survived from the last week.
+  if (prefill.altScale !== null && prefill.altMinGrade !== null && prefill.altMaxGrade !== null) {
+    ranges[prefill.altScale] = [prefill.altMinGrade, prefill.altMaxGrade];
+  }
   return {
     ...base,
     name: prefill.name,
+    location: prefill.location ?? "",
     discipline: prefill.discipline,
     scale: prefill.scale,
     handicap: prefill.handicap,
     gameMode: prefill.gameMode,
     ranges,
+    altScale: prefill.altScale,
     leagueId: prefill.leagueId,
   };
 }
