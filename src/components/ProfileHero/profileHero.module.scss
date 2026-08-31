@@ -4,93 +4,61 @@
 @use "mixins/container-queries" as cq;
 
 // Deliberately NOT `SectionCard`: that component owns a title header,
-// and this card's title is the climber's face and handle. It matches
-// SectionCard's surface exactly instead — same mixin, same radius,
-// same padding — so the identity card and the sections below it read
-// as one family.
+// and this card's title is the climber's face and handle. It is the
+// one GLASS surface in the app's chrome, because it is the one card
+// with something behind it worth seeing through to.
+
+// Blur strength for the avatar backdrop. Named rather than inlined
+// so the one decorative filter in the app is reviewable next to the
+// surface that uses it.
 .card {
-  @include surface.card;
+  --backdrop-blur: 2.5rem;
+
+  @include surface.glass;
   @include layout.stack(var(--space-4));
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   border-radius: var(--radius-card);
   padding: var(--space-4);
   container-type: inline-size;
   container-name: tile;
 }
 
-// ── The poster cover ──────────────────────────────
-// The card's identity slab: full-bleed to the card's edges (the
-// negative margins undo the card's padding — an INSET panel was the
-// boxy first version), brand-fixed near-black in both schemes so the
-// accent has something to pop against even on a white page. The
-// climber's palette still speaks through the rank chip and avatar
-// ring, which use the live accent scale.
-// One slab, and it is the app's biggest TILE: the sent-route
-// treatment at card scale — accent-solid ground, on-solid ink.
-// Full-bleed (the wrapper owns bleed, fill and radius, so identity
-// and scoreboard can never grow a card-coloured seam between them),
-// colourful in both schemes, themed for free. Two bespoke dark-cover
-// systems were built and deleted before landing here.
-.poster {
-  margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-4)) 0;
-  background: var(--accent-solid);
-  border-radius: var(--radius-card) var(--radius-card) 0 0;
+// ── The backdrop ──────────────────────────────────
+// The climber's own face, blown up and blurred to a wash behind the
+// glass — the card is about a person, so the person is the
+// background. Inset negatively so the blur's soft edge never shows
+// as a halo inside the card's corners.
+//
+// A background-image, not <Image>: this is decoration with no
+// meaning to convey, at a size where the optimiser's variants are
+// beside the point. Absent avatar → no layer, and the glass sits on
+// the page as before.
+.backdrop {
+  position: absolute;
+  inset: calc(-1 * var(--space-8));
+  z-index: -1;
+  background-image: var(--avatar-image);
+  background-size: cover;
+  background-position: center;
+  filter: blur(var(--backdrop-blur)) saturate(140%);
 }
 
+// ── Identity ──────────────────────────────────────
 .identity {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-4) var(--space-4) var(--space-3);
 }
 
-// ── The scoreboard, on the slab ───────────────────
-// Continues the cover (same negative-margin bleed, no top rounding)
-// so identity and numbers read as ONE poster. Numbers are type on
-// the surface — points in the theme's neon, flashes in its gold —
-// with hairline dividers instead of boxes.
-.scoreboard {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  padding: var(--space-3) var(--space-4) var(--space-4);
-  border-top: 1px solid var(--accent-solid-hover);
-}
-
-.score {
-  @include layout.stack(var(--space-1));
-  align-items: center;
-  text-align: center;
-
-  & + & {
-    border-inline-start: 1px solid var(--accent-solid-hover);
-  }
-}
-
-// Monochrome-on-accent on purpose: a second step-9 hue on a step-9
-// ground vibrates (amber numbers on lime were tried and read as
-// clash, not chord). The slab is the colour; the ink is one.
-.scoreValue {
-  @include type.typography(number, $step: 3xl);
-  color: var(--accent-on-solid);
-}
-
-.scoreLabel {
-  @include type.typography(label);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  color: var(--accent-on-solid);
-
-  svg {
-    font-size: var(--size-icon-xs);
-  }
-}
-
-// The face gets a ring in the tile's own ink.
+// The face gets a ring in the climber's accent — the one place the
+// theme signs the card.
 .avatarRing {
   display: inline-flex;
   flex-shrink: 0;
   border-radius: var(--radius-full);
-  box-shadow: 0 0 0 2px var(--accent-on-solid);
+  box-shadow: 0 0 0 2px var(--accent-solid);
 }
 
 .names {
@@ -98,25 +66,9 @@
   min-width: 0;
 }
 
-// Chrome corner — the settings gear on your own card. On the dark
-// cover the boxed icon button reads as a grey sticker, so it goes
-// ghost here: the override targets the button element rather than
-// forking SettingsCorner, which stays a plain iconButton everywhere
-// else it might appear.
 .corner {
   margin-left: auto;
   align-self: flex-start;
-
-  button {
-    background: transparent;
-    border-color: transparent;
-    color: var(--accent-on-solid);
-
-    &:hover {
-      background: transparent;
-      color: var(--accent-on-solid);
-    }
-  }
 }
 
 // The skeleton's stand-in for the hero avatar: the same rung, so the
@@ -126,22 +78,17 @@
   width: var(--size-avatar-hero);
   height: var(--size-avatar-hero);
   border-radius: var(--radius-full);
-  background: var(--accent-solid-hover);
+  background: var(--mono-bg);
 }
 
-// The handle is the page title, and handles are long: twelve
-// characters is ordinary, twenty is allowed. At the 3xl step a
-// twelve-character handle is ~290px, and beside a hero avatar on a
-// 375px phone it has ~225px — so it broke as "@HAZEL_ / SHOES" in
-// letters an inch high. The step follows the room: xl on a phone,
-// 2xl on a large phone, 3xl from a tablet column up. Each rung moves
-// size, leading and tracking together, which is why it is a step
-// change and not a fluid `font-size`. `overflow-wrap: anywhere` is
-// the backstop for a handle no step can hold; it is meant to be
-// rare, not the design.
+// The handle is the page title, and handles are long: the step
+// follows the room — xl on a phone, 2xl on a large phone, 3xl from a
+// tablet column up. Each rung moves size, leading and tracking
+// together, which is why it is a step change and not a fluid
+// `font-size`.
 .username {
   @include type.typography(display, $step: xl);
-  color: var(--accent-on-solid);
+  color: var(--mono-text);
   overflow-wrap: anywhere;
 
   @include cq.at(22rem) {
@@ -155,13 +102,13 @@
 
 .meta {
   @include type.typography(label);
-  color: var(--accent-on-solid);
+  color: var(--mono-text-low-contrast);
 }
 
 // ── Chips: rank, gym, streak ──────────────────────
-// The meta facts as pieces, not a sentence, in the tile's own ink:
-// rank leads as a filled chip (app surface on the accent, number in
-// accent text), gym and streak as hairline outlines.
+// The meta facts as pieces, not a sentence. Rank leads as the one
+// solid-accent mark — "this is yours", the sent-tile treatment at
+// chip scale — and the rest are quiet outlines.
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -178,9 +125,9 @@
   gap: var(--space-1);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-full);
-  border: 1px solid var(--accent-on-solid);
-  background: transparent;
-  color: var(--accent-on-solid);
+  border: 1px solid var(--mono-border);
+  background: var(--mono-app-bg);
+  color: var(--mono-text-low-contrast);
 
   svg {
     font-size: var(--size-icon-xs);
@@ -188,23 +135,61 @@
 }
 
 .chipRank {
-  border-color: var(--mono-app-bg);
-  background: var(--mono-app-bg);
-  color: var(--accent-text);
+  border-color: var(--accent-solid);
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
   text-decoration: none;
   transition: background var(--duration-fast) var(--ease-out);
 
   &:hover {
-    background: var(--mono-subtle-bg);
-    border-color: var(--mono-subtle-bg);
+    background: var(--accent-solid-hover);
+    border-color: var(--accent-solid-hover);
   }
 }
 
-// "this set" rides inside the rank chip a step smaller — the number
-// is the fact, the scope is a whisper. Colour inherits the chip's
-// on-solid foreground; size does the demoting, never opacity.
 .chipQual {
   @include type.typography(meta, $step: xs);
 }
 
+// ── The scoreboard ────────────────────────────────
+// Three numbers as TYPE, each in the colour its role already owns —
+// points in the accent, flashes in the flash scale, sends in mono —
+// separated by hairlines. No fills: the tile treatment belongs on
+// the wall, where a tile means a route you touched, and repeating it
+// here for a summary was decoration wearing the vocabulary's
+// clothes.
+.scoreboard {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
 
+.score {
+  @include layout.stack(var(--space-1));
+  align-items: center;
+  text-align: center;
+
+  & + & {
+    border-inline-start: 1px solid var(--mono-border-subtle);
+  }
+}
+
+.scoreValue {
+  @include type.typography(number, $step: 3xl);
+  color: var(--mono-text);
+}
+
+.scoreAccent { color: var(--accent-text); }
+.scoreFlash  { color: var(--flash-text); }
+
+.scoreLabel {
+  @include type.typography(label);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: var(--mono-text-low-contrast);
+
+  svg {
+    font-size: var(--size-icon-xs);
+  }
+}

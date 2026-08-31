@@ -1,5 +1,7 @@
 import { shimmerStyles } from "@/components/ui";
 import styles from "./profileHero.module.scss";
+// The gear slot borrows the icon-button shape so the corner is the
+// same size before the real control arrives.
 import actionStyles from "./profileActions.module.scss";
 
 /**
@@ -23,8 +25,7 @@ export function ProfileHeroSkeleton() {
       aria-busy="true"
       aria-label="Loading profile"
     >
-      <div className={styles.poster} aria-hidden>
-      <div className={styles.identity}>
+      <div className={styles.identity} aria-hidden>
         <span className={styles.avatarRing}>
           <span className={styles.avatarSlot} />
         </span>
@@ -48,11 +49,6 @@ export function ProfileHeroSkeleton() {
             <span className={styles.scoreLabel}>{label}</span>
           </div>
         ))}
-      </div>
-      </div>
-
-      <div className={actionStyles.row} aria-hidden>
-        <span className={actionStyles.friendsRow} />
       </div>
     </section>
   );

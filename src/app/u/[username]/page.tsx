@@ -104,7 +104,6 @@ export default async function UserProfilePage({ params }: Props) {
         // A signed-out viewer can't be friends with anyone; "none"
         // renders Add, which the action gate will bounce to /login.
         standing={standing ?? { status: "none", friendId: null }}
-        friends={friends}
       />
 
       {/* Gym-scoped widgets (current set + previous sets) are only
