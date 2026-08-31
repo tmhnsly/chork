@@ -304,6 +304,31 @@ export function useMatchScreenState({
   );
   const closePanel = useCallback(() => dispatch({ type: "close-panel" }), []);
 
+  /**
+   * The one epilogue for a fire-an-action handler: run in the shared
+   * transition, toast the error and stop, or hand the ok result on.
+   * Nine handlers repeated these five lines verbatim. Deliberately a
+   * LOCAL helper — ADR-0001 keeps this shape per-component, and
+   * ADR-0002 rules out a generic runner; this is neither, just this
+   * hook not saying the same thing nine times.
+   */
+  const act = useCallback(
+    <R extends object>(
+      call: () => Promise<R | { error: string }>,
+      onOk?: (result: R) => void,
+    ) => {
+      startTransition(async () => {
+        const result = await call();
+        if ("error" in result) {
+          showToast(result.error, "error");
+          return;
+        }
+        onOk?.(result as R);
+      });
+    },
+    [],
+  );
+
   const handleAddRoute = useCallback(
     async (payload: {
       description: string | null;
@@ -317,63 +342,60 @@ export function useMatchScreenState({
        */
       playerId?: string | null;
     }) => {
-      startTransition(async () => {
-        const result = await addMatchRouteAction({
-          matchId: initialState.match.id,
-          description: payload.description,
-          grade: payload.grade,
-          hasZone: payload.hasZone,
-          discipline: payload.discipline,
-          playerId: payload.playerId ?? null,
-        });
-        if ("error" in result) {
-          showToast(result.error, "error");
-          return;
-        }
-        // Paint the new row locally on server success — the realtime
-        // self-echo is unreliable for the creator right after an HTTP
-        // round-trip, so the grid would otherwise stay stale until a
-        // refresh. The reducer's upsert-route is idempotent on id, so
-        // the echo (when it arrives) is a harmless no-op.
-        dispatch({ type: "upsert-route", route: result.route });
-        dispatch({ type: "close-panel" });
-      });
+      act(
+        () =>
+          addMatchRouteAction({
+            matchId: initialState.match.id,
+            description: payload.description,
+            grade: payload.grade,
+            hasZone: payload.hasZone,
+            discipline: payload.discipline,
+            playerId: payload.playerId ?? null,
+          }),
+        (result) => {
+          // Paint the new row locally on server success — the realtime
+          // self-echo is unreliable for the creator right after an HTTP
+          // round-trip, so the grid would otherwise stay stale until a
+          // refresh. The reducer's upsert-route is idempotent on id, so
+          // the echo (when it arrives) is a harmless no-op.
+          dispatch({ type: "upsert-route", route: result.route });
+          dispatch({ type: "close-panel" });
+        },
+      );
     },
-    [initialState.match.id],
+    [act, initialState.match.id],
   );
 
   const handleAddGuest = useCallback(
     async (name: string) => {
-      startTransition(async () => {
-        const result = await addMatchGuestAction(initialState.match.id, name);
-        if ("error" in result) {
-          showToast(result.error, "error");
-          return;
-        }
-        // Same reasoning as routes: paint locally on server success
-        // rather than wait on a realtime self-echo that drops often
-        // enough for the host to think nothing happened.
-        dispatch({
-          type: "upsert-player",
-          player: {
-            player_id: result.player.id,
-            user_id: null,
-            is_guest: true,
-            username: null,
-            display_name: result.player.display_name,
-            avatar_url: null,
-            joined_at: result.player.joined_at,
-            is_host: false,
-            has_left: false,
-            // The host declares these separately, after seating them.
-            ceiling: null,
-            alt_ceiling: null,
-          },
-        });
-        dispatch({ type: "close-panel" });
-      });
+      act(
+        () => addMatchGuestAction(initialState.match.id, name),
+        (result) => {
+          // Same reasoning as routes: paint locally on server success
+          // rather than wait on a realtime self-echo that drops often
+          // enough for the host to think nothing happened.
+          dispatch({
+            type: "upsert-player",
+            player: {
+              player_id: result.player.id,
+              user_id: null,
+              is_guest: true,
+              username: null,
+              display_name: result.player.display_name,
+              avatar_url: null,
+              joined_at: result.player.joined_at,
+              is_host: false,
+              has_left: false,
+              // The host declares these separately, after seating them.
+              ceiling: null,
+              alt_ceiling: null,
+            },
+          });
+          dispatch({ type: "close-panel" });
+        },
+      );
     },
-    [initialState.match.id],
+    [act, initialState.match.id],
   );
 
   const handleSetCeiling = useCallback(
@@ -382,40 +404,34 @@ export function useMatchScreenState({
       ceiling: number | null,
       altCeiling: number | null,
     ) => {
-      startTransition(async () => {
-        const result = await setMatchCeilingAction(
-          initialState.match.id,
-          playerId,
-          ceiling,
-          altCeiling,
-        );
-        if ("error" in result) {
-          showToast(result.error, "error");
-          return;
-        }
-        // Patch locally so the board re-scores immediately — the
-        // handicap is recomputed from `players`, so without this the
-        // change wouldn't show until a refresh.
-        dispatch({ type: "set-ceiling", playerId, ceiling, altCeiling });
-        dispatch({ type: "close-panel" });
-      });
+      act(
+        () =>
+          setMatchCeilingAction(
+            initialState.match.id,
+            playerId,
+            ceiling,
+            altCeiling,
+          ),
+        () => {
+          // Patch locally so the board re-scores immediately — the
+          // handicap is recomputed from `players`, so without this the
+          // change wouldn't show until a refresh.
+          dispatch({ type: "set-ceiling", playerId, ceiling, altCeiling });
+          dispatch({ type: "close-panel" });
+        },
+      );
     },
-    [initialState.match.id],
+    [act, initialState.match.id],
   );
 
   const handleRemoveGuest = useCallback(
     async (playerId: string) => {
-      startTransition(async () => {
-        const result = await removeMatchGuestAction(playerId);
-        if ("error" in result) {
-          showToast(result.error, "error");
-          return;
-        }
+      act(() => removeMatchGuestAction(playerId), () => {
         dispatch({ type: "remove-player", playerId });
         dispatch({ type: "close-panel" });
       });
     },
-    [],
+    [act],
   );
 
   const handleUpdateRoute = useCallback(
@@ -428,23 +444,22 @@ export function useMatchScreenState({
         discipline: Discipline;
       },
     ) => {
-      startTransition(async () => {
-        const result = await updateMatchRouteAction({
-          routeId,
-          description: payload.description,
-          grade: payload.grade,
-          hasZone: payload.hasZone,
-          discipline: payload.discipline,
-        });
-        if ("error" in result) {
-          showToast(result.error, "error");
-          return;
-        }
-        dispatch({ type: "upsert-route", route: result.route });
-        dispatch({ type: "close-panel" });
-      });
+      act(
+        () =>
+          updateMatchRouteAction({
+            routeId,
+            description: payload.description,
+            grade: payload.grade,
+            hasZone: payload.hasZone,
+            discipline: payload.discipline,
+          }),
+        (result) => {
+          dispatch({ type: "upsert-route", route: result.route });
+          dispatch({ type: "close-panel" });
+        },
+      );
     },
-    [],
+    [act],
   );
 
   /** Optimistic log write for the given route + rollback on rejection. */
@@ -523,22 +538,16 @@ export function useMatchScreenState({
 
   const handleConcede = useCallback(
     (routeId: string, playerId?: string) => {
-      startTransition(async () => {
-        const result = await concedeChorkRound(
-          initialState.match.id,
-          routeId,
-          playerId,
-        );
-        if ("error" in result) {
-          showToast(result.error, "error");
-          return;
-        }
-        dispatch({ type: "close-panel" });
-        scheduleChork(undefined);
-        router.refresh();
-      });
+      act(
+        () => concedeChorkRound(initialState.match.id, routeId, playerId),
+        () => {
+          dispatch({ type: "close-panel" });
+          scheduleChork(undefined);
+          router.refresh();
+        },
+      );
     },
-    [initialState.match.id, router, scheduleChork],
+    [act, initialState.match.id, router, scheduleChork],
   );
 
   /**
@@ -549,46 +558,30 @@ export function useMatchScreenState({
    */
   const handleWithdraw = useCallback(
     (routeId: string, playerId?: string | null) => {
-      startTransition(async () => {
-        const result = await withdrawChorkRoute(
-          initialState.match.id,
-          routeId,
-          playerId,
-        );
-        if ("error" in result) {
-          showToast(result.error, "error");
-          return;
-        }
-        dispatch({ type: "remove-route", id: routeId });
-        dispatch({ type: "close-panel" });
-        scheduleChork(undefined);
-        router.refresh();
-      });
+      act(
+        () => withdrawChorkRoute(initialState.match.id, routeId, playerId),
+        () => {
+          dispatch({ type: "remove-route", id: routeId });
+          dispatch({ type: "close-panel" });
+          scheduleChork(undefined);
+          router.refresh();
+        },
+      );
     },
-    [initialState.match.id, router, scheduleChork],
+    [act, initialState.match.id, router, scheduleChork],
   );
 
   const handleLeave = useCallback(() => {
-    startTransition(async () => {
-      const result = await leaveMatchAction(initialState.match.id);
-      if ("error" in result) {
-        showToast(result.error, "error");
-        return;
-      }
+    act(() => leaveMatchAction(initialState.match.id), () => {
       router.push("/match");
     });
-  }, [initialState.match.id, router]);
+  }, [act, initialState.match.id, router]);
 
   const handleEnd = useCallback(() => {
-    startTransition(async () => {
-      const result = await endMatchAction(initialState.match.id);
-      if ("error" in result) {
-        showToast(result.error, "error");
-        return;
-      }
+    act(() => endMatchAction(initialState.match.id), (result) => {
       router.push(`/match/summary/${result.summaryId}?fresh=1`);
     });
-  }, [initialState.match.id, router]);
+  }, [act, initialState.match.id, router]);
 
   return {
     state,
