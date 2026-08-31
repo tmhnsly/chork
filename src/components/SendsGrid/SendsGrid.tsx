@@ -14,6 +14,7 @@ import dynamic from "next/dynamic";
 // Type-only import — the heavy component itself is dynamic-loaded below.
 // eslint-disable-next-line no-restricted-imports
 import type { CachedRouteData } from "@/components/RouteLogSheet/types";
+import { useSheetPresence } from "@/hooks/use-sheet-presence";
 
 const RouteLogSheet = dynamic(
   () => import("@/components/RouteLogSheet/RouteLogSheet").then((m) => m.RouteLogSheet),
@@ -65,6 +66,7 @@ export function SendsGrid({
     map: new Map(),
   });
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
+  const sheetRoute = useSheetPresence(selectedRoute);
   const [routeDataCache, setRouteDataCache] = useState<Map<string, CachedRouteData>>(new Map());
 
   // Merge server logs with the local overlay (overlay wins per route).
@@ -159,12 +161,15 @@ export function SendsGrid({
         </div>
       </div>
 
-      {selectedRoute && (
+      {/* The sheet outlives the selection by one animation: the held
+          route keeps it rendering while it slides away. */}
+      {sheetRoute && (
         <RouteLogSheet
+          open={selectedRoute !== null}
           set={set}
-          route={selectedRoute}
-          log={logByRoute.get(selectedRoute.id) ?? null}
-          cachedData={routeDataCache.get(selectedRoute.id)}
+          route={sheetRoute}
+          log={logByRoute.get(sheetRoute.id) ?? null}
+          cachedData={routeDataCache.get(sheetRoute.id)}
           onClose={() => setSelectedRoute(null)}
           onCacheRouteData={handleCacheRouteData}
           onLogUpdate={handleLogUpdate}

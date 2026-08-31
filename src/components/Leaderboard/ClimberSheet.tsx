@@ -33,6 +33,7 @@ function tileStateFromSanitised(log: SanitisedLog | undefined): TileState {
 const climberSheetCache = createResourceCache<SanitisedLog[]>({ ttlMs: 30_000 });
 
 interface Props {
+  open: boolean;
   entry: LeaderboardEntry;
   /** Active set id (only provided when on "This set" tab). */
   setId: string | null;
@@ -42,7 +43,7 @@ interface Props {
   onClose: () => void;
 }
 
-export function ClimberSheet({ entry, setId, routes, onClose }: Props) {
+export function ClimberSheet({ open, entry, setId, routes, onClose }: Props) {
   const { data: logs, loading, error } = useClientResource<SanitisedLog[]>(
     `${entry.user_id}:${setId ?? ""}`,
     async () => {
@@ -78,7 +79,7 @@ export function ClimberSheet({ entry, setId, routes, onClose }: Props) {
 
   return (
     <BottomSheet
-      open
+      open={open}
       onClose={onClose}
       // Accessible title — visually hidden because `titleSlot` takes
       // over the chrome with the rich identity row. AT still hears

@@ -12,6 +12,9 @@ interface Props {
    */
   padTop?: boolean;
   padBottom?: boolean;
+  /** Lets the caller place the collapse in a layout (e.g. as a flex
+   *  item beside a button). Never for styling the content. */
+  className?: string;
 }
 
 /**
@@ -24,10 +27,18 @@ interface Props {
  * baseline that works on iOS Safari, `interpolate-size` height
  * upgrade on Chromium.
  */
-export function Collapse({ open, children, padTop, padBottom }: Props) {
+export function Collapse({
+  open,
+  children,
+  padTop,
+  padBottom,
+  className,
+}: Props) {
   return (
     <div
-      className={`${styles.root} ${open ? styles.open : ""}`}
+      className={[styles.root, open ? styles.open : "", className]
+        .filter(Boolean)
+        .join(" ")}
       aria-hidden={!open}
       inert={!open || undefined}
     >

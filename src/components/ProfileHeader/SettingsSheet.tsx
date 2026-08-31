@@ -14,7 +14,6 @@ import {
   FaRightFromBracket,
   FaTrash,
   FaChevronRight,
-  FaChevronLeft,
 } from "react-icons/fa6";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { ThemePreview } from "@/components/ui/ThemePreview/ThemePreview";
@@ -100,21 +99,13 @@ export function SettingsSheet({ open, onClose }: Props) {
         open={open}
         onClose={handleSheetClose}
         title={sliding ? PANEL_TITLES[sliding] : "Settings"}
-        titleSlot={
-          sliding ? (
-            <div className={styles.panelBar}>
-              <button
-                type="button"
-                className={styles.backBtn}
-                onClick={closePanel}
-                aria-label="Back to settings"
-              >
-                <FaChevronLeft />
-              </button>
-              <span className={styles.panelTitle}>{PANEL_TITLES[sliding]}</span>
-            </div>
-          ) : undefined
-        }
+        // The same back chrome and cross-fade the achievements sheet
+        // uses — one navigation pattern for every sheet that has
+        // inner views, instead of this one hand-rolling its own bar
+        // with no animation while that one slid.
+        onBack={sliding ? closePanel : undefined}
+        viewKey={sliding ?? "menu"}
+        minHeight="half"
       >
         {/* One pane at a time. Rendering both would size the sheet to
             the taller of them and leave dead space under the shorter. */}

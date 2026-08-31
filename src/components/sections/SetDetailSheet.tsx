@@ -14,13 +14,14 @@ import styles from "./setDetailSheet.module.scss";
 const EM_DASH = "\u2014";
 
 interface Props {
+  open: boolean;
   set: SetCell;
   gymId: string;
   userId: string;
   onClose: () => void;
 }
 
-export function SetDetailSheet({ set, userId, onClose }: Props) {
+export function SetDetailSheet({ open, set, userId, onClose }: Props) {
   // Keyed fetch — loading derives from the key, stale responses are
   // rejected structurally. An `{ error }` result throws into the
   // hook's error slot, which renders identically to the old handling:
@@ -40,7 +41,7 @@ export function SetDetailSheet({ set, userId, onClose }: Props) {
 
   return (
     <BottomSheet
-      open
+      open={open}
       onClose={onClose}
       title={set.label}
       description={`Stats for ${set.label}`}

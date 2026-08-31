@@ -424,3 +424,27 @@
   }
 }
 
+
+// ── Zone + send, on one line ────────────────────────
+// The sheet was a column of full-width bars. These two belong
+// together — "did you touch the zone" qualifies "did you send it" —
+// so they share a row: zone at its content width, the send taking
+// what's left. They wrap on a narrow phone rather than squeezing.
+.actionRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.zoneSlot {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+// Reserves the post form's height while comments load, so a
+// completed route's sheet stops growing under the reader a moment
+// after it opens. Matches the form's own resting height.
+.postFormReserve {
+  min-height: calc(var(--size-touch-target) + var(--space-4));
+}

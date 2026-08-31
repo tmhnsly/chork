@@ -45,6 +45,22 @@ interface Props {
    * dismissal; swap this sheet's content and offer `onBack` instead.
    */
   onBack?: () => void;
+  /**
+   * Names the view currently in the body. Changing it cross-fades
+   * the new view in, which is what makes an internal push/pop read
+   * as navigation rather than as a redraw. Pair with `onBack`.
+   *
+   * Only for genuine view changes — not for a filter that swaps the
+   * same view's contents, which would remount the list on every tab.
+   */
+  viewKey?: string;
+  /**
+   * Give the body a height floor so navigating between views (or
+   * filtering a list) doesn't resize the whole sheet under the
+   * reader's thumb. `"half"` is 55svh — enough that every
+   * achievements filter and the badge detail settle at one height.
+   */
+  minHeight?: "none" | "half";
   /** Prevent closing when clicking outside (default: false). */
   disableOutsideClose?: boolean;
   /**
@@ -87,6 +103,8 @@ export function BottomSheet({
   titleSlot,
   subheader,
   onBack,
+  viewKey,
+  minHeight = "none",
   disableOutsideClose = false,
   size = "default",
   scrollRef,
@@ -159,7 +177,19 @@ export function BottomSheet({
             {subheader && <div className={styles.subheader}>{subheader}</div>}
           </header>
 
-          <div className={styles.body}>{children}</div>
+          <div
+            // Keyed so a view change remounts the body and replays
+            // the enter animation; without a `viewKey` this is a
+            // stable, unkeyed div.
+            key={viewKey}
+            className={[
+              styles.body,
+              viewKey ? styles.bodyView : "",
+              minHeight === "half" ? styles.bodyMinHalf : "",
+            ].filter(Boolean).join(" ")}
+          >
+            {children}
+          </div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

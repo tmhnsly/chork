@@ -6,6 +6,7 @@ import { SheetBody, TabPills, type TabPillOption } from "@/components/ui";
 import { AchievementCard } from "@/components/ui/AchievementCard/AchievementCard";
 import type { BadgeStatus, BadgeCategory } from "@/lib/badges";
 import { AchievementDetailBody } from "./AchievementDetailBody";
+import { useSheetPresence } from "@/hooks/use-sheet-presence";
 import type { OverlayState, OverlayAction } from "./achievementsOverlayReducer";
 import styles from "./achievementsSheet.module.scss";
 
@@ -122,7 +123,11 @@ export function AchievementsOverlay({ badges, state, dispatch }: Props) {
     scrollRef.current?.scrollTo({ top: 0 });
   };
 
-  const detail = view.name === "detail" ? view : null;
+  // Hold the last OPEN view: without this, closing from the badge
+  // detail cleared the view and the body snapped back to the grid
+  // for the length of the exit animation.
+  const shown = useSheetPresence(view.name === "closed" ? null : view);
+  const detail = shown?.name === "detail" ? shown : null;
   const hiddenDetail =
     detail !== null && detail.badge.badge.isSecret && !detail.badge.earned;
 
@@ -143,6 +148,10 @@ export function AchievementsOverlay({ badges, state, dispatch }: Props) {
           : "All achievements and your progress"
       }
       scrollRef={scrollRef}
+      // One height for every view and every filter, so the sheet
+      // stops resizing under the reader's thumb.
+      minHeight="half"
+      viewKey={detail ? `detail-${detail.badge.badge.id}` : "grid"}
       onBack={
         detail?.from === "grid"
           ? () => dispatch({ type: "back" })

@@ -102,8 +102,15 @@ export function CommentThread({
   // Deliberately NOT gated on betaExpanded: the natural flow is
   // "read the existing beta, then add yours" — hiding the form the
   // moment the drawer opened forced a collapse-first detour.
+  // The form's slot is knowable BEFORE the comments land: a completed
+  // route on a live set gets one unless this climber already sprayed,
+  // and "already sprayed" is the rare case. So the form holds its
+  // space from the first paint and only collapses if the load proves
+  // it isn't wanted — the opposite of gating on `commentsReady`,
+  // which hid the form and then grew the sheet under the reader a
+  // moment after it opened. That growth is what made the sheet pop.
   const showPostForm =
-    commentsReady && isCompleted && setActive && !hasOwnComment;
+    isCompleted && setActive && !(commentsReady && hasOwnComment);
 
   async function handlePostSubmit() {
     if (!navigator.onLine) {
