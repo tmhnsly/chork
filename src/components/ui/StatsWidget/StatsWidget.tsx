@@ -66,7 +66,7 @@ export function StatsWidget({
 
   return (
     <SectionCard
-      title="Current Set"
+      title="Current set"
       icon={rankIcon}
       meta={<SetMeta resetIn={resetIn} gymName={gymName} />}
     >
