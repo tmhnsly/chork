@@ -3,7 +3,7 @@
 import type { ReactNode, Ref } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import * as VisuallyHidden from "@radix-ui/react-visually-hidden";
-import { FaXmark } from "react-icons/fa6";
+import { FaArrowLeft, FaXmark } from "react-icons/fa6";
 import styles from "./bottomSheet.module.scss";
 
 interface Props {
@@ -36,6 +36,15 @@ interface Props {
    * so the row has a solid structure instead of a horizontal scroll.
    */
   subheader?: ReactNode;
+  /**
+   * Renders a back button leading the title row. For sheets that
+   * navigate internally (e.g. the achievements catalogue pushing a
+   * badge detail): back pops the sheet's own view; the close button
+   * and overlay still dismiss the whole sheet. Never stack a second
+   * BottomSheet for an inner view — sibling modals fight over
+   * dismissal; swap this sheet's content and offer `onBack` instead.
+   */
+  onBack?: () => void;
   /** Prevent closing when clicking outside (default: false). */
   disableOutsideClose?: boolean;
   /**
@@ -77,6 +86,7 @@ export function BottomSheet({
   description,
   titleSlot,
   subheader,
+  onBack,
   disableOutsideClose = false,
   size = "default",
   scrollRef,
@@ -117,6 +127,16 @@ export function BottomSheet({
 
           <header className={styles.titleBar}>
             <div className={styles.titleRow}>
+              {onBack && (
+                <button
+                  type="button"
+                  className={styles.backBtn}
+                  onClick={onBack}
+                  aria-label="Back"
+                >
+                  <FaArrowLeft />
+                </button>
+              )}
               {titleSlot ? (
                 <>
                   <VisuallyHidden.Root asChild>

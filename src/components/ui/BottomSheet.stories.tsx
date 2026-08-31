@@ -10,12 +10,14 @@ function Demo({
   description,
   size,
   withSubheader,
+  withBack,
   bodyText,
 }: {
   title: string;
   description?: string;
   size?: "default" | "tall";
   withSubheader?: boolean;
+  withBack?: boolean;
   bodyText: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -28,6 +30,7 @@ function Demo({
         title={title}
         description={description}
         size={size}
+        onBack={withBack ? () => {} : undefined}
         subheader={
           withSubheader ? (
             <TabPills
@@ -84,6 +87,15 @@ export const Tall: Story = {
     description: "Every badge in one panel",
     size: "tall",
     bodyText: "The 'tall' size variant caps just below the top safe-area inset — use it for content-heavy sheets that benefit from more vertical room.",
+  },
+};
+
+export const WithBack: Story = {
+  args: {
+    title: "Century",
+    description: "Achievement detail",
+    withBack: true,
+    bodyText: "The onBack chrome — for sheets that navigate internally (catalogue → badge detail). Back pops the sheet's own view; close and the overlay still dismiss the whole sheet.",
   },
 };
 

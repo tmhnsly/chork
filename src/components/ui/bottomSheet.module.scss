@@ -141,6 +141,13 @@
   gap: var(--space-3);
 }
 
+// Leading back button for sheets that navigate internally — same
+// chip recipe as the close button so the chrome's two controls read
+// as one family.
+.backBtn {
+  @extend .closeBtn;
+}
+
 .closeBtn {
   @include type.typography(button);
   @include focus.ring;
