@@ -247,3 +247,89 @@
     @include state.disabled;
   }
 }
+
+// ── The wizard chrome ───────────────────────────────
+// Three dots and a caption — progress you can read at a glance
+// without a bar pretending this is a checkout.
+.stepsHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.dots {
+  display: inline-flex;
+  gap: var(--space-1);
+}
+
+.dot {
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--mono-border);
+  transition: background var(--duration-fast) var(--ease-out);
+
+  &[data-active] {
+    background: var(--accent-solid);
+  }
+
+  &[data-done] {
+    background: var(--accent-border-hover);
+  }
+}
+
+.stepCaption {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+.step {
+  @include layout.stack(var(--space-6));
+}
+
+// Back left, Next/Start right — intrinsic widths, per the button
+// rule: a wizard's feet are paired controls, not a billboard.
+.stepNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+}
+
+// ── Review ──────────────────────────────────────────
+.review {
+  @include layout.stack(0);
+  margin: 0;
+}
+
+.reviewRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--mono-border-subtle);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.reviewTerm {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+  flex: 0 0 auto;
+  min-width: var(--space-16);
+}
+
+.reviewValue {
+  @include type.typography(body);
+  color: var(--mono-text);
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+.reviewMuted {
+  color: var(--mono-text-low-contrast);
+}
