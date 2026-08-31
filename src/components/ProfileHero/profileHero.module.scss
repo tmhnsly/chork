@@ -17,15 +17,28 @@
   container-name: tile;
 }
 
+// ── Identity on a wash ────────────────────────────
+// The card's cover. A quiet accent panel (steps 3–4) behind the face
+// and handle so the hero stops opening on bare grey — every palette
+// re-maps the accent scale, so the wash follows the climber's theme.
 .identity {
   display: flex;
   align-items: center;
   gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--accent-bg);
+  border-radius: var(--radius-card-inner);
 }
 
 .names {
   @include layout.stack(var(--space-1));
   min-width: 0;
+}
+
+// Chrome corner — the settings gear on your own card.
+.corner {
+  margin-left: auto;
+  align-self: flex-start;
 }
 
 // The skeleton's stand-in for the hero avatar: the same rung, so the
@@ -67,9 +80,52 @@
   color: var(--mono-text-low-contrast);
 }
 
+// ── Chips: rank, gym, streak ──────────────────────
+// The meta facts as pieces, not a sentence. Rank leads and wears
+// solid accent — the same "you did this" treatment a sent tile gets —
+// because placement is the one number the whole app ranks on and the
+// old hero never said it. Gym and streak stay muted company.
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-2);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.chip {
+  @include type.typography(label);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--accent-bg-hover);
+  color: var(--accent-text);
+
+  svg {
+    font-size: var(--size-icon-xs);
+  }
+}
+
+.chipRank {
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+}
+
+// "this set" rides inside the rank chip a step smaller — the number
+// is the fact, the scope is a whisper. Colour inherits the chip's
+// on-solid foreground; size does the demoting, never opacity.
+.chipQual {
+  @include type.typography(meta, $step: xs);
+}
+
 // ── The three that matter ─────────────────────────
 // Equal columns, unequal weight: colour does the ranking rather than
 // size, so the row keeps one baseline and still says which is which.
+// Order is Points · Flashes · Sends — both brand colours lead, and
+// the mono tile stops sitting mid-row.
 .headline {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -97,6 +153,7 @@
 
   .value { color: var(--flash-text); }
   .label { color: var(--flash-text-low-contrast); }
+  .sub   { color: var(--flash-text-low-contrast); }
 }
 
 .value {
@@ -104,33 +161,24 @@
   color: var(--mono-text);
 }
 
+// Labels carry their glyph where one exists (Flashes' bolt, Sends'
+// tick — the same promises the route tiles make). Points has none:
+// the accent fill IS its mark.
 .label {
   @include type.typography(label);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   color: var(--mono-text-low-contrast);
-}
 
-// ── Context, not headlines ────────────────────────
-// Four facts in pairs. On a phone the line has to wrap, and a flat
-// run of items wrapped wherever it ran out — leaving a separator
-// dangling at the end of a line and a lone fact on the next. Pairs
-// wrap as units: one line of four, or two lines of two.
-.ratios {
-  @include type.typography(meta);
-  display: flex;
-  flex-wrap: wrap;
-  column-gap: var(--space-3);
-  row-gap: var(--space-1);
-  color: var(--mono-text-low-contrast);
-}
-
-.pair {
-  white-space: nowrap;
-
-  // The dot lives INSIDE the pair, between its two facts. Between
-  // pairs there is only the column gap — a dot there would lead the
-  // second line whenever the pairs wrap.
-  span + span::before {
-    content: "·";
-    margin: 0 var(--space-2);
+  svg {
+    font-size: var(--size-icon-xs);
   }
+}
+
+// One quiet fact under the flash count — the old ratio line's sole
+// survivor, now sitting with the number it describes.
+.sub {
+  @include type.typography(meta, $step: xs);
+  color: var(--mono-text-low-contrast);
 }

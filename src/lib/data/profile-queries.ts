@@ -13,6 +13,7 @@ import { tags } from "@/lib/cache/tags";
 import { asJsonShape } from "./json-shape";
 import { readSingle, readMany } from "./read";
 import type { GradeDistributionRow } from "./grade-distribution";
+import type { GradeProgressionRow } from "./grade-progression";
 
 type Supabase = SupabaseClient<Database>;
 
@@ -122,5 +123,21 @@ export async function getGradeDistribution(
   return readMany<GradeDistributionRow>(
     service.rpc("get_grade_distribution", { p_user_id: userId }),
     "getgradedistribution_failed",
+  );
+}
+
+/**
+ * Monthly best-grade rollup for the progression chart (migration
+ * 135). Service-role for the same reason as the distribution above —
+ * the RPC takes its subject as an argument, so the page decides whose
+ * profile is being read. `grade-progression.ts` shapes it.
+ */
+export async function getGradeProgression(
+  service: Supabase,
+  userId: string,
+): Promise<GradeProgressionRow[]> {
+  return readMany<GradeProgressionRow>(
+    service.rpc("get_grade_progression", { p_user_id: userId }),
+    "getgradeprogression_failed",
   );
 }

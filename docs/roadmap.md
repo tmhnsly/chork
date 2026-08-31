@@ -98,6 +98,11 @@ Platform hardening:
       checks remain a human's — the consent screen's publishing status
       (*Testing* blocks strangers at Google's door) and the localhost
       redirect entry — both in `docs/google-signin-setup.md`
+- [ ] **Protect `main` on GitHub** — flagged by GitHub at PR #35's
+      merge (2026-08-31): no force-push/deletion protection and no
+      required status checks. Settings → Branches → add a rule for
+      `main`: require the CI check before merging, block force pushes.
+      Two minutes of clicking; the e2e suite already runs per push
 - [ ] Apple Sign In — **decided against for now (Tom, 2026-08-20)**:
       needs the paid developer account and Google covers sign-up.
       Revisit if iOS PWA users ask; same shape as Google, mostly
@@ -197,6 +202,23 @@ first.
   their data model in place and none is load-bearing yet.
 
 ## Recently shipped — UI
+
+- [x] **Profile second pass.** *(2026-08-31, migration 135.)* Tom's
+      brief: the hero "seems in the wrong order/bad UX, missing things
+      but also containing the wrong things. could use icons?" What
+      shipped: the identity row on an accent wash with a chip row —
+      rank on the active set (the one number the app ranks on, never
+      shown before), gym, streak — the ratios paragraph deleted, tiles
+      reordered Points · Flashes · Sends with glyphs, settings to the
+      identity corner. Plus: achievements rebuilt as ONE sheet with
+      internal grid⇄detail navigation (stacked sibling modals fought
+      over dismissal — closing the detail could take the catalogue with
+      it; `BottomSheet` grew a generic `onBack`), the set-sheet stat
+      row wraps instead of clipping at 375px, a **Leagues** card on
+      your own profile (`get_my_leagues`, caller-scoped so nothing
+      leaks to visitors), and the Grades card's **Pyramid / Over time**
+      toggle — best grade per month via `get_grade_progression` (135),
+      shaped by `grade-progression.ts` under its own unit tests.
 
 - [x] **The profile is one family of cards.** *(2026-08-17 → 19,
       migrations 124–131.)* Tom's brief: "the all time section looks

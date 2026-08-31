@@ -1637,6 +1637,16 @@ export type Database = {
           sends: number
         }[]
       }
+      get_grade_progression: {
+        Args: { p_user_id: string }
+        Returns: {
+          best_grade: number
+          best_was_flash: boolean
+          discipline: string
+          grading_scale: string
+          month: string
+        }[]
+      }
       get_gym_active_climber_count: {
         Args: { p_gym_id: string }
         Returns: number

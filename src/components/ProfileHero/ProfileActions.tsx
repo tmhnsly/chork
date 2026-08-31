@@ -2,12 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
 import {
   FaUserPlus,
   FaUserCheck,
   FaUserMinus,
-  FaGear,
   FaClock,
   FaCheck,
 } from "react-icons/fa6";
@@ -18,12 +16,6 @@ import { requestFriend, respondToFriend, removeFriend } from "@/app/friends/acti
 import type { FriendStanding } from "@/lib/data/friend-queries";
 import styles from "./profileActions.module.scss";
 
-// Lazy: it only ever opens on a tap, and every visited profile would
-// otherwise pay for it.
-const SettingsSheet = dynamic(
-  () => import("@/components/ProfileHeader/SettingsSheet").then((m) => m.SettingsSheet),
-  { ssr: false },
-);
 
 interface Props {
   userId: string;
@@ -64,7 +56,6 @@ export function ProfileActions({ userId, username, standing: initial, friends }:
   const [pending, startTransition] = useTransition();
   const [standing, setStanding] = useState(initial);
   const [confirmingRemove, setConfirmingRemove] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const fail = (msg: string) => showToast(msg, "error");
 
@@ -104,16 +95,13 @@ export function ProfileActions({ userId, username, standing: initial, friends }:
   }
 
   if (standing.status === "self") {
-    // Your own card leads with your PEOPLE, not with settings. A
-    // full-width Settings button was the most prominent thing on the
-    // page and the least interesting — chrome given hero weight.
-    // Settings goes to the corner where chrome belongs; the slot a
-    // stranger sees "Add friend" in shows who you climb with, and
+    // Your own card leads with your PEOPLE. Settings lives up in the
+    // identity corner (SettingsCorner) where chrome belongs; the slot
+    // a stranger sees "Add friend" in shows who you climb with, and
     // opens the list.
     const active = (friends ?? []).filter((f) => f.status === "active");
     return (
-      <>
-        <div className={styles.row}>
+      <div className={styles.row}>
           <Link href="/friends" className={styles.friendsRow}>
             {active.length > 0 ? (
               <>
@@ -142,19 +130,7 @@ export function ProfileActions({ userId, username, standing: initial, friends }:
               </>
             )}
           </Link>
-          <button
-            type="button"
-            className={styles.iconButton}
-            onClick={() => setSettingsOpen(true)}
-            aria-label="Settings"
-          >
-            <FaGear aria-hidden />
-          </button>
-        </div>
-        {settingsOpen && (
-          <SettingsSheet open onClose={() => setSettingsOpen(false)} />
-        )}
-      </>
+      </div>
     );
   }
 

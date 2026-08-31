@@ -1,17 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useReducer, useState } from "react";
 import dynamic from "next/dynamic";
 import { BadgeShelf } from "@/components/ui/BadgeShelf/BadgeShelf";
 import type { BadgeStatus } from "@/lib/badges";
+import {
+  achievementsOverlayReducer,
+  initialOverlayState,
+} from "./achievementsOverlayReducer";
 
-// Lazy — sheets only open on user gesture.
-const AchievementsSheet = dynamic(
-  () => import("./AchievementsSheet").then((m) => m.AchievementsSheet),
-  { ssr: false },
-);
-const AchievementDetailSheet = dynamic(
-  () => import("./AchievementDetailSheet").then((m) => m.AchievementDetailSheet),
+// Lazy — the overlay only opens on user gesture, and every visited
+// profile would otherwise pay for it. Mounted on first open and kept
+// mounted after, so the close animation plays and the filter state
+// survives a reopen.
+const AchievementsOverlay = dynamic(
+  () => import("./AchievementsOverlay").then((m) => m.AchievementsOverlay),
   { ssr: false },
 );
 
@@ -22,44 +25,41 @@ interface Props {
 }
 
 /**
- * Client wrapper around `BadgeShelf` that owns both the "See all" sheet
- * and the per-badge detail sheet. BadgeShelf reports taps; this layer
- * decides what to do — keeps BadgeShelf decoupled from the Achievements
- * feature folder. Server page can stay an RSC.
+ * Client wrapper around `BadgeShelf` that owns the achievements
+ * overlay. BadgeShelf reports taps; this layer decides what to do —
+ * keeps BadgeShelf decoupled from the Achievements feature folder,
+ * and the server page stays an RSC.
  *
- * One detail sheet, two ways in: a card on the shelf, or a card in the
- * catalogue. Both land here, so an achievement reads the same however
- * you reached it — and the catalogue is no longer a dead end that
- * showed a progress bar and answered no questions.
- *
- * The detail renders after the catalogue in DOM order, so when it
- * opens from a card inside the catalogue it stacks on top and closing
- * it returns you to the grid rather than to the profile.
+ * One overlay, two ways in: a card on the shelf opens its detail
+ * directly; "See all" opens the catalogue grid, and a card in the
+ * grid pushes the detail with a back button. It is ONE BottomSheet
+ * navigating internally (see `achievementsOverlayReducer`) — the old
+ * arrangement stacked two sibling modal dialogs and closing the top
+ * one could take the bottom one with it.
  */
 export function ProfileAchievements({ badges, shelf }: Props) {
-  const [allOpen, setAllOpen] = useState(false);
-  const [openBadge, setOpenBadge] = useState<BadgeStatus | null>(null);
+  const [state, dispatch] = useReducer(
+    achievementsOverlayReducer,
+    initialOverlayState,
+  );
+  const [hasOpened, setHasOpened] = useState(false);
 
   return (
     <>
       <BadgeShelf
         badges={badges}
         shelf={shelf}
-        onSeeAll={() => setAllOpen(true)}
-        onTapBadge={setOpenBadge}
+        onSeeAll={() => {
+          setHasOpened(true);
+          dispatch({ type: "open-grid" });
+        }}
+        onTapBadge={(badge) => {
+          setHasOpened(true);
+          dispatch({ type: "open-detail", badge, from: "shelf" });
+        }}
       />
-      <AchievementsSheet
-        badges={badges}
-        open={allOpen}
-        onClose={() => setAllOpen(false)}
-        onTapBadge={setOpenBadge}
-      />
-      {openBadge && (
-        <AchievementDetailSheet
-          badge={openBadge}
-          open
-          onClose={() => setOpenBadge(null)}
-        />
+      {hasOpened && (
+        <AchievementsOverlay badges={badges} state={state} dispatch={dispatch} />
       )}
     </>
   );

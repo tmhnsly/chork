@@ -1,0 +1,86 @@
+@use "mixins/typography" as type;
+
+.chart {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.title {
+  @include type.typography(label);
+  color: var(--mono-text);
+}
+
+.columns {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-0-5);
+}
+
+.column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-1);
+}
+
+// The grade above the bar — present only when the month has one, but
+// the line box is always reserved so every track starts level.
+.gradeLabel {
+  @include type.typography(number, $step: xs);
+  color: var(--mono-text-low-contrast);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  min-height: 1lh;
+  white-space: nowrap;
+}
+
+.track {
+  height: var(--space-16);
+  background: var(--mono-bg);
+  display: flex;
+  align-items: flex-end;
+}
+
+.bar {
+  width: 100%;
+  height: var(--bar-h, 0%);
+  transform-origin: bottom;
+
+  animation: progressionGrow var(--duration-slow) var(--ease-out) backwards;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes progressionGrow {
+  from {
+    transform: scaleY(0);
+  }
+}
+
+.bar[data-state="completed"] {
+  background: var(--brand);            // step 9
+}
+
+.bar[data-state="flash"] {
+  background: var(--flash-solid);      // step 9
+}
+
+.monthLabel {
+  @include type.typography(number, $step: xs);
+  color: var(--mono-text-low-contrast);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
