@@ -68,7 +68,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .overlay,
-  .content {
+  .content,
+  .bodyView {
     animation: none;
   }
 }
@@ -182,6 +183,28 @@
 .body {
   padding: var(--space-4) var(--gutter-x)
     calc(var(--space-6) + env(safe-area-inset-bottom, 0px));
+}
+
+// A view swap inside the sheet (catalogue → badge, menu → theme
+// pane). The chrome stays put and the content arrives — a short
+// fade with a few pixels of travel, deliberately quieter than the
+// sheet's own entrance: this is navigation within a surface, not a
+// new surface.
+.bodyView {
+  animation: viewIn var(--duration-fast) var(--ease-out);
+}
+
+// Height floor, so navigating or filtering doesn't resize the sheet
+// under the reader's thumb.
+.bodyMinHalf {
+  min-height: 55svh;
+}
+
+@keyframes viewIn {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-2));
+  }
 }
 
 // ── Keyframes ─────────────────────────────────────

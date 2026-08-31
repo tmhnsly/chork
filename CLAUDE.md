@@ -248,20 +248,30 @@ Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
   in `src/styles`. Palette is `data-theme` via our own store. Changing
   that one prop makes the app light-only with no build error —
   `design-system.test.ts` pins both halves
-- **Four user-selectable palettes** (Chork / Blue / Violet / Pink).
-  Each is a `[data-theme="…"]` block in
-  `src/styles/theme/colors.scss` that re-maps `--mono-*` and
-  `--accent-*` to a different Radix scale via mixins. The **accent**
-  is what distinguishes a palette; the gray follows from Radix's
-  pairing guide for that hue. Flash and zone are brand-fixed across
-  every palette
-- **A new palette's accent must not collide with a reserved hue** —
-  amber (flash + podium gold), teal (zone), red (error), orange
-  (warning), bronze (podium 3rd), or the grays (silver + every
-  surface). That is why there are four and not more; the reasoning
-  is written out above the theme table in `colors.scss`. The
-  constraint is real, not stylistic: a send tile, a flash, a zone and
-  an untouched route all appear in one grid on the wall
+- **Four user-selectable themes** (Chork / Harbour / Dusk / Arcade —
+  ids `default`/`blue`/`violet`/`pink` are storage and never change).
+  Each is a **complete colour chord** in
+  `src/styles/theme/colors.scss`: mono, accent, flash AND zone scales
+  per theme (Chork: olive·lime·amber·teal, locked; Harbour:
+  slate·blue·gold·jade; Dusk: mauve·violet·yellow·cyan; Arcade:
+  gray·pink·amber·mint). The hero's poster slab is
+  NOT a token of its own — it is `--accent-solid` with
+  `--accent-on-solid` ink, the sent-tile treatment at card scale
+  (`theme-chords.test.ts` guards against a bespoke cover surface
+  growing back)
+- **The chord rules are pinned by `theme-chords.test.ts`**, and they
+  exist for colour-blind legibility: accent, flash and zone share one
+  tile grid, so each theme spends them on **three different Radix hue
+  families** (two from one family collapse together under
+  deuteranopia). Every theme's zone scale is unique across themes —
+  that's the role that used to make all four look alike. Flash stays
+  the warm *reward*, zone the cool/green *progress*, so meaning
+  survives a switch; the ink on a solid follows the scale's lightness
+  (Harbour overrides for gold, Arcade for mint); error red and
+  warning orange never vary. The reserved-hue rule is per-theme: an accent must not
+  collide with its own chord. The constraint is real, not stylistic:
+  a send tile, a flash, a zone and an untouched route all appear in
+  one grid on the wall
 - Theme selection persists on `profiles.theme` (migration 028);
   `theme.tsx` bridges the auth profile into a tiny external store
   via `useSyncExternalStore`. Visiting another climber's profile
@@ -271,15 +281,17 @@ Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
   `--accent-on-solid`
 - Surfaces: `@include surface.card` (panels), `surface.chrome`
   (sticky chrome), `surface.glass($opacity)` (sheets, modals)
-- Flash badge: **amber** (`--flash-*`), never lime
+- Flash badge: the theme's **flash gold** (`--flash-*` — amber or
+  yellow, never the accent)
 - Squircle via `--radius-1..4`. PunchTile stays square
 - Golden radius for nested containers: inner = outer − gap. Pre-built
   tokens in `radius.scss`: `--radius-inner-{outer}-{gap}`. Never
   guess a step
 - Glass: `saturate(180%) blur(20px)`. 30% / 50% / 70% opacity tiers
   (thin / regular / thick)
-- Radix palette: olive (mono), lime (accent), red (error), teal
-  (success / zone), amber (flash)
+- Radix palette (default chord): olive (mono), lime (accent), red
+  (error), teal (success / zone), amber (flash) — other themes swap
+  whole chords, see the theme table
 
 ### Radix scale discipline (strictly enforced)
 

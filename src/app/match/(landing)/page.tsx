@@ -66,10 +66,10 @@ export default async function MatchPage() {
           </p>
         </div>
         <div className={styles.actionButtons}>
-          <LinkButton href="/match/new" fullWidth>
+          <LinkButton href="/match/new" flex>
             <FaPlus aria-hidden /> Start a match
           </LinkButton>
-          <LinkButton href="/match/join" variant="secondary" fullWidth>
+          <LinkButton href="/match/join" variant="secondary" flex>
             <FaUserPlus aria-hidden /> Join a match
           </LinkButton>
         </div>

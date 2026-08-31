@@ -21,6 +21,9 @@ import { useRouteLogState } from "./useRouteLogState";
 import styles from "./routeLogSheet.module.scss";
 
 interface Props {
+  /** Real boolean — the sheet stays mounted while it closes so the
+   *  exit animation can play. See BottomSheet's mount contract. */
+  open: boolean;
   set: RouteSet;
   route: Route;
   log: RouteLog | null;
@@ -38,6 +41,7 @@ interface Props {
  * bridge.
  */
 export function RouteLogSheet({
+  open,
   set,
   route,
   log,
@@ -75,7 +79,7 @@ export function RouteLogSheet({
 
   return (
     <BottomSheet
-      open
+      open={open}
       onClose={onClose}
       title={`Route ${route.number}`}
       description={`Log details for route ${route.number}`}
@@ -131,33 +135,42 @@ export function RouteLogSheet({
             collapses. It stays MOUNTED inside an animated collapse
             wrapper (inert while closed) — unmounting it in place
             made completion read as a layout jump. */}
-        {route.has_zone && (
-          <Collapse open={!isCompleted} padBottom>
-            <ZoneHoldRow
-              checked={zoneValue}
-              onCheckedChange={handleZoneToggle}
-              hasAttempts={state.attempts > 0}
-            />
-          </Collapse>
-        )}
+        {/* Zone and the send share ONE line. Stacked, they were two
+            full-width slabs in a sheet already made of full-width
+            slabs; side by side the zone reads as the qualifier it is
+            and the send keeps the primary weight. */}
+        <div className={styles.actionRow}>
+          {route.has_zone && (
+            <Collapse
+              open={!isCompleted}
+              className={styles.zoneSlot}
+            >
+              <ZoneHoldRow
+                checked={zoneValue}
+                onCheckedChange={handleZoneToggle}
+                hasAttempts={state.attempts > 0}
+              />
+            </Collapse>
+          )}
 
-        {/* Complete / Undo */}
-        {isCompleted && set.active ? (
-          <CompletedRow
-            isFlash={isCurrentFlash}
-            hasZone={zoneValue}
-            onUndo={handleUncomplete}
-          />
-        ) : (
-          <Button
-            onClick={handleMarkComplete}
-            disabled={state.attempts < 1 || !set.active}
-            loading={state.completing}
-            fullWidth
-          >
-            Mark as complete
-          </Button>
-        )}
+          {/* Complete / Undo */}
+          {isCompleted && set.active ? (
+            <CompletedRow
+              isFlash={isCurrentFlash}
+              hasZone={zoneValue}
+              onUndo={handleUncomplete}
+            />
+          ) : (
+            <Button
+              onClick={handleMarkComplete}
+              disabled={state.attempts < 1 || !set.active}
+              loading={state.completing}
+              flex
+            >
+              Mark as complete
+            </Button>
+          )}
+        </div>
 
         {/* Grade slider — opens post-completion. Hidden entirely
             for points-only sets where the admin has opted out of

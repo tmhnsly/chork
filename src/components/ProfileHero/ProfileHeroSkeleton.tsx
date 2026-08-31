@@ -1,5 +1,7 @@
 import { shimmerStyles } from "@/components/ui";
 import styles from "./profileHero.module.scss";
+// The gear slot borrows the icon-button shape so the corner is the
+// same size before the real control arrives.
 import actionStyles from "./profileActions.module.scss";
 
 /**
@@ -26,29 +28,21 @@ export function ProfileHeroSkeleton() {
       <div className={styles.identity} aria-hidden>
         <span className={styles.avatarSlot} />
         <div className={styles.names}>
-          <span className={styles.username}>@climber</span>
-          <span className={styles.meta}>Name</span>
-          <ul className={styles.chips}>
-            <li className={styles.chip}>#0 this set</li>
-            <li className={styles.chip}>Gym</li>
-          </ul>
+          <span className={styles.name}>Climber</span>
+          <span className={styles.meta}>@climber</span>
         </div>
         <div className={styles.corner}>
           <span className={actionStyles.iconButton} />
         </div>
       </div>
 
-      <div className={styles.headline} aria-hidden>
-        {["Points", "Flashes", "Sends"].map((label) => (
+      <div className={styles.stats} aria-hidden>
+        {["This set", "Points", "Flashes"].map((label) => (
           <div key={label} className={styles.stat}>
-            <span className={styles.value}>0</span>
-            <span className={styles.label}>{label}</span>
+            <span className={styles.statLabel}>{label}</span>
+            <span className={styles.statValue}>0</span>
           </div>
         ))}
-      </div>
-
-      <div className={actionStyles.row} aria-hidden>
-        <span className={actionStyles.friendsRow} />
       </div>
     </section>
   );

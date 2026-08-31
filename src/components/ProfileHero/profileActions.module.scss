@@ -86,10 +86,18 @@
 .friendsRow {
   @extend %action;
   @include focus.ring;
+  // Intrinsic width, per the button rule — a full-card "Find
+  // friends" slab was exactly the stretched-button habit. %action's
+  // flex: 1 is for the visited-profile pair; this row is a lone pill.
+  flex: 0 1 auto;
+  align-self: flex-start;
   justify-content: flex-start;
   gap: var(--space-3);
-  background: var(--mono-subtle-bg);
-  border-color: transparent;
+  // Step-3 fill + a real border: the step-2 fill it had is invisible
+  // against a white card in the light scheme, so the row read as
+  // text floating in space.
+  background: var(--mono-bg);
+  border-color: var(--mono-border-subtle);
   color: var(--mono-text);
   text-decoration: none;
 

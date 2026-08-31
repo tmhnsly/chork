@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ActivityRings } from "@/components/ui/ActivityRings/ActivityRings";
 import { SetDetailSheet } from "./SetDetailSheet";
+import { useSheetPresence } from "@/hooks/use-sheet-presence";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { FaLayerGroup } from "react-icons/fa6";
 import type { Route, RouteLog } from "@/lib/data";
@@ -41,6 +42,7 @@ const SAFE = (n: number, d: number) => (d > 0 ? Math.min(1, n / d) : 0);
 
 export function PreviousSetsGrid({ sets, gymId, userId, showEmptyState = false }: Props) {
   const [openSet, setOpenSet] = useState<SetCell | null>(null);
+  const sheetSet = useSheetPresence(openSet);
 
   if (sets.length === 0) {
     if (!showEmptyState) return null;
@@ -87,9 +89,10 @@ export function PreviousSetsGrid({ sets, gymId, userId, showEmptyState = false }
         ))}
       </ul>
 
-      {openSet && (
+      {sheetSet && (
         <SetDetailSheet
-          set={openSet}
+          open={openSet !== null}
+          set={sheetSet}
           gymId={gymId}
           userId={userId}
           onClose={() => setOpenSet(null)}

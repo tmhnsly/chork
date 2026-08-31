@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { OG } from "@/lib/og-colors";
 import { loadOgFont } from "@/lib/og-fonts";
 
 export const alt =
@@ -25,7 +26,7 @@ export default async function OpengraphImage() {
           alignItems: "center",
           justifyContent: "center",
           position: "relative",
-          background: "#111210",
+          background: OG.bg,
           fontFamily: "Outfit",
         }}
       >
@@ -79,7 +80,7 @@ export default async function OpengraphImage() {
               style={{
                 fontSize: 180,
                 fontWeight: 900,
-                color: "#ecedeb",
+                color: OG.fg,
                 letterSpacing: "-0.055em",
                 lineHeight: 1,
                 // Faux italic — Outfit has no italic variant so we
@@ -97,7 +98,7 @@ export default async function OpengraphImage() {
                 width: 36,
                 height: 36,
                 borderRadius: 999,
-                background: "#bdee63",
+                background: OG.accent,
                 marginBottom: 18,
                 boxShadow: "0 0 40px rgba(189, 238, 99, 0.5)",
               }}
@@ -113,13 +114,13 @@ export default async function OpengraphImage() {
               fontWeight: 900,
               textTransform: "uppercase",
               letterSpacing: "-0.02em",
-              color: "#ecedeb",
+              color: OG.fg,
               lineHeight: 1,
               transform: "skewX(-8deg)",
             }}
           >
             <span>Climb it.</span>
-            <span style={{ color: "#bdee63" }}>Log it.</span>
+            <span style={{ color: OG.accent }}>Log it.</span>
             <span>Top it.</span>
           </div>
 
@@ -132,8 +133,8 @@ export default async function OpengraphImage() {
               gap: 14,
               padding: "22px 44px",
               borderRadius: 999,
-              background: "#bdee63",
-              color: "#111210",
+              background: OG.accent,
+              color: OG.onAccent,
               fontSize: 34,
               fontWeight: 600,
               fontFamily: "OutfitBody",

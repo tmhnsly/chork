@@ -1,14 +1,19 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { createServerSupabase, getServerUser } from "@/lib/supabase/server";
+import {
+  createServerSupabase,
+  createServiceClient,
+  getServerUser,
+} from "@/lib/supabase/server";
 import { getProfileByUsername } from "@/lib/data/profile-queries";
 import { getProfileSummary } from "@/lib/data/profile-queries";
-import { getFriendStatus, getFriends } from "@/lib/data/friend-queries";
+import { getFriendStatus } from "@/lib/data/friend-queries";
 import { getGym } from "@/lib/data/gym-queries";
 import { getAllSets } from "@/lib/data/set-queries";
+import { getUserMatches } from "@/lib/data/match-queries";
 import { computeSetStreak } from "@/lib/data/profile-stats";
 import { getUserRankCached } from "./_components/user-rank";
-import { ProfileHero } from "@/components/ProfileHero/ProfileHero";
+import { ProfileHero, type HeroStat } from "@/components/ProfileHero/ProfileHero";
 import { ProfileStats } from "./_components/ProfileStats";
 import { ProfileStatsSkeleton } from "./_components/ProfileStats.skeleton";
 import { ProfileAchievementsSection } from "./_components/ProfileAchievementsSection";
@@ -51,14 +56,11 @@ export default async function UserProfilePage({ params }: Props) {
   // requests surface on /friends, and match invites will surface in
   // Match. A bell that duplicated both was a second place to keep in
   // step, and it was only ever visible on your own profile anyway.
-  const [summary, standing, gym, orderedSets, friends] = await Promise.all([
+  const [summary, standing, gym, orderedSets] = await Promise.all([
     gymId ? getProfileSummary(supabase, profileUser.id, gymId) : null,
     authUser ? getFriendStatus(supabase, profileUser.id) : null,
     gymId ? getGym(gymId) : null,
     gymId ? getAllSets(gymId, profileUser.created_at) : [],
-    // Own profile only. `get_friends` is caller-scoped on purpose: a
-    // friend count is never published to whoever happens to look.
-    isOwnProfile ? getFriends(supabase) : Promise.resolve(undefined),
   ]);
   const totals = (summary?.per_set ?? []).reduce(
     (acc, s) => {
@@ -85,6 +87,49 @@ export default async function UserProfilePage({ params }: Props) {
       ? await getUserRankCached(supabase, gymId, profileUser.id, activeSet.id)
       : null;
 
+  // A GYMLESS climber's hero reads from matches instead. The gym
+  // numbers can never move for them — showing 0 sends / 0 flashes /
+  // 0 points said "you have done nothing" to someone who may have
+  // run twenty comps on a home wall. This is the only extra query,
+  // and only they pay for it: the gym reads above are all skipped in
+  // this branch anyway.
+  const matchRows = gymId
+    ? []
+    : await getUserMatches(createServiceClient(), profileUser.id, { limit: 200 });
+
+  // The hero's three cells, chosen by where this climber climbs.
+  const heroStats: HeroStat[] = gymId
+    ? [
+        {
+          label: "This set",
+          value: rankRow?.rank ?? null,
+          prefix: "#",
+          href: isOwnProfile ? "/leaderboard" : undefined,
+        },
+        { label: "Points", value: totals.points, tone: "accent" },
+        { label: "Flashes", value: totals.flashes, tone: "flash" },
+      ]
+    : [
+        { label: "Matches", value: matchRows.length },
+        {
+          label: "Wins",
+          value: matchRows.filter((m) => m.user_is_winner).length,
+          tone: "accent",
+        },
+        {
+          label: "Flashes",
+          value: matchRows.reduce((n, m) => n + m.user_flashes, 0),
+          tone: "flash",
+        },
+      ];
+
+  // Quiet context after the handle. A one-set streak is just "you
+  // climbed", so it starts speaking at two.
+  const heroMeta = [
+    gym?.name,
+    streak.current > 1 ? `${streak.current}-set streak` : null,
+  ].filter((x): x is string => Boolean(x));
+
   // Show another climber's profile in *their* chosen theme — viewer's
   // theme restores when they leave the route. Scoped to <main> so the
   // global nav stays in the viewer's palette.
@@ -97,14 +142,11 @@ export default async function UserProfilePage({ params }: Props) {
     <main className={styles.page} {...otherThemeAttr}>
       <ProfileHero
         user={profileUser}
-        gymName={gym?.name ?? null}
-        totals={totals}
-        rank={rankRow?.rank ?? null}
-        streakCurrent={streak.current}
+        meta={heroMeta}
+        stats={heroStats}
         // A signed-out viewer can't be friends with anyone; "none"
         // renders Add, which the action gate will bounce to /login.
         standing={standing ?? { status: "none", friendId: null }}
-        friends={friends}
       />
 
       {/* Gym-scoped widgets (current set + previous sets) are only

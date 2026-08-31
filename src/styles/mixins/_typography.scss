@@ -55,15 +55,16 @@
 $_steps: xs, sm, md, lg, xl, 2xl, 3xl, 4xl, 5xl;
 
 $_typography: (
-  // Large display heading — "PUNCH CARD", page heroes. Every page
-  // title in the app uses this one; there are no exceptions.
+  // Large display heading — page heroes. Every page title in the app
+  // uses this one; there are no exceptions. Upright and sentence-case
+  // as written (2026-08-31): the italic-caps poster voice read as a
+  // second typeface on every screen — the one brand italic left is
+  // `number`. Titles render exactly as the call site spells them.
   display: (
     step: 5xl,
     leading: tight,
     weight: var(--weight-black),
     family: var(--font-heading),
-    transform: uppercase,
-    style: italic,
   ),
   // Card / section heading
   card-title: (
@@ -141,7 +142,6 @@ $_typography: (
     step: sm,
     weight: var(--weight-medium),
     family: var(--font-body),
-    style: italic,
   ),
   // Button text. Opts out of the step's leading — a button's height is
   // set by its padding and tap target, and step leading would fight it.

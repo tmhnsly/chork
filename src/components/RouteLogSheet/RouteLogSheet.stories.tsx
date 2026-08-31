@@ -22,6 +22,7 @@ const meta = {
   title: "Components/RouteLogSheet",
   component: RouteLogSheet,
   args: {
+    open: true,
     set,
     route,
     onClose: fn(),

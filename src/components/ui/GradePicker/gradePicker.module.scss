@@ -59,11 +59,22 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  // Both minimums are the touch target, so a short grade is a circle
-  // and a long one grows sideways at the same height.
   min-width: var(--size-touch-target);
   min-height: var(--size-touch-target);
   padding: 0 var(--space-3);
+
+  // A GRADE is a circle — that is the shape climbers read down the
+  // row, and "V10" or "5.12a" losing it to horizontal padding made
+  // the row look broken halfway along. Any label a scale can produce
+  // (up to 5 characters: 5.14d, 8B+, 6a+) keeps the aspect ratio and
+  // trades the side padding for it; only a CUSTOM ladder's words
+  // ("Red Circuit") fall through to a pill, which is right for a
+  // word. `data-short` comes from the label, so no scale has to be
+  // special-cased here.
+  &[data-short] {
+    aspect-ratio: 1;
+    padding-inline: var(--space-1);
+  }
   border: 1px solid var(--mono-border);
   border-radius: var(--radius-full);
   background: transparent;

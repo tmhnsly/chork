@@ -9,9 +9,7 @@ import {
   FaClock,
   FaCheck,
 } from "react-icons/fa6";
-import { showToast, UserAvatar } from "@/components/ui";
-import Link from "next/link";
-import type { Friend } from "@/lib/data/friend-queries";
+import { showToast } from "@/components/ui";
 import { requestFriend, respondToFriend, removeFriend } from "@/app/friends/actions";
 import type { FriendStanding } from "@/lib/data/friend-queries";
 import styles from "./profileActions.module.scss";
@@ -21,13 +19,6 @@ interface Props {
   userId: string;
   username: string;
   standing: FriendStanding;
-  /**
-   * Own profile only: the climber's active friends, for the row that
-   * takes the place a stranger sees "Add friend" in. Undefined for a
-   * visited profile — `get_friends` is caller-only on purpose, so a
-   * friend count is never published to whoever happens to look.
-   */
-  friends?: Friend[];
 }
 
 /**
@@ -51,7 +42,7 @@ interface Props {
  * id rides along in `standing` because Accept needs it, and Remove
  * confirms in place — one mis-tap should not sever a friendship.
  */
-export function ProfileActions({ userId, username, standing: initial, friends }: Props) {
+export function ProfileActions({ userId, username, standing: initial }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [standing, setStanding] = useState(initial);
@@ -94,45 +85,10 @@ export function ProfileActions({ userId, username, standing: initial, friends }:
     });
   }
 
-  if (standing.status === "self") {
-    // Your own card leads with your PEOPLE. Settings lives up in the
-    // identity corner (SettingsCorner) where chrome belongs; the slot
-    // a stranger sees "Add friend" in shows who you climb with, and
-    // opens the list.
-    const active = (friends ?? []).filter((f) => f.status === "active");
-    return (
-      <div className={styles.row}>
-          <Link href="/friends" className={styles.friendsRow}>
-            {active.length > 0 ? (
-              <>
-                <span className={styles.stack} aria-hidden>
-                  {active.slice(0, 4).map((f) => (
-                    <UserAvatar
-                      key={f.user_id}
-                      user={{
-                        id: f.user_id,
-                        username: f.username ?? "unknown",
-                        name: f.name ?? "",
-                        avatar_url: f.avatar_url ?? "",
-                      }}
-                      size="stack"
-                    />
-                  ))}
-                </span>
-                <span className={styles.friendsLabel}>
-                  {active.length === 1 ? "1 friend" : `${active.length} friends`}
-                </span>
-              </>
-            ) : (
-              <>
-                <FaUserPlus aria-hidden />
-                <span className={styles.friendsLabel}>Find friends</span>
-              </>
-            )}
-          </Link>
-      </div>
-    );
-  }
+  // Your own profile has no social row: Friends is a nav tab, and a
+  // second door here was a button looking for a job. Settings lives
+  // in the hero's corner (SettingsCorner).
+  if (standing.status === "self") return null;
 
   return (
     <div className={styles.row}>

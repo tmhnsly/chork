@@ -2,32 +2,37 @@
 @use "mixins/layout" as layout;
 @use "mixins/surfaces" as surface;
 @use "mixins/container-queries" as cq;
+@use "mixins/focus";
 
-// Deliberately NOT `SectionCard`: that component owns a title header,
-// and this card's title is the climber's face and handle. It matches
-// SectionCard's surface exactly instead — same mixin, same radius,
-// same padding — so the identity card and the sections below it read
-// as one family.
+// The identity card. NOT a bespoke surface — the same `surface.card`,
+// radius and padding every `SectionCard` on this page uses, because
+// it sits in a column of them and any other treatment makes it the
+// odd one out. It skips SectionCard itself only because that
+// component owns an icon+title header, and this card's title is the
+// climber's face and handle.
+//
+// Four attempts put something else here — an accent wash, a black
+// cover, a derived dark cover, glass over a blurred avatar. Every one
+// of them invented a colour the system doesn't have (the blurred
+// avatar's was skin tone) and none of them looked like the cards
+// underneath. The card doesn't need a treatment. It needs to match.
 .card {
   @include surface.card;
-  @include layout.stack(var(--space-4));
+  // SectionCard's exact rhythm — space-5 between blocks, space-4 of
+  // padding. It was on space-4/space-4, which is what made the card
+  // read as cramped beside its neighbours.
+  @include layout.stack(var(--space-5));
   border-radius: var(--radius-card);
   padding: var(--space-4);
   container-type: inline-size;
   container-name: tile;
 }
 
-// ── Identity on a wash ────────────────────────────
-// The card's cover. A quiet accent panel (steps 3–4) behind the face
-// and handle so the hero stops opening on bare grey — every palette
-// re-maps the accent scale, so the wash follows the climber's theme.
+// ── Identity ──────────────────────────────────────
 .identity {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3);
-  background: var(--accent-bg);
-  border-radius: var(--radius-card-inner);
 }
 
 .names {
@@ -35,14 +40,11 @@
   min-width: 0;
 }
 
-// Chrome corner — the settings gear on your own card.
 .corner {
   margin-left: auto;
   align-self: flex-start;
 }
 
-// The skeleton's stand-in for the hero avatar: the same rung, so the
-// identity row is the same height before the face arrives.
 .avatarSlot {
   flex-shrink: 0;
   width: var(--size-avatar-hero);
@@ -51,134 +53,90 @@
   background: var(--mono-bg);
 }
 
-// The handle is the page title, and handles are long: twelve
-// characters is ordinary, twenty is allowed. At the 3xl step a
-// twelve-character handle is ~290px, and beside a hero avatar on a
-// 375px phone it has ~225px — so it broke as "@HAZEL_ / SHOES" in
-// letters an inch high. The step follows the room: xl on a phone,
-// 2xl on a large phone, 3xl from a tablet column up. Each rung moves
-// size, leading and tracking together, which is why it is a step
-// change and not a fluid `font-size`. `overflow-wrap: anywhere` is
-// the backstop for a handle no step can hold; it is meant to be
-// rare, not the design.
-.username {
-  @include type.typography(display, $step: xl);
-  color: var(--accent-text);
+// The NAME, in the card-title voice — bold heading face, upright.
+// Deliberately not the `display` preset: that is the page-title
+// voice (black weight, the loudest in the system), and a name in a
+// card is not a page title. The step follows the room.
+.name {
+  @include type.typography(card-title, $step: xl);
+  color: var(--mono-text);
+  margin: 0;
   overflow-wrap: anywhere;
 
-  @include cq.at(22rem) {
-    @include type.typography(display, $step: 2xl);
-  }
-
-  @include cq.at(26rem) {
-    @include type.typography(display, $step: 3xl);
+  @include cq.at(24rem) {
+    @include type.typography(card-title, $step: 2xl);
   }
 }
 
+// Handle, gym, streak — one quiet line, middot-separated.
 .meta {
-  @include type.typography(label);
-  color: var(--mono-text-low-contrast);
-}
-
-// ── Chips: rank, gym, streak ──────────────────────
-// The meta facts as pieces, not a sentence. Rank leads and wears
-// solid accent — the same "you did this" treatment a sent tile gets —
-// because placement is the one number the whole app ranks on and the
-// old hero never said it. Gym and streak stay muted company.
-.chips {
+  @include type.typography(meta, $step: sm);
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1) var(--space-2);
-  list-style: none;
-  padding: 0;
+  align-items: baseline;
+  gap: 0 var(--space-2);
+  color: var(--mono-text-low-contrast);
   margin: 0;
 }
 
-.chip {
-  @include type.typography(label);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-full);
-  background: var(--accent-bg-hover);
-  color: var(--accent-text);
-
-  svg {
-    font-size: var(--size-icon-xs);
+.metaItem {
+  &::before {
+    content: "·";
+    margin-right: var(--space-2);
   }
 }
 
-.chipRank {
-  background: var(--accent-solid);
-  color: var(--accent-on-solid);
-}
 
-// "this set" rides inside the rank chip a step smaller — the number
-// is the fact, the scope is a whisper. Colour inherits the chip's
-// on-solid foreground; size does the demoting, never opacity.
-.chipQual {
-  @include type.typography(meta, $step: xs);
-}
-
-// ── The three that matter ─────────────────────────
-// Equal columns, unequal weight: colour does the ranking rather than
-// size, so the row keeps one baseline and still says which is which.
-// Order is Points · Flashes · Sends — both brand colours lead, and
-// the mono tile stops sitting mid-row.
-.headline {
+// ── The stat bar ──────────────────────────────────
+// Three cells, filled by the page: placing / points / flashes with a
+// gym, matches / wins / podiums without one. Uppercase label over an
+// italic number — the Current-set card's treatment one card below,
+// with its role colours, so the same word is the same colour
+// wherever a climber reads it. The rule above is a border token; the
+// accent is never a divider.
+.stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-2);
+  gap: var(--space-3);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--mono-border-subtle);
 }
 
 .stat {
   @include layout.stack(var(--space-1));
-  align-items: center;
-  padding: var(--space-3) var(--space-2);
-  border-radius: var(--radius-card-inner);
-  background: var(--mono-subtle-bg);
-  text-align: center;
+  align-items: flex-start;
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
 }
 
-.statPrimary {
-  background: var(--accent-bg);
+// A linked cell (placing → Ranks) still reads as a stat: no button
+// chrome, just the focus ring and a hint on hover.
+a.stat {
+  @include focus.ring;
+  border-radius: var(--radius-1);
 
-  .value { color: var(--accent-text); }
-  .label { color: var(--accent-text-low-contrast); }
-}
-
-.statFlash {
-  background: var(--flash-bg);
-
-  .value { color: var(--flash-text); }
-  .label { color: var(--flash-text-low-contrast); }
-  .sub   { color: var(--flash-text-low-contrast); }
-}
-
-.value {
-  @include type.typography(number, $step: 3xl);
-  color: var(--mono-text);
-}
-
-// Labels carry their glyph where one exists (Flashes' bolt, Sends'
-// tick — the same promises the route tiles make). Points has none:
-// the accent fill IS its mark.
-.label {
-  @include type.typography(label);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  color: var(--mono-text-low-contrast);
-
-  svg {
-    font-size: var(--size-icon-xs);
+  &:hover .statValue {
+    color: var(--accent-text);
   }
 }
 
-// One quiet fact under the flash count — the old ratio line's sole
-// survivor, now sitting with the number it describes.
-.sub {
-  @include type.typography(meta, $step: xs);
+.statLabel {
+  @include type.typography(label);
   color: var(--mono-text-low-contrast);
+}
+
+.statValue {
+  @include type.typography(number, $step: 2xl);
+  color: var(--mono-text);
+}
+
+.statAccent {
+  .statLabel { color: var(--accent-text-low-contrast); }
+  .statValue { color: var(--accent-text); }
+}
+
+.statFlash {
+  .statLabel { color: var(--flash-text-low-contrast); }
+  .statValue { color: var(--flash-text); }
 }

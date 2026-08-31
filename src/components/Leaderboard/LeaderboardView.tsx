@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition, useCallback, useRef, useEffect } from "react";
+import { useSheetPresence } from "@/hooks/use-sheet-presence";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { tabId } from "@/components/ui/tab-ids";
 import { showToast } from "@/components/ui";
@@ -74,6 +75,7 @@ export function LeaderboardView({
     initialSetData ? { set: initialSetData } : {}
   );
   const [sheetEntry, setSheetEntry] = useState<LeaderboardEntry | null>(null);
+  const shownEntry = useSheetPresence(sheetEntry);
   const [isPending, startTransition] = useTransition();
 
   const activeSetIdForTab = tab === "set" ? currentSetId : null;
@@ -265,9 +267,10 @@ export function LeaderboardView({
       )}
       </div>
 
-      {sheetEntry && (
+      {shownEntry && (
         <ClimberSheet
-          entry={sheetEntry}
+          open={sheetEntry !== null}
+          entry={shownEntry}
           setId={activeSetIdForTab}
           routes={currentSetRoutes}
           onClose={() => setSheetEntry(null)}

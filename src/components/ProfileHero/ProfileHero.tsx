@@ -1,11 +1,22 @@
-import { FaBolt, FaCheck, FaFire, FaLocationDot, FaRankingStar } from "react-icons/fa6";
-import { UserAvatar } from "@/components/ui";
+import Link from "next/link";
+import { UserAvatar, Username } from "@/components/ui";
 import { CountUpNumber } from "@/components/ui/CountUpNumber/CountUpNumber";
-import { RevealText } from "@/components/motion";
 import { ProfileActions } from "./ProfileActions";
 import { SettingsCorner } from "./SettingsCorner";
-import type { FriendStanding, Friend } from "@/lib/data/friend-queries";
+import type { FriendStanding } from "@/lib/data/friend-queries";
 import styles from "./profileHero.module.scss";
+
+/** One cell of the stat bar. */
+export interface HeroStat {
+  label: string;
+  /** null renders an em dash — unranked, or nothing played yet. */
+  value: number | null;
+  /** Sits before the number, unanimated. "#" for a placing. */
+  prefix?: string;
+  tone?: "accent" | "flash";
+  /** Makes the cell a link — the rank cell goes to Ranks. */
+  href?: string;
+}
 
 interface Props {
   user: {
@@ -14,88 +25,63 @@ interface Props {
     name: string;
     avatar_url: string;
   };
-  gymName: string | null;
-  totals: { points: number; sends: number; flashes: number };
-  /** Placement on the gym's active set — null when unranked or gymless. */
-  rank: number | null;
-  /** Consecutive sets with a send; the chip renders from 2 up. */
-  streakCurrent: number;
+  /** Quiet context after the handle: the gym, a streak. */
+  meta: string[];
+  /** Exactly three, chosen by the page — see the note below. */
+  stats: HeroStat[];
   standing: FriendStanding;
-  /** Own profile only — see ProfileActions. */
-  friends?: Friend[];
 }
 
+const EM_DASH = "—";
+
 /**
- * The profile as one card: who this is, how they're doing, and what
- * you can do about it — the thing you'd screenshot.
+ * The identity card: who this is, and the three numbers that say how
+ * they're doing.
  *
- * Second pass (2026-08-31). The first version was three grey boxes in
- * a grey box with a paragraph of percentages — accurate and flat. What
- * changed, and why:
+ * Shaped like an athlete header rather than a poster, after five
+ * passes that treated it as a canvas:
  *
- *   • The identity row sits on an accent wash — the card gets a cover
- *     instead of opening cold on bare panel. Steps 3–4 of the accent
- *     scale, so every palette keeps it quiet.
- *   • The meta line grew into chips, and the FIRST chip is the one
- *     number the whole app ranks on and the old hero never showed:
- *     placement on the current set. Rank wears solid accent — the
- *     "you did this" treatment. Gym and streak chips stay muted.
- *   • The ratios paragraph is gone. Four analyst numbers in tiny type
- *     was the six-grey-rectangles problem reborn at small scale. The
- *     one emotive fact each kept a home: streak became a chip, flash
- *     rate became a sub-line inside the Flashes tile. Pts/send and
- *     completion live on in the stats card and set sheets.
- *   • Tiles reordered Points · Flashes · Sends — both brand colours
- *     lead and the mono tile stops sitting mid-row. Flashes and Sends
- *     carry their glyphs; Points carries none, because the accent fill
- *     IS its mark.
- *   • Settings moved to the identity corner where chrome belongs; the
- *     action row below is purely social now.
+ *   • The NAME leads, in the card-title voice. The handle is quiet
+ *     context beneath it with the gym and any streak. It was the
+ *     other way round — "@tom" in the black display face, the page
+ *     title's voice, with the real name whispering underneath — which
+ *     put a punctuation mark in the loudest position on the screen and
+ *     inverted what every social profile does. When a climber hasn't
+ *     set a name the handle takes the heading, so the line is never
+ *     the same word twice.
+ *   • The stat bar is THREE cells the page fills, because the numbers
+ *     worth showing depend on where a climber climbs. With a gym:
+ *     placing, points, flashes. Without one: matches, wins, podiums —
+ *     a gymless climber used to be shown 0 / 0 / 0, which is worse
+ *     than showing nothing, since none of those numbers could ever
+ *     move for them.
+ *   • Placing is a cell, not a chip. It is a number like the others;
+ *     it was only ever a chip because it arrived late.
+ *   • The card is `surface.card` with SectionCard's rhythm, so the
+ *     column reads as one family.
  */
-export function ProfileHero({
-  user,
-  gymName,
-  totals,
-  rank,
-  streakCurrent,
-  standing,
-  friends,
-}: Props) {
-  const flashPct =
-    totals.sends > 0 && totals.flashes > 0
-      ? Math.round((totals.flashes / totals.sends) * 100)
-      : null;
-  const hasChips = rank !== null || gymName !== null || streakCurrent > 1;
+export function ProfileHero({ user, meta, stats, standing }: Props) {
+  const named = user.name.trim().length > 0;
+  const heading = named ? user.name.trim() : `@${user.username}`;
+  // The handle only joins the meta line when the heading isn't
+  // already it.
+  const showHandle = named;
 
   return (
     <section className={styles.card} aria-label={`@${user.username}`}>
       <div className={styles.identity}>
         <UserAvatar user={user} size="hero" priority />
         <div className={styles.names}>
-          <RevealText text={`@${user.username}`} as="h1" className={styles.username} />
-          {user.name && <p className={styles.meta}>{user.name}</p>}
-          {hasChips && (
-            <ul className={styles.chips} aria-label="Standing">
-              {rank !== null && (
-                <li className={`${styles.chip} ${styles.chipRank}`}>
-                  <FaRankingStar aria-hidden />
-                  #{rank}
-                  <span className={styles.chipQual}>this set</span>
-                </li>
-              )}
-              {gymName && (
-                <li className={styles.chip}>
-                  <FaLocationDot aria-hidden />
-                  {gymName}
-                </li>
-              )}
-              {streakCurrent > 1 && (
-                <li className={styles.chip}>
-                  <FaFire aria-hidden />
-                  {streakCurrent} set streak
-                </li>
-              )}
-            </ul>
+          <h1 className={styles.name}>{heading}</h1>
+          {(showHandle || meta.length > 0) && (
+            <p className={styles.meta}>
+              {showHandle && <Username username={user.username} />}
+              {meta.map((item) => (
+                <span key={item} className={styles.metaItem}>
+                  {item}
+                </span>
+              ))}
+            </p>
           )}
         </div>
         {standing.status === "self" && (
@@ -105,35 +91,46 @@ export function ProfileHero({
         )}
       </div>
 
-      <div className={styles.headline}>
-        <div className={`${styles.stat} ${styles.statPrimary}`}>
-          <span className={styles.value}><CountUpNumber value={totals.points} /></span>
-          <span className={styles.label}>Points</span>
-        </div>
-        <div className={`${styles.stat} ${styles.statFlash}`}>
-          <span className={styles.value}><CountUpNumber value={totals.flashes} /></span>
-          <span className={styles.label}>
-            <FaBolt aria-hidden />
-            Flashes
-          </span>
-          {flashPct !== null && (
-            <span className={styles.sub}>{flashPct}% of sends</span>
-          )}
-        </div>
-        <div className={styles.stat}>
-          <span className={styles.value}><CountUpNumber value={totals.sends} /></span>
-          <span className={styles.label}>
-            <FaCheck aria-hidden />
-            Sends
-          </span>
-        </div>
+      <div className={styles.stats}>
+        {stats.map((stat) => {
+          const body = (
+            <>
+              <span className={styles.statLabel}>{stat.label}</span>
+              <span className={styles.statValue}>
+                {stat.value === null ? (
+                  EM_DASH
+                ) : (
+                  <>
+                    {stat.prefix}
+                    <CountUpNumber value={stat.value} />
+                  </>
+                )}
+              </span>
+            </>
+          );
+          const cls = [
+            styles.stat,
+            stat.tone === "accent" ? styles.statAccent : "",
+            stat.tone === "flash" ? styles.statFlash : "",
+          ].filter(Boolean).join(" ");
+          return stat.href ? (
+            <Link key={stat.label} href={stat.href} className={cls}>
+              {body}
+            </Link>
+          ) : (
+            <div key={stat.label} className={cls}>
+              {body}
+            </div>
+          );
+        })}
       </div>
 
+      {/* Nothing for your own profile — Friends is a nav tab. A
+          visited profile keeps its Add / Accept / Friends control. */}
       <ProfileActions
         userId={user.id}
         username={user.username}
         standing={standing}
-        friends={friends}
       />
     </section>
   );

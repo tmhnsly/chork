@@ -67,6 +67,7 @@ export function GradePicker<T extends number | null>({
         <button
           key={String(opt.value)}
           {...optionProps(opt, i)}
+          data-short={opt.label.length <= 5 || undefined}
           className={`${styles.chip} ${opt.value === value ? styles.selected : ""}`}
           // Sheets drag to dismiss; a pointer-down that reaches the
           // sheet turns picking a grade into closing the sheet.

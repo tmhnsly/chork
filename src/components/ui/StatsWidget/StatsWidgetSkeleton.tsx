@@ -31,7 +31,7 @@ const EMPTY_LOGS = new Map();
 export function StatsWidgetSkeleton() {
   return (
     <SectionCard
-      title="Current Set"
+      title="Current set"
       icon={<FaLayerGroup />}
       className={shimmerStyles.skeleton}
     >

@@ -34,11 +34,14 @@ export interface ThemeMeta {
  * palette instead, scoped with `data-theme`, so all four can be
  * compared side by side without changing anything.
  */
+// Labels name the mood; hints read the chord (mono · accent · flash
+// · zone). Ids are STORAGE — profiles.theme holds them — and never
+// change with a rename.
 export const THEME_META: ThemeMeta[] = [
-  { id: "default", label: "Chork", hint: "Olive · Lime" },
-  { id: "blue", label: "Blue", hint: "Slate · Blue" },
-  { id: "violet", label: "Violet", hint: "Mauve · Violet" },
-  { id: "pink", label: "Pink", hint: "Gray · Pink" },
+  { id: "default", label: "Chork", hint: "Lime · Amber · Teal" },
+  { id: "blue", label: "Harbour", hint: "Blue · Gold · Jade" },
+  { id: "violet", label: "Dusk", hint: "Violet · Yellow · Cyan" },
+  { id: "pink", label: "Arcade", hint: "Pink · Amber · Mint" },
 ];
 
 export const DEFAULT_THEME: ThemeName = "default";
