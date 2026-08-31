@@ -44,6 +44,26 @@ export function isFormulaScale(
   );
 }
 
+/**
+ * What "Start this week's Match" carries over from the League's
+ * last week, so a fixture doesn't have to be set up twice.
+ */
+export interface CreateMatchPrefill {
+  name: string;
+  location: string | null;
+  discipline: Discipline;
+  scale: MatchGradingScale;
+  handicap: boolean;
+  gameMode: "points" | "chork";
+  minGrade: number | null;
+  maxGrade: number | null;
+  /** The other family's scale on a mixed day, null otherwise. */
+  altScale: FormulaScale | null;
+  altMinGrade: number | null;
+  altMaxGrade: number | null;
+  leagueId: string;
+}
+
 export interface CreateMatchState {
   name: string;
   location: string;
@@ -86,6 +106,9 @@ export interface CreateMatchState {
   newGradeInput: string;
   saveScale: boolean;
   scaleName: string;
+
+  /** Set when this Match is being started as a week of a League. */
+  leagueId: string | null;
 }
 
 export type CreateMatchAction =
@@ -132,8 +155,8 @@ export type CreateMatchAction =
  * Defaults: V0→V8 / Font 3→7A — common ranges so climbers can move
  * on without thinking.
  */
-export function initialCreateMatchState(): CreateMatchState {
-  return {
+export function initialCreateMatchState(prefill?: CreateMatchPrefill): CreateMatchState {
+  const base: CreateMatchState = {
     name: "",
     location: "",
     discipline: "boulder",
@@ -153,6 +176,30 @@ export function initialCreateMatchState(): CreateMatchState {
     newGradeInput: "",
     saveScale: false,
     scaleName: "",
+    leagueId: null,
+  };
+  if (!prefill) return base;
+  const ranges = { ...base.ranges };
+  if (isFormulaScale(prefill.scale) && prefill.minGrade !== null && prefill.maxGrade !== null) {
+    ranges[prefill.scale] = [prefill.minGrade, prefill.maxGrade];
+  }
+  // Mirror the primary-scale rule for the mixed-day ladder: only
+  // seed its range when both the alt scale and both its bounds
+  // survived from the last week.
+  if (prefill.altScale !== null && prefill.altMinGrade !== null && prefill.altMaxGrade !== null) {
+    ranges[prefill.altScale] = [prefill.altMinGrade, prefill.altMaxGrade];
+  }
+  return {
+    ...base,
+    name: prefill.name,
+    location: prefill.location ?? "",
+    discipline: prefill.discipline,
+    scale: prefill.scale,
+    handicap: prefill.handicap,
+    gameMode: prefill.gameMode,
+    ranges,
+    altScale: prefill.altScale,
+    leagueId: prefill.leagueId,
   };
 }
 
@@ -340,6 +387,7 @@ export interface CreateMatchFormPayload {
   altGradingScale: FormulaScale | null;
   altMinGrade: number | null;
   altMaxGrade: number | null;
+  leagueId: string | null;
 }
 
 /**
@@ -368,5 +416,6 @@ export function buildCreateMatchPayload(
     altGradingScale: state.altScale,
     altMinGrade: altRange ? altRange[0] : null,
     altMaxGrade: altRange ? altRange[1] : null,
+    leagueId: state.leagueId,
   };
 }

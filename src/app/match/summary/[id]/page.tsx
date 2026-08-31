@@ -6,10 +6,13 @@ import { FaCrown, FaArrowLeft } from "react-icons/fa6";
 import { requireSignedIn } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getMatchStateForUser, getChorkStandings } from "@/lib/data/match-queries";
+import { getLeague, getMyLeagues } from "@/lib/data/league-queries";
 import { ChorkWord } from "@/components/Match/ChorkWord";
 import { PageHeader } from "@/components/motion";
 import { UserAvatar, Username } from "@/components/ui";
 import { ShareResultButton } from "@/components/Match/ShareResultButton";
+import { FixtureControls } from "@/components/League/FixtureControls";
+import { weekLabel } from "@/lib/data/league";
 import styles from "./summary.module.scss";
 import { formatHandicapPoints } from "@/lib/data/handicap";
 import { countOf, countOfFormatted } from "@/lib/plural";
@@ -63,6 +66,25 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
   if (!state) notFound();
   const summary = state.match;
   const players = state.leaderboard;
+
+  // Fixture controls for the host; a "week n of" line for everyone
+  // once the Match is in a League. `getMyLeagues` takes the caller's
+  // client — the RPC reads `auth.uid()`.
+  const isHost = summary.host_id === auth.userId;
+  const inLeague = summary.league_id
+    ? await getLeague(auth.supabase, summary.league_id)
+    : null;
+  const hostLeagues = isHost && !summary.league_id
+    ? (await getMyLeagues(auth.supabase)).filter((l) => l.is_host && l.ended_at === null)
+    : [];
+  // `weekLabel` wants position among archived weeks only — reuse the
+  // same tested arithmetic `LeagueWeekList` uses rather than
+  // re-deriving it here.
+  const archivedWeeks = inLeague?.weeks.filter((w) => w.status === "archived") ?? [];
+  // Can't actually miss — only an archived Match ever carries a
+  // `league_id` (RPC-enforced) — but guard anyway so a bad row hides
+  // the line rather than printing a wrong week number.
+  const thisWeekIndex = archivedWeeks.findIndex((w) => w.set_id === id);
 
   // Chork has no points, so it cannot have a points board or a
   // points winner. Ending one used to crown whoever happened to send
@@ -126,6 +148,20 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
         summaryId={id}
         label={summary.name?.trim() || "Match"}
       />
+
+      {inLeague && thisWeekIndex !== -1 && (
+        <Link href={`/match/league/${inLeague.league.id}`} className={styles.leagueLine}>
+          {weekLabel(archivedWeeks[thisWeekIndex], thisWeekIndex, archivedWeeks.length)} of{" "}
+          <strong>{inLeague.league.name}</strong> — see the table
+        </Link>
+      )}
+      {isHost && !summary.league_id && (
+        <FixtureControls
+          setId={id}
+          matchName={summary.name?.trim() || "Tuesday league"}
+          leagues={hostLeagues}
+        />
+      )}
 
       {isChork && chorkWinners.length > 0 && (
         <section

@@ -7,10 +7,12 @@ import {
   getActiveMatchForUserById,
   getUserMatches,
 } from "@/lib/data/match-queries";
+import { getMyLeagues } from "@/lib/data/league-queries";
 import { PageHeader } from "@/components/motion";
 import { ChorkMark, LinkButton } from "@/components/ui";
 import { ActiveMatchBanner } from "@/components/Match/ActiveMatchBanner";
 import { MatchHistoryList } from "@/components/Match/MatchHistoryList";
+import { LeagueList } from "@/components/League/LeagueList";
 import styles from "./match.module.scss";
 
 export const metadata = {
@@ -40,9 +42,10 @@ export default async function MatchPage() {
   // actually load — both paths resolve membership the same way.
   // `requireSignedIn` above is what authorises the user id we pass.
   const service = createServiceClient();
-  const [activeMatch, recentMatches] = await Promise.all([
+  const [activeMatch, recentMatches, leagues] = await Promise.all([
     getActiveMatchForUserById(service, userId),
     getUserMatches(service, userId, { limit: RECENT_MATCHES_LIMIT }),
+    getMyLeagues(auth.supabase),
   ]);
 
   return (
@@ -71,6 +74,15 @@ export default async function MatchPage() {
           </LinkButton>
         </div>
       </section>
+
+      {leagues.length > 0 && (
+        <section className={styles.historySection} aria-labelledby="leagues-heading">
+          <div className={styles.historyHeader}>
+            <h2 id="leagues-heading" className={styles.historyHeading}>Your leagues</h2>
+          </div>
+          <LeagueList leagues={leagues} />
+        </section>
+      )}
 
       <section
         className={styles.historySection}

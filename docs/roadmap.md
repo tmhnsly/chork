@@ -324,24 +324,17 @@ defect in shipped code, not a refactor. What clearing them turned up:
       is `src/app/profile/actions.ts`. Six inline forks of the auth
       mock collapsed into `src/test/mock-auth.ts`.
 
-### 1. League — the missing primitive
+### 1. League — shipped 2026-08-30 (friend-group slice)
 
-*(Designed 2026-08-20; see `docs/strategy.md` for why this is first.)*
+A host strings finished Matches into a fixture; the table is computed
+on read from the weeks' own boards. `docs/superpowers/specs/2026-08-30-league-design.md`.
 
-A **League** is a repeating series of Sets with cumulative standings.
-One primitive, three markets: a gym's season, a gym's weekly social
-night, and a friend group's standing fixture — which is exactly the
-three uses Chork is meant for, and the thing that turns an event into
-a habit.
-
-- Built as an aggregation over member Sets. `computePoints` does not
-  change; there is no second ladder.
-- **Drop-lowest-N** scoring so missing a week doesn't end your league.
-  That rule is what makes casual participation survive.
-- Multi-site standings from the start — 36% of UK walls are now in
-  groups averaging 4.5 sites, so a chain is one sale, not four.
-- The organiser-pays consumer line hangs off this, so the payer/free
-  split needs to exist in the model before Stripe does.
+Still to come, in order:
+- [ ] The live board names a Chork seat (`ChorkStanding` now carries it).
+- [ ] Gym-owned Leagues: `owner_kind` on `leagues`, an admin surface,
+      and the weekly social's pg_cron publish path.
+- [ ] A moments-feed event when a League week lands.
+- [ ] Organiser-pays hangs off `leagues` — see "Monetisation plumbing".
 
 ### Product direction (revised 2026-08-20 — research-backed)
 

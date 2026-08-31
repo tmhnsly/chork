@@ -121,6 +121,7 @@ enforces that each kind carries its own identity fields.
 | `competition_id` | uuid FK nullable     | Links to `competitions` |
 | `closing_event`  | boolean              | Final-round flag |
 | `venue_gym_id`   | uuid FK nullable     | Where the closing event is held |
+| `league_id`      | uuid FK nullable     | The League this Match is a week of (133). Matches only; never set on a gym Set |
 
 Scheduled auto-publish: `pg_cron` runs `auto_publish_due_sets()` every
 5 min, flipping `draft → live` for any set with `starts_at <= now()`.
@@ -202,6 +203,23 @@ Match-only.
 Read-only to clients (`select` policy via `can_read_set`, no
 insert/update policy). Labels are fixed at creation; `create_match`
 writes them as definer.
+
+### leagues
+
+A series of Matches with a cumulative table (migration 133). See
+CONTEXT.md "League". **No Data API grant** — every read and write is a
+SECURITY DEFINER RPC, the `friends` pattern.
+
+| Field        | Type        | Notes |
+|---|---|---|
+| `host_id`    | uuid FK     | The host of its first Match. Only the host writes |
+| `name`       | text        | 1–80 chars |
+| `created_at` | timestamptz | |
+| `ended_at`   | timestamptz | Null while running. An ended League takes no more weeks |
+
+Membership is derived: anyone with a seat in a member Match can read.
+The table (`league_standings`) is computed on read from the weeks'
+boards — nothing is stored.
 
 ### user_set_stats
 

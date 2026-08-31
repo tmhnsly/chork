@@ -39,12 +39,15 @@ import {
   isFormulaScale,
   initialCreateMatchState,
   MAX_CUSTOM_GRADES,
+  type CreateMatchPrefill,
   type FormulaScale,
 } from "./createMatchReducer";
 import styles from "./createMatchForm.module.scss";
 
 interface Props {
   savedScales: SavedScale[];
+  /** Present when starting a week of a League. */
+  league?: { id: string; name: string; weekNumber: number; prefill: CreateMatchPrefill };
 }
 
 type ScaleTab = MatchGradingScale;
@@ -62,7 +65,7 @@ function scaleOptions(discipline: Discipline): { value: ScaleTab; label: string 
     .map((value) => ({ value, label: SCALE_LABEL[value] }));
 }
 
-export function CreateMatchForm({ savedScales }: Props) {
+export function CreateMatchForm({ savedScales, league }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -71,7 +74,7 @@ export function CreateMatchForm({ savedScales }: Props) {
   // from state in ONE place (createMatchReducer.ts).
   const [state, dispatch] = useReducer(
     createMatchReducer,
-    undefined,
+    league?.prefill,
     initialCreateMatchState,
   );
   const {
@@ -129,6 +132,12 @@ export function CreateMatchForm({ savedScales }: Props) {
 
   return (
     <form className={styles.form} onSubmit={handleSubmit}>
+      {league && (
+        <p className={styles.leagueNote}>
+          Week {league.weekNumber} of <strong>{league.name}</strong> — settings carried over from last week.
+        </p>
+      )}
+
       {/* Identity */}
       <label className={styles.field}>
         <span className={styles.label}>Name (optional)</span>

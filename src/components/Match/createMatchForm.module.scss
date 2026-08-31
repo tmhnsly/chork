@@ -61,6 +61,12 @@
   margin: 0;
 }
 
+.leagueNote {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  margin: 0;
+}
+
 // ── Grade range card ────────────────────────────────
 // Grade range: the same pills the log + add-route sheets use, one
 // labelled row per bound. Replaced a pair of steppers that cost a tap

@@ -1,0 +1,87 @@
+@use "mixins/typography" as type;
+@use "mixins/surfaces" as surface;
+
+.wrap {
+  display: grid;
+  gap: var(--space-3);
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+}
+
+.row {
+  @include surface.card;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-2);
+}
+
+.mine {
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+
+  .rank,
+  .name,
+  .handle,
+  .total,
+  .dropped {
+    color: var(--accent-on-solid);
+  }
+}
+
+.rank {
+  @include type.typography(number);
+  min-width: 2.5ch;
+  color: var(--mono-text-low-contrast);
+}
+
+.identity {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: var(--space-1);
+}
+
+.name {
+  @include type.typography(label);
+  color: var(--mono-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.handle {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+.points {
+  display: grid;
+  justify-items: end;
+  gap: var(--space-1);
+}
+
+.total {
+  @include type.typography(number, $step: lg);
+  color: var(--mono-text);
+}
+
+.dropped {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}
+
+.empty,
+.rule,
+.legend {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+  margin: 0;
+}
