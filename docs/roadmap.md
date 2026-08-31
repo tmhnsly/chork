@@ -98,6 +98,11 @@ Platform hardening:
       checks remain a human's — the consent screen's publishing status
       (*Testing* blocks strangers at Google's door) and the localhost
       redirect entry — both in `docs/google-signin-setup.md`
+- [ ] **Protect `main` on GitHub** — flagged by GitHub at PR #35's
+      merge (2026-08-31): no force-push/deletion protection and no
+      required status checks. Settings → Branches → add a rule for
+      `main`: require the CI check before merging, block force pushes.
+      Two minutes of clicking; the e2e suite already runs per push
 - [ ] Apple Sign In — **decided against for now (Tom, 2026-08-20)**:
       needs the paid developer account and Google covers sign-up.
       Revisit if iOS PWA users ask; same shape as Google, mostly
