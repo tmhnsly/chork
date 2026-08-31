@@ -83,6 +83,12 @@
 
 @use "@radix-ui/colors/teal.css";
 @use "@radix-ui/colors/teal-dark.css";
+@use "@radix-ui/colors/jade.css";
+@use "@radix-ui/colors/jade-dark.css";
+@use "@radix-ui/colors/cyan.css";
+@use "@radix-ui/colors/cyan-dark.css";
+@use "@radix-ui/colors/yellow.css";
+@use "@radix-ui/colors/yellow-dark.css";
 
 @use "@radix-ui/colors/amber.css";
 @use "@radix-ui/colors/amber-dark.css";
@@ -220,18 +226,9 @@
 
   --toggle-thumb: #fff;
 
-  /* ── The poster cover ─────────────────────────────
-     The hero card's identity slab. Brand-fixed near-black across
-     every palette AND both schemes — same reasoning as flash and
-     zone being brand-fixed: the brand is neon-on-near-black, and in
-     the light scheme nothing else on a page is dark enough for the
-     accent to pop against. Literals on purpose: every --mono-* step
-     flips with the scheme, and this surface must not flip. Values
-     are the light olive scale's 12 / 1 / 11-ish / 7-ish. */
-  --surface-inverse-bg: #21201c;
-  --surface-inverse-fg: #fdfdfc;
-  --surface-inverse-fg-muted: #a8a79f;
-  --surface-inverse-border: #4a4944;
+  /* The poster cover (--surface-inverse-*) is defined PER THEME
+     below — each theme's cover is its own accent's Radix dark scale,
+     scheme-fixed. See the theme table. */
 
   /* Scrim laid over user-uploaded imagery — the hover state on the
      avatar picker, and anything similar later. Fixed dark across
@@ -263,48 +260,56 @@
 /*
  * ── The theme table ──────────────────────────────────────────
  *
- * Four themes, and the accent is what separates them. There used to
- * be six, built to the rule "one theme per Radix gray scale". That
- * rule is why they looked alike: Radix's grays (gray / mauve / slate
- * / sage / olive / sand) are *designed* to be near-identical, tinted
- * a few degrees toward an accent they're meant to sit under. They
- * were never going to carry the difference on their own. Worse, the
- * accents had drifted into a cluster — iris, violet and plum are all
- * blue-purple, so three of the six read as the same theme.
+ * Four themes, each a COMPLETE COLOUR SYSTEM — a chord of Radix
+ * scales, not one accent swapped over a shared base. (That was the
+ * previous design, and all four read as the default wearing a
+ * different hat.)
  *
- * So the accent leads now, and each one is picked to be unmistakable
- * against the other three. The gray follows from Radix's pairing
- * guide for that hue, which is the job Radix actually designed the
- * grays for.
+ *   theme    mono    accent   flash    zone    the chord
+ *   Chork    olive   lime     amber    teal    the brand — locked
+ *   Harbour  slate   blue     amber    jade    blue↔amber complement;
+ *                                              jade because teal sat
+ *                                              indistinguishably next
+ *                                              to a blue accent
+ *   Dusk     mauve   violet   yellow   cyan    violet↔yellow
+ *                                              complement + cyan, a
+ *                                              secondary triad
+ *   Arcade   gray    pink     amber    cyan    synthwave pink/cyan
+ *                                              with amber warmth
  *
- * WHY FOUR AND NOT FIVE
+ * THE LEGIBILITY RULES (pinned by theme-chords.test.ts)
  *
- * The app has already spent most of the colour wheel on meaning, and
- * a theme accent may not collide with any of it:
+ * Within one theme, four roles share a single tile grid — untouched
+ * (mono), sent (accent), flashed (flash), zone (zone) — plus error
+ * red and warning orange. So per theme: all six scales distinct.
+ * Across themes, the ROLES keep their temperature so meaning stays
+ * learnable when a climber switches:
  *
- *   amber   flash, and the podium's gold
- *   teal    zone claimed
- *   red     destructive / error
- *   orange  warning
- *   bronze  the podium's third place
- *   grays   silver, and every surface in the UI
+ *   flash  always a BRIGHT warm scale (amber / yellow) — gold, the
+ *          reward — which also keeps --flash-on-solid's dark fg
+ *          valid everywhere. The podium's 1st place follows it.
+ *   zone   always a DEEP cool scale (teal / jade / cyan) — progress
+ *          — keeping --success-on-solid's white fg valid.
+ *   error red and warning orange never vary: danger is not a mood.
  *
- * That leaves four comfortable slots: lime, blue, violet, pink. A
- * fifth would have to be indigo (a second blue), purple or plum (a
- * second violet), grass or green (a second green, and too near teal),
- * or crimson (too near red) — every one of which rebuilds the exact
- * problem this replaces. Four genuinely different beats five where
- * two are twins.
+ * The reserved-hue rule is therefore PER THEME now: a theme's accent
+ * must not collide with ITS OWN flash / zone / red / orange / grays.
+ * That is also still why there are four accents and not six — lime,
+ * blue, violet and pink are the hues that clear every chord.
  *
- * This matters most on the wall: a send tile is accent, a flash is
- * amber, a zone is teal and an untouched route is mono, all in one
- * grid. An accent that reads as any of those doesn't just look
- * muddy, it makes the grid ambiguous.
+ * THE COVER
+ *
+ * Each theme also defines --surface-inverse-* — the hero's poster
+ * slab — from its OWN accent's Radix dark scale (steps 2 / 6 / 11 /
+ * 12 as bg / border / muted fg / fg), as literals because every
+ * live --mono-* and --accent-* step flips with the light/dark
+ * scheme and the cover must not: it is the one deliberately dark
+ * surface in both schemes, the thing the neon pops against.
  */
 
 /*
- * ── Theme: Chork (olive + lime) ───────────────────────────────
- * The brand. Also declared on bare `:root` so pre-hydration HTML
+ * ── Theme: Chork (olive · lime · amber · teal) ────────────────
+ * The brand — the chord every other theme is composed against. Also declared on bare `:root` so pre-hydration HTML
  * already renders it, and named explicitly so it can be scoped to a
  * subtree like any other theme — which is what lets the settings
  * picker preview it, and what makes another climber's profile render
@@ -326,26 +331,39 @@
   --brand: var(--accent-solid);
   --brand-text: var(--accent-text-low-contrast);
 
+  /* Cover: lime-dark 2 / 6 / 11 / 12. */
+  --surface-inverse-bg: #151a10;
+  --surface-inverse-border: #3d522a;
+  --surface-inverse-fg-muted: #bde56c;
+  --surface-inverse-fg: #e3f7ba;
+
   --surface-divider: var(--mono-border-subtle);
   --app-bg: var(--mono-app-bg);
   --app-text: var(--mono-text);
 }
 
 /*
- * ── Theme: Blue (slate + blue) ────────────────────────────────
- * Cool and technical. Radix pairs blue with slate. Blue step 9 is a
- * dark scale → white fg. Replaces the old Slate theme, whose iris
- * accent sat too close to the violet and plum ones.
+ * ── Theme: Harbour (slate · blue · amber · jade) ──────────────
+ * Harbour water and brass fittings: blue↔amber is the classic
+ * complementary pair. Zone moves to jade — the one place the old
+ * shared teal genuinely failed, sitting right next to a blue accent
+ * in the same grid. Blue step 9 is a dark scale → white fg.
  */
 [data-theme="blue"] {
   @include mono-scale(slate);
   @include accent-scale(blue);
-  @include zone-scale(teal);
+  @include zone-scale(jade);
   @include flash-scale(amber);
   @include warning-scale(orange);
   @include error-scale(red);
 
   --accent-on-solid: #fff;
+
+  /* Cover: blue-dark 2 / 6 / 11 / 12. */
+  --surface-inverse-bg: #111927;
+  --surface-inverse-border: #104d87;
+  --surface-inverse-fg-muted: #70b8ff;
+  --surface-inverse-fg: #c2e6ff;
 
   --focus-ring: var(--blue-8);
   --brand: var(--accent-solid);
@@ -353,19 +371,26 @@
 }
 
 /*
- * ── Theme: Violet (mauve + violet) ────────────────────────────
- * Radix pairs violet with mauve, a warm gray. Violet step 9 is a
- * dark scale → white fg.
+ * ── Theme: Dusk (mauve · violet · yellow · cyan) ──────────────
+ * Violet↔yellow is the other classic complement, and cyan completes
+ * a secondary triad — last light against a violet sky. Violet step 9
+ * is a dark scale → white fg; yellow keeps flash's dark-fg contract.
  */
 [data-theme="violet"] {
   @include mono-scale(mauve);
   @include accent-scale(violet);
-  @include zone-scale(teal);
-  @include flash-scale(amber);
+  @include zone-scale(cyan);
+  @include flash-scale(yellow);
   @include warning-scale(orange);
   @include error-scale(red);
 
   --accent-on-solid: #fff;
+
+  /* Cover: violet-dark 2 / 6 / 11 / 12. */
+  --surface-inverse-bg: #1b1525;
+  --surface-inverse-border: #473876;
+  --surface-inverse-fg-muted: #baa7ff;
+  --surface-inverse-fg: #e2ddfe;
 
   --focus-ring: var(--violet-8);
   --brand: var(--accent-solid);
@@ -373,23 +398,28 @@
 }
 
 /*
- * ── Theme: Pink (gray + pink) ─────────────────────────────────
- * The one warm accent the palette can afford, and far enough from
- * red to never be mistaken for a destructive action — Radix pink is
- * magenta, red is orange-red. Sits on pure gray rather than mauve so
- * it doesn't share a base with Violet; the two are neighbours on the
- * wheel and the neutral keeps them apart. Pink step 9 is a dark
- * scale → white fg.
+ * ── Theme: Arcade (gray · pink · amber · cyan) ────────────────
+ * Synthwave: pink and cyan with amber warmth. Pink is far enough
+ * from red to never read destructive — Radix pink is magenta, red is
+ * orange-red — and it sits on pure gray rather than mauve so it
+ * doesn't share a base with Dusk. Pink step 9 is a dark scale →
+ * white fg.
  */
 [data-theme="pink"] {
   @include mono-scale(gray);
   @include accent-scale(pink);
-  @include zone-scale(teal);
+  @include zone-scale(cyan);
   @include flash-scale(amber);
   @include warning-scale(orange);
   @include error-scale(red);
 
   --accent-on-solid: #fff;
+
+  /* Cover: pink-dark 2 / 6 / 11 / 12. */
+  --surface-inverse-bg: #21121d;
+  --surface-inverse-border: #692955;
+  --surface-inverse-fg-muted: #ff8dcc;
+  --surface-inverse-fg: #fdd1ea;
 
   --focus-ring: var(--pink-8);
   --brand: var(--accent-solid);
