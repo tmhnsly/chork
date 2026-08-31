@@ -4,6 +4,16 @@
   display: flex;
   align-items: center;
   gap: var(--space-4);
+  // The row's cells never shrink (see `.stats` / `.totals`) and the
+  // ring bottoms out at `--size-ring-compact`, so a container narrower
+  // than the row's minimum — the set-detail sheet is the one place the
+  // row also carries the Place cell — used to overflow and clip the
+  // right edge on a 375px phone. Wrapping is the release valve: the
+  // totals group drops to its own line, still right-aligned by its
+  // `margin-left: auto`, and wide layouts are untouched because a row
+  // that fits never wraps.
+  flex-wrap: wrap;
+  row-gap: var(--space-2);
 }
 
 // The ring is what gives when the row is short of room. On a 375px
