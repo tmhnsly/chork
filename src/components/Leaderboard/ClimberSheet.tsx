@@ -12,7 +12,7 @@ import { SendGridTile } from "@/components/ui/SendGridTile/SendGridTile";
 import type { LeaderboardEntry, Route, TileState } from "@/lib/data";
 import { formatGrade } from "@/lib/data/grade-label";
 import { fetchClimberSheetLogs, type SanitisedLog } from "@/app/leaderboard/actions";
-import { toAvatarUser } from "@/lib/data/leaderboard-helpers";
+import { seatAvatarUser } from "@/lib/data/seat";
 import styles from "./climberSheet.module.scss";
 
 /** Derive tile state from the sanitised log (no raw attempts leaked). */
@@ -59,7 +59,7 @@ export function ClimberSheet({ entry, setId, routes, onClose }: Props) {
   const logByRoute = logs ? new Map(logs.map((l) => [l.route_id, l])) : null;
 
   const header = ClimberPeekHeader({
-    user: toAvatarUser(entry),
+    user: seatAvatarUser(entry),
     trailing: (
       <span
         className={styles.rankBadge}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { seatName } from "@/lib/data/seat";
 import { BottomSheet, Button, GradePicker, SheetBody } from "@/components/ui";
 import type { GradeChoice } from "@/components/ui";
 import {
@@ -84,7 +85,7 @@ export function CeilingSheet({
   const altLabel =
     primaryFamily === "boulder" ? "Rope limit" : "Bouldering limit";
 
-  const name = player.display_name || player.username || "this climber";
+  const name = seatName(player, { fallback: "this climber" });
 
   return (
     <BottomSheet open onClose={onClose} title="Set the limit">

@@ -137,8 +137,12 @@ not by a filter someone has to remember.
 
 Identity is the SEAT (`set_players.id`), which is the only thing both
 kinds of player have. An account-backed seat owns its logs by
-`user_id`, a guest's by `route_logs.player_id`; `ownerIdOf()` in
-`match-types.ts` resolves both to one string for client code.
+`user_id`, a guest's by `route_logs.player_id`; `ownerIdOf()` — whose home is now
+`src/lib/data/seat.ts`, re-exported from `match-types.ts` — resolves
+both to one string for client code; its siblings `seatName()` and
+`seatAvatarUser()` are the single naming ladder and avatar shape for
+every row (a guest's avatar keys by their seat everywhere, never an
+empty string).
 
 A guest's attempts never leave the database on the board — there is no
 account to own them. The host reads them from `guest_logs` in the room

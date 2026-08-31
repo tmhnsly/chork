@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { seatAvatarUser, seatName } from "@/lib/data/seat";
 import { FaBolt, FaFlag } from "react-icons/fa6";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { ClimberPeekHeader, SheetBody } from "@/components/ui";
@@ -74,18 +75,13 @@ export function MatchPlayerGridSheet({
   );
 
   // A guest has no account, so no username and no profile to link to.
-  const isGuest = !player.user_id;
+  const isGuest = player.is_guest;
   const username = player.username ?? "unknown";
-  const displayName = player.display_name?.trim() || username || "Climber";
+  const displayName = seatName(player);
 
   const header = ClimberPeekHeader({
     isGuest,
-    user: {
-      id: player.user_id ?? player.player_id,
-      username,
-      name: player.display_name ?? "",
-      avatar_url: player.avatar_url ?? "",
-    },
+    user: seatAvatarUser(player),
     trailing: row ? (
       <span className={styles.rankChip} aria-label={`Rank ${row.rank}`}>
         #{row.rank}

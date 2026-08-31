@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { seatAvatarUser, seatName } from "@/lib/data/seat";
 import { useRouter } from "next/navigation";
 import { FaCopy, FaXmark, FaCrown, FaPaperPlane } from "react-icons/fa6";
 import { format, parseISO } from "date-fns";
@@ -86,18 +87,10 @@ export function AdminTeam({ gymId, isOwner, team, invites }: Props) {
         <ul className={styles.list}>
           {team.map((member) => (
             <li key={member.user_id} className={styles.row}>
-              <UserAvatar
-                user={{
-                  id: member.user_id,
-                  username: member.username ?? "unknown",
-                  name: member.display_name ?? member.username ?? "",
-                  avatar_url: member.avatar_url ?? "",
-                }}
-                size="row"
-              />
+              <UserAvatar user={seatAvatarUser(member)} size="row" />
               <div className={styles.identity}>
                 <span className={styles.name}>
-                  {member.display_name || member.username || "Admin"}
+                  {seatName(member, { fallback: "Admin" })}
                 </span>
                 {member.username && (
                   <Username username={member.username} className={styles.handle} />
