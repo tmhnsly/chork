@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { createServerSupabase, getServerUser } from "@/lib/supabase/server";
 import { getProfileByUsername } from "@/lib/data/profile-queries";
 import { getProfileSummary } from "@/lib/data/profile-queries";
-import { getFriendStatus, getFriends } from "@/lib/data/friend-queries";
+import { getFriendStatus } from "@/lib/data/friend-queries";
 import { getGym } from "@/lib/data/gym-queries";
 import { getAllSets } from "@/lib/data/set-queries";
 import { computeSetStreak } from "@/lib/data/profile-stats";
@@ -51,14 +51,11 @@ export default async function UserProfilePage({ params }: Props) {
   // requests surface on /friends, and match invites will surface in
   // Match. A bell that duplicated both was a second place to keep in
   // step, and it was only ever visible on your own profile anyway.
-  const [summary, standing, gym, orderedSets, friends] = await Promise.all([
+  const [summary, standing, gym, orderedSets] = await Promise.all([
     gymId ? getProfileSummary(supabase, profileUser.id, gymId) : null,
     authUser ? getFriendStatus(supabase, profileUser.id) : null,
     gymId ? getGym(gymId) : null,
     gymId ? getAllSets(gymId, profileUser.created_at) : [],
-    // Own profile only. `get_friends` is caller-scoped on purpose: a
-    // friend count is never published to whoever happens to look.
-    isOwnProfile ? getFriends(supabase) : Promise.resolve(undefined),
   ]);
   const totals = (summary?.per_set ?? []).reduce(
     (acc, s) => {
@@ -104,7 +101,6 @@ export default async function UserProfilePage({ params }: Props) {
         // A signed-out viewer can't be friends with anyone; "none"
         // renders Add, which the action gate will bounce to /login.
         standing={standing ?? { status: "none", friendId: null }}
-        friends={friends}
       />
 
       {/* Gym-scoped widgets (current set + previous sets) are only

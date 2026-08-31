@@ -131,38 +131,18 @@
 // wherever a climber reads it. A hairline rule separates the numbers
 // from the identity; it is a BORDER, in the border scale, not the
 // accent doing decoration.
-// Four columns on a tablet-width card, two rows of two on a phone —
-// a 4-up row of numbers at phone width squeezes the labels to the
-// point of wrapping mid-word.
 .totals {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: var(--space-4) var(--space-3);
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
   padding-top: var(--space-5);
   border-top: 1px solid var(--mono-border-subtle);
-
-  @include cq.at(26rem) {
-    grid-template-columns: repeat(4, 1fr);
-  }
 }
 
 .total {
   @include layout.stack(var(--space-1));
   align-items: flex-start;
   min-width: 0;
-}
-
-// Friends is a control — the roster opens in a drawer — but it must
-// read as the stat it sits beside, so it takes no button chrome
-// beyond the focus ring and a pointer.
-.totalButton {
-  @include focus.ring;
-  border: none;
-  background: none;
-  padding: 0;
-  text-align: start;
-  cursor: pointer;
-  border-radius: var(--radius-1);
 }
 
 // No icons: the Current-set card's stat row is plain uppercase
