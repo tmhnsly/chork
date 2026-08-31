@@ -59,13 +59,13 @@ export interface GradeDistribution {
   ungradedSends: number;
 }
 
-function isNumericScale(scale: string): scale is GradingScale {
+export function isNumericScale(scale: string): scale is GradingScale {
   return (
     scale === "v" || scale === "font" || scale === "yds" || scale === "french"
   );
 }
 
-function isKnownDiscipline(value: string): value is Discipline {
+export function isKnownDiscipline(value: string): value is Discipline {
   return value === "boulder" || value === "sport" || value === "top-rope";
 }
 
