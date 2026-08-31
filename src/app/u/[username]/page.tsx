@@ -7,7 +7,7 @@ import { getFriendStatus, getFriends } from "@/lib/data/friend-queries";
 import { getGym } from "@/lib/data/gym-queries";
 import { getAllSets } from "@/lib/data/set-queries";
 import { computeSetStreak } from "@/lib/data/profile-stats";
-import { flashRate, pointsPerSend, completionRate } from "@/lib/data/profile-stats";
+import { getUserRankCached } from "./_components/user-rank";
 import { ProfileHero } from "@/components/ProfileHero/ProfileHero";
 import { ProfileStats } from "./_components/ProfileStats";
 import { ProfileStatsSkeleton } from "./_components/ProfileStats.skeleton";
@@ -15,6 +15,7 @@ import { ProfileAchievementsSection } from "./_components/ProfileAchievementsSec
 import { PreviousSetsSection } from "./_components/PreviousSetsSection";
 import { ProfileMatchesSection } from "./_components/ProfileMatchesSection";
 import { ProfileGradesSection } from "./_components/ProfileGradesSection";
+import { ProfileLeaguesSection } from "./_components/ProfileLeaguesSection";
 import { PROFILE_SECTION_HEIGHTS } from "./_components/sectionHeights";
 import { CardSkeleton } from "@/components/ui";
 import { BadgeShelfSkeleton } from "@/components/ui/BadgeShelf/BadgeShelfSkeleton";
@@ -72,15 +73,17 @@ export default async function UserProfilePage({ params }: Props) {
   const streak = computeSetStreak(
     orderedSets.map((s) => ({ hasSend: sentSetIds.has(s.id) })),
   );
-  const ratios = summary
-    ? {
-        flashRate: flashRate(totals.sends, totals.flashes) ?? 0,
-        pointsPerSend: pointsPerSend(totals.points, totals.sends) ?? 0,
-        completionRate:
-          completionRate(totals.sends, summary.unique_routes_attempted) ?? 0,
-        streakCurrent: streak.current,
-      }
-    : null;
+
+  // The hero's rank chip — placement on the active set, the one number
+  // the whole app ranks on. Request-cached so ProfileStats' second
+  // reading below costs no extra RPC. Sequential after the batch above
+  // because it needs the active set's id; the RPC is a single indexed
+  // lookup.
+  const activeSet = orderedSets.find((s) => s.active) ?? null;
+  const rankRow =
+    gymId && activeSet
+      ? await getUserRankCached(supabase, gymId, profileUser.id, activeSet.id)
+      : null;
 
   // Show another climber's profile in *their* chosen theme — viewer's
   // theme restores when they leave the route. Scoped to <main> so the
@@ -96,7 +99,8 @@ export default async function UserProfilePage({ params }: Props) {
         user={profileUser}
         gymName={gym?.name ?? null}
         totals={totals}
-        ratios={ratios}
+        rank={rankRow?.rank ?? null}
+        streakCurrent={streak.current}
         // A signed-out viewer can't be friends with anyone; "none"
         // renders Add, which the action gate will bounce to /login.
         standing={standing ?? { status: "none", friendId: null }}
@@ -184,6 +188,16 @@ export default async function UserProfilePage({ params }: Props) {
       {gymId && (
         <Suspense fallback={null}>
           <ProfileMatchesSection userId={profileUser.id} isOwnProfile={isOwnProfile} />
+        </Suspense>
+      )}
+
+      {/* Your leagues — own profile only for now. `get_my_leagues` is
+          caller-scoped, which is also the privacy line: a visitor
+          learns nothing about whose Tuesdays you spend where. A
+          shared-leagues view for visited profiles is the follow-up. */}
+      {isOwnProfile && (
+        <Suspense fallback={null}>
+          <ProfileLeaguesSection />
         </Suspense>
       )}
     </main>

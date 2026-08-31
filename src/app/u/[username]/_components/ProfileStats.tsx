@@ -4,7 +4,7 @@ import { getProfileSummary } from "@/lib/data/profile-queries";
 import { getGym } from "@/lib/data/gym-queries";
 import { getCurrentSet } from "@/lib/data/set-queries";
 import { getRoutesBySet } from "@/lib/data/route-queries";
-import { getLeaderboardUserRow } from "@/lib/data/leaderboard-queries";
+import { getUserRankCached } from "./user-rank";
 import { visibleAttempts } from "@/lib/data/logs";
 import { ClimberStats } from "@/components/ClimberStats/ClimberStats";
 import {
@@ -40,7 +40,7 @@ export async function ProfileStats({ userId, gymId, isOwnProfile }: Props) {
   const [routes, rankRow] = await Promise.all([
     activeSet ? getRoutesBySet(activeSet.id) : Promise.resolve([]),
     activeSet
-      ? getLeaderboardUserRow(supabase, gymId, userId, activeSet.id)
+      ? getUserRankCached(supabase, gymId, userId, activeSet.id)
       : Promise.resolve(null),
   ]);
 
