@@ -8,6 +8,16 @@ type Variant = "primary" | "secondary" | "ghost" | "danger";
 
 interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
+  /**
+   * Stretch to the container. The rule (2026-08-31): full-width
+   * belongs ONLY in bottom sheets / dialogs and as the single submit
+   * at the foot of a page-long form — the two places iOS stretches
+   * buttons too. Everywhere else a button keeps its intrinsic width:
+   * paired controls sit in a row (see the create-match wizard's
+   * Back/Next), and a lone CTA earns prominence from placement and
+   * colour, not from being a billboard. Stretched buttons were the
+   * app's tell for lazy layout.
+   */
   fullWidth?: boolean;
   flex?: boolean;
   /**

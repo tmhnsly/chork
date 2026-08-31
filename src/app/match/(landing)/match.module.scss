@@ -30,9 +30,11 @@
   margin: 0;
 }
 
+// A pair, side by side — two stacked full-width slabs was the
+// stretched-button tell. Equal halves so neither reads as an
+// afterthought; Start keeps primacy through colour alone.
 .actionButtons {
   display: flex;
-  flex-direction: column;
   gap: var(--space-2);
 }
 
