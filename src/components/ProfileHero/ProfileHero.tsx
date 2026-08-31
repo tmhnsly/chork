@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { FaBolt, FaCheck, FaFire, FaLocationDot, FaRankingStar } from "react-icons/fa6";
 import { UserAvatar } from "@/components/ui";
 import { CountUpNumber } from "@/components/ui/CountUpNumber/CountUpNumber";
@@ -44,11 +45,10 @@ interface Props {
  *     "you did this" treatment. Gym and streak chips stay muted.
  *   • The ratios paragraph is gone; streak survives as a chip. Rates
  *     live in the stats card and set sheets.
- *   • Tiles are SOLID step-9 fills — Points lime, Flashes amber, the
- *     route-tile treatment on the numbers that summarise them — and
- *     Sends gets a real border so it exists on a white card. Flashes
- *     and Sends carry their glyphs; Points carries none, because the
- *     accent fill IS its mark.
+ *   • The scoreboard is ON the cover — numbers as type on the slab
+ *     (points in the theme's neon, flashes in its gold, sends plain),
+ *     hairline dividers between. Boxes under the cover were the last
+ *     of the box-in-box habit.
  *   • Settings moved to the identity corner where chrome belongs; the
  *     action row below is purely social now.
  */
@@ -81,10 +81,18 @@ export function ProfileHero({
           {hasChips && (
             <ul className={styles.chips} aria-label="Standing">
               {rank !== null && (
-                <li className={`${styles.chip} ${styles.chipRank}`}>
-                  <FaRankingStar aria-hidden />
-                  #{rank}
-                  <span className={styles.chipQual}>this set</span>
+                <li>
+                  {/* The one chip that's a control: your standing is a
+                      tap from your face. Everything else up here is a
+                      fact. */}
+                  <Link
+                    href="/leaderboard"
+                    className={`${styles.chip} ${styles.chipRank}`}
+                  >
+                    <FaRankingStar aria-hidden />
+                    #{rank}
+                    <span className={styles.chipQual}>this set</span>
+                  </Link>
                 </li>
               )}
               {gymName && (
@@ -109,26 +117,37 @@ export function ProfileHero({
         )}
       </div>
 
-      <div className={styles.headline}>
-        <div className={`${styles.stat} ${styles.statPrimary}`}>
-          <span className={styles.value}><CountUpNumber value={totals.points} /></span>
-          <span className={styles.label}>Points</span>
+      {/* The scoreboard lives ON the cover — numbers as type on the
+          slab, not boxes under it. Points wears the theme's neon,
+          flashes its gold, sends stays plain; hairline dividers do
+          the separating. */}
+      <div className={styles.scoreboard}>
+        <div className={styles.score}>
+          <span className={`${styles.scoreValue} ${styles.scoreAccent}`}>
+            <CountUpNumber value={totals.points} />
+          </span>
+          <span className={styles.scoreLabel}>Points</span>
         </div>
-        <div className={`${styles.stat} ${styles.statFlash}`}>
-          <span className={styles.value}><CountUpNumber value={totals.flashes} /></span>
-          <span className={styles.label}>
+        <div className={styles.score}>
+          <span className={`${styles.scoreValue} ${styles.scoreFlash}`}>
+            <CountUpNumber value={totals.flashes} />
+          </span>
+          <span className={styles.scoreLabel}>
             <FaBolt aria-hidden />
             Flashes
           </span>
         </div>
-        <div className={styles.stat}>
-          <span className={styles.value}><CountUpNumber value={totals.sends} /></span>
-          <span className={styles.label}>
+        <div className={styles.score}>
+          <span className={styles.scoreValue}>
+            <CountUpNumber value={totals.sends} />
+          </span>
+          <span className={styles.scoreLabel}>
             <FaCheck aria-hidden />
             Sends
           </span>
         </div>
       </div>
+
 
       <ProfileActions
         userId={user.id}

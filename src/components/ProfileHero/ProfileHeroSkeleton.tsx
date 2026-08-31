@@ -40,11 +40,11 @@ export function ProfileHeroSkeleton() {
         </div>
       </div>
 
-      <div className={styles.headline} aria-hidden>
+      <div className={styles.scoreboard} aria-hidden>
         {["Points", "Flashes", "Sends"].map((label) => (
-          <div key={label} className={styles.stat}>
-            <span className={styles.value}>0</span>
-            <span className={styles.label}>{label}</span>
+          <div key={label} className={styles.score}>
+            <span className={styles.scoreValue}>0</span>
+            <span className={styles.scoreLabel}>{label}</span>
           </div>
         ))}
       </div>
