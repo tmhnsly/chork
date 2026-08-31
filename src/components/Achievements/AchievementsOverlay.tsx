@@ -98,35 +98,37 @@ export function AchievementsOverlay({ badges, state, dispatch }: Props) {
     return badges.filter((b) => b.badge.category === filter);
   }, [badges, filter]);
 
-  // The sheet's panel is the scroller (BottomSheet.scrollRef). Two
-  // reasons to touch it: a filter change invalidates the position
-  // (jump to top — the tab press is the event, handled in the change
-  // handler below), and a view swap needs top-of-detail on push /
-  // remembered offset on pop. The latter must run after the DOM has
-  // swapped, hence the layout effect keyed on the view's name.
-  const scrollRef = useRef<HTMLDivElement>(null);
+  // ONE height, always. Capping the sheet wasn't enough: `max-height`
+  // still lets it size to its content, so "Earned" (four badges) and
+  // "All" (twenty-seven) opened at different heights and the page
+  // jumped between tabs. The catalogue now scrolls inside a fixed
+  // region and the badge detail matches its height, so the sheet
+  // measures the same whatever is in it.
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  // Hold the last OPEN view: without this, closing from the badge
+  // detail cleared the view and the body snapped back to the grid
+  // for the length of the exit animation.
   const view = state.view;
-  const viewName = view.name;
+  const shown = useSheetPresence(view.name === "closed" ? null : view);
+
+  // Coming back from a badge, the catalogue reopens where it was —
+  // the offset the push remembered. The body remounts on a view
+  // change (that is what replays the cross-fade), so this runs
+  // before paint rather than leaving a frame at the top.
   const savedScroll = state.gridScroll;
+  const viewName = shown?.name ?? "grid";
   useLayoutEffect(() => {
-    if (viewName === "detail") {
-      scrollRef.current?.scrollTo({ top: 0 });
-    } else if (viewName === "grid") {
-      scrollRef.current?.scrollTo({ top: savedScroll });
-    }
+    if (viewName === "grid") gridRef.current?.scrollTo({ top: savedScroll });
   }, [viewName, savedScroll]);
 
   const changeFilter = (next: Filter) => {
     setFilter(next);
     // Jump, don't animate — a tab should feel immediate, and smooth
     // scrolling a long list makes the new content arrive late.
-    scrollRef.current?.scrollTo({ top: 0 });
+    gridRef.current?.scrollTo({ top: 0 });
   };
 
-  // Hold the last OPEN view: without this, closing from the badge
-  // detail cleared the view and the body snapped back to the grid
-  // for the length of the exit animation.
-  const shown = useSheetPresence(view.name === "closed" ? null : view);
   const detail = shown?.name === "detail" ? shown : null;
   const hiddenDetail =
     detail !== null && detail.badge.badge.isSecret && !detail.badge.earned;
@@ -147,10 +149,6 @@ export function AchievementsOverlay({ badges, state, dispatch }: Props) {
           ? "Achievement detail"
           : "All achievements and your progress"
       }
-      scrollRef={scrollRef}
-      // One height for every view and every filter, so the sheet
-      // stops resizing under the reader's thumb.
-      minHeight="half"
       viewKey={detail ? `detail-${detail.badge.badge.id}` : "grid"}
       onBack={
         detail?.from === "grid"
@@ -170,8 +168,11 @@ export function AchievementsOverlay({ badges, state, dispatch }: Props) {
       }
     >
       {detail ? (
-        <AchievementDetailBody badge={detail.badge} />
+        <div className={styles.detailArea}>
+          <AchievementDetailBody badge={detail.badge} />
+        </div>
       ) : (
+        <div ref={gridRef} className={styles.scrollArea}>
         <SheetBody>
           {/* A grid of cards, not a list of rows — the detail lives
               behind a tap; this is the glance. */}
@@ -185,7 +186,7 @@ export function AchievementsOverlay({ badges, state, dispatch }: Props) {
                       type: "open-detail",
                       badge,
                       from: "grid",
-                      gridScroll: scrollRef.current?.scrollTop ?? 0,
+                      gridScroll: gridRef.current?.scrollTop ?? 0,
                     })
                   }
                 />
@@ -193,6 +194,7 @@ export function AchievementsOverlay({ badges, state, dispatch }: Props) {
             ))}
           </ul>
         </SheetBody>
+        </div>
       )}
     </BottomSheet>
   );

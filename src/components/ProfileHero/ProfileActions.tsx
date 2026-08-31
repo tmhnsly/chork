@@ -9,8 +9,7 @@ import {
   FaClock,
   FaCheck,
 } from "react-icons/fa6";
-import { showToast, UserAvatar } from "@/components/ui";
-import Link from "next/link";
+import { showToast } from "@/components/ui";
 import { requestFriend, respondToFriend, removeFriend } from "@/app/friends/actions";
 import type { FriendStanding } from "@/lib/data/friend-queries";
 import styles from "./profileActions.module.scss";

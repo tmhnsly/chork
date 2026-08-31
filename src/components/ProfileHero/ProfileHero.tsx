@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { FaBolt, FaCheck, FaFire, FaLocationDot, FaRankingStar } from "react-icons/fa6";
+import { FaFire, FaLocationDot, FaRankingStar } from "react-icons/fa6";
 import { UserAvatar } from "@/components/ui";
 import { CountUpNumber } from "@/components/ui/CountUpNumber/CountUpNumber";
 import { RevealText } from "@/components/motion";
 import { ProfileActions } from "./ProfileActions";
 import { SettingsCorner } from "./SettingsCorner";
-import type { FriendStanding } from "@/lib/data/friend-queries";
+import { ProfileFriendsStat } from "./ProfileFriendsStat";
+import type { FriendStanding, Friend } from "@/lib/data/friend-queries";
 import styles from "./profileHero.module.scss";
 
 interface Props {
@@ -22,6 +23,9 @@ interface Props {
   /** Consecutive sets with a send; the chip renders from 2 up. */
   streakCurrent: number;
   standing: FriendStanding;
+  /** Own profile only — the roster behind the Friends stat.
+   *  `get_friends` is caller-scoped, so a visitor never gets one. */
+  friends?: Friend[];
 }
 
 /**
@@ -44,8 +48,10 @@ interface Props {
  *     "this is yours"; it is also the only control here, tapping
  *     through to Ranks. The hairline above the totals is a BORDER
  *     token, never the accent doing decoration.
- *   • No "Find friends" row: Friends is a nav tab, and a second door
- *     here was a button looking for a job.
+ *   • Friends is a STAT, not a call to action — the number sits with
+ *     the others and the roster opens in a drawer. The full-width
+ *     "Find friends" button it replaced was chrome given the weight
+ *     of an achievement.
  */
 export function ProfileHero({
   user,
@@ -54,6 +60,7 @@ export function ProfileHero({
   rank,
   streakCurrent,
   standing,
+  friends,
 }: Props) {
   const hasChips = rank !== null || gymName !== null || streakCurrent > 1;
   // "TOM" under "@TOM" is the same word twice — the meta line only
@@ -109,23 +116,19 @@ export function ProfileHero({
         )}
       </div>
 
-      {/* Sends, flashes, points — the same words, colours and
-          treatment as the Current-set card below. */}
+      {/* Sends, flashes, points — the same words, colours and plain
+          uppercase labels as the Current-set card below — plus the
+          people you climb with, which is a number, not a call to
+          action. */}
       <div className={styles.totals}>
         <div className={styles.total}>
-          <span className={`${styles.totalLabel} ${styles.labelAccent}`}>
-            <FaCheck aria-hidden />
-            Sends
-          </span>
+          <span className={`${styles.totalLabel} ${styles.labelAccent}`}>Sends</span>
           <span className={`${styles.totalValue} ${styles.valueAccent}`}>
             <CountUpNumber value={totals.sends} />
           </span>
         </div>
         <div className={styles.total}>
-          <span className={`${styles.totalLabel} ${styles.labelFlash}`}>
-            <FaBolt aria-hidden />
-            Flashes
-          </span>
+          <span className={`${styles.totalLabel} ${styles.labelFlash}`}>Flashes</span>
           <span className={`${styles.totalValue} ${styles.valueFlash}`}>
             <CountUpNumber value={totals.flashes} />
           </span>
@@ -136,6 +139,7 @@ export function ProfileHero({
             <CountUpNumber value={totals.points} />
           </span>
         </div>
+        {friends && <ProfileFriendsStat friends={friends} />}
       </div>
 
       {/* Nothing for your own profile — Friends is a nav tab. A

@@ -41,7 +41,7 @@ export function ProfileHeroSkeleton() {
       </div>
 
       <div className={styles.totals}>
-        {["Sends", "Flashes", "Points"].map((label) => (
+        {["Sends", "Flashes", "Points", "Friends"].map((label) => (
           <div key={label} className={styles.total}>
             <span className={styles.totalLabel}>{label}</span>
             <span className={styles.totalValue}>0</span>

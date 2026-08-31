@@ -2,6 +2,7 @@
 @use "mixins/layout" as layout;
 @use "mixins/surfaces" as surface;
 @use "mixins/container-queries" as cq;
+@use "mixins/focus";
 
 // The identity card. NOT a bespoke surface — the same `surface.card`,
 // radius and padding every `SectionCard` on this page uses, because
@@ -17,7 +18,10 @@
 // underneath. The card doesn't need a treatment. It needs to match.
 .card {
   @include surface.card;
-  @include layout.stack(var(--space-4));
+  // SectionCard's exact rhythm — space-5 between blocks, space-4 of
+  // padding. It was on space-4/space-4, which is what made the card
+  // read as cramped beside its neighbours.
+  @include layout.stack(var(--space-5));
   border-radius: var(--radius-card);
   padding: var(--space-4);
   container-type: inline-size;
@@ -127,28 +131,46 @@
 // wherever a climber reads it. A hairline rule separates the numbers
 // from the identity; it is a BORDER, in the border scale, not the
 // accent doing decoration.
+// Four columns on a tablet-width card, two rows of two on a phone —
+// a 4-up row of numbers at phone width squeezes the labels to the
+// point of wrapping mid-word.
 .totals {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-3);
-  padding-top: var(--space-4);
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4) var(--space-3);
+  padding-top: var(--space-5);
   border-top: 1px solid var(--mono-border-subtle);
+
+  @include cq.at(26rem) {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
 .total {
   @include layout.stack(var(--space-1));
+  align-items: flex-start;
+  min-width: 0;
 }
 
+// Friends is a control — the roster opens in a drawer — but it must
+// read as the stat it sits beside, so it takes no button chrome
+// beyond the focus ring and a pointer.
+.totalButton {
+  @include focus.ring;
+  border: none;
+  background: none;
+  padding: 0;
+  text-align: start;
+  cursor: pointer;
+  border-radius: var(--radius-1);
+}
+
+// No icons: the Current-set card's stat row is plain uppercase
+// labels, and the tick borrowed for Sends appeared nowhere else in
+// the app.
 .totalLabel {
   @include type.typography(label);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
   color: var(--mono-text-low-contrast);
-
-  svg {
-    font-size: var(--size-icon-xs);
-  }
 }
 
 .totalValue {

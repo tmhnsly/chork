@@ -24,3 +24,27 @@
     justify-content: center;
   }
 }
+
+// ── One height, whatever is inside ──────────────────
+// The catalogue scrolls in here rather than growing the sheet, so
+// switching between Earned (four badges) and All (twenty-seven)
+// stops resizing the panel under the reader's thumb. The badge
+// detail matches the same height and centres in it, so pushing a
+// badge and coming back is a cross-fade with nothing moving.
+.scrollArea {
+  height: 58svh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.detailArea {
+  min-height: 58svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
