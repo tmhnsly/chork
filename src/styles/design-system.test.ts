@@ -90,6 +90,39 @@ function hits(
 const notMarketing = (p: string) => MARKETING.some((d) => p.startsWith(d));
 const notTokenLayer = (p: string) => TOKEN_LAYER.some((d) => p.startsWith(d));
 
+describe("colour literals stay in the token layer", () => {
+  it("no hex colours in any scss outside styles/theme + styles/mixins", () => {
+    // The audit that added this rule found ZERO hits — the system was
+    // already clean everywhere but the hero's cover, which had just
+    // hardcoded four Radix dark scales. This keeps it at zero: a
+    // colour an app module needs is a token the theme layer is
+    // missing.
+    expect(
+      hits(allScss, /#[0-9a-fA-F]{3,8}\b/, notTokenLayer),
+    ).toEqual([]);
+  });
+
+  it("no hex colours in tsx, except where no stylesheet can reach", () => {
+    // style={{}} is a value pipe for custom properties, never a
+    // place to spell a colour. The Satori OG routes read from
+    // `src/lib/og-colors.ts` (a .ts file, invisible to this sweep).
+    // Three files are exempt BY NAME because their colours live where
+    // the cascade cannot: the last-resort error page (inline <style>
+    // on purpose — the stylesheet may be the thing that crashed), the
+    // PWA theme-color meta tag, and the QR component's library props
+    // (scanner contrast — the same hardware constraint behind
+    // --surface-scan).
+    const NO_CASCADE = [
+      "app/global-error.tsx",
+      "app/layout.tsx",
+      "components/Match/MatchMenuSheet.tsx",
+    ];
+    expect(
+      hits(tsx, /#[0-9a-fA-F]{3,8}\b/, (p) => NO_CASCADE.includes(p)),
+    ).toEqual([]);
+  });
+});
+
 /** Blank out `var(...)` calls and any `calc(...)` that references one,
  *  so literals living inside them — fallbacks like `var(--x, 0ms)` and
  *  token-anchored staggers like `calc(var(--i) * 12ms)` — don't

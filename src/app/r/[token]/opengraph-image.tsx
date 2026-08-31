@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { OG } from "@/lib/og-colors";
 import { loadOgFont } from "@/lib/og-fonts";
 import { getSharedResult } from "@/lib/data/shared-result";
 import { countOf } from "@/lib/plural";
@@ -50,7 +51,7 @@ export default async function ResultOgImage({ params }: Props) {
           flexDirection: "column",
           justifyContent: "space-between",
           padding: 72,
-          background: "#111210",
+          background: OG.bg,
           fontFamily: "Outfit",
           position: "relative",
         }}
@@ -72,7 +73,7 @@ export default async function ResultOgImage({ params }: Props) {
               fontWeight: 600,
               letterSpacing: 2,
               textTransform: "uppercase",
-              color: "#bdee63",
+              color: OG.accent,
             }}
           >
             Match result
@@ -82,7 +83,7 @@ export default async function ResultOgImage({ params }: Props) {
               display: "flex",
               fontSize: 68,
               fontWeight: 900,
-              color: "#f5f6f4",
+              color: OG.fg,
               lineHeight: 1.05,
             }}
           >
@@ -102,7 +103,7 @@ export default async function ResultOgImage({ params }: Props) {
                 gap: 24,
                 fontSize: i === 0 ? 52 : 36,
                 fontWeight: i === 0 ? 900 : 600,
-                color: i === 0 ? "#bdee63" : "#a3a8a0",
+                color: i === 0 ? OG.accent : OG.muted,
               }}
             >
               <div style={{ display: "flex", width: 60 }}>{p.rank}</div>
@@ -119,7 +120,7 @@ export default async function ResultOgImage({ params }: Props) {
             alignItems: "center",
             fontSize: 28,
             fontWeight: 600,
-            color: "#7c8378",
+            color: OG.low,
           }}
         >
           {/* Left slot is the overflow count, and empty when there
@@ -128,7 +129,7 @@ export default async function ResultOgImage({ params }: Props) {
           <div style={{ display: "flex" }}>
             {others > 0 ? `+${countOf(others, "more climber")}` : ""}
           </div>
-          <div style={{ display: "flex", color: "#bdee63" }}>chork.app</div>
+          <div style={{ display: "flex", color: OG.accent }}>chork.app</div>
         </div>
       </div>
     ),
