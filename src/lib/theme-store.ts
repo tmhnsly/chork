@@ -39,9 +39,9 @@ export interface ThemeMeta {
 // change with a rename.
 export const THEME_META: ThemeMeta[] = [
   { id: "default", label: "Chork", hint: "Lime · Amber · Teal" },
-  { id: "blue", label: "Harbour", hint: "Blue · Amber · Jade" },
+  { id: "blue", label: "Harbour", hint: "Blue · Gold · Jade" },
   { id: "violet", label: "Dusk", hint: "Violet · Yellow · Cyan" },
-  { id: "pink", label: "Arcade", hint: "Pink · Amber · Cyan" },
+  { id: "pink", label: "Arcade", hint: "Pink · Amber · Mint" },
 ];
 
 export const DEFAULT_THEME: ThemeName = "default";

@@ -253,18 +253,22 @@ Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
   Each is a **complete colour chord** in
   `src/styles/theme/colors.scss`: mono, accent, flash AND zone scales
   per theme (Chork: olive·lime·amber·teal, locked; Harbour:
-  slate·blue·amber·jade; Dusk: mauve·violet·yellow·cyan; Arcade:
-  gray·pink·amber·cyan). The hero's poster slab is
+  slate·blue·gold·jade; Dusk: mauve·violet·yellow·cyan; Arcade:
+  gray·pink·amber·mint). The hero's poster slab is
   NOT a token of its own — it is `--accent-solid` with
   `--accent-on-solid` ink, the sent-tile treatment at card scale
   (`theme-chords.test.ts` guards against a bespoke cover surface
   growing back)
-- **The chord rules are pinned by `theme-chords.test.ts`** — within a
-  theme all six role scales are distinct; flash stays bright-warm
-  (amber/yellow: gold, and the dark `--flash-on-solid` stays valid —
-  the podium's 1st place follows it); zone stays deep-cool
-  (teal/jade/cyan, white fg); error red and warning orange never
-  vary. The reserved-hue rule is per-theme: an accent must not
+- **The chord rules are pinned by `theme-chords.test.ts`**, and they
+  exist for colour-blind legibility: accent, flash and zone share one
+  tile grid, so each theme spends them on **three different Radix hue
+  families** (two from one family collapse together under
+  deuteranopia). Every theme's zone scale is unique across themes —
+  that's the role that used to make all four look alike. Flash stays
+  the warm *reward*, zone the cool/green *progress*, so meaning
+  survives a switch; the ink on a solid follows the scale's lightness
+  (Harbour overrides for gold, Arcade for mint); error red and
+  warning orange never vary. The reserved-hue rule is per-theme: an accent must not
   collide with its own chord. The constraint is real, not stylistic:
   a send tile, a flash, a zone and an untouched route all appear in
   one grid on the wall

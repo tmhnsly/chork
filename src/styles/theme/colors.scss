@@ -89,6 +89,10 @@
 @use "@radix-ui/colors/cyan-dark.css";
 @use "@radix-ui/colors/yellow.css";
 @use "@radix-ui/colors/yellow-dark.css";
+@use "@radix-ui/colors/gold.css";
+@use "@radix-ui/colors/gold-dark.css";
+@use "@radix-ui/colors/mint.css";
+@use "@radix-ui/colors/mint-dark.css";
 
 @use "@radix-ui/colors/amber.css";
 @use "@radix-ui/colors/amber-dark.css";
@@ -259,50 +263,46 @@
  * ── The theme table ──────────────────────────────────────────
  *
  * Four themes, each a COMPLETE COLOUR SYSTEM — a chord of Radix
- * scales, not one accent swapped over a shared base. (That was the
- * previous design, and all four read as the default wearing a
- * different hat.)
+ * scales, not one accent swapped over a shared base.
  *
- *   theme    mono    accent   flash    zone    the chord
- *   Chork    olive   lime     amber    teal    the brand — locked
- *   Harbour  slate   blue     amber    jade    blue↔amber complement;
- *                                              jade because teal sat
- *                                              indistinguishably next
- *                                              to a blue accent
- *   Dusk     mauve   violet   yellow   cyan    violet↔yellow
- *                                              complement + cyan, a
- *                                              secondary triad
- *   Arcade   gray    pink     amber    cyan    synthwave pink/cyan
- *                                              with amber warmth
+ *   theme    mono    accent   flash   zone   the chord
+ *   Chork    olive   lime     amber   teal   the brand — locked
+ *   Harbour  slate   blue     gold    jade   navy and brass
+ *   Dusk     mauve   violet   yellow  cyan   last light, violet sky
+ *   Arcade   gray    pink     amber   mint   synthwave
  *
- * THE LEGIBILITY RULES (pinned by theme-chords.test.ts)
+ * WHY THESE THREE, PER THEME (pinned by theme-chords.test.ts)
  *
- * Within one theme, four roles share a single tile grid — untouched
- * (mono), sent (accent), flashed (flash), zone (zone) — plus error
- * red and warning orange. So per theme: all six scales distinct.
- * Across themes, the ROLES keep their temperature so meaning stays
- * learnable when a climber switches:
+ * Accent, flash and zone meet in ONE tile grid — sent, flashed, zone
+ * claimed — so a climber has to tell them apart at a glance, and
+ * roughly one man in twelve cannot use the red-green axis to do it.
+ * Hence the rules:
  *
- *   flash  always a BRIGHT warm scale (amber / yellow) — gold, the
- *          reward — which also keeps --flash-on-solid's dark fg
- *          valid everywhere. The podium's 1st place follows it.
- *   zone   always a DEEP cool scale (teal / jade / cyan) — progress
- *          — keeping --success-on-solid's white fg valid.
- *   error red and warning orange never vary: danger is not a mood.
- *
- * The reserved-hue rule is therefore PER THEME now: a theme's accent
- * must not collide with ITS OWN flash / zone / red / orange / grays.
- * That is also still why there are four accents and not six — lime,
- * blue, violet and pink are the hues that clear every chord.
+ *   1. Three different HUE FAMILIES per theme. Families are warm
+ *      (amber/yellow/gold), green (lime/grass/jade/mint), cool-blue
+ *      (teal/cyan/sky/blue), purple, pink. Two scales from one
+ *      family collapse into each other under deuteranopia.
+ *   2. Every theme's ZONE is a different scale from every other
+ *      theme's — teal, jade, cyan, mint. Zone is the role that made
+ *      the old design look identical everywhere; now it is the role
+ *      that makes each theme unmistakable.
+ *   3. Flash stays the theme's REWARD colour (warm), zone its
+ *      PROGRESS colour (cool or green), so meaning survives a theme
+ *      switch even though the hues change.
+ *   4. The ink on a solid follows the scale's lightness class, not
+ *      the role: gold and cyan take white, amber, yellow and mint
+ *      take dark. A theme that picks a light scale for a normally
+ *      dark role overrides the fg — Harbour does for gold, Arcade
+ *      for mint — and the test pins every pairing.
+ *   5. error is always red, warning always orange. Danger is not a
+ *      mood.
  *
  * THE COVER
  *
  * The hero's poster slab is not a token of its own: it is
  * --accent-solid with --accent-on-solid ink, the sent-tile treatment
  * at card scale. A bespoke always-dark cover surface was built twice
- * (hardcoded hexes, then a scheme-function derivation) and deleted
- * twice — the system already had the answer. theme-chords.test.ts
- * guards against a third attempt.
+ * and deleted twice — the system already had the answer.
  */
 
 /*
@@ -342,10 +342,12 @@
  * in the same grid. Blue step 9 is a dark scale → white fg.
  */
 [data-theme="blue"] {
+  /* Gold step 9 is a DEEP scale — white ink, unlike amber's dark. */
+  --flash-on-solid: #fff;
   @include mono-scale(slate);
   @include accent-scale(blue);
   @include zone-scale(jade);
-  @include flash-scale(amber);
+  @include flash-scale(gold);
   @include warning-scale(orange);
   @include error-scale(red);
 
@@ -386,9 +388,11 @@
  * white fg.
  */
 [data-theme="pink"] {
+  /* Mint step 9 is a LIGHT scale — dark ink, unlike teal's white. */
+  --success-on-solid: #21201c;
   @include mono-scale(gray);
   @include accent-scale(pink);
-  @include zone-scale(cyan);
+  @include zone-scale(mint);
   @include flash-scale(amber);
   @include warning-scale(orange);
   @include error-scale(red);
