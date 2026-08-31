@@ -78,6 +78,18 @@ interface Props {
  *   • Close button in the header
  *   • Tap overlay (unless `disableOutsideClose`)
  *   • ESC key
+ *
+ * Mount contracts — `open` sells two different behaviours; pick ONE
+ * per consumer and know which you bought:
+ *   A. **Conditional mount** — `{show && <Sheet open onClose={…}>}`.
+ *      The default for tap-opened sheets: fresh state every open,
+ *      mount effects re-run, no exit animation (the unmount wins).
+ *   B. **Persistent mount** — always rendered, real `open` boolean.
+ *      For sheets whose state should survive a reopen (filters, a
+ *      fetched payload) and that want the slide-out to play. Gate
+ *      your own fetching on `open` (`useClientResource` + `enabled`).
+ * Never both at once: `{show && <Sheet open={show}>}` is contract A
+ * wearing B's prop — all the open-handling underneath is dead weight.
  */
 export function BottomSheet({
   open,
