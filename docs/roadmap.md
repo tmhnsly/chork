@@ -203,6 +203,23 @@ first.
 
 ## Recently shipped — UI
 
+- [x] **Profile second pass.** *(2026-08-31, migration 135.)* Tom's
+      brief: the hero "seems in the wrong order/bad UX, missing things
+      but also containing the wrong things. could use icons?" What
+      shipped: the identity row on an accent wash with a chip row —
+      rank on the active set (the one number the app ranks on, never
+      shown before), gym, streak — the ratios paragraph deleted, tiles
+      reordered Points · Flashes · Sends with glyphs, settings to the
+      identity corner. Plus: achievements rebuilt as ONE sheet with
+      internal grid⇄detail navigation (stacked sibling modals fought
+      over dismissal — closing the detail could take the catalogue with
+      it; `BottomSheet` grew a generic `onBack`), the set-sheet stat
+      row wraps instead of clipping at 375px, a **Leagues** card on
+      your own profile (`get_my_leagues`, caller-scoped so nothing
+      leaks to visitors), and the Grades card's **Pyramid / Over time**
+      toggle — best grade per month via `get_grade_progression` (135),
+      shaped by `grade-progression.ts` under its own unit tests.
+
 - [x] **The profile is one family of cards.** *(2026-08-17 → 19,
       migrations 124–131.)* Tom's brief: "the all time section looks
       terrible… full audit… heavy design frontend skills", and after
