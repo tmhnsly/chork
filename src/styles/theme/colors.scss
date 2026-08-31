@@ -138,6 +138,7 @@
   --accent-solid-hover: var(--#{$s}-10);
   --accent-text-low-contrast: var(--#{$s}-11);
   --accent-text: var(--#{$s}-12);
+
 }
 
 @mixin zone-scale($s) {
@@ -226,9 +227,6 @@
 
   --toggle-thumb: #fff;
 
-  /* The poster cover (--surface-inverse-*) is defined PER THEME
-     below — each theme's cover is its own accent's Radix dark scale,
-     scheme-fixed. See the theme table. */
 
   /* Scrim laid over user-uploaded imagery — the hover state on the
      avatar picker, and anything similar later. Fixed dark across
@@ -299,12 +297,12 @@
  *
  * THE COVER
  *
- * Each theme also defines --surface-inverse-* — the hero's poster
- * slab — from its OWN accent's Radix dark scale (steps 2 / 6 / 11 /
- * 12 as bg / border / muted fg / fg), as literals because every
- * live --mono-* and --accent-* step flips with the light/dark
- * scheme and the cover must not: it is the one deliberately dark
- * surface in both schemes, the thing the neon pops against.
+ * The hero's poster slab is not a token of its own: it is
+ * --accent-solid with --accent-on-solid ink, the sent-tile treatment
+ * at card scale. A bespoke always-dark cover surface was built twice
+ * (hardcoded hexes, then a scheme-function derivation) and deleted
+ * twice — the system already had the answer. theme-chords.test.ts
+ * guards against a third attempt.
  */
 
 /*
@@ -331,12 +329,6 @@
   --brand: var(--accent-solid);
   --brand-text: var(--accent-text-low-contrast);
 
-  /* Cover: lime-dark 2 / 6 / 11 / 12. */
-  --surface-inverse-bg: #151a10;
-  --surface-inverse-border: #3d522a;
-  --surface-inverse-fg-muted: #bde56c;
-  --surface-inverse-fg: #e3f7ba;
-
   --surface-divider: var(--mono-border-subtle);
   --app-bg: var(--mono-app-bg);
   --app-text: var(--mono-text);
@@ -359,12 +351,6 @@
 
   --accent-on-solid: #fff;
 
-  /* Cover: blue-dark 2 / 6 / 11 / 12. */
-  --surface-inverse-bg: #111927;
-  --surface-inverse-border: #104d87;
-  --surface-inverse-fg-muted: #70b8ff;
-  --surface-inverse-fg: #c2e6ff;
-
   --focus-ring: var(--blue-8);
   --brand: var(--accent-solid);
   --brand-text: var(--accent-text-low-contrast);
@@ -385,12 +371,6 @@
   @include error-scale(red);
 
   --accent-on-solid: #fff;
-
-  /* Cover: violet-dark 2 / 6 / 11 / 12. */
-  --surface-inverse-bg: #1b1525;
-  --surface-inverse-border: #473876;
-  --surface-inverse-fg-muted: #baa7ff;
-  --surface-inverse-fg: #e2ddfe;
 
   --focus-ring: var(--violet-8);
   --brand: var(--accent-solid);
@@ -414,12 +394,6 @@
   @include error-scale(red);
 
   --accent-on-solid: #fff;
-
-  /* Cover: pink-dark 2 / 6 / 11 / 12. */
-  --surface-inverse-bg: #21121d;
-  --surface-inverse-border: #692955;
-  --surface-inverse-fg-muted: #ff8dcc;
-  --surface-inverse-fg: #fdd1ea;
 
   --focus-ring: var(--pink-8);
   --brand: var(--accent-solid);

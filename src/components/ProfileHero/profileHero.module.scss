@@ -24,14 +24,23 @@
 // accent has something to pop against even on a white page. The
 // climber's palette still speaks through the rank chip and avatar
 // ring, which use the live accent scale.
+// One slab, and it is the app's biggest TILE: the sent-route
+// treatment at card scale — accent-solid ground, on-solid ink.
+// Full-bleed (the wrapper owns bleed, fill and radius, so identity
+// and scoreboard can never grow a card-coloured seam between them),
+// colourful in both schemes, themed for free. Two bespoke dark-cover
+// systems were built and deleted before landing here.
+.poster {
+  margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-4)) 0;
+  background: var(--accent-solid);
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+}
+
 .identity {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-4)) 0;
   padding: var(--space-4) var(--space-4) var(--space-3);
-  background: var(--surface-inverse-bg);
-  border-radius: var(--radius-card) var(--radius-card) 0 0;
 }
 
 // ── The scoreboard, on the slab ───────────────────
@@ -42,9 +51,8 @@
 .scoreboard {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  margin: 0 calc(-1 * var(--space-4));
   padding: var(--space-3) var(--space-4) var(--space-4);
-  background: var(--surface-inverse-bg);
+  border-top: 1px solid var(--accent-solid-hover);
 }
 
 .score {
@@ -53,37 +61,36 @@
   text-align: center;
 
   & + & {
-    border-inline-start: 1px solid var(--surface-inverse-border);
+    border-inline-start: 1px solid var(--accent-solid-hover);
   }
 }
 
+// Monochrome-on-accent on purpose: a second step-9 hue on a step-9
+// ground vibrates (amber numbers on lime were tried and read as
+// clash, not chord). The slab is the colour; the ink is one.
 .scoreValue {
   @include type.typography(number, $step: 3xl);
-  color: var(--surface-inverse-fg);
+  color: var(--accent-on-solid);
 }
-
-.scoreAccent { color: var(--accent-solid); }
-.scoreFlash  { color: var(--flash-solid); }
 
 .scoreLabel {
   @include type.typography(label);
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  color: var(--surface-inverse-fg-muted);
+  color: var(--accent-on-solid);
 
   svg {
     font-size: var(--size-icon-xs);
   }
 }
 
-// The face gets a ring in the climber's accent — the one theme-aware
-// stroke on the fixed-dark cover.
+// The face gets a ring in the tile's own ink.
 .avatarRing {
   display: inline-flex;
   flex-shrink: 0;
   border-radius: var(--radius-full);
-  box-shadow: 0 0 0 2px var(--accent-solid);
+  box-shadow: 0 0 0 2px var(--accent-on-solid);
 }
 
 .names {
@@ -103,11 +110,11 @@
   button {
     background: transparent;
     border-color: transparent;
-    color: var(--surface-inverse-fg-muted);
+    color: var(--accent-on-solid);
 
     &:hover {
       background: transparent;
-      color: var(--surface-inverse-fg);
+      color: var(--accent-on-solid);
     }
   }
 }
@@ -119,7 +126,7 @@
   width: var(--size-avatar-hero);
   height: var(--size-avatar-hero);
   border-radius: var(--radius-full);
-  background: var(--surface-inverse-border);
+  background: var(--accent-solid-hover);
 }
 
 // The handle is the page title, and handles are long: twelve
@@ -134,7 +141,7 @@
 // rare, not the design.
 .username {
   @include type.typography(display, $step: xl);
-  color: var(--surface-inverse-fg);
+  color: var(--accent-on-solid);
   overflow-wrap: anywhere;
 
   @include cq.at(22rem) {
@@ -148,14 +155,13 @@
 
 .meta {
   @include type.typography(label);
-  color: var(--surface-inverse-fg-muted);
+  color: var(--accent-on-solid);
 }
 
 // ── Chips: rank, gym, streak ──────────────────────
-// The meta facts as pieces, not a sentence. Rank leads and wears
-// solid accent — neon on the near-black cover, the same "you did
-// this" treatment a sent tile gets. Gym and streak are quiet outline
-// company on the slab.
+// The meta facts as pieces, not a sentence, in the tile's own ink:
+// rank leads as a filled chip (app surface on the accent, number in
+// accent text), gym and streak as hairline outlines.
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -172,9 +178,9 @@
   gap: var(--space-1);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-full);
-  border: 1px solid var(--surface-inverse-border);
+  border: 1px solid var(--accent-on-solid);
   background: transparent;
-  color: var(--surface-inverse-fg);
+  color: var(--accent-on-solid);
 
   svg {
     font-size: var(--size-icon-xs);
@@ -182,15 +188,15 @@
 }
 
 .chipRank {
-  border-color: var(--accent-solid);
-  background: var(--accent-solid);
-  color: var(--accent-on-solid);
+  border-color: var(--mono-app-bg);
+  background: var(--mono-app-bg);
+  color: var(--accent-text);
   text-decoration: none;
   transition: background var(--duration-fast) var(--ease-out);
 
   &:hover {
-    background: var(--accent-solid-hover);
-    border-color: var(--accent-solid-hover);
+    background: var(--mono-subtle-bg);
+    border-color: var(--mono-subtle-bg);
   }
 }
 

@@ -34,21 +34,22 @@ interface Props {
  * a grey box with a paragraph of percentages — accurate and flat. What
  * changed, and why:
  *
- *   • The identity row is a POSTER COVER: full-bleed, brand-fixed
- *     near-black (the accent finally has something to pop against in
- *     the light scheme), the avatar ringed in the climber's accent.
- *     The first pass used an inset step-3 wash — a box in a box that
- *     vanished on white.
+ *   • The identity block is the app's BIGGEST TILE: full-bleed
+ *     accent-solid with on-solid ink — the sent-route treatment at
+ *     card scale, colourful in both schemes, themed for free. (An
+ *     inset wash, a hardcoded black cover and a light-dark() derived
+ *     one were each tried; the system's own tile answer beat all
+ *     three.)
  *   • The meta line grew into chips, and the FIRST chip is the one
  *     number the whole app ranks on and the old hero never showed:
  *     placement on the current set. Rank wears solid accent — the
  *     "you did this" treatment. Gym and streak chips stay muted.
  *   • The ratios paragraph is gone; streak survives as a chip. Rates
  *     live in the stats card and set sheets.
- *   • The scoreboard is ON the cover — numbers as type on the slab
- *     (points in the theme's neon, flashes in its gold, sends plain),
- *     hairline dividers between. Boxes under the cover were the last
- *     of the box-in-box habit.
+ *   • The scoreboard is ON the tile — numbers as one-ink type with
+ *     hairline dividers (a second step-9 hue on a step-9 ground
+ *     vibrates). Boxes under the cover were the last of the
+ *     box-in-box habit.
  *   • Settings moved to the identity corner where chrome belongs; the
  *     action row below is purely social now.
  */
@@ -71,6 +72,7 @@ export function ProfileHero({
 
   return (
     <section className={styles.card} aria-label={`@${user.username}`}>
+      <div className={styles.poster}>
       <div className={styles.identity}>
         <span className={styles.avatarRing}>
           <UserAvatar user={user} size="hero" priority />
@@ -123,13 +125,13 @@ export function ProfileHero({
           the separating. */}
       <div className={styles.scoreboard}>
         <div className={styles.score}>
-          <span className={`${styles.scoreValue} ${styles.scoreAccent}`}>
+          <span className={styles.scoreValue}>
             <CountUpNumber value={totals.points} />
           </span>
           <span className={styles.scoreLabel}>Points</span>
         </div>
         <div className={styles.score}>
-          <span className={`${styles.scoreValue} ${styles.scoreFlash}`}>
+          <span className={styles.scoreValue}>
             <CountUpNumber value={totals.flashes} />
           </span>
           <span className={styles.scoreLabel}>
@@ -147,6 +149,8 @@ export function ProfileHero({
           </span>
         </div>
       </div>
+      </div>
+
 
 
       <ProfileActions

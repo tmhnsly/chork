@@ -254,9 +254,11 @@ Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
   `src/styles/theme/colors.scss`: mono, accent, flash AND zone scales
   per theme (Chork: olive·lime·amber·teal, locked; Harbour:
   slate·blue·amber·jade; Dusk: mauve·violet·yellow·cyan; Arcade:
-  gray·pink·amber·cyan). Each theme also defines the
-  `--surface-inverse-*` poster-cover tokens from its accent's Radix
-  dark scale
+  gray·pink·amber·cyan). The hero's poster slab is
+  NOT a token of its own — it is `--accent-solid` with
+  `--accent-on-solid` ink, the sent-tile treatment at card scale
+  (`theme-chords.test.ts` guards against a bespoke cover surface
+  growing back)
 - **The chord rules are pinned by `theme-chords.test.ts`** — within a
   theme all six role scales are distinct; flash stays bright-warm
   (amber/yellow: gold, and the dark `--flash-on-solid` stays valid —

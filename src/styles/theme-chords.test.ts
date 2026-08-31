@@ -18,7 +18,11 @@ import { describe, it, expect } from "vitest";
  *      mood.
  *   5. Every scale a chord names is actually imported, light AND
  *      dark — a missing import fails silently as transparent tokens.
- *   6. Every theme defines all four --surface-inverse-* cover tokens.
+ *   6. There is NO bespoke cover surface: the hero's slab is
+ *      accent-solid + accent-on-solid, the sent-tile treatment.
+ *      Two cover-token systems (hardcoded hexes, then light-dark())
+ *      were built and deleted; this guard keeps the third from
+ *      appearing.
  */
 
 const source = readFileSync(
@@ -103,15 +107,13 @@ describe("theme chords", () => {
     }
   });
 
-  it.each(all)("$theme: defines its poster cover", (c) => {
-    for (const token of [
-      "--surface-inverse-bg",
-      "--surface-inverse-border",
-      "--surface-inverse-fg-muted",
-      "--surface-inverse-fg",
-    ]) {
-      expect(c.block, `${c.theme} missing ${token}`).toContain(token);
-    }
+  it("no bespoke cover surface exists — the hero slab is the tile treatment", () => {
+    expect(source, "a --surface-inverse token grew back").not.toContain(
+      "--surface-inverse",
+    );
+    expect(source, "light-dark() cover machinery grew back").not.toContain(
+      "light-dark(",
+    );
   });
 
   it("the default chord is the brand, locked", () => {
