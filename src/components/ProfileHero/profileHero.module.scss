@@ -53,85 +53,48 @@
   background: var(--mono-bg);
 }
 
-// The handle is the page title, and handles are long: the step
-// follows the room — xl on a phone, 2xl on a large phone, 3xl from a
-// tablet column up. Each rung moves size, leading and tracking
-// together, which is why it is a step change and not a fluid size.
-.username {
-  @include type.typography(display, $step: xl);
+// The NAME, in the card-title voice — bold heading face, upright.
+// Deliberately not the `display` preset: that is the page-title
+// voice (black weight, the loudest in the system), and a name in a
+// card is not a page title. The step follows the room.
+.name {
+  @include type.typography(card-title, $step: xl);
   color: var(--mono-text);
+  margin: 0;
   overflow-wrap: anywhere;
 
-  @include cq.at(22rem) {
-    @include type.typography(display, $step: 2xl);
-  }
-
-  @include cq.at(26rem) {
-    @include type.typography(display, $step: 3xl);
+  @include cq.at(24rem) {
+    @include type.typography(card-title, $step: 2xl);
   }
 }
 
+// Handle, gym, streak — one quiet line, middot-separated.
 .meta {
-  @include type.typography(label);
-  color: var(--mono-text-low-contrast);
-}
-
-// ── Chips ─────────────────────────────────────────
-// ONE chip shape, in the app's own row idiom: hairline border, quiet
-// text. Rank is the exception and earns it — placement is the number
-// the whole app ranks on, and accent here means "this is yours", the
-// same thing it means on a sent tile. It is also the only control:
-// it taps through to Ranks.
-.chips {
+  @include type.typography(meta, $step: sm);
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1) var(--space-2);
-  list-style: none;
-  padding: 0;
+  align-items: baseline;
+  gap: 0 var(--space-2);
+  color: var(--mono-text-low-contrast);
   margin: 0;
 }
 
-.chip {
-  @include type.typography(label);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-full);
-  border: 1px solid var(--mono-border);
-  color: var(--mono-text-low-contrast);
-
-  svg {
-    font-size: var(--size-icon-xs);
+.metaItem {
+  &::before {
+    content: "·";
+    margin-right: var(--space-2);
   }
 }
 
-.chipRank {
-  border-color: var(--accent-solid);
-  background: var(--accent-solid);
-  color: var(--accent-on-solid);
-  text-decoration: none;
-  transition: background var(--duration-fast) var(--ease-out);
 
-  &:hover {
-    background: var(--accent-solid-hover);
-    border-color: var(--accent-solid-hover);
-  }
-}
-
-.chipQual {
-  @include type.typography(meta, $step: xs);
-}
-
-// ── Totals ────────────────────────────────────────
-// Exactly the treatment the Current-set card uses one card below:
-// uppercase label in the role's low-contrast step, italic number
-// under it in the role's text step. Same roles, too — sends are
-// accent, flashes are flash — so the same word is the same colour
-// wherever a climber reads it. A hairline rule separates the numbers
-// from the identity; it is a BORDER, in the border scale, not the
-// accent doing decoration.
-.totals {
+// ── The stat bar ──────────────────────────────────
+// Three cells, filled by the page: placing / points / flashes with a
+// gym, matches / wins / podiums without one. Uppercase label over an
+// italic number — the Current-set card's treatment one card below,
+// with its role colours, so the same word is the same colour
+// wherever a climber reads it. The rule above is a border token; the
+// accent is never a divider.
+.stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: var(--space-3);
@@ -139,26 +102,41 @@
   border-top: 1px solid var(--mono-border-subtle);
 }
 
-.total {
+.stat {
   @include layout.stack(var(--space-1));
   align-items: flex-start;
   min-width: 0;
+  color: inherit;
+  text-decoration: none;
 }
 
-// No icons: the Current-set card's stat row is plain uppercase
-// labels, and the tick borrowed for Sends appeared nowhere else in
-// the app.
-.totalLabel {
+// A linked cell (placing → Ranks) still reads as a stat: no button
+// chrome, just the focus ring and a hint on hover.
+a.stat {
+  @include focus.ring;
+  border-radius: var(--radius-1);
+
+  &:hover .statValue {
+    color: var(--accent-text);
+  }
+}
+
+.statLabel {
   @include type.typography(label);
   color: var(--mono-text-low-contrast);
 }
 
-.totalValue {
+.statValue {
   @include type.typography(number, $step: 2xl);
   color: var(--mono-text);
 }
 
-.labelAccent { color: var(--accent-text-low-contrast); }
-.valueAccent { color: var(--accent-text); }
-.labelFlash  { color: var(--flash-text-low-contrast); }
-.valueFlash  { color: var(--flash-text); }
+.statAccent {
+  .statLabel { color: var(--accent-text-low-contrast); }
+  .statValue { color: var(--accent-text); }
+}
+
+.statFlash {
+  .statLabel { color: var(--flash-text-low-contrast); }
+  .statValue { color: var(--flash-text); }
+}

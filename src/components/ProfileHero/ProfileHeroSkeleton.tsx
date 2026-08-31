@@ -28,23 +28,19 @@ export function ProfileHeroSkeleton() {
       <div className={styles.identity} aria-hidden>
         <span className={styles.avatarSlot} />
         <div className={styles.names}>
-          <span className={styles.username}>@climber</span>
-          <span className={styles.meta}>Name</span>
-          <ul className={styles.chips}>
-            <li className={styles.chip}>#0 this set</li>
-            <li className={styles.chip}>Gym</li>
-          </ul>
+          <span className={styles.name}>Climber</span>
+          <span className={styles.meta}>@climber</span>
         </div>
         <div className={styles.corner}>
           <span className={actionStyles.iconButton} />
         </div>
       </div>
 
-      <div className={styles.totals}>
-        {["Sends", "Flashes", "Points"].map((label) => (
-          <div key={label} className={styles.total}>
-            <span className={styles.totalLabel}>{label}</span>
-            <span className={styles.totalValue}>0</span>
+      <div className={styles.stats} aria-hidden>
+        {["This set", "Points", "Flashes"].map((label) => (
+          <div key={label} className={styles.stat}>
+            <span className={styles.statLabel}>{label}</span>
+            <span className={styles.statValue}>0</span>
           </div>
         ))}
       </div>
