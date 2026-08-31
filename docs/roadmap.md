@@ -203,6 +203,28 @@ first.
 
 ## Recently shipped — UI
 
+- [x] **The deepening pass.** *(2026-08-31, migration 136.)* Nine
+      architecture candidates from `/improve-codebase-architecture`,
+      fixed in order: push categories got one home (twelve spellings
+      → one table, the "crew" settings labels died with it);
+      notifications re-homed into the sections that own their kinds
+      (Tom's call — friend kinds on /friends, match kinds on the
+      match landing; mark-read scoped by 136; the orphaned global
+      sheet deleted); seat presentation unified (`seat.ts` — one
+      naming ladder, guests' avatars keyed by seat everywhere); the
+      notification-kind set pinned to the live SQL constraint AND to
+      130's no-second-allow-list invariant; the mutation→tag
+      direction made executable (and two dead rows fixed: signupGym
+      now busts `gyms:listed`, the summary's double room-read
+      deduped); the sanitised-log privacy shape now derives through
+      the helpers it had forked; BottomSheet's two mount contracts
+      written into its interface (both violators fixed); the admin
+      dashboard's eight shallow reads collapsed into one deep
+      `getAdminDashboard`; and useMatchScreenState's nine repeated
+      epilogues became one local `act()` (ADR-0001/0002 respected).
+      Known and left: the clock-stamping convention split and the
+      4-line `lib/data/index.ts` barrel — footnotes, not candidates.
+
 - [x] **Profile second pass.** *(2026-08-31, migration 135.)* Tom's
       brief: the hero "seems in the wrong order/bad UX, missing things
       but also containing the wrong things. could use icons?" What
