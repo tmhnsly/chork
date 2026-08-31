@@ -13,6 +13,7 @@ import { ChorkMark, LinkButton } from "@/components/ui";
 import { ActiveMatchBanner } from "@/components/Match/ActiveMatchBanner";
 import { MatchHistoryList } from "@/components/Match/MatchHistoryList";
 import { LeagueList } from "@/components/League/LeagueList";
+import { SectionNotifications } from "@/components/Notifications/SectionNotifications";
 import styles from "./match.module.scss";
 
 export const metadata = {
@@ -56,6 +57,11 @@ export default async function MatchPage() {
       />
 
       {activeMatch && <ActiveMatchBanner match={activeMatch} />}
+
+      {/* This section's slice of the Notification log — match
+          invites land where joining happens, and only match kinds
+          get read-flagged by the visit. */}
+      <SectionNotifications section="match" />
 
       <section className={styles.actionsCard} aria-label="Start or join a match">
         <div className={styles.actionHeader}>

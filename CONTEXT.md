@@ -304,9 +304,17 @@ the row would make a climber's own history unreadable to them.
 A per-recipient social event. Has two coordinated effects:
 
 1. **Persistent log row** in `notifications` table — survives missed
-   pushes, surfaces via the bell + `NotificationsSheet`.
+   pushes. Surfaces **in the section that owns the kind**, not in a
+   global inbox: every kind names a `section` in its table entry
+   (`kindsForSection`), `SectionNotifications` mounts that slice on
+   the owning page (friend kinds on `/friends`, match kinds on the
+   match landing), and mark-read is scoped to the same kinds
+   (migration 136) so one section's visit never read-flags
+   another's. (The old profile bell + one global sheet went with the
+   2026-08 profile redesign; the sheet was deleted 2026-08-31.)
 2. **Push** dispatch (best-effort, deferred via `after()`) — opt-out
-   filtered by category column on `profiles`.
+   filtered by category column on `profiles`; the category's one
+   home is `src/lib/data/push-categories.ts`.
 
 (No cache bust: the inbox is read via an uncached server action, so
 there is no tagged entry to invalidate — reader-first rule in
@@ -326,12 +334,13 @@ likes.
 ## Notification kind
 
 The per-kind identity of a Notification: its payload shape, its push
-copy, and its in-app copy, co-located in one definition-table entry in
+copy, its in-app copy, and the **section that owns it**, co-located
+in one definition-table entry in
 `src/lib/data/notification-kinds.ts` (same shape as the error-copy
 tables in `src/lib/errors.ts`). `notify()` renders push copy from the
-table; `NotificationsSheet` renders in-app copy from the same entry.
-Adding a kind = one table entry + the DB check constraint (migration
-033). The kind union is derived from the table keys, so a missing
+table; `NotificationsList` renders in-app copy from the same entry;
+`SectionNotifications` mounts a section's kinds on its page. Adding a
+kind = one table entry + the DB check constraint (migration 033). The kind union is derived from the table keys, so a missing
 entry is a type error, not a runtime fallback.
 
 ## Scoring ladder

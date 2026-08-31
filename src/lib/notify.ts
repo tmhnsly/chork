@@ -17,7 +17,7 @@ import {
  *   - push dispatch (best-effort, opt-out filtered by category)
  *   - self-skip when actor === recipient
  *
- * No cache bust: the NotificationsSheet reads via an uncached server
+ * No cache bust: the section notification lists reads via an uncached server
  * action (`fetchNotifications`), so there is no tagged entry to
  * invalidate. If the inbox ever gains a `cachedQuery` reader, its tag
  * bust belongs here (see the reader-first rule in cache/tags.ts).
