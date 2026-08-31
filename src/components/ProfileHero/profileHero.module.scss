@@ -3,46 +3,25 @@
 @use "mixins/surfaces" as surface;
 @use "mixins/container-queries" as cq;
 
-// Deliberately NOT `SectionCard`: that component owns a title header,
-// and this card's title is the climber's face and handle. It is the
-// one GLASS surface in the app's chrome, because it is the one card
-// with something behind it worth seeing through to.
-
-// Blur strength for the avatar backdrop. Named rather than inlined
-// so the one decorative filter in the app is reviewable next to the
-// surface that uses it.
+// The identity card. NOT a bespoke surface — the same `surface.card`,
+// radius and padding every `SectionCard` on this page uses, because
+// it sits in a column of them and any other treatment makes it the
+// odd one out. It skips SectionCard itself only because that
+// component owns an icon+title header, and this card's title is the
+// climber's face and handle.
+//
+// Four attempts put something else here — an accent wash, a black
+// cover, a derived dark cover, glass over a blurred avatar. Every one
+// of them invented a colour the system doesn't have (the blurred
+// avatar's was skin tone) and none of them looked like the cards
+// underneath. The card doesn't need a treatment. It needs to match.
 .card {
-  --backdrop-blur: 2.5rem;
-
-  @include surface.glass;
+  @include surface.card;
   @include layout.stack(var(--space-4));
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
   border-radius: var(--radius-card);
   padding: var(--space-4);
   container-type: inline-size;
   container-name: tile;
-}
-
-// ── The backdrop ──────────────────────────────────
-// The climber's own face, blown up and blurred to a wash behind the
-// glass — the card is about a person, so the person is the
-// background. Inset negatively so the blur's soft edge never shows
-// as a halo inside the card's corners.
-//
-// A background-image, not <Image>: this is decoration with no
-// meaning to convey, at a size where the optimiser's variants are
-// beside the point. Absent avatar → no layer, and the glass sits on
-// the page as before.
-.backdrop {
-  position: absolute;
-  inset: calc(-1 * var(--space-8));
-  z-index: -1;
-  background-image: var(--avatar-image);
-  background-size: cover;
-  background-position: center;
-  filter: blur(var(--backdrop-blur)) saturate(140%);
 }
 
 // ── Identity ──────────────────────────────────────
@@ -50,15 +29,6 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-}
-
-// The face gets a ring in the climber's accent — the one place the
-// theme signs the card.
-.avatarRing {
-  display: inline-flex;
-  flex-shrink: 0;
-  border-radius: var(--radius-full);
-  box-shadow: 0 0 0 2px var(--accent-solid);
 }
 
 .names {
@@ -71,8 +41,6 @@
   align-self: flex-start;
 }
 
-// The skeleton's stand-in for the hero avatar: the same rung, so the
-// identity row is the same height before the face arrives.
 .avatarSlot {
   flex-shrink: 0;
   width: var(--size-avatar-hero);
@@ -84,8 +52,7 @@
 // The handle is the page title, and handles are long: the step
 // follows the room — xl on a phone, 2xl on a large phone, 3xl from a
 // tablet column up. Each rung moves size, leading and tracking
-// together, which is why it is a step change and not a fluid
-// `font-size`.
+// together, which is why it is a step change and not a fluid size.
 .username {
   @include type.typography(display, $step: xl);
   color: var(--mono-text);
@@ -105,10 +72,12 @@
   color: var(--mono-text-low-contrast);
 }
 
-// ── Chips: rank, gym, streak ──────────────────────
-// The meta facts as pieces, not a sentence. Rank leads as the one
-// solid-accent mark — "this is yours", the sent-tile treatment at
-// chip scale — and the rest are quiet outlines.
+// ── Chips ─────────────────────────────────────────
+// ONE chip shape, in the app's own row idiom: hairline border, quiet
+// text. Rank is the exception and earns it — placement is the number
+// the whole app ranks on, and accent here means "this is yours", the
+// same thing it means on a sent tile. It is also the only control:
+// it taps through to Ranks.
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -126,7 +95,6 @@
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-full);
   border: 1px solid var(--mono-border);
-  background: var(--mono-app-bg);
   color: var(--mono-text-low-contrast);
 
   svg {
@@ -151,38 +119,27 @@
   @include type.typography(meta, $step: xs);
 }
 
-// ── The scoreboard ────────────────────────────────
-// Three numbers as TYPE, each in the colour its role already owns —
-// points in the accent, flashes in the flash scale, sends in mono —
-// separated by hairlines. No fills: the tile treatment belongs on
-// the wall, where a tile means a route you touched, and repeating it
-// here for a summary was decoration wearing the vocabulary's
-// clothes.
-.scoreboard {
+// ── Totals ────────────────────────────────────────
+// Exactly the treatment the Current-set card uses one card below:
+// uppercase label in the role's low-contrast step, italic number
+// under it in the role's text step. Same roles, too — sends are
+// accent, flashes are flash — so the same word is the same colour
+// wherever a climber reads it. A hairline rule separates the numbers
+// from the identity; it is a BORDER, in the border scale, not the
+// accent doing decoration.
+.totals {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-2);
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--mono-border-subtle);
 }
 
-.score {
+.total {
   @include layout.stack(var(--space-1));
-  align-items: center;
-  text-align: center;
-
-  & + & {
-    border-inline-start: 1px solid var(--mono-border-subtle);
-  }
 }
 
-.scoreValue {
-  @include type.typography(number, $step: 3xl);
-  color: var(--mono-text);
-}
-
-.scoreAccent { color: var(--accent-text); }
-.scoreFlash  { color: var(--flash-text); }
-
-.scoreLabel {
+.totalLabel {
   @include type.typography(label);
   display: inline-flex;
   align-items: center;
@@ -193,3 +150,13 @@
     font-size: var(--size-icon-xs);
   }
 }
+
+.totalValue {
+  @include type.typography(number, $step: 2xl);
+  color: var(--mono-text);
+}
+
+.labelAccent { color: var(--accent-text-low-contrast); }
+.valueAccent { color: var(--accent-text); }
+.labelFlash  { color: var(--flash-text-low-contrast); }
+.valueFlash  { color: var(--flash-text); }

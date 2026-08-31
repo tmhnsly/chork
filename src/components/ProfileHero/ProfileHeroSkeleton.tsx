@@ -26,9 +26,7 @@ export function ProfileHeroSkeleton() {
       aria-label="Loading profile"
     >
       <div className={styles.identity} aria-hidden>
-        <span className={styles.avatarRing}>
-          <span className={styles.avatarSlot} />
-        </span>
+        <span className={styles.avatarSlot} />
         <div className={styles.names}>
           <span className={styles.username}>@climber</span>
           <span className={styles.meta}>Name</span>
@@ -42,11 +40,11 @@ export function ProfileHeroSkeleton() {
         </div>
       </div>
 
-      <div className={styles.scoreboard}>
-        {["Points", "Flashes", "Sends"].map((label) => (
-          <div key={label} className={styles.score}>
-            <span className={styles.scoreValue}>0</span>
-            <span className={styles.scoreLabel}>{label}</span>
+      <div className={styles.totals}>
+        {["Sends", "Flashes", "Points"].map((label) => (
+          <div key={label} className={styles.total}>
+            <span className={styles.totalLabel}>{label}</span>
+            <span className={styles.totalValue}>0</span>
           </div>
         ))}
       </div>

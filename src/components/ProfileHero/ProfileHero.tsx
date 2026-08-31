@@ -25,36 +25,27 @@ interface Props {
 }
 
 /**
- * The profile as one card: who this is, how they're doing, and what
- * you can do about it — the thing you'd screenshot.
+ * The identity card: who this is, how they're standing, and their
+ * totals — in the SAME card shell as every section below it.
  *
- * Second pass (2026-08-31). The first version was three grey boxes in
- * a grey box with a paragraph of percentages — accurate and flat. What
- * changed, and why:
+ * Four passes tried to make this card special (an accent wash, a
+ * near-black cover, a derived dark cover, glass over a blurred
+ * avatar). Each invented a colour the design system doesn't have —
+ * the blurred avatar's was skin tone — and each looked like a
+ * different app from the cards underneath it. This one matches:
  *
- *   • The card is GLASS over the climber's own face, blurred to a
- *     wash — the one surface in the app with something behind it
- *     worth seeing through to, and the reason it may use the glass
- *     material at all. Ink stays semantic: mono text, accent for the
- *     rank chip, the flash scale for flashes. (Four earlier passes
- *     tried to invent a colour treatment for this card — an accent
- *     wash, a hardcoded dark cover, a derived one, then an
- *     accent-solid slab. The card didn't need a new colour; it
- *     needed a background.)
- *   • The meta line grew into chips, and the FIRST chip is the one
- *     number the whole app ranks on and the old hero never showed:
- *     placement on the current set. Rank wears solid accent — the
- *     "you did this" treatment. Gym and streak chips stay muted.
- *   • The ratios paragraph is gone; streak survives as a chip. Rates
- *     live in the stats card and set sheets.
- *   • The scoreboard is three numbers as type, each in the colour
- *     its role already owns, hairlines between. No fills: a filled
- *     tile means a route you touched, and borrowing that language
- *     for a summary was decoration.
- *   • No "Find friends" row. Friends have a nav tab; a second door
- *     on the profile was a button looking for a job.
- *   • Settings moved to the identity corner where chrome belongs; the
- *     action row below is purely social now.
+ *   • `surface.card`, the radius and the padding every SectionCard
+ *     uses, so the column reads as one family.
+ *   • The totals wear the Current-set card's exact treatment —
+ *     role-coloured uppercase label, italic number beneath — and the
+ *     same role colours, so SENDS is the same green in both places.
+ *   • One chip shape. Rank is the single accent mark, because
+ *     placement is the number the app ranks on and accent means
+ *     "this is yours"; it is also the only control here, tapping
+ *     through to Ranks. The hairline above the totals is a BORDER
+ *     token, never the accent doing decoration.
+ *   • No "Find friends" row: Friends is a nav tab, and a second door
+ *     here was a button looking for a job.
  */
 export function ProfileHero({
   user,
@@ -74,20 +65,8 @@ export function ProfileHero({
 
   return (
     <section className={styles.card} aria-label={`@${user.username}`}>
-      {user.avatar_url && (
-        <div
-          className={styles.backdrop}
-          // The one sanctioned inline style: a value pipe for a custom
-          // property the stylesheet owns the rule for.
-          style={{ "--avatar-image": `url(${user.avatar_url})` } as React.CSSProperties}
-          aria-hidden
-        />
-      )}
-
       <div className={styles.identity}>
-        <span className={styles.avatarRing}>
-          <UserAvatar user={user} size="hero" priority />
-        </span>
+        <UserAvatar user={user} size="hero" priority />
         <div className={styles.names}>
           <RevealText text={`@${user.username}`} as="h1" className={styles.username} />
           {showName && <p className={styles.meta}>{user.name}</p>}
@@ -130,31 +109,31 @@ export function ProfileHero({
         )}
       </div>
 
-      {/* Three numbers as type, each in the colour its role already
-          owns, hairlines between. */}
-      <div className={styles.scoreboard}>
-        <div className={styles.score}>
-          <span className={`${styles.scoreValue} ${styles.scoreAccent}`}>
-            <CountUpNumber value={totals.points} />
+      {/* Sends, flashes, points — the same words, colours and
+          treatment as the Current-set card below. */}
+      <div className={styles.totals}>
+        <div className={styles.total}>
+          <span className={`${styles.totalLabel} ${styles.labelAccent}`}>
+            <FaCheck aria-hidden />
+            Sends
           </span>
-          <span className={styles.scoreLabel}>Points</span>
+          <span className={`${styles.totalValue} ${styles.valueAccent}`}>
+            <CountUpNumber value={totals.sends} />
+          </span>
         </div>
-        <div className={styles.score}>
-          <span className={`${styles.scoreValue} ${styles.scoreFlash}`}>
-            <CountUpNumber value={totals.flashes} />
-          </span>
-          <span className={styles.scoreLabel}>
+        <div className={styles.total}>
+          <span className={`${styles.totalLabel} ${styles.labelFlash}`}>
             <FaBolt aria-hidden />
             Flashes
           </span>
-        </div>
-        <div className={styles.score}>
-          <span className={styles.scoreValue}>
-            <CountUpNumber value={totals.sends} />
+          <span className={`${styles.totalValue} ${styles.valueFlash}`}>
+            <CountUpNumber value={totals.flashes} />
           </span>
-          <span className={styles.scoreLabel}>
-            <FaCheck aria-hidden />
-            Sends
+        </div>
+        <div className={styles.total}>
+          <span className={styles.totalLabel}>Points</span>
+          <span className={styles.totalValue}>
+            <CountUpNumber value={totals.points} />
           </span>
         </div>
       </div>
