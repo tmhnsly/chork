@@ -3,7 +3,13 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { latestDefinition } from "@/test/sql-definitions";
-import { visibleAttempts } from "./logs";
+import {
+  visibleAttempts,
+  sanitiseLog,
+  isFlash,
+  deriveTileState,
+  deriveTileStateSanitised,
+} from "./logs";
 
 /**
  * The attempt-privacy contract, pinned. See CONTEXT.md "Attempt
@@ -148,14 +154,13 @@ describe("per-log attempt collapse (visibleAttempts)", () => {
 
 describe("SanitisedLog wire shape", () => {
   it("ships derived tile inputs, never an attempts field", () => {
-    // fetchClimberSheetLogs is the one surface that hands another
-    // climber's logs to the browser wholesale. It deliberately drops
-    // `attempts` and ships `is_flash` / `has_attempts` instead, so the
-    // raw number never crosses the wire at all — the strongest form of
-    // the contract. Adding `attempts` back here would be a silent
-    // regression that no type error catches.
+    // The sanitised shape is the strongest form of the contract: the
+    // raw number never crosses the wire at all. Its declaration lives
+    // beside the rest of the per-log grain in logs.ts now — pin it
+    // there. Adding `attempts` back would be a silent regression that
+    // no type error catches.
     const source = readFileSync(
-      join(process.cwd(), "src/app/leaderboard/actions.ts"),
+      join(process.cwd(), "src/lib/data/logs.ts"),
       "utf8",
     );
     const shape = source.slice(
@@ -165,5 +170,29 @@ describe("SanitisedLog wire shape", () => {
     expect(shape).not.toMatch(/^\s*attempts\b/m);
     expect(shape).toMatch(/is_flash/);
     expect(shape).toMatch(/has_attempts/);
+  });
+
+  it("derives is_flash and tile state through the canonical helpers", () => {
+    // The shape used to be filled inline at its surface, re-deriving
+    // isFlash and forking deriveTileState — two copies of the domain
+    // rule nothing pinned. Now the parity IS the test: for every
+    // (attempts, completed) the sanitised path and the raw path must
+    // land on the same answer.
+    for (const attempts of [0, 1, 2, 5, 40]) {
+      for (const completed of [true, false]) {
+        const raw = {
+          route_id: "r1",
+          attempts,
+          completed,
+          zone: false,
+          grade_vote: null,
+        };
+        const sanitised = sanitiseLog(raw);
+        expect(sanitised.is_flash).toBe(isFlash(raw));
+        expect(sanitised.has_attempts).toBe(attempts > 0);
+        expect(deriveTileStateSanitised(sanitised)).toBe(deriveTileState(raw));
+      }
+    }
+    expect(deriveTileStateSanitised(undefined)).toBe(deriveTileState(undefined));
   });
 });
