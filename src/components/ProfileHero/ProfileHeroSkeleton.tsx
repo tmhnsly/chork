@@ -24,7 +24,9 @@ export function ProfileHeroSkeleton() {
       aria-label="Loading profile"
     >
       <div className={styles.identity} aria-hidden>
-        <span className={styles.avatarSlot} />
+        <span className={styles.avatarRing}>
+          <span className={styles.avatarSlot} />
+        </span>
         <div className={styles.names}>
           <span className={styles.username}>@climber</span>
           <span className={styles.meta}>Name</span>

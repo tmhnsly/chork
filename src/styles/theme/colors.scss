@@ -220,6 +220,19 @@
 
   --toggle-thumb: #fff;
 
+  /* ── The poster cover ─────────────────────────────
+     The hero card's identity slab. Brand-fixed near-black across
+     every palette AND both schemes — same reasoning as flash and
+     zone being brand-fixed: the brand is neon-on-near-black, and in
+     the light scheme nothing else on a page is dark enough for the
+     accent to pop against. Literals on purpose: every --mono-* step
+     flips with the scheme, and this surface must not flip. Values
+     are the light olive scale's 12 / 1 / 11-ish / 7-ish. */
+  --surface-inverse-bg: #21201c;
+  --surface-inverse-fg: #fdfdfc;
+  --surface-inverse-fg-muted: #a8a79f;
+  --surface-inverse-border: #4a4944;
+
   /* Scrim laid over user-uploaded imagery — the hover state on the
      avatar picker, and anything similar later. Fixed dark across
      every theme on purpose: the controls that sit on top of it are

@@ -33,22 +33,22 @@ interface Props {
  * a grey box with a paragraph of percentages — accurate and flat. What
  * changed, and why:
  *
- *   • The identity row sits on an accent wash — the card gets a cover
- *     instead of opening cold on bare panel. Steps 3–4 of the accent
- *     scale, so every palette keeps it quiet.
+ *   • The identity row is a POSTER COVER: full-bleed, brand-fixed
+ *     near-black (the accent finally has something to pop against in
+ *     the light scheme), the avatar ringed in the climber's accent.
+ *     The first pass used an inset step-3 wash — a box in a box that
+ *     vanished on white.
  *   • The meta line grew into chips, and the FIRST chip is the one
  *     number the whole app ranks on and the old hero never showed:
  *     placement on the current set. Rank wears solid accent — the
  *     "you did this" treatment. Gym and streak chips stay muted.
- *   • The ratios paragraph is gone. Four analyst numbers in tiny type
- *     was the six-grey-rectangles problem reborn at small scale. The
- *     one emotive fact each kept a home: streak became a chip, flash
- *     rate became a sub-line inside the Flashes tile. Pts/send and
- *     completion live on in the stats card and set sheets.
- *   • Tiles reordered Points · Flashes · Sends — both brand colours
- *     lead and the mono tile stops sitting mid-row. Flashes and Sends
- *     carry their glyphs; Points carries none, because the accent fill
- *     IS its mark.
+ *   • The ratios paragraph is gone; streak survives as a chip. Rates
+ *     live in the stats card and set sheets.
+ *   • Tiles are SOLID step-9 fills — Points lime, Flashes amber, the
+ *     route-tile treatment on the numbers that summarise them — and
+ *     Sends gets a real border so it exists on a white card. Flashes
+ *     and Sends carry their glyphs; Points carries none, because the
+ *     accent fill IS its mark.
  *   • Settings moved to the identity corner where chrome belongs; the
  *     action row below is purely social now.
  */
@@ -61,19 +61,23 @@ export function ProfileHero({
   standing,
   friends,
 }: Props) {
-  const flashPct =
-    totals.sends > 0 && totals.flashes > 0
-      ? Math.round((totals.flashes / totals.sends) * 100)
-      : null;
   const hasChips = rank !== null || gymName !== null || streakCurrent > 1;
+  // "TOM" under "@TOM" is the same word twice — the meta line only
+  // earns its row when the display name says something the handle
+  // doesn't.
+  const showName =
+    user.name.trim().length > 0 &&
+    user.name.trim().toLowerCase() !== user.username.toLowerCase();
 
   return (
     <section className={styles.card} aria-label={`@${user.username}`}>
       <div className={styles.identity}>
-        <UserAvatar user={user} size="hero" priority />
+        <span className={styles.avatarRing}>
+          <UserAvatar user={user} size="hero" priority />
+        </span>
         <div className={styles.names}>
           <RevealText text={`@${user.username}`} as="h1" className={styles.username} />
-          {user.name && <p className={styles.meta}>{user.name}</p>}
+          {showName && <p className={styles.meta}>{user.name}</p>}
           {hasChips && (
             <ul className={styles.chips} aria-label="Standing">
               {rank !== null && (
@@ -116,9 +120,6 @@ export function ProfileHero({
             <FaBolt aria-hidden />
             Flashes
           </span>
-          {flashPct !== null && (
-            <span className={styles.sub}>{flashPct}% of sends</span>
-          )}
         </div>
         <div className={styles.stat}>
           <span className={styles.value}><CountUpNumber value={totals.sends} /></span>

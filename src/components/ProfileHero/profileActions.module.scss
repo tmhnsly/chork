@@ -88,8 +88,11 @@
   @include focus.ring;
   justify-content: flex-start;
   gap: var(--space-3);
-  background: var(--mono-subtle-bg);
-  border-color: transparent;
+  // Step-3 fill + a real border: the step-2 fill it had is invisible
+  // against a white card in the light scheme, so the row read as
+  // text floating in space.
+  background: var(--mono-bg);
+  border-color: var(--mono-border-subtle);
   color: var(--mono-text);
   text-decoration: none;
 

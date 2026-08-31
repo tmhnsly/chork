@@ -17,17 +17,30 @@
   container-name: tile;
 }
 
-// ── Identity on a wash ────────────────────────────
-// The card's cover. A quiet accent panel (steps 3–4) behind the face
-// and handle so the hero stops opening on bare grey — every palette
-// re-maps the accent scale, so the wash follows the climber's theme.
+// ── The poster cover ──────────────────────────────
+// The card's identity slab: full-bleed to the card's edges (the
+// negative margins undo the card's padding — an INSET panel was the
+// boxy first version), brand-fixed near-black in both schemes so the
+// accent has something to pop against even on a white page. The
+// climber's palette still speaks through the rank chip and avatar
+// ring, which use the live accent scale.
 .identity {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-3);
-  background: var(--accent-bg);
-  border-radius: var(--radius-card-inner);
+  margin: calc(-1 * var(--space-4)) calc(-1 * var(--space-4)) 0;
+  padding: var(--space-4);
+  background: var(--surface-inverse-bg);
+  border-radius: var(--radius-card) var(--radius-card) 0 0;
+}
+
+// The face gets a ring in the climber's accent — the one theme-aware
+// stroke on the fixed-dark cover.
+.avatarRing {
+  display: inline-flex;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 0 2px var(--accent-solid);
 }
 
 .names {
@@ -35,10 +48,25 @@
   min-width: 0;
 }
 
-// Chrome corner — the settings gear on your own card.
+// Chrome corner — the settings gear on your own card. On the dark
+// cover the boxed icon button reads as a grey sticker, so it goes
+// ghost here: the override targets the button element rather than
+// forking SettingsCorner, which stays a plain iconButton everywhere
+// else it might appear.
 .corner {
   margin-left: auto;
   align-self: flex-start;
+
+  button {
+    background: transparent;
+    border-color: transparent;
+    color: var(--surface-inverse-fg-muted);
+
+    &:hover {
+      background: transparent;
+      color: var(--surface-inverse-fg);
+    }
+  }
 }
 
 // The skeleton's stand-in for the hero avatar: the same rung, so the
@@ -48,7 +76,7 @@
   width: var(--size-avatar-hero);
   height: var(--size-avatar-hero);
   border-radius: var(--radius-full);
-  background: var(--mono-bg);
+  background: var(--surface-inverse-border);
 }
 
 // The handle is the page title, and handles are long: twelve
@@ -63,7 +91,7 @@
 // rare, not the design.
 .username {
   @include type.typography(display, $step: xl);
-  color: var(--accent-text);
+  color: var(--surface-inverse-fg);
   overflow-wrap: anywhere;
 
   @include cq.at(22rem) {
@@ -77,14 +105,14 @@
 
 .meta {
   @include type.typography(label);
-  color: var(--mono-text-low-contrast);
+  color: var(--surface-inverse-fg-muted);
 }
 
 // ── Chips: rank, gym, streak ──────────────────────
 // The meta facts as pieces, not a sentence. Rank leads and wears
-// solid accent — the same "you did this" treatment a sent tile gets —
-// because placement is the one number the whole app ranks on and the
-// old hero never said it. Gym and streak stay muted company.
+// solid accent — neon on the near-black cover, the same "you did
+// this" treatment a sent tile gets. Gym and streak are quiet outline
+// company on the slab.
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -101,8 +129,9 @@
   gap: var(--space-1);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-full);
-  background: var(--accent-bg-hover);
-  color: var(--accent-text);
+  border: 1px solid var(--surface-inverse-border);
+  background: transparent;
+  color: var(--surface-inverse-fg);
 
   svg {
     font-size: var(--size-icon-xs);
@@ -110,6 +139,7 @@
 }
 
 .chipRank {
+  border-color: var(--accent-solid);
   background: var(--accent-solid);
   color: var(--accent-on-solid);
 }
@@ -132,28 +162,34 @@
   gap: var(--space-2);
 }
 
+// Solid step-9 fills — the "you did this" treatment from the route
+// tiles, at last applied to the numbers that summarise them. The
+// first version used step-3 washes, which vanish against a white
+// card; the Sends tile gets a real border for the same reason.
 .stat {
   @include layout.stack(var(--space-1));
   align-items: center;
   padding: var(--space-3) var(--space-2);
   border-radius: var(--radius-card-inner);
-  background: var(--mono-subtle-bg);
+  background: var(--mono-bg);
+  border: 1px solid var(--mono-border-subtle);
   text-align: center;
 }
 
 .statPrimary {
-  background: var(--accent-bg);
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
 
-  .value { color: var(--accent-text); }
-  .label { color: var(--accent-text-low-contrast); }
+  .value { color: var(--accent-on-solid); }
+  .label { color: var(--accent-on-solid); }
 }
 
 .statFlash {
-  background: var(--flash-bg);
+  background: var(--flash-solid);
+  border-color: var(--flash-solid);
 
-  .value { color: var(--flash-text); }
-  .label { color: var(--flash-text-low-contrast); }
-  .sub   { color: var(--flash-text-low-contrast); }
+  .value { color: var(--flash-on-solid); }
+  .label { color: var(--flash-on-solid); }
 }
 
 .value {
@@ -176,9 +212,3 @@
   }
 }
 
-// One quiet fact under the flash count — the old ratio line's sole
-// survivor, now sitting with the number it describes.
-.sub {
-  @include type.typography(meta, $step: xs);
-  color: var(--mono-text-low-contrast);
-}
