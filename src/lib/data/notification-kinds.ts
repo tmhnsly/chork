@@ -21,6 +21,8 @@
  * to elements generically, which keeps per-kind copy unit-testable.
  */
 
+import type { PushCategory } from "./push-categories";
+
 // ── Payload shapes (persisted rows — snake_case, string fields) ──
 
 export interface FriendRequestReceivedPayload {
@@ -93,24 +95,12 @@ export type NotificationEvent = {
 
 // ── Render output shapes ──
 
-/**
- * Mirrors `PushCategory` in `@/lib/push/server` (which is
- * server-only, so this client-safe module can't import it). The
- * `notify.ts` call site passes `push.category` straight into
- * `sendPushInBackground`, so a value here that drifts from the real
- * union fails the build there.
- */
-export type NotificationPushCategory =
-  | "invite_received"
-  | "invite_accepted"
-  | "ownership_changed";
-
 export interface PushContent {
   title: string;
   body: string;
   /** Same-origin path — the service worker rejects anything else. */
   url: string;
-  category: NotificationPushCategory;
+  category: PushCategory;
 }
 
 /**
