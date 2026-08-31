@@ -15,11 +15,17 @@
  * a compile error: the table's type is mapped over `NotificationKind`.
  *
  * This module is intentionally pure (no Supabase, no JSX, no
- * server-only imports) so both the server dispatcher (`notify.ts`)
- * and the client sheet (`NotificationsSheet.tsx`) can consume it.
- * `inApp` returns STRUCTURED segments, not JSX — the sheet maps them
- * to elements generically, which keeps per-kind copy unit-testable.
+ * server-only imports) so the server dispatcher (`notify.ts`) and
+ * the client section lists can consume it. `inApp` returns
+ * STRUCTURED segments, not JSX — `NotificationsList` maps them to
+ * elements generically, which keeps per-kind copy unit-testable.
+ *
+ * A kind also names its SECTION — the app surface that owns its
+ * in-app rows (there is no global inbox; each section shows and
+ * read-flags only its own kinds via `kindsForSection`).
  */
+
+import type { PushCategory } from "./push-categories";
 
 // ── Payload shapes (persisted rows — snake_case, string fields) ──
 
@@ -93,24 +99,12 @@ export type NotificationEvent = {
 
 // ── Render output shapes ──
 
-/**
- * Mirrors `PushCategory` in `@/lib/push/server` (which is
- * server-only, so this client-safe module can't import it). The
- * `notify.ts` call site passes `push.category` straight into
- * `sendPushInBackground`, so a value here that drifts from the real
- * union fails the build there.
- */
-export type NotificationPushCategory =
-  | "invite_received"
-  | "invite_accepted"
-  | "ownership_changed";
-
 export interface PushContent {
   title: string;
   body: string;
   /** Same-origin path — the service worker rejects anything else. */
   url: string;
-  category: NotificationPushCategory;
+  category: PushCategory;
 }
 
 /**
@@ -136,7 +130,12 @@ export interface InAppContent {
   segments: NotificationSegment[];
 }
 
+/** The app surface that owns a kind's in-app rows. */
+export type NotificationSection = "friends" | "match";
+
 export interface NotificationKindDef<K extends NotificationKind> {
+  /** Where this kind's rows surface and get read-flagged. */
+  section: NotificationSection;
   /** camelCase event fields → persisted snake_case payload. */
   toPayload(fields: NotificationEventFields[K]): NotificationPayloads[K];
   /** Push copy — must be derivable from the payload alone. */
@@ -159,6 +158,7 @@ export const notificationKinds: {
   // and "tell me when someone says yes" are the same preference
   // whatever the thing being asked is.
   friend_request_received: {
+    section: "friends",
     toPayload: (e) => ({
       friend_id: e.friendId,
       from_username: e.fromUsername,
@@ -180,6 +180,7 @@ export const notificationKinds: {
   },
 
   friend_request_accepted: {
+    section: "friends",
     toPayload: (e) => ({
       accepter_username: e.accepterUsername,
     }),
@@ -205,6 +206,7 @@ export const notificationKinds: {
   // can inflict nothing but a notification — and the `invite_received`
   // opt-out plus the sender's rate limit already cover that.
   match_invite_received: {
+    section: "match",
     toPayload: (e) => ({
       set_id: e.setId,
       code: e.code,
@@ -229,6 +231,15 @@ export const notificationKinds: {
 };
 
 // ── Lookup + dispatch helpers (the single typed seam) ──
+
+/** The kinds a section owns — what its list shows and read-flags. */
+export function kindsForSection(
+  section: NotificationSection,
+): NotificationKind[] {
+  return (Object.keys(notificationKinds) as NotificationKind[]).filter(
+    (k) => notificationKinds[k].section === section,
+  );
+}
 
 export function isNotificationKind(kind: string): kind is NotificationKind {
   return Object.prototype.hasOwnProperty.call(notificationKinds, kind);
@@ -257,12 +268,13 @@ export function renderNotification(event: NotificationEvent): {
 }
 
 /**
- * DB row (`kind` + jsonb `payload`) → in-app content for the sheet.
+ * DB row (`kind` + jsonb `payload`) → in-app content for a section's
+ * notification list.
  *
  * Output-side assertion in the `asJsonShape` tradition: the writer
  * (`notify()`) guarantees the payload matches its kind, so the row's
  * `kind` is the contract for the shape. Unknown / future kinds — a
- * newer DB constraint than this bundle — return `null` so the sheet
+ * newer DB constraint than this bundle — return `null` so the list
  * can skip the row gracefully instead of rendering garbage.
  */
 export function renderNotificationInApp(

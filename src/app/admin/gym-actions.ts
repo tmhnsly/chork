@@ -1,6 +1,8 @@
 "use server";
 
+import { revalidateTag } from "next/cache";
 import { gateSignedInMutation } from "@/lib/auth";
+import { tags } from "@/lib/cache/tags";
 import { formatError } from "@/lib/errors";
 import type { ActionResult } from "@/lib/action-result";
 import { SLUG_RE } from "@/lib/validation";
@@ -68,8 +70,11 @@ export async function signupGym(form: {
     return { error: error ? formatError(error) : "Could not create gym." };
   }
 
-  // signupGym writes a new gyms row + an admin seat, but doesn't touch
-  // profiles.* — getAdminGymsForUser is uncached and re-fetches via the
-  // server action's response cycle, so no profile-tag bust required.
+  // A new gym is born listed (001's default), and /gyms reads the
+  // shared getListedGyms cache (3600s TTL) — without this bust the
+  // gym its owner just created is invisible on the directory for up
+  // to an hour. No profile-tag bust: signupGym doesn't touch
+  // profiles.*, and getAdminGymsForUser is uncached.
+  revalidateTag(tags.gymsListed(), "max");
   return { success: true, gymId: data };
 }

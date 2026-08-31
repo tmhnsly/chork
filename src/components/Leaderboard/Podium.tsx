@@ -3,7 +3,7 @@
 import { FaCrown } from "react-icons/fa6";
 import { UserAvatar, Username } from "@/components/ui";
 import type { LeaderboardEntry } from "@/lib/data";
-import { toAvatarUser } from "@/lib/data/leaderboard-helpers";
+import { seatAvatarUser } from "@/lib/data/seat";
 import styles from "./podium.module.scss";
 import { countOfFormatted } from "@/lib/plural";
 
@@ -65,7 +65,7 @@ function Slot({ entry, place, currentUserId, onPress, active }: SlotProps) {
     <>
       <div className={styles.avatarWrap}>
         {place === 1 && <FaCrown className={styles.crown} aria-hidden />}
-        <UserAvatar user={toAvatarUser(entry)} size={avatarSize} priority />
+        <UserAvatar user={seatAvatarUser(entry)} size={avatarSize} priority />
         <span className={styles.medal} aria-hidden>{place}</span>
       </div>
       <Username username={entry.username} className={styles.username} />

@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
+import { seatAvatarUser, seatName } from "@/lib/data/seat";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { format, parseISO } from "date-fns";
 import { FaCrown, FaArrowLeft } from "react-icons/fa6";
 import { requireSignedIn } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getMatchStateForUser, getChorkStandings } from "@/lib/data/match-queries";
+import { getChorkStandings } from "@/lib/data/match-queries";
+import { getMatchStateCached } from "@/lib/data/match-state-cached";
 import { getLeague, getMyLeagues } from "@/lib/data/league-queries";
 import { ChorkWord } from "@/components/Match/ChorkWord";
 import { PageHeader } from "@/components/motion";
@@ -33,7 +35,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!isUuid(id)) return { title: "Match result" };
   const auth = await requireSignedIn();
   if ("error" in auth) return { title: "Match result" };
-  const state = await getMatchStateForUser(createServiceClient(), id, auth.userId);
+  const state = await getMatchStateCached(id, auth.userId);
   return { title: state?.match.name?.trim() || "Match result" };
 }
 
@@ -62,7 +64,7 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
   // reliable "ending a match 404s" root cause: the gate failed on the
   // very request it was meant to pass. Keep it in the RPC.
   const service = createServiceClient();
-  const state = await getMatchStateForUser(service, id, auth.userId);
+  const state = await getMatchStateCached(id, auth.userId);
   if (!state) notFound();
   const summary = state.match;
   const players = state.leaderboard;
@@ -174,7 +176,7 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
             </span>
             <span className={styles.winnerName}>
               {chorkWinners
-                .map((w) => w.display_name || w.username || "Climber")
+                .map((w) => seatName(w))
                 .join(", ")}
             </span>
           </div>
@@ -192,7 +194,7 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
           <div className={styles.winnerBody}>
             <span className={styles.winnerEyebrow}>Winner</span>
             <span className={styles.winnerName}>
-              {winner.display_name || winner.username}
+              {seatName(winner)}
             </span>
             {winner.display_name && winner.username && (
               <Username
@@ -219,18 +221,10 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
               return (
                 <li key={p.player_id} className={styles.playerRow}>
                   <span className={styles.playerRank}>#{i + 1}</span>
-                  <UserAvatar
-                    user={{
-                      id: p.user_id ?? p.player_id,
-                      username,
-                      name: p.display_name ?? username,
-                      avatar_url: p.avatar_url ?? "",
-                    }}
-                    size="row"
-                  />
+                  <UserAvatar user={seatAvatarUser(p)} size="row" />
                   <div className={styles.playerIdentity}>
                     <span className={styles.playerName}>
-                      {p.display_name || (p.is_guest ? "Guest" : username)}
+                      {seatName(p)}
                     </span>
                     <span className={styles.playerHandle}>
                       {p.is_guest ? "Guest" : <Username username={username} />}
@@ -259,24 +253,14 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
             const isGuest = p.is_guest;
             return (
             <li
-              key={p.user_id || `unknown-${p.rank}-${i}`}
+              key={p.player_id}
               className={styles.playerRow}
             >
               <span className={styles.playerRank}>#{p.rank}</span>
-              <UserAvatar
-                user={{
-                  id: p.user_id ?? "",
-                  username,
-                  // Falls back to the handle so the avatar still gets
-                  // an initial to draw, matching the name shown below.
-                  name: p.display_name ?? username,
-                  avatar_url: p.avatar_url ?? "",
-                }}
-                size="row"
-              />
+              <UserAvatar user={seatAvatarUser(p)} size="row" />
               <div className={styles.playerIdentity}>
                 <span className={styles.playerName}>
-                  {p.display_name || (isGuest ? "Guest" : username)}
+                  {seatName(p)}
                 </span>
                 <span className={styles.playerHandle}>
                   {isGuest ? (

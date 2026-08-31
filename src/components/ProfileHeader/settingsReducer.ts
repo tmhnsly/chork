@@ -1,4 +1,10 @@
-import type { PushCategoryKey } from "@/app/profile/actions";
+import {
+  notifFlagsFromPrefs,
+  pushPrefsSignature,
+  defaultNotifFlags,
+  type PushCategory,
+  type PushPrefsSlice,
+} from "@/lib/data/push-categories";
 import type { PushStatus } from "@/lib/push/client";
 
 /**
@@ -26,18 +32,15 @@ export type SettingsPanel =
   | "theme"
   | "notifications";
 
-export type NotifFlags = Record<PushCategoryKey, boolean>;
+export type NotifFlags = Record<PushCategory, boolean>;
 
 /**
  * The slice of the auth profile the reducer reconciles against.
  * Structural subset of `Profile` so tests need no full fixture.
  */
-export interface SettingsProfileSlice {
+export type SettingsProfileSlice = {
   allow_friend_requests: boolean;
-  push_invite_received: boolean;
-  push_invite_accepted: boolean;
-  push_ownership_changed: boolean;
-}
+} & PushPrefsSlice;
 
 export interface SettingsState {
   activePanel: SettingsPanel | null;
@@ -66,27 +69,21 @@ export type SettingsAction =
   | { type: "reseed-from-profile"; profile: SettingsProfileSlice }
   // optimistic flip + revert — caller passes the explicit target value
   | { type: "set-allow-invites"; value: boolean }
-  | { type: "set-notif-flag"; category: PushCategoryKey; value: boolean }
+  | { type: "set-notif-flag"; category: PushCategory; value: boolean }
   // push subscription lifecycle
   | { type: "set-push-status"; status: PushStatus | null };
 
-// Three-bool signature of the profile's notification prefs — used to
-// detect when a profile refresh should reseed the local optimistic
-// flags without clobbering an unrelated in-flight toggle.
+// Signature of the profile's notification prefs — used to detect
+// when a profile refresh should reseed the local optimistic flags
+// without clobbering an unrelated in-flight toggle. Both the
+// signature and the flag map derive from the category table's one
+// home, so a new category reaches here with zero edits.
 export function notifSignature(p: SettingsProfileSlice): string {
-  return [
-    p.push_invite_received,
-    p.push_invite_accepted,
-    p.push_ownership_changed,
-  ].join("|");
+  return pushPrefsSignature(p);
 }
 
 function notifFlagsFromProfile(p: SettingsProfileSlice): NotifFlags {
-  return {
-    invite_received: p.push_invite_received,
-    invite_accepted: p.push_invite_accepted,
-    ownership_changed: p.push_ownership_changed,
-  };
+  return notifFlagsFromPrefs(p);
 }
 
 /** Build the initial state from the profile that mounts the sheet. */
@@ -97,11 +94,7 @@ export function initialSettingsState(
     activePanel: null,
     allowInvites: profile?.allow_friend_requests ?? true,
     lastProfileAllowInvites: profile?.allow_friend_requests ?? null,
-    notifFlags: {
-      invite_received: profile?.push_invite_received ?? true,
-      invite_accepted: profile?.push_invite_accepted ?? true,
-      ownership_changed: profile?.push_ownership_changed ?? true,
-    },
+    notifFlags: profile ? notifFlagsFromPrefs(profile) : defaultNotifFlags(),
     lastNotifSignature: profile ? notifSignature(profile) : null,
     pushStatus: null,
   };

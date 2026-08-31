@@ -3,26 +3,6 @@
 @use "mixins/surfaces" as surface;
 @use "mixins/focus";
 
-// Sheet body — BottomSheet handles the outer padding.
-.sheet {
-  @include layout.stack(var(--space-5));
-}
-
-.section {
-  @include layout.stack(var(--space-2));
-}
-
-.sectionHeading {
-  @include type.typography(label);
-  color: var(--mono-text-low-contrast);
-}
-
-.empty {
-  @include type.typography(body);
-  color: var(--mono-text-low-contrast);
-}
-
-// ── Activity list rows ─────────────────────────────
 .list {
   @include layout.stack(var(--space-2));
   list-style: none;
@@ -43,8 +23,9 @@
     border-color var(--duration-fast) var(--ease-out);
 }
 
-// Unread rows pick up a subtle accent left-border + tint so the
-// bell's "catch-up" use case is obvious at a glance.
+// Unread rows pick up an accent tint so catching up is a glance,
+// not a read. The tint survives this visit's mark-read on purpose —
+// it shows what you were behind on.
 .rowUnread {
   background: var(--accent-bg);
   border-color: var(--accent-border);

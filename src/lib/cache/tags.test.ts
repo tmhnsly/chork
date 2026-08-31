@@ -22,9 +22,14 @@ import { tags } from "./tags";
  *   2. Every constructor is actually used somewhere — no aspirational
  *      entries "reserved for later".
  *
- * A bust with no reader is NOT enforced-the-other-way: a registered
- * tag with no buster can be legitimate (TTL-only refresh), so only
- * the write-only direction fails.
+ * And the other direction, since 2026-08-31:
+ *   3. Every constructor has at least one `revalidateTag` buster, or
+ *      a named entry in BUSTER_EXEMPT explaining why TTL-only refresh
+ *      is the design. Before this, "which tag does my mutation bust"
+ *      lived only in a doc table — which had already drifted: two
+ *      tags carried documented busters that did not exist, and a new
+ *      gym was invisible on /gyms for up to an hour because
+ *      signupGym busted nothing.
  */
 
 const SRC = join(process.cwd(), "src");
@@ -94,4 +99,38 @@ describe("cache tag hygiene (reader-first rule)", () => {
       "Aspirational tag constructors drift out of date before their reader arrives — add the constructor in the same change as its cachedQuery reader.",
     ).toEqual([]);
   });
+});
+
+/**
+ * Tags whose refresh is deliberately TTL-only. An entry here is a
+ * design statement with a reason — and it must stay true: the test
+ * fails if an exempted tag grows a buster (stale exemption) just as
+ * it fails an unexempted tag with none.
+ */
+const BUSTER_EXEMPT: Partial<Record<keyof typeof tags, string>> = {
+  gym: "no in-app gym-edit surface exists; getGym's 3600s TTL is the refresh path until one ships",
+};
+
+describe("cache tag hygiene (buster direction)", () => {
+  it.each(tagNames)(
+    "tags.%s is busted by some mutation, or exempt with a reason",
+    (name) => {
+      const { busts } = usesOf(name);
+      if (name in BUSTER_EXEMPT) {
+        expect(
+          busts.length,
+          `tags.${name} is exempt ("${BUSTER_EXEMPT[name]}") but now has ` +
+            `${busts.length} bust site(s) — delete the stale exemption`,
+        ).toBe(0);
+        return;
+      }
+      expect(
+        busts.length,
+        `tags.${name} has a cachedQuery reader but NO revalidateTag ` +
+          `buster — its entries only refresh by TTL. Either bust it ` +
+          `from the mutation that changes what it caches, or add a ` +
+          `BUSTER_EXEMPT entry saying why TTL-only is the design.`,
+      ).toBeGreaterThan(0);
+    },
+  );
 });

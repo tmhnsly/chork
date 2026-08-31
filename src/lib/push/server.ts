@@ -2,6 +2,9 @@ import "server-only";
 import { after } from "next/server";
 import webpush, { type PushSubscription as WebPushSubscription } from "web-push";
 import { createServiceClient } from "@/lib/supabase/server";
+import { columnOf, type PushCategory } from "@/lib/data/push-categories";
+
+export type { PushCategory };
 
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
@@ -55,25 +58,11 @@ export interface PushPayload {
   tag?: string;
 }
 
-/**
- * Push categories map to discrete bools on `profiles` (migration
- * 032). Callers should tag notifications so per-category opt-outs
- * are honoured; `null`/undefined skips filtering (kept for internal
- * / admin pushes where per-category muting makes no sense).
- */
-export type PushCategory =
-  | "invite_received"
-  | "invite_accepted"
-  | "ownership_changed";
-
-// Literal keys — `satisfies` constrains the values to actual profile
-// columns so a typo here fails the build (without losing the literal
-// types Object lookups need to remain narrow).
-const CATEGORY_COLUMN = {
-  invite_received: "push_invite_received",
-  invite_accepted: "push_invite_accepted",
-  ownership_changed: "push_ownership_changed",
-} as const satisfies Record<PushCategory, "push_invite_received" | "push_invite_accepted" | "push_ownership_changed">;
+// Category identity, columns and labels live in ONE home —
+// `src/lib/data/push-categories.ts`. Callers should tag
+// notifications so per-category opt-outs are honoured;
+// `null`/undefined skips filtering (kept for internal / admin
+// pushes where per-category muting makes no sense).
 
 interface SendOptions {
   category?: PushCategory | null;
@@ -110,11 +99,11 @@ export async function sendPushToUsers(
   // calls skip this step.
   let effectiveIds = userIds;
   if (options.category) {
-    const column = CATEGORY_COLUMN[options.category];
-    // Select all three opt-in columns explicitly so the row type stays
-    // fully typed (the previous dynamic select-string interpolation
-    // forced an `as unknown as` cast on the return shape). Picking by
-    // literal column name keeps `p[column]` properly narrowed.
+    const column = columnOf(options.category);
+    // Literal select on purpose — supabase-js types rows only from
+    // literal strings. `push-categories.test.ts` pins this string to
+    // the category table, so a new category that forgets to widen it
+    // fails the suite instead of silently never filtering.
     const { data: profiles } = await service
       .from("profiles")
       .select("id, push_invite_received, push_invite_accepted, push_ownership_changed")

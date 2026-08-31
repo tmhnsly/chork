@@ -1,4 +1,5 @@
 import { UserAvatar, Username } from "@/components/ui";
+import { seatAvatarUser, seatName } from "@/lib/data/seat";
 import type { LeagueStanding } from "@/lib/data/league-types";
 import { LEAGUE_LADDER, describeDropRule } from "@/lib/data/league";
 import { countOf } from "@/lib/plural";
@@ -32,17 +33,9 @@ export function LeagueTable({ standings, weekCount, viewerId }: Props) {
             return (
               <li key={row.user_id} className={`${styles.row} ${mine ? styles.mine : ""}`}>
                 <span className={styles.rank}>#{row.rank}</span>
-                <UserAvatar
-                  user={{
-                    id: row.user_id,
-                    username,
-                    name: row.display_name ?? username,
-                    avatar_url: row.avatar_url ?? "",
-                  }}
-                  size="row"
-                />
+                <UserAvatar user={seatAvatarUser(row)} size="row" />
                 <div className={styles.identity}>
-                  <span className={styles.name}>{row.display_name || username}</span>
+                  <span className={styles.name}>{seatName(row)}</span>
                   <span className={styles.handle}>
                     <Username username={username} />
                     {" · "}

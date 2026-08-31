@@ -2015,7 +2015,7 @@ export type Database = {
         }[]
       }
       mark_all_notifications_read: {
-        Args: { p_user_id: string }
+        Args: { p_kinds?: string[]; p_user_id: string }
         Returns: number
       }
       match_standings: {

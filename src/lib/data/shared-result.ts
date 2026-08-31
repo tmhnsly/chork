@@ -1,4 +1,5 @@
 import "server-only";
+import { seatName } from "./seat";
 
 import { randomBytes } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -122,7 +123,7 @@ export async function getSharedResult(
       // end time, so a deleted account resolves to null. Keep the row
       // — the standings are the point, and a gap in the ranks would
       // read as a bug.
-      displayName: p.display_name ?? p.username ?? "Unknown climber",
+      displayName: seatName(p, { fallback: "Unknown climber" }),
       username: p.username ?? "unknown",
       points: p.points,
       sends: p.sends,

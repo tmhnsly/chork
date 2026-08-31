@@ -14,23 +14,31 @@ const SettingsSheet = dynamic(
 
 /**
  * The settings gear in the hero's identity corner — chrome, sized as
- * chrome, where chrome belongs. It used to share the social action row
- * at the card's foot; settings next to "your people" gave plumbing the
- * same weight as friendship.
+ * chrome, where chrome belongs.
+ *
+ * Mount contract B (see BottomSheet): mounted on first open and kept,
+ * with a real `open` prop — the sheet's own panel routing and
+ * optimistic toggles survive a close/reopen, and the slide-out
+ * animation gets to play. The first version conditionally mounted it
+ * with `open` hardcoded true — contract A wearing B's prop.
  */
 export function SettingsCorner() {
   const [open, setOpen] = useState(false);
+  const [hasOpened, setHasOpened] = useState(false);
   return (
     <>
       <button
         type="button"
         className={styles.iconButton}
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          setHasOpened(true);
+          setOpen(true);
+        }}
         aria-label="Settings"
       >
         <FaGear aria-hidden />
       </button>
-      {open && <SettingsSheet open onClose={() => setOpen(false)} />}
+      {hasOpened && <SettingsSheet open={open} onClose={() => setOpen(false)} />}
     </>
   );
 }

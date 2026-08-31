@@ -7,7 +7,7 @@ import type { Database } from "../database.types";
  * components; RLS enforces data access.
  *
  * Memoised to a module-level singleton because components across the
- * app (NavBar badge count, NotificationsSheet, PushToggle, …) each
+ * app (NavBar badge count, notification lists, PushToggle, …) each
  * called `createBrowserSupabase()` in their own effects, allocating
  * a fresh fetch pipeline + auth listener per mount. `@supabase/ssr`
  * internally shares the auth session via localStorage so the session

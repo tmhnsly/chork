@@ -345,22 +345,7 @@ export interface MatchAchievementContext {
   match_total_points: number;
 }
 
-/**
- * Who a log or board row belongs to, as one string.
- *
- * A Match seat is held either by an account or by a guest, and the
- * two are identified by different columns — `user_id` and
- * `player_id`. Client code that needs to say "these belong together"
- * (keying the log map, matching a log to its board row, deciding
- * which tile to paint) wants one id, not a branch at every call site.
- *
- * Both overloads resolve to the same string for the same person: an
- * account's `user_id`, or a guest's seat id.
- */
-export function ownerIdOf(
-  owner: { user_id: string | null; player_id?: string | null },
-): string {
-  // A row always has one or the other — `route_logs_owner_ck` and
-  // `set_players_identity_ck` both enforce exactly-one.
-  return owner.user_id ?? owner.player_id ?? "";
-}
+// The seat-presentation rules — id, display name, avatar shape —
+// live in `./seat`; re-exported here so match surfaces keep their
+// established import path.
+export { ownerIdOf } from "./seat";

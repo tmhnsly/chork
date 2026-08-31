@@ -16,6 +16,7 @@ import { FriendsBoard } from "@/components/Friends/FriendsBoard";
 import { MomentsFeed } from "@/components/Friends/MomentsFeed";
 import { FriendSearch } from "@/components/Friends/FriendSearch";
 import { FriendsList } from "@/components/Friends/FriendsList";
+import { SectionNotifications } from "@/components/Notifications/SectionNotifications";
 import styles from "./friends.module.scss";
 
 export const metadata: Metadata = {
@@ -71,6 +72,10 @@ export default async function FriendsPage() {
           the board is the better answer; moments are what you get for
           the friends you don't. */}
       <MomentsFeed moments={moments} />
+      {/* This section's slice of the Notification log — requests
+          received/accepted surface where they're acted on, and only
+          these kinds get read-flagged by the visit. */}
+      <SectionNotifications section="friends" />
       <FriendsList
         active={active}
         incoming={incoming}

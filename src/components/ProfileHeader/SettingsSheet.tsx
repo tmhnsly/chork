@@ -29,7 +29,7 @@ import { InstallPwaPanel } from "@/components/InstallPwa/InstallPwaPanel";
 /* eslint-enable no-restricted-imports */
 import { useAuth } from "@/lib/auth-context";
 import { useTheme, THEME_META, type ThemeName } from "@/lib/theme";
-import type { PushCategoryKey } from "@/app/profile/actions";
+import { VISIBLE_PUSH_CATEGORIES } from "@/lib/data/push-categories";
 import { useSettingsState } from "./useSettingsState";
 import type { SettingsPanel } from "./settingsReducer";
 import styles from "./settingsSheet.module.scss";
@@ -149,7 +149,7 @@ export function SettingsSheet({ open, onClose }: Props) {
               <FaUsers aria-hidden className={styles.icon} />
             )}
             <span className={styles.label}>
-              {allowInvites ? "Disable crew invites" : "Allow crew invites"}
+              {allowInvites ? "Disable friend requests" : "Allow friend requests"}
             </span>
           </button>
 
@@ -228,7 +228,7 @@ export function SettingsSheet({ open, onClose }: Props) {
 
         {sliding === "notifications" && (
         <div className={`${styles.list} ${styles.pane}`}>
-          {NOTIF_ROWS.map((row) => (
+          {VISIBLE_PUSH_CATEGORIES.map((row) => (
             <button
               key={row.category}
               type="button"
@@ -315,8 +315,4 @@ export function SettingsSheet({ open, onClose }: Props) {
   );
 }
 
-const NOTIF_ROWS: { category: PushCategoryKey; label: string }[] = [
-  { category: "invite_received", label: "New crew invite" },
-  { category: "invite_accepted", label: "Invite accepted" },
-  { category: "ownership_changed", label: "Made crew creator" },
-];
+

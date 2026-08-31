@@ -4,16 +4,7 @@ import { LinkButton } from "@/components/ui";
 import { requireGymAdmin } from "@/lib/auth";
 import { getGym } from "@/lib/data/gym-queries";
 import { getActiveSetForAdminGym } from "@/lib/data/admin-queries";
-import {
-  getSetOverview,
-  getTopRoutes,
-  getActiveClimberCount,
-  getEngagementTrend,
-  getFlashLeaderboardSet,
-  getZoneSendRatio,
-  getAllTimeOverview,
-  getSetterBreakdown,
-} from "@/lib/data/dashboard-queries";
+import { getAdminDashboard } from "@/lib/data/dashboard-queries";
 import { AdminDashboardEmpty } from "@/components/admin/AdminDashboardEmpty";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { AdminDashboard } from "@/components/admin/dashboard/AdminDashboard";
@@ -97,7 +88,7 @@ async function DashboardBody({
   activeSet: AdminSetSummary;
 }) {
   const supabase = await createServerSupabase();
-  const [
+  const {
     overview,
     topRoutes,
     engagement,
@@ -106,16 +97,7 @@ async function DashboardBody({
     zoneRows,
     allTime,
     setterRows,
-  ] = await Promise.all([
-    getSetOverview(supabase, activeSetId),
-    getTopRoutes(supabase, activeSetId, 15),
-    getEngagementTrend(supabase, gymId, 12),
-    getActiveClimberCount(supabase, activeSetId),
-    getFlashLeaderboardSet(supabase, activeSetId, 5),
-    getZoneSendRatio(supabase, activeSetId),
-    getAllTimeOverview(supabase, gymId),
-    getSetterBreakdown(supabase, activeSetId),
-  ]);
+  } = await getAdminDashboard(supabase, { gymId, setId: activeSetId });
 
   return (
     <AdminDashboard
