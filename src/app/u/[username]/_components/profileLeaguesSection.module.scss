@@ -1,0 +1,72 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+@use "mixins/focus";
+
+.rows {
+  @include layout.stack(var(--space-2));
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.row {
+  @include focus.ring;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--size-touch-target);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-card-inner);
+  background: var(--mono-subtle-bg);
+  color: var(--mono-text);
+  text-decoration: none;
+  transition: background var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    background: var(--mono-bg-hover);
+  }
+}
+
+// A finished fixture stays on the record but stops competing for the
+// eye. Correct-step colour, never opacity.
+.rowEnded {
+  .name,
+  .weeks {
+    color: var(--mono-text-low-contrast);
+  }
+}
+
+.name {
+  @include type.typography(label);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.hostChip {
+  @include type.typography(meta, $step: xs);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--mono-border);
+  color: var(--mono-text-low-contrast);
+}
+
+.standing {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+// Your placement wears the accent — the "this is yours" treatment.
+.rank {
+  @include type.typography(number, $step: lg);
+  color: var(--accent-text);
+}
+
+.weeks {
+  @include type.typography(meta, $step: xs);
+  color: var(--mono-text-low-contrast);
+}
