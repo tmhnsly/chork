@@ -96,7 +96,8 @@ function clampString(value: unknown, max: number): string | null {
 
 // ── Create ────────────────────────────────────────
 
-interface CreateMatchPayload {
+/** The setup a match is created with, and later changed from the lobby. */
+export interface MatchSetupPayload {
   name?: string | null;
   location?: string | null;
   gradingScale: MatchGradingScale;
@@ -106,8 +107,6 @@ interface CreateMatchPayload {
   saveScaleName?: string | null;
   /** Default for the Match's routes; each may override. */
   discipline?: Discipline | null;
-  /** Score relative to each player's ceiling. Needs a graded scale. */
-  handicap?: boolean;
   /**
    * A mixed day: the scale for the discipline family this Match's own
    * discipline is NOT. Must be a formula scale in the OTHER family —
@@ -117,6 +116,11 @@ interface CreateMatchPayload {
   altGradingScale?: "v" | "font" | "yds" | "french" | null;
   altMinGrade?: number | null;
   altMaxGrade?: number | null;
+}
+
+interface CreateMatchPayload extends MatchSetupPayload {
+  /** Score relative to each player's ceiling. Needs a graded scale. */
+  handicap?: boolean;
   /**
    * Start this Match as the next week of a League the caller hosts.
    * The RPC refuses anyone else and any League that has ended.
@@ -124,12 +128,31 @@ interface CreateMatchPayload {
   leagueId?: string | null;
 }
 
-export async function createMatchAction(
-  payload: CreateMatchPayload,
-): Promise<ActionResult<{ id: string; code: string }>> {
-  if (!isScale(payload.gradingScale)) {
-    return { error: "Invalid grading scale" };
-  }
+interface ValidatedSetup {
+  name: string | null;
+  location: string | null;
+  discipline: Discipline;
+  gradingScale: MatchGradingScale;
+  minGrade: number | null;
+  maxGrade: number | null;
+  customGrades: string[] | null;
+  saveScaleName: string | null;
+  altScale: "v" | "font" | "yds" | "french" | null;
+  altMin: number | null;
+  altMax: number | null;
+}
+
+/**
+ * The action-boundary half of match setup validation — the same
+ * rules `match_setup_check` applies in SQL, run first so a malformed
+ * payload never reaches the DB (CLAUDE.md "Validate ids at the
+ * action boundary"). One copy, because create and the lobby's setup
+ * sheet send the same shape.
+ */
+function validateMatchSetup(
+  payload: MatchSetupPayload,
+): { error: string } | { ok: ValidatedSetup } {
+  if (!isScale(payload.gradingScale)) return { error: "Invalid grading scale" };
 
   const name = clampString(payload.name, MAX_NAME_LEN);
   const location = clampString(payload.location, MAX_LOCATION_LEN);
@@ -140,10 +163,7 @@ export async function createMatchAction(
   let saveScaleName: string | null = null;
 
   if (isFormulaScale(payload.gradingScale)) {
-    if (
-      typeof payload.minGrade !== "number" ||
-      typeof payload.maxGrade !== "number"
-    ) {
+    if (typeof payload.minGrade !== "number" || typeof payload.maxGrade !== "number") {
       return { error: "Pick a min and max grade" };
     }
     if (payload.minGrade < 0 || payload.minGrade > 30) {
@@ -172,34 +192,18 @@ export async function createMatchAction(
   }
   // `points` falls through — no grades, no range, nothing to validate.
 
-  const leagueId = payload.leagueId ?? null;
-  if (leagueId !== null && !isUuid(leagueId)) return { error: "Invalid league" };
-
-  // No resource id to validate (the payload was validated above) —
-  // the gate still supplies signed-in auth + the write rate limit.
-  const auth = await gateSignedInMutation(null, "match");
-  if ("error" in auth) return { error: auth.error };
-
   const discipline = payload.discipline ?? "boulder";
   if (!isDiscipline(discipline)) return { error: "Invalid discipline" };
 
-  // Validated here as well as in SQL: the action boundary rejects a
-  // malformed payload before any DB call, so the constraint isn't the
-  // only gate (CLAUDE.md "Validate ids at the action boundary").
   const altScale = payload.altGradingScale ?? null;
   let altMin: number | null = null;
   let altMax: number | null = null;
   if (altScale !== null) {
-    if (!isFormulaScaleName(altScale)) {
-      return { error: "Invalid second grading scale" };
-    }
+    if (!isFormulaScaleName(altScale)) return { error: "Invalid second grading scale" };
     if (scaleFamily(altScale) === scaleFamily(payload.gradingScale)) {
       return { error: "The second scale must be for the other discipline" };
     }
-    if (
-      typeof payload.altMinGrade !== "number" ||
-      typeof payload.altMaxGrade !== "number"
-    ) {
+    if (typeof payload.altMinGrade !== "number" || typeof payload.altMaxGrade !== "number") {
       return { error: "Pick a min and max for the second scale" };
     }
     if (payload.altMinGrade < 0 || payload.altMinGrade > 30) {
@@ -212,19 +216,44 @@ export async function createMatchAction(
     altMax = payload.altMaxGrade;
   }
 
+  return {
+    ok: {
+      name, location, discipline,
+      gradingScale: payload.gradingScale,
+      minGrade, maxGrade, customGrades, saveScaleName,
+      altScale, altMin, altMax,
+    },
+  };
+}
+
+export async function createMatchAction(
+  payload: CreateMatchPayload,
+): Promise<ActionResult<{ id: string; code: string }>> {
+  const checked = validateMatchSetup(payload);
+  if ("error" in checked) return { error: checked.error };
+  const s = checked.ok;
+
+  const leagueId = payload.leagueId ?? null;
+  if (leagueId !== null && !isUuid(leagueId)) return { error: "Invalid league" };
+
+  // No resource id to validate (the payload was validated above) —
+  // the gate still supplies signed-in auth + the write rate limit.
+  const auth = await gateSignedInMutation(null, "match");
+  if ("error" in auth) return { error: auth.error };
+
   const { data, error } = await auth.supabase.rpc("create_match", {
-    p_discipline: discipline,
+    p_discipline: s.discipline,
     p_handicap: !!payload.handicap,
-    p_name: undef(name),
-    p_location: undef(location),
-    p_grading_scale: payload.gradingScale,
-    p_min_grade: undef(minGrade),
-    p_max_grade: undef(maxGrade),
-    p_custom_grades: undef(customGrades),
-    p_save_scale_name: undef(saveScaleName),
-    p_alt_grading_scale: undef(altScale),
-    p_alt_min_grade: undef(altMin),
-    p_alt_max_grade: undef(altMax),
+    p_name: undef(s.name),
+    p_location: undef(s.location),
+    p_grading_scale: s.gradingScale,
+    p_min_grade: undef(s.minGrade),
+    p_max_grade: undef(s.maxGrade),
+    p_custom_grades: undef(s.customGrades),
+    p_save_scale_name: undef(s.saveScaleName),
+    p_alt_grading_scale: undef(s.altScale),
+    p_alt_min_grade: undef(s.altMin),
+    p_alt_max_grade: undef(s.altMax),
     p_league_id: undef(leagueId),
   });
   if (error) return { error: formatError(error) };
@@ -750,6 +779,40 @@ export async function setMatchHandicapAction(
   const { error } = await auth.supabase.rpc("set_match_handicap", {
     p_set_id: matchId,
     p_enabled: enabled,
+  });
+  if (error) return { error: formatError(error) };
+  return { success: true };
+}
+
+/**
+ * Change a live match's setup from the lobby. Host only, and only
+ * while no route exists — the RPC refuses otherwise, and its words
+ * come straight back to the sheet.
+ */
+export async function setMatchSetupAction(
+  matchId: string,
+  payload: MatchSetupPayload,
+): Promise<ActionResult> {
+  const auth = await gateSignedInMutation(matchId, "match id");
+  if ("error" in auth) return { error: auth.error };
+
+  const checked = validateMatchSetup(payload);
+  if ("error" in checked) return { error: checked.error };
+  const s = checked.ok;
+
+  const { error } = await auth.supabase.rpc("set_match_setup", {
+    p_set_id: matchId,
+    p_name: undef(s.name),
+    p_location: undef(s.location),
+    p_discipline: s.discipline,
+    p_grading_scale: s.gradingScale,
+    p_min_grade: undef(s.minGrade),
+    p_max_grade: undef(s.maxGrade),
+    p_custom_grades: undef(s.customGrades),
+    p_save_scale_name: undef(s.saveScaleName),
+    p_alt_grading_scale: undef(s.altScale),
+    p_alt_min_grade: undef(s.altMin),
+    p_alt_max_grade: undef(s.altMax),
   });
   if (error) return { error: formatError(error) };
   return { success: true };

@@ -977,6 +977,87 @@ describe("setMatchGameMode / setMatchHandicapAction", () => {
   });
 });
 
+describe("setMatchSetupAction", () => {
+  const SETUP = {
+    name: "Friday sesh",
+    location: null,
+    discipline: "boulder" as const,
+    gradingScale: "font" as const,
+    minGrade: 0,
+    maxGrade: 21,
+    customGrades: null,
+    saveScaleName: null,
+    altGradingScale: null,
+    altMinGrade: null,
+    altMaxGrade: null,
+  };
+
+  it("rejects a malformed match id before any DB call", async () => {
+    const sb = await mockSignedIn();
+    const { setMatchSetupAction } = await import("./actions");
+    expect(await setMatchSetupAction("nope", SETUP)).toEqual({ error: "Invalid match id" });
+    expect(sb.calls.find((c) => c.source === "set_match_setup")).toBeUndefined();
+  });
+
+  it("requires a signed-in caller", async () => {
+    const { setMatchSetupAction } = await import("./actions");
+    expect(await setMatchSetupAction(MATCH_1, SETUP)).toEqual({ error: AUTH_REQUIRED });
+  });
+
+  it("validates the payload the way create does — a range is required on a formula scale", async () => {
+    await mockSignedIn();
+    const { setMatchSetupAction } = await import("./actions");
+    expect(
+      await setMatchSetupAction(MATCH_1, { ...SETUP, minGrade: null, maxGrade: null }),
+    ).toEqual({ error: "Pick a min and max grade" });
+  });
+
+  it("refuses a second scale in the primary's own family", async () => {
+    await mockSignedIn();
+    const { setMatchSetupAction } = await import("./actions");
+    expect(
+      await setMatchSetupAction(MATCH_1, {
+        ...SETUP,
+        altGradingScale: "v",
+        altMinGrade: 0,
+        altMaxGrade: 10,
+      }),
+    ).toEqual({ error: "The second scale must be for the other discipline" });
+  });
+
+  it("writes through the RPC with nulls folded to undefined", async () => {
+    const sb = await mockSignedIn();
+    const { setMatchSetupAction } = await import("./actions");
+    expect(await setMatchSetupAction(MATCH_1, SETUP)).toEqual({ success: true });
+    expect(sb.calls.find((c) => c.source === "set_match_setup")?.args[0]).toEqual({
+      p_set_id: MATCH_1,
+      p_name: "Friday sesh",
+      p_location: undefined,
+      p_discipline: "boulder",
+      p_grading_scale: "font",
+      p_min_grade: 0,
+      p_max_grade: 21,
+      p_custom_grades: undefined,
+      p_save_scale_name: undefined,
+      p_alt_grading_scale: undefined,
+      p_alt_min_grade: undefined,
+      p_alt_max_grade: undefined,
+    });
+  });
+
+  it("surfaces the locked-by-routes refusal as the RPC's own words", async () => {
+    await mockSignedIn({
+      "rpc:set_match_setup": {
+        error: { code: "22023", message: "Routes are already up — grading is locked" },
+      },
+    });
+    const { setMatchSetupAction } = await import("./actions");
+    expect(await setMatchSetupAction(MATCH_1, SETUP)).toEqual({
+      error: "Routes are already up — grading is locked",
+    });
+  });
+});
+
 describe("shareResultAction", () => {
   it("rejects a malformed result id", async () => {
     const { shareResultAction } = await import("./actions");

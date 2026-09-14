@@ -2018,6 +2018,20 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: number
       }
+      match_setup_check: {
+        Args: {
+          p_alt_grading_scale: string
+          p_alt_max_grade: number
+          p_alt_min_grade: number
+          p_custom_grades: string[]
+          p_discipline: string
+          p_grading_scale: string
+          p_handicap: boolean
+          p_max_grade: number
+          p_min_grade: number
+        }
+        Returns: undefined
+      }
       match_standings: {
         Args: { p_set_id: string }
         Returns: {
@@ -2176,6 +2190,58 @@ export type Database = {
       }
       set_match_handicap: {
         Args: { p_enabled: boolean; p_set_id: string }
+        Returns: {
+          active: boolean
+          alt_grading_scale: string | null
+          alt_max_grade: number | null
+          alt_min_grade: number | null
+          closing_event: boolean
+          code: string | null
+          competition_id: string | null
+          created_at: string
+          discipline: string
+          ends_at: string | null
+          game_mode: string
+          grading_scale: string
+          gym_id: string | null
+          handicap: boolean
+          host_id: string | null
+          id: string
+          last_activity_at: string | null
+          league_id: string | null
+          location: string | null
+          max_grade: number | null
+          min_grade: number | null
+          name: string | null
+          owner_kind: string
+          share_token: string | null
+          starts_at: string
+          status: string
+          updated_at: string
+          venue_gym_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "sets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      set_match_setup: {
+        Args: {
+          p_alt_grading_scale?: string
+          p_alt_max_grade?: number
+          p_alt_min_grade?: number
+          p_custom_grades?: string[]
+          p_discipline?: string
+          p_grading_scale?: string
+          p_location?: string
+          p_max_grade?: number
+          p_min_grade?: number
+          p_name?: string
+          p_save_scale_name?: string
+          p_set_id: string
+        }
         Returns: {
           active: boolean
           alt_grading_scale: string | null
