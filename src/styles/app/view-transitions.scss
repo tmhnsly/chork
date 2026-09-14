@@ -21,6 +21,17 @@
   mix-blend-mode: normal;
 }
 
+// The navbar's own layer: above the page snapshots, and still.
+::view-transition-group(navbar) {
+  z-index: var(--z-navbar);
+  animation: none;
+}
+
+::view-transition-old(navbar),
+::view-transition-new(navbar) {
+  animation: none;
+}
+
 ::view-transition-old(.page-out) {
   animation: vt-page-out var(--duration-fast) var(--ease-out) both;
 }

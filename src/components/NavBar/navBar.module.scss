@@ -33,6 +33,12 @@
   pointer-events: auto;
   box-shadow: var(--shadow-md);
   @include surface.glass(65%, var(--mono-bg));
+  // Its own layer during a view transition. Without a name the bar
+  // is part of the root snapshot, and the page's snapshot paints over
+  // it for the length of every fade — the navbar sinking to the back
+  // on each tab change. styles/app/view-transitions.scss stacks the
+  // named group at the navbar's z-index and gives it no animation.
+  view-transition-name: navbar;
 }
 
 // ── Brand ─────────────────────────────────────────

@@ -1,11 +1,76 @@
+// The three lights' centres, as registered properties so the browser
+// can interpolate them. A plain custom property would snap; a
+// registered <percentage> tweens, which is what lets the ground drift
+// between pages. Baseline since 2024; older engines snap, which is
+// what the ground did before.
+@property --bd1-x { syntax: "<percentage>"; inherits: false; initial-value: 12%; }
+@property --bd1-y { syntax: "<percentage>"; inherits: false; initial-value: 0%; }
+@property --bd2-x { syntax: "<percentage>"; inherits: false; initial-value: 100%; }
+@property --bd2-y { syntax: "<percentage>"; inherits: false; initial-value: 100%; }
+@property --bd3-x { syntax: "<percentage>"; inherits: false; initial-value: 85%; }
+@property --bd3-y { syntax: "<percentage>"; inherits: false; initial-value: 30%; }
+
 .backdrop {
   position: fixed;
   inset: 0;
   z-index: var(--z-page-wash);
   pointer-events: none;
   background:
-    radial-gradient(ellipse 70% 45% at 12% 0%, var(--accent-bg) 0%, transparent 65%),
-    radial-gradient(ellipse 60% 40% at 100% 100%, var(--flash-subtle-bg) 0%, transparent 65%),
-    radial-gradient(ellipse 40% 30% at 85% 30%, var(--success-subtle-bg) 0%, transparent 70%),
+    radial-gradient(ellipse 70% 45% at var(--bd1-x) var(--bd1-y), var(--accent-bg) 0%, transparent 65%),
+    radial-gradient(ellipse 60% 40% at var(--bd2-x) var(--bd2-y), var(--flash-subtle-bg) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 30% at var(--bd3-x) var(--bd3-y), var(--success-subtle-bg) 0%, transparent 70%),
     var(--surface-page);
+  // The drift. Slower than the page fade it rides under, so the
+  // lights are still settling as the new page lands.
+  transition:
+    --bd1-x var(--duration-hero) var(--ease-in-out),
+    --bd1-y var(--duration-hero) var(--ease-in-out),
+    --bd2-x var(--duration-hero) var(--ease-in-out),
+    --bd2-y var(--duration-hero) var(--ease-in-out),
+    --bd3-x var(--duration-hero) var(--ease-in-out),
+    --bd3-y var(--duration-hero) var(--ease-in-out);
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}
+
+// ── Arrangements ─────────────────────────────────
+// Card: the accent up by the rank strip, gold low on the left under
+// the grid, zone off to the right.
+.backdrop[data-mood="card"] {
+  --bd1-x: 90%; --bd1-y: 0%;
+  --bd2-x: 0%; --bd2-y: 90%;
+  --bd3-x: 100%; --bd3-y: 45%;
+}
+
+// Friends: zone leads — it is the people colour on the board — with
+// the accent low right.
+.backdrop[data-mood="friends"] {
+  --bd1-x: 100%; --bd1-y: 100%;
+  --bd2-x: 60%; --bd2-y: 110%;
+  --bd3-x: 5%; --bd3-y: 0%;
+}
+
+// Games: the two game colours in opposite corners, as the posters
+// are lit.
+.backdrop[data-mood="games"] {
+  --bd1-x: 12%; --bd1-y: 0%;
+  --bd2-x: 100%; --bd2-y: 100%;
+  --bd3-x: 85%; --bd3-y: 30%;
+}
+
+// Board: gold high and central, behind the podium; accent low left.
+.backdrop[data-mood="board"] {
+  --bd1-x: 0%; --bd1-y: 100%;
+  --bd2-x: 50%; --bd2-y: 8%;
+  --bd3-x: 100%; --bd3-y: 60%;
+}
+
+// Profile: the accent high and central — a halo behind the face —
+// the other two low in the corners.
+.backdrop[data-mood="profile"] {
+  --bd1-x: 50%; --bd1-y: 0%;
+  --bd2-x: 0%; --bd2-y: 100%;
+  --bd3-x: 100%; --bd3-y: 100%;
 }

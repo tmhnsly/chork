@@ -283,7 +283,10 @@ Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
   (sticky chrome), `surface.glass($opacity)` (sheets, modals). The
   page plane is lit once, by `PageBackdrop` in the root layout: a
   fixed layer with three soft lights in the chord (accent, flash,
-  zone) — never add a per-page wash. The page and its cards are two
+  zone), arranged per kind of page (`data-mood`) with their centres
+  as registered custom properties so they drift between pages over
+  the route fade — never add a per-page wash. The navbar carries
+  `view-transition-name: navbar` so it stays above page snapshots. The page and its cards are two
   planes — `--surface-page` / `--surface-card`, set by
   the `planes` mixin per theme AND per mode (light: step 3 page,
   step 1 cards; dark: step 1 page, step 2 cards). Never paint a card
