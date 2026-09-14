@@ -54,7 +54,7 @@
 // the instant you tap Add.
 .pending {
   @extend %action;
-  background: var(--mono-subtle-bg);
+  background: var(--surface-card);
   border-color: var(--mono-border-subtle);
   color: var(--mono-text-low-contrast);
   cursor: default;
@@ -114,7 +114,7 @@
 
   > * {
     margin-inline-start: calc(var(--space-2) * -1);
-    box-shadow: 0 0 0 2px var(--mono-subtle-bg);
+    box-shadow: 0 0 0 2px var(--surface-card);
     border-radius: var(--radius-full);
   }
   > :first-child {

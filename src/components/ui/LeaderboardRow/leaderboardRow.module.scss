@@ -9,7 +9,9 @@
   min-height: var(--size-touch-target);
   padding: var(--space-3);
   border: none;
-  background: var(--mono-subtle-bg);
+  // The card plane, not a mono step: inside a card a step-2 row was
+  // a grey slab once cards went to step 1.
+  background: var(--surface-card);
   border-radius: var(--radius-2);
   color: var(--mono-text);
   text-align: left;
@@ -88,7 +90,7 @@ a.row {
   @include type.typography(label, $step: xs);
   flex-shrink: 0;
   color: var(--mono-text-low-contrast);
-  background: var(--mono-subtle-bg);
+  background: var(--surface-card);
   border-radius: var(--radius-1);
   padding: var(--space-1) var(--space-2);
 }

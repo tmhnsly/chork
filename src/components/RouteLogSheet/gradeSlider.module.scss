@@ -9,7 +9,7 @@
 .panel {
   border: 1px solid var(--mono-border);
   border-radius: var(--radius-2);
-  background: var(--mono-subtle-bg);
+  background: var(--surface-card);
   overflow: hidden; // contain chip scroll within rounded corners
 }
 

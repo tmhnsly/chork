@@ -126,7 +126,8 @@ export function GradingSetup({ state, dispatch, savedScales, onMaxGrades }: Prop
 
   return (
     <div className={styles.root}>
-      <h2 className={styles.question}>What are you climbing?</h2>
+      {/* No heading for the first choice: the sheet's own title asks
+          "What are you climbing?", and asking twice read as a bug. */}
       <ChoiceTiles<DisciplineChoice>
         options={DISCIPLINE_CHOICES}
         value={disciplineChoice}

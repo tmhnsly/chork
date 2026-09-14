@@ -13,8 +13,8 @@
 //   thick   → 70% opacity — sheets, modals, alerts (default)
 //
 // Glass base colour:
-//   --mono-subtle-bg (step 2, default) — lighter panels
-//   --mono-bg (step 3) — darker panels for more contrast
+//   --surface-card (default) — the card plane, so a sheet is a card
+//   that floats; --mono-bg (step 3) — darker panels for more contrast
 
 // ── Card ────────────────────────────────────────────
 // Paints the card plane (`--surface-card`, theme/colors.scss) — one
@@ -49,14 +49,14 @@
 
 // ── Chrome ──────────────────────────────────────────
 @mixin chrome {
-  background-color: var(--mono-subtle-bg);
+  background-color: var(--surface-card);
   border-bottom: 1px solid var(--mono-border-subtle);
 }
 
 // ── Glass ───────────────────────────────────────────
 // $opacity: 0–100, how much of the base colour shows through.
 // $base: the tint colour — use step 3 for darker panels.
-@mixin glass($opacity: 70%, $base: var(--mono-subtle-bg)) {
+@mixin glass($opacity: 70%, $base: var(--surface-card)) {
   background: color-mix(in srgb, $base $opacity, transparent);
   border: 1px solid var(--mono-border-subtle);
   -webkit-backdrop-filter: saturate(180%) blur(20px);

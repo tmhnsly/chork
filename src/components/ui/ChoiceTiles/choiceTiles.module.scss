@@ -21,17 +21,21 @@
   min-height: calc(var(--size-touch-target) * 1.4);
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--mono-border-subtle);
-  border-radius: var(--radius-2);
-  background: var(--mono-bg);
+  border-radius: var(--radius-card-inner);
+  // The card plane, lifted a hair — a choice is a small card you
+  // pick up, not a grey slab. Step 3 read as disabled beside white.
+  background: var(--surface-card);
+  box-shadow: var(--shadow-sm);
   color: var(--mono-text);
   cursor: pointer;
   text-align: left;
   transition:
     background var(--duration-fast) var(--ease-out),
-    border-color var(--duration-fast) var(--ease-out);
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
 
   &:hover:not(:disabled) {
-    background: var(--mono-bg-hover);
+    border-color: var(--accent-border);
   }
 
   &:disabled {
@@ -43,6 +47,7 @@
   background: var(--accent-solid);
   border-color: var(--accent-solid);
   color: var(--accent-on-solid);
+  box-shadow: none;
 
   &:hover:not(:disabled) {
     background: var(--accent-solid-hover);
@@ -61,8 +66,10 @@
   color: var(--mono-text-low-contrast);
 }
 
+// Sentence case in the button voice: "Top rope", not "TOP ROPE". A
+// choice is a thing you say, not a field you label.
 .label {
-  @include type.typography(label, $step: sm);
+  @include type.typography(button);
 }
 
 .detail {

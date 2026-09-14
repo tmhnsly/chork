@@ -1,3 +1,4 @@
+@use "surfaces" as surface;
 // Layout composition mixins.
 // Usage: @use 'mixins/layout' as layout;
 
@@ -43,9 +44,13 @@
 }
 
 // App pages — send grid, profile, leaderboard.
-// Single-column, content-focused. Widens on desktop.
+// Single-column, content-focused. Widens on desktop. Every app page
+// gets the accent wash at the top (surface.wash): the toned page
+// plane alone read as plain grey, and the glow is what makes the
+// cards' planes and the navbar's glass make sense.
 @mixin page {
   @include _page-base;
+  @include surface.wash;
   max-width: var(--content-app);
 }
 

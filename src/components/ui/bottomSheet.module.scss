@@ -101,7 +101,7 @@
   // cleanly hidden, no per-frame repaint cost, no Firefox blur
   // regression. The bar reads as a solid chrome strip above the
   // scrolling body below.
-  background: var(--mono-subtle-bg);
+  background: var(--surface-card);
 }
 
 .titleRow {
@@ -160,7 +160,7 @@
   flex-shrink: 0;
   border: 1px solid var(--mono-border);
   border-radius: var(--radius-full);
-  background: var(--mono-subtle-bg);
+  background: var(--surface-card);
   color: var(--mono-text);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { FaEllipsisVertical, FaFlag, FaPaperPlane } from "react-icons/fa6";
-import { Button, IconButton, LeaderboardRow, showToast } from "@/components/ui";
+import { IconButton, LeaderboardRow, UserAvatar, showToast } from "@/components/ui";
 import type { MatchState, SavedScale } from "@/lib/data/match-types";
 import { ownerIdOf } from "@/lib/data/match-types";
 import { formatHandicapPoints } from "@/lib/data/handicap";
@@ -181,22 +181,44 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
               openPanel({ kind: "setup", section });
             }}
           />
-          <div className={styles.metaRow}>
-            <span className={styles.metaChip}>
-              {countOf(state.players.length, "player")}
-            </span>
-            {/* Say so. A player whose score is being adjusted against
-                their own limit should not have to work that out from
-                the numbers not adding up. */}
-            {initialState.match.handicap && (
-              <span className={styles.metaChip}>Handicap</span>
-            )}
+          <div className={styles.heroFoot}>
+            {/* Who's in, as faces: the first four seats overlapping,
+                the count beside them. */}
+            <div className={styles.players}>
+              <span className={styles.stack} aria-hidden>
+                {state.players.slice(0, 4).map((p) => (
+                  <UserAvatar
+                    key={p.player_id}
+                    user={{
+                      id: ownerIdOf(p),
+                      username: p.username ?? "guest",
+                      name: p.display_name ?? "",
+                      avatar_url: p.avatar_url ?? "",
+                    }}
+                    size="stack"
+                  />
+                ))}
+              </span>
+              <span className={styles.playersCount}>
+                {countOf(state.players.length, "player")}
+                {/* Say so. A player whose score is being adjusted
+                    against their own limit should not have to work
+                    that out from the numbers not adding up. */}
+                {initialState.match.handicap && " · Handicap"}
+              </span>
+            </div>
             {/* In the lobby the join card carries this; once under
-                way, the code and QR are one tap from the hero. */}
+                way, the code and QR are one tap from the hero. A pill
+                in the setup row's shape, tinted so it reads as the
+                one thing here that does something. */}
             {!lobby && (
-              <Button type="button" variant="secondary" onClick={() => openPanel({ kind: "invite" })}>
+              <button
+                type="button"
+                className={styles.invitePill}
+                onClick={() => openPanel({ kind: "invite" })}
+              >
                 <FaPaperPlane aria-hidden /> Invite
-              </Button>
+              </button>
             )}
           </div>
         </div>

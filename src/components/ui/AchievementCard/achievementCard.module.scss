@@ -33,7 +33,7 @@
 
   @media (hover: hover) {
     &:hover {
-      background: var(--mono-subtle-bg);
+      background: var(--surface-card);
     }
   }
 }
@@ -118,7 +118,7 @@
 
 .card--muted {
   .circle {
-    background: var(--mono-subtle-bg);
+    background: var(--surface-card);
     border-color: var(--mono-border);
     color: var(--mono-solid);
   }

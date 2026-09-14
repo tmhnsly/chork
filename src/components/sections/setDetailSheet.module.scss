@@ -27,7 +27,7 @@
   @include layout.stack(var(--space-1));
   align-items: center;
   padding: var(--space-3);
-  background: var(--mono-subtle-bg);
+  background: var(--surface-card);
   border-radius: var(--radius-2);
 }
 

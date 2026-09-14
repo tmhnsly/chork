@@ -49,8 +49,10 @@
   min-width: 0;
 }
 
+// A card title, not a page title: the display voice at a card's
+// step. It was the page-title step, which made the card a billboard.
 .title {
-  @include type.typography(display);
+  @include type.typography(display, $step: 3xl);
   color: var(--mono-text);
   margin: 0;
   // A real name wraps rather than truncates — "Tom's match" is short,
@@ -64,6 +66,67 @@
   flex-wrap: wrap;
   gap: var(--space-2);
   align-items: center;
+}
+
+// The hero's foot: faces and count on the left, Invite on the right.
+.heroFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-1);
+}
+
+.players {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+// Overlapping avatars, first on top; the ring separates faces that
+// touch. Same rule the profile's friends row used.
+.stack {
+  display: inline-flex;
+  flex-shrink: 0;
+
+  > * {
+    margin-inline-start: calc(var(--space-2) * -1);
+    box-shadow: 0 0 0 2px var(--surface-card);
+    border-radius: var(--radius-full);
+  }
+  > :first-child {
+    margin-inline-start: 0;
+  }
+}
+
+.playersCount {
+  @include type.typography(meta, $step: sm);
+  color: var(--mono-text-low-contrast);
+  white-space: nowrap;
+}
+
+// Invite: the setup pill's shape, in the accent's quiet tint, so it
+// sits with the pills but reads as the one that acts.
+.invitePill {
+  @include type.typography(label);
+  @include focus.ring;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  min-height: var(--size-touch-target);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--accent-border-subtle);
+  background: var(--accent-bg);
+  color: var(--accent-text);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    background: var(--accent-bg-hover);
+  }
 }
 
 .metaChip {

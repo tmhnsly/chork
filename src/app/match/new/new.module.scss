@@ -1,12 +1,10 @@
 @use "mixins/layout" as layout;
-@use "mixins/surfaces" as surface;
 
 // The profile's wash at the top, and a second, lower glow in flash
 // gold — the two games' colours, behind the two cards that choose
 // them, and something for their glass to blur.
 .page {
   @include layout.page;
-  @include surface.wash;
 
   &::after {
     content: "";
