@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition, useCallback, useRef, useEffect } from "react";
+import { useState, useTransition, useCallback, useRef, useEffect, ViewTransition, Fragment } from "react";
+import { useViewTransitionsEnabled } from "@/lib/view-transitions";
 import { useSheetPresence } from "@/hooks/use-sheet-presence";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { tabId } from "@/components/ui/tab-ids";
@@ -91,7 +92,10 @@ export function LeaderboardView({
   cacheRef.current = cache;
 
   const handleTabChange = useCallback((next: Tab) => {
-    setTab(next);
+    // Inside a transition, or the board swap commits synchronously
+    // and React's <ViewTransition> around it never gets to animate —
+    // only transition-scheduled updates do.
+    startTransition(() => setTab(next));
     if (cacheRef.current[next] || inFlightTabs.current.has(next)) return;
     inFlightTabs.current.add(next);
     const fetchSetId = next === "set" ? currentSetId : null;
@@ -158,6 +162,17 @@ export function LeaderboardView({
   const showBrowse = !userInTop && userRow?.rank != null;
   const showUnrankedUser = userRow && userRow.rank === null && !isEmpty;
 
+  // A tab switch swaps the whole board. Keyed on the tab and wrapped
+  // in its own ViewTransition, the outgoing board fades down and the
+  // incoming one fades up while the podium's own entrance stagger
+  // plays inside it — the switch runs in `startTransition`, which is
+  // what lets React animate it.
+  const vtEnabled = useViewTransitionsEnabled();
+  const Board = vtEnabled ? ViewTransition : Fragment;
+  const boardProps = vtEnabled
+    ? { enter: "board-in", exit: "board-out", default: "none" as const }
+    : {};
+
   return (
     <div className={styles.view}>
       {/* One word — see CONTEXT.md "Wall vs Chorkboard". The tab
@@ -202,6 +217,7 @@ export function LeaderboardView({
         tabIndex={0}
         aria-labelledby={tabId(BOARD_PANEL_ID, tab)}
       >
+      <Board key={tab} {...boardProps}>
       {tabLoading ? (
         <PodiumSkeleton />
       ) : isEmpty ? (
@@ -265,6 +281,7 @@ export function LeaderboardView({
           <InviteCard gymName={gymName} />
         </>
       )}
+      </Board>
       </div>
 
       {shownEntry && (

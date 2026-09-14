@@ -2,6 +2,8 @@
 @use "mixins/focus";
 
 .podium {
+  --stagger-podium: 0.1s;
+  --i: 0;
   display: grid;
   grid-template-columns: 1fr 1.2fr 1fr;
   align-items: end;
@@ -11,7 +13,10 @@
   // below shrinks the padding by the same amount so the container's
   // total height stays constant and content below the podium doesn't
   // jump.
-  padding: calc(var(--space-4) + var(--space-3)) var(--space-4) 0;
+  // Room above for the crown and the hover lift; sides on the card's
+  // own gutter so the podium sits IN the card rather than pressed to
+  // its edges.
+  padding: calc(var(--space-6) + var(--space-3)) var(--space-5) 0;
   // Animate padding in lock-step with the plinth's height so the
   // container's total height stays constant throughout the transition
   // (row grows by space-3, padding shrinks by space-3 — net zero).
@@ -20,7 +25,7 @@
   &:has(button.slot.place1:hover),
   &:has(button.slot.place1:focus-visible),
   &:has(.slot.place1.slotActive) {
-    padding-top: var(--space-4);
+    padding-top: var(--space-6);
   }
   list-style: none;
   margin: 0;
@@ -42,6 +47,25 @@
     // its 1fr track wider than its share and pushes the third column
     // past the page's right edge.
     min-width: 0;
+    // The entrance: each athlete rises into place on their beat —
+    // the winner first, the sides after — and the plinth grows up
+    // under them. Plays on mount, which is every tab switch too,
+    // since the board is keyed on the tab.
+    animation: podiumRise var(--duration-slow) var(--ease-out-expo) calc(var(--i) * var(--stagger-podium)) both;
+  }
+}
+
+@keyframes podiumRise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-4));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .podium > li,
+  .plinth {
+    animation: none;
   }
 }
 
@@ -139,7 +163,15 @@ div.slot {
   border-radius: var(--radius-2) var(--radius-2) 0 0;
   border: 1px solid var(--mono-border-subtle);
   border-bottom: none;
+  transform-origin: bottom;
   transition: height var(--duration-fast) var(--ease-out);
+  animation: plinthGrow var(--duration-slow) var(--ease-out-expo) calc(var(--i) * var(--stagger-podium)) both;
+}
+
+@keyframes plinthGrow {
+  from {
+    transform: scaleY(0);
+  }
 }
 
 // Hover grows the plinth upward — the bottom is anchored by the
@@ -153,26 +185,29 @@ button.slot:focus-visible .plinth,
   height: calc(var(--plinth-h) + var(--space-3));
 }
 
+// The place, in on-solid ink on its tile.
 .placeLabel {
   @include type.typography(number, $step: xl);
   font-weight: var(--weight-bold);
-  // Step 11, not opacity — dimming via opacity scales contrast toward
-  // the background (see _state.scss). Gold/bronze override with their
-  // tier's text token below.
-  color: var(--mono-text-low-contrast);
+  color: var(--mono-app-bg);
 }
 
 // ── Per-place medal + plinth styling ────────────────
-// Each tier uses a different Radix scale step-9 colour so gold / silver /
-// bronze read immediately without needing to read the numbers.
+// Each tier is a solid tile in its medal colour — gold, silver,
+// bronze at step 9 with on-solid ink — the sent tile's treatment at
+// plinth scale. Tinted gradients read as grey boxes in dark mode;
+// a solid reads as a medal in both.
 
 // 1st — gold (amber). Tallest plinth, largest avatar, crown.
 .place1 {
-  --plinth-h: var(--space-20);
+  --plinth-h: var(--space-24);
 }
 .place1 .plinth {
-  background: linear-gradient(180deg, var(--flash-bg) 0%, var(--mono-subtle-bg) 100%);
-  border-color: var(--flash-border);
+  background: var(--flash-solid);
+  border-color: var(--flash-solid);
+}
+.place1 .placeLabel {
+  color: var(--flash-on-solid);
 }
 .place1 .medal {
   background: var(--flash-solid);
@@ -182,16 +217,13 @@ button.slot:focus-visible .plinth,
   @include type.typography(number, $step: md);
   color: var(--flash-text);
 }
-.place1 .placeLabel {
-  color: var(--flash-text);
-}
-
 // 2nd — silver (mono). Mid plinth.
 .place2 {
-  --plinth-h: var(--space-14);
+  --plinth-h: var(--space-16);
 }
 .place2 .plinth {
-  background: var(--surface-card);
+  background: var(--mono-solid);
+  border-color: var(--mono-solid);
 }
 .place2 .medal {
   background: var(--mono-solid);
@@ -203,11 +235,14 @@ button.slot:focus-visible .plinth,
 // proper tier of medals (gold / silver / bronze) instead of a
 // single coloured slot bracketed by two grey ones.
 .place3 {
-  --plinth-h: var(--space-10);
+  --plinth-h: var(--space-12);
 }
 .place3 .plinth {
-  background: linear-gradient(180deg, var(--bronze-bg) 0%, var(--mono-subtle-bg) 100%);
-  border-color: var(--bronze-border);
+  background: var(--bronze-solid);
+  border-color: var(--bronze-solid);
+}
+.place3 .placeLabel {
+  color: var(--bronze-on-solid);
 }
 .place3 .medal {
   background: var(--bronze-solid);
@@ -217,14 +252,14 @@ button.slot:focus-visible .plinth,
   @include type.typography(number, $step: md);
   color: var(--bronze-text);
 }
-.place3 .placeLabel {
-  color: var(--bronze-text);
-}
-
 // ── Self highlight ────────────────────────────────
+// Your own plinth is the accent tile — "yours", as everywhere.
 .self .plinth {
-  background: var(--accent-bg);
-  border-color: var(--accent-border);
+  background: var(--accent-solid);
+  border-color: var(--accent-solid);
+}
+.self .placeLabel {
+  color: var(--accent-on-solid);
 }
 
 .self .username {

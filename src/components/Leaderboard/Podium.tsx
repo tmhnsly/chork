@@ -35,9 +35,11 @@ export function Podium({ top, currentUserId, onPress, activeUserId }: Props) {
 
   return (
     <ul className={styles.podium} aria-label="Top climbers">
-      {second && <li><Slot entry={second} place={2} currentUserId={currentUserId} onPress={onPress} active={activeUserId === second.user_id} /></li>}
-      {first && <li><Slot entry={first} place={1} currentUserId={currentUserId} onPress={onPress} active={activeUserId === first.user_id} /></li>}
-      {third && <li><Slot entry={third} place={3} currentUserId={currentUserId} onPress={onPress} active={activeUserId === third.user_id} /></li>}
+      {/* `--i` is the entrance beat: the winner first, the sides a
+          beat later, so the podium builds outward from first place. */}
+      {second && <li style={{ "--i": 1 } as React.CSSProperties}><Slot entry={second} place={2} currentUserId={currentUserId} onPress={onPress} active={activeUserId === second.user_id} /></li>}
+      {first && <li style={{ "--i": 0 } as React.CSSProperties}><Slot entry={first} place={1} currentUserId={currentUserId} onPress={onPress} active={activeUserId === first.user_id} /></li>}
+      {third && <li style={{ "--i": 2 } as React.CSSProperties}><Slot entry={third} place={3} currentUserId={currentUserId} onPress={onPress} active={activeUserId === third.user_id} /></li>}
     </ul>
   );
 }

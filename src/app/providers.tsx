@@ -1,18 +1,8 @@
 "use client";
 
-import { ViewTransition, useEffect, useSyncExternalStore, type ReactNode } from "react";
+import { ViewTransition, useEffect, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
-
-// Firefox's same-document view transitions are a few releases old
-// and glitch on this app in ways we can't yet drive from automation
-// (Chrome verified clean). Until it is verified there, Firefox gets
-// instant navigation and a still ground. Read through
-// useSyncExternalStore so the server and first client render agree
-// (transitions on), then the client snapshot switches it off.
-const noSubscribe = () => () => {};
-const isFirefox = () => /firefox/i.test(navigator.userAgent);
-const useViewTransitionsEnabled = () =>
-  useSyncExternalStore(noSubscribe, () => !isFirefox(), () => true);
+import { useViewTransitionsEnabled } from "@/lib/view-transitions";
 import { ThemeProvider } from "next-themes";
 import { ThemeProvider as PaletteProvider } from "@/lib/theme";
 import { AuthProvider } from "@/lib/auth-context";

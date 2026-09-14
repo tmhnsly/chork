@@ -47,6 +47,21 @@
   animation: vt-page-in var(--duration-normal) var(--ease-out-expo) both;
 }
 
+// The Chorkboard swapping tabs: the old board sinks, the new one
+// rises, on the same rungs as a page.
+::view-transition-group(.board-out),
+::view-transition-group(.board-in) {
+  animation: none;
+}
+
+::view-transition-old(.board-out) {
+  animation: vt-page-out var(--duration-fast) var(--ease-out) both;
+}
+
+::view-transition-new(.board-in) {
+  animation: vt-page-in var(--duration-normal) var(--ease-out-expo) both;
+}
+
 @keyframes vt-page-out {
   to {
     opacity: 0;
