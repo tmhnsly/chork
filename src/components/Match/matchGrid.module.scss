@@ -1,12 +1,25 @@
 @use "mixins/typography" as type;
+@use "mixins/breakpoints" as bp;
+
+// Four across, the Card page's grid, on the same column every other
+// block of the game screen sits on: page gutter as margin, content
+// width, centred on tablet. It was five across inside its own inner
+// gutter, so the tiles sat a step in from the hero above and read as
+// a different page.
 .grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-2);
-  padding: var(--space-3) var(--gutter-x);
+  margin: 0 var(--gutter-x);
   max-width: var(--content-app);
-  margin: 0 auto;
-  width: 100%;
+  width: calc(100% - 2 * var(--gutter-x));
+  box-sizing: border-box;
+}
+
+@include bp.tablet {
+  .grid {
+    margin-inline: auto;
+  }
 }
 
 .tileButton {

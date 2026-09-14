@@ -7,18 +7,16 @@ import iconButtonStyles from "@/components/ui/iconButton.module.scss";
 /**
  * Stands in for `ProfileHero` while the profile loads.
  *
- * The hero's height moves with its width — a long name wraps — so a
- * block of one fixed height matched it at one width and shifted the
- * whole page below at every other. This is the hero's own layout with
- * blank content: the same stylesheet, the same centred avatar, a name,
- * a meta line and a career line of the same words, all under one
- * shimmer that melts the placeholders into the pulse. Whatever the
- * width, it measures what the real hero measures.
+ * The hero is bare on the page — a face, a name, two quiet lines —
+ * so its skeleton is bare too: a disc where the face goes and three
+ * bars where the words go, in the hero's own layout so it measures
+ * what the real hero measures at every width. It must NOT wear the
+ * card skeleton: that painted a white block where no card will be.
  */
 export function ProfileHeroSkeleton() {
   return (
     <section
-      className={`${styles.hero} ${shimmerStyles.skeleton}`}
+      className={styles.hero}
       role="status"
       aria-busy="true"
       aria-label="Loading profile"
@@ -26,17 +24,11 @@ export function ProfileHeroSkeleton() {
       <div className={styles.corner} aria-hidden>
         <span className={iconButtonStyles.root} />
       </div>
-      <span className={styles.avatarSlot} aria-hidden />
-      <div className={styles.names} aria-hidden>
-        <span className={styles.name}>Climber</span>
-        <span className={styles.meta}>@climber</span>
-        <span className={styles.career}>
-          {["0 sends", "0 flashes", "0 sets"].map((label) => (
-            <span key={label} className={styles.careerItem}>
-              {label}
-            </span>
-          ))}
-        </span>
+      <span className={`${styles.avatarSlot} ${shimmerStyles.skeletonDisc}`} aria-hidden />
+      <div className={`${styles.names} ${styles.namesLoading}`} aria-hidden>
+        <span className={`${shimmerStyles.skeletonLine} ${styles.nameSlot}`} />
+        <span className={`${shimmerStyles.skeletonLine} ${styles.metaSlot}`} />
+        <span className={`${shimmerStyles.skeletonLine} ${styles.careerSlot}`} />
       </div>
     </section>
   );

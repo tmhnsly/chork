@@ -1,34 +1,47 @@
 // ── Skeleton system ─────────────────────────────────
 //
-// Unified glow-style placeholder. Every loading surface in the app
-// pulses on the same rhythm: an inner step-3 tint breathes against
-// the card's step-2 bg, with a soft step-7 border-aligned glow that
-// brightens and fades on a 2s loop. Works on every theme because
-// it's composed entirely from `--mono-*` tokens.
+// A loading surface is the real surface, waiting: an opaque card on
+// the card plane with its own border, and a slow sheen sweeping
+// across it. Placeholder bars are step 3 on top. Nothing here dims
+// through opacity — the page behind is lit now (PageBackdrop), and a
+// translucent grey block over three coloured lights read as mud.
 //
 // Classes:
-//   `.skeleton`     — applied directly to an element. Melts all
-//                     nested text/images/borders into the pulse so
-//                     the surface reads as one seamless placeholder.
-//   `.skeletonLine` — standalone rectangular bar (headings, avatars).
-//   `.skeletonShort`— narrower bar (subtitles).
+//   `.skeleton`     — applied directly to a card-shaped element.
+//                     Melts nested text/images/borders so the surface
+//                     reads as one placeholder, then sheens.
+//   `.skeletonLine` — standalone bar (headings, meta). Pipe a width
+//                     through `--skeleton-w` when it should be shorter
+//                     than its container.
+//   `.skeletonShort`— the 40% bar (subtitles).
+//   `.skeletonDisc` — a round placeholder (avatars). Size it from the
+//                     avatar scale at the call site.
 //   `.fadeIn`       — apply to real content when swapping in.
 
-// The 0→0 stop can use plain `transparent` — a 0%-opacity mix of
-// anything resolves to the same thing. The 50% stop pulls
-// `--skeleton-glow` from the token layer; the mix that produces it
-// lives in `theme/surfaces.scss` next to `surface.scrim`'s, which is
-// where CLAUDE.md's rule wants it rather than open-coded here.
-@keyframes skeletonGlow {
-  0%, 100% {
-    opacity: 0.7;
-    box-shadow: 0 0 0 0 transparent;
+// The sheen: a soft band of step 3 crossing a card-plane ground, one
+// pass per --duration-shimmer. background-position moves, so it is
+// cheap and never touches opacity.
+@mixin sheen($ground) {
+  background-color: $ground;
+  background-image: linear-gradient(
+    110deg,
+    transparent 35%,
+    var(--mono-bg) 50%,
+    transparent 65%
+  );
+  background-size: 250% 100%;
+  background-position: 120% 0;
+  animation: sheen var(--duration-shimmer) var(--ease-in-out) infinite;
+
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+    background-image: none;
   }
-  50% {
-    opacity: 1;
-    box-shadow: 0 0 var(--glow-md) 0
-      var(--skeleton-glow);
-  }
+}
+
+@keyframes sheen {
+  from { background-position: 120% 0; }
+  to { background-position: -30% 0; }
 }
 
 // ── Skeleton class ─────────────────────────────────
@@ -37,16 +50,16 @@
   // already applied (e.g. a SectionCard). Loading explicitly
   // overrides surroundings.
   color: transparent !important;
-  background: var(--mono-bg) !important;
   border: 1px solid var(--mono-border-subtle) !important;
   // Border-radius intentionally NOT forced: the host's own radius
   // wins. SendGridTile is square (per CLAUDE.md), avatar skeletons are
   // circular, line skeletons are radius-1 — each surface keeps its
   // shape so the placeholder reads as "this thing, loading" rather
   // than "an unrelated rounded box".
-  animation: skeletonGlow var(--duration-shimmer) var(--ease-in-out) infinite;
+  @include sheen(var(--surface-card));
+  background-color: var(--surface-card) !important;
 
-  // Everything inside melts into the pulse.
+  // Everything inside melts into the surface.
   * {
     color: transparent !important;
     background-color: transparent !important;
@@ -54,31 +67,27 @@
     border-color: transparent !important;
     box-shadow: none !important;
   }
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-    opacity: 0.85;
-  }
 }
 
 // ── Placeholder bars ───────────────────────────────
 .skeletonLine {
   display: block;
   height: var(--text-sm);
-  width: 100%;
+  width: var(--skeleton-w, 100%);
   margin: var(--space-1) 0;
-  background: var(--mono-bg-hover);
-  border-radius: var(--radius-2);
-  animation: skeletonGlow var(--duration-shimmer) var(--ease-in-out) infinite;
-
-  @media (prefers-reduced-motion: reduce) {
-    animation: none;
-    opacity: 0.85;
-  }
+  border-radius: var(--radius-1);
+  @include sheen(var(--mono-bg));
 }
 
 .skeletonShort {
-  width: 40%;
+  --skeleton-w: 40%;
+}
+
+.skeletonDisc {
+  display: block;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  @include sheen(var(--mono-bg));
 }
 
 // ── Content fade-in ────────────────────────────────

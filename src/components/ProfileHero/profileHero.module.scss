@@ -24,8 +24,26 @@
   flex-shrink: 0;
   width: var(--size-avatar-podiumWin);
   height: var(--size-avatar-podiumWin);
-  border-radius: var(--radius-full);
-  background: var(--mono-bg);
+}
+
+// The skeleton's three bars, sized to the lines they stand in for:
+// a name at the display step, a meta line, a career line. Widths are
+// stand-ins for typical text, so they carry no token.
+.namesLoading {
+  align-items: center;
+}
+
+.nameSlot {
+  --skeleton-w: 9rem;
+  height: var(--text-3xl);
+}
+
+.metaSlot {
+  --skeleton-w: 7rem;
+}
+
+.careerSlot {
+  --skeleton-w: 12rem;
 }
 
 .names {
