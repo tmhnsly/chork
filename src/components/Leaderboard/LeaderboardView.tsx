@@ -224,6 +224,10 @@ export function LeaderboardView({
         <EmptyLeaderboard />
       ) : (
         <>
+          {/* The board is one object — podium head, rows, browse —
+              in glass over the ground. The explainer and the invite
+              are their own cards on the page rhythm, not tenants. */}
+          <div className={styles.board}>
           {podiumEntries.length > 0 && (
             <Podium
               top={podiumEntries}
@@ -276,6 +280,7 @@ export function LeaderboardView({
               />
             </section>
           )}
+          </div>
 
           <ScoringBreakdown />
           <InviteCard gymName={gymName} />

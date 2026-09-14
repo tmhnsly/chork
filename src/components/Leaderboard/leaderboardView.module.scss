@@ -7,15 +7,24 @@
   @include layout.stack(var(--space-5));
 }
 
-// The board is ONE card: the podium as its head, the rows flush
-// beneath, the browse nudges inside. It was a podium floating on the
-// page over a column of separate white row-cards, which read as a
-// list of things rather than a table. A game's board will reuse this
-// shape.
+// The tabpanel: the board, then the explainer and the invite, on
+// the page rhythm.
 .panel {
-  @include surface.card;
+  @include layout.stack(var(--space-5));
+}
+
+// The board is ONE object: the podium as its head, the rows flush
+// beneath, the browse nudges inside — in thick glass over the
+// ground, the one emphasised surface on the page. It was a podium
+// floating over a column of separate row-cards, which read as a
+// list of things rather than a table; then briefly one card that
+// swallowed the explainer and the invite too. A game's board will
+// reuse this shape.
+.board {
+  @include surface.glass(70%);
   @include layout.stack(0);
   border-radius: var(--radius-card);
+  box-shadow: var(--shadow-md);
   overflow: hidden;
 }
 
