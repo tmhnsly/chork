@@ -15,7 +15,10 @@ interface Props {
 
 /**
  * The match's setup, worn on its hero: game · climbing · grading ·
- * where. The host taps one to change it; everyone else reads it.
+ * details (name and where). The host taps one to change it;
+ * everyone else reads it. The location itself shows on the hero's
+ * foot beside the player count, so the pill can just say what it
+ * opens.
  * Grading and climbing lock with the first route — a tap then toasts
  * why (the screen decides) rather than opening a sheet that would
  * only refuse.
@@ -31,7 +34,7 @@ export function MatchSetupPills({ match, isHost, locked, onOpen }: Props) {
     { key: "game", section: "game", text: match.game_mode === "chork" ? "Chork" : "Points", lockable: false },
     { key: "climbing", section: "climbing", text: climbing, lockable: true },
     { key: "grading", section: "climbing", text: grading, lockable: true },
-    { key: "where", section: "details", text: match.location ?? "Add a location", lockable: false },
+    { key: "details", section: "details", text: "Details", lockable: false },
   ];
   return (
     <ul className={styles.row} aria-label="Game setup">

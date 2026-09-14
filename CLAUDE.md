@@ -280,9 +280,11 @@ Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
 - Accent: Radix `lime` on the default palette. Text on accent uses
   `--accent-on-solid`
 - Surfaces: `@include surface.card` (panels), `surface.chrome`
-  (sticky chrome), `surface.glass($opacity)` (sheets, modals),
-  `surface.wash` (a page's accent glow at the top). The page and its
-  cards are two planes — `--surface-page` / `--surface-card`, set by
+  (sticky chrome), `surface.glass($opacity)` (sheets, modals). The
+  page plane is lit once, by `PageBackdrop` in the root layout: a
+  fixed layer with three soft lights in the chord (accent, flash,
+  zone) — never add a per-page wash. The page and its cards are two
+  planes — `--surface-page` / `--surface-card`, set by
   the `planes` mixin per theme AND per mode (light: step 3 page,
   step 1 cards; dark: step 1 page, step 2 cards). Never paint a card
   with a `--mono-*` step directly; which step is "a card" differs

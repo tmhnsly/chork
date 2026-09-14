@@ -7,8 +7,7 @@
 // explicit labels; an aria-label still carries the intent for
 // screen readers.
 .section {
-  @include layout.stack(var(--space-2));
-  padding-top: var(--space-4);
+  @include layout.stack(0);
   border-top: 1px solid var(--mono-border-subtle);
 }
 
@@ -24,9 +23,10 @@
   width: 100%;
   min-height: var(--size-touch-target);
   padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-2);
-  border: 1px solid var(--mono-border-subtle);
-  background: var(--surface-card);
+  border-radius: 0;
+  border: 0;
+  border-top: 1px solid var(--mono-border-subtle);
+  background: transparent;
   color: var(--mono-text-low-contrast);
   cursor: pointer;
   font-size: var(--text-md);
@@ -37,8 +37,7 @@
     color var(--duration-fast) var(--ease-out);
 
   &:hover:not(:disabled) {
-    background: var(--mono-bg-hover);
-    border-color: var(--mono-border);
+    background: var(--mono-bg);
     color: var(--mono-text);
   }
 

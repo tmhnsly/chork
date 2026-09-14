@@ -1,22 +1,5 @@
 @use "mixins/layout" as layout;
 
-// The profile's wash at the top, and a second, lower glow in flash
-// gold — the two games' colours, behind the two cards that choose
-// them, and something for their glass to blur.
 .page {
   @include layout.page;
-
-  &::after {
-    content: "";
-    position: absolute;
-    inset: 45dvh 0 auto 0;
-    height: 50dvh;
-    pointer-events: none;
-    z-index: var(--z-page-wash);
-    background: radial-gradient(
-      ellipse 90% 60% at 80% 40%,
-      var(--flash-bg) 0%,
-      transparent 70%
-    );
-  }
 }

@@ -1,8 +1,14 @@
 @use "mixins/layout" as layout;
 
+// Rows flush, a hairline between — the list draws the lines, the
+// rows stay transparent.
 .list {
-  @include layout.stack(var(--space-2));
+  @include layout.stack(0);
   list-style: none;
   padding: 0;
   margin: 0;
+
+  > li + li {
+    border-top: 1px solid var(--mono-border-subtle);
+  }
 }

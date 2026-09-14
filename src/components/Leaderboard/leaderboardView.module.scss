@@ -1,15 +1,22 @@
 @use "mixins/typography" as type;
 @use "mixins/focus" as focus;
 @use "mixins/layout" as layout;
+@use "mixins/surfaces" as surface;
 
 .view {
   @include layout.stack(var(--space-5));
 }
 
-// The tabpanel is a child of `.view`, so it receives that stack's
-// gap but doesn't pass one on. Its own contents need the same rhythm.
+// The board is ONE card: the podium as its head, the rows flush
+// beneath, the browse nudges inside. It was a podium floating on the
+// page over a column of separate white row-cards, which read as a
+// list of things rather than a table. A game's board will reuse this
+// shape.
 .panel {
-  @include layout.stack(var(--space-5));
+  @include surface.card;
+  @include layout.stack(0);
+  border-radius: var(--radius-card);
+  overflow: hidden;
 }
 
 .segmentRow {
@@ -26,8 +33,7 @@
 }
 
 .unranked {
-  @include layout.stack(var(--space-2));
-  padding-top: var(--space-4);
+  @include layout.stack(0);
   border-top: 1px solid var(--mono-border-subtle);
 }
 
@@ -35,5 +41,6 @@
   @include type.typography(meta);
   color: var(--mono-text-low-contrast);
   text-align: center;
+  padding: var(--space-3) var(--space-4) 0;
 }
 

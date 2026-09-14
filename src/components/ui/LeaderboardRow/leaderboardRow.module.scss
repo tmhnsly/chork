@@ -9,10 +9,12 @@
   min-height: var(--size-touch-target);
   padding: var(--space-3);
   border: none;
-  // The card plane, not a mono step: inside a card a step-2 row was
-  // a grey slab once cards went to step 1.
-  background: var(--surface-card);
-  border-radius: var(--radius-2);
+  // A row is a line of the board, not a card of its own: transparent
+  // over whatever card holds it, flush, with the list drawing the
+  // hairlines between rows. The gym board, the friends board and a
+  // game's strip all read as one board this way.
+  background: transparent;
+  border-radius: 0;
   color: var(--mono-text);
   text-align: left;
   cursor: pointer;
@@ -38,7 +40,7 @@ a.row {
 
 .highlighted {
   background: var(--accent-bg);
-  border-left: 3px solid var(--accent-solid);
+  box-shadow: inset 3px 0 0 0 var(--accent-solid);
 
   @media (hover: hover) {
     &:hover {

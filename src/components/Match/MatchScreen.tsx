@@ -163,12 +163,11 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
   return (
     <main className={styles.screen}>
       <header className={styles.hero}>
-        <div className={styles.heroBody}>
-          <h1 className={styles.title}>
-            {matchTitle(initialState.match)}
-          </h1>
-          {/* The setup, worn: game · climbing · grading · where. The
-              host taps to change; grading locks with the first route. */}
+        <h1 className={styles.title}>{matchTitle(initialState.match)}</h1>
+        {/* The setup, worn: game · climbing · grading · details, with
+            the menu at the row's end. The host taps a pill to change
+            it; grading locks with the first route. */}
+        <div className={styles.heroRow}>
           <MatchSetupPills
             match={initialState.match}
             isHost={isHost}
@@ -181,7 +180,11 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
               openPanel({ kind: "setup", section });
             }}
           />
-          <div className={styles.heroFoot}>
+          <IconButton label="Game menu" onClick={() => openPanel({ kind: "menu" })}>
+            <FaEllipsisVertical />
+          </IconButton>
+        </div>
+        <div className={styles.heroFoot}>
             {/* Who's in, as faces: the first four seats overlapping,
                 the count beside them. */}
             <div className={styles.players}>
@@ -201,6 +204,7 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
               </span>
               <span className={styles.playersCount}>
                 {countOf(state.players.length, "player")}
+                {initialState.match.location && ` · ${initialState.match.location}`}
                 {/* Say so. A player whose score is being adjusted
                     against their own limit should not have to work
                     that out from the numbers not adding up. */}
@@ -220,11 +224,7 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
                 <FaPaperPlane aria-hidden /> Invite
               </button>
             )}
-          </div>
         </div>
-        <IconButton label="Game menu" onClick={() => openPanel({ kind: "menu" })}>
-          <FaEllipsisVertical />
-        </IconButton>
       </header>
 
       {lobby ? (

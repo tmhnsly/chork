@@ -11,7 +11,7 @@
   // below shrinks the padding by the same amount so the container's
   // total height stays constant and content below the podium doesn't
   // jump.
-  padding: calc(var(--space-4) + var(--space-3)) 0 0;
+  padding: calc(var(--space-4) + var(--space-3)) var(--space-4) 0;
   // Animate padding in lock-step with the plinth's height so the
   // container's total height stays constant throughout the transition
   // (row grows by space-3, padding shrinks by space-3 — net zero).

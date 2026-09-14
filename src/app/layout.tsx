@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { fontVariables } from "@/lib/fonts";
 import { Providers } from "./providers";
 import { NavBarShell } from "@/components/NavBar/NavBarShell";
+import { PageBackdrop } from "@/components/ui/PageBackdrop";
 import { env } from "@/lib/env";
 import "@/styles/globals.scss";
 
@@ -171,6 +172,7 @@ export default function RootLayout({
       className={fontVariables}
     >
       <body>
+        <PageBackdrop />
         <a href="#main-content" className="skip-link">Skip to main content</a>
         {/* NavBar is rendered server-side (reads the auth-shell cookie)
             and threaded into the client Providers tree as a prop — a
