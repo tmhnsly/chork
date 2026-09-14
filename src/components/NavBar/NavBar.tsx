@@ -185,7 +185,7 @@ function AuthedNavSkeleton({
 
   return (
     <nav className={styles.bar}>
-      <div className={styles.barInner}>
+      <div className={styles.barInner} data-vt="navbar">
         <Link href="/" className={styles.brandLink} aria-label="Chork — home">
           <ChorkMark size={18} />
           <span className={styles.brandText}>Chork</span>
@@ -301,7 +301,7 @@ function AuthenticatedNav({
 
   return (
     <nav className={styles.bar}>
-      <div className={styles.barInner}>
+      <div className={styles.barInner} data-vt="navbar">
         <Link href="/" className={styles.brandLink} aria-label="Chork — home">
           <ChorkMark size={18} />
           <span className={styles.brandText}>Chork</span>
@@ -398,7 +398,7 @@ function UnauthenticatedNav({ pathname }: { pathname: string }) {
 
   return (
     <nav className={styles.bar}>
-      <div className={styles.barInner}>
+      <div className={styles.barInner} data-vt="navbar">
         <Link
           href="/"
           className={`${styles.brandLinkVisible} ${homeActive ? styles.brandLinkActive : ""}`}

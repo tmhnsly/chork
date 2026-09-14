@@ -36,6 +36,11 @@
   @media (prefers-reduced-motion: reduce) {
     transition: none;
   }
+
+  // Still where view transitions are switched off (providers.tsx).
+  :global(html[data-vt="off"]) & {
+    transition: none;
+  }
 }
 
 // ── Arrangements ─────────────────────────────────

@@ -21,7 +21,14 @@
   mix-blend-mode: normal;
 }
 
-// The navbar's own layer: above the page snapshots, and still.
+// The navbar's own layer: above the page snapshots, and still. The
+// name is assigned HERE, from a global sheet, because a CSS module
+// hashes view-transition-name values and the group rule below would
+// never match the hashed one.
+[data-vt="navbar"] {
+  view-transition-name: navbar;
+}
+
 ::view-transition-group(navbar) {
   z-index: var(--z-navbar);
   animation: none;

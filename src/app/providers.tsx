@@ -1,7 +1,18 @@
 "use client";
 
-import { ViewTransition, type ReactNode } from "react";
+import { ViewTransition, useEffect, useSyncExternalStore, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
+
+// Firefox's same-document view transitions are a few releases old
+// and glitch on this app in ways we can't yet drive from automation
+// (Chrome verified clean). Until it is verified there, Firefox gets
+// instant navigation and a still ground. Read through
+// useSyncExternalStore so the server and first client render agree
+// (transitions on), then the client snapshot switches it off.
+const noSubscribe = () => () => {};
+const isFirefox = () => /firefox/i.test(navigator.userAgent);
+const useViewTransitionsEnabled = () =>
+  useSyncExternalStore(noSubscribe, () => !isFirefox(), () => true);
 import { ThemeProvider } from "next-themes";
 import { ThemeProvider as PaletteProvider } from "@/lib/theme";
 import { AuthProvider } from "@/lib/auth-context";
@@ -30,6 +41,13 @@ export function Providers({ children, navBar }: Props) {
   // a skeleton resolving) snapshotted the whole page and cross-faded
   // it, and the group tween stretched the old height into the new.
   const pathname = usePathname();
+  const vtEnabled = useViewTransitionsEnabled();
+  // The backdrop's drift reads this to stand still where transitions
+  // are off — a DOM flag rather than a prop, since the backdrop is
+  // rendered by the server layout outside this tree.
+  useEffect(() => {
+    document.documentElement.dataset.vt = vtEnabled ? "on" : "off";
+  }, [vtEnabled]);
   return (
     /*
      * `attribute="class"` is the ENTIRE light/dark mechanism, and the
@@ -67,15 +85,19 @@ export function Providers({ children, navBar }: Props) {
               styles/app/view-transitions.scss; the navbar sits outside
               so it holds still. */}
           <div id="main-content" tabIndex={-1}>
-            <ViewTransition
-              key={pathname}
-              enter="page-in"
-              exit="page-out"
-              update="none"
-              default="none"
-            >
-              {children}
-            </ViewTransition>
+            {vtEnabled ? (
+              <ViewTransition
+                key={pathname}
+                enter="page-in"
+                exit="page-out"
+                update="none"
+                default="none"
+              >
+                {children}
+              </ViewTransition>
+            ) : (
+              children
+            )}
           </div>
           <ToastProvider />
           <ServiceWorker />
