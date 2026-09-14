@@ -422,13 +422,13 @@ exit and an enter that fade past each other; `update="none"`, so no
 in-page state change ever snapshots the page (that was the glitch);
 no group tween, so heights never stretch. CSS in
 `styles/app/view-transitions.scss` on the motion tokens, reduced
-motion turns it off. **Chromium only**
-(`src/lib/view-transitions.ts`, an allowlist): Safari 18+ and
-Firefox 144+ have the API but glitched on this app and can't yet be
-driven from automation, so they get instant navigation and a still
-ground until each is watched clean; where transitions are off React
-commits synchronously, so nothing depends on them. **Loading
-strategy that goes with it:** the navbar's
+motion turns it off. On in every
+browser with the API (`src/lib/view-transitions.ts`); Chromium is
+verified clean, Safari and Firefox have unpinned glitches being
+investigated with transitions ON — don't gate them off without
+a recording of the failure. Where the API is missing React commits
+synchronously, so nothing depends on it. **Loading strategy that
+goes with it:** the navbar's
 tab links carry `prefetch` (full RSC payload, not just the loading
 boundary), so a tab change lands on content inside the page
 transition instead of on a skeleton that then pops; streamed
