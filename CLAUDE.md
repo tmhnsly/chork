@@ -422,17 +422,21 @@ exit and an enter that fade past each other; `update="none"`, so no
 in-page state change ever snapshots the page (that was the glitch);
 no group tween, so heights never stretch. CSS in
 `styles/app/view-transitions.scss` on the motion tokens, reduced
-motion turns it off. Where the
-browser lacks the API React commits synchronously, so nothing
-depends on it. **Loading strategy that goes with it:** the navbar's
+motion turns it off. **Chromium only**
+(`src/lib/view-transitions.ts`, an allowlist): Safari 18+ and
+Firefox 144+ have the API but glitched on this app and can't yet be
+driven from automation, so they get instant navigation and a still
+ground until each is watched clean; where transitions are off React
+commits synchronously, so nothing depends on them. **Loading
+strategy that goes with it:** the navbar's
 tab links carry `prefetch` (full RSC payload, not just the loading
 boundary), so a tab change lands on content inside the page
 transition instead of on a skeleton that then pops; streamed
 sections wrap their `<Suspense>` in `<Reveal>` (`components/motion`)
 so the swaps that remain cross-fade. Never animate updates
-page-wide — that snapshots the whole page on every optimistic log. Same-document transitions are in Safari 18+ and
-Firefox 144+ now; `animation-timeline` is still Chromium-only and
-stays a `@supports` enhancement, never a baseline primitive.
+page-wide — that snapshots the whole page on every optimistic log.
+`animation-timeline` likewise stays a `@supports` enhancement, never
+a baseline primitive.
 
 For interactive gestures (drag, swipe) we use native pointer events
 + CSS `transition`. If a future feature genuinely needs spring
