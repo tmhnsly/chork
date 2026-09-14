@@ -59,7 +59,6 @@ export default async function FriendsPage() {
     <main className={styles.page}>
       <PageHeader
         title="Friends"
-        subtitle="The climbers you compete with."
       />
       {/* Above everything: the person you KNOW you know and can't see
           on the list is the most impatient case on this page. */}
