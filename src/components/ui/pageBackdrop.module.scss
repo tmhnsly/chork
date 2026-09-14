@@ -39,41 +39,45 @@
 }
 
 // ── Arrangements ─────────────────────────────────
-// Card: the accent up by the rank strip, gold low on the left under
-// the grid, zone off to the right.
+// Each light has a home: the accent along the top, gold along the
+// bottom right, zone down the right edge. A page moves a light a
+// quarter of the screen at most, never across it — the first cut
+// sent the accent corner to corner and the drift itself became the
+// thing you watched, which is the opposite of a background (and a
+// motion-sensitivity concern).
+
+// Card: the accent drifts right, towards the rank strip.
 .backdrop[data-mood="card"] {
-  --bd1-x: 90%; --bd1-y: 0%;
-  --bd2-x: 0%; --bd2-y: 90%;
-  --bd3-x: 100%; --bd3-y: 45%;
+  --bd1-x: 35%; --bd1-y: 0%;
+  --bd2-x: 100%; --bd2-y: 100%;
+  --bd3-x: 95%; --bd3-y: 40%;
 }
 
-// Friends: zone leads — it is the people colour on the board — with
-// the accent low right.
+// Friends: zone sits higher — it is the people colour on the board.
 .backdrop[data-mood="friends"] {
-  --bd1-x: 100%; --bd1-y: 100%;
-  --bd2-x: 60%; --bd2-y: 110%;
-  --bd3-x: 5%; --bd3-y: 0%;
+  --bd1-x: 8%; --bd1-y: 0%;
+  --bd2-x: 100%; --bd2-y: 105%;
+  --bd3-x: 92%; --bd3-y: 15%;
 }
 
-// Games: the two game colours in opposite corners, as the posters
-// are lit.
+// Games: the resting arrangement — the two game colours in their
+// corners, as the posters are lit.
 .backdrop[data-mood="games"] {
   --bd1-x: 12%; --bd1-y: 0%;
   --bd2-x: 100%; --bd2-y: 100%;
   --bd3-x: 85%; --bd3-y: 30%;
 }
 
-// Board: gold high and central, behind the podium; accent low left.
+// Board: gold comes up a little, behind the podium's side.
 .backdrop[data-mood="board"] {
-  --bd1-x: 0%; --bd1-y: 100%;
-  --bd2-x: 50%; --bd2-y: 8%;
-  --bd3-x: 100%; --bd3-y: 60%;
+  --bd1-x: 15%; --bd1-y: 0%;
+  --bd2-x: 85%; --bd2-y: 80%;
+  --bd3-x: 100%; --bd3-y: 55%;
 }
 
-// Profile: the accent high and central — a halo behind the face —
-// the other two low in the corners.
+// Profile: the accent drifts to centre, a halo behind the face.
 .backdrop[data-mood="profile"] {
   --bd1-x: 50%; --bd1-y: 0%;
-  --bd2-x: 0%; --bd2-y: 100%;
-  --bd3-x: 100%; --bd3-y: 100%;
+  --bd2-x: 100%; --bd2-y: 100%;
+  --bd3-x: 100%; --bd3-y: 60%;
 }
