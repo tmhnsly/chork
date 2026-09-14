@@ -1,6 +1,7 @@
 "use client";
 
 import { ViewTransition, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { ThemeProvider } from "next-themes";
 import { ThemeProvider as PaletteProvider } from "@/lib/theme";
 import { AuthProvider } from "@/lib/auth-context";
@@ -22,6 +23,13 @@ interface Props {
 }
 
 export function Providers({ children, navBar }: Props) {
+  // Keyed on the path, so a route change is an EXIT of the old page
+  // and an ENTER of the new one — two snapshots that fade past each
+  // other, no morph. `update="none"` is the important half: without
+  // it every in-page transition (an optimistic log, a realtime merge,
+  // a skeleton resolving) snapshotted the whole page and cross-faded
+  // it, and the group tween stretched the old height into the new.
+  const pathname = usePathname();
   return (
     /*
      * `attribute="class"` is the ENTIRE light/dark mechanism, and the
@@ -59,7 +67,15 @@ export function Providers({ children, navBar }: Props) {
               styles/app/view-transitions.scss; the navbar sits outside
               so it holds still. */}
           <div id="main-content" tabIndex={-1}>
-            <ViewTransition default="page">{children}</ViewTransition>
+            <ViewTransition
+              key={pathname}
+              enter="page-in"
+              exit="page-out"
+              update="none"
+              default="none"
+            >
+              {children}
+            </ViewTransition>
           </div>
           <ToastProvider />
           <ServiceWorker />

@@ -410,9 +410,12 @@ compositor.
 **View Transitions are on**, through React's `<ViewTransition>`
 (`experimental.viewTransition` in `next.config.ts`; the canary types
 via `src/types/react-canary.d.ts`). One wrapper around the route
-content in `providers.tsx` cross-fades page changes and skeleton →
-content reveals; its CSS lives in `styles/app/view-transitions.scss`
-on the motion tokens, with reduced motion turning it off. Where the
+content in `providers.tsx`, keyed on the path, so a navigation is an
+exit and an enter that fade past each other; `update="none"`, so no
+in-page state change ever snapshots the page (that was the glitch);
+no group tween, so heights never stretch. CSS in
+`styles/app/view-transitions.scss` on the motion tokens, reduced
+motion turns it off. Where the
 browser lacks the API React commits synchronously, so nothing
 depends on it. Same-document transitions are in Safari 18+ and
 Firefox 144+ now; `animation-timeline` is still Chromium-only and
