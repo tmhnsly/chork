@@ -1,26 +1,40 @@
 "use client";
 
-import { ViewTransition, type ReactNode } from "react";
+import { Suspense, ViewTransition, type ReactNode } from "react";
 import { useViewTransitionsEnabled } from "@/lib/view-transitions";
 
+interface Props {
+  fallback: ReactNode;
+  children: ReactNode;
+}
+
 /**
- * Wrap a `<Suspense>` boundary so its fallback → content swap
- * cross-fades instead of popping. React treats the swap as an update
- * of this boundary's content; the `reveal` class carries the fade
- * (styles/app/view-transitions.scss), and the group's default tween
- * carries any change in size, so a skeleton that guessed the height
- * a little wrong morphs rather than jumps.
+ * A Suspense boundary whose fallback → content swap cross-fades
+ * instead of popping.
  *
- * Scoped to the boundary it wraps — nothing else on the page is
- * snapshotted — which is why it is safe where a page-wide update
- * animation was not.
+ * The fallback and the content each wear their own ViewTransition —
+ * the skeleton animates its EXIT, the content its ENTER — and
+ * nothing here has an `update` animation. A wrapper around the
+ * boundary with an update class animated every transition-scheduled
+ * change inside it, which snapshotted the whole boundary the moment
+ * a sheet mounted mid-flush: the sheet painted inside the snapshot,
+ * under the tiles, then popped over when the transition ended.
+ * Enter and exit fire once, at mount and unmount, and cannot do that.
  */
-export function Reveal({ children }: { children: ReactNode }) {
+export function Reveal({ fallback, children }: Props) {
   const enabled = useViewTransitionsEnabled();
-  if (!enabled) return <>{children}</>;
+  if (!enabled) return <Suspense fallback={fallback}>{children}</Suspense>;
   return (
-    <ViewTransition update="reveal" default="none">
-      {children}
-    </ViewTransition>
+    <Suspense
+      fallback={
+        <ViewTransition exit="reveal-out" default="none">
+          {fallback}
+        </ViewTransition>
+      }
+    >
+      <ViewTransition enter="reveal-in" default="none">
+        {children}
+      </ViewTransition>
+    </Suspense>
   );
 }

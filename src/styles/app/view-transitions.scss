@@ -47,14 +47,15 @@
   animation: vt-page-in var(--duration-normal) var(--ease-out-expo) both;
 }
 
-// A streamed section revealing: the skeleton fades out, the content
-// fades in, and the group's default tween morphs the box between
-// the two heights. Scoped to one Suspense boundary by <Reveal>.
-::view-transition-old(.reveal) {
+// A streamed section revealing: the skeleton EXITS (fades out) and
+// the content ENTERS (fades in) — two names, never an update, so an
+// in-place change inside the content (a sheet mounting) is never
+// snapshotted. Owned by <Reveal>.
+::view-transition-old(.reveal-out) {
   animation: vt-page-out var(--duration-fast) var(--ease-out) both;
 }
 
-::view-transition-new(.reveal) {
+::view-transition-new(.reveal-in) {
   animation: vt-page-in var(--duration-normal) var(--ease-out-expo) both;
 }
 
