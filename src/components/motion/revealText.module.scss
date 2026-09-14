@@ -70,22 +70,32 @@
   // padding-right/-margin-right attempt.
   margin-inline: calc(var(--reveal-overhang, 0.6em) * -1);
 
-  // Mask the slide-up reveal. inset(0) clips at the (now wider)
-  // border-box edges — italic overhang sits inside the visible
-  // region; the slide is masked tight to the line-height box on
-  // the vertical axis. No negative values, so no reliance on the
-  // iOS clip-path-paint-extend behaviour that broke the prior fix.
+  // VERTICAL OVERHANG — the same trick, in line-height units. The
+  // display preset's tight leading leaves almost no half-leading, so
+  // a descender (the g in "Start a game") hangs below the line box
+  // and a mask clipped to that box shaved it. Pad the box by a
+  // fraction of the line height (`lh`, so it scales with the step),
+  // negate it so the header's rhythm is untouched, and the tail
+  // paints inside the mask.
+  padding-block: var(--reveal-overhang-y, 0.25lh);
+  margin-block: calc(var(--reveal-overhang-y, 0.25lh) * -1);
+
+  // Mask the slide-up reveal. inset(0) clips at the (now wider and
+  // taller) border-box edges — overhang sits inside the visible
+  // region. No negative values, so no reliance on the iOS
+  // clip-path-paint-extend behaviour that broke the prior fix.
   clip-path: inset(0);
 }
 
 .word {
   display: inline-block;
 
-  // Start fully below the mask; animate into place. `110%` clears
-  // the baseline with a safety margin — some iOS devices leave a
-  // 1px fringe at exactly `100%` because of how they round the
-  // pixel snapshot before compositing.
-  transform: translateY(110%);
+  // Start fully below the mask; animate into place. The mask now
+  // extends a quarter line below the word, so `140%` is what clears
+  // it with a safety margin — some iOS devices leave a 1px fringe
+  // at the exact edge because of how they round the pixel snapshot
+  // before compositing.
+  transform: translateY(140%);
 
   // easeOutQuart (--ease-out-quart) is Framer Motion's canonical
   // `motion.span` reveal curve. 0.75s + 0.05s per-word stagger
@@ -103,7 +113,7 @@
 
 @keyframes revealSlideUp {
   from {
-    transform: translateY(110%);
+    transform: translateY(140%);
   }
   to {
     transform: translateY(0);

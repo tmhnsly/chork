@@ -71,6 +71,16 @@ Platform hardening:
 
 ---
 
+## Games — the home for every comp
+
+The Games tab is where a climber finds anything they can play, not
+only what they start themselves: friend games today, leagues today,
+and later the gym's own pre-made comps and tournaments, listed to
+join. Copy on that surface must stay generic ("start one anywhere",
+never "run it with your friends"), and the landing's Start / Join
+pair should grow a third row — "On at your gym" — when gym-run
+games exist. Noted 2026-09-14.
+
 ## Pre-launch (before going public)
 
 - [x] Buy domain — **chork.app is live.** Evidenced directly:

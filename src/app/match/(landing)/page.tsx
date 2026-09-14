@@ -59,10 +59,11 @@ export default async function MatchPage() {
 
       <section className={styles.actionsCard} aria-label="Start or join a game">
         <div className={styles.actionHeader}>
-          <h2 className={styles.actionHeading}>Run it with your friends.</h2>
+          <h2 className={styles.actionHeading}>Start one anywhere.</h2>
           <p className={styles.actionLede}>
-            A game is a quick comp you can start anywhere. Add routes as
-            you go, log your own attempts, climb the live leaderboard.
+            A game is a quick comp — with friends, in a league, or one
+            the gym has put on. Add routes as you go, log your own
+            attempts, climb the live board.
           </p>
         </div>
         <div className={styles.actionButtons}>

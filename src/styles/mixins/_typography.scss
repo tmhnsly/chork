@@ -60,10 +60,14 @@ $_typography: (
   // as written (2026-08-31): the italic-caps poster voice read as a
   // second typeface on every screen — the one brand italic left is
   // `number`. Titles render exactly as the call site spells them.
+  // Bold, not black: at 900 the page titles read as a second, heavier
+  // typeface next to every card title and number at 700. One weight
+  // for the heading family; size is what separates a page title from
+  // a card's.
   display: (
     step: 5xl,
     leading: tight,
-    weight: var(--weight-black),
+    weight: var(--weight-bold),
     family: var(--font-heading),
   ),
   // Card / section heading
