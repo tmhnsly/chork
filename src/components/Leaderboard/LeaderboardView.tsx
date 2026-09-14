@@ -227,7 +227,7 @@ export function LeaderboardView({
           {/* The board is one object — podium head, rows, browse —
               in glass over the ground. The explainer and the invite
               are their own cards on the page rhythm, not tenants. */}
-          <div className={styles.board}>
+          <div className={styles.board} data-vt="board">
           {podiumEntries.length > 0 && (
             <Podium
               top={podiumEntries}

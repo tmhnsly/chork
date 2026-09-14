@@ -63,6 +63,7 @@ export function RankStrip({ rank, gained }: Props) {
       href="/leaderboard"
       className={styles.strip}
       data-tier={tier}
+      data-vt="board"
       aria-label={
         unranked
           ? "You're not on the board yet. Open the full standings."
@@ -92,10 +93,11 @@ export function RankStrip({ rank, gained }: Props) {
             >
               <span className={styles.fieldFill} />
             </span>
-            {nextLine && <span className={styles.next}>{nextLine}</span>}
           </>
         )}
       </span>
+
+      {nextLine && <span className={styles.next}>{nextLine}</span>}
 
       {/* Only while it's news. `key` on the count restarts the
           animation when you climb again without leaving the screen. */}

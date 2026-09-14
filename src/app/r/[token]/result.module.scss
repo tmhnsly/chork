@@ -7,7 +7,6 @@
 // result → who won → standings → one way in.
 .page {
   @include layout.page;
-  @include layout.stack(var(--space-6));
 }
 
 .header {

@@ -431,6 +431,32 @@ describe("layout", () => {
   });
 });
 
+describe("page rhythm", () => {
+  it("a page block never sets its own gap beside layout.page", () => {
+    // `layout.page` owns the distance from a title to its content and
+    // between sections (`--page-stack-gap`). Four pages once picked a
+    // step of their own, and the title sat a different distance from
+    // the first card on each — the flows stopped feeling like one app.
+    const bad: string[] = [];
+    for (const { path, text } of scssModules) {
+      const blocks = text.split("}");
+      blocks.forEach((block) => {
+        // App pages only: prose pages read on their own rhythm, wide
+        // admin pages likewise, and marketing is exempt by decision.
+        if (!/@include layout\.page;/.test(block)) return;
+        if (notMarketing(path)) return;
+        const own = block.match(/(?:^|\n)\s*gap:\s*var\(--space-\d+\)|@include layout\.stack\(var\(--space-\d+\)\)/);
+        if (own) bad.push(`${path}  ${own[0].trim()}`);
+      });
+    }
+    expect(
+      bad,
+      "The page mixin sets the rhythm. Drop the gap, or if a page truly " +
+        "needs another, change --page-stack-gap for every page.",
+    ).toEqual([]);
+  });
+});
+
 describe("inline styles", () => {
   it("only pipes custom properties through style={{ }}", () => {
     // The one sanctioned use of a style prop is passing a CSS custom

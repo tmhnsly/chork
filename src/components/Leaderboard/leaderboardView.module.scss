@@ -3,14 +3,17 @@
 @use "mixins/layout" as layout;
 @use "mixins/surfaces" as surface;
 
+// The page's own rhythm, not a step of its own: this view IS the
+// page's content, so its sections sit the page-stack apart like
+// every other page's.
 .view {
-  @include layout.stack(var(--space-5));
+  @include layout.stack(var(--page-stack-gap));
 }
 
 // The tabpanel: the board, then the explainer and the invite, on
 // the page rhythm.
 .panel {
-  @include layout.stack(var(--space-5));
+  @include layout.stack(var(--page-stack-gap));
 }
 
 // The board is ONE object: the podium as its head, the rows flush

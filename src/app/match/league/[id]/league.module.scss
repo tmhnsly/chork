@@ -3,8 +3,6 @@
 
 .page {
   @include layout.page;
-  display: grid;
-  gap: var(--space-6);
 }
 
 .topRow {

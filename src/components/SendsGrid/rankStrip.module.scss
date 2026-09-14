@@ -109,11 +109,15 @@
   background: var(--flash-solid);
 }
 
-// What it would take: "3 pts to #12". The one line that turns a
-// placing into a target.
+// What it would take: "3 pts to pass #12". The one line that turns
+// a placing into a target — on the right, where the strip had
+// nothing, so the whole thing is one row.
 .next {
   @include type.typography(meta, $step: sm);
   color: var(--mono-text-low-contrast);
+  flex-shrink: 1;
+  text-align: right;
+  max-width: 40%;
 }
 
 .prompt {

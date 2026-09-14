@@ -21,6 +21,36 @@
   mix-blend-mode: normal;
 }
 
+// Shared elements: the same name on two pages makes the browser
+// morph one into the other across the route fade. The Card page's
+// rank strip becomes the Chorkboard's board (the strip links there);
+// the Games landing's live-game banner becomes the game's hero. The
+// group keeps the UA's default tween — position and size — which is
+// the morph; old and new cross-fade inside it on the page's rungs.
+[data-vt="board"] {
+  view-transition-name: board;
+}
+
+[data-vt="game"] {
+  view-transition-name: game;
+}
+
+::view-transition-group(board),
+::view-transition-group(game) {
+  animation-duration: var(--duration-normal);
+  animation-timing-function: var(--ease-out-expo);
+}
+
+::view-transition-old(board),
+::view-transition-old(game) {
+  animation: vt-page-out var(--duration-fast) var(--ease-out) both;
+}
+
+::view-transition-new(board),
+::view-transition-new(game) {
+  animation: vt-page-in var(--duration-normal) var(--ease-out-expo) both;
+}
+
 // The navbar's own layer: above the page snapshots, and still. The
 // name is assigned HERE, from a global sheet, because a CSS module
 // hashes view-transition-name values and the group rule below would

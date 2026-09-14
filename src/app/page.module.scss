@@ -10,11 +10,11 @@
   gap: var(--space-4);
 }
 
+// The page rhythm comes from the mixin (`--page-stack-gap`); a page
+// that picks its own step is the one whose title sits a different
+// distance from its content than every other page's.
 .app {
   @include layout.page;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
 }
 
 .title {

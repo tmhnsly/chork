@@ -14,8 +14,12 @@ export default function LeaderboardLoading() {
 
       <CardSkeleton height="7rem" ariaLabel="Loading gym stats" />
       <CardSkeleton height="3rem" ariaLabel="Loading filter" />
-      <CardSkeleton height="14rem" ariaLabel="Loading podium" />
-      <CardSkeleton height="8rem" ariaLabel="Loading standings" />
+      {/* One block for the board (podium + standings), named as the
+          shared element so the Card page's rank strip morphs into it
+          before the real board arrives. */}
+      <div data-vt="board">
+        <CardSkeleton height="22rem" ariaLabel="Loading the board" />
+      </div>
       <CardSkeleton height="10rem" ariaLabel="Loading scoring breakdown" />
       <CardSkeleton height="8rem" ariaLabel="Loading invite card" />
     </main>

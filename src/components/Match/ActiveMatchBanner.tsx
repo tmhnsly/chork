@@ -21,6 +21,7 @@ export function ActiveMatchBanner({ match }: Props) {
 
   return (
     <Link
+      data-vt="game"
       href={`/match/${match.set_id}`}
       className={styles.banner}
       aria-label={`Resume ${name}`}

@@ -162,7 +162,7 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
 
   return (
     <main className={styles.screen}>
-      <header className={styles.hero}>
+      <header className={styles.hero} data-vt="game">
         <h1 className={styles.title}>{matchTitle(initialState.match)}</h1>
         {/* The setup, worn: game · climbing · grading · details, with
             the menu at the row's end. The host taps a pill to change
