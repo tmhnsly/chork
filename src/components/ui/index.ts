@@ -32,6 +32,7 @@ export { ZoneHoldRow } from "./ZoneHoldRow/ZoneHoldRow";
 export { GradePyramid } from "./GradePyramid/GradePyramid";
 export { SetMeta } from "./SetMeta";
 export { SegmentedControl } from "./SegmentedControl";
+export { SegmentedControlSkeleton } from "./SegmentedControlSkeleton";
 export { TabPills } from "./TabPills";
 export type { TabPillOption } from "./TabPills";
 export { ToggleRow } from "./ToggleRow";

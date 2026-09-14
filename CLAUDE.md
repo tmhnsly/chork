@@ -721,6 +721,16 @@ Vitest-based. See `docs/testing.md` for patterns. Key rules:
   rhythm rules only, pending the homepage refresh.
   `avatar-sizes.test.ts` separately pins the TS avatar map to its CSS
   tokens
+- **Skeletons are the real component, waiting.** A `FooSkeleton`
+  lives beside `Foo`, imports `foo.module.scss` and lays out the same
+  boxes with `shimmerStyles.skeletonLine` / `skeletonDisc` (size
+  piped as `--skeleton-size`) — or renders the real parts with empty
+  data. A route's `loading.tsx` only composes those, plus static
+  components that need no data (`ScoringBreakdown`, `NextGameCard`)
+  rendered for real. Never a `CardSkeleton` with a guessed height for
+  a section that has a component. `src/test/skeletons.test.ts`
+  enforces the stylesheet rule and that a header skeleton reserves a
+  subtitle exactly when the page passes one
 - Server actions get tests for: input validation, auth failure, each
   distinct user-visible error path, friendly-error mapping. **One
   auth double:** `vi.mock("@/lib/auth", async () => (await

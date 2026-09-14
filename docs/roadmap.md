@@ -81,6 +81,15 @@ never "run it with your friends"), and the landing's Start / Join
 pair should grow a third row — "On at your gym" — when gym-run
 games exist. Noted 2026-09-14.
 
+## Social — Friends becomes a way to find a partner
+
+Idea, 2026-09-14: the Friends tab becomes **Social**, and gains a
+meeting system for climbers at a gym who want to climb with somebody
+— availability ("at Yonder Thursday 6–8"), a way to say "I'm up for
+it", and the match between them. Needs its own brainstorm (gym
+scoping, privacy, notifications, guests) before any build; the
+rename and the meet-up model land together, not the rename alone.
+
 ## Pre-launch (before going public)
 
 - [x] Buy domain — **chork.app is live.** Evidenced directly:

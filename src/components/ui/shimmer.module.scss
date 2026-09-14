@@ -83,9 +83,13 @@
   --skeleton-w: 40%;
 }
 
+// Size from the avatar scale, piped as `--skeleton-size` (the style
+// attribute carries custom properties only; the rule lives here).
 .skeletonDisc {
   display: block;
   flex-shrink: 0;
+  width: var(--skeleton-size, var(--size-avatar-row));
+  height: var(--skeleton-size, var(--size-avatar-row));
   border-radius: var(--radius-full);
   @include sheen(var(--mono-bg));
 }
