@@ -2,6 +2,11 @@
 
 ## Shipped
 
+- [x] 2026-09-14 — Lobby-first match: one-tap posters on `/match/new`,
+      the empty match as a lobby (join card, players, one CTA), setup
+      pills + sheet, grading locked by the first route
+      (`set_match_setup`, migration 136). The create wizard is gone
+
 Core climber experience:
 - [x] Punch card: log attempts, complete routes, flash tracking
 - [x] Points system (flash=4, 2=3, 3=2, 4+=1, zone=+1)

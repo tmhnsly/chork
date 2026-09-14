@@ -280,7 +280,16 @@ Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
 - Accent: Radix `lime` on the default palette. Text on accent uses
   `--accent-on-solid`
 - Surfaces: `@include surface.card` (panels), `surface.chrome`
-  (sticky chrome), `surface.glass($opacity)` (sheets, modals)
+  (sticky chrome), `surface.glass($opacity)` (sheets, modals),
+  `surface.wash` (a page's accent glow at the top). The page and its
+  cards are two planes — `--surface-page` / `--surface-card`, set by
+  the `planes` mixin per theme AND per mode (light: step 3 page,
+  step 1 cards; dark: step 1 page, step 2 cards). Never paint a card
+  with a `--mono-*` step directly; which step is "a card" differs
+  between modes
+- The profile hero is not a card. Face + name sit on the page,
+  centred, with one career line (`plural()`-agreed words, role
+  colours). Cards are for content; a person is not content
 - Flash badge: the theme's **flash gold** (`--flash-*` — amber or
   yellow, never the accent)
 - Squircle via `--radius-1..4`. PunchTile stays square
@@ -519,6 +528,16 @@ navbar + home indicator), max-width, and centering.
   / `league_drops` in migration 134 and `LEAGUE_LADDER` / `dropsFor`
   in `src/lib/data/league.ts` — pinned equal by `league.test.ts`. The
   table is computed on read by `league_standings`; never store it
+- **A match is created in one tap and set up in its lobby.** `/match/new`
+  is two posters (Points / Chork); tapping creates with defaults
+  (boulders, V-scale, whole ladder, "Tom's match"). A live match with
+  no routes is the **lobby** (`isLobby(state)` in
+  `matchScreenReducer.ts`): join card, players, one CTA. The host
+  changes setup from the hero's pills via `set_match_setup`, which
+  refuses once a route exists — grading is locked by the first route.
+  `create_match` and `set_match_setup` validate through one SQL
+  helper, `match_setup_check`; the action side shares
+  `validateMatchSetup`. There is no create form
 - **Archived / draft sets are read-only** for climbers. Migration 003
   blocks inserts against non-live sets at the RLS layer
 - **Legacy `sets.active` is derived from `sets.status`** via a

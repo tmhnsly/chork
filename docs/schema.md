@@ -441,7 +441,16 @@ tables.
   code, inserts the `sets` row (`owner_kind = 'climber'`, open-ended),
   seats the host in `set_players`, writes any custom ladder to
   `set_grades`, and optionally saves that ladder to
-  `user_custom_scales` for reuse
+  `user_custom_scales` for reuse. Validation lives in
+  `match_setup_check(...)` (migration 136), shared with the next one
+- `set_match_setup(set_id, name, location, discipline, grading_scale,
+  min_grade, max_grade, custom_grades[], save_scale_name,
+  alt_grading_scale, alt_min_grade, alt_max_grade)` → `sets` — the
+  lobby's setup edit. Host only, live only, and only while the match
+  has **no routes** (`'Routes are already up — grading is locked'`,
+  22023): a route is graded on the scale it was added under. Replaces
+  `set_grades`; the handicap survives a move between graded scales
+  and switches off on a scale without grades
 - `lookup_match_by_code(code)` — pre-join preview. Readable by any
   authenticated user **by design**: the code IS the invitation and you
   cannot yet be a player, so the usual `is_set_player` gate would make
