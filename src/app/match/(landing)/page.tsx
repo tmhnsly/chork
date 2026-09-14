@@ -52,7 +52,7 @@ export default async function MatchPage() {
     <main className={styles.page}>
       <PageHeader
         title="Games"
-        subtitle="Ad-hoc comps with friends — anywhere, any wall."
+        subtitle="Quick comps you can play anywhere."
       />
 
       {activeMatch && <ActiveMatchBanner match={activeMatch} />}
