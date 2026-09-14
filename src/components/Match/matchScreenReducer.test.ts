@@ -3,6 +3,7 @@ import {
   initMatchState,
   matchReducer,
   logKey,
+  isLobby,
   type MatchAction,
   type MatchLocalState,
 } from "./matchScreenReducer";
@@ -391,5 +392,14 @@ describe("matchReducer", () => {
       });
       expect(next.logs.size).toBe(0);
     });
+  });
+});
+
+describe("isLobby", () => {
+  it("is the lobby while no route exists", () => {
+    expect(isLobby({ routes: [] })).toBe(true);
+  });
+  it("stops being the lobby at the first route", () => {
+    expect(isLobby({ routes: [{ id: "r1" }] })).toBe(false);
   });
 });

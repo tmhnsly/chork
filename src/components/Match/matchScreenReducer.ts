@@ -52,7 +52,13 @@ export type MatchPanel =
   /** Anyone in the match inviting friends — a notification, not a seat. */
   | { kind: "invite-friends" }
   /** Declaring a player's limit for the handicap. */
-  | { kind: "ceiling"; playerId: string };
+  | { kind: "ceiling"; playerId: string }
+  /** The host changing the match's setup from the lobby. */
+  | { kind: "setup"; section: SetupSection }
+  /** The join card as a sheet, once the match is under way. */
+  | { kind: "invite" };
+
+export type SetupSection = "game" | "climbing" | "details";
 
 export type MatchAction =
   // set-routes / set-players are the full-refresh transitions. A
@@ -84,6 +90,14 @@ export type MatchAction =
 
 export function logKey(userId: string, routeId: string): string {
   return `${userId}:${routeId}`;
+}
+
+/**
+ * A live match with no routes yet. Not a status — derived — and the
+ * whole reason the empty screen is a lobby rather than an empty grid.
+ */
+export function isLobby(state: { routes: unknown[] }): boolean {
+  return state.routes.length === 0;
 }
 
 /** Initial reducer state from the server-rendered match payload.

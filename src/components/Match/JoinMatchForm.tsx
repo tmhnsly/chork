@@ -12,6 +12,7 @@ import type { JoinMatchLookup } from "@/lib/data/match-types";
 import { MATCH_CODE_RE } from "@/lib/validation";
 import styles from "./joinMatchForm.module.scss";
 import { SCALE_LABEL, DISCIPLINE_LABEL } from "@/lib/data/grade-label";
+import { matchTitle } from "@/lib/data/match-title";
 
 // BarcodeDetector isn't in lib.dom yet (Chromium / Safari ship it,
 // Firefox + Edge don't). Declare the surface we use so the feature
@@ -131,7 +132,7 @@ export function JoinMatchForm({ initialCode }: Props) {
           <div className={styles.previewHeader}>
             <span className={styles.eyebrow}>Join match</span>
             <h2 className={styles.previewTitle}>
-              {lookup.name?.trim() || "Untitled match"}
+              {matchTitle(lookup)}
             </h2>
             {lookup.location && (
               <p className={styles.previewMeta}>{lookup.location}</p>

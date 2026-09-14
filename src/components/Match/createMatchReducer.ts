@@ -61,7 +61,10 @@ export interface CreateMatchPrefill {
   altScale: FormulaScale | null;
   altMinGrade: number | null;
   altMaxGrade: number | null;
-  leagueId: string;
+  /** Null when hydrating from a match that is not a League week. */
+  leagueId: string | null;
+  /** The custom ladder, when hydrating an existing custom-scale match. */
+  customGrades?: string[];
 }
 
 export interface CreateMatchState {
@@ -204,6 +207,7 @@ export function initialCreateMatchState(prefill?: CreateMatchPrefill): CreateMat
     ranges,
     altScale: prefill.altScale,
     leagueId: prefill.leagueId,
+    customGrades: prefill.scale === "custom" ? (prefill.customGrades ?? []) : [],
   };
 }
 

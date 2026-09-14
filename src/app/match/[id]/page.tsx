@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { requireSignedIn } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getMatchStateForUser } from "@/lib/data/match-queries";
+import { getMatchStateForUser, getUserSavedScales } from "@/lib/data/match-queries";
 import { MatchScreen } from "@/components/Match/MatchScreen";
 import { UUID_RE } from "@/lib/validation";
 
@@ -53,5 +53,12 @@ export default async function MatchRoomPage({ params }: Props) {
     }
   }
 
-  return <MatchScreen initialState={initialState} userId={auth.userId} />;
+  // The lobby's grading sheet offers the host their saved custom
+  // ladders. Nobody else can open it, so nobody else pays for the read.
+  const savedScales =
+    initialState.match.host_id === auth.userId ? await getUserSavedScales(auth.supabase) : [];
+
+  return (
+    <MatchScreen initialState={initialState} userId={auth.userId} savedScales={savedScales} />
+  );
 }

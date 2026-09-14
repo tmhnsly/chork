@@ -9,7 +9,13 @@
   @include layout.stack(0);
   list-style: none;
   margin: 0 var(--gutter-x);
-  padding: var(--space-2);
+  padding: 0;
+
+  // Rows flush to the card with a hairline between — a padded card
+  // holding tinted rows read as a card inside a card.
+  > li + li {
+    border-top: 1px solid var(--mono-border-subtle);
+  }
   max-width: var(--content-app);
   width: calc(100% - 2 * var(--gutter-x));
   box-sizing: border-box;
@@ -27,13 +33,12 @@
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-inner-3-2);
+  padding: var(--space-3) var(--space-4);
+  border-radius: 0;
 }
 
 .self {
   background: var(--accent-subtle-bg);
-  box-shadow: inset var(--space-1) 0 0 0 var(--accent-solid);
 }
 
 // Out of the game. Not dimmed with opacity — that scales contrast

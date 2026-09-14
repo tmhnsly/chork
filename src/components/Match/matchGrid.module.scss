@@ -1,3 +1,4 @@
+@use "mixins/typography" as type;
 .grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
@@ -18,13 +19,15 @@
 
 .addTile {
   aspect-ratio: 1;
-  border: 1.5px dashed var(--mono-border);
+  border: 1.5px dashed var(--accent-border);
   border-radius: var(--radius-2);
   background: transparent;
-  color: var(--mono-text-low-contrast);
+  color: var(--accent-text);
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: var(--space-1);
   cursor: pointer;
   font-size: var(--text-2xl);
   transition:
@@ -37,4 +40,24 @@
     color: var(--accent-text);
     background: var(--accent-subtle-bg);
   }
+}
+
+// The word under the glyph — the icon-label rung exists for exactly
+// this: a persistent glyph carrying the meaning, a word confirming it.
+.addLabel {
+  @include type.typography(icon-label);
+}
+
+// Chork, when the pen is elsewhere: the same slot, saying who has it.
+.waitTile {
+  aspect-ratio: 1;
+  border: 1.5px dashed var(--mono-border);
+  border-radius: var(--radius-2);
+  background: transparent;
+  color: var(--mono-text-low-contrast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--space-2);
 }

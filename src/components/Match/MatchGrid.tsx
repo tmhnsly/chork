@@ -22,6 +22,12 @@ interface Props {
   onTileTap: (route: MatchRoute) => void;
   onAddTap: () => void;
   onTileLongPress?: (route: MatchRoute) => void;
+  /** Whether this viewer may put up the next route (Chork: the pen). */
+  canAdd: boolean;
+  /** "Add route" / "Set a route" — the tile says what it does. */
+  addLabel: string;
+  /** Who holds the pen when the viewer doesn't, for the waiting tile. */
+  waitingFor?: string | null;
 }
 
 /**
@@ -39,6 +45,9 @@ export function MatchGrid({
   onTileTap,
   onAddTap,
   onTileLongPress,
+  canAdd,
+  addLabel,
+  waitingFor = null,
 }: Props) {
   const labelForRoute = useMemo(
     () => makeRouteLabeller(match, grades),
@@ -68,14 +77,21 @@ export function MatchGrid({
           </MatchTileButton>
         );
       })}
-      <button
-        type="button"
-        className={styles.addTile}
-        onClick={onAddTap}
-        aria-label="Add a route"
-      >
-        <FaPlus aria-hidden />
-      </button>
+      {/* The one add-route control on the screen: a tile that says
+          what it does, last in the grid, where the route will appear.
+          A floating + used to duplicate it with no label. */}
+      {canAdd ? (
+        <button type="button" className={styles.addTile} onClick={onAddTap}>
+          <FaPlus aria-hidden />
+          <span className={styles.addLabel}>{addLabel}</span>
+        </button>
+      ) : (
+        <div className={styles.waitTile} aria-live="polite">
+          <span className={styles.addLabel}>
+            {waitingFor ? `Waiting for @${waitingFor}` : "Waiting for the setter"}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

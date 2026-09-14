@@ -1,0 +1,151 @@
+@use "mixins/typography" as type;
+
+// Scene choreography — named periods, per the design-system rule for
+// loops that are not a state change.
+.scene {
+  --period-bars: 3.6s;
+  --period-word: 5s;
+  --period-spark: 2.4s;
+
+  // Tone triplet: ink for marks, wash for the ground. Points is the
+  // accent; Chork is flash gold — two hue families, so the two games
+  // read apart even without colour vision.
+  --scene-solid: var(--accent-solid);
+  --scene-on: var(--accent-on-solid);
+  --scene-ink: var(--accent-text);
+  --scene-wash: var(--accent-bg);
+  --scene-wash-deep: var(--accent-subtle-bg);
+  // Piped per mark from the component; declared here so the scene
+  // has a value before the pipe lands.
+  --i: 0;
+  --h: 1;
+
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 7;
+  overflow: hidden;
+  isolation: isolate;
+  // Marks are sized in cqmin, so the scene scales to any canvas. Sized
+  // (not inline-size) containment because the marks need the height.
+  container-type: size;
+  background: linear-gradient(150deg, var(--scene-wash), var(--scene-wash-deep));
+
+  &[data-preset="chork"] {
+    --scene-solid: var(--flash-solid);
+    --scene-on: var(--flash-on-solid);
+    --scene-ink: var(--flash-text);
+    --scene-wash: var(--flash-bg);
+    --scene-wash-deep: var(--flash-subtle-bg);
+  }
+}
+
+// ── Points · a scoreboard filling ────────────────
+.bars {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 56cqmin;
+  height: 60cqmin;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 4cqmin;
+}
+
+.bar {
+  position: relative;
+  flex: 1;
+  height: calc(var(--h) * 100%);
+  border-radius: 2cqmin 2cqmin 0 0;
+  background: var(--scene-solid);
+  transform-origin: bottom;
+  animation: rise var(--period-bars) var(--ease-out-expo) infinite;
+  animation-delay: calc(var(--period-bars) * var(--i) * 0.08);
+}
+
+@keyframes rise {
+  0% { transform: scaleY(0); }
+  35%, 82% { transform: scaleY(1); }
+  100% { transform: scaleY(0); }
+}
+
+// The spark on the tallest bar: a small diamond that twinkles once
+// the bars are up.
+.spark {
+  position: absolute;
+  top: -9cqmin;
+  left: 50%;
+  width: 6cqmin;
+  height: 6cqmin;
+  margin-left: -3cqmin;
+  background: var(--scene-ink);
+  transform: rotate(45deg) scale(0);
+  animation: twinkle var(--period-bars) var(--ease-spring) infinite;
+  animation-delay: calc(var(--period-bars) * 0.42);
+}
+
+@keyframes twinkle {
+  0%, 10% { transform: rotate(45deg) scale(0); }
+  20% { transform: rotate(45deg) scale(1); }
+  55% { transform: rotate(45deg) scale(0.8); }
+  70%, 100% { transform: rotate(45deg) scale(0); }
+}
+
+// ── Chork · the word, played ──────────────────────
+.word {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: fit-content;
+  height: fit-content;
+  display: flex;
+  gap: 3cqmin;
+}
+
+// A letter tile: outlined until earned, then solid. Each lights on
+// its own beat of the period, and the word clears at the end — the
+// game, in five seconds.
+.tile {
+  @include type.typography(number, $step: 2xl);
+  display: inline-grid;
+  place-items: center;
+  width: 16cqmin;
+  height: 18cqmin;
+  border-radius: 2.5cqmin;
+  border: 0.8cqmin solid var(--scene-solid);
+  color: var(--scene-ink);
+  background: transparent;
+  animation: earn var(--period-word) var(--ease-out) infinite;
+  animation-delay: calc(var(--period-word) * var(--i) * 0.14);
+}
+
+@keyframes earn {
+  0%, 12% {
+    background: transparent;
+    color: var(--scene-ink);
+    transform: scale(1);
+  }
+  16% { transform: scale(1.12); }
+  20%, 78% {
+    background: var(--scene-solid);
+    color: var(--scene-on);
+    transform: scale(1);
+  }
+  86%, 100% {
+    background: transparent;
+    color: var(--scene-ink);
+  }
+}
+
+// Reduced motion: hold a legible resting frame — bars up, letters
+// half earned — rather than a blank stage.
+@media (prefers-reduced-motion: reduce) {
+  .bar { animation: none; transform: none; }
+  .spark { animation: none; transform: rotate(45deg) scale(1); }
+  .tile { animation: none; }
+  .tile:nth-child(-n + 3) {
+    background: var(--scene-solid);
+    color: var(--scene-on);
+  }
+}

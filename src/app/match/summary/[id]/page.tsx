@@ -17,6 +17,7 @@ import styles from "./summary.module.scss";
 import { formatHandicapPoints } from "@/lib/data/handicap";
 import { countOf, countOfFormatted } from "@/lib/plural";
 import { isUuid } from "@/lib/validation";
+import { matchTitle } from "@/lib/data/match-title";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -131,7 +132,7 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
       </div>
 
       <PageHeader
-        title={summary.name?.trim() || "Untitled match"}
+        title={matchTitle(summary)}
         subtitle={[
           summary.location,
           endedAt ? format(parseISO(endedAt), "d MMM yyyy") : null,

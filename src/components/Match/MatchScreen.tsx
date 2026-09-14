@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { FaPlus, FaEllipsisVertical, FaFlag } from "react-icons/fa6";
-import { LeaderboardRow } from "@/components/ui";
-import type { MatchState } from "@/lib/data/match-types";
+import { FaEllipsisVertical, FaFlag, FaPaperPlane } from "react-icons/fa6";
+import { Button, IconButton, LeaderboardRow, showToast } from "@/components/ui";
+import type { MatchState, SavedScale } from "@/lib/data/match-types";
 import { ownerIdOf } from "@/lib/data/match-types";
 import { formatHandicapPoints } from "@/lib/data/handicap";
-import { makeGradeLabeller } from "@/lib/data/grade-label";
+import { makeGradeLabeller, SCALE_LABEL } from "@/lib/data/grade-label";
 import { visibleBoardRows, BOARD_PREVIEW_SIZE } from "@/lib/data/match-board";
 import { countOf } from "@/lib/plural";
 import { ChorkBoard } from "./ChorkBoard";
@@ -18,13 +18,20 @@ import { AddGuestSheet } from "./AddGuestSheet";
 import { InviteFriendsSheet } from "./InviteFriendsSheet";
 import { CeilingSheet } from "./CeilingSheet";
 import { MatchPlayerGridSheet } from "./MatchPlayerGridSheet";
-import { logKey } from "./matchScreenReducer";
+import { logKey, isLobby } from "./matchScreenReducer";
+import { MatchLobby } from "./MatchLobby";
+import { MatchSetupPills } from "./MatchSetupPills";
+import { MatchSetupSheet } from "./MatchSetupSheet";
+import { MatchInviteSheet } from "./MatchInviteSheet";
 import { useMatchScreenState } from "./useMatchScreenState";
 import styles from "./matchScreen.module.scss";
+import { matchTitle } from "@/lib/data/match-title";
 
 interface Props {
   initialState: MatchState;
   userId: string;
+  /** The host's saved custom ladders, for the lobby's grading sheet. */
+  savedScales: SavedScale[];
 }
 
 /**
@@ -33,7 +40,7 @@ interface Props {
  * (+ matchScreenReducer), matching the RouteLogSheet / SettingsSheet
  * split.
  */
-export function MatchScreen({ initialState, userId }: Props) {
+export function MatchScreen({ initialState, userId, savedScales }: Props) {
   const isHost = initialState.match.host_id === userId;
 
   const {
@@ -50,6 +57,8 @@ export function MatchScreen({ initialState, userId }: Props) {
     handleSetCeiling,
     handleEnd,
     handleLeave,
+    handleSetup,
+    handleGameMode,
     isChork,
     chorkLetters,
     chorkPenSeatId,
@@ -84,6 +93,15 @@ export function MatchScreen({ initialState, userId }: Props) {
     penPlayer === null ||
     penPlayer.user_id === userId ||
     (isHost && penPlayer.is_guest);
+
+  // No routes yet: the screen is a lobby. Derived, never stored.
+  const lobby = isLobby(state);
+
+  // The ladder(s) the add-route sheet names, so the first route meets
+  // the grading choice in place.
+  const scaleLabel = initialState.match.alt_grading_scale
+    ? `${SCALE_LABEL[initialState.match.grading_scale]} + ${SCALE_LABEL[initialState.match.alt_grading_scale]}`
+    : SCALE_LABEL[initialState.match.grading_scale];
 
   const { panel } = state;
   // Panels store route ids and derive the row at render time so a
@@ -147,42 +165,58 @@ export function MatchScreen({ initialState, userId }: Props) {
       <header className={styles.hero}>
         <div className={styles.heroBody}>
           <h1 className={styles.title}>
-            {initialState.match.name?.trim() || "Untitled match"}
+            {matchTitle(initialState.match)}
           </h1>
+          {/* The setup, worn: game · climbing · grading · where. The
+              host taps to change; grading locks with the first route. */}
+          <MatchSetupPills
+            match={initialState.match}
+            isHost={isHost}
+            locked={!lobby}
+            onOpen={(section) => {
+              if (!lobby && section === "climbing") {
+                showToast("Grading is locked once a route is up", "error");
+                return;
+              }
+              openPanel({ kind: "setup", section });
+            }}
+          />
           <div className={styles.metaRow}>
             <span className={styles.metaChip}>
               {countOf(state.players.length, "player")}
             </span>
-            {initialState.match.location && (
-              <span className={styles.metaChip}>{initialState.match.location}</span>
-            )}
             {/* Say so. A player whose score is being adjusted against
                 their own limit should not have to work that out from
                 the numbers not adding up. */}
             {initialState.match.handicap && (
               <span className={styles.metaChip}>Handicap</span>
             )}
-            <button
-              type="button"
-              className={styles.codeChip}
-              onClick={() => openPanel({ kind: "menu" })}
-              aria-label={`Join code ${initialState.match.code}. Tap to share.`}
-            >
-              <span className={styles.codeLabel}>Code</span>
-              {initialState.match.code}
-            </button>
+            {/* In the lobby the join card carries this; once under
+                way, the code and QR are one tap from the hero. */}
+            {!lobby && (
+              <Button type="button" variant="secondary" onClick={() => openPanel({ kind: "invite" })}>
+                <FaPaperPlane aria-hidden /> Invite
+              </Button>
+            )}
           </div>
         </div>
-        <button
-          type="button"
-          className={styles.menuButton}
-          onClick={() => openPanel({ kind: "menu" })}
-          aria-label="Match menu"
-        >
-          <FaEllipsisVertical aria-hidden />
-        </button>
+        <IconButton label="Match menu" onClick={() => openPanel({ kind: "menu" })}>
+          <FaEllipsisVertical />
+        </IconButton>
       </header>
 
+      {lobby ? (
+        <MatchLobby
+          match={initialState.match}
+          players={state.players}
+          isHost={isHost}
+          isChork={isChork}
+          onAddRoute={() => openPanel({ kind: "add" })}
+          onInviteFriends={() => openPanel({ kind: "invite-friends" })}
+          onAddGuest={() => openPanel({ kind: "add-guest" })}
+        />
+      ) : (
+      <>
       {/* Chork has no points, so it has no points board. Same
           players, same routes — a different question being asked. */}
       {isChork ? (
@@ -275,7 +309,12 @@ export function MatchScreen({ initialState, userId }: Props) {
         onTileTap={(route) => openPanel({ kind: "log", routeId: route.id })}
         onAddTap={() => openPanel({ kind: "add" })}
         onTileLongPress={(route) => openPanel({ kind: "edit", routeId: route.id })}
+        canAdd={canSet}
+        addLabel={isChork ? "Set a route" : "Add route"}
+        waitingFor={penPlayer?.username ?? null}
       />
+      </>
+      )}
 
       {activeRoute && (
         <MatchLogSheet
@@ -346,6 +385,10 @@ export function MatchScreen({ initialState, userId }: Props) {
           isChork={isChork}
           grades={initialState.grades}
           match={initialState.match}
+          scaleLabel={scaleLabel}
+          onChangeScale={
+            isHost && lobby ? () => openPanel({ kind: "setup", section: "climbing" }) : undefined
+          }
           onClose={closePanel}
           // In Chork the route belongs to whoever holds the pen. When
           // that's a guest the host is tapping for them, so the seat
@@ -377,14 +420,34 @@ export function MatchScreen({ initialState, userId }: Props) {
 
       {panel.kind === "menu" && (
         <MatchMenuSheet
-          match={initialState.match}
           isHost={isHost}
-          onAddGuest={() => openPanel({ kind: "add-guest" })}
-          onInviteFriends={() => openPanel({ kind: "invite-friends" })}
           onClose={closePanel}
           onEnd={handleEnd}
           onLeave={handleLeave}
           pending={isPending}
+        />
+      )}
+
+      {panel.kind === "setup" && (
+        <MatchSetupSheet
+          section={panel.section}
+          match={initialState.match}
+          grades={initialState.grades}
+          savedScales={savedScales}
+          onSubmit={handleSetup}
+          onGameMode={handleGameMode}
+          pending={isPending}
+          onClose={closePanel}
+        />
+      )}
+
+      {panel.kind === "invite" && (
+        <MatchInviteSheet
+          match={initialState.match}
+          isHost={isHost}
+          onInviteFriends={() => openPanel({ kind: "invite-friends" })}
+          onAddGuest={() => openPanel({ kind: "add-guest" })}
+          onClose={closePanel}
         />
       )}
 
@@ -453,20 +516,6 @@ export function MatchScreen({ initialState, userId }: Props) {
         />
       )}
 
-      {/* Chork is one setter at a time — that IS the game. Two routes
-          put up at once become two rounds, and everyone owes letters
-          on both. A points Match has no turn to take, so the button
-          stays open there. */}
-      {canSet && (
-        <button
-          type="button"
-          className={styles.floatingAdd}
-          onClick={() => openPanel({ kind: "add" })}
-          aria-label={isChork ? "Set the next challenge" : "Add route"}
-        >
-          <FaPlus aria-hidden />
-        </button>
-      )}
     </main>
   );
 }

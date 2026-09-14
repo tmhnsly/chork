@@ -1,5 +1,6 @@
 @use "mixins/typography" as type;
 @use "mixins/input" as input;
+@use "mixins/focus";
 
 // Body rhythm comes from the `<SheetBody>` primitive — only the
 // per-field column stack lives here. Chip row + zone row got
@@ -31,4 +32,22 @@
 .hint {
   @include type.typography(meta, $step: xs);
   color: var(--mono-text-low-contrast);
+}
+
+// The scale this route grades on, named, with the one chance to
+// change it while the match is still a lobby.
+.scaleLine {
+  @include type.typography(meta, $step: sm);
+  color: var(--mono-text-low-contrast);
+  margin: 0;
+}
+
+.scaleChange {
+  @include focus.ring;
+  @include type.typography(meta, $step: sm);
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--accent-text);
+  cursor: pointer;
 }

@@ -5,6 +5,7 @@ import type { MatchHistoryRow } from "@/lib/data/match-types";
 import styles from "./matchHistoryList.module.scss";
 import { Username } from "@/components/ui";
 import { countOf } from "@/lib/plural";
+import { matchTitle } from "@/lib/data/match-title";
 
 interface Props {
   matches: MatchHistoryRow[];
@@ -31,7 +32,7 @@ export function MatchHistoryList({ matches }: Props) {
 }
 
 function MatchHistoryRow({ match }: { match: MatchHistoryRow }) {
-  const name = match.name?.trim() || "Untitled match";
+  const name = matchTitle(match);
   const dateLabel = format(parseISO(match.ended_at), "d MMM");
   const playerLabel = countOf(match.player_count, "player");
 

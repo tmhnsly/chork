@@ -53,9 +53,10 @@
   @include type.typography(display);
   color: var(--mono-text);
   margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  // A real name wraps rather than truncates — "Tom's match" is short,
+  // "Friday sesh at the garage, round two" is not, and both are the
+  // name.
+  overflow-wrap: anywhere;
 }
 
 .metaRow {
@@ -79,53 +80,7 @@
 // Code chip — tappable affordance to open the share sheet.
 // Reads as a real control rather than display-only text. Accent
 // border tint cues "this is the join code, share it" at a glance.
-.codeChip {
-  @include type.typography(label);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-full);
-  background: var(--accent-bg);
-  color: var(--accent-text);
-  border: 1px solid var(--accent-border-subtle);
-  cursor: pointer;
-  transition:
-    background var(--duration-fast) var(--ease-out),
-    border-color var(--duration-fast) var(--ease-out);
 
-  &:hover {
-    border-color: var(--accent-border);
-  }
-
-  @include focus.ring;
-}
-
-.codeLabel {
-  @include type.typography(label);
-  color: var(--accent-text-low-contrast);
-}
-
-.menuButton {
-  width: var(--size-touch-target);
-  height: var(--size-touch-target);
-  border-radius: var(--radius-full);
-  border: 1px solid var(--mono-border-subtle);
-  background: var(--mono-bg);
-  color: var(--mono-text);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  transition: border-color var(--duration-fast) var(--ease-out);
-
-  &:hover {
-    border-color: var(--accent-border);
-  }
-
-  @include focus.ring;
-}
 
 // ── Leaderboard strip ──────────────────────────────
 // Surface treatment so the strip reads as "your standing in this
@@ -136,7 +91,7 @@
   @include surface.card;
   @include layout.stack(0);
   margin: 0 var(--gutter-x);
-  padding: var(--space-2);
+  padding: 0;
   max-width: var(--content-app);
   width: calc(100% - 2 * var(--gutter-x));
   box-sizing: border-box;
@@ -161,57 +116,6 @@
   color: var(--success-text-low-contrast);
 }
 
-// ── Floating add button ─────────────────────────────
-// Scale-in entrance so the FAB lands rather than just appears.
-// CSS-only keyframe so we don't pull in a motion library (per
-// CLAUDE.md's animation-library policy).
-@keyframes fab-enter {
-  from {
-    opacity: 0;
-    transform: scale(0.7);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.floatingAdd {
-  position: fixed;
-  right: var(--gutter-x);
-  bottom: calc(var(--navbar-height) + env(safe-area-inset-bottom, 0px) + var(--space-4));
-  width: var(--size-fab);
-  height: var(--size-fab);
-  border-radius: var(--radius-full);
-  border: none;
-  background: var(--accent-solid);
-  color: var(--accent-on-solid);
-  cursor: pointer;
-  box-shadow: var(--shadow-lg);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--text-xl);
-  z-index: var(--z-fab);
-  animation: fab-enter var(--duration-normal) var(--ease-out);
-  transition:
-    background var(--duration-fast) var(--ease-out),
-    transform var(--duration-fast) var(--ease-out);
-
-  &:hover {
-    background: var(--accent-solid-hover);
-  }
-
-  &:active {
-    transform: scale(0.94);
-  }
-
-  @include focus.ring(var(--accent-on-solid));
-}
-
-// The board shows the top rows and, if they slipped below the cut,
-// the viewer — pulled up from wherever they are. The rule marks that
-// jump so #4 and #12 don't read as consecutive.
 .pinnedRow {
   border-top: 1px dashed var(--mono-border);
   margin-top: var(--space-2);

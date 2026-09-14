@@ -1,0 +1,5 @@
+@use "mixins/layout" as layout;
+
+.fields {
+  @include layout.stack(var(--space-4));
+}

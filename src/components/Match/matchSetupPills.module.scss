@@ -1,0 +1,40 @@
+@use "mixins/typography" as type;
+@use "mixins/focus";
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+// A pill per setting. Static for a player, a control for the host —
+// same shape, so the hero reads the same to everyone.
+.pill {
+  @include type.typography(label);
+  @include focus.ring;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-touch-target);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--mono-border-subtle);
+  background: var(--mono-bg);
+  color: var(--mono-text);
+  cursor: default;
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+button.pill {
+  cursor: pointer;
+
+  &:hover {
+    border-color: var(--accent-border);
+  }
+}
+
+.pillLocked {
+  color: var(--mono-text-low-contrast);
+}

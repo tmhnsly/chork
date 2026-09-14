@@ -33,6 +33,9 @@ import {
   addMatchGuestAction,
   setMatchCeilingAction,
   removeMatchGuestAction,
+  setMatchSetupAction,
+  setMatchGameMode,
+  type MatchSetupPayload,
 } from "@/app/match/actions";
 import { upsertMatchLogOffline } from "@/app/match/offline-actions";
 import {
@@ -590,12 +593,49 @@ export function useMatchScreenState({
     });
   }, [initialState.match.id, router]);
 
+  // The setup lives on `initialState.match`, a server prop: a refresh
+  // re-reads it, and the sheet closes on the fresh props rather than
+  // on a guess. Returns whether it saved, so a sheet can stay open on
+  // a refusal (the RPC's own words are already toasted).
+  const handleSetup = useCallback(
+    async (payload: MatchSetupPayload): Promise<boolean> => {
+      const result = await setMatchSetupAction(initialState.match.id, payload);
+      if ("error" in result) {
+        showToast(result.error, "error");
+        return false;
+      }
+      startTransition(() => {
+        router.refresh();
+        dispatch({ type: "close-panel" });
+      });
+      return true;
+    },
+    [initialState.match.id, router],
+  );
+
+  const handleGameMode = useCallback(
+    (mode: "points" | "chork") => {
+      startTransition(async () => {
+        const result = await setMatchGameMode(initialState.match.id, mode);
+        if ("error" in result) {
+          showToast(result.error, "error");
+          return;
+        }
+        router.refresh();
+        dispatch({ type: "close-panel" });
+      });
+    },
+    [initialState.match.id, router],
+  );
+
   return {
     state,
     leaderboard,
     myLogByRouteId,
     isPending,
     openPanel,
+    handleSetup,
+    handleGameMode,
     closePanel,
     handleAddRoute,
     handleAddGuest,

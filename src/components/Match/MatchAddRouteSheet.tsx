@@ -42,6 +42,10 @@ interface Props {
    * worth a bonus POINT and Chork hasn't got any.
    */
   isChork?: boolean;
+  /** "V-scale" / "V-scale + French" — named so the first route meets the choice. */
+  scaleLabel?: string;
+  /** Offered to the host in the lobby only: opens the grading sheet. */
+  onChangeScale?: () => void;
   onClose: () => void;
   onSubmit: (payload: {
     description: string | null;
@@ -62,6 +66,8 @@ export function MatchAddRouteSheet({
   isChork = false,
   grades,
   match,
+  scaleLabel,
+  onChangeScale,
   onClose,
   onSubmit,
   pending,
@@ -125,6 +131,19 @@ export function MatchAddRouteSheet({
       }
     >
       <SheetBody>
+        {mode === "add" && scaleLabel && (
+          <p className={styles.scaleLine}>
+            Grading in {scaleLabel}
+            {onChangeScale && (
+              <>
+                {" · "}
+                <button type="button" className={styles.scaleChange} onClick={onChangeScale}>
+                  Change
+                </button>
+              </>
+            )}
+          </p>
+        )}
         <label className={styles.field}>
           <span className={styles.label}>Description</span>
           <textarea

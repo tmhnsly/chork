@@ -1,13 +1,12 @@
-import type { ComponentProps } from "react";
 import { redirect } from "next/navigation";
 import { requireSignedIn } from "@/lib/auth";
-import { createServiceClient } from "@/lib/supabase/server";
-import { getUserSavedScales, getMatchStateForUser } from "@/lib/data/match-queries";
+import { createServiceClient, getServerProfile } from "@/lib/supabase/server";
+import { getMatchStateForUser } from "@/lib/data/match-queries";
 import { getLeague } from "@/lib/data/league-queries";
 import { isUuid } from "@/lib/validation";
 import { PageHeader } from "@/components/motion";
-import { CreateMatchForm } from "@/components/Match/CreateMatchForm";
-import { isFormulaScale } from "@/components/Match/createMatchReducer";
+import { GamePosters } from "@/components/Match/GamePosters";
+import { isFormulaScale, type CreateMatchPrefill } from "@/components/Match/createMatchReducer";
 import styles from "./new.module.scss";
 
 export const metadata = { title: "Start a match" };
@@ -21,12 +20,10 @@ export default async function NewMatchPage({ searchParams }: Props) {
   if ("error" in auth) redirect("/login");
   const { league: leagueParam } = await searchParams;
 
-  const savedScales = await getUserSavedScales(auth.supabase);
-
   // Starting a week: pre-fill from the League's most recent FINISHED
   // week. Only the host may (the RPC refuses anyone else), so a
   // non-host with the link just gets a plain new-match form.
-  let league: ComponentProps<typeof CreateMatchForm>["league"];
+  let league: { name: string; weekNumber: number; prefill: CreateMatchPrefill } | undefined;
   if (leagueParam && isUuid(leagueParam)) {
     const view = await getLeague(auth.supabase, leagueParam);
     // `get_league` orders weeks newest-first INCLUDING a live one, so
@@ -48,7 +45,6 @@ export default async function NewMatchPage({ searchParams }: Props) {
           : null;
       const weekNumber = view.weeks.filter((w) => w.status === "archived").length + 1;
       league = {
-        id: view.league.id,
         name: view.league.name,
         weekNumber,
         prefill: {
@@ -70,17 +66,19 @@ export default async function NewMatchPage({ searchParams }: Props) {
     }
   }
 
+  // The default name is the host's: "Tom's match". Stored, so every
+  // list shows a name rather than a fallback; renamed from the lobby.
+  const profile = await getServerProfile();
+  const firstName = profile?.name?.trim().split(/\s+/)[0] || profile?.username || "";
+  const defaultName = firstName ? `${firstName}'s match` : "My match";
+
   return (
     <main className={styles.page}>
       <PageHeader
         title={league ? `Week ${league.weekNumber}` : "Start a match"}
-        subtitle={league ? league.name : "Set up a quick comp you can run anywhere."}
+        subtitle={league ? league.name : "Pick a game. Everything else is set from the lobby."}
       />
-      {/* Keyed on the league id (or its absence) so a client-side nav
-          between two league links re-runs the reducer's lazy init —
-          `useReducer`'s init function only fires once per mounted
-          component instance otherwise. */}
-      <CreateMatchForm key={league?.id ?? "none"} savedScales={savedScales} league={league} />
+      <GamePosters defaultName={defaultName} prefill={league?.prefill} />
     </main>
   );
 }

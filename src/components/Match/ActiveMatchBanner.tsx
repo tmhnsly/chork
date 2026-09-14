@@ -3,6 +3,7 @@ import { FaFire, FaArrowRight } from "react-icons/fa6";
 import type { ActiveMatchSummary } from "@/lib/data/match-types";
 import styles from "./activeMatchBanner.module.scss";
 import { countOf } from "@/lib/plural";
+import { matchTitle } from "@/lib/data/match-title";
 
 interface Props {
   match: ActiveMatchSummary;
@@ -15,7 +16,7 @@ interface Props {
  * open Chork.
  */
 export function ActiveMatchBanner({ match }: Props) {
-  const name = match.name?.trim() || "Untitled match";
+  const name = matchTitle(match);
   const playerLabel = countOf(match.player_count, "player");
 
   return (
