@@ -1,7 +1,7 @@
 import type { MatchGradingScale, SavedScale } from "@/lib/data/match-types";
 import {
   DISCIPLINE_SCALES,
-  SCALE_DEFAULT_MAX,
+  SCALE_HARD_MAX,
   type Discipline,
   scaleFamily,
 } from "@/lib/data/grade-label";
@@ -152,8 +152,14 @@ export type CreateMatchAction =
   | { type: "set-scale-name"; value: string };
 
 /**
- * Defaults: V0→V8 / Font 3→7A — common ranges so climbers can move
- * on without thinking.
+ * Ranges default to the WHOLE ladder. They used to default to a
+ * common gym band (V0→V8) and be picked on the create screen, which
+ * asked a climber to predict the hardest thing anyone would put up
+ * before a single route existed — two fourteen-chip rows of
+ * homework, and the most overwhelming thing on the screen. The
+ * grade is now chosen per route, where it is actually known; the
+ * range survives as the bound the add-route picker reads, opened all
+ * the way so every grade is on offer.
  */
 export function initialCreateMatchState(prefill?: CreateMatchPrefill): CreateMatchState {
   const base: CreateMatchState = {
@@ -164,12 +170,10 @@ export function initialCreateMatchState(prefill?: CreateMatchPrefill): CreateMat
     gameMode: "points",
     scale: "v",
     ranges: {
-      v: [0, 8],
-      font: [0, 10],
-      // Ropes start at the bottom of each scale and run to a common
-      // gym top-end, same reasoning as the boulder defaults.
-      yds: [0, SCALE_DEFAULT_MAX.yds],
-      french: [0, SCALE_DEFAULT_MAX.french],
+      v: [0, SCALE_HARD_MAX.v],
+      font: [0, SCALE_HARD_MAX.font],
+      yds: [0, SCALE_HARD_MAX.yds],
+      french: [0, SCALE_HARD_MAX.french],
     },
     altScale: null,
     customGrades: [],

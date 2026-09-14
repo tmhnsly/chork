@@ -39,90 +39,10 @@
   @include input.field;
 }
 
-.fieldset {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  border: none;
-  padding: 0;
-  margin: 0;
-  // Browsers give <fieldset> a UA `min-width: min-content`, which the
-  // reset does not clear. With a horizontally scrolling row inside,
-  // min-content is the full width of 18 grade chips — so the fieldset
-  // grew to 957px inside a 561px form, the row never got a width to
-  // overflow, and the PAGE scrolled sideways instead. That is what
-  // made the gutter look like it had vanished.
-  min-width: 0;
-}
-
-.scaleHint {
-  @include type.typography(meta, $step: xs);
-  color: var(--mono-text-low-contrast);
-  margin: 0;
-}
-
 .leagueNote {
   @include type.typography(meta);
   color: var(--mono-text-low-contrast);
   margin: 0;
-}
-
-// ── Grade range card ────────────────────────────────
-// Grade range: the same pills the log + add-route sheets use, one
-// labelled row per bound. Replaced a pair of steppers that cost a tap
-// per grade and matched nothing else in the app.
-
-
-// Card + summary share one column stack so the summary feels
-// paired with the card above rather than floating. Uses the same
-// space-3 internal rhythm as every other label→control pair.
-// One row per bound, both using the same scrolling grade pills the
-// sheets use. A label beside each so "which end am I setting" never
-// needs working out.
-// Label hugs its own chips — tighter than the gap between the two
-// bounds above, so grouping does the explaining.
-.rangeRow {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  // Chips scroll to the page's edges rather than being clipped at its
-  // gutter — see the note in gradePicker.module.scss.
-  --grade-picker-bleed: var(--gutter-x);
-  // See `.fieldset` — every ancestor between the scrolling row and a
-  // width-constrained box has to allow shrinking, or the row never
-  // gets a width to overflow.
-  min-width: 0;
-}
-
-// Subordinate to the section legend above it, so the hierarchy is
-// legible: GRADE RANGE names the section, Easiest / Hardest name the
-// rows inside it.
-.rangeLabel {
-  @include type.typography(meta, $step: xs);
-  color: var(--mono-text-low-contrast);
-}
-
-// The two bounds are separate groups, so they sit a section apart —
-// otherwise "EASIEST" and "HARDEST" read as one undifferentiated
-// stack of low-contrast labels above a wall of chips.
-.rangePicker {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-  min-width: 0;
-}
-
-// The answer, said back. Accent because it's the thing the two rows
-// above were for, and because in this app accent means "yours".
-.rangeSummary {
-  @include type.typography(label, $step: xs);
-  align-self: flex-start;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-full);
-  background: var(--accent-subtle-bg);
-  color: var(--accent-text);
-  margin: 0;
-  text-align: center;
 }
 
 // ── Custom-scale section ────────────────────────────
@@ -263,8 +183,8 @@
 }
 
 .dot {
-  width: var(--space-2);
-  height: var(--space-2);
+  width: var(--space-5);
+  height: var(--space-1);
   border-radius: var(--radius-full);
   background: var(--mono-border);
   transition: background var(--duration-fast) var(--ease-out);
@@ -283,8 +203,82 @@
   color: var(--mono-text-low-contrast);
 }
 
+// Each step arrives rather than cuts. Keyed on the step in the JSX,
+// so the animation replays on every move — forwards or back — which
+// is what makes three screens read as one flow instead of three
+// forms. Short and small: this is navigation inside a page, not a
+// page change.
 .step {
   @include layout.stack(var(--space-6));
+  animation: stepIn var(--duration-fast) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step {
+    animation: none;
+  }
+}
+
+@keyframes stepIn {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-2));
+  }
+}
+
+// The step's actual question, asked in words. The form used to label
+// its sections GAME / DISCIPLINE / GRADING SCALE — the uppercase
+// micro-label that belongs on a stat, not on the only thing a screen
+// is asking you. A question in the card-title voice tells you what to
+// do without you having to infer it from a noun.
+.question {
+  @include type.typography(card-title, $step: lg);
+  color: var(--mono-text);
+  margin: 0;
+}
+
+// The quiet line under a choice: what a game mode means, what a
+// points-only set implies, what happens next.
+.hint {
+  @include type.typography(meta, $step: sm);
+  color: var(--mono-text-low-contrast);
+  margin: 0;
+}
+
+// Optional fields, and visibly so — separated by a rule and led by
+// the word "optional" rather than each field carrying "(optional)"
+// in its own label. A match with no name is a perfectly good match.
+.optional {
+  @include layout.stack(var(--space-3));
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--mono-border-subtle);
+}
+
+.optionalLabel {
+  @include type.typography(label);
+  color: var(--mono-text-low-contrast);
+}
+
+// ── The review, as a ticket ─────────────────────────
+// The last screen reads back the match that is about to exist — its
+// name and mode set like the thing itself — rather than listing the
+// fields that produced it. Same card surface as everywhere else.
+.ticket {
+  @include surface.card;
+  @include layout.stack(var(--space-1));
+  border-radius: var(--radius-card);
+  padding: var(--space-4);
+}
+
+.ticketName {
+  @include type.typography(card-title, $step: lg);
+  color: var(--mono-text);
+}
+
+.ticketMode {
+  @include type.typography(meta, $step: sm);
+  color: var(--accent-text);
+  padding-bottom: var(--space-3);
 }
 
 // Back left, Next/Start right — intrinsic widths, per the button

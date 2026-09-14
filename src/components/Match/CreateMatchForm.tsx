@@ -8,30 +8,24 @@ import {
   FaArrowUp,
   FaArrowDown,
   FaScaleBalanced,
-  FaCube,
-  FaShuffle,
 } from "react-icons/fa6";
 import {
   Button,
   ChoiceTiles,
-  GradePicker,
   ToggleRow,
   showToast,
 } from "@/components/ui";
 import {
-  gradeOptions,
   SCALE_LABEL,
   DISCIPLINES,
   DISCIPLINE_LABEL,
   DISCIPLINE_SCALES,
   disciplineFamily,
   type Discipline,
-  type CustomGradeEntry,
 } from "@/lib/data/grade-label";
 import type { MatchGradingScale, SavedScale } from "@/lib/data/match-types";
 import { createMatchAction, setMatchGameMode } from "@/app/match/actions";
 import { countOf } from "@/lib/plural";
-import type { GradeChoice } from "@/components/ui";
 import {
   buildCreateMatchPayload,
   canSubmit as deriveCanSubmit,
@@ -52,8 +46,20 @@ interface Props {
 
 type ScaleTab = MatchGradingScale;
 
-const DISCIPLINE_OPTIONS: { value: Discipline; label: string }[] =
-  DISCIPLINES.map((d) => ({ value: d, label: DISCIPLINE_LABEL[d] }));
+/**
+ * The discipline question, as climbers ask it. "Mixed" is not a
+ * `Discipline` in the database — underneath it is the primary
+ * discipline plus an alternate ladder, exactly as before — but it
+ * belongs in this list, because "am I climbing boulders, ropes, or
+ * both today" is one question, and asking it separately further down
+ * the form was a whole extra section for a yes/no.
+ */
+type DisciplineChoice = Discipline | "mixed";
+
+const DISCIPLINE_CHOICES: { value: DisciplineChoice; label: string; detail?: string }[] = [
+  ...DISCIPLINES.map((d) => ({ value: d as DisciplineChoice, label: DISCIPLINE_LABEL[d] })),
+  { value: "mixed", label: "Mixed", detail: "Boulders and ropes" },
+];
 
 /**
  * Scales offered for a discipline: its own, then the two that suit
@@ -63,6 +69,11 @@ const DISCIPLINE_OPTIONS: { value: Discipline; label: string }[] =
 function scaleOptions(discipline: Discipline): { value: ScaleTab; label: string }[] {
   return [...DISCIPLINE_SCALES[discipline], "custom" as const, "points" as const]
     .map((value) => ({ value, label: SCALE_LABEL[value] }));
+}
+
+/** The discipline's own ladders only — what a mixed day can choose from. */
+function formulaScaleOptions(discipline: Discipline): { value: ScaleTab; label: string }[] {
+  return DISCIPLINE_SCALES[discipline].map((value) => ({ value, label: SCALE_LABEL[value] }));
 }
 
 export function CreateMatchForm({ savedScales, league }: Props) {
@@ -85,18 +96,44 @@ export function CreateMatchForm({ savedScales, league }: Props) {
     handicap,
     scale,
     altScale,
-    ranges,
     customGrades,
     newGradeInput,
     saveScale,
     scaleName,
   } = state;
 
-  // Which family the Match's own scale grades for — names the
-  // single/mixed tiles and decides which ladder the alternate offers.
+  // Which family the Match's own scale grades for — names the two
+  // ladders on a mixed day and decides which one the alternate offers.
   const primaryFamily = disciplineFamily(discipline);
+  const otherFamilyLabel = primaryFamily === "boulder" ? "Rope grades" : "Boulder grades";
+  const ownFamilyLabel = primaryFamily === "boulder" ? "Boulder grades" : "Rope grades";
+  const altScaleChoices: readonly FormulaScale[] =
+    primaryFamily === "boulder" ? ["french", "yds"] : ["v", "font"];
 
   const canSubmit = deriveCanSubmit(state, pending);
+
+  // A mixed day IS "has an alternate ladder" — one source of truth,
+  // read both ways rather than stored twice.
+  const isMixed = altScale !== null;
+  const disciplineChoice: DisciplineChoice = isMixed ? "mixed" : discipline;
+
+  function chooseDiscipline(next: DisciplineChoice) {
+    if (next === "mixed") {
+      // Mixed keeps whichever real discipline is already chosen as
+      // the primary and adds the other family's ladder. Two ladders
+      // need a scale that HAS a family — points has no grades and a
+      // custom ladder covers everything — so a mixed day on either
+      // first moves the primary onto its discipline's own scale.
+      // The scale tiles sit directly below, so the move is visible.
+      if (!isFormulaScale(scale)) {
+        dispatch({ type: "set-scale", scale: DISCIPLINE_SCALES[discipline][0] });
+      }
+      dispatch({ type: "set-mixed", value: true });
+      return;
+    }
+    dispatch({ type: "set-discipline", discipline: next });
+    dispatch({ type: "set-mixed", value: false });
+  }
 
   // ── The wizard ──────────────────────────────────
   // Three steps: what you're playing, how it's graded, then a review
@@ -173,102 +210,103 @@ export function CreateMatchForm({ savedScales, league }: Props) {
       </header>
 
       {wizardStep === 0 && (
-        <div className={styles.step}>
-          {/* How it's won leads — Chork changes what the whole match
-              is for, and it's the one choice with no default answer. */}
-          <fieldset className={styles.fieldset}>
-            <legend className={styles.label}>Game</legend>
-            <ChoiceTiles<"points" | "chork">
-              options={[
-                {
-                  value: "points",
-                  label: "Points",
-                  detail: "Most points wins",
-                },
-                {
-                  value: "chork",
-                  label: "Chork",
-                  detail: "Miss and take a letter",
-                },
-              ]}
-              value={gameMode}
-              onChange={(next) => dispatch({ type: "set-game-mode", value: next })}
-              ariaLabel="Game mode"
-            />
-            {gameMode === "chork" && (
-              <p className={styles.scaleHint}>
-                Set a route and send it — everyone else gets as many goes as
-                you took. Spell CHORK and you&rsquo;re out.
-              </p>
-            )}
-          </fieldset>
+        <div className={styles.step} key={0}>
+          <h2 className={styles.question}>What are you playing?</h2>
+          <ChoiceTiles<"points" | "chork">
+            options={[
+              { value: "points", label: "Points", detail: "Most points wins" },
+              { value: "chork", label: "Chork", detail: "Miss and take a letter" },
+            ]}
+            value={gameMode}
+            onChange={(next) => dispatch({ type: "set-game-mode", value: next })}
+            ariaLabel="Game mode"
+          />
+          {gameMode === "chork" && (
+            <p className={styles.hint}>
+              Set a route and send it — everyone else gets as many goes as
+              you took. Spell CHORK and you&rsquo;re out.
+            </p>
+          )}
 
-          <label className={styles.field}>
-            <span className={styles.label}>Name (optional)</span>
+          {/* Optional, and shown as optional: a match with no name is
+              a perfectly good match. */}
+          <div className={styles.optional}>
+            <span className={styles.optionalLabel}>Details — optional</span>
             <input
               type="text"
               className={styles.input}
               value={name}
               maxLength={80}
-              placeholder="e.g. Friday sesh"
+              placeholder="Name it, e.g. Friday sesh"
+              aria-label="Match name"
               onChange={(e) => dispatch({ type: "set-name", value: e.target.value })}
             />
-          </label>
-
-          <label className={styles.field}>
-            <span className={styles.label}>Location (optional)</span>
             <input
               type="text"
               className={styles.input}
               value={location}
               maxLength={120}
-              placeholder="e.g. Fontainebleau, The garage"
+              placeholder="Where, e.g. Fontainebleau"
+              aria-label="Location"
               onChange={(e) =>
                 dispatch({ type: "set-location", value: e.target.value })
               }
             />
-          </label>
+          </div>
         </div>
       )}
 
       {wizardStep === 1 && (
-        <div className={styles.step}>
-          {/* Discipline first — it decides which scales are on offer. */}
-          <fieldset className={styles.fieldset}>
-            <legend className={styles.label}>Discipline</legend>
-            <ChoiceTiles<Discipline>
-              options={DISCIPLINE_OPTIONS}
-              value={discipline}
-              onChange={(next) =>
-                dispatch({ type: "set-discipline", discipline: next })
-              }
-              ariaLabel="Discipline"
-            />
-            <p className={styles.scaleHint}>
-              Sets the default for this match. Any route can be a different
-              discipline — handy for an outdoor day mixing boulders and ropes.
+        <div className={styles.step} key={1}>
+          <h2 className={styles.question}>What are you climbing?</h2>
+          {/* Mixed is a fourth DISCIPLINE here rather than a separate
+              "one scale or two" question further down. It is the same
+              state underneath — a primary discipline plus an alternate
+              ladder — but as a question it is the one climbers
+              actually ask themselves, and it removes a whole section. */}
+          <ChoiceTiles<DisciplineChoice>
+            options={DISCIPLINE_CHOICES}
+            value={disciplineChoice}
+            onChange={chooseDiscipline}
+            ariaLabel="Discipline"
+          />
+
+          <h2 className={styles.question}>
+            {isMixed ? ownFamilyLabel : "How are they graded?"}
+          </h2>
+          {/* On a mixed day only the formula scales are offered:
+              picking custom or points would silently drop the second
+              ladder (the reducer has nowhere to keep it). */}
+          <ChoiceTiles<ScaleTab>
+            options={isMixed ? formulaScaleOptions(discipline) : scaleOptions(discipline)}
+            value={scale}
+            onChange={(next) => dispatch({ type: "set-scale", scale: next })}
+            ariaLabel="Grading scale"
+          />
+          {scale === "points" && (
+            <p className={styles.hint}>
+              No grades — every route is ungraded and the leaderboard ranks
+              purely by points from attempts and zones.
             </p>
-          </fieldset>
+          )}
 
-          {/* Scale picker — the discipline's own scales, plus Custom / Points */}
-          <fieldset className={styles.fieldset}>
-            <legend className={styles.label}>Grading scale</legend>
-            <ChoiceTiles<ScaleTab>
-              options={scaleOptions(discipline)}
-              value={scale}
-              onChange={(next) => dispatch({ type: "set-scale", scale: next })}
-              ariaLabel="Grading scale"
-            />
-            {scale === "points" && (
-              <p className={styles.scaleHint}>
-                No grades — every route is ungraded and the leaderboard ranks
-                purely by points from attempts + zones.
-              </p>
-            )}
-          </fieldset>
+          {isMixed && altScale && (
+            <>
+              <h2 className={styles.question}>{otherFamilyLabel}</h2>
+              <ChoiceTiles<FormulaScale>
+                options={altScaleChoices.map((value) => ({
+                  value,
+                  label: SCALE_LABEL[value],
+                }))}
+                value={altScale}
+                onChange={(next) => dispatch({ type: "set-alt-scale", scale: next })}
+                ariaLabel={otherFamilyLabel}
+              />
+            </>
+          )}
 
-          {/* Only offered on a graded scale — a handicap measures a send
-              against a grade, and `points` has none while a custom
+          {/* Only on a graded scale — a handicap measures a send
+              against a grade, and points has none while a custom
               ladder's ordinals aren't a difficulty scale. */}
           {isFormulaScale(scale) && (
             <ToggleRow
@@ -280,112 +318,19 @@ export function CreateMatchForm({ savedScales, league }: Props) {
             />
           )}
 
-          {isFormulaScale(scale) && (
-            <fieldset className={styles.fieldset}>
-              <legend className={styles.label}>
-                {altScale ? `${SCALE_LABEL[scale]} range` : "Grade range"}
-              </legend>
-              <RangePicker
-                scale={scale}
-                customGrades={customGrades.map((label, ordinal) => ({ ordinal, label }))}
-                min={ranges[scale][0]}
-                max={ranges[scale][1]}
-                onChange={(min, max) =>
-                  dispatch({ type: "set-range", scale, min, max })
-                }
-              />
-            </fieldset>
-          )}
-
-          {/* A mixed day. Sport and top-rope grade the same way, so the
-              ceiling is two scales and never three — which is why this is
-              one toggle rather than a scale per discipline.
-
-              Only offered on a formula scale: a custom ladder is one
-              ladder and applies to whatever you climb, and points has no
-              grades to mix. */}
-          {isFormulaScale(scale) && (
-            <fieldset className={styles.fieldset}>
-              <legend className={styles.label}>What are you climbing</legend>
-              <ChoiceTiles<"single" | "mixed">
-                options={[
-                  {
-                    value: "single",
-                    label: primaryFamily === "boulder" ? "Just boulders" : "Just ropes",
-                    detail: "One scale",
-                    icon:
-                      primaryFamily === "boulder" ? (
-                        <FaCube aria-hidden />
-                      ) : (
-                        <FaArrowUp aria-hidden />
-                      ),
-                  },
-                  {
-                    value: "mixed",
-                    label: "Mixed day",
-                    detail: "Boulders and ropes",
-                    icon: <FaShuffle aria-hidden />,
-                  },
-                ]}
-                value={altScale ? "mixed" : "single"}
-                onChange={(next) =>
-                  dispatch({ type: "set-mixed", value: next === "mixed" })
-                }
-                ariaLabel="Disciplines in this match"
-              />
-            </fieldset>
-          )}
-
-          {altScale && (
-            <>
-              <fieldset className={styles.fieldset}>
-                <legend className={styles.label}>
-                  {primaryFamily === "boulder" ? "Rope scale" : "Boulder scale"}
-                </legend>
-                <ChoiceTiles<FormulaScale>
-                  options={(primaryFamily === "boulder"
-                    ? (["french", "yds"] as const)
-                    : (["v", "font"] as const)
-                  ).map((value) => ({ value, label: SCALE_LABEL[value] }))}
-                  value={altScale}
-                  onChange={(next) =>
-                    dispatch({ type: "set-alt-scale", scale: next })
-                  }
-                  ariaLabel={
-                    primaryFamily === "boulder" ? "Rope scale" : "Boulder scale"
-                  }
-                />
-              </fieldset>
-
-              <fieldset className={styles.fieldset}>
-                <legend className={styles.label}>
-                  {SCALE_LABEL[altScale]} range
-                </legend>
-                <RangePicker
-                  scale={altScale}
-                  customGrades={[]}
-                  min={ranges[altScale][0]}
-                  max={ranges[altScale][1]}
-                  onChange={(min, max) =>
-                    dispatch({ type: "set-range", scale: altScale, min, max })
-                  }
-                />
-              </fieldset>
-            </>
-          )}
           {scale === "custom" && (
             <div className={styles.customSection}>
               {savedScales.length > 0 && (
                 <div className={styles.savedPills}>
                   <span className={styles.savedLabel}>Use a saved scale:</span>
-                  {savedScales.map((s) => (
+                  {savedScales.map((sc) => (
                     <button
-                      key={s.id}
+                      key={sc.id}
                       type="button"
                       className={styles.savedPill}
-                      onClick={() => dispatch({ type: "apply-saved-scale", saved: s })}
+                      onClick={() => dispatch({ type: "apply-saved-scale", saved: sc })}
                     >
-                      {s.name}
+                      {sc.name}
                     </button>
                   ))}
                 </div>
@@ -398,6 +343,7 @@ export function CreateMatchForm({ savedScales, league }: Props) {
                   value={newGradeInput}
                   maxLength={40}
                   placeholder="e.g. Red Circuit"
+                  aria-label="Grade name"
                   onChange={(e) =>
                     dispatch({ type: "set-new-grade-input", value: e.target.value })
                   }
@@ -433,9 +379,7 @@ export function CreateMatchForm({ savedScales, league }: Props) {
                           <button
                             type="button"
                             className={styles.gradeIconBtn}
-                            onClick={() =>
-                              dispatch({ type: "move-grade", index: i, delta: -1 })
-                            }
+                            onClick={() => dispatch({ type: "move-grade", index: i, delta: -1 })}
                             disabled={i === 0}
                             aria-label="Move up"
                           >
@@ -444,9 +388,7 @@ export function CreateMatchForm({ savedScales, league }: Props) {
                           <button
                             type="button"
                             className={styles.gradeIconBtn}
-                            onClick={() =>
-                              dispatch({ type: "move-grade", index: i, delta: 1 })
-                            }
+                            onClick={() => dispatch({ type: "move-grade", index: i, delta: 1 })}
                             disabled={i === customGrades.length - 1}
                             aria-label="Move down"
                           >
@@ -455,9 +397,7 @@ export function CreateMatchForm({ savedScales, league }: Props) {
                           <button
                             type="button"
                             className={styles.gradeIconBtn}
-                            onClick={() =>
-                              dispatch({ type: "remove-grade", index: i })
-                            }
+                            onClick={() => dispatch({ type: "remove-grade", index: i })}
                             aria-label="Remove"
                           >
                             <FaXmark aria-hidden />
@@ -471,9 +411,7 @@ export function CreateMatchForm({ savedScales, league }: Props) {
                     title="Save this scale"
                     detail="Reuse it next match without re-entering the grades."
                     checked={saveScale}
-                    onChange={(checked) =>
-                      dispatch({ type: "set-save-scale", value: checked })
-                    }
+                    onChange={(checked) => dispatch({ type: "set-save-scale", value: checked })}
                   />
 
                   {saveScale && (
@@ -500,51 +438,43 @@ export function CreateMatchForm({ savedScales, league }: Props) {
       )}
 
       {wizardStep === 2 && (
-        <div className={styles.step}>
-          {/* Read the match back before it exists. Every row jumps to
-              the step that owns it — the review is navigation, not a
-              receipt. */}
-          <dl className={styles.review}>
-            <ReviewRow
-              term="Game"
-              value={gameMode === "chork" ? "Chork" : "Points"}
-              onEdit={() => goTo(0)}
-            />
-            <ReviewRow
-              term="Name"
-              value={name.trim() || "Unnamed match"}
-              muted={!name.trim()}
-              onEdit={() => goTo(0)}
-            />
-            {location.trim() && (
-              <ReviewRow term="Location" value={location.trim()} onEdit={() => goTo(0)} />
-            )}
-            <ReviewRow
-              term="Discipline"
-              value={DISCIPLINE_LABEL[discipline]}
-              onEdit={() => goTo(1)}
-            />
-            <ReviewRow
-              term="Grades"
-              value={describeScale(state)}
-              onEdit={() => goTo(1)}
-            />
-            {altScale && (
+        <div className={styles.step} key={2}>
+          <h2 className={styles.question}>Ready?</h2>
+          {/* The match read back as the thing it is about to become,
+              not as a list of the fields that made it. Every row
+              jumps to the step that owns it. */}
+          <div className={styles.ticket}>
+            <span className={styles.ticketName}>
+              {name.trim() || "Unnamed match"}
+            </span>
+            <span className={styles.ticketMode}>
+              {gameMode === "chork" ? "Chork" : "Points"}
+              {location.trim() ? ` · ${location.trim()}` : ""}
+            </span>
+            <dl className={styles.review}>
               <ReviewRow
-                term={primaryFamily === "boulder" ? "Rope grades" : "Boulder grades"}
-                value={describeAltScale(state)}
+                term="Climbing"
+                value={
+                  isMixed
+                    ? "Boulders and ropes"
+                    : DISCIPLINE_LABEL[discipline]
+                }
                 onEdit={() => goTo(1)}
               />
-            )}
-            {isFormulaScale(scale) && (
-              <ReviewRow
-                term="Handicap"
-                value={handicap ? "On" : "Off"}
-                muted={!handicap}
-                onEdit={() => goTo(1)}
-              />
-            )}
-          </dl>
+              <ReviewRow term="Grades" value={describeScale(state)} onEdit={() => goTo(1)} />
+              {isFormulaScale(scale) && (
+                <ReviewRow
+                  term="Handicap"
+                  value={handicap ? "On" : "Off"}
+                  muted={!handicap}
+                  onEdit={() => goTo(1)}
+                />
+              )}
+            </dl>
+          </div>
+          <p className={styles.hint}>
+            Add routes once you&rsquo;re in — each one takes its own grade.
+          </p>
         </div>
       )}
 
@@ -603,91 +533,13 @@ function ReviewRow({
   );
 }
 
-/** "V-scale · V0 – V8" / "Custom · 6 grades" / "Points only". */
+/** "V-scale", "Custom · 6 grades", "Points only" — and both ladders
+ *  when it's a mixed day. Ranges are gone: a grade is chosen per
+ *  route now, so there is no band to report. */
 function describeScale(state: Parameters<typeof buildCreateMatchPayload>[0]): string {
-  const { scale, ranges, customGrades } = state;
+  const { scale, customGrades, altScale } = state;
   if (scale === "points") return "Points only — no grades";
   if (scale === "custom") return `Custom · ${countOf(customGrades.length, "grade")}`;
-  const all = gradeOptions(scale, { customGrades: [] });
-  const [min, max] = ranges[scale];
-  const lo = all.find((o) => o.value === min)?.label;
-  const hi = all.find((o) => o.value === max)?.label;
-  return `${SCALE_LABEL[scale]} · ${lo} – ${hi}`;
+  const primary = SCALE_LABEL[scale];
+  return altScale ? `${primary} and ${SCALE_LABEL[altScale]}` : primary;
 }
-
-/** The mixed day's second ladder, same shape as the first. */
-function describeAltScale(state: Parameters<typeof buildCreateMatchPayload>[0]): string {
-  const { altScale, ranges } = state;
-  if (!altScale) return "";
-  const all = gradeOptions(altScale, { customGrades: [] });
-  const [min, max] = ranges[altScale];
-  const lo = all.find((o) => o.value === min)?.label;
-  const hi = all.find((o) => o.value === max)?.label;
-  return `${SCALE_LABEL[altScale]} · ${lo} – ${hi}`;
-}
-
-/**
- * The grade range, picked with the SAME control as everywhere else.
- *
- * One `GradePicker` per bound — the round, wrapping row of tappable
- * grades that the card's "Rate this climb" row, the log sheet and the
- * ceiling sheet all use. Every place a climber picks a grade now looks
- * and behaves identically, which is the whole point: this screen had a
- * bespoke ◀ ▶ stepper before, and a control that appears once teaches
- * nothing.
- *
- * The full scale is offered on both rows rather than only the legal
- * half; the impossible options are disabled, so the row doesn't reflow
- * under your thumb as you move the other bound.
- */
-function RangePicker({
-  scale,
-  customGrades,
-  min,
-  max,
-  onChange,
-}: {
-  scale: MatchGradingScale;
-  customGrades: readonly CustomGradeEntry[];
-  min: number;
-  max: number;
-  onChange: (min: number, max: number) => void;
-}) {
-  const all = gradeOptions(scale, { customGrades });
-  const count = max - min + 1;
-
-  const options = (bound: "min" | "max"): GradeChoice<number>[] =>
-    all.map((o) => ({
-      value: o.value,
-      label: o.label,
-      disabled: bound === "min" ? o.value > max : o.value < min,
-    }));
-
-  return (
-    <div className={styles.rangePicker}>
-      <div className={styles.rangeRow}>
-        <span className={styles.rangeLabel}>Easiest</span>
-        <GradePicker<number>
-          options={options("min")}
-          value={min}
-          onChange={(next) => onChange(next, max)}
-          ariaLabel="Easiest grade"
-        />
-      </div>
-      <div className={styles.rangeRow}>
-        <span className={styles.rangeLabel}>Hardest</span>
-        <GradePicker<number>
-          options={options("max")}
-          value={max}
-          onChange={(next) => onChange(min, next)}
-          ariaLabel="Hardest grade"
-        />
-      </div>
-      <p className={styles.rangeSummary}>
-        {all.find((o) => o.value === min)?.label} –{" "}
-        {all.find((o) => o.value === max)?.label} · {countOf(count, "grade")}
-      </p>
-    </div>
-  );
-}
-

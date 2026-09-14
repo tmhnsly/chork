@@ -9,6 +9,7 @@ import {
   type CreateMatchState,
 } from "./createMatchReducer";
 import type { SavedScale } from "@/lib/data/match-types";
+import { SCALE_HARD_MAX } from "@/lib/data/grade-label";
 
 function mkSavedScale(overrides: Partial<SavedScale> = {}): SavedScale {
   return {
@@ -30,11 +31,15 @@ function run(actions: CreateMatchAction[], from?: CreateMatchState): CreateMatch
 }
 
 describe("initialCreateMatchState", () => {
-  it("starts on the V scale with the common default ranges", () => {
+  it("starts on the V scale with every ladder opened all the way", () => {
+    // The range is no longer picked on the create screen — grades are
+    // chosen per route — so nothing may be off the menu by default.
     const state = initialCreateMatchState();
     expect(state.scale).toBe("v");
-    expect(state.ranges.v).toEqual([0, 8]);
-    expect(state.ranges.font).toEqual([0, 10]);
+    expect(state.ranges.v).toEqual([0, SCALE_HARD_MAX.v]);
+    expect(state.ranges.font).toEqual([0, SCALE_HARD_MAX.font]);
+    expect(state.ranges.yds).toEqual([0, SCALE_HARD_MAX.yds]);
+    expect(state.ranges.french).toEqual([0, SCALE_HARD_MAX.french]);
     expect(state.customGrades).toEqual([]);
     expect(state.saveScale).toBe(false);
   });
