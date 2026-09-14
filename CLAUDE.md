@@ -317,6 +317,10 @@ Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
 - Step 11: low-contrast text / secondary icons
 - Step 12: high-contrast text / primary icons
 - **Never use step 9 as a text colour** (except `--mono-solid` for disabled)
+- **Step-11 text is AA only on steps 1–2.** The page plane is step 3
+  in light, so anything written directly on the page (not in a card)
+  uses step 12 (`--*-text`), never `--*-text-low-contrast`. The a11y
+  e2e caught lime-11 on olive-3 at 4.22:1
 - **Never dim text via opacity** — use the correct step
 - **No `color-mix()`** — use Radix tokens directly
 

@@ -2,17 +2,27 @@
 @use "mixins/surfaces" as surface;
 @use "mixins/focus" as focus;
 
+// Your standing: the rank big, its context beneath, the points on
+// the right. Glass, because it is the one surface on the Card page
+// about you rather than the wall — the same emphasis the board
+// gets on the Chorkboard.
 .strip {
-  @include surface.card;
+  @include surface.glass(70%);
   @include focus.ring;
   display: flex;
   align-items: center;
-  gap: var(--space-3);
-  min-height: var(--size-touch-target);
+  gap: var(--space-4);
+  min-height: var(--size-rank-strip);
   padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-3);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-sm);
   text-decoration: none;
   color: inherit;
+  transition: box-shadow var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    box-shadow: var(--shadow-md);
+  }
 
   &:hover .chevron {
     color: var(--mono-text);
@@ -21,28 +31,50 @@
 
 .body {
   display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
   flex: 1;
   min-width: 0;
 }
 
+.standing {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
 .rank {
-  @include type.typography(number, $step: lg);
+  @include type.typography(number, $step: 3xl);
   color: var(--mono-text);
 }
 
 // Smaller than the number it belongs to, so "#41" reads as one token
 // with the 41 carrying it.
 .hash {
-  @include type.typography(number, $step: sm);
+  @include type.typography(number, $step: lg);
   color: var(--mono-text-low-contrast);
 }
 
-.of,
-.points,
-.dot {
-  @include type.typography(meta);
+.of {
+  @include type.typography(meta, $step: sm);
+  color: var(--mono-text-low-contrast);
+}
+
+.points {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.pointsValue {
+  @include type.typography(number, $step: xl);
+  color: var(--accent-text);
+}
+
+.pointsUnit {
+  @include type.typography(label);
   color: var(--mono-text-low-contrast);
 }
 

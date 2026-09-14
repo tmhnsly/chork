@@ -17,7 +17,9 @@ interface Props {
 }
 
 /**
- * Where you stand, above your card.
+ * Where you stand, above your card — the page's one glass surface,
+ * because it is the one thing on the page that is about you rather
+ * than the wall.
  *
  * The whole reason Card and Ranks stopped being two nav tabs: the two
  * things are only interesting together. Behind a tab you log a send
@@ -50,16 +52,16 @@ export function RankStrip({ rank, gained }: Props) {
           </span>
         ) : (
           <>
-            <span className={styles.rank}>
-              <span className={styles.hash}>#</span>
-              {rank.rank}
-            </span>
-            <span className={styles.of}>of {rank.climberCount}</span>
-            <span className={styles.dot} aria-hidden>
-              ·
+            <span className={styles.standing}>
+              <span className={styles.rank}>
+                <span className={styles.hash}>#</span>
+                {rank.rank}
+              </span>
+              <span className={styles.of}>of {countOf(rank.climberCount, "climber")}</span>
             </span>
             <span className={styles.points}>
-              {countOf(rank.points, "pt")}
+              <span className={styles.pointsValue}>{rank.points}</span>
+              <span className={styles.pointsUnit}>pts</span>
             </span>
           </>
         )}

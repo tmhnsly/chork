@@ -19,9 +19,12 @@
   @include layout.stack(var(--space-2));
 }
 
+// Step 12, not 11: this text sits on the page plane, which is step 3
+// in light, and Radix only guarantees step-11 text AA against steps
+// 1–2 (lime-11 on olive-3 measured 4.22:1 in CI). Step 12 clears it.
 .heading {
   @include type.typography(card-title);
-  color: var(--accent-text-low-contrast);
+  color: var(--accent-text);
 }
 
 .section p {
@@ -44,7 +47,7 @@
 }
 
 .link {
-  color: var(--accent-text-low-contrast);
+  color: var(--accent-text);
   text-decoration: underline;
 
   &:hover {
