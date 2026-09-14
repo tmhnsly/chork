@@ -1,104 +1,43 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { requireSignedIn } from "@/lib/auth";
-import { createServiceClient } from "@/lib/supabase/server";
-import {
-  getActiveMatchForUserById,
-  getUserMatches,
-} from "@/lib/data/match-queries";
-import { getMyLeagues } from "@/lib/data/league-queries";
-import { PageHeader } from "@/components/motion";
-import { FaPlus } from "react-icons/fa6";
-import { ChorkMark, LinkButton } from "@/components/ui";
+import { PageHeader, Reveal } from "@/components/motion";
 import { NextGameCard } from "./NextGameCard";
-import { ActiveMatchBanner } from "@/components/Match/ActiveMatchBanner";
-import { MatchHistoryList } from "@/components/Match/MatchHistoryList";
-import { LeagueList } from "@/components/League/LeagueList";
+import { LiveGame } from "./LiveGame";
+import { RecentGames, RecentGamesSkeleton } from "./RecentGames";
 import styles from "./match.module.scss";
 
 export const metadata = {
   title: "Games",
 };
 
-const RECENT_MATCHES_LIMIT = 5;
-
 /**
- * `/match` landing. Three stacked sections:
+ * `/match` landing: a shell that renders instantly — the title and
+ * the Start / Join card need no data — with the two data sections
+ * streaming in behind their own boundaries:
  *
- *   1. Active-match banner (conditional) — reconnection surface for a
- *      user who closed the app mid-match.
- *   2. Start / Join primary CTAs.
- *   3. Recent games — a compact history list.
+ *   1. The live-game banner, which exists or doesn't. No route
+ *      skeleton could reserve it, so there is no route skeleton: the
+ *      banner reveals and the card beneath tweens down.
+ *   2. Leagues and recent games, revealed over their own skeleton.
  *
- * All reads happen server-side through the Match RPCs; the client gets
- * a fully-rendered page on first byte.
+ * Auth is the one thing the shell waits for, and it is a cookie read.
  */
 export default async function MatchPage() {
   const auth = await requireSignedIn();
   if ("error" in auth) redirect("/login");
-  const { userId } = auth;
-
-  // Both go through service-role RPCs that take the user id
-  // explicitly, so the banner can't point at a Match the page can't
-  // actually load — both paths resolve membership the same way.
-  // `requireSignedIn` above is what authorises the user id we pass.
-  const service = createServiceClient();
-  const [activeMatch, recentMatches, leagues] = await Promise.all([
-    getActiveMatchForUserById(service, userId),
-    getUserMatches(service, userId, { limit: RECENT_MATCHES_LIMIT }),
-    getMyLeagues(auth.supabase),
-  ]);
 
   return (
     <main className={styles.page}>
-      <PageHeader
-        title="Games"
-      />
-
-      {activeMatch && <ActiveMatchBanner match={activeMatch} />}
-
-      <NextGameCard />
-
-      {leagues.length > 0 && (
-        <section className={styles.historySection} aria-labelledby="leagues-heading">
-          <div className={styles.historyHeader}>
-            <h2 id="leagues-heading" className={styles.historyHeading}>Your leagues</h2>
-          </div>
-          <LeagueList leagues={leagues} />
-        </section>
-      )}
-
-      <section
-        className={styles.historySection}
-        aria-labelledby="recent-games-heading"
-      >
-        <div className={styles.historyHeader}>
-          <h2 id="recent-games-heading" className={styles.historyHeading}>
-            Recent games
-          </h2>
-          {recentMatches.length > 0 && (
-            <Link href="/profile" className={styles.historyLink}>
-              See all
-            </Link>
-          )}
-        </div>
-        {recentMatches.length === 0 ? (
-          <div className={styles.emptyState}>
-            <div className={styles.emptyMark} aria-hidden>
-              <ChorkMark size={56} mode="accent" />
-            </div>
-            <p className={styles.emptyTitle}>No games yet</p>
-            <p className={styles.emptyLede}>
-              Start one with your mates or join by code.
-            </p>
-            <LinkButton href="/match/new">
-              <FaPlus aria-hidden /> Start the first one
-            </LinkButton>
-          </div>
-        ) : (
-          <MatchHistoryList matches={recentMatches} />
-        )}
-      </section>
+      <PageHeader title="Games" />
+      <Reveal fallback={null}>
+        <LiveGame />
+      </Reveal>
+      <div data-vt="next-game">
+        <NextGameCard />
+      </div>
+      <Reveal fallback={<RecentGamesSkeleton />}>
+        <RecentGames />
+      </Reveal>
     </main>
   );
 }

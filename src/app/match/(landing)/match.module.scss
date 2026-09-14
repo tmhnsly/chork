@@ -105,3 +105,9 @@
   margin: 0;
   max-width: 32ch;
 }
+
+// Leagues + recent games, streamed as one block so their skeleton
+// and their content share a shape (and a view-transition name).
+.history {
+  @include layout.stack(var(--page-stack-gap));
+}

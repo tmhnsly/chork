@@ -51,6 +51,39 @@
   animation: vt-page-in var(--duration-normal) var(--ease-out-expo) both;
 }
 
+// Sections that shift when a streamed sibling lands: named, so the
+// browser tweens them into place instead of the page snapping to a
+// new shape. The streamed block itself carries the same name in its
+// skeleton and its content, so the reveal morphs between the two.
+[data-vt="next-game"] {
+  view-transition-name: next-game;
+}
+
+[data-vt="recent-games"] {
+  view-transition-name: recent-games;
+}
+
+[data-vt="friends-content"] {
+  view-transition-name: friends-content;
+}
+
+::view-transition-group(next-game),
+::view-transition-group(recent-games),
+::view-transition-group(friends-content) {
+  animation-duration: var(--duration-normal);
+  animation-timing-function: var(--ease-out-expo);
+}
+
+::view-transition-old(recent-games),
+::view-transition-old(friends-content) {
+  animation: vt-page-out var(--duration-fast) var(--ease-out) both;
+}
+
+::view-transition-new(recent-games),
+::view-transition-new(friends-content) {
+  animation: vt-page-in var(--duration-normal) var(--ease-out-expo) both;
+}
+
 // The navbar's own layer: above the page snapshots, and still. The
 // name is assigned HERE, from a global sheet, because a CSS module
 // hashes view-transition-name values and the group rule below would

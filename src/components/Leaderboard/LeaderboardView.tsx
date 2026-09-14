@@ -22,7 +22,6 @@ const ClimberSheet = dynamic(
 import { GymStatsStrip } from "./GymStatsStrip";
 import { ScoringBreakdown } from "./ScoringBreakdown";
 import { InviteCard } from "./InviteCard";
-import { PageHeader } from "@/components/motion";
 import type { LeaderboardEntry, NeighbourhoodEntry, Route } from "@/lib/data";
 import type { GymStats } from "@/lib/data/leaderboard-queries";
 import { fetchLeaderboardTab } from "@/app/leaderboard/actions";
@@ -175,11 +174,6 @@ export function LeaderboardView({
 
   return (
     <div className={styles.view}>
-      {/* One word — see CONTEXT.md "Wall vs Chorkboard". The tab
-          title, the loading aria-label and 12 other uses all say
-          Chorkboard; only this heading said "Chork Board". */}
-      <PageHeader title="Chorkboard" />
-
       <GymStatsStrip
         stats={tab === "set" && setStats ? setStats : allTimeStats}
         gymName={gymName}

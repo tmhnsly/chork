@@ -6,3 +6,9 @@
   @include layout.page;
 }
 
+
+// The streamed block: board, moments, list — one shape for the
+// skeleton and the content, so the reveal morphs rather than jumps.
+.content {
+  @include layout.stack(var(--page-stack-gap));
+}

@@ -721,6 +721,18 @@ Vitest-based. See `docs/testing.md` for patterns. Key rules:
   rhythm rules only, pending the homepage refresh.
   `avatar-sizes.test.ts` separately pins the TS avatar map to its CSS
   tokens
+- **A page is an instant shell; its data sections stream and reveal.**
+  The title and anything static render synchronously (auth is a
+  cookie read); each data section is an async server component
+  behind `<Reveal fallback={…}>`, so it fades in over its own
+  skeleton and, when a section may or may not exist (the live-game
+  banner), the fallback is `null` and the siblings that shift carry a
+  `data-vt` name so they tween into place. **Prefer this to a route
+  `loading.tsx`**: a route skeleton cannot know server state, so it
+  never matches a page whose sections come and go. `loading.tsx`
+  stays only where the shell itself needs data (`/u/[username]`, the
+  hero is the profile). Games, Friends and Chorkboard are the
+  reference
 - **Skeletons are the real component, waiting.** A `FooSkeleton`
   lives beside `Foo`, imports `foo.module.scss` and lays out the same
   boxes with `shimmerStyles.skeletonLine` / `skeletonDisc` (size
