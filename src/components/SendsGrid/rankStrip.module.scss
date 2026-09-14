@@ -2,8 +2,8 @@
 @use "mixins/surfaces" as surface;
 @use "mixins/focus" as focus;
 
-// Your standing: the rank big, its context beneath, the points on
-// the right. Glass, because it is the one surface on the Card page
+// Your standing: the rank big, its context beneath, what it takes
+// to pass the place above. Glass, because it is the one surface here
 // about you rather than the wall — the same emphasis the board
 // gets on the Chorkboard.
 .strip {
@@ -11,7 +11,7 @@
   @include focus.ring;
   display: flex;
   align-items: center;
-  gap: var(--space-4);
+  gap: var(--space-3);
   min-height: var(--size-rank-strip);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-card);
@@ -29,52 +29,90 @@
   }
 }
 
+// The tier badge: a round tile wearing the tier's colour — podium
+// gold, top-of-field accent, the rest a quiet mono. Read before the
+// number is.
+.badge {
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: var(--size-touch-target);
+  height: var(--size-touch-target);
+  border-radius: var(--radius-full);
+  background: var(--mono-bg);
+  color: var(--mono-text-low-contrast);
+  font-size: var(--size-icon-lg);
+}
+
+.strip[data-tier="top"] .badge {
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+}
+
+.strip[data-tier="podium"] .badge {
+  background: var(--flash-solid);
+  color: var(--flash-on-solid);
+}
+
 .body {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
+  flex-direction: column;
+  gap: var(--space-1);
   flex: 1;
   min-width: 0;
 }
 
-.standing {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
 .rank {
-  @include type.typography(number, $step: 3xl);
+  @include type.typography(number, $step: 2xl);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
   color: var(--mono-text);
 }
 
 // Smaller than the number it belongs to, so "#41" reads as one token
 // with the 41 carrying it.
 .hash {
-  @include type.typography(number, $step: lg);
+  @include type.typography(number, $step: md);
   color: var(--mono-text-low-contrast);
 }
 
 .of {
   @include type.typography(meta, $step: sm);
   color: var(--mono-text-low-contrast);
+  margin-left: var(--space-1);
 }
 
-.points {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-1);
-  flex-shrink: 0;
+// Where you sit in the field: full at the top, empty at the bottom.
+// The fill is piped from the component as a fraction.
+.field {
+  --fill: 0;
+  display: block;
+  width: 100%;
+  max-width: var(--space-24);
+  height: var(--space-1);
+  border-radius: var(--radius-full);
+  background: var(--mono-bg-active);
+  overflow: hidden;
 }
 
-.pointsValue {
-  @include type.typography(number, $step: xl);
-  color: var(--accent-text);
+.fieldFill {
+  display: block;
+  height: 100%;
+  width: calc(var(--fill) * 100%);
+  border-radius: var(--radius-full);
+  background: var(--accent-solid);
+  transition: width var(--duration-normal) var(--ease-out);
 }
 
-.pointsUnit {
-  @include type.typography(label);
+.strip[data-tier="podium"] .fieldFill {
+  background: var(--flash-solid);
+}
+
+// What it would take: "3 pts to #12". The one line that turns a
+// placing into a target.
+.next {
+  @include type.typography(meta, $step: sm);
   color: var(--mono-text-low-contrast);
 }
 

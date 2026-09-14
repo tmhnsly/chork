@@ -92,7 +92,7 @@ async function AuthenticatedHome({ userId, gymId }: { userId: string; gymId: str
       routes={routes}
       initialLogs={logs}
       gymName={gymName}
-      initialRank={rank ?? { rank: null, points: 0, climberCount: 0 }}
+      initialRank={rank ?? { rank: null, points: 0, flashes: 0, climberCount: 0, toNext: null }}
     />
   );
 }
