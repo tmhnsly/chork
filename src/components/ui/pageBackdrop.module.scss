@@ -20,15 +20,18 @@
     radial-gradient(ellipse 60% 40% at var(--bd2-x) var(--bd2-y), var(--flash-subtle-bg) 0%, transparent 65%),
     radial-gradient(ellipse 40% 30% at var(--bd3-x) var(--bd3-y), var(--success-subtle-bg) 0%, transparent 70%),
     var(--surface-page);
-  // The drift. Slower than the page fade it rides under, so the
-  // lights are still settling as the new page lands.
+  // The drift: a named period well past the page fade, on the long
+  // gentle tail of the quart ease, so the lights glide into place
+  // and are still settling after the new page has landed. At the
+  // hero duration with a symmetric ease they swung; this is weather.
+  --period-drift: 2.4s;
   transition:
-    --bd1-x var(--duration-hero) var(--ease-in-out),
-    --bd1-y var(--duration-hero) var(--ease-in-out),
-    --bd2-x var(--duration-hero) var(--ease-in-out),
-    --bd2-y var(--duration-hero) var(--ease-in-out),
-    --bd3-x var(--duration-hero) var(--ease-in-out),
-    --bd3-y var(--duration-hero) var(--ease-in-out);
+    --bd1-x var(--period-drift) var(--ease-out-quart),
+    --bd1-y var(--period-drift) var(--ease-out-quart),
+    --bd2-x var(--period-drift) var(--ease-out-quart),
+    --bd2-y var(--period-drift) var(--ease-out-quart),
+    --bd3-x var(--period-drift) var(--ease-out-quart),
+    --bd3-y var(--period-drift) var(--ease-out-quart);
 
   @media (prefers-reduced-motion: reduce) {
     transition: none;
