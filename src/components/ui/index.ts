@@ -4,6 +4,7 @@ export { AppDialog } from "./AppDialog";
 export { BottomSheet } from "./BottomSheet";
 export { Banner } from "./Banner";
 export { Button } from "./Button";
+export { IconButton } from "./IconButton";
 export { ClimberPeekHeader } from "./ClimberPeek/ClimberPeekHeader";
 export { LinkButton } from "./LinkButton";
 export { Collapse } from "./Collapse/Collapse";

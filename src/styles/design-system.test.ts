@@ -115,7 +115,7 @@ describe("colour literals stay in the token layer", () => {
     const NO_CASCADE = [
       "app/global-error.tsx",
       "app/layout.tsx",
-      "components/Match/MatchMenuSheet.tsx",
+      "components/Match/MatchJoinPanel.tsx",
     ];
     expect(
       hits(tsx, /#[0-9a-fA-F]{3,8}\b/, (p) => NO_CASCADE.includes(p)),
@@ -760,7 +760,9 @@ describe("light/dark mechanism", () => {
   // Light/dark works through a coupling with no representation in
   // this repo: next-themes writes `class="dark"` on <html>, and the
   // matching `.dark` selector lives inside Radix's `*-dark.css`
-  // files. Grep src/styles for `.dark` and you get nothing.
+  // files. The one `.dark` in src/styles is the `planes` mixin in
+  // theme/colors.scss, which picks a different STEP per mode for the
+  // page/card surfaces — it rides on the same class.
   //
   // Either half can be removed without a build error or a failing
   // test, leaving the app silently light-only. These two pin the

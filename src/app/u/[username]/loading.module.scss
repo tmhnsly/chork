@@ -1,4 +1,5 @@
 @use "mixins/layout" as layout;
+@use "mixins/surfaces" as surface;
 
 // Matches the real profile page's page layout + section spacing so
 // the skeleton cards land in the same vertical positions as the real
@@ -10,4 +11,5 @@
 .page {
   @include layout.page;
   @include layout.stack(var(--space-7));
+  @include surface.wash;
 }

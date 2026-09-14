@@ -1,0 +1,28 @@
+@use "mixins/focus";
+
+// Round, bordered, touch-target sized. Step-3 fill with a subtle
+// border so it reads as a control on both the page plane and a card;
+// the hover moves the border to the accent, as the Match menu did.
+.root {
+  @include focus.ring;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--size-touch-target);
+  height: var(--size-touch-target);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--mono-border-subtle);
+  background: var(--mono-bg);
+  color: var(--mono-text);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-out);
+
+  &:hover {
+    border-color: var(--accent-border);
+  }
+}
+
+.glyph {
+  display: inline-flex;
+}

@@ -17,9 +17,34 @@
 //   --mono-bg (step 3) — darker panels for more contrast
 
 // ── Card ────────────────────────────────────────────
+// Paints the card plane (`--surface-card`, theme/colors.scss) — one
+// plane above the page in both modes. Not `--mono-subtle-bg`: that
+// is a step, and which step is "a card" differs between light and
+// dark.
 @mixin card {
-  background-color: var(--mono-subtle-bg);
+  background-color: var(--surface-card);
   border: 1px solid var(--mono-border-subtle);
+}
+
+// ── Page wash ───────────────────────────────────────
+// A faint accent glow at the top of a page, behind everything. Gives
+// the navbar's glass something to blur and puts the climber's colour
+// behind the climber. Pinned to the viewport's top (no positioned
+// ancestor) so a max-width page column doesn't clip it.
+@mixin wash {
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 40dvh;
+    pointer-events: none;
+    z-index: var(--z-page-wash);
+    background: radial-gradient(
+      ellipse 120% 60% at 50% -10%,
+      var(--accent-bg) 0%,
+      transparent 70%
+    );
+  }
 }
 
 // ── Chrome ──────────────────────────────────────────

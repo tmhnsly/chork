@@ -11,12 +11,14 @@
 }
 
 // ── Title (default `size="md"`) ────────────────────
-// Clamped to scale with the page's content width, matching the
-// profile header's `.username` so every in-app page-title uses the
-// same responsive scale.
+// Clamped to scale with the page's content width so every in-app
+// page title uses the same responsive scale. Mono ink, not accent:
+// the accent means "yours" or "you did this", and a page's name is
+// neither — CLAUDE.md's one rule for titles, and this was the
+// exception it said didn't exist.
 .title {
   @include type.typography(display, $step: 4xl);
-  color: var(--accent-text);
+  color: var(--mono-text);
   font-size: clamp(var(--text-2xl), 7cqi, var(--text-4xl));
 }
 

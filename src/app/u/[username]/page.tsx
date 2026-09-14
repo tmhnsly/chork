@@ -12,8 +12,8 @@ import { getGym } from "@/lib/data/gym-queries";
 import { getAllSets } from "@/lib/data/set-queries";
 import { getUserMatches } from "@/lib/data/match-queries";
 import { computeSetStreak } from "@/lib/data/profile-stats";
-import { getUserRankCached } from "./_components/user-rank";
-import { ProfileHero, type HeroStat } from "@/components/ProfileHero/ProfileHero";
+import { ProfileHero, type CareerStat } from "@/components/ProfileHero/ProfileHero";
+import { plural } from "@/lib/plural";
 import { ProfileStats } from "./_components/ProfileStats";
 import { ProfileStatsSkeleton } from "./_components/ProfileStats.skeleton";
 import { ProfileAchievementsSection } from "./_components/ProfileAchievementsSection";
@@ -76,17 +76,6 @@ export default async function UserProfilePage({ params }: Props) {
     orderedSets.map((s) => ({ hasSend: sentSetIds.has(s.id) })),
   );
 
-  // The hero's rank chip — placement on the active set, the one number
-  // the whole app ranks on. Request-cached so ProfileStats' second
-  // reading below costs no extra RPC. Sequential after the batch above
-  // because it needs the active set's id; the RPC is a single indexed
-  // lookup.
-  const activeSet = orderedSets.find((s) => s.active) ?? null;
-  const rankRow =
-    gymId && activeSet
-      ? await getUserRankCached(supabase, gymId, profileUser.id, activeSet.id)
-      : null;
-
   // A GYMLESS climber's hero reads from matches instead. The gym
   // numbers can never move for them — showing 0 sends / 0 flashes /
   // 0 points said "you have done nothing" to someone who may have
@@ -97,27 +86,26 @@ export default async function UserProfilePage({ params }: Props) {
     ? []
     : await getUserMatches(createServiceClient(), profileUser.id, { limit: 200 });
 
-  // The hero's three cells, chosen by where this climber climbs.
-  const heroStats: HeroStat[] = gymId
+  // The hero's career line, chosen by where this climber climbs —
+  // the three numbers the cards below can't show. With a gym: sends,
+  // flashes, sets climbed (placing and points are on the Current Set
+  // card). Without one: matches, wins, flashes. Words agree with
+  // their numbers via `plural`, so "1 sets" can't come back.
+  const career: CareerStat[] = gymId
     ? [
-        {
-          label: "This set",
-          value: rankRow?.rank ?? null,
-          prefix: "#",
-          href: isOwnProfile ? "/leaderboard" : undefined,
-        },
-        { label: "Points", value: totals.points, tone: "accent" },
-        { label: "Flashes", value: totals.flashes, tone: "flash" },
+        { label: plural(totals.sends, "send"), value: totals.sends, tone: "accent" },
+        { label: plural(totals.flashes, "flash", "flashes"), value: totals.flashes, tone: "flash" },
+        { label: plural(sentSetIds.size, "set"), value: sentSetIds.size },
       ]
     : [
-        { label: "Matches", value: matchRows.length },
+        { label: plural(matchRows.length, "match", "matches"), value: matchRows.length },
         {
-          label: "Wins",
+          label: plural(matchRows.filter((m) => m.user_is_winner).length, "win"),
           value: matchRows.filter((m) => m.user_is_winner).length,
           tone: "accent",
         },
         {
-          label: "Flashes",
+          label: plural(matchRows.reduce((n, m) => n + m.user_flashes, 0), "flash", "flashes"),
           value: matchRows.reduce((n, m) => n + m.user_flashes, 0),
           tone: "flash",
         },
@@ -143,7 +131,7 @@ export default async function UserProfilePage({ params }: Props) {
       <ProfileHero
         user={profileUser}
         meta={heroMeta}
-        stats={heroStats}
+        career={career}
         // A signed-out viewer can't be friends with anyone; "none"
         // renders Add, which the action gate will bounce to /login.
         standing={standing ?? { status: "none", friendId: null }}

@@ -11,7 +11,7 @@
 
 .title {
   @include type.typography(display);
-  color: var(--accent-text);
+  color: var(--mono-text);
 }
 
 .body {

@@ -129,6 +129,31 @@
   --mono-text: var(--#{$s}-12);
 }
 
+/*
+ * The page's two planes. Cards are one plane ABOVE the page — light:
+ * a toned page (step 3) with white cards (step 1); dark: the
+ * near-black page (step 1) with cards at step 2, which is where dark
+ * already was. One step apart in the same direction both ways looked
+ * like one flat sheet with rectangles drawn on it, and gave the
+ * navbar's glass nothing to blur.
+ *
+ * Per theme, because a scoped `[data-theme]` on <main> (another
+ * climber's profile) must re-tint its cards too — a token defined
+ * once on :root computes there and would carry olive into Harbour.
+ * Per mode via next-themes' `.dark` on <html>: `&:is(.dark)` covers
+ * the html-level theme, `.dark &` the scoped one.
+ */
+@mixin planes($s) {
+  --surface-page: var(--#{$s}-3);
+  --surface-card: var(--#{$s}-1);
+
+  &:is(.dark),
+  .dark & {
+    --surface-page: var(--#{$s}-1);
+    --surface-card: var(--#{$s}-2);
+  }
+}
+
 @mixin accent-scale($s) {
   --accent-app-bg: var(--#{$s}-1);
   --accent-subtle-bg: var(--#{$s}-2);
@@ -316,6 +341,7 @@
 :root,
 [data-theme="default"] {
   @include mono-scale(olive);
+  @include planes(olive);
   @include accent-scale(lime);
   @include zone-scale(teal);
   @include flash-scale(amber);
@@ -330,7 +356,7 @@
   --brand-text: var(--accent-text-low-contrast);
 
   --surface-divider: var(--mono-border-subtle);
-  --app-bg: var(--mono-app-bg);
+  --app-bg: var(--surface-page);
   --app-text: var(--mono-text);
 }
 
@@ -345,6 +371,7 @@
   /* Gold step 9 is a DEEP scale — white ink, unlike amber's dark. */
   --flash-on-solid: #fff;
   @include mono-scale(slate);
+  @include planes(slate);
   @include accent-scale(blue);
   @include zone-scale(jade);
   @include flash-scale(gold);
@@ -366,6 +393,7 @@
  */
 [data-theme="violet"] {
   @include mono-scale(mauve);
+  @include planes(mauve);
   @include accent-scale(violet);
   @include zone-scale(cyan);
   @include flash-scale(yellow);
@@ -391,6 +419,7 @@
   /* Mint step 9 is a LIGHT scale — dark ink, unlike teal's white. */
   --success-on-solid: #21201c;
   @include mono-scale(gray);
+  @include planes(gray);
   @include accent-scale(pink);
   @include zone-scale(mint);
   @include flash-scale(amber);

@@ -125,25 +125,3 @@
 .friendsLabel {
   @include type.typography(button);
 }
-
-// Chrome, sized as chrome: a square touch target that does not
-// compete with the row beside it.
-.iconButton {
-  @include focus.ring;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  width: var(--size-touch-target);
-  min-height: var(--size-touch-target);
-  border-radius: var(--radius-card-inner);
-  border: 1px solid var(--mono-border);
-  background: var(--mono-bg);
-  color: var(--mono-text-low-contrast);
-  cursor: pointer;
-
-  &:hover {
-    color: var(--mono-text);
-    background: var(--mono-bg-hover);
-  }
-}
