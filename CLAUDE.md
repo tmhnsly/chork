@@ -407,11 +407,16 @@ folder is decorative CSS animations (RevealText, PageHeader,
 CollapseFade) — pure clip-path + keyframes that run on the
 compositor.
 
-`animation-timeline` and View Transitions API are Chromium-only
-today (no Safari, no Firefox baseline). They can layer on as
-progressive enhancement via `@supports`, but never as a baseline
-animation primitive — Chork's iOS PWA users would see broken or
-missing animations otherwise.
+**View Transitions are on**, through React's `<ViewTransition>`
+(`experimental.viewTransition` in `next.config.ts`; the canary types
+via `src/types/react-canary.d.ts`). One wrapper around the route
+content in `providers.tsx` cross-fades page changes and skeleton →
+content reveals; its CSS lives in `styles/app/view-transitions.scss`
+on the motion tokens, with reduced motion turning it off. Where the
+browser lacks the API React commits synchronously, so nothing
+depends on it. Same-document transitions are in Safari 18+ and
+Firefox 144+ now; `animation-timeline` is still Chromium-only and
+stays a `@supports` enhancement, never a baseline primitive.
 
 For interactive gestures (drag, swipe) we use native pointer events
 + CSS `transition`. If a future feature genuinely needs spring

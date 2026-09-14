@@ -1,0 +1,46 @@
+// ── View transitions ─────────────────────────────
+// The route content (providers.tsx) carries `view-transition-class:
+// page`. The old page fades out on the fast rung; the new one fades
+// in and settles a hair upward on the normal rung — the same rise the
+// posters and steps use, so a page arriving reads like everything
+// else arriving. The navbar sits outside the transition and holds
+// still; the root snapshot animates nothing of its own.
+
+::view-transition-group(root) {
+  animation: none;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(.page) {
+  animation: vt-page-out var(--duration-fast) var(--ease-out) both;
+}
+
+::view-transition-new(.page) {
+  animation: vt-page-in var(--duration-normal) var(--ease-out-expo) both;
+}
+
+@keyframes vt-page-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vt-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-2));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}

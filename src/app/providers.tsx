@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { ViewTransition, type ReactNode } from "react";
 import { ThemeProvider } from "next-themes";
 import { ThemeProvider as PaletteProvider } from "@/lib/theme";
 import { AuthProvider } from "@/lib/auth-context";
@@ -53,7 +53,14 @@ export function Providers({ children, navBar }: Props) {
           {/* tabIndex={-1} is what makes the skip link work: browsers
               scroll to a bare div but won't move focus into it, so the
               next Tab returned to the nav and the link was decorative. */}
-          <div id="main-content" tabIndex={-1}>{children}</div>
+          {/* One transition around the route content: a page change,
+              or a loading skeleton resolving into its page, cross-fades
+              instead of cutting. The class names map to the rules in
+              styles/app/view-transitions.scss; the navbar sits outside
+              so it holds still. */}
+          <div id="main-content" tabIndex={-1}>
+            <ViewTransition default="page">{children}</ViewTransition>
+          </div>
           <ToastProvider />
           <ServiceWorker />
         </PaletteProvider>

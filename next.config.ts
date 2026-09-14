@@ -92,6 +92,11 @@ const nextConfig: NextConfig = {
   },
 
   experimental: {
+    // React's <ViewTransition> (see providers.tsx). Route changes and
+    // Suspense reveals cross-fade through the browser's View
+    // Transition API; where the API is missing React commits
+    // synchronously, so this is progressive by construction.
+    viewTransition: true,
     // NOTE: Partial Prerendering (`ppr: "incremental"`) was trialled
     // for `/u/[username]` but the stable 15.x line reserves the
     // feature for canary only (errors out at build time). Revisit
