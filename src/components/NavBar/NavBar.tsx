@@ -127,6 +127,7 @@ export function NavBar({ initialShell, initialIsAdmin = false }: NavBarProps) {
     return (
       <AuthenticatedNav
         userId={profile.id}
+        username={profile.username}
         pathname={pathname}
         isAdmin={isAdmin}
         hasGym={!!profile.active_gym_id}
@@ -186,7 +187,7 @@ function AuthedNavSkeleton({
   return (
     <nav className={styles.bar}>
       <div className={styles.barInner} data-vt="navbar">
-        <Link href="/" className={styles.brandLink} aria-label="Chork — home">
+        <Link prefetch href="/" className={styles.brandLink} aria-label="Chork — home">
           <ChorkMark size={18} />
           <span className={styles.brandText}>Chork</span>
         </Link>
@@ -198,28 +199,28 @@ function AuthedNavSkeleton({
               CONTEXT.md "Card, Ranks, Chorkboard". Six tabs was also
               one over the HIG's five for anyone who runs a gym. */}
           {hasGym && (
-            <Link href="/" className={`${styles.tab} ${gymActive ? styles.tabActive : ""}`} aria-current={gymActive ? "page" : undefined}>
+            <Link prefetch href="/" className={`${styles.tab} ${gymActive ? styles.tabActive : ""}`} aria-current={gymActive ? "page" : undefined}>
               <FaBorderAll className={styles.tabIcon} aria-hidden />
               <span className={styles.tabLabel}>Card</span>
             </Link>
           )}
-          <Link href="/friends" className={`${styles.tab} ${crewActive ? styles.tabActive : ""}`} aria-current={crewActive ? "page" : undefined}>
+          <Link prefetch href="/friends" className={`${styles.tab} ${crewActive ? styles.tabActive : ""}`} aria-current={crewActive ? "page" : undefined}>
             <FaUserGroup className={styles.tabIcon} aria-hidden />
             <span className={styles.tabLabel}>Friends</span>
           </Link>
-          <Link href="/match" className={`${styles.tab} ${matchActive ? styles.tabActive : ""}`} aria-current={matchActive ? "page" : undefined}>
+          <Link prefetch href="/match" className={`${styles.tab} ${matchActive ? styles.tabActive : ""}`} aria-current={matchActive ? "page" : undefined}>
             <FaTrophy className={styles.tabIcon} aria-hidden />
             <span className={styles.tabLabel}>Games</span>
           </Link>
           {/* From the shell cookie, so the tab is in the server HTML
               rather than appearing a frame after hydration. */}
           {isAdmin && (
-            <Link href="/admin" className={`${styles.tab} ${adminActive ? styles.tabActive : ""}`} aria-current={adminActive ? "page" : undefined}>
+            <Link prefetch href="/admin" className={`${styles.tab} ${adminActive ? styles.tabActive : ""}`} aria-current={adminActive ? "page" : undefined}>
               <FaScrewdriverWrench className={styles.tabIcon} aria-hidden />
               <span className={styles.tabLabel}>Admin</span>
             </Link>
           )}
-          <Link href="/profile" className={`${styles.tab} ${profileActive ? styles.tabActive : ""}`} aria-current={profileActive ? "page" : undefined}>
+          <Link prefetch href="/profile" className={`${styles.tab} ${profileActive ? styles.tabActive : ""}`} aria-current={profileActive ? "page" : undefined}>
             <FaUser className={styles.tabIcon} aria-hidden />
             <span className={styles.tabLabel}>Profile</span>
           </Link>
@@ -233,15 +234,21 @@ function AuthedNavSkeleton({
 
 function AuthenticatedNav({
   userId,
+  username,
   pathname,
   isAdmin,
   hasGym,
 }: {
   userId: string;
+  username: string;
   pathname: string;
   isAdmin: boolean;
   hasGym: boolean;
 }) {
+  // Straight to the climber's own page, not via /profile's redirect:
+  // a prefetch can't follow a redirect, so the redirecting link
+  // always landed on the profile's loading skeleton.
+  const profileHref = `/u/${username}`;
   // One nav entry covers the card and the board it links to.
   const gymActive = pathname === "/" || pathname.startsWith("/leaderboard");
   const crewActive =
@@ -302,7 +309,7 @@ function AuthenticatedNav({
   return (
     <nav className={styles.bar}>
       <div className={styles.barInner} data-vt="navbar">
-        <Link href="/" className={styles.brandLink} aria-label="Chork — home">
+        <Link prefetch href="/" className={styles.brandLink} aria-label="Chork — home">
           <ChorkMark size={18} />
           <span className={styles.brandText}>Chork</span>
         </Link>
@@ -321,12 +328,13 @@ function AuthenticatedNav({
               CONTEXT.md "Card, Ranks, Chorkboard". Six tabs was also
               one over the HIG's five for anyone who runs a gym. */}
           {hasGym && (
-            <Link href="/" className={`${styles.tab} ${gymActive ? styles.tabActive : ""}`} aria-current={gymActive ? "page" : undefined}>
+            <Link prefetch href="/" className={`${styles.tab} ${gymActive ? styles.tabActive : ""}`} aria-current={gymActive ? "page" : undefined}>
               <FaBorderAll className={styles.tabIcon} aria-hidden />
               <span className={styles.tabLabel}>Card</span>
             </Link>
           )}
           <Link
+            prefetch
             href="/friends"
             className={`${styles.tab} ${crewActive ? styles.tabActive : ""}`}
             aria-current={crewActive ? "page" : undefined}
@@ -342,6 +350,7 @@ function AuthenticatedNav({
             <span className={styles.tabLabel}>Friends</span>
           </Link>
           <Link
+            prefetch
             href="/match"
             className={`${styles.tab} ${matchActive ? styles.tabActive : ""}`}
             aria-current={matchActive ? "page" : undefined}
@@ -357,6 +366,7 @@ function AuthenticatedNav({
               works fine for them. Gymless is a first-class state. */}
           {isAdmin && (
             <Link
+            prefetch
               href="/admin"
               className={`${styles.tab} ${adminActive ? styles.tabActive : ""}`}
               aria-current={adminActive ? "page" : undefined}
@@ -366,7 +376,8 @@ function AuthenticatedNav({
             </Link>
           )}
           <Link
-            href="/profile"
+            prefetch
+            href={profileHref}
             className={`${styles.tab} ${profileActive ? styles.tabActive : ""}`}
             aria-current={profileActive ? "page" : undefined}
           >
@@ -400,6 +411,7 @@ function UnauthenticatedNav({ pathname }: { pathname: string }) {
     <nav className={styles.bar}>
       <div className={styles.barInner} data-vt="navbar">
         <Link
+            prefetch
           href="/"
           className={`${styles.brandLinkVisible} ${homeActive ? styles.brandLinkActive : ""}`}
           aria-label="Chork — home"
@@ -412,6 +424,7 @@ function UnauthenticatedNav({ pathname }: { pathname: string }) {
         <div className={styles.tabs} ref={tabsRef}>
           <span className={styles.pill} ref={pillRef} aria-hidden />
           <Link
+            prefetch
             href="/gyms"
             className={`${styles.tab} ${gymsActive ? styles.tabActive : ""}`}
             aria-current={gymsActive ? "page" : undefined}
@@ -420,6 +433,7 @@ function UnauthenticatedNav({ pathname }: { pathname: string }) {
             <span className={styles.tabLabel}>Gyms</span>
           </Link>
           <Link
+            prefetch
             href="/login"
             className={`${styles.tab} ${loginActive ? styles.tabActive : ""}`}
             aria-current={loginActive ? "page" : undefined}

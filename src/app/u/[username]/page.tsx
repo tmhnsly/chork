@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { Reveal } from "@/components/motion";
 import { notFound } from "next/navigation";
 import {
   createServerSupabase,
@@ -143,13 +144,13 @@ export default async function UserProfilePage({ params }: Props) {
           rendered in both cases — achievements span gym + match
           activity once badges are gym-agnostic. */}
       {gymId ? (
-        <Suspense fallback={<ProfileStatsSkeleton />}>
+        <Reveal><Suspense fallback={<ProfileStatsSkeleton />}>
           <ProfileStats
             userId={profileUser.id}
             gymId={gymId}
             isOwnProfile={isOwnProfile}
           />
-        </Suspense>
+        </Suspense></Reveal>
       ) : (
         /* Gymless: matches take the slot gym stats would occupy, so every
            profile leads with a stats row sourced from whatever that
@@ -157,19 +158,19 @@ export default async function UserProfilePage({ params }: Props) {
            on achievements and buried the match record at the bottom —
            the wrong way round when running your own comps anywhere is
            the point of the app, not the fallback. */
-        <Suspense fallback={null}>
+        <Reveal><Suspense fallback={null}>
           <ProfileMatchesSection userId={profileUser.id} isOwnProfile={isOwnProfile} />
-        </Suspense>
+        </Suspense></Reveal>
       )}
 
-      <Suspense fallback={<BadgeShelfSkeleton />}>
+      <Reveal><Suspense fallback={<BadgeShelfSkeleton />}>
         <ProfileAchievementsSection
           userId={profileUser.id}
           gymId={gymId}
           createdAt={profileUser.created_at}
           isOwnProfile={isOwnProfile}
         />
-      </Suspense>
+      </Suspense></Reveal>
 
       {/* History only, and mounted only when there IS history: the
           section self-hides with no previous sets, so a fallback that
@@ -177,7 +178,7 @@ export default async function UserProfilePage({ params }: Props) {
           vanished on hand-off. `orderedSets` is already in hand (and
           cached), so the page can know before the section streams. */}
       {gymId && orderedSets.some((s) => !s.active) && (
-        <Suspense
+        <Reveal><Suspense
           fallback={
             <CardSkeleton
               height={PROFILE_SECTION_HEIGHTS.previousSets}
@@ -191,7 +192,7 @@ export default async function UserProfilePage({ params }: Props) {
             createdAt={profileUser.created_at}
             isOwnProfile={isOwnProfile}
           />
-        </Suspense>
+        </Suspense></Reveal>
       )}
 
       {/* Grade pyramids — gym and Match sends together, one per
@@ -201,7 +202,7 @@ export default async function UserProfilePage({ params }: Props) {
           the block is reserved only when the page already knows there
           are sends to grade — the route skeleton reserved it, and a
           fallback of null here would drop it and bring it back. */}
-      <Suspense
+      <Reveal><Suspense
         fallback={
           totals.sends > 0 ? (
             <CardSkeleton height={PROFILE_SECTION_HEIGHTS.grades} ariaLabel="Loading grades" />
@@ -209,16 +210,16 @@ export default async function UserProfilePage({ params }: Props) {
         }
       >
         <ProfileGradesSection userId={profileUser.id} />
-      </Suspense>
+      </Suspense></Reveal>
 
       {/* Match history — public within the app. Self-hides when the
           climber has no matches on record so first-time visitors see
           a quiet profile. Gymless profiles render this higher up
           instead, in the gym-stats slot. */}
       {gymId && (
-        <Suspense fallback={null}>
+        <Reveal><Suspense fallback={null}>
           <ProfileMatchesSection userId={profileUser.id} isOwnProfile={isOwnProfile} />
-        </Suspense>
+        </Suspense></Reveal>
       )}
 
       {/* Your leagues — own profile only for now. `get_my_leagues` is
@@ -226,9 +227,9 @@ export default async function UserProfilePage({ params }: Props) {
           learns nothing about whose Tuesdays you spend where. A
           shared-leagues view for visited profiles is the follow-up. */}
       {isOwnProfile && (
-        <Suspense fallback={null}>
+        <Reveal><Suspense fallback={null}>
           <ProfileLeaguesSection />
-        </Suspense>
+        </Suspense></Reveal>
       )}
     </main>
   );

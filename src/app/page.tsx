@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { Reveal } from "@/components/motion";
 import { redirect } from "next/navigation";
 import { createServerSupabase, getServerProfile } from "@/lib/supabase/server";
 import { getCurrentSet } from "@/lib/data/set-queries";
@@ -49,9 +50,9 @@ export default async function Home() {
           It was the only `as="h2"` of 16 PageHeader call sites, which
           left `/` with no h1 at all. */}
       <PageHeader title="Card" />
-      <Suspense fallback={<SendsGridSkeleton />}>
+      <Reveal><Suspense fallback={<SendsGridSkeleton />}>
         <AuthenticatedHome userId={userId} gymId={gymId} />
-      </Suspense>
+      </Suspense></Reveal>
     </main>
   );
 }

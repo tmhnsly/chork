@@ -420,7 +420,13 @@ no group tween, so heights never stretch. CSS in
 `styles/app/view-transitions.scss` on the motion tokens, reduced
 motion turns it off. Where the
 browser lacks the API React commits synchronously, so nothing
-depends on it. Same-document transitions are in Safari 18+ and
+depends on it. **Loading strategy that goes with it:** the navbar's
+tab links carry `prefetch` (full RSC payload, not just the loading
+boundary), so a tab change lands on content inside the page
+transition instead of on a skeleton that then pops; streamed
+sections wrap their `<Suspense>` in `<Reveal>` (`components/motion`)
+so the swaps that remain cross-fade. Never animate updates
+page-wide — that snapshots the whole page on every optimistic log. Same-document transitions are in Safari 18+ and
 Firefox 144+ now; `animation-timeline` is still Chromium-only and
 stays a `@supports` enhancement, never a baseline primitive.
 

@@ -47,6 +47,17 @@
   animation: vt-page-in var(--duration-normal) var(--ease-out-expo) both;
 }
 
+// A streamed section revealing: the skeleton fades out, the content
+// fades in, and the group's default tween morphs the box between
+// the two heights. Scoped to one Suspense boundary by <Reveal>.
+::view-transition-old(.reveal) {
+  animation: vt-page-out var(--duration-fast) var(--ease-out) both;
+}
+
+::view-transition-new(.reveal) {
+  animation: vt-page-in var(--duration-normal) var(--ease-out-expo) both;
+}
+
 // The Chorkboard swapping tabs: the old board sinks, the new one
 // rises, on the same rungs as a page.
 ::view-transition-group(.board-out),
