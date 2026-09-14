@@ -31,9 +31,9 @@ interface Props {
  */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
-  if (!isUuid(id)) return { title: "Match result" };
+  if (!isUuid(id)) return { title: "Game result" };
   const auth = await requireSignedIn();
-  if ("error" in auth) return { title: "Match result" };
+  if ("error" in auth) return { title: "Game result" };
   const state = await getMatchStateForUser(createServiceClient(), id, auth.userId);
   return { title: state?.match.name?.trim() || "Match result" };
 }
@@ -60,7 +60,7 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
   // but both relied on `auth.uid()` flowing through the user's JWT
   // — which transiently resolves NULL on the SSR fetch that fires
   // immediately after ending and `router.push` runs. That was the
-  // reliable "ending a match 404s" root cause: the gate failed on the
+  // reliable "ending a game 404s" root cause: the gate failed on the
   // very request it was meant to pass. Keep it in the RPC.
   const service = createServiceClient();
   const state = await getMatchStateForUser(service, id, auth.userId);
@@ -124,10 +124,10 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
     <main className={styles.page}>
       <div className={styles.topRow}>
         <Link href="/match" className={styles.backLink}>
-          <FaArrowLeft aria-hidden /> Matches
+          <FaArrowLeft aria-hidden /> Games
         </Link>
         {fresh && (
-          <span className={styles.freshBadge}>Match complete</span>
+          <span className={styles.freshBadge}>Game complete</span>
         )}
       </div>
 
@@ -147,7 +147,7 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
           the share below the standings loses that impulse. */}
       <ShareResultButton
         summaryId={id}
-        label={summary.name?.trim() || "Match"}
+        label={summary.name?.trim() || "Game"}
       />
 
       {inLeague && thisWeekIndex !== -1 && (

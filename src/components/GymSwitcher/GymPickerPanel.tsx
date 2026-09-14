@@ -173,7 +173,7 @@ export function GymPickerPanel({ open, onClose, activeGymId }: Props) {
         >
           <span className={styles.rowText}>
             <span className={styles.rowName}>Not at a Chork gym</span>
-            <span className={styles.rowMeta}>Matches and crews still work</span>
+            <span className={styles.rowMeta}>Games and friends still work</span>
           </span>
           {activeGymId === null && (
             <FaCheck className={styles.activeIcon} aria-label="No active gym" />

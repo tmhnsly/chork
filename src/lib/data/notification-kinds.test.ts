@@ -197,10 +197,10 @@ describe("match_invite_received", () => {
     expect(renderNotification(event).push.category).toBe("invite_received");
   });
 
-  it("names the match, or says 'a match' when it has no name", () => {
+  it("names the game, or says 'a game' when it has no name", () => {
     expect(renderNotification(event).push.body).toContain("Friday sesh");
     const unnamed = renderNotification({ ...event, matchName: null });
-    expect(unnamed.push.body).toContain("a match");
+    expect(unnamed.push.body).toContain("a game");
     expect(unnamed.push.body).not.toContain("null");
   });
 });

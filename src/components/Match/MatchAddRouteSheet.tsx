@@ -179,7 +179,7 @@ export function MatchAddRouteSheet({
             a bouldering Match. */}
         {offScale && (
           <p className={styles.hint}>
-            This match was set up for{" "}
+            This game was set up for{" "}
             {disciplineFamily(match.discipline) === "boulder"
               ? "bouldering"
               : "ropes"}{" "}

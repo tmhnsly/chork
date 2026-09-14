@@ -98,7 +98,7 @@ export default async function UserProfilePage({ params }: Props) {
         { label: plural(sentSetIds.size, "set"), value: sentSetIds.size },
       ]
     : [
-        { label: plural(matchRows.length, "match", "matches"), value: matchRows.length },
+        { label: plural(matchRows.length, "game"), value: matchRows.length },
         {
           label: plural(matchRows.filter((m) => m.user_is_winner).length, "win"),
           value: matchRows.filter((m) => m.user_is_winner).length,

@@ -39,17 +39,21 @@ branch (both archive the incumbent first), not a DB constraint. A Set
 owns its grading scale and max grade, so the climber-side grade
 slider reads from the Set, not from global config.
 
-## Match
+## Match (a "game", to climbers)
 
 **A Set climbers run themselves** — at a gym, outdoors, on a home
 wall. Started by anyone, joined with a 6-character code, scored the
 same way as a gym Set.
 
-The name works twice over: a match is a contest with players and a
-winner, and matching is putting both hands on the same hold. Legible
-to a newcomer, a wink to a climber. (It replaces "Match", dropped
-because it named a crack technique and implied a session rather than
-a competition.)
+**Two words, on purpose.** In the code, the docs and the database
+this is a *Match* — `sets` with `owner_kind = 'climber'`, the
+`/match` routes, `Match*` components, `match_*` RPCs. In the app it
+is a **game**: the nav tab says Games (a trophy), you start a game,
+join a game, end a game. "Match" was the product word until
+2026-09-14; it read as a fixture rather than something you play, and
+"matching" already means putting both hands on one hold. The rename
+is copy-only — renaming routes and identifiers would break links and
+buy nothing. New copy says game; new code says match.
 
 **Matches are the baseline product, not a lesser Set.** A climber
 with no gym is a first-class user, so never write code that assumes

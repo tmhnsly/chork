@@ -34,7 +34,7 @@ export function MatchSetupPills({ match, isHost, locked, onOpen }: Props) {
     { key: "where", section: "details", text: match.location ?? "Add a location", lockable: false },
   ];
   return (
-    <ul className={styles.row} aria-label="Match setup">
+    <ul className={styles.row} aria-label="Game setup">
       {pills.map((p) => (
         <li key={p.key}>
           {isHost ? (

@@ -33,7 +33,7 @@ export function MatchMenuSheet({
 }: Props) {
   const [confirming, setConfirming] = useState<"end" | "leave" | null>(null);
   return (
-    <BottomSheet open onClose={onClose} title="Match menu">
+    <BottomSheet open onClose={onClose} title="Game menu">
       <SheetBody>
         {/* Ending is the host's — it reaches everyone else's screen.
             Everyone else leaves, which reaches only their own. The
@@ -48,11 +48,11 @@ export function MatchMenuSheet({
           >
             {isHost ? (
               <>
-                <FaFlag aria-hidden /> End match
+                <FaFlag aria-hidden /> End game
               </>
             ) : (
               <>
-                <FaRightFromBracket aria-hidden /> Leave match
+                <FaRightFromBracket aria-hidden /> Leave game
               </>
             )}
           </Button>
@@ -62,11 +62,11 @@ export function MatchMenuSheet({
           <ConfirmInline
             prompt={
               <p>
-                End the match for everyone? Final scores will be calculated
-                and the match will be closed. This cannot be undone.
+                End the game for everyone? Final scores will be calculated
+                and the game will be closed. This cannot be undone.
               </p>
             }
-            confirmLabel="Yes, end match"
+            confirmLabel="Yes, end game"
             pendingLabel="Ending…"
             onConfirm={onEnd}
             onCancel={() => setConfirming(null)}
@@ -78,7 +78,7 @@ export function MatchMenuSheet({
           <ConfirmInline
             prompt={
               <p>
-                Leave this match? You keep the points you&rsquo;ve already
+                Leave this game? You keep the points you&rsquo;ve already
                 scored and stay on the board — you just can&rsquo;t log
                 anything more.
               </p>

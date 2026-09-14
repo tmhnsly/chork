@@ -528,6 +528,10 @@ navbar + home indicator), max-width, and centering.
   / `league_drops` in migration 134 and `LEAGUE_LADDER` / `dropsFor`
   in `src/lib/data/league.ts` — pinned equal by `league.test.ts`. The
   table is computed on read by `league_standings`; never store it
+- **The user-facing word for a match is "game".** Nav tab Games
+  (`FaTrophy`), "Start a game", "End game". Code, routes, RPCs and
+  docs keep `match` — see CONTEXT.md "Match". Never write "match" in
+  new copy
 - **A match is created in one tap and set up in its lobby.** `/match/new`
   is two posters (Points / Chork); tapping creates with defaults
   (boulders, V-scale, whole ladder, "Tom's match"). A live match with

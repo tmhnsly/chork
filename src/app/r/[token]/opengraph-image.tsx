@@ -17,7 +17,7 @@ import { countOf } from "@/lib/plural";
  * three are the payload, the rest is chrome.
  */
 
-export const alt = "Chork match result";
+export const alt = "Chork game result";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -29,7 +29,7 @@ export default async function ResultOgImage({ params }: Props) {
   const { token } = await params;
   const result = await getSharedResult(token);
 
-  const title = result?.name?.trim() || "Match result";
+  const title = result?.name?.trim() || "Game result";
   const podium = result?.players.slice(0, 3) ?? [];
   const others = result ? result.playerCount - podium.length : 0;
 
@@ -76,7 +76,7 @@ export default async function ResultOgImage({ params }: Props) {
               color: OG.accent,
             }}
           >
-            Match result
+            Game result
           </div>
           <div
             style={{

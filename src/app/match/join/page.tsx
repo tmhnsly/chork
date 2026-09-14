@@ -5,7 +5,7 @@ import { JoinMatchForm } from "@/components/Match/JoinMatchForm";
 import styles from "./join.module.scss";
 
 export const metadata = {
-  title: "Join a match",
+  title: "Join a game",
 };
 
 interface Props {
@@ -21,7 +21,7 @@ export default async function JoinMatchPage({ searchParams }: Props) {
   return (
     <main className={styles.page}>
       <PageHeader
-        title="Join a match"
+        title="Join a game"
         subtitle="Enter the six-character code or scan a QR."
       />
       <JoinMatchForm initialCode={code ?? null} />

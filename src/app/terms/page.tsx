@@ -94,7 +94,7 @@ export default function TermsPage() {
         <p>
           You keep ownership of everything you upload, post, or submit to the
           Service (your &ldquo;Content&rdquo;), including route logs, grade
-          votes, beta spray, match names, display names, and any other material
+          votes, beta spray, game names, display names, and any other material
           you publish.
         </p>
         <p>
@@ -102,7 +102,7 @@ export default function TermsPage() {
           host, store, reproduce, and display your Content as needed to run
           the Service and show it to the other users you have chosen to share
           it with (for example, your gym&rsquo;s leaderboard or the members of
-          a match you took part in). This licence ends when you delete the
+          a game you took part in). This licence ends when you delete the
           relevant Content or your account, except where we are legally
           required to retain copies.
         </p>

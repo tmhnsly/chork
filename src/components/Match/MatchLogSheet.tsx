@@ -100,7 +100,7 @@ interface Props {
 }
 
 /**
- * Attempt logger for a match route. Visually identical to the wall's
+ * Attempt logger for a game route. Visually identical to the wall's
  * `RouteLogSheet` — same header, same [−] [N] [+] counter, same
  * ZoneHoldRow, same completed badge + Undo. Differences are
  * deliberate:

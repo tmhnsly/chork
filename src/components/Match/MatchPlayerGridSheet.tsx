@@ -105,7 +105,7 @@ export function MatchPlayerGridSheet({
     <BottomSheet
       open
       onClose={onClose}
-      title={`@${username}'s match grid`}
+      title={`@${username}'s game grid`}
       titleSlot={header.identity}
       subheader={row ? header.stats : undefined}
       description={`${displayName}'s send grid for this match`}

@@ -17,7 +17,7 @@ import {
   FaUserGroup,
   FaMountainSun,
   FaScrewdriverWrench,
-  FaFire,
+  FaTrophy,
 } from "react-icons/fa6";
 import { ChorkMark } from "@/components/ui";
 import { useAuth } from "@/lib/auth-context";
@@ -208,8 +208,8 @@ function AuthedNavSkeleton({
             <span className={styles.tabLabel}>Friends</span>
           </Link>
           <Link href="/match" className={`${styles.tab} ${matchActive ? styles.tabActive : ""}`} aria-current={matchActive ? "page" : undefined}>
-            <FaFire className={styles.tabIcon} aria-hidden />
-            <span className={styles.tabLabel}>Match</span>
+            <FaTrophy className={styles.tabIcon} aria-hidden />
+            <span className={styles.tabLabel}>Games</span>
           </Link>
           {/* From the shell cookie, so the tab is in the server HTML
               rather than appearing a frame after hydration. */}
@@ -346,8 +346,8 @@ function AuthenticatedNav({
             className={`${styles.tab} ${matchActive ? styles.tabActive : ""}`}
             aria-current={matchActive ? "page" : undefined}
           >
-            <FaFire className={styles.tabIcon} aria-hidden />
-            <span className={styles.tabLabel}>Match</span>
+            <FaTrophy className={styles.tabIcon} aria-hidden />
+            <span className={styles.tabLabel}>Games</span>
           </Link>
           {/* Gated on admin rights ALONE. Admin is orthogonal to
               climber membership (CONTEXT.md "Climber, admin,

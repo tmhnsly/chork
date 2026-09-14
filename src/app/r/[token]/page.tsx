@@ -33,7 +33,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!result) return { title: "Result not found" };
 
   const winner = result.players.find((p) => p.isWinner);
-  const label = result.name?.trim() || "Match result";
+  const label = result.name?.trim() || "Game result";
   return {
     title: label,
     description: winner
@@ -55,9 +55,9 @@ export default async function SharedResultPage({ params }: Props) {
   return (
     <main className={styles.page}>
       <header className={styles.header}>
-        <p className={styles.eyebrow}>Match result</p>
+        <p className={styles.eyebrow}>Game result</p>
         <h1 className={styles.title}>
-          {result.name?.trim() || "Match"}
+          {result.name?.trim() || "Game"}
         </h1>
         <p className={styles.meta}>
           {[
@@ -98,7 +98,7 @@ export default async function SharedResultPage({ params }: Props) {
         <p className={styles.ctaLede}>
           Chork scores your climbing — at a gym, outdoors, anywhere.
         </p>
-        <LinkButton href="/login">Start your own match</LinkButton>
+        <LinkButton href="/login">Start your own game</LinkButton>
       </section>
     </main>
   );

@@ -35,7 +35,7 @@ interface Props {
  * has triggered a destructive or high-stakes action and needs to
  * explicitly opt in before it fires.
  *
- * Canonical examples: "End this match for everyone?", "Delete your
+ * Canonical examples: "End this game for everyone?", "Delete your
  * account and all data?", "Transfer crew ownership?".
  *
  * Pair with `<BottomSheet>` or `<AppDialog>` as the containing

@@ -28,7 +28,7 @@ const ALL_FILTERS: { id: Filter; label: string }[] = [
   { id: "all", label: "All" },
   { id: "sends", label: "Sends" },
   { id: "flashes", label: "Flashes" },
-  { id: "matches", label: "Matches" },
+  { id: "matches", label: "Games" },
 ];
 
 interface Props {

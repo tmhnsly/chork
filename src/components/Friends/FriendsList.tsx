@@ -113,7 +113,7 @@ export function FriendsList({ active, incoming, outgoing, suggestions }: Props) 
             Climbed with you
           </h2>
           <p className={styles.hint}>
-            From matches you&rsquo;ve shared. They have to accept.
+            From games you&rsquo;ve shared. They have to accept.
           </p>
           <ul className={styles.list}>
             {suggestions.map((s) => (
@@ -178,7 +178,7 @@ export function FriendsList({ active, incoming, outgoing, suggestions }: Props) 
           <FaUserGroup className={styles.zeroIcon} aria-hidden />
           <p className={styles.zeroTitle}>No friends yet</p>
           <p className={styles.zeroBody}>
-            Run a match with someone and they&rsquo;ll show up here to add.
+            Run a game with someone and they&rsquo;ll show up here to add.
             No codes, no searching for handles.
           </p>
         </div>

@@ -54,12 +54,12 @@ export function JoinMatchForm({ initialCode }: Props) {
     async (key) => {
       const supabase = createBrowserSupabase();
       const result = await lookupMatchByCode(supabase, key);
-      if (!result) throw new Error("No match found for that code");
+      if (!result) throw new Error("No game found for that code");
       if (result.status === "archived") {
-        throw new Error("That match has already ended");
+        throw new Error("That game has already ended");
       }
       if (result.at_cap) {
-        throw new Error("That match is full — 20 players is the max");
+        throw new Error("That game is full — 20 players is the max");
       }
       return result;
     },
@@ -130,7 +130,7 @@ export function JoinMatchForm({ initialCode }: Props) {
       {lookup && (
         <section className={styles.previewCard}>
           <div className={styles.previewHeader}>
-            <span className={styles.eyebrow}>Join match</span>
+            <span className={styles.eyebrow}>Join game</span>
             <h2 className={styles.previewTitle}>
               {matchTitle(lookup)}
             </h2>
@@ -176,7 +176,7 @@ export function JoinMatchForm({ initialCode }: Props) {
             </div>
           </dl>
           <Button type="button" onClick={handleJoin} disabled={pending} fullWidth>
-            {pending ? "Joining…" : "Join match"}{" "}
+            {pending ? "Joining…" : "Join game"}{" "}
             <span className={styles.ctaIcon}>
               <FaArrowRight aria-hidden />
             </span>

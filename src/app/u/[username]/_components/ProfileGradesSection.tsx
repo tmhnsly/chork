@@ -43,7 +43,7 @@ export async function ProfileGradesSection({ userId }: Props) {
     // The scope note rides in meta: the gym stats above are gym-only,
     // so without saying so the two disagree — "2 sends" up there and
     // three bars down here.
-    <SectionCard title="Grades" icon={<FaChartSimple />} meta="Gym and matches">
+    <SectionCard title="Grades" icon={<FaChartSimple />} meta="Gym and games">
       <ProfileGradesCard
         pyramids={pyramids}
         charts={charts}

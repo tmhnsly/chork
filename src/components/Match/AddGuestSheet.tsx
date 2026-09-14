@@ -54,7 +54,7 @@ export function AddGuestSheet({ onClose, onSubmit, pending }: Props) {
           disabled={!trimmed || pending}
           fullWidth
         >
-          <FaUserPlus aria-hidden /> Add to match
+          <FaUserPlus aria-hidden /> Add to game
         </Button>
       </SheetBody>
     </BottomSheet>

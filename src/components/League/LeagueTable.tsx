@@ -23,7 +23,7 @@ export function LeagueTable({ standings, weekCount, viewerId }: Props) {
   return (
     <div className={styles.wrap}>
       {standings.length === 0 ? (
-        <p className={styles.empty}>No weeks yet — end the first match and it lands here.</p>
+        <p className={styles.empty}>No weeks yet — end the first game and it lands here.</p>
       ) : (
         <ol className={styles.list}>
           {standings.map((row) => {

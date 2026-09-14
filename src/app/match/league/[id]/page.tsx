@@ -50,7 +50,7 @@ export default async function LeaguePage({ params }: Props) {
     <main className={styles.page}>
       <div className={styles.topRow}>
         <Link href="/match" className={styles.backLink}>
-          <FaArrowLeft aria-hidden /> Matches
+          <FaArrowLeft aria-hidden /> Games
         </Link>
         {isHost && <LeagueHostMenu league={league} />}
       </div>
@@ -67,7 +67,7 @@ export default async function LeaguePage({ params }: Props) {
 
       {isHost && running && !live && (
         <LinkButton href={`/match/new?league=${league.id}`} fullWidth>
-          <FaPlus aria-hidden /> Start this week&apos;s match
+          <FaPlus aria-hidden /> Start this week&apos;s game
         </LinkButton>
       )}
       {live && (

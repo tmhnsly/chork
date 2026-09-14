@@ -60,10 +60,10 @@ export async function ProfileMatchesSection({ userId, isOwnProfile }: Props) {
     <section className={styles.section} aria-labelledby="profile-matches-heading">
       <div className={styles.header}>
         <h2 id="profile-matches-heading" className={styles.heading}>
-          Matches
+          Games
         </h2>
         <span className={styles.count}>
-          {stats.matchesPlayed} {stats.matchesPlayed === 1 ? "match" : "matches"}
+          {stats.matchesPlayed} {stats.matchesPlayed === 1 ? "game" : "games"}
         </span>
       </div>
       <MatchLifetimeStatsCard stats={stats} isOwnProfile={isOwnProfile} />

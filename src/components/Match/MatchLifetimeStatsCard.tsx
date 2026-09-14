@@ -44,12 +44,12 @@ export function MatchLifetimeStatsCard({ stats }: Props) {
             : `${stats.bestFinish}th`;
 
   return (
-    <SectionCard title="Match lifetime" icon={<FaFire />}>
+    <SectionCard title="Game lifetime" icon={<FaFire />}>
       <div className={styles.header}>
         <div className={styles.headerStat}>
           <span className={styles.headerValue}>{stats.matchesPlayed}</span>
           <span className={styles.headerLabel}>
-            {stats.matchesPlayed === 1 ? "Match played" : "Matches played"}
+            {stats.matchesPlayed === 1 ? "Game played" : "Games played"}
           </span>
         </div>
         {stats.matchesWon > 0 && (
@@ -87,7 +87,7 @@ export function MatchLifetimeStatsCard({ stats }: Props) {
           emphasis="flash"
         />
         <Cell
-          label="Pts / match"
+          label="Pts / game"
           value={stats.pointsPerMatch === null ? EM_DASH : stats.pointsPerMatch.toFixed(1)}
         />
       </div>

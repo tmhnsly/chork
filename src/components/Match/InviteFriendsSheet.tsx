@@ -16,7 +16,7 @@ interface Props {
 }
 
 /**
- * Invite friends to the match you're in.
+ * Invite friends to the game you're in.
  *
  * The join code reaches anyone; this reaches the people who already
  * agreed to hear from you. Each row is one tap, and the tap sends a

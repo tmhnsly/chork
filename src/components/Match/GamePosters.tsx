@@ -11,7 +11,7 @@ import type { CreateMatchPrefill } from "./createMatchReducer";
 import styles from "./gamePosters.module.scss";
 
 interface Props {
-  /** "Tom's match" — stored on the row, editable from the lobby. */
+  /** "Tom's game" — stored on the row, editable from the lobby. */
   defaultName: string;
   /** Starting a week of a League: last week's settings, not the defaults. */
   prefill?: CreateMatchPrefill;
@@ -95,7 +95,7 @@ export function GamePosters({ defaultName, prefill }: Props) {
           onClick={() => start(p.mode)}
           disabled={pending}
           aria-busy={tapped === p.mode || undefined}
-          aria-label={`Start a ${p.title} match`}
+          aria-label={`Start a ${p.title} game`}
         >
           <GameScene preset={p.mode} />
           <span className={styles.body}>

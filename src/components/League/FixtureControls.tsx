@@ -97,7 +97,7 @@ export function FixtureControls({ setId, matchName, leagues }: Props) {
                 }}
               />
               <span className={styles.hint}>
-                This match becomes week 1. Everyone who climbed in it is on the table.
+                This game becomes week 1. Everyone who climbed in it is on the table.
               </span>
             </label>
             <Button type="button" onClick={create} disabled={!trimmed || pending} fullWidth>

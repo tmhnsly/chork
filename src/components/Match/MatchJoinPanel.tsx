@@ -51,7 +51,7 @@ export function MatchJoinPanel({ match, isHost, onInviteFriends, onAddGuest }: P
     const url = `${window.location.origin}/match/join?code=${match.code}`;
     const shareData = {
       title: matchTitle(match),
-      text: `Join my match on Chork — code ${match.code}`,
+      text: `Join my game on Chork — code ${match.code}`,
       url,
     };
     if (navigator.share) {

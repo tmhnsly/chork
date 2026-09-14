@@ -187,7 +187,7 @@ export function MatchesTile() {
       <div className={styles.meta}>
         <div className={styles.metaHead}>
           <span className={styles.icon}><FaFire /></span>
-          <h3 className={styles.title}>Matches</h3>
+          <h3 className={styles.title}>Games</h3>
         </div>
         <p className={styles.description}>
           A climbing game for anywhere. Build the set as you go.

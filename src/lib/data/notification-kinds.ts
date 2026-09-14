@@ -212,8 +212,8 @@ export const notificationKinds: {
       from_username: e.fromUsername,
     }),
     push: (p) => ({
-      title: "Match invite",
-      body: `@${p.from_username} invited you to ${p.match_name ?? "a match"}. Code ${p.code}.`,
+      title: "Game invite",
+      body: `@${p.from_username} invited you to ${p.match_name ?? "a game"}. Code ${p.code}.`,
       url: `/match/join?code=${encodeURIComponent(p.code)}`,
       category: "invite_received",
     }),
@@ -222,7 +222,7 @@ export const notificationKinds: {
       href: `/match/join?code=${encodeURIComponent(p.code)}`,
       segments: [
         { type: "user", username: p.from_username },
-        { type: "text", text: ` invited you to ${p.match_name ?? "a match"}` },
+        { type: "text", text: ` invited you to ${p.match_name ?? "a game"}` },
       ],
     }),
   },

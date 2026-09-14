@@ -10,7 +10,7 @@ interface Props {
 }
 
 export const metadata = {
-  title: "Match",
+  title: "Game",
 };
 
 export default async function MatchRoomPage({ params }: Props) {

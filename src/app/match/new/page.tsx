@@ -9,7 +9,7 @@ import { GamePosters } from "@/components/Match/GamePosters";
 import { isFormulaScale, type CreateMatchPrefill } from "@/components/Match/createMatchReducer";
 import styles from "./new.module.scss";
 
-export const metadata = { title: "Start a match" };
+export const metadata = { title: "Start a game" };
 
 interface Props {
   searchParams: Promise<{ league?: string }>;
@@ -70,12 +70,12 @@ export default async function NewMatchPage({ searchParams }: Props) {
   // list shows a name rather than a fallback; renamed from the lobby.
   const profile = await getServerProfile();
   const firstName = profile?.name?.trim().split(/\s+/)[0] || profile?.username || "";
-  const defaultName = firstName ? `${firstName}'s match` : "My match";
+  const defaultName = firstName ? `${firstName}'s game` : "My game";
 
   return (
     <main className={styles.page}>
       <PageHeader
-        title={league ? `Week ${league.weekNumber}` : "Start a match"}
+        title={league ? `Week ${league.weekNumber}` : "Start a game"}
         subtitle={league ? league.name : "Pick a game. Everything else is set from the lobby."}
       />
       <GamePosters defaultName={defaultName} prefill={league?.prefill} />

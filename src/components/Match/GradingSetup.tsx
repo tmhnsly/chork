@@ -266,7 +266,7 @@ export function GradingSetup({ state, dispatch, savedScales, onMaxGrades }: Prop
 
               <ToggleRow
                 title="Save this scale"
-                detail="Reuse it next match without re-entering the grades."
+                detail="Reuse it next game without re-entering the grades."
                 checked={saveScale}
                 onChange={(checked) => dispatch({ type: "set-save-scale", value: checked })}
               />

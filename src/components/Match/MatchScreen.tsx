@@ -200,7 +200,7 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
             )}
           </div>
         </div>
-        <IconButton label="Match menu" onClick={() => openPanel({ kind: "menu" })}>
+        <IconButton label="Game menu" onClick={() => openPanel({ kind: "menu" })}>
           <FaEllipsisVertical />
         </IconButton>
       </header>

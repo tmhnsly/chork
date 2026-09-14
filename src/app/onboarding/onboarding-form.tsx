@@ -270,7 +270,7 @@ export function OnboardingForm() {
                 value: "no-chork",
                 label: "Not yet",
                 detail:
-                  "Run matches with friends anywhere. Add a gym later from settings.",
+                  "Run games with friends anywhere. Add a gym later from settings.",
                 icon: <FaUserGroup aria-hidden />,
               },
             ]}

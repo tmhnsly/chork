@@ -29,7 +29,7 @@ export function ActiveMatchBanner({ match }: Props) {
         <FaFire />
       </span>
       <div className={styles.body}>
-        <span className={styles.eyebrow}>Live match</span>
+        <span className={styles.eyebrow}>Live game</span>
         <span className={styles.title}>{name}</span>
         <span className={styles.meta}>
           {match.location ? `${match.location} · ${playerLabel}` : playerLabel}
