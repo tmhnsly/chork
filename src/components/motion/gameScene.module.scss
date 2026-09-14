@@ -3,14 +3,18 @@
 // Scene choreography — named periods, per the design-system rule for
 // loops that are not a state change.
 .scene {
-  --period-bars: 3.6s;
-  --period-word: 5s;
-  --period-spark: 2.4s;
+  // Choreography. One entry (the bars rise, the letters settle) and
+  // then a slow ambient loop — a scene on repeat should read as
+  // weather, not a GIF. Entry rides the hero duration; the loops ride
+  // the loop rungs.
+  --stagger-bar: 0.12s;
+  --stagger-tile: 0.35s;
 
   // Tone triplet: ink for marks, wash for the ground. Points is the
   // accent; Chork is flash gold — two hue families, so the two games
   // read apart even without colour vision.
   --scene-solid: var(--accent-solid);
+  --scene-solid-hover: var(--accent-solid-hover);
   --scene-on: var(--accent-on-solid);
   --scene-ink: var(--accent-text);
   --scene-wash: var(--accent-bg);
@@ -23,7 +27,7 @@
   position: relative;
   display: block;
   width: 100%;
-  aspect-ratio: 16 / 7;
+  aspect-ratio: 4 / 3;
   overflow: hidden;
   isolation: isolate;
   // Marks are sized in cqmin, so the scene scales to any canvas. Sized
@@ -33,6 +37,7 @@
 
   &[data-preset="chork"] {
     --scene-solid: var(--flash-solid);
+    --scene-solid-hover: var(--flash-solid-hover);
     --scene-on: var(--flash-on-solid);
     --scene-ink: var(--flash-text);
     --scene-wash: var(--flash-bg);
@@ -40,19 +45,39 @@
   }
 }
 
+// A soft light behind the marks, breathing on the slowest loop.
+.glow {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 80cqmin;
+  height: 80cqmin;
+  border-radius: var(--radius-full);
+  background: radial-gradient(circle, var(--scene-wash) 0%, transparent 65%);
+  animation: breathe var(--duration-loop-slow) var(--ease-in-out) infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { transform: scale(0.92); }
+  50% { transform: scale(1.06); }
+}
+
 // ── Points · a scoreboard filling ────────────────
 .bars {
   position: absolute;
   inset: 0;
   margin: auto;
-  width: 56cqmin;
-  height: 60cqmin;
+  width: 60cqmin;
+  height: 56cqmin;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
   gap: 4cqmin;
 }
 
+// Each bar rises once, on its own beat, and stays up. Then the
+// slowest loop lets them sway by a hair — enough that the scene is
+// alive, not enough that it asks to be watched.
 .bar {
   position: relative;
   flex: 1;
@@ -60,18 +85,23 @@
   border-radius: 2cqmin 2cqmin 0 0;
   background: var(--scene-solid);
   transform-origin: bottom;
-  animation: rise var(--period-bars) var(--ease-out-expo) infinite;
-  animation-delay: calc(var(--period-bars) * var(--i) * 0.08);
+  animation:
+    rise var(--duration-hero) var(--ease-out-expo) calc(var(--i) * var(--stagger-bar)) both,
+    sway var(--duration-loop-slow) var(--ease-in-out) calc(var(--duration-hero) + var(--i) * var(--stagger-bar)) infinite;
 }
 
 @keyframes rise {
-  0% { transform: scaleY(0); }
-  35%, 82% { transform: scaleY(1); }
-  100% { transform: scaleY(0); }
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
 }
 
-// The spark on the tallest bar: a small diamond that twinkles once
-// the bars are up.
+@keyframes sway {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.96); }
+}
+
+// The spark on the tallest bar: settles in after the bars, then
+// twinkles on the ambient loop.
 .spark {
   position: absolute;
   top: -9cqmin;
@@ -80,16 +110,20 @@
   height: 6cqmin;
   margin-left: -3cqmin;
   background: var(--scene-ink);
-  transform: rotate(45deg) scale(0);
-  animation: twinkle var(--period-bars) var(--ease-spring) infinite;
-  animation-delay: calc(var(--period-bars) * 0.42);
+  transform: rotate(45deg) scale(1);
+  animation:
+    settle var(--duration-slow) var(--ease-spring) var(--duration-hero) both,
+    twinkle var(--duration-loop) var(--ease-in-out) var(--duration-hero) infinite;
+}
+
+@keyframes settle {
+  from { transform: rotate(45deg) scale(0); }
+  to { transform: rotate(45deg) scale(1); }
 }
 
 @keyframes twinkle {
-  0%, 10% { transform: rotate(45deg) scale(0); }
-  20% { transform: rotate(45deg) scale(1); }
-  55% { transform: rotate(45deg) scale(0.8); }
-  70%, 100% { transform: rotate(45deg) scale(0); }
+  0%, 100% { transform: rotate(45deg) scale(1); }
+  50% { transform: rotate(45deg) scale(0.75); }
 }
 
 // ── Chork · the word, played ──────────────────────
@@ -103,47 +137,61 @@
   gap: 3cqmin;
 }
 
-// A letter tile: outlined until earned, then solid. Each lights on
-// its own beat of the period, and the word clears at the end — the
-// game, in five seconds.
+// A letter tile: outlined until earned, then solid. The first three
+// settle solid on entry, one after another; the last two stay
+// outlined — someone two letters from out, held there. On the
+// slowest loop the earned letters glow up and down by a step, and
+// that is all.
 .tile {
   @include type.typography(number, $step: 2xl);
   display: inline-grid;
   place-items: center;
-  width: 16cqmin;
-  height: 18cqmin;
+  width: 15cqmin;
+  height: 17cqmin;
   border-radius: 2.5cqmin;
   border: 0.8cqmin solid var(--scene-solid);
   color: var(--scene-ink);
   background: transparent;
-  animation: earn var(--period-word) var(--ease-out) infinite;
-  animation-delay: calc(var(--period-word) * var(--i) * 0.14);
+  animation: settleTile var(--duration-slow) var(--ease-out) calc(var(--i) * var(--stagger-tile)) both;
+}
+
+@keyframes settleTile {
+  from { transform: translateY(2cqmin); }
+  to { transform: translateY(0); }
+}
+
+.tile:nth-child(-n + 3) {
+  animation:
+    settleTile var(--duration-slow) var(--ease-out) calc(var(--i) * var(--stagger-tile)) both,
+    earn var(--duration-slow) var(--ease-out) calc(var(--duration-normal) + var(--i) * var(--stagger-tile)) both,
+    glow var(--duration-loop-slow) var(--ease-in-out) calc(var(--duration-hero) + var(--i) * var(--stagger-tile)) infinite;
 }
 
 @keyframes earn {
-  0%, 12% {
+  from {
     background: transparent;
     color: var(--scene-ink);
-    transform: scale(1);
   }
-  16% { transform: scale(1.12); }
-  20%, 78% {
+  to {
     background: var(--scene-solid);
     color: var(--scene-on);
-    transform: scale(1);
   }
-  86%, 100% {
-    background: transparent;
-    color: var(--scene-ink);
-  }
+}
+
+@keyframes glow {
+  0%, 100% { background: var(--scene-solid); }
+  50% { background: var(--scene-solid-hover); }
 }
 
 // Reduced motion: hold a legible resting frame — bars up, letters
 // half earned — rather than a blank stage.
 @media (prefers-reduced-motion: reduce) {
-  .bar { animation: none; transform: none; }
-  .spark { animation: none; transform: rotate(45deg) scale(1); }
-  .tile { animation: none; }
+  .glow,
+  .bar,
+  .spark,
+  .tile {
+    animation: none;
+  }
   .tile:nth-child(-n + 3) {
     background: var(--scene-solid);
     color: var(--scene-on);

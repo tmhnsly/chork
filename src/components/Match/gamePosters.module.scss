@@ -4,9 +4,14 @@
 @use "mixins/focus";
 @use "mixins/state" as state;
 
+// Two per row, always: the column tops out at 640px, so a pair reads
+// as a pair on a phone and on a desktop alike, and a full-width card
+// was a billboard for a two-word choice.
 .posters {
-  @include layout.stack(var(--space-4));
-  --stagger-posters: 0.08s;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  --stagger-posters: 0.12s;
   --i: 0;
 }
 
@@ -31,7 +36,7 @@
   transition:
     transform var(--duration-fast) var(--ease-out),
     box-shadow var(--duration-fast) var(--ease-out);
-  animation: posterIn var(--duration-slow) var(--ease-out-expo) both;
+  animation: posterIn var(--duration-hero) var(--ease-out-expo) both;
   animation-delay: calc(var(--i) * var(--stagger-posters));
 
   &[data-game="chork"] {
@@ -69,9 +74,9 @@
 
 .body {
   display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--space-5);
+  align-items: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) var(--space-4);
 }
 
 .text {
@@ -81,12 +86,12 @@
 }
 
 .title {
-  @include type.typography(display, $step: 2xl);
+  @include type.typography(display, $step: xl);
   color: var(--mono-text);
 }
 
 .line {
-  @include type.typography(meta, $step: sm);
+  @include type.typography(meta, $step: xs);
   color: var(--mono-text-low-contrast);
 }
 
@@ -96,12 +101,12 @@
   display: inline-grid;
   place-items: center;
   flex-shrink: 0;
-  width: var(--size-touch-target);
-  height: var(--size-touch-target);
+  width: var(--space-8);
+  height: var(--space-8);
   border-radius: var(--radius-full);
   background: var(--game-solid);
   color: var(--game-on);
-  font-size: var(--size-icon-md);
+  font-size: var(--size-icon-sm);
 }
 
 .spinner {

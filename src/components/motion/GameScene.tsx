@@ -11,10 +11,15 @@ interface Props {
  * An animated illustration of a game, for the card you choose it
  * from — the Raditz "scene" idea in Chork's own vocabulary.
  *
- *   points — five bars rising to different heights on a stagger, the
- *            tallest carrying a spark. A scoreboard filling.
- *   chork  — the five letter tiles, one lighting up at a time and
- *            then clearing. The board's own word, played.
+ *   points — five bars rising once to different heights, the tallest
+ *            carrying a spark, then swaying by a hair on the slowest
+ *            loop. A scoreboard, filled.
+ *   chork  — the five letter tiles settling in, the first three
+ *            earned, the last two open — someone two from out. The
+ *            earned letters glow on the slowest loop, and that's all.
+ *
+ * One entry, then weather: a scene on repeat must not ask to be
+ * watched, so nothing here resets or pops after the first second.
  *
  * Each preset owns a colour: Points is the accent, Chork is flash
  * gold — two hue families, so they read apart under colour-blindness
@@ -26,6 +31,7 @@ interface Props {
 export function GameScene({ preset }: Props) {
   return (
     <div className={styles.scene} data-preset={preset} aria-hidden>
+      <span className={styles.glow} />
       {preset === "points" ? (
         <div className={styles.bars}>
           {BAR_HEIGHTS.map((h, i) => (
