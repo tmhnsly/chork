@@ -1,6 +1,7 @@
 "use server";
 
 import { cookies } from "next/headers";
+import { PALETTE_COOKIE } from "@/lib/theme-palettes";
 import { createServerSupabase } from "@/lib/supabase/server";
 import { formatAuthError, formatError, type AuthErrorField } from "@/lib/errors";
 import { env } from "@/lib/env";
@@ -100,6 +101,9 @@ export async function signOutAction(): Promise<{ error?: string }> {
   jar.delete("chork-onboarded");
   // v2 carries the admin suffix; see proxy.ts.
   jar.delete("chork-auth-shell-v2");
+  // The palette cookie paints a climber's palette on first byte. Left
+  // behind, /login would render in the previous climber's colours.
+  jar.delete(PALETTE_COOKIE);
 
   if (error) {
     return { error: formatError(error) };

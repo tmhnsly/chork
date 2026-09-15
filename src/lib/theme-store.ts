@@ -1,76 +1,57 @@
 /**
- * Theme store — pure (non-JSX) half of the theme module, split out
- * so tests can import it under vitest's unit project (which has no
- * React/JSX transform configured). The `ThemeProvider` + `useTheme`
- * hook live in `theme.tsx` and re-export these symbols.
+ * Theme store — the client half of the palette, split from the
+ * provider so tests can import it under vitest's unit project (which
+ * has no React/JSX transform configured). The `ThemeProvider` +
+ * `useTheme` hook live in `theme.tsx` and re-export these symbols; the
+ * palette table and the palette cookie live in `theme-palettes.ts`,
+ * which the server can import too.
  *
- * Module-level mutable singletons (`listeners`, `currentTheme`) make
- * this intentionally client-only — on the server they'd be shared
- * across concurrent requests and one climber's theme would bleed
- * into another's render. The `"client-only"` import enforces that
- * boundary at build time: any accidental server import will fail.
+ * Module-level mutable state (`listeners`, `currentTheme`) makes this
+ * intentionally client-only — on the server it would be shared across
+ * concurrent requests and one climber's theme would bleed into
+ * another's render. The `"client-only"` import enforces that boundary
+ * at build time: any accidental server import will fail.
  */
 import "client-only";
+import {
+  DEFAULT_THEME,
+  PALETTE_COOKIE,
+  PALETTE_COOKIE_MAX_AGE,
+  isValidTheme,
+  type ThemeName,
+} from "./theme-palettes";
 
-export type ThemeName = "default" | "blue" | "violet" | "pink";
-
-export interface ThemeMeta {
-  id: ThemeName;
-  label: string;
-  hint: string;
-}
-
-/**
- * The four palettes, in picker order.
- *
- * `hint` names the two Radix scales rather than describing a mood.
- * The preview beside each row shows what the palette actually looks
- * like, so the text's job is to be precise, not evocative.
- *
- * There is no swatch field any more. Two dots couldn't answer "what
- * will my app look like" — which is why picking a theme used to mean
- * applying it, closing the sheet, looking, and going back in.
- * `<ThemePreview>` renders a real fragment of the wall in each
- * palette instead, scoped with `data-theme`, so all four can be
- * compared side by side without changing anything.
- */
-// Labels name the mood; hints read the chord (mono · accent · flash
-// · zone). Ids are STORAGE — profiles.theme holds them — and never
-// change with a rename.
-export const THEME_META: ThemeMeta[] = [
-  { id: "default", label: "Chork", hint: "Lime · Amber · Teal" },
-  { id: "blue", label: "Harbour", hint: "Blue · Gold · Jade" },
-  { id: "violet", label: "Dusk", hint: "Violet · Yellow · Cyan" },
-  { id: "pink", label: "Arcade", hint: "Pink · Amber · Mint" },
-];
-
-export const DEFAULT_THEME: ThemeName = "default";
+export { THEME_META, DEFAULT_THEME, isValidTheme } from "./theme-palettes";
+export type { ThemeName, ThemeMeta } from "./theme-palettes";
 
 type Listener = () => void;
 const listeners = new Set<Listener>();
-let currentTheme: ThemeName = DEFAULT_THEME;
 
-export function isValidTheme(t: string | null | undefined): t is ThemeName {
-  return !!t && THEME_META.some((meta) => meta.id === t);
-}
-
-// This store deliberately does NOT persist.
+// Where the palette comes from.
 //
 // The theme belongs to the climber, so `profiles.theme` is the single
-// source of truth and the signed-in profile is the only thing that
-// can set it. It used to be mirrored into a `chork-theme` localStorage
-// key as well, which made the palette a property of the *device*: it
-// outlived the session, so signing out left your palette on the login
-// screen and on whoever signed in next. That needed a sign-out reset
-// to paper over — and one existed, in `signOut()` — but the reset only
-// covered the deliberate sign-out path, not an expired session or a
-// sign-out in another tab.
+// source of truth and the signed-in profile is the only thing that can
+// decide it. It used to be mirrored into a `chork-theme` localStorage
+// key, which made the palette a property of the *device*: it outlived
+// the session, so signing out left your palette on the login screen
+// and on whoever signed in next.
 //
-// Deriving from the profile removes the whole class of problem instead
-// of handling its cases: no profile, no theme. The `AuthProvider`
-// profile cache (which already carries `theme`, and is already dropped
-// on sign-out) supplies it on the first client render, so a warm start
-// still paints the right palette without a second copy to keep in step.
+// The palette cookie (`PALETTE_COOKIE`) is not that mirror coming back.
+// It exists only so the server can paint the right palette on the
+// first frame, and it never decides anything: the profile settling
+// overwrites it, the profile going away clears it (signed out resolves
+// to the default on every path, not just the sign-out button), and the
+// server drops it with a dead session. Until the profile settles, the
+// store keeps whatever the server painted.
+
+/** The palette the server painted on `<html>`, read once as this module loads. */
+function paintedTheme(): ThemeName {
+  if (typeof document === "undefined") return DEFAULT_THEME;
+  const painted = document.documentElement.getAttribute("data-theme");
+  return isValidTheme(painted) ? painted : DEFAULT_THEME;
+}
+
+let currentTheme: ThemeName = paintedTheme();
 
 export function subscribe(listener: Listener): () => void {
   listeners.add(listener);
@@ -83,18 +64,16 @@ export function getSnapshot(): ThemeName {
   return currentTheme;
 }
 
-export function getServerSnapshot(): ThemeName {
-  return DEFAULT_THEME;
-}
-
 /**
- * Apply a theme locally, for immediate feedback while the picker is
- * open. The server write-back is `setTheme()` in `theme.tsx`; this is
- * only the local half.
+ * Apply a theme the climber picked: paint it at once and remember it
+ * for the server. The profile write-back is `setTheme()` in
+ * `theme.tsx`; this is only the local half.
  */
 export function setThemeStore(next: ThemeName): void {
   if (next === currentTheme) return;
   currentTheme = next;
+  applyTheme(next);
+  persistPalette(next);
   listeners.forEach((fn) => fn());
 }
 
@@ -111,28 +90,69 @@ export function setThemeStore(next: ThemeName): void {
  *
  * Callers must wait for auth to settle before calling this. A
  * pre-bootstrap profile is legitimately null for a signed-IN climber
- * too, and acting on that null would flash the default palette on
- * every page load before snapping back.
+ * too, and acting on that null would paint the default over the
+ * palette the server painted.
  */
 export function syncThemeFromProfile(
   profileTheme: string | null | undefined,
 ): void {
   const next = isValidTheme(profileTheme) ? profileTheme : DEFAULT_THEME;
+  // Every settle refreshes the cookie: it keeps the year rolling, and
+  // repairs one that was cleared or never written.
+  persistPalette(next);
   if (next === currentTheme) return;
   currentTheme = next;
+  applyTheme(next);
   listeners.forEach((fn) => fn());
 }
 
 /**
  * Write the theme attribute to `<html>`. `default` clears the
- * attribute so the bare `:root` styles take over.
+ * attribute so the bare `:root` styles take over. Nothing is written
+ * when the attribute is already right, which is the common case now
+ * that the server paints the palette.
+ *
+ * Transitions are held off for the swap. Buttons animate their
+ * background, so a palette change mid-page faded every one of them
+ * through the colours in between: lime to teal to blue.
  */
 export function applyTheme(theme: ThemeName): void {
   if (typeof document === "undefined") return;
-  const el = document.documentElement;
+  const root = document.documentElement;
+  const target = theme === DEFAULT_THEME ? null : theme;
+  if (root.getAttribute("data-theme") === target) return;
+  const release = holdTransitions();
+  if (target === null) root.removeAttribute("data-theme");
+  else root.setAttribute("data-theme", target);
+  release();
+}
+
+/** Switch transitions off; the returned release hands them back after a painted frame. */
+function holdTransitions(): () => void {
+  if (typeof window === "undefined") return () => {};
+  const style = document.createElement("style");
+  style.textContent = "*,*::before,*::after{transition:none!important}";
+  document.head.appendChild(style);
+  return () => {
+    // Resolve the new palette's styles while transitions are off…
+    void window.getComputedStyle(document.body).color;
+    // …then hand transitions back once that frame has painted.
+    window.requestAnimationFrame(() =>
+      window.requestAnimationFrame(() => style.remove()),
+    );
+  };
+}
+
+/** Remember the palette for the server's next paint — see `PALETTE_COOKIE`. */
+function persistPalette(theme: ThemeName): void {
+  if (typeof document === "undefined") return;
+  const secure =
+    typeof location !== "undefined" && location.protocol === "https:" ? "; secure" : "";
   if (theme === DEFAULT_THEME) {
-    el.removeAttribute("data-theme");
-  } else {
-    el.setAttribute("data-theme", theme);
+    // Signed out, or on Chork: no cookie, and no write when there is none.
+    if (!new RegExp(`(?:^|;\\s*)${PALETTE_COOKIE}=`).test(document.cookie)) return;
+    document.cookie = `${PALETTE_COOKIE}=; path=/; max-age=0; samesite=lax${secure}`;
+    return;
   }
+  document.cookie = `${PALETTE_COOKIE}=${theme}; path=/; max-age=${PALETTE_COOKIE_MAX_AGE}; samesite=lax${secure}`;
 }

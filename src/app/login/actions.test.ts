@@ -1,8 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createMockSupabase } from "@/test/mock-supabase";
 
-// Shape of the mock cookies jar. The signOut path wipes two
-// non-Supabase cookies (`chork-onboarded` / `chork-auth-shell`)
+// Shape of the mock cookies jar. The signOut path wipes three
+// non-Supabase cookies (`chork-onboarded` / `chork-auth-shell` /
+// `chork-palette`)
 // regardless of whether signOut itself succeeded — a regression
 // here would let the previous session's shell variant bleed into
 // the next render's first byte.
@@ -127,6 +128,7 @@ describe("signOutAction", () => {
 
     expect(cookieDelete).toHaveBeenCalledWith("chork-onboarded");
     expect(cookieDelete).toHaveBeenCalledWith("chork-auth-shell-v2");
+    expect(cookieDelete).toHaveBeenCalledWith("chork-palette");
   });
 
   it("wipes stale cookies even when Supabase signOut errors", async () => {
@@ -144,5 +146,6 @@ describe("signOutAction", () => {
     expect(result.error).toBeDefined();
     expect(cookieDelete).toHaveBeenCalledWith("chork-onboarded");
     expect(cookieDelete).toHaveBeenCalledWith("chork-auth-shell-v2");
+    expect(cookieDelete).toHaveBeenCalledWith("chork-palette");
   });
 });

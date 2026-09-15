@@ -3,8 +3,6 @@
 import { createContext, useCallback, useContext, useEffect, useSyncExternalStore } from "react";
 import { useAuth } from "@/lib/auth-context";
 import {
-  applyTheme,
-  getServerSnapshot,
   getSnapshot,
   setThemeStore,
   subscribe,
@@ -24,8 +22,21 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+export function ThemeProvider({
+  children,
+  initialTheme,
+}: {
+  children: React.ReactNode;
+  /**
+   * The palette the server painted on `<html>` from the palette cookie
+   * (`PALETTE_COOKIE` in lib/theme-palettes). Hydration renders with
+   * it, and it agrees with the store, which read the same attribute
+   * off the page.
+   */
+  initialTheme: ThemeName;
+}) {
+  const getServerTheme = useCallback(() => initialTheme, [initialTheme]);
+  const theme = useSyncExternalStore(subscribe, getSnapshot, getServerTheme);
   const { profile, isLoading, refreshProfile } = useAuth();
 
   // The signed-in profile is the only input. No profile — signed out,
@@ -41,11 +52,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     syncThemeFromProfile(profile?.theme);
   }, [profile?.theme, isLoading]);
 
-  // Effect updates an external system (the DOM `<html>` attribute)
-  // in response to the store's value.
-  useEffect(() => {
-    applyTheme(theme);
-  }, [theme]);
+  // No effect paints `theme` onto `<html>`: the store paints when the
+  // palette actually changes. An effect here ran on mount with the
+  // hydration value, before the profile had settled, which is how the
+  // default palette used to land over the right one on every reload.
 
   // Public setter — paint locally at once, then persist.
   //

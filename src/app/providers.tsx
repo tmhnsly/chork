@@ -4,7 +4,7 @@ import { ViewTransition, useEffect, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { useViewTransitionsEnabled } from "@/lib/view-transitions";
 import { ThemeProvider } from "next-themes";
-import { ThemeProvider as PaletteProvider } from "@/lib/theme";
+import { ThemeProvider as PaletteProvider, type ThemeName } from "@/lib/theme";
 import { AuthProvider } from "@/lib/auth-context";
 import { OfflineBanner } from "@/components/OfflineBanner/OfflineBanner";
 import { ScrollRestore } from "@/components/ScrollRestore/ScrollRestore";
@@ -21,9 +21,11 @@ interface Props {
    * module imports.
    */
   navBar: ReactNode;
+  /** The palette the server painted on `<html>`, from the palette cookie. */
+  initialTheme: ThemeName;
 }
 
-export function Providers({ children, navBar }: Props) {
+export function Providers({ children, navBar, initialTheme }: Props) {
   // Keyed on the path, so a route change is an EXIT of the old page
   // and an ENTER of the new one — two snapshots that fade past each
   // other, no morph. `update="none"` is the important half: without
@@ -62,7 +64,7 @@ export function Providers({ children, navBar }: Props) {
         {/* PaletteProvider sits inside AuthProvider so it can read
             the climber's persisted theme from the profile and bridge
             it into the local store on first auth resolve. */}
-        <PaletteProvider>
+        <PaletteProvider initialTheme={initialTheme}>
           <ScrollRestore />
           <OfflineBanner />
           {navBar}

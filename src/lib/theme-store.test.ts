@@ -8,11 +8,14 @@
  *   • IDs in `THEME_META` match the `ThemeName` union (catches drift
  *     between the settings picker and the union);
  *   • an absent / invalid profile theme resolves to the default, so
- *     signing out can't leave your palette on a shared phone.
+ *     signing out can't leave your palette on a shared phone;
+ *   • the server paints the palette from the palette cookie, and the
+ *     browser store leaves that paint alone until the profile settles,
+ *     repainting and re-remembering only on a real change.
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import {
   THEME_META,
   DEFAULT_THEME,
@@ -21,9 +24,9 @@ import {
   setThemeStore,
   subscribe,
   getSnapshot,
-  getServerSnapshot,
   type ThemeName,
 } from "./theme-store";
+import { PALETTE_COOKIE, htmlThemeAttribute, themeFromCookie } from "./theme-palettes";
 
 const KNOWN_THEMES: ThemeName[] = ["default", "blue", "violet", "pink"];
 
@@ -147,9 +150,124 @@ describe("syncThemeFromProfile", () => {
   });
 });
 
-describe("getServerSnapshot", () => {
-  it("always returns the default (SSR safety)", () => {
-    expect(getServerSnapshot()).toBe(DEFAULT_THEME);
+describe("the palette cookie", () => {
+  it("names one of the four palettes, or the default", () => {
+    for (const name of KNOWN_THEMES) expect(themeFromCookie(name)).toBe(name);
+    expect(themeFromCookie(undefined)).toBe(DEFAULT_THEME);
+    expect(themeFromCookie("")).toBe(DEFAULT_THEME);
+    // A forged cookie can't put anything else onto <html>.
+    expect(themeFromCookie('blue" onload="x')).toBe(DEFAULT_THEME);
+  });
+
+  it("puts no data-theme on <html> for the default, so bare :root applies", () => {
+    expect(htmlThemeAttribute(DEFAULT_THEME)).toBeUndefined();
+    expect(htmlThemeAttribute("blue")).toBe("blue");
+  });
+
+  it("is what the root layout paints <html> from", () => {
+    // Found at Yonder: every reload painted Chork lime first and swapped
+    // to the climber's palette after hydration. The server paints it now.
+    const layout = readFileSync(join(process.cwd(), "src/app/layout.tsx"), "utf8");
+    expect(layout).toMatch(/themeFromCookie\(/);
+    expect(layout).toMatch(/data-theme=\{htmlThemeAttribute\(/);
+  });
+
+  it("is never overridden by ThemeProvider painting a render value", () => {
+    // The old provider painted `theme` from an effect, which ran on mount
+    // with the hydration value, before the profile had settled.
+    const provider = readFileSync(join(process.cwd(), "src/lib/theme.tsx"), "utf8");
+    expect(provider).not.toMatch(/\bapplyTheme\b/);
+  });
+});
+
+describe("painting the palette in the browser", () => {
+  function fakeDocument(painted: string | null, cookie = "") {
+    const attrs = new Map<string, string>();
+    if (painted) attrs.set("data-theme", painted);
+    const writes: string[] = [];
+    const root = {
+      getAttribute: (name: string) => attrs.get(name) ?? null,
+      setAttribute: vi.fn((name: string, value: string) => void attrs.set(name, value)),
+      removeAttribute: vi.fn((name: string) => void attrs.delete(name)),
+    };
+    const doc = {
+      documentElement: root,
+      get cookie() {
+        return cookie;
+      },
+      set cookie(value: string) {
+        writes.push(value);
+      },
+    };
+    return { doc, attrs, root, writes };
+  }
+
+  /** A fresh store, loaded on a page the server painted. */
+  async function storeOn(doc: unknown) {
+    vi.resetModules();
+    vi.stubGlobal("document", doc);
+    return import("./theme-store");
+  }
+
+  const last = (writes: string[]) => writes[writes.length - 1] ?? "";
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    vi.resetModules();
+  });
+
+  it("adopts the palette the server painted", async () => {
+    const { doc } = fakeDocument("blue", `${PALETTE_COOKIE}=blue`);
+    const store = await storeOn(doc);
+    expect(store.getSnapshot()).toBe("blue");
+  });
+
+  it("leaves the server's paint alone until the profile settles", async () => {
+    const { doc, root, writes } = fakeDocument("blue", `${PALETTE_COOKIE}=blue`);
+    await storeOn(doc);
+    expect(root.setAttribute).not.toHaveBeenCalled();
+    expect(root.removeAttribute).not.toHaveBeenCalled();
+    expect(writes).toEqual([]);
+  });
+
+  it("doesn't repaint when the server already painted the profile's palette", async () => {
+    const { doc, root } = fakeDocument("blue", `${PALETTE_COOKIE}=blue`);
+    const store = await storeOn(doc);
+    store.syncThemeFromProfile("blue");
+    expect(root.setAttribute).not.toHaveBeenCalled();
+    expect(root.removeAttribute).not.toHaveBeenCalled();
+  });
+
+  it("paints and remembers the profile's palette when the server couldn't", async () => {
+    // The first page after signing in on a device: no cookie yet.
+    const { doc, attrs, writes } = fakeDocument(null);
+    const store = await storeOn(doc);
+    store.syncThemeFromProfile("violet");
+    expect(attrs.get("data-theme")).toBe("violet");
+    expect(last(writes)).toMatch(new RegExp(`^${PALETTE_COOKIE}=violet;.*max-age=31536000`));
+  });
+
+  it("clears the painted palette and forgets it when the profile goes away", async () => {
+    const { doc, attrs, writes } = fakeDocument("blue", `${PALETTE_COOKIE}=blue`);
+    const store = await storeOn(doc);
+    store.syncThemeFromProfile(undefined);
+    expect(attrs.has("data-theme")).toBe(false);
+    expect(last(writes)).toMatch(new RegExp(`^${PALETTE_COOKIE}=;.*max-age=0`));
+  });
+
+  it("writes nothing for a signed-out visitor with no cookie", async () => {
+    const { doc, writes } = fakeDocument(null);
+    const store = await storeOn(doc);
+    store.syncThemeFromProfile(undefined);
+    expect(writes).toEqual([]);
+  });
+
+  it("paints and remembers a palette the climber picks", async () => {
+    const { doc, attrs, writes } = fakeDocument(null);
+    const store = await storeOn(doc);
+    store.setThemeStore("pink");
+    expect(attrs.get("data-theme")).toBe("pink");
+    expect(last(writes)).toMatch(new RegExp(`^${PALETTE_COOKIE}=pink;`));
   });
 });
 

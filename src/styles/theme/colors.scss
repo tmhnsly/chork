@@ -16,8 +16,10 @@
  * That's how the settings picker previews all four at once and how
  * another climber's profile renders in their palette.
  *
- * The default is additionally declared on bare `:root`, so the first
- * paint (before hydration) already renders the brand palette.
+ * The default is additionally declared on bare `:root`: it is what
+ * renders when `<html>` carries no `data-theme`, meaning signed out or
+ * a climber on Chork. Anyone else's palette is painted on `<html>` by
+ * the server, from the palette cookie (src/lib/theme-palettes.ts).
  *
  * To add a new theme:
  *   1. Check the accent doesn't collide with a reserved hue — see

@@ -188,6 +188,7 @@ describe("proxy: a session the auth layer rejects", () => {
         "sb-abcd-auth-token.1": "y",
         "chork-auth-shell-v2": "signed:awg",
         "chork-onboarded": `signed:${UID}:1`,
+        "chork-palette": "blue",
         "unrelated": "keep",
       }),
     );
@@ -196,6 +197,7 @@ describe("proxy: a session the auth layer rejects", () => {
     expect(Object.keys(cleared).sort()).toEqual([
       "chork-auth-shell-v2",
       "chork-onboarded",
+      "chork-palette",
       "sb-abcd-auth-token.0",
       "sb-abcd-auth-token.1",
     ]);

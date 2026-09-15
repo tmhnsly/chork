@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createMiddlewareSupabase } from "@/lib/supabase/middleware";
 import { sign, verify } from "@/lib/cookie-sign";
+import { PALETTE_COOKIE } from "@/lib/theme-palettes";
 
 const AUTH_ROUTES = ["/login"];
 // Routes an UNAUTHED visitor may reach without a login redirect.
@@ -73,8 +74,10 @@ function isDeadSession(error: unknown): boolean {
  *
  * Supabase stores its token as `sb-<ref>-auth-token`, chunked across
  * `.0`, `.1`, … once it outgrows a single cookie — so this matches on
- * shape rather than an exact name. Our two derived cookies go too:
- * both describe a user who no longer exists.
+ * shape rather than an exact name. Our derived cookies go too: the
+ * nav shell and the onboarded flag describe a user who no longer
+ * exists, and the palette cookie would paint their palette on the
+ * login page.
  */
 function clearSession(request: NextRequest, response: NextResponse): void {
   for (const cookie of request.cookies.getAll()) {
@@ -84,6 +87,7 @@ function clearSession(request: NextRequest, response: NextResponse): void {
   }
   response.cookies.delete(AUTH_SHELL_COOKIE);
   response.cookies.delete(ONBOARDED_COOKIE);
+  response.cookies.delete(PALETTE_COOKIE);
 }
 
 export async function proxy(request: NextRequest) {

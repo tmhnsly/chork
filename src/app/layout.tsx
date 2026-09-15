@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from "next";
+import { cookies } from "next/headers";
 import { fontVariables } from "@/lib/fonts";
 import { Providers } from "./providers";
 import { NavBarShell } from "@/components/NavBar/NavBarShell";
 import { PageBackdrop } from "@/components/ui/PageBackdrop";
 import { env } from "@/lib/env";
+import { PALETTE_COOKIE, htmlThemeAttribute, themeFromCookie } from "@/lib/theme-palettes";
 import "@/styles/globals.scss";
 
 // Public site URL for absolute share-link image / canonical resolution.
@@ -160,16 +162,22 @@ export const viewport: Viewport = {
  * profile resolves — no logged-out-nav flash, just a brief
  * minimal-nav flash, which is a much better perceived perf trade.
  */
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // The climber's palette, painted by the server from the palette
+  // cookie, so the first frame isn't Chork lime swapped a beat later
+  // (see PALETTE_COOKIE in lib/theme-palettes). A cookie read is local,
+  // and NavBarShell already reads cookies in this tree.
+  const theme = themeFromCookie((await cookies()).get(PALETTE_COOKIE)?.value);
   return (
     <html
       lang="en"
       suppressHydrationWarning
       className={fontVariables}
+      data-theme={htmlThemeAttribute(theme)}
     >
       <body>
         <PageBackdrop />
@@ -180,7 +188,7 @@ export default function RootLayout({
             file, so composition via children avoids the boundary
             violation while still letting the server shell pick the
             correct nav variant before hydration. */}
-        <Providers navBar={<NavBarShell />}>{children}</Providers>
+        <Providers navBar={<NavBarShell />} initialTheme={theme}>{children}</Providers>
       </body>
     </html>
   );

@@ -274,9 +274,16 @@ Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
   one grid on the wall
 - Theme selection persists on `profiles.theme` (migration 028);
   `theme.tsx` bridges the auth profile into a tiny external store
-  via `useSyncExternalStore`. Visiting another climber's profile
-  scopes their `data-theme` to `<main>` so the route renders in
-  their palette without affecting nav chrome
+  via `useSyncExternalStore`. **The server paints the palette:** the
+  root layout renders `data-theme` on `<html>` from the
+  `chork-palette` cookie (`lib/theme-palettes.ts`), a paint hint the
+  store writes whenever the palette settles and that sign-out and a
+  dead session clear. Without it every reload painted Chork lime and
+  swapped a beat later, fading buttons through teal. Nothing paints
+  `<html>` from a render value; the store paints only on a real
+  change, with transitions held off. Visiting another climber's
+  profile scopes their `data-theme` to `<main>` so the route renders
+  in their palette without affecting nav chrome
 - Accent: Radix `lime` on the default palette. Text on accent uses
   `--accent-on-solid`
 - Surfaces: `@include surface.card` (panels), `surface.chrome`
