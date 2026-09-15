@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { gateSignedInMutation } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
 import { formatError, formatErrorForLog } from "@/lib/errors";
+import { ROUTE_GONE_ERROR } from "@/lib/offline/refusals";
 import { buildBadgeContext } from "@/lib/achievements/context";
 import { evaluateAndPersistAchievements } from "@/lib/achievements/evaluate";
 import type { ChorkStanding, MatchGradingScale, MatchLeaderboardRow, MatchRoute } from "@/lib/data/match-types";
@@ -907,7 +908,14 @@ export async function upsertMatchLogAction(
     p_zone: !!payload.zone,
     p_player_id: undef(payload.playerId),
   });
-  if (error) return { error: formatError(error) };
+  if (error) {
+    // The route is gone: withdrawn, or its game deleted. A shared
+    // sentinel, so an offline replay is discarded rather than retried.
+    if (error.code === "P0002" && error.message === "Route not found") {
+      return { error: ROUTE_GONE_ERROR };
+    }
+    return { error: formatError(error) };
+  }
   // `{ success: true, log: null }` matches the synthetic shape
   // returned by `withOfflineQueue` when the action gets queued,
   // so callers can check `"error" in result` identically for

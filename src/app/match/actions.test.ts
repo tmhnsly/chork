@@ -467,6 +467,23 @@ describe("upsertMatchLogAction", () => {
       }),
     ).toEqual({ error: "You don't have permission to do that." });
   });
+
+  it("names a route that's gone with the sentinel the offline queue discards", async () => {
+    await mockSignedIn({
+      "rpc:upsert_match_log": { data: null, error: { code: "P0002", message: "Route not found" } },
+    });
+    const { upsertMatchLogAction } = await import("./actions");
+    const { ROUTE_GONE_ERROR } = await import("@/lib/offline/refusals");
+
+    const result = await upsertMatchLogAction({
+      matchRouteId: ROUTE_1,
+      attempts: 1,
+      completed: true,
+      zone: false,
+    });
+
+    expect(result).toEqual({ error: ROUTE_GONE_ERROR });
+  });
 });
 
 describe("endMatchAction", () => {

@@ -1,6 +1,7 @@
 import { openOfflineDB, STORE_NAME, type OfflineDB } from "./db";
 import type { QueuedMutation, OfflineAction } from "./types";
 import { isAuthRequiredError } from "@/lib/auth-errors";
+import { isPermanentRefusal } from "./refusals";
 import { logger } from "@/lib/logger";
 
 type Listener = (count: number) => void;
@@ -255,6 +256,20 @@ class MutationQueue {
             // of truth on both sides now.
             if (isAuthRequiredError(error)) {
               break;
+            }
+
+            // What it was for is gone — a deleted game, a withdrawn
+            // route. Retrying can't succeed, and it isn't lost work
+            // either, so it goes now, logged as expected.
+            if (isPermanentRefusal(error)) {
+              logger.info("offline_queue_discarded_refusal", {
+                action: entry.action,
+                routeId: entry.routeId,
+                detail: error,
+              });
+              await db.delete(STORE_NAME, entry.id);
+              this.notify();
+              continue;
             }
 
             // Validation or other server error — retry or discard

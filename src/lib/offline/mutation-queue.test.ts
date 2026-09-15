@@ -269,4 +269,35 @@ describe("MutationQueue data-loss guards", () => {
     );
     errorSpy.mockRestore();
   });
+
+  it("discards a refusal that can never succeed on its first replay, without reporting lost data", async () => {
+    const { logger } = await import("@/lib/logger");
+    const errorSpy = vi.spyOn(logger, "error").mockImplementation(() => {});
+    const infoSpy = vi.spyOn(logger, "info").mockImplementation(() => {});
+    const { ROUTE_GONE_ERROR } = await import("@/lib/offline/refusals");
+
+    const { queue, fakeDb } = await loadQueue();
+    queue.setCurrentUserResolver(async () => "user-a");
+    fakeDb.entries.set("gone", {
+      id: "gone",
+      userId: "user-a",
+      action: "upsertMatchLog",
+      args: [{ matchRouteId: "r1", attempts: 1, completed: true, zone: false }],
+      routeId: "r1",
+      createdAt: 1,
+      retries: 0,
+    });
+
+    queue.setActionRunner((async () => ({ error: ROUTE_GONE_ERROR })) as never);
+    await queue.flush();
+
+    expect(fakeDb.entries.size).toBe(0);
+    expect(errorSpy).not.toHaveBeenCalled();
+    expect(infoSpy).toHaveBeenCalledWith(
+      "offline_queue_discarded_refusal",
+      expect.objectContaining({ action: "upsertMatchLog", routeId: "r1" }),
+    );
+    errorSpy.mockRestore();
+    infoSpy.mockRestore();
+  });
 });
