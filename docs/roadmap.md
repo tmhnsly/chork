@@ -93,6 +93,75 @@ never "run it with your friends"), and the landing's Start / Join
 pair should grow a third row — "On at your gym" — when gym-run
 games exist. Noted 2026-09-14.
 
+## Delete and hide — follow-ups (2026-09-16)
+
+Everything below was found by the reviews of deleting and hiding games
+(migrations 140–141, shipped 2026-09-16) and deliberately left out of that
+branch. None of it blocks anything; all of it is worth doing. Ordered by
+what it costs to leave alone.
+
+**1. The end-game redirect, verified then gated.** Ending a game is the
+common path and it redirects the same way deleting one did: `onMatchChange`
+calls `router.replace` on the summary while debounced board refetches may
+still be in flight. Next 16's action queue can then write pre-navigation
+state back over an applied navigation, which is what left a player on a
+dead live screen after a delete. Unverified for End game, so verify first
+with the slowed-navigation probe the delete work used (delay the player's
+client navigation, then have the host end the game), and if it reproduces,
+apply the same `leavingRef` gate the delete path now has in
+`useMatchScreenState`. A player stranded on a dead board after "End game"
+is the kind of thing a gym manager sees in a demo.
+
+**2. Taps on a screen that is leaving.** `handleConcede`, `handleWithdraw`,
+`handleSetup`, `handleGameMode`, `handleEnd`, `handleLeave` and the Chork
+allowance fetch all reach the router or a server action without consulting
+`leavingRef`, so a tap inside the sub-second window after a game vanishes
+can leave a stale page. The server refuses the writes, so there is no data
+loss, and the gate already exists: one line per handler.
+
+**3. Migration 142, two small SQL corrections.**
+`get_achievement_activity` (132) still counts hidden games in
+`last_match_on`, so a game a climber removed from their own lists can
+reorder their badge shelf — the hide should be complete in their own reads,
+as it already is for history and badge context. And `delete_match` takes
+its `for update` lock before checking that the caller holds a seat, so any
+signed-in caller who knows a game id can take a momentary row lock and
+learn that the id exists: fold the seat `exists` into the locking select.
+Both are a few lines, in one migration, with integration assertions.
+
+**4. The summary page's own leaving gate.** `GameOptionsSheet`'s delete
+toasts and replaces with no equivalent of `leavingRef`, and its hide calls
+`router.refresh()` after an action that already revalidated, costing one
+extra render. Same queue exposure as the live screen on a much quieter
+page.
+
+**5. Realtime leftovers from the delete work.** The unmount refresh that
+clears the stale Games banner also fires when the player leaves the dead
+screen themselves, wasting one RSC fetch. On the one lasting "seat gone"
+case, an account deletion, the roster is patched locally with no refresh,
+so the server bundle keeps that seat until something else refreshes. And a
+viewer with no seat now resolves to "seat gone" rather than a refresh,
+which is unreachable today because `/match/[id]` auto-joins or redirects.
+
+**6. Two test pins.** `setMatchHiddenAction`'s refusal test doesn't assert
+that the Games page was not revalidated, though its sibling delete test
+does; and nothing asserts that a deleted game's `set_grades` rows go with
+it, which is schema-level and was verified by review rather than by a test.
+
+**7. Finding a hidden game again.** Once a player leaves the summary page,
+no list leads back to a game they hid, so the only undo is the game's own
+link. The cheapest fix is an Undo action on the "Removed from your games"
+toast, which needs `showToast` to grow an action slot. This is a product
+decision, so it belongs with the Games session on leagues, competitions and
+one-off events.
+
+**8. Report the upstream Next bug.** In Next 16.2.4's action queue, the
+navigation branch marks the discarded action but leaves the queue tail
+pointing at it, and the discarded action's cleanup can advance past an
+applied navigation, writing stale router state back. Two reviews traced it
+independently through `app-router-instance.js`. Worth a minimal repro and
+an issue, since our own mitigations are gates around it rather than a fix.
+
 ## Social — Friends becomes a way to find a partner
 
 Idea, 2026-09-14: the Friends tab becomes **Social**, and gains a
