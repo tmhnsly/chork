@@ -611,8 +611,9 @@ navbar + home indicator), max-width, and centering.
   empty one reopens it with the setup you typed (137, 139), and the
   hourly sweep ends a game with no routes after 3 idle hours
 - **The host deletes a game; any player hides one.** `delete_match`
-  (migration 141) is a hard delete for everyone: seats, routes, logs
-  and pending invites go, badges already earned stay. A league week
+  (migration 141) is a hard delete for everyone: seats, routes, logs,
+  the grade ladder and pending invites go, badges already earned
+  stay. A league week
   leaves its league first unless it is live with no routes.
   `set_match_hidden` takes a finished game off one player's own lists.
   Hides live in `hidden_matches`, which has no Data API access, because
