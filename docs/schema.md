@@ -469,7 +469,7 @@ tables.
   null (service-role callers), so it cannot be spoofed
 - `get_match_state_for_user(set_id, user_id)` → jsonb — the whole
   room: `{match, grades, routes, players, my_logs, leaderboard}`.
-  `my_logs` is the caller's only. Service-role only
+  `my_logs` is the caller's only. `other_logs` is everyone else's at the public per-log grain: attempts collapsed in SQL to the `visibleAttempts` buckets, never used for scoring (migration 138). Service-role only
 - `end_match(set_id)` — sets `status = 'archived'` + stamps `ends_at`.
   Idempotent, and the guard against two players ending at once. This
   replaces the whole of `end_jam`, which aggregated a session into

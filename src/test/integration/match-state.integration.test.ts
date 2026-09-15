@@ -192,6 +192,40 @@ describe.skipIf(!canRunIntegration)("Match RPCs (integration)", () => {
 
   // ── routes + logs + board ───────────────────────
 
+  describe("other players' logs in the state bundle", () => {
+    // Found at Yonder: other players' scores and tiles were blank after a
+    // reload, because the bundle carried the viewer's logs only (138).
+    it("carries them at the public grain, never the raw count", async () => {
+      const setId = await createMatchAsHost("int: other logs");
+      const { error: joinError } = await guestClient.rpc("join_match", { p_set_id: setId });
+      expect(joinError).toBeNull();
+      const route = await addRoute(setId, "int: three tries");
+      const { error: logError } = await hostClient.rpc("upsert_match_log", {
+        p_route_id: route.id,
+        p_attempts: 3,
+        p_completed: true,
+        p_zone: false,
+      });
+      expect(logError).toBeNull();
+
+      const { data, error } = await service.rpc("get_match_state_for_user", {
+        p_set_id: setId,
+        p_user_id: guestUserId,
+      });
+      expect(error).toBeNull();
+      const state = data as {
+        my_logs: unknown[];
+        other_logs: Array<{ route_id: string; user_id: string | null; attempts: number; completed: boolean }>;
+      };
+      expect(state.my_logs).toHaveLength(0);
+      const hostLog = state.other_logs.find((l) => l.route_id === route.id && l.user_id === hostUserId);
+      // Three tries collapses to the "sent, not flashed" bucket.
+      expect(hostLog).toMatchObject({ attempts: 2, completed: true });
+      expect(JSON.stringify(state.other_logs)).not.toContain('"attempts": 3');
+      expect(JSON.stringify(state.other_logs)).not.toContain('"attempts":3');
+    }, 30_000);
+  });
+
   describe("route + log + leaderboard flow", () => {
     it("numbers routes sequentially and scores logs through the shared ladder", async () => {
       const setId = await createMatchAsHost("int: flow");

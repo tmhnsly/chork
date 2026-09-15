@@ -13,12 +13,7 @@ import { useRouter } from "next/navigation";
 import { showToast } from "@/components/ui";
 import { useMatchRealtime } from "@/hooks/use-match-realtime";
 import { computeMatchLeaderboard } from "@/lib/data/match-leaderboard";
-import type {
-  MatchState,
-  MatchRoute,
-  MatchLog,
-  MatchPlayerView,
-} from "@/lib/data/match-types";
+import type { MatchLog, MatchPlayerView, MatchRoute, MatchState } from "@/lib/data/match-types";
 import { ceilingForDiscipline, type Discipline } from "@/lib/data/grade-label";
 import { ownerIdOf } from "@/lib/data/match-types";
 import {
@@ -27,6 +22,7 @@ import {
   endMatchAction,
   leaveMatchAction,
   fetchChorkStandings,
+  fetchMatchBoard,
   fetchChorkAllowance,
   concedeChorkRound,
   withdrawChorkRoute,
@@ -150,6 +146,40 @@ export function useMatchScreenState({
     },
   });
 
+  // ── The points board ───────────────────────────────────────────
+  //
+  // Found at Yonder: other players' scores read 0 after a reload and
+  // were wrong live for every send that wasn't a flash. Their logs reach
+  // this browser collapsed to the public buckets, so the phone cannot
+  // score them. The server can, so their rows come from
+  // `get_match_leaderboard`: the bundle's board on load, refetched
+  // shortly after one of their logs or a route changes. The viewer's
+  // own seat, and a host's guests, stay scored here from raw logs so a
+  // tap shows at once. Chork has no points board to keep.
+  const isHost = initialState.match.host_id === userId;
+  const [serverBoard, setServerBoard] = useState(() => ({
+    source: initialState.leaderboard,
+    rows: initialState.leaderboard,
+  }));
+  // A refresh hands down a fresh bundle; take its board, the same
+  // render-time sync the roster uses above.
+  if (serverBoard.source !== initialState.leaderboard) {
+    setServerBoard({ source: initialState.leaderboard, rows: initialState.leaderboard });
+  }
+  const scoredHere = useCallback(
+    (p: MatchPlayerView) => p.user_id === userId || (isHost && p.is_guest),
+    [userId, isHost],
+  );
+  const { schedule: scheduleBoard } = useDebouncedFlush<void>({
+    delayMs: 800,
+    flush: async () => {
+      if (isChork) return;
+      const result = await fetchMatchBoard(initialState.match.id);
+      if ("error" in result) return;
+      setServerBoard((prev) => ({ source: prev.source, rows: result.rows }));
+    },
+  });
+
   useMatchRealtime(initialState.match.id, {
     onRouteChange: (evt) => {
       if (evt.eventType === "DELETE") {
@@ -162,6 +192,8 @@ export function useMatchScreenState({
       // the board sat on the previous setter until somebody happened
       // to log something.
       if (isChork) scheduleChork(undefined);
+      // A route withdrawn or regraded can move anyone's points.
+      else scheduleBoard(undefined);
     },
     onLogChange: (evt) => {
       if (evt.eventType === "DELETE") {
@@ -178,6 +210,13 @@ export function useMatchScreenState({
       // Anyone's log can change who owes a letter, so this listens to
       // every log event rather than only the viewer's own.
       if (isChork) scheduleChork(undefined);
+      else {
+        // Seats scored here already moved with the dispatch above; only
+        // someone else's log needs the server's scoring.
+        const row = evt.eventType === "DELETE" ? evt.old : evt.new;
+        const scoredLocally = row.user_id === userId || (row.user_id === null && isHost);
+        if (!scoredLocally) scheduleBoard(undefined);
+      }
     },
     onPlayerChange: () => {
       // Player changes come as scattered events — a full state
@@ -247,6 +286,8 @@ export function useMatchScreenState({
         handicap: initialState.match.handicap,
         gradeByRouteId,
         ceilingForRoute,
+        serverRows: isChork ? undefined : serverBoard.rows,
+        scoredHere,
       }),
     [
       state.players,
@@ -254,6 +295,9 @@ export function useMatchScreenState({
       initialState.match.handicap,
       gradeByRouteId,
       ceilingForRoute,
+      isChork,
+      serverBoard.rows,
+      scoredHere,
     ],
   );
 

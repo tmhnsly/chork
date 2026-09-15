@@ -7,7 +7,7 @@ import { createServiceClient } from "@/lib/supabase/server";
 import { formatError, formatErrorForLog } from "@/lib/errors";
 import { buildBadgeContext } from "@/lib/achievements/context";
 import { evaluateAndPersistAchievements } from "@/lib/achievements/evaluate";
-import type { ChorkStanding, MatchGradingScale, MatchRoute } from "@/lib/data/match-types";
+import type { ChorkStanding, MatchGradingScale, MatchLeaderboardRow, MatchRoute } from "@/lib/data/match-types";
 import type { ActionResult } from "@/lib/action-result";
 import {
   isDiscipline,
@@ -626,6 +626,31 @@ export async function fetchChorkStandings(
   });
   if (error) return { error: formatError(error) };
   return { success: true, standings: (data ?? []) as ChorkStanding[] };
+}
+
+/**
+ * The live points board, as the server scores it.
+ *
+ * Other players' logs reach the browser only collapsed to the public
+ * buckets, so the phone cannot score them: a 5-try send and a 2-try
+ * send look the same. `get_match_leaderboard` scores every seat and
+ * masks attempts to the caller's own. The match screen refetches this
+ * shortly after another player's log lands. A read, gated for auth with
+ * the rate limit off, like `fetchChorkStandings`.
+ */
+export async function fetchMatchBoard(
+  matchId: string,
+): Promise<ActionResult<{ rows: MatchLeaderboardRow[] }>> {
+  const auth = await gateSignedInMutation(matchId, "match id", {
+    rateLimit: null,
+  });
+  if ("error" in auth) return { error: auth.error };
+
+  const { data, error } = await auth.supabase.rpc("get_match_leaderboard", {
+    p_set_id: matchId,
+  });
+  if (error) return { error: formatError(error) };
+  return { success: true, rows: (data ?? []) as MatchLeaderboardRow[] };
 }
 
 export interface InvitableFriend {

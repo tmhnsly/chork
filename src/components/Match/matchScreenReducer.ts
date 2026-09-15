@@ -110,10 +110,18 @@ export function initMatchState(initialState: MatchState): MatchLocalState {
     // RPC returns an empty `guest_logs` to everyone else, so this is
     // the same map for a non-host as it was before guests existed.
     logs: new Map(
-      [...initialState.my_logs, ...initialState.guest_logs].map((log) => [
-        logKey(ownerIdOf(log), log.route_id),
-        log,
-      ]),
+      [
+        ...initialState.my_logs,
+        ...initialState.guest_logs,
+        // Everyone else's, already bucketed by SQL (migration 138).
+        // Collapsed again with the gate `upsert-log` applies to a
+        // realtime row, so a regression in either home can't put a raw
+        // count into another player's state.
+        ...(initialState.other_logs ?? []).map((log) => ({
+          ...log,
+          attempts: visibleAttempts(log, false),
+        })),
+      ].map((log) => [logKey(ownerIdOf(log), log.route_id), log]),
     ),
     panel: { kind: "none" },
   };

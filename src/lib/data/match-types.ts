@@ -238,6 +238,14 @@ export interface MatchState {
    * else's private data. Empty for everyone else.
    */
   guest_logs: MatchLog[];
+  /**
+   * Everyone else's logs, so their tiles are right on load. Attempts
+   * arrive already collapsed in SQL to the `visibleAttempts` buckets
+   * (flash 1, any other send 2, unsent 0), and are never used to score
+   * them: other players' points come from `leaderboard`. Absent from a
+   * bundle served before migration 138.
+   */
+  other_logs?: MatchLog[];
   leaderboard: MatchLeaderboardRow[];
 }
 

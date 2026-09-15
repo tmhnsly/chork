@@ -133,6 +133,8 @@ const RATE_LIMIT_EXEMPT: Record<string, string> = {
     "a read through an RPC, gated with the limit explicitly off — it runs on every attempt tap",
   "src/app/match/actions.ts fetchChorkStandings":
     "a read through an RPC, gated with the limit explicitly off — polled by the live board",
+  "src/app/match/actions.ts fetchMatchBoard":
+    "a read through an RPC, gated with the limit explicitly off — refetched by the live board after another player logs",
   "src/app/friends/actions.ts getFriendStatusAction":
     "a read through an RPC, gated with the limit explicitly off — one call per profile view",
 };

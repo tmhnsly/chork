@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { computeMatchLeaderboard } from "./match-leaderboard";
 import { computePoints } from "./logs";
-import type { MatchLog, MatchPlayerView } from "./match-types";
+import type { MatchLeaderboardRow, MatchLog, MatchPlayerView } from "./match-types";
 
 function mkPlayer(user_id: string, username: string): MatchPlayerView {
   return {
@@ -196,5 +196,109 @@ describe("computeMatchLeaderboard × computePoints — scoring cross-check", () 
     expect(rows[0].points).toBe(
       fixtures.reduce((sum, f) => sum + f.expected, 0),
     );
+  });
+});
+
+describe("computeMatchLeaderboard with the server's board for other players", () => {
+  // Found at Yonder: another player's score read 0 after a reload, and
+  // was wrong live for any send that wasn't a flash. Their logs reach
+  // this browser only collapsed to the public buckets (a non-flash send
+  // is 2 however many tries it took), so the phone cannot score them.
+  // The server can: get_match_leaderboard scores everyone and masks
+  // attempts. The viewer's own seat stays local, for instant feedback.
+  function mkRow(user_id: string, partial: Partial<MatchLeaderboardRow> = {}): MatchLeaderboardRow {
+    return {
+      player_id: user_id,
+      user_id,
+      is_guest: false,
+      username: user_id,
+      display_name: user_id,
+      avatar_url: null,
+      sends: 0,
+      flashes: 0,
+      zones: 0,
+      points: 0,
+      points_tenths: 0,
+      attempts: 0,
+      last_send_at: null,
+      rank: 1,
+      has_left: false,
+      ...partial,
+    };
+  }
+  const scoredHere = (p: MatchPlayerView) => p.user_id === "u1";
+
+  it("takes another player's score from the server, not from their bucketed logs", () => {
+    // u2 sent r1 in five tries, worth 1. Their bucketed log says 2,
+    // which the ladder would score 3.
+    const rows = computeMatchLeaderboard(
+      [mkPlayer("u1", "me"), mkPlayer("u2", "them")],
+      logsMap([mkLog("u2", "r1", 2, true, false, "2026-04-01T10:00:00Z")]),
+      {
+        serverRows: [mkRow("u2", { sends: 1, points: 1, points_tenths: 10, last_send_at: "2026-04-01T10:00:00Z" })],
+        scoredHere,
+      },
+    );
+    const them = rows.find((r) => r.user_id === "u2")!;
+    expect(them.points).toBe(1);
+    expect(them.points_tenths).toBe(10);
+    expect(them.sends).toBe(1);
+  });
+
+  it("gives another player their server score with no logs in this browser, as after a reload", () => {
+    const rows = computeMatchLeaderboard(
+      [mkPlayer("u1", "me"), mkPlayer("u2", "them")],
+      new Map(),
+      { serverRows: [mkRow("u2", { sends: 1, flashes: 1, points: 4, points_tenths: 40 })], scoredHere },
+    );
+    expect(rows.find((r) => r.user_id === "u2")!.points).toBe(4);
+  });
+
+  it("scores the viewer's own seat from local logs, ahead of the server", () => {
+    const rows = computeMatchLeaderboard(
+      [mkPlayer("u1", "me"), mkPlayer("u2", "them")],
+      logsMap([mkLog("u1", "r1", 1, true, false, "2026-04-01T10:00:00Z")]),
+      { serverRows: [mkRow("u1"), mkRow("u2")], scoredHere },
+    );
+    const me = rows.find((r) => r.user_id === "u1")!;
+    expect(me.points).toBe(4);
+    expect(me.flashes).toBe(1);
+  });
+
+  it("scores a guest seat locally when the viewer says so, as the host does", () => {
+    const guest: MatchPlayerView = { ...mkPlayer("seat-9", "guest"), user_id: null, is_guest: true };
+    const guestLog: MatchLog = { ...mkLog("seat-9", "r1", 2, true), user_id: null, player_id: "seat-9" };
+    const rows = computeMatchLeaderboard(
+      [mkPlayer("u1", "me"), guest],
+      new Map([["seat-9:r1", guestLog]]),
+      { serverRows: [], scoredHere: (p) => p.user_id === "u1" || p.is_guest },
+    );
+    expect(rows.find((r) => r.player_id === "seat-9")!.points).toBe(3);
+  });
+
+  it("scores a player the server hasn't counted yet as zero, never from bucketed logs", () => {
+    const rows = computeMatchLeaderboard(
+      [mkPlayer("u1", "me"), mkPlayer("u3", "new")],
+      logsMap([mkLog("u3", "r1", 2, true)]),
+      { serverRows: [], scoredHere },
+    );
+    expect(rows.find((r) => r.user_id === "u3")!.points).toBe(0);
+  });
+
+  it("ranks local and server rows together with the SQL tiebreak", () => {
+    const rows = computeMatchLeaderboard(
+      [mkPlayer("u1", "me"), mkPlayer("u2", "them")],
+      logsMap([mkLog("u1", "r1", 1, true, false, "2026-04-01T10:00:00Z")]),
+      {
+        serverRows: [mkRow("u2", { sends: 2, points: 5, points_tenths: 50, last_send_at: "2026-04-01T09:00:00Z" })],
+        scoredHere,
+      },
+    );
+    expect(rows.map((r) => [r.user_id, r.rank])).toEqual([["u2", 1], ["u1", 2]]);
+  });
+
+  it("scores every seat from logs when no server board is given", () => {
+    const rows = computeMatchLeaderboard([mkPlayer("u2", "them")], logsMap([mkLog("u2", "r1", 3, true)]));
+    expect(rows[0].points).toBe(2);
   });
 });

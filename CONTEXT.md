@@ -414,6 +414,16 @@ and drops `attempts` entirely, so the number never crosses the wire.
 Prefer that shape for any NEW surface handing one climber's logs to
 another's browser.
 
+**The match bundle and the live board.** `get_match_state_for_user`
+returns other players' logs as `other_logs`, collapsed in SQL to the
+same buckets (migration 138), and `initMatchState` collapses them again.
+They exist so tiles are right after a reload. They are never used to
+score anyone: a non-flash send is `2` whatever it took, so other
+players' points come from `get_match_leaderboard`, which scores from the
+real counts and masks them. The match screen refetches that board
+(`fetchMatchBoard`) shortly after another player's log lands, and scores
+only the viewer's own seat (and a host's guests) from local logs.
+
 **Known accepted weakness.** Match realtime ships `match_logs` with
 `REPLICA IDENTITY FULL`, so other players' raw per-log counts do
 reach the browser and are collapsed client-side, in

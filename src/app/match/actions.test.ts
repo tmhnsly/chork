@@ -507,6 +507,42 @@ describe("endMatchAction", () => {
   });
 });
 
+// ── The live board's server read ───────────────────
+
+describe("fetchMatchBoard", () => {
+  it("rejects a malformed match id", async () => {
+    const { fetchMatchBoard } = await import("./actions");
+    expect(await fetchMatchBoard("not-a-uuid")).toEqual({ error: "Invalid match id" });
+  });
+
+  it("surfaces auth failure", async () => {
+    await mockAuthFailure();
+    const { fetchMatchBoard } = await import("./actions");
+    expect(await fetchMatchBoard(MATCH_1)).toEqual({ error: AUTH_REQUIRED });
+  });
+
+  it("returns the server's board for the match", async () => {
+    const row = {
+      player_id: USER_A, user_id: USER_A, is_guest: false, username: "a", display_name: "A",
+      avatar_url: null, sends: 1, flashes: 1, zones: 0, points: 4, points_tenths: 40,
+      attempts: 0, last_send_at: null, rank: 1, has_left: false,
+    };
+    const sb = await mockSignedIn({ "rpc:get_match_leaderboard": { data: [row], error: null } });
+    const { fetchMatchBoard } = await import("./actions");
+    expect(await fetchMatchBoard(MATCH_1)).toEqual({ success: true, rows: [row] });
+    const call = sb.calls.find((c) => c.source === "get_match_leaderboard");
+    expect(call?.args[0]).toEqual({ p_set_id: MATCH_1 });
+  });
+
+  it("maps an RPC failure to a friendly error", async () => {
+    await mockSignedIn({
+      "rpc:get_match_leaderboard": { data: null, error: { code: "42501", message: "not a player" } },
+    });
+    const { fetchMatchBoard } = await import("./actions");
+    expect(await fetchMatchBoard(MATCH_1)).toEqual({ error: "You don't have permission to do that." });
+  });
+});
+
 // ── The Games page after a lifecycle change ─────────
 
 // The nav prefetches /match whole and Next keeps a full prefetch for

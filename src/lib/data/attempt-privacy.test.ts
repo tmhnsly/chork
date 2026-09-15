@@ -101,6 +101,27 @@ describe("aggregate attempt mask (SQL)", () => {
 
 // ── TS side: the per-log bucket collapse ──
 
+describe("other players' logs in the state bundle (SQL)", () => {
+  it("get_match_state_for_user hands them over only collapsed to the visibleAttempts buckets", () => {
+    // Found at Yonder: other players' tiles and scores were blank after
+    // a reload, because the bundle carried the viewer's logs only. It
+    // now carries everyone's, at the public per-log grain: flash 1, any
+    // other send 2, unsent 0, the buckets visibleAttempts() uses. A raw
+    // count in this list would be exactly the leak this file stops.
+    const { body, file } = latestDefinition("get_match_state_for_user");
+    const collapsed = body.replace(/\s+/g, " ");
+    expect(
+      /'other_logs'.*?'attempts', case when not rl\.completed then 0 when rl\.attempts = 1 then 1 else 2 end/.test(collapsed),
+      `get_match_state_for_user (live definition in ${file}) must collapse other players' ` +
+        `attempts to the visibleAttempts buckets in SQL. See CONTEXT.md "Attempt privacy".`,
+    ).toBe(true);
+    expect(
+      /'other_logs'.*?rl\.user_id is distinct from p_user_id/.test(collapsed),
+      `other_logs (${file}) must leave out the caller's own logs, which travel raw in my_logs`,
+    ).toBe(true);
+  });
+});
+
 describe("per-log attempt collapse (visibleAttempts)", () => {
   it("passes the owner's own count through untouched", () => {
     for (const attempts of [0, 1, 2, 3, 17, 999]) {

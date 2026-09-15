@@ -53,10 +53,46 @@ export function computeMatchLeaderboard(
      * only answer there is.
      */
     ceilingForRoute?: (player: MatchPlayerView, routeId: string) => number | null;
+    /**
+     * The server's board (`get_match_leaderboard`), for every seat this
+     * browser can't score. Other players' logs arrive collapsed to the
+     * public buckets, where a 5-try send and a 2-try send look the
+     * same, so scoring them here was wrong for every non-flash send and
+     * zero after a reload. When given, a seat takes its totals from its
+     * server row (zero if it has none yet) unless `scoredHere` claims it.
+     */
+    serverRows?: MatchLeaderboardRow[];
+    /** Seats scored from local logs: the viewer's own, and a host's guests. */
+    scoredHere?: (player: MatchPlayerView) => boolean;
   } = {},
 ): MatchLeaderboardRow[] {
-  const { handicap = false, gradeByRouteId, ceilingForRoute } = options;
+  const { handicap = false, gradeByRouteId, ceilingForRoute, serverRows, scoredHere } = options;
+  const serverRowByPlayer = serverRows
+    ? new Map(serverRows.map((r) => [r.player_id, r]))
+    : null;
   const rows: MatchLeaderboardRow[] = players.map((p) => {
+    if (serverRowByPlayer && !(scoredHere?.(p) ?? false)) {
+      const s = serverRowByPlayer.get(p.player_id);
+      return {
+        player_id: p.player_id,
+        user_id: p.user_id,
+        is_guest: p.is_guest,
+        username: p.username ?? null,
+        display_name: p.display_name ?? null,
+        avatar_url: p.avatar_url ?? null,
+        sends: s?.sends ?? 0,
+        flashes: s?.flashes ?? 0,
+        zones: s?.zones ?? 0,
+        points: s?.points ?? 0,
+        points_tenths: s?.points_tenths ?? 0,
+        // Masked to the owner on the server; never anyone else's here.
+        attempts: 0,
+        last_send_at: s?.last_send_at ?? null,
+        rank: 0,
+        has_left: p.has_left,
+      };
+    }
+
     let sends = 0;
     let flashes = 0;
     let zones = 0;

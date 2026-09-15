@@ -366,6 +366,45 @@ describe("matchReducer", () => {
       expect(state.logs.get(logKey("u1", "a"))?.attempts).toBe(4);
       expect(state.logs.get(logKey("seat-9", "a"))?.attempts).toBe(2);
     });
+
+    it("seats every other player's logs, collapsed to the public buckets", () => {
+      // Found at Yonder: after a reload, other players' tiles were blank
+      // because only the viewer's logs were seeded. \`other_logs\` arrive
+      // already bucketed from SQL; the reducer collapses again, so a
+      // regression in either home can't put a raw count into state.
+      const initial = {
+        match: { id: "match-1" },
+        routes: [mkRoute("a", 1), mkRoute("b", 2), mkRoute("c", 3)],
+        players: [mkPlayer("u1", "alice"), mkPlayer("u2", "bob")],
+        my_logs: [mkLog("u1", "a", { attempts: 4 })],
+        guest_logs: [],
+        other_logs: [
+          mkLog("u2", "a", { attempts: 5, completed: true }),
+          mkLog("u2", "b", { attempts: 3, completed: false, completed_at: null }),
+          mkLog("u2", "c", { attempts: 1, completed: true }),
+        ],
+        grades: [],
+        leaderboard: [],
+      } as unknown as MatchState;
+      const state = initMatchState(initial);
+      expect(state.logs.get(logKey("u1", "a"))?.attempts).toBe(4);
+      expect(state.logs.get(logKey("u2", "a"))?.attempts).toBe(2);
+      expect(state.logs.get(logKey("u2", "b"))?.attempts).toBe(0);
+      expect(state.logs.get(logKey("u2", "c"))?.attempts).toBe(1);
+    });
+
+    it("tolerates a bundle without other_logs, as one served before the migration", () => {
+      const initial = {
+        match: { id: "match-1" },
+        routes: [],
+        players: [],
+        my_logs: [],
+        guest_logs: [],
+        grades: [],
+        leaderboard: [],
+      } as unknown as MatchState;
+      expect(initMatchState(initial).logs.size).toBe(0);
+    });
   });
 
   describe("remove-log", () => {
