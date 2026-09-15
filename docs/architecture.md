@@ -611,6 +611,17 @@ now uses `revalidateUserProfile` + `revalidateTag(gym:{id}:active-set)`.
 Acceptance check: `grep -rn 'revalidatePath.*"/".*"layout"' src/app`
 returns no real call sites.
 
+**An uncached page revalidates its path.** A page with no `cachedQuery`
+reader has nothing on the server to bust, but the client still holds a
+copy: the nav's tab links prefetch whole pages, and Next keeps a full
+prefetch for five minutes (`staleTimes.static`, default 300s). So a
+mutation that changes such a page calls `revalidatePath` for it —
+`/friends` when a friend link changes, `/match` when a game is created,
+joined, left or ended (without it, a game you had just ended still
+showed as live on the Games tab). Any revalidation also re-renders the
+page the action was called from, in the same response, so that page
+must render sensibly for the state the action just wrote.
+
 For mutations that change the profile row but only know the user's
 uid (most of them), use `revalidateUserProfile(supabase, userId)` from
 `src/lib/cache/revalidate.ts` — it does the username lookup and busts

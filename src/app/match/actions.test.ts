@@ -507,6 +507,65 @@ describe("endMatchAction", () => {
   });
 });
 
+// ── The Games page after a lifecycle change ─────────
+
+// The nav prefetches /match whole and Next keeps a full prefetch for
+// five minutes, so a game started, joined, left or ended has to clear
+// the client's copy. Otherwise the tab still shows the old live-game
+// banner, and a game you just ended looks as if ending did nothing.
+describe("game lifecycle refreshes the Games page", () => {
+  async function revalidatePathMock() {
+    const { revalidatePath } = await import("next/cache");
+    vi.mocked(revalidatePath).mockClear();
+    return vi.mocked(revalidatePath);
+  }
+
+  it("after creating a game", async () => {
+    await mockSignedIn({
+      "rpc:create_match": { data: [{ id: MATCH_1, code: "ABC123" }], error: null },
+    });
+    const revalidatePath = await revalidatePathMock();
+    const { createMatchAction } = await import("./actions");
+    const result = await createMatchAction({ gradingScale: "v", minGrade: 0, maxGrade: 5 });
+    expect(result).toMatchObject({ success: true });
+    expect(revalidatePath).toHaveBeenCalledWith("/match");
+  });
+
+  it("after joining one", async () => {
+    await mockSignedIn();
+    const revalidatePath = await revalidatePathMock();
+    const { joinMatchAction } = await import("./actions");
+    expect(await joinMatchAction(MATCH_1)).toEqual({ success: true });
+    expect(revalidatePath).toHaveBeenCalledWith("/match");
+  });
+
+  it("after leaving one", async () => {
+    await mockSignedIn();
+    const revalidatePath = await revalidatePathMock();
+    const { leaveMatchAction } = await import("./actions");
+    expect(await leaveMatchAction(MATCH_1)).toEqual({ success: true });
+    expect(revalidatePath).toHaveBeenCalledWith("/match");
+  });
+
+  it("after ending one", async () => {
+    await mockSignedIn({ "rpc:end_match": { data: null, error: null } });
+    const revalidatePath = await revalidatePathMock();
+    const { endMatchAction } = await import("./actions");
+    expect(await endMatchAction(MATCH_1)).toEqual({ success: true, summaryId: MATCH_1 });
+    expect(revalidatePath).toHaveBeenCalledWith("/match");
+  });
+
+  it("not when ending was refused", async () => {
+    await mockSignedIn({
+      "rpc:end_match": { data: null, error: { code: "42501", message: "not the host" } },
+    });
+    const revalidatePath = await revalidatePathMock();
+    const { endMatchAction } = await import("./actions");
+    expect("error" in (await endMatchAction(MATCH_1))).toBe(true);
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
 // ── Invites ─────────────────────────────────────────
 
 const USER_B = "22222222-2222-2222-2222-222222222222";

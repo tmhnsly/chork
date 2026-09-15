@@ -1,6 +1,7 @@
 "use server";
 
 import { after } from "next/server";
+import { revalidatePath } from "next/cache";
 import { gateSignedInMutation } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
 import { formatError, formatErrorForLog } from "@/lib/errors";
@@ -226,6 +227,22 @@ function validateMatchSetup(
   };
 }
 
+/**
+ * Clears the client's copy of the Games page after a game starts,
+ * gains or loses a player, or ends.
+ *
+ * `/match` reads the live-game banner fresh on every request, so the
+ * server has nothing stale; there is no `cachedQuery` and so no tag to
+ * bust, and the reader-first rule forbids inventing one (the friends
+ * actions make the same call). The stale copy is the client's: the nav
+ * prefetches the page whole, and Next keeps a full prefetch for five
+ * minutes, so a game you had just ended still showed as live on the
+ * tab. Revalidating the path is what clears it.
+ */
+function refreshGamesPage() {
+  revalidatePath("/match");
+}
+
 export async function createMatchAction(
   payload: CreateMatchPayload,
 ): Promise<ActionResult<{ id: string; code: string }>> {
@@ -259,6 +276,7 @@ export async function createMatchAction(
   if (error) return { error: formatError(error) };
   const rows = (data ?? []) as Array<{ id: string; code: string }>;
   if (rows.length === 0) return { error: "Could not create the match." };
+  refreshGamesPage();
   return { success: true, ...rows[0] };
 }
 
@@ -273,6 +291,7 @@ export async function joinMatchAction(
     p_set_id: matchId,
   });
   if (error) return { error: formatError(error) };
+  refreshGamesPage();
   return { success: true };
 }
 
@@ -297,6 +316,7 @@ export async function leaveMatchAction(
     .eq("user_id", auth.userId)
     .is("left_at", null);
   if (error) return { error: formatError(error) };
+  refreshGamesPage();
   return { success: true };
 }
 
@@ -942,6 +962,7 @@ export async function endMatchAction(
       }
     });
 
+    refreshGamesPage();
     return { success: true, summaryId };
   } catch (err) {
     return { error: formatError(err) };
