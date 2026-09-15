@@ -442,7 +442,7 @@ tables.
   seats the host in `set_players`, writes any custom ladder to
   `set_grades`, and optionally saves that ladder to
   `user_custom_scales` for reuse. Validation lives in
-  `match_setup_check(...)` (migration 136), shared with the next one
+  `match_setup_check(...)` (migration 136), shared with the next one. A host who already has an **empty live lobby** (no routes, same league or none) gets that lobby back with the new setup instead of a second one (migration 137): its name, location and players stay, `game_mode` resets, `last_activity_at` restarts
 - `set_match_setup(set_id, name, location, discipline, grading_scale,
   min_grade, max_grade, custom_grades[], save_scale_name,
   alt_grading_scale, alt_min_grade, alt_max_grade)` → `sets` — the
@@ -476,13 +476,13 @@ tables.
   three summary tables and deleted five live ones: a Match is a Set,
   Sets keep their rows, so there is no summary to collapse into and
   nothing to delete
-- `end_stale_matches()` — idle sweep, 24h. Scheduled hourly via
+- `end_stale_matches()` — idle sweep: 24h, or 3h for a lobby that has no routes (migration 137). Scheduled hourly via
   pg_cron as `chork_end_stale_matches` (migration 089)
 - `match_standings(set_id)` — the single ranking behind history and
   the public result card, identical clause to the live board.
   Returns unmasked attempts, so it is service-role only and every
   caller either masks or drops them
-- `get_match_history(user_id, limit, before)` — finished Matches,
+- `get_match_history(user_id, limit, before)` — finished Matches that had at least one route (an ended empty lobby isn't history, migration 137),
   newest first. Service-role
 - `get_match_achievement_context(user_id)` — badge context.
   Service-role

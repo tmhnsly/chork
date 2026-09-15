@@ -585,7 +585,10 @@ navbar + home indicator), max-width, and centering.
   refuses once a route exists — grading is locked by the first route.
   `create_match` and `set_match_setup` validate through one SQL
   helper, `match_setup_check`; the action side shares
-  `validateMatchSetup`. There is no create form
+  `validateMatchSetup`. There is no create form. Tapping a poster while you host an **empty lobby** reopens it with the
+  poster's setup instead of creating another, and the hourly sweep ends a
+  lobby with no routes after 3 idle hours (migration 137): several
+  identical empty lobbies made ending a game look broken
 - **Archived / draft sets are read-only** for climbers. Migration 003
   blocks inserts against non-live sets at the RLS layer
 - **Legacy `sets.active` is derived from `sets.status`** via a
