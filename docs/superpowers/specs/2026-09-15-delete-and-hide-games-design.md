@@ -83,9 +83,14 @@ stops resolving).
 **Players on the live screen.** The cascade emits a DELETE for every
 seat. Seats have `REPLICA IDENTITY FULL` (migration 085), and Supabase
 delivers filtered DELETE events only for such tables, so every live
-screen of this game hears its own seat go. Nothing else deletes a seat
-(there is no DELETE policy, and leaving parks a seat with `left_at`),
-so "my seat was deleted" means "this game was deleted". The handler:
+screen of this game hears its own seat go. A probe with throwaway
+accounts (2026-09-15) confirmed both halves: the filtered delete events
+arrive, and each carries **only the row's `id`**, never its other
+columns. So the screen matches the event against the viewer's own seat
+id, which it already holds, not against a user id. Nothing else deletes
+a seat (there is no DELETE policy, and leaving parks a seat with
+`left_at`), so "my seat was deleted" means "this game was deleted". The
+handler:
 
 - The viewer's own seat was deleted: toast "This game was deleted"
   (warning) and `router.replace("/match")`.
@@ -190,8 +195,8 @@ the game receives.
 - `use-match-realtime`: pass the `set_players` payload to
   `onPlayerChange`.
 - `useMatchScreenState`: `handleDelete`, and `onPlayerChange` deciding
-  through a pure `seatEventOutcome(evt, viewerId): "deleted" | "refresh"`
-  beside the reducer.
+  through a pure `seatEventOutcome(evt, viewerSeatId): "deleted" | "refresh"`
+  beside the reducer, comparing `evt.old.id` with the viewer's own seat.
 - Summary page: a ⋮ `IconButton` (`FaEllipsisVertical`, label "Game
   options") at the right of the top row, opening a new
   `GameOptionsSheet` in `components/Match`. It holds Remove from my
@@ -213,9 +218,11 @@ the game receives.
   cascades, and the invite notifications that name it.
 - The hidden flag stays private: only the owner's seat is read, by a
   server helper.
-- Deleting a game emits a DELETE event per log to that game's channel,
-  each carrying the full old row. That is the same payload a single
-  log removal emits today (see "Found while mapping").
+- Deleting a game emits a DELETE event per route, log and seat to that
+  game's channel. Each carries only the row's id (probe, 2026-09-15),
+  so nothing about anyone's climbing travels with it. Supabase doesn't
+  apply RLS to delete events, so a stranger who knows the game's id and
+  subscribes hears those ids too, which reveals only that rows went.
 
 ## Testing
 
@@ -254,14 +261,19 @@ which belongs to the Games session.
 
 ## Found while mapping (separate from this spec)
 
-- **Climbers can delete their own logs in finished games.** The
-  `route_logs` DELETE policy (012) is `user_id = auth.uid()` with no
-  check on the set's status. Through the Data API, a climber can change
-  a finished game's result, a league week's placings or an archived gym
-  set's board after the fact.
-- **Delete events skip RLS.** Supabase's docs say RLS isn't applied to
-  DELETE events. With `REPLICA IDENTITY FULL` on `route_logs`, anyone
-  who knows a game's id and subscribes to its channel receives removed
-  logs as full rows, raw attempt counts included, without being a
-  player. Not yet verified in this project; worth checking against the
-  attempt-privacy rule.
+- **Climbers can delete their own logs in finished games.** Confirmed
+  by the probe: once the game had ended, the player's edit to their own
+  log was refused, because the UPDATE policy's check requires a live
+  set, but deleting the log went through. The `route_logs` DELETE
+  policy (012) is `user_id = auth.uid()` with no check on the set's
+  status, so through the Data API a climber can change a finished
+  game's result, a league week's placings or an archived gym set's
+  board after the fact.
+- **Delete events, corrected.** The first draft of this spec said
+  removed logs reach subscribers as full rows with raw attempt counts.
+  The probe showed otherwise: every delete event carried only the row's
+  `id`, to a player and to a stranger alike. A stranger with the game's
+  id learns only that rows were deleted, and their ids.
+- **The live screen's log-delete handler reads fields a delete event
+  doesn't carry.** `remove-log` takes the owner and route from
+  `evt.old`, which holds only `id`, so its dispatch matches no log.
