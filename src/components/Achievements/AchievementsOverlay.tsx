@@ -110,7 +110,7 @@ export function AchievementsOverlay({ badges, state, dispatch }: Props) {
   // detail cleared the view and the body snapped back to the grid
   // for the length of the exit animation.
   const view = state.view;
-  const shown = useSheetPresence(view.name === "closed" ? null : view);
+  const [shown] = useSheetPresence(view.name === "closed" ? null : view);
 
   // Coming back from a badge, the catalogue reopens where it was —
   // the offset the push remembered. The body remounts on a view

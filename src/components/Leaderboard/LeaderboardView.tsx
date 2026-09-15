@@ -75,7 +75,7 @@ export function LeaderboardView({
     initialSetData ? { set: initialSetData } : {}
   );
   const [sheetEntry, setSheetEntry] = useState<LeaderboardEntry | null>(null);
-  const shownEntry = useSheetPresence(sheetEntry);
+  const [shownEntry, sheetKey] = useSheetPresence(sheetEntry);
   const [isPending, startTransition] = useTransition();
 
   const activeSetIdForTab = tab === "set" ? currentSetId : null;
@@ -289,6 +289,7 @@ export function LeaderboardView({
 
       {shownEntry && (
         <ClimberSheet
+          key={sheetKey}
           open={sheetEntry !== null}
           entry={shownEntry}
           setId={activeSetIdForTab}

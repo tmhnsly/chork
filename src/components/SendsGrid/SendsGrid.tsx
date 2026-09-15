@@ -66,7 +66,7 @@ export function SendsGrid({
     map: new Map(),
   });
   const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
-  const sheetRoute = useSheetPresence(selectedRoute);
+  const [sheetRoute, sheetKey] = useSheetPresence(selectedRoute);
   const [routeDataCache, setRouteDataCache] = useState<Map<string, CachedRouteData>>(new Map());
 
   // Merge server logs with the local overlay (overlay wins per route).
@@ -162,9 +162,12 @@ export function SendsGrid({
       </div>
 
       {/* The sheet outlives the selection by one animation: the held
-          route keeps it rendering while it slides away. */}
+          route keeps it rendering while it slides away. The open key
+          mounts a fresh sheet for every tap, so one route's log state
+          (and the log id it writes with) can never carry into the next. */}
       {sheetRoute && (
         <RouteLogSheet
+          key={sheetKey}
           open={selectedRoute !== null}
           set={set}
           route={sheetRoute}

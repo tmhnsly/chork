@@ -42,7 +42,7 @@ const SAFE = (n: number, d: number) => (d > 0 ? Math.min(1, n / d) : 0);
 
 export function PreviousSetsGrid({ sets, gymId, userId, showEmptyState = false }: Props) {
   const [openSet, setOpenSet] = useState<SetCell | null>(null);
-  const sheetSet = useSheetPresence(openSet);
+  const [sheetSet, sheetKey] = useSheetPresence(openSet);
 
   if (sets.length === 0) {
     if (!showEmptyState) return null;
@@ -91,6 +91,7 @@ export function PreviousSetsGrid({ sets, gymId, userId, showEmptyState = false }
 
       {sheetSet && (
         <SetDetailSheet
+          key={sheetKey}
           open={openSet !== null}
           set={sheetSet}
           gymId={gymId}
