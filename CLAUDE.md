@@ -610,6 +610,16 @@ navbar + home indicator), max-width, and centering.
   leagues get their own setup flow. Starting a game while you host an
   empty one reopens it with the setup you typed (137, 139), and the
   hourly sweep ends a game with no routes after 3 idle hours
+- **The host deletes a game; any player hides one.** `delete_match`
+  (migration 141) is a hard delete for everyone: seats, routes, logs
+  and pending invites go, badges already earned stay. A league week
+  leaves its league first unless it is live with no routes.
+  `set_match_hidden` takes a finished game off one player's own lists.
+  Hides live in `hidden_matches`, which has no Data API access, because
+  every player can read a game's seat rows; history and badge context
+  skip a game for the player who hid it and nobody else. A live screen
+  learns of a deletion from its own seat's DELETE event, which carries
+  only the row's id
 - **Archived / draft sets are read-only** for climbers. Inserting or
   updating a log needs a live set (003, 102), and nobody deletes a log
   through the Data API at all (140): a log goes only with its route,

@@ -2,6 +2,11 @@
 
 ## Shipped
 
+- [x] 2026-09-15 — Deleting and hiding games: the host deletes a game
+      for everyone from its menu or its summary page, and any player
+      removes a finished game from their own games and can put it back
+      (migration 141). A live screen sends everyone to Games when its
+      game is deleted
 - [x] 2026-09-15 — Games are set up before they exist: a poster opens
       `/match/new/[game]` (name, where, discipline, grading, then Start
       game), so a stray tap no longer makes a game. No lobby screen:

@@ -81,6 +81,12 @@ their posters. Then:
   onto its board and grid.
 - **Poster** — the accent-solid card a game is chosen from: the sent
   tile at card scale.
+- **Delete game** — the host removes a game for everyone, routes and
+  sends included (`delete_match`). Badges already earned stay.
+- **Remove from my games** — a player takes a finished game off their
+  own lists and numbers (`set_match_hidden`). Private, and undone from
+  the game's summary page. Not the same as **left**, which everyone
+  else's board shows.
 
 ## League
 
