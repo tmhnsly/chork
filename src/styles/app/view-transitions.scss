@@ -19,9 +19,8 @@
 // The root does not take part. Nothing of it was ever animated —
 // the page is a named group, the navbar is a named group, and what
 // remains is the backdrop, which drifts on its own — and Firefox
-// sizes the root snapshot to the whole document rather than the
-// viewport, so on any page taller than the screen the transition
-// played a shrunken copy of the page with seams through it. With no
+// drew a root snapshot blank for the first fifth of a second
+// (recorded in Developer Edition 157). With no
 // root group the live document paints beneath the page snapshots:
 // the backdrop live, named elements hidden until their groups land.
 :root {

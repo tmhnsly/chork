@@ -429,17 +429,19 @@ compositor.
 via `src/types/react-canary.d.ts`). One wrapper around the route
 content in `providers.tsx`, keyed on the path, so a navigation is an
 exit and an enter that fade past each other; the root opts out
-(`:root { view-transition-name: none }`) — Firefox sizes a root
-snapshot to the whole document and played tall pages shrunken with
-seams, and nothing of the root was ever animated; `update="none"`, so no
+(`:root { view-transition-name: none }`) — nothing of the root was ever animated, and Firefox
+drew a root snapshot blank for its first fifth of a second; `update="none"`, so no
 in-page state change ever snapshots the page (that was the glitch);
 no group tween, so heights never stretch. CSS in
 `styles/app/view-transitions.scss` on the motion tokens, reduced
 motion turns it off. On in every
-browser with the API (`src/lib/view-transitions.ts`); Chromium is
-verified clean, Safari and Firefox have unpinned glitches being
-investigated with transitions ON — don't gate them off without
-a recording of the failure. Where the API is missing React commits
+browser with the API (`src/lib/view-transitions.ts`); Chromium is verified clean. Firefox's corruption was pinned
+by recording Developer Edition: an animation running inside the
+arriving page tears its snapshot, so `RevealText` holds still in
+Gecko (`@supports (-moz-appearance: none)`), and anything new that
+animates on arrival needs the same check. Safari's remaining glitches
+are unpinned; don't gate an engine off without a recording of the
+failure. Where the API is missing React commits
 synchronously, so nothing depends on it. **Loading strategy that
 goes with it:** the navbar's
 tab links carry `prefetch` (full RSC payload, not just the loading

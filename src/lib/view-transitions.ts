@@ -17,13 +17,11 @@ export function useViewTransitionsEnabled(): boolean {
 }
 
 // Gecko's UA carries a bare "Gecko/<date>"; Blink and WebKit say
-// "like Gecko". Firefox Developer Edition 157 corrupts a page
-// snapshot when a second transition starts while the page's own is
-// still running — the frames alternate between the page and a
-// shrunken, seamed copy of it — and the pages that glitched were
-// exactly the ones whose sections start a nested transition on
-// arrival (a share name morphing, a skeleton revealing). Chromium
-// and WebKit take the nested ones in their stride.
+// "like Gecko". Nested transitions stay off there until they are
+// recorded clean. Firefox tears a snapshot whose content animates
+// while the transition runs (revealText.module.scss has the
+// recording), and a section revealing snapshots its skeleton, whose
+// sheen never stops moving.
 const gecko = () => typeof navigator !== "undefined" && /\bGecko\/\d/.test(navigator.userAgent);
 const nestedSupported = () => supported() && !gecko();
 
