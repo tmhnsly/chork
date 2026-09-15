@@ -50,6 +50,21 @@ describe.skipIf(!canRunIntegration)("Match RPCs (integration)", () => {
   const createdSetIds: string[] = [];
 
   async function createMatchAsHost(name: string): Promise<string> {
+    // Every test here wants a match of its own, but create_match hands
+    // a host their empty live lobby back (migration 137). End the last
+    // one first, the way a host would before starting another.
+    const { data: live } = await service
+      .from("sets")
+      .select("id")
+      .eq("host_id", hostUserId)
+      .eq("status", "live");
+    for (const { id } of live ?? []) {
+      await service
+        .from("sets")
+        .update({ status: "archived", ends_at: new Date().toISOString() })
+        .eq("id", id);
+    }
+
     const { data, error } = await hostClient.rpc("create_match", {
       p_name: name,
       p_grading_scale: "v",
