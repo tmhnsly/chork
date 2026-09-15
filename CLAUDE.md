@@ -764,6 +764,13 @@ Vitest-based. See `docs/testing.md` for patterns. Key rules:
   a section that has a component. `src/test/skeletons.test.ts`
   enforces the stylesheet rule and that a header skeleton reserves a
   subtitle exactly when the page passes one
+- **A held sheet mounts fresh for every open.** `useSheetPresence`
+  keeps a closing sheet's content alive and returns `[held, openKey]`;
+  any element handed the held value wears `key={openKey}`. Without it
+  the sheet never unmounts after its first open, and whatever it seeded
+  at mount carries into the next one: the Card's route sheet wrote
+  every tile's attempts and sends to the first route's log.
+  `src/test/sheet-presence.test.ts` enforces it
 - Server actions get tests for: input validation, auth failure, each
   distinct user-visible error path, friendly-error mapping. **One
   auth double:** `vi.mock("@/lib/auth", async () => (await
