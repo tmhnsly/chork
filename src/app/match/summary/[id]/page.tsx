@@ -18,6 +18,8 @@ import { formatHandicapPoints } from "@/lib/data/handicap";
 import { countOf, countOfFormatted } from "@/lib/plural";
 import { isUuid } from "@/lib/validation";
 import { matchTitle } from "@/lib/data/match-title";
+import { GameOptionsSheet } from "@/components/Match/GameOptionsSheet";
+import { canDeleteGame, deleteGameWarning } from "@/lib/data/match-deletion";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -126,9 +128,30 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
         <IconLink href="/match" label="Back to Games">
           <FaArrowLeft />
         </IconLink>
-        {fresh && (
-          <span className={styles.freshBadge}>Game complete</span>
-        )}
+        <div className={styles.topRowEnd}>
+          {fresh && (
+            <span className={styles.freshBadge}>Game complete</span>
+          )}
+          <GameOptionsSheet
+            matchId={id}
+            hidden={state.viewer_hidden === true}
+            canDelete={canDeleteGame(
+              {
+                hostId: summary.host_id,
+                leagueId: summary.league_id,
+                status: summary.status,
+                routeCount: state.routes.length,
+              },
+              auth.userId,
+            )}
+            leagueWeek={
+              isHost && inLeague
+                ? { id: inLeague.league.id, name: inLeague.league.name }
+                : null
+            }
+            deleteWarning={deleteGameWarning(state.players, auth.userId)}
+          />
+        </div>
       </div>
 
       <PageHeader

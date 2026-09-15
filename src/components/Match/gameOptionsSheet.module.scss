@@ -1,0 +1,13 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+
+.actions {
+  @include layout.stack(var(--space-3));
+}
+
+// On the sheet's glass rather than a card plane, so step-12 text.
+.note {
+  @include type.typography(meta);
+  color: var(--mono-text);
+  margin: 0;
+}
