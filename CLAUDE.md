@@ -285,8 +285,18 @@ Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
   fixed layer with three soft lights in the chord (accent, flash,
   zone), arranged per kind of page (`data-mood`) with their centres
   as registered custom properties so they drift between pages over
-  the route fade — never add a per-page wash. The navbar carries
-  `view-transition-name: navbar` so it stays above page snapshots. The page and its cards are two
+  the route fade — never add a per-page wash. The navbar's glass carries
+`view-transition-name: navbar` so it stays above page snapshots — on
+the glass itself, never a wrapper (a named ancestor is a backdrop
+root and the blur inside goes dead). Its group is clipped to the
+pill, because Chromium bakes a `backdrop-filter` element's blurred
+backdrop into the capture as a hard-edged rectangle; its new
+snapshot carries the glass's own `backdrop-filter`, because a flat
+snapshot has nothing to blur and the live blur would otherwise snap
+back at the end; and nothing is painted under it. The pill's shadow
+is a separate named element behind it (`barShadow`), since the clip
+would otherwise take the shadow with it for the length of every
+route change. The page and its cards are two
   planes — `--surface-page` / `--surface-card`, set by
   the `planes` mixin per theme AND per mode (light: step 3 page,
   step 1 cards; dark: step 1 page, step 2 cards). Never paint a card
@@ -418,7 +428,10 @@ compositor.
 (`experimental.viewTransition` in `next.config.ts`; the canary types
 via `src/types/react-canary.d.ts`). One wrapper around the route
 content in `providers.tsx`, keyed on the path, so a navigation is an
-exit and an enter that fade past each other; `update="none"`, so no
+exit and an enter that fade past each other; the root opts out
+(`:root { view-transition-name: none }`) — Firefox sizes a root
+snapshot to the whole document and played tall pages shrunken with
+seams, and nothing of the root was ever animated; `update="none"`, so no
 in-page state change ever snapshots the page (that was the glitch);
 no group tween, so heights never stretch. CSS in
 `styles/app/view-transitions.scss` on the motion tokens, reduced
@@ -433,7 +446,9 @@ tab links carry `prefetch` (full RSC payload, not just the loading
 boundary), so a tab change lands on content inside the page
 transition instead of on a skeleton that then pops; streamed
 sections wrap their `<Suspense>` in `<Reveal>` (`components/motion`)
-so the swaps that remain cross-fade. Never animate updates
+so the swaps that remain cross-fade. Arrivals fade on `--ease-out`,
+never `--ease-out-expo` — expo is four-fifths done in six frames,
+which reads as a pop. Never animate updates
 page-wide — that snapshots the whole page on every optimistic log.
 `animation-timeline` likewise stays a `@supports` enhancement, never
 a baseline primitive.

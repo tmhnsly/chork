@@ -23,6 +23,26 @@
   pointer-events: none;
 }
 
+// The pill and its shadow, as two elements. The shadow is not on
+// the glass because the glass is a view-transition participant and
+// its group is clipped to the pill (styles/app/view-transitions.scss):
+// a shadow on it was clipped away for the length of every route
+// change and came back at the end. This one is its own participant
+// with no filter, so it snapshots cleanly and stays put. The host is
+// NOT named — a named ancestor is a backdrop root and the blur dies.
+.barHost {
+  position: relative;
+}
+
+.barShadow {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+}
+
 .barInner {
   display: flex;
   align-items: center;
@@ -31,13 +51,14 @@
   padding: 0 var(--space-2);
   border-radius: var(--radius-full);
   pointer-events: auto;
-  box-shadow: var(--shadow-md);
   @include surface.glass(65%, var(--mono-bg));
   // Its own layer during a view transition (`data-vt="navbar"` in the
   // JSX, named from styles/app/view-transitions.scss). NOT named
   // here: CSS modules hash `view-transition-name` values the way they
   // hash classes, so a name set in this file compiled to
   // `navBar-module…__navbar` and the global group rule never matched.
+  // The name has to sit on THIS element, the glass: a named ancestor
+  // becomes a backdrop root, and the blur inside it goes dead.
 }
 
 // ── Brand ─────────────────────────────────────────

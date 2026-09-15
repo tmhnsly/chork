@@ -29,11 +29,18 @@
 // ── Glass ───────────────────────────────────────────
 // $opacity: 0–100, how much of the base colour shows through.
 // $base: the tint colour — use step 3 for darker panels.
+// The frost on its own, for the one place that needs it without the
+// surface: the navbar's view-transition snapshot, which blurs the
+// page snapshots beneath it the way the live glass blurs the page.
+@mixin glass-filter {
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+
 @mixin glass($opacity: 70%, $base: var(--surface-card)) {
   background: color-mix(in srgb, $base $opacity, transparent);
   border: 1px solid var(--mono-border-subtle);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  backdrop-filter: saturate(180%) blur(20px);
+  @include glass-filter;
 }
 
 // ── Scrim ───────────────────────────────────────────

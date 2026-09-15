@@ -186,6 +186,8 @@ function AuthedNavSkeleton({
 
   return (
     <nav className={styles.bar}>
+      <div className={styles.barHost}>
+      <span className={styles.barShadow} data-vt="navbar-shadow" aria-hidden />
       <div className={styles.barInner} data-vt="navbar">
         <Link prefetch href="/" className={styles.brandLink} aria-label="Chork — home">
           <ChorkMark size={18} />
@@ -227,6 +229,7 @@ function AuthedNavSkeleton({
         </div>
 
         <div className={styles.brandSpacer} aria-hidden="true" />
+      </div>
       </div>
     </nav>
   );
@@ -308,6 +311,8 @@ function AuthenticatedNav({
 
   return (
     <nav className={styles.bar}>
+      <div className={styles.barHost}>
+      <span className={styles.barShadow} data-vt="navbar-shadow" aria-hidden />
       <div className={styles.barInner} data-vt="navbar">
         <Link prefetch href="/" className={styles.brandLink} aria-label="Chork — home">
           <ChorkMark size={18} />
@@ -392,6 +397,7 @@ function AuthenticatedNav({
         {/* Counterweight spacer — matches brandLink width to keep tabs centred */}
         <div className={styles.brandSpacer} aria-hidden="true" />
       </div>
+      </div>
     </nav>
   );
 }
@@ -409,6 +415,8 @@ function UnauthenticatedNav({ pathname }: { pathname: string }) {
 
   return (
     <nav className={styles.bar}>
+      <div className={styles.barHost}>
+      <span className={styles.barShadow} data-vt="navbar-shadow" aria-hidden />
       <div className={styles.barInner} data-vt="navbar">
         <Link
             prefetch
@@ -442,6 +450,7 @@ function UnauthenticatedNav({ pathname }: { pathname: string }) {
             <span className={styles.tabLabel}>Sign in</span>
           </Link>
         </div>
+      </div>
       </div>
     </nav>
   );

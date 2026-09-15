@@ -1,3 +1,5 @@
+@use "mixins/surfaces" as surface;
+
 // ── View transitions ─────────────────────────────
 // The route content (providers.tsx) is keyed on the path, so a
 // navigation is the old page EXITING with `page-out` and the new one
@@ -7,18 +9,28 @@
 // No group animation either: a group tween interpolates the box
 // between old and new sizes, which stretched one page into the
 // other. The navbar sits outside and holds still.
+//
+// Arrivals ride `--ease-out`, not `--ease-out-expo`: expo is half
+// done in two frames and four-fifths done in six, which on a page
+// fade read as the new page popping in over a lingering ghost of
+// the old. The iOS curve is half done at 80ms and still visibly
+// fading at 200ms — a fade you can see.
 
-::view-transition-group(root),
-::view-transition-old(root),
-::view-transition-new(root),
+// The root does not take part. Nothing of it was ever animated —
+// the page is a named group, the navbar is a named group, and what
+// remains is the backdrop, which drifts on its own — and Firefox
+// sizes the root snapshot to the whole document rather than the
+// viewport, so on any page taller than the screen the transition
+// played a shrunken copy of the page with seams through it. With no
+// root group the live document paints beneath the page snapshots:
+// the backdrop live, named elements hidden until their groups land.
+:root {
+  view-transition-name: none;
+}
+
 ::view-transition-group(.page-out),
 ::view-transition-group(.page-in) {
   animation: none;
-}
-
-::view-transition-old(root),
-::view-transition-new(root) {
-  mix-blend-mode: normal;
 }
 
 // Named participants (components/motion/Named): React assigns the
@@ -44,24 +56,64 @@
 
 ::view-transition-new(.morph),
 ::view-transition-new(.reveal) {
-  animation: vt-page-in var(--duration-normal) var(--ease-out-expo) both;
+  animation: vt-page-in var(--duration-normal) var(--ease-out) both;
 }
 
 // The navbar's own layer: above the page snapshots, and still. The
 // name is assigned HERE, from a global sheet, because a CSS module
 // hashes view-transition-name values and the group rule below would
-// never match the hashed one.
+// never match the hashed one. It sits on the glass itself — a named
+// ancestor would become a backdrop root and kill the blur.
 [data-vt="navbar"] {
   view-transition-name: navbar;
 }
 
+// The glass, snapshotted, three ways it goes wrong and the rule for
+// each. Chromium bakes a `backdrop-filter` element's blurred backdrop
+// into its capture as the full bounding rectangle, corners included,
+// so the pill arrived wearing a hard-edged block of the previous
+// page: the group is clipped to the pill. A snapshot is flat, so on
+// its own the pill is a 65% wash with the page snapshots showing
+// sharply through it, then the live blur snaps back at the end: the
+// new snapshot carries the glass's own backdrop-filter, and blurs
+// the page snapshots beneath it the way the live pill blurs the
+// page. And two stacked copies doubled the wash: only the new one
+// shows. Nothing is painted under the snapshot — a backing would be
+// what gets blurred. (These pseudo-elements hang off <html>; a
+// selector scoped under <body> never matches them.)
 ::view-transition-group(navbar) {
+  z-index: var(--z-navbar);
+  animation: none;
+  border-radius: var(--radius-full);
+  overflow: clip;
+}
+
+::view-transition-old(navbar) {
+  display: none;
+}
+
+::view-transition-new(navbar) {
+  animation: none;
+  @include surface.glass-filter;
+}
+
+// The pill's shadow, as its own participant: no filter, so nothing
+// is baked, and nothing clips it. Earlier in the DOM than the glass,
+// so at the same z-index it paints beneath.
+[data-vt="navbar-shadow"] {
+  view-transition-name: navbar-shadow;
+}
+
+::view-transition-group(navbar-shadow) {
   z-index: var(--z-navbar);
   animation: none;
 }
 
-::view-transition-old(navbar),
-::view-transition-new(navbar) {
+::view-transition-old(navbar-shadow) {
+  display: none;
+}
+
+::view-transition-new(navbar-shadow) {
   animation: none;
 }
 
@@ -70,7 +122,7 @@
 }
 
 ::view-transition-new(.page-in) {
-  animation: vt-page-in var(--duration-normal) var(--ease-out-expo) both;
+  animation: vt-page-in var(--duration-normal) var(--ease-out) both;
 }
 
 // A streamed section revealing: the skeleton EXITS (fades out) and
@@ -82,7 +134,7 @@
 }
 
 ::view-transition-new(.reveal-in) {
-  animation: vt-page-in var(--duration-normal) var(--ease-out-expo) both;
+  animation: vt-page-in var(--duration-normal) var(--ease-out) both;
 }
 
 // The Chorkboard swapping tabs: the old board sinks, the new one
@@ -97,7 +149,7 @@
 }
 
 ::view-transition-new(.board-in) {
-  animation: vt-page-in var(--duration-normal) var(--ease-out-expo) both;
+  animation: vt-page-in var(--duration-normal) var(--ease-out) both;
 }
 
 @keyframes vt-page-out {
