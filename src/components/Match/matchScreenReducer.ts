@@ -85,6 +85,12 @@ export type MatchAction =
     }
   | { type: "upsert-log"; log: MatchLog; viewerId: string }
   | { type: "remove-log"; userId: string; routeId: string }
+  /**
+   * A log deleted elsewhere, from its realtime DELETE, which carries
+   * nothing but the row's id (checked 2026-09-15). `remove-log` stays
+   * for the local rollback, which knows the owner and route.
+   */
+  | { type: "remove-log-by-id"; id: string }
   | { type: "open-panel"; panel: MatchPanel }
   | { type: "close-panel" };
 
@@ -99,6 +105,22 @@ export function logKey(userId: string, routeId: string): string {
  */
 export function isLobby(state: { routes: unknown[] }): boolean {
   return state.routes.length === 0;
+}
+
+/**
+ * What a seat's realtime event means for the viewer. A DELETE carries
+ * only the row's id (checked 2026-09-15), and nothing but deleting the
+ * game deletes a seat: leaving parks it with `left_at`. So the viewer's
+ * own seat going means the game went.
+ */
+export function seatEventOutcome(
+  evt: { eventType: "INSERT" | "UPDATE" | "DELETE"; old: { id?: string } },
+  viewerSeatId: string | null,
+): "deleted" | "refresh" {
+  if (evt.eventType === "DELETE" && viewerSeatId !== null && evt.old.id === viewerSeatId) {
+    return "deleted";
+  }
+  return "refresh";
 }
 
 /** Initial reducer state from the server-rendered match payload.
@@ -204,6 +226,15 @@ export function matchReducer(
       const logs = new Map(state.logs);
       logs.delete(logKey(action.userId, action.routeId));
       return { ...state, logs };
+    }
+    case "remove-log-by-id": {
+      for (const [key, log] of state.logs) {
+        if (log.id !== action.id) continue;
+        const logs = new Map(state.logs);
+        logs.delete(key);
+        return { ...state, logs };
+      }
+      return state;
     }
     case "open-panel":
       return { ...state, panel: action.panel };

@@ -11,11 +11,13 @@ import type { MatchLog, MatchRoute } from "@/lib/data/match-types";
  * every handler (MatchScreen used to hand-write this cast twice).
  *
  * Caveat carried over from the raw payloads: on DELETE, `new` is an
- * empty object and only `old` is populated (`routes`, `route_logs`
- * and `set_players` run REPLICA IDENTITY FULL — migration 085 — so
- * `old` carries the full row); on INSERT/UPDATE,
+ * empty object and `old` carries ONLY the row's `id`. `routes`,
+ * `route_logs` and `set_players` run REPLICA IDENTITY FULL (migration
+ * 085), which is what lets the `set_id` filter apply to deletes at
+ * all, but the payload is still just the key: checked against
+ * production with throwaway accounts on 2026-09-15. On INSERT/UPDATE,
  * `old` may be partial. Branch on `eventType` before trusting either
- * side.
+ * side, and read nothing but `old.id` from a DELETE.
  */
 export interface MatchRealtimeEvent<T> {
   eventType: "INSERT" | "UPDATE" | "DELETE";
@@ -39,9 +41,11 @@ export function useMatchRealtime(
   handlers: {
     onRouteChange: (evt: MatchRealtimeEvent<MatchRoute>) => void;
     onLogChange: (evt: MatchRealtimeEvent<MatchLog>) => void;
-    /** Join/leave events — payload deliberately untyped; the current
-     *  strategy is a full refresh, not a patch. */
-    onPlayerChange: () => void;
+    /**
+     * Seat events. A join or leave is a full refresh, not a patch; a
+     * DELETE of the viewer's own seat means the game was deleted.
+     */
+    onPlayerChange: (evt: MatchRealtimeEvent<{ id: string }>) => void;
     /**
      * The Match row itself changed. Fires for the host ending it,
      * which is the only status transition a live screen can see —
@@ -90,7 +94,8 @@ export function useMatchRealtime(
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "set_players", filter: `set_id=eq.${matchId}` },
-        () => handlersRef.current.onPlayerChange(),
+        (payload: unknown) =>
+          handlersRef.current.onPlayerChange(payload as MatchRealtimeEvent<{ id: string }>),
       )
       // `sets` joined the publication in migration 102. Filtered to
       // this row: the table also holds every gym Set, and realtime

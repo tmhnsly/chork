@@ -5,6 +5,7 @@ import {
   useEffect,
   useMemo,
   useReducer,
+  useRef,
   useState,
   useTransition,
 } from "react";
@@ -15,12 +16,12 @@ import { useMatchRealtime } from "@/hooks/use-match-realtime";
 import { computeMatchLeaderboard } from "@/lib/data/match-leaderboard";
 import type { MatchLog, MatchPlayerView, MatchRoute, MatchState } from "@/lib/data/match-types";
 import { ceilingForDiscipline, type Discipline } from "@/lib/data/grade-label";
-import { ownerIdOf } from "@/lib/data/match-types";
 import {
   addMatchRouteAction,
   updateMatchRouteAction,
   endMatchAction,
   leaveMatchAction,
+  deleteMatchAction,
   fetchChorkStandings,
   fetchMatchBoard,
   fetchChorkAllowance,
@@ -37,6 +38,7 @@ import { upsertMatchLogOffline } from "@/app/match/offline-actions";
 import {
   initMatchState,
   matchReducer,
+  seatEventOutcome,
   type MatchPanel,
   logKey,
 } from "./matchScreenReducer";
@@ -180,6 +182,11 @@ export function useMatchScreenState({
     },
   });
 
+  // Set by the device that presses Delete, so its own seat's DELETE
+  // event doesn't toast and navigate a second time.
+  const deletingRef = useRef(false);
+  const viewerSeatId = state.players.find((p) => p.user_id === userId)?.player_id ?? null;
+
   useMatchRealtime(initialState.match.id, {
     onRouteChange: (evt) => {
       if (evt.eventType === "DELETE") {
@@ -197,11 +204,8 @@ export function useMatchScreenState({
     },
     onLogChange: (evt) => {
       if (evt.eventType === "DELETE") {
-        dispatch({
-          type: "remove-log",
-          userId: ownerIdOf(evt.old),
-          routeId: evt.old.route_id,
-        });
+        // A DELETE event carries only the log's id (checked 2026-09-15).
+        dispatch({ type: "remove-log-by-id", id: evt.old.id });
       } else {
         // The reducer sanitises other players' raw attempt counts —
         // this call site just declares who is looking.
@@ -218,7 +222,16 @@ export function useMatchScreenState({
         if (!scoredLocally) scheduleBoard(undefined);
       }
     },
-    onPlayerChange: () => {
+    onPlayerChange: (evt) => {
+      // Nothing but deleting the game deletes a seat, so the viewer's
+      // own seat going means the game went (migration 141).
+      if (seatEventOutcome(evt, viewerSeatId) === "deleted") {
+        // The device that pressed Delete is already on its way out.
+        if (deletingRef.current) return;
+        showToast("This game was deleted", "warning");
+        router.replace("/match");
+        return;
+      }
       // Player changes come as scattered events — a full state
       // refresh is cheaper to reason about than hand-patched set
       // maths when someone joins or leaves. The refreshed roster
@@ -637,6 +650,20 @@ export function useMatchScreenState({
     });
   }, [initialState.match.id, router]);
 
+  const handleDelete = useCallback(() => {
+    deletingRef.current = true;
+    startTransition(async () => {
+      const result = await deleteMatchAction(initialState.match.id);
+      if ("error" in result) {
+        deletingRef.current = false;
+        showToast(result.error, "error");
+        return;
+      }
+      showToast("Game deleted");
+      router.replace("/match");
+    });
+  }, [initialState.match.id, router]);
+
   // The setup lives on `initialState.match`, a server prop: a refresh
   // re-reads it, and the sheet closes on the fresh props rather than
   // on a guess. Returns whether it saved, so a sheet can stay open on
@@ -689,6 +716,7 @@ export function useMatchScreenState({
     handleLog,
     handleEnd,
     handleLeave,
+    handleDelete,
     isChork,
     chorkLetters: chork.letters,
     chorkPenSeatId: chork.penSeatId,

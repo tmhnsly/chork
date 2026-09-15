@@ -4,6 +4,7 @@ import {
   matchReducer,
   logKey,
   isLobby,
+  seatEventOutcome,
   type MatchAction,
   type MatchLocalState,
 } from "./matchScreenReducer";
@@ -432,6 +433,27 @@ describe("matchReducer", () => {
       expect(next.logs.size).toBe(0);
     });
   });
+
+  describe("remove-log-by-id", () => {
+    it("deletes the log with that id, whoever owns it", () => {
+      const logs = new Map([
+        [logKey("u1", "r1"), mkLog("u1", "r1")],
+        [logKey("u2", "r1"), mkLog("u2", "r1")],
+      ]);
+      const next = matchReducer({ ...emptyState, logs }, { type: "remove-log-by-id", id: "u1-r1" });
+      expect(next.logs.size).toBe(1);
+      expect(next.logs.has(logKey("u1", "r1"))).toBe(false);
+      expect(next.logs.has(logKey("u2", "r1"))).toBe(true);
+    });
+
+    it("returns the same state for an id it doesn't hold", () => {
+      const state: MatchLocalState = {
+        ...emptyState,
+        logs: new Map([[logKey("u1", "r1"), mkLog("u1", "r1")]]),
+      };
+      expect(matchReducer(state, { type: "remove-log-by-id", id: "ghost" })).toBe(state);
+    });
+  });
 });
 
 describe("isLobby", () => {
@@ -440,5 +462,21 @@ describe("isLobby", () => {
   });
   it("stops being the lobby at the first route", () => {
     expect(isLobby({ routes: [{ id: "r1" }] })).toBe(false);
+  });
+});
+
+describe("seatEventOutcome", () => {
+  it("reads the viewer's own seat being deleted as the game going", () => {
+    expect(seatEventOutcome({ eventType: "DELETE", old: { id: "seat-me" } }, "seat-me")).toBe("deleted");
+  });
+
+  it("refreshes for anyone else's seat, and for joins and leaves", () => {
+    expect(seatEventOutcome({ eventType: "DELETE", old: { id: "seat-other" } }, "seat-me")).toBe("refresh");
+    expect(seatEventOutcome({ eventType: "UPDATE", old: { id: "seat-me" } }, "seat-me")).toBe("refresh");
+    expect(seatEventOutcome({ eventType: "INSERT", old: {} }, "seat-me")).toBe("refresh");
+  });
+
+  it("never reads a deletion when the viewer has no seat", () => {
+    expect(seatEventOutcome({ eventType: "DELETE", old: { id: "seat-x" } }, null)).toBe("refresh");
   });
 });
