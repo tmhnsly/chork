@@ -1,6 +1,8 @@
 # Deleting and hiding games — design
 
-**Status:** draft for Tom's review, 2026-09-15.
+**Status:** approved by Tom on 2026-09-15, with all three recommended
+decisions below. Revised while planning: hides live in a private table,
+not on the seat row (see "Removing a game from your games").
 
 **Asked for:** "there is no way for a user to delete a game they've
 created by accident or want to remove from their lists" (Tom, after
@@ -18,7 +20,7 @@ Two actions with two different reaches:
 | **Delete game** | Host | Live or finished | Everyone: the game and everything in it is gone | None |
 | **Remove from my games** | Any player | Finished only | Only your own lists and numbers | Put it back from the game's page |
 
-## Decisions to confirm
+## Decisions (approved)
 
 1. **League weeks.** Agreed: a league week leaves its league before it
    can be deleted. Recommended refinement: a week that is **still live
@@ -108,10 +110,11 @@ through to the join screen, and the summary page 404s.
 deleted is dropped on its first replay. Today the queue treats any
 refused write as retryable: it retries up to its limit, then drops the
 entry with `offline_queue_dropped_mutation`, an error that reaches
-Sentry as lost data. The log action returns a shared "game gone"
-sentinel for this refusal, the way `isAuthRequiredError` works for
-auth, and the queue drops entries carrying it at once, logged as
-expected rather than as lost data.
+Sentry as lost data. When the RPC says the route no longer exists
+('Route not found', P0002), the log action returns a shared sentinel,
+`ROUTE_GONE_ERROR`, the way `isAuthRequiredError` works for auth, and
+the queue discards entries carrying it at once, logged at info level
+rather than as lost data.
 
 ## Removing a game from your games
 
@@ -119,9 +122,14 @@ expected rather than as lost data.
 
 - Any player with a seat. Finished (archived) games only: a live game
   already has Leave for players, and End or Delete for the host.
-- Stored per seat as `set_players.hidden_at`. Not `left_at`, which
-  marks you as left on everyone's board and summary. Nobody else can
-  tell that you hid a game.
+- Stored in a private table, `hidden_matches`, one row per player per
+  hidden game. Not `left_at`, which marks you as left on everyone's
+  board and summary. Not a column on `set_players` either: every player
+  of a game can read all of its seat rows (`set_players_select` is
+  `can_read_set`), so a column there would show your hide to them.
+  `hidden_matches` has no Data API grant and no policies, like
+  `friends`; only SECURITY DEFINER functions read or write it. Nobody
+  else can tell that you hid a game.
 - In your own reads it follows `left_at` (decision 2):
   `get_match_history` (the Games tab's recent games, a profile's games
   list and the gymless career line) and
@@ -139,14 +147,13 @@ games". The page stays put after either, refreshed.
 
 ## Data and API
 
-**Migration 140, `delete_and_hide_games.sql`**
+**Migration 141, `delete_and_hide_games.sql`**
 
-- `alter table public.set_players add column hidden_at timestamptz`.
-  No grant change: the table is already granted. The existing own-row
-  UPDATE policy means a player could also write the column directly
-  through the Data API. It is their own flag and reaches nobody else,
-  so that is accepted rather than reworking the table's UPDATE grant
-  (a column privilege can't narrow a table-level grant).
+- `public.hidden_matches (user_id, set_id, hidden_at)`, primary key
+  `(user_id, set_id)`, both keys cascading from `profiles` and `sets`,
+  so deleting a game or an account takes its hides. RLS enabled with
+  no policies, and every privilege revoked from `anon` and
+  `authenticated`.
 - `public.delete_match(p_set_id uuid) returns uuid`: SECURITY DEFINER,
   `set search_path = ''`, shaped like `end_match` (103).
   - No caller: 'Not authenticated' (42501).
@@ -166,13 +173,16 @@ games". The page stays put after either, refreshed.
     so a non-player can't tell a real game from a missing one.
   - Hiding a game that isn't archived: 'Only a finished game can be
     removed from your games' (22023).
-  - Sets `hidden_at` to `now()` (kept if already set) or null, and
-    returns whether it is now hidden. Same grants as above.
+  - Inserts the caller's row (kept if already there) or deletes it,
+    and returns whether the game is now hidden. Same grants as above.
 - Redefine `get_match_history` (latest: 137) and
-  `get_match_achievement_context` (latest: 085), adding
-  `and sp.hidden_at is null` beside the **caller's** seat filter
-  `sp.left_at is null`. The filters on other players' seats inside
-  them stay as they are, so nobody's hide changes anyone else's badges.
+  `get_match_achievement_context` (latest: 085) to skip games the
+  subject has a `hidden_matches` row for, beside the **subject's** seat
+  filter `sp.left_at is null`. The filters on other players' seats
+  inside them stay as they are, so nobody's hide changes anyone else's
+  badges.
+- Redefine `get_match_state_for_user` (latest: 138) with one more key,
+  `viewer_hidden`: whether the viewer has hidden this game.
 - Regenerate `database.types.ts`.
 
 **Server actions** (`src/app/match/actions.ts`, both opening with
@@ -182,16 +192,16 @@ games". The page stays put after either, refreshed.
 - `deleteMatchAction(matchId): Promise<ActionResult<{ id: string }>>`
 - `setMatchHiddenAction(matchId, hidden): Promise<ActionResult<{ hidden: boolean }>>`
 
-**Data helper:** `getMatchHiddenFor(service, setId, userId): Promise<boolean>`
-in `match-queries.ts`, for the summary page's viewer only. Hidden
-flags never go into `get_match_state_for_user`, which every player of
-the game receives.
+**No new query:** the summary page reads `viewer_hidden` from the
+state bundle it already loads. The bundle is built per viewer, so it
+carries only the viewer's own flag.
 
 **Client**
 
 - `MatchMenuSheet`: for the host, "Delete game" (`variant="ghost"`)
   under End game, with the confirmation above. Offered only where the
-  RPC allows it: not a league week, or a live week with no routes.
+  RPC allows it (`canDeleteGame`): not a league week, or a live week
+  with no routes.
 - `use-match-realtime`: pass the `set_players` payload to
   `onPlayerChange`.
 - `useMatchScreenState`: `handleDelete`, and `onPlayerChange` deciding
@@ -204,8 +214,13 @@ the game receives.
   league week the host sees "This is a week of {league}. Remove it
   from the league first." linking to the league page, instead of
   Delete.
-- `deleteGameWarning(players, viewerId)`: the confirmation's names,
-  in a new pure module `src/lib/data/match-deletion.ts`.
+- `deleteGameWarning(players, viewerId)` and `canDeleteGame(game, viewerId)`:
+  the confirmation's names and the rule for offering Delete, in a new
+  pure module `src/lib/data/match-deletion.ts`.
+- `matchScreenReducer`: a new `remove-log-by-id` removes a log found by
+  its id, because a delete event carries nothing else. Deleting a game
+  fires one per log. `remove-log` stays for the local rollback, which
+  knows the owner and route.
 
 ## Security
 
@@ -216,8 +231,9 @@ the game receives.
   missing game, so an id can't be probed.
 - Delete touches one game: a single `where id = p_set_id`, its
   cascades, and the invite notifications that name it.
-- The hidden flag stays private: only the owner's seat is read, by a
-  server helper.
+- Hides stay private: `hidden_matches` is unreachable through the
+  Data API, and the one read that returns a flag returns the viewer's
+  own.
 - Deleting a game emits a DELETE event per route, log and seat to that
   game's channel. Each carries only the row's id (probe, 2026-09-15),
   so nothing about anyone's climbing travels with it. Supabase doesn't
@@ -239,8 +255,9 @@ the game receives.
   - Hiding a live game is refused; putting a game back restores it; a
     non-player's hide gets 'Game not found'.
 - **Unit:** both actions (malformed id, signed out, each RPC error
-  mapped to its message), `deleteGameWarning`, `seatEventOutcome`, and
-  the offline queue dropping a game-gone refusal on its first replay.
+  mapped to its message), `deleteGameWarning`, `seatEventOutcome`,
+  `canDeleteGame`, `remove-log-by-id` in the reducer, and the offline
+  queue discarding a route-gone refusal on its first replay.
 - **Live**, headless with two throwaway accounts deleted afterwards:
   the player is on the live screen when the host deletes, and lands on
   Games with the toast; the host removes a finished game from their
@@ -250,7 +267,7 @@ the game receives.
 ## Docs to update
 
 CLAUDE.md's game rule; CONTEXT.md (Delete game, Remove from my games,
-hidden versus left); `docs/schema.md`; `docs/migrations.md` row 140;
+hidden versus left); `docs/schema.md`; `docs/migrations.md` row 141;
 `docs/roadmap.md`.
 
 ## Not in this version
@@ -268,7 +285,8 @@ which belongs to the Games session.
   policy (012) is `user_id = auth.uid()` with no check on the set's
   status, so through the Data API a climber can change a finished
   game's result, a league week's placings or an archived gym set's
-  board after the fact.
+  board after the fact. **Fixed by migration 140**, which removes the
+  policy and the grant.
 - **Delete events, corrected.** The first draft of this spec said
   removed logs reach subscribers as full rows with raw attempt counts.
   The probe showed otherwise: every delete event carried only the row's
@@ -277,3 +295,4 @@ which belongs to the Games session.
 - **The live screen's log-delete handler reads fields a delete event
   doesn't carry.** `remove-log` takes the owner and route from
   `evt.old`, which holds only `id`, so its dispatch matches no log.
+  **Folded into this work** (see Client).
