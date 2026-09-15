@@ -83,3 +83,20 @@ export function themeFromCookie(value: string | null | undefined): ThemeName {
 export function htmlThemeAttribute(theme: ThemeName): ThemeName | undefined {
   return theme === DEFAULT_THEME ? undefined : theme;
 }
+
+/**
+ * The palette to scope another climber's profile to, or `undefined` on
+ * your own profile, where your palette is already on `<html>`.
+ *
+ * Chork is scoped too, as an explicit `default`. The viewer's palette
+ * sits on `<html>`, so leaving the attribute off for a Chork climber
+ * showed their profile in the viewer's colours; colors.scss declares
+ * `[data-theme="default"]` alongside `:root` for exactly this.
+ */
+export function profilePaletteScope(
+  profileTheme: string | null | undefined,
+  isOwnProfile: boolean,
+): ThemeName | undefined {
+  if (isOwnProfile) return undefined;
+  return isValidTheme(profileTheme) ? profileTheme : DEFAULT_THEME;
+}

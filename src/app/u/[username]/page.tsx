@@ -23,6 +23,8 @@ import { ProfileGradesSection } from "./_components/ProfileGradesSection";
 import { ProfileLeaguesSection } from "./_components/ProfileLeaguesSection";
 import { PROFILE_SECTION_HEIGHTS } from "./_components/sectionHeights";
 import { CardSkeleton } from "@/components/ui";
+import { PageBackdrop } from "@/components/ui/PageBackdrop";
+import { profilePaletteScope } from "@/lib/theme-palettes";
 import { BadgeShelfSkeleton } from "@/components/ui/BadgeShelf/BadgeShelfSkeleton";
 import styles from "./user.module.scss";
 
@@ -118,16 +120,18 @@ export default async function UserProfilePage({ params }: Props) {
     streak.current > 1 ? `${streak.current}-set streak` : null,
   ].filter((x): x is string => Boolean(x));
 
-  // Show another climber's profile in *their* chosen theme — viewer's
-  // theme restores when they leave the route. Scoped to <main> so the
-  // global nav stays in the viewer's palette.
-  const otherThemeAttr =
-    !isOwnProfile && profileUser.theme && profileUser.theme !== "default"
-      ? { "data-theme": profileUser.theme }
-      : {};
+  // Show another climber's profile in *their* chosen palette, Chork
+  // included; the viewer's palette restores when they leave the route.
+  // Scoped to <main> so the global nav stays in the viewer's palette.
+  const palette = profilePaletteScope(profileUser.theme, isOwnProfile);
 
   return (
-    <main className={styles.page} {...otherThemeAttr}>
+    <main className={styles.page} data-theme={palette}>
+      {/* The ground and lights are theirs too. The shared backdrop sits
+          in the root layout, outside this scope, so on its own it lit
+          another climber's face in the viewer's accent. This one covers
+          it: fixed, out of the page's flow, and painted after it. */}
+      {palette && <PageBackdrop />}
       <ProfileHero
         user={profileUser}
         meta={heroMeta}

@@ -26,7 +26,7 @@ import {
   getSnapshot,
   type ThemeName,
 } from "./theme-store";
-import { PALETTE_COOKIE, htmlThemeAttribute, themeFromCookie } from "./theme-palettes";
+import { PALETTE_COOKIE, htmlThemeAttribute, profilePaletteScope, themeFromCookie } from "./theme-palettes";
 
 const KNOWN_THEMES: ThemeName[] = ["default", "blue", "violet", "pink"];
 
@@ -271,3 +271,23 @@ describe("painting the palette in the browser", () => {
   });
 });
 
+describe("another climber's profile", () => {
+  it("scopes their palette, Chork included, and never your own", () => {
+    expect(profilePaletteScope("pink", false)).toBe("pink");
+    // Found at Yonder: a Chork climber's profile showed in the viewer's
+    // palette, because "default" was left unscoped under a Harbour <html>.
+    expect(profilePaletteScope("default", false)).toBe("default");
+    expect(profilePaletteScope(null, false)).toBe("default");
+    expect(profilePaletteScope("not-a-theme", false)).toBe("default");
+    expect(profilePaletteScope("pink", true)).toBeUndefined();
+  });
+
+  it("paints the page's ground and lights in that palette too", () => {
+    // The shared backdrop lives in the root layout, outside the profile's
+    // palette scope, so it lit the climber's face in the viewer's accent.
+    const page = readFileSync(join(process.cwd(), "src/app/u/[username]/page.tsx"), "utf8");
+    expect(page).toMatch(/profilePaletteScope\(/);
+    expect(page).toMatch(/data-theme=\{palette\}/);
+    expect(page).toMatch(/\{palette && <PageBackdrop \/>\}/);
+  });
+});

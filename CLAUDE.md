@@ -282,8 +282,10 @@ Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
   swapped a beat later, fading buttons through teal. Nothing paints
   `<html>` from a render value; the store paints only on a real
   change, with transitions held off. Visiting another climber's
-  profile scopes their `data-theme` to `<main>` so the route renders
-  in their palette without affecting nav chrome
+  profile scopes their palette to `<main>` (`profilePaletteScope`,
+  Chork included as an explicit `default`) and renders a second
+  `PageBackdrop` inside it, so the whole page is in their palette
+  while the nav keeps the viewer's
 - Accent: Radix `lime` on the default palette. Text on accent uses
   `--accent-on-solid`
 - Surfaces: `@include surface.card` (panels), `surface.chrome`
@@ -292,7 +294,9 @@ Dark-mode-first. Neon lime accent on near-black. Sporty, high-contrast.
   fixed layer with three soft lights in the chord (accent, flash,
   zone), arranged per kind of page (`data-mood`) with their centres
   as registered custom properties so they drift between pages over
-  the route fade — never add a per-page wash. The navbar's glass carries
+  the route fade — never add a per-page wash (another climber's profile is the one
+  exception: it renders a second `PageBackdrop` inside its palette
+  scope, so the ground and lights are theirs). The navbar's glass carries
 `view-transition-name: navbar` so it stays above page snapshots — on
 the glass itself, never a wrapper (a named ancestor is a backdrop
 root and the blur inside goes dead). Its group is clipped to the
