@@ -258,8 +258,8 @@ class MutationQueue {
               break;
             }
 
-            // What it was for is gone — a deleted game, a withdrawn
-            // route. Retrying can't succeed, and it isn't lost work
+            // What it was for is gone: its game was deleted, routes and
+            // all. Retrying can't succeed, and it isn't lost work
             // either, so it goes now, logged as expected.
             if (isPermanentRefusal(error)) {
               logger.info("offline_queue_discarded_refusal", {

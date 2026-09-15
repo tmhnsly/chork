@@ -618,7 +618,9 @@ navbar + home indicator), max-width, and centering.
   `set_match_hidden` takes a finished game off one player's own lists.
   Hides live in `hidden_matches`, which has no Data API access, because
   every player can read a game's seat rows; history and badge context
-  skip a game for the player who hid it and nobody else. A live screen
+  skip a game for the player who hid it and nobody else. The flag is
+  private, the change isn't: someone who shared the game can see it
+  leave your profile. A live screen
   learns of a deletion from its own seat's DELETE event, which carries
   only the row's id
 - **Archived / draft sets are read-only** for climbers. Inserting or

@@ -184,13 +184,15 @@ SECURITY DEFINER RPCs or the service role.
 Who is in a Match. Gym Sets don't use it — membership there is
 `gym_memberships`.
 
-| Field       | Type        | Notes |
+| Field          | Type        | Notes |
 |---|---|---|
-| `set_id`    | uuid FK     | PK part 1, cascades |
-| `user_id`   | uuid FK     | PK part 2, cascades |
-| `joined_at` | timestamptz | |
-| `left_at`   | timestamptz | Null = active. Leaving parks the row, same reasoning as gym memberships |
-| `is_host`   | boolean     | |
+| `id`           | uuid        | PK since 095; it was `(set_id, user_id)`, which can't hold a guest. The bundle's `player_id`, and the only field a realtime DELETE of a seat carries |
+| `set_id`       | uuid FK     | Cascades |
+| `user_id`      | uuid FK     | Null for a guest (095). Cascades from `profiles`; one seat per account per set |
+| `display_name` | text        | A guest's name; null on an account's seat (095) |
+| `joined_at`    | timestamptz | |
+| `left_at`      | timestamptz | Null = active. Leaving parks the row, same reasoning as gym memberships |
+| `is_host`      | boolean     | |
 
 Insert is self-only — you join a Match, you are never added to one.
 

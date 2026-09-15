@@ -945,7 +945,8 @@ export async function upsertMatchLogAction(
     p_player_id: undef(payload.playerId),
   });
   if (error) {
-    // The route is gone: withdrawn, or its game deleted. A shared
+    // The route is gone, because its game was deleted (a withdrawn route
+    // stays, and upsert_match_log doesn't check withdrawn_at). A shared
     // sentinel, so an offline replay is discarded rather than retried.
     if (error.code === "P0002" && error.message === "Route not found") {
       return { error: ROUTE_GONE_ERROR };

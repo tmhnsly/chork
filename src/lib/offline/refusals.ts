@@ -4,8 +4,10 @@
 // both sides. The queue matches these exact strings.
 
 /**
- * The route a log was for no longer exists: withdrawn, or its game was
- * deleted (migration 141). Shown as-is when it happens online.
+ * The route a log was for no longer exists, because its game was deleted
+ * (migration 141). Withdrawing a route only stamps `withdrawn_at`, which
+ * `upsert_match_log` doesn't check, so it never refuses this way. Shown
+ * as-is when it happens online.
  */
 export const ROUTE_GONE_ERROR = "That route isn't in the game any more";
 

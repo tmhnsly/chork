@@ -95,12 +95,21 @@ a seat (there is no DELETE policy, and leaving parks a seat with
 handler:
 
 - The viewer's own seat was deleted: toast "This game was deleted"
-  (warning) and `router.replace("/match")`.
-- Any other seat event: `router.refresh()`, as today. Today a delete
-  would reach only this branch and bounce players to the join screen.
-- The device that pressed Delete sets a ref first, so its own seat's
-  event doesn't toast or navigate twice. A host's other devices take
-  the first branch like anyone else.
+  (warning) and `router.replace("/match")`. From then on the screen
+  ignores realtime events and cancels its debounced board and Chork
+  refetches, and it refreshes Games when it unmounts, once the
+  navigation has landed.
+- Another seat was deleted (the game is going, or that climber's
+  account was deleted): take it off the screen by its id
+  (`remove-player`). Never `router.refresh()` (revised after the final
+  review): the refresh re-rendered a game on its way out, which bounces
+  to the join screen, and it sat in Next's action queue where the
+  navigation above could lose the refetch queued behind it.
+- A join or a leave: `router.refresh()`, as today.
+- The device that pressed Delete marks itself as leaving first, so its
+  own seat's event doesn't toast or navigate twice, and it cancels its
+  refetches too. A host's other devices take the first branch like
+  anyone else.
 
 Anyone not on the live screen simply no longer sees the game listed.
 An old link behaves as a missing game does today: `/match/<id>` falls
@@ -128,8 +137,9 @@ rather than as lost data.
   of a game can read all of its seat rows (`set_players_select` is
   `can_read_set`), so a column there would show your hide to them.
   `hidden_matches` has no Data API grant and no policies, like
-  `friends`; only SECURITY DEFINER functions read or write it. Nobody
-  else can tell that you hid a game.
+  `friends`; only SECURITY DEFINER functions read or write it. The flag
+  is private: nobody else can read it. The change isn't: someone who
+  shared the game can see it leave your profile (revised after review).
 - In your own reads it follows `left_at` (decision 2):
   `get_match_history` (the Games tab's recent games, a profile's games
   list and the gymless career line) and
@@ -205,8 +215,11 @@ carries only the viewer's own flag.
 - `use-match-realtime`: pass the `set_players` payload to
   `onPlayerChange`.
 - `useMatchScreenState`: `handleDelete`, and `onPlayerChange` deciding
-  through a pure `seatEventOutcome(evt, viewerSeatId): "deleted" | "refresh"`
-  beside the reducer, comparing `evt.old.id` with the viewer's own seat.
+  through a pure `seatEventOutcome(evt, viewerSeatId)` beside the
+  reducer, comparing `evt.old.id` with the viewer's own seat. Three
+  outcomes (revised after the final review): `deleted` (the viewer's own
+  seat), `gone` with the seat id (anyone else's), `refresh` (a join or a
+  leave).
 - Summary page: a ⋮ `IconButton` (`FaEllipsisVertical`, label "Game
   options") at the right of the top row, opening a new
   `GameOptionsSheet` in `components/Match`. It holds Remove from my

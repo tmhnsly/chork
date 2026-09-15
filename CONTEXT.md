@@ -84,9 +84,10 @@ their posters. Then:
 - **Delete game** — the host removes a game for everyone, routes and
   sends included (`delete_match`). Badges already earned stay.
 - **Remove from my games** — a player takes a finished game off their
-  own lists and numbers (`set_match_hidden`). Private, and undone from
-  the game's summary page. Not the same as **left**, which everyone
-  else's board shows.
+  own lists and numbers (`set_match_hidden`), undone from the game's
+  summary page. The flag is private; the change isn't: anyone who
+  shared the game can see it leave your profile. Not the same as
+  **left**, which everyone else's board shows.
 
 ## League
 
@@ -447,8 +448,10 @@ accounts on 2026-09-15: a `DELETE` on `route_logs`, `routes` or
 else, to a player and a stranger alike. Supabase applies no RLS to
 delete events, so a stranger subscribed with a game's id learns only
 that rows went, and their ids. A handler therefore works from
-`evt.old.id`; the match screen's `remove-log` still reads the owner and
-route, and is fixed with game deletion.
+`evt.old.id`, and `MatchRealtimeEvent` types a DELETE's `old` as
+`{ id }`, so reading anything else is a compile error. The match screen
+removes a deleted log by id (`remove-log-by-id`) and finds its owner in
+state (`logEntryById`), not in the event.
 
 Both grains are pinned by `src/lib/data/attempt-privacy.test.ts`.
 The SQL mask has been dropped and re-fixed twice already (migrations
