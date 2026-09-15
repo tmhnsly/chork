@@ -7,6 +7,7 @@ import type { MatchState, SavedScale } from "@/lib/data/match-types";
 import { ownerIdOf } from "@/lib/data/match-types";
 import { formatHandicapPoints } from "@/lib/data/handicap";
 import { makeGradeLabeller, SCALE_LABEL } from "@/lib/data/grade-label";
+import { canDeleteGame, deleteGameWarning } from "@/lib/data/match-deletion";
 import { visibleBoardRows, BOARD_PREVIEW_SIZE } from "@/lib/data/match-board";
 import { countOf } from "@/lib/plural";
 import { ChorkBoard } from "./ChorkBoard";
@@ -57,6 +58,7 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
     handleSetCeiling,
     handleEnd,
     handleLeave,
+    handleDelete,
     handleSetup,
     handleGameMode,
     isChork,
@@ -434,9 +436,20 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
       {panel.kind === "menu" && (
         <MatchMenuSheet
           isHost={isHost}
+          canDelete={canDeleteGame(
+            {
+              hostId: initialState.match.host_id,
+              leagueId: initialState.match.league_id,
+              status: initialState.match.status,
+              routeCount: state.routes.length,
+            },
+            userId,
+          )}
+          deleteWarning={deleteGameWarning(state.players, userId)}
           onClose={closePanel}
           onEnd={handleEnd}
           onLeave={handleLeave}
+          onDelete={handleDelete}
           pending={isPending}
         />
       )}

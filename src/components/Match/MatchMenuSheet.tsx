@@ -1,17 +1,25 @@
 "use client";
 
 import { useState } from "react";
-import { FaFlag, FaRightFromBracket } from "react-icons/fa6";
+import { FaFlag, FaRightFromBracket, FaTrashCan } from "react-icons/fa6";
 import {
   BottomSheet,
   Button,
   ConfirmInline,
   SheetBody,
 } from "@/components/ui";
+import styles from "./matchMenuSheet.module.scss";
 
 interface Props {
   /** The host ends; everyone else leaves. */
   isHost: boolean;
+  /**
+   * Offer Delete game: `canDeleteGame`, the rule `delete_match`
+   * enforces. Only ever true for the host.
+   */
+  canDelete: boolean;
+  /** The delete confirmation, naming who else loses the game. */
+  deleteWarning: string;
   onClose: () => void;
   onEnd: () => void;
   /**
@@ -21,17 +29,22 @@ interface Props {
    * the same shape).
    */
   onLeave: () => void;
+  /** Delete the game for everyone. */
+  onDelete: () => void;
   pending: boolean;
 }
 
 export function MatchMenuSheet({
   isHost,
+  canDelete,
+  deleteWarning,
   onClose,
   onEnd,
   onLeave,
+  onDelete,
   pending,
 }: Props) {
-  const [confirming, setConfirming] = useState<"end" | "leave" | null>(null);
+  const [confirming, setConfirming] = useState<"end" | "leave" | "delete" | null>(null);
   return (
     <BottomSheet open onClose={onClose} title="Game menu">
       <SheetBody>
@@ -40,22 +53,37 @@ export function MatchMenuSheet({
             server enforces both; this just stops offering an action
             that would come back as an error. */}
         {confirming === null && (
-          <Button
-            type="button"
-            variant="danger"
-            onClick={() => setConfirming(isHost ? "end" : "leave")}
-            fullWidth
-          >
-            {isHost ? (
-              <>
-                <FaFlag aria-hidden /> End game
-              </>
-            ) : (
-              <>
-                <FaRightFromBracket aria-hidden /> Leave game
-              </>
+          <div className={styles.actions}>
+            <Button
+              type="button"
+              variant="danger"
+              onClick={() => setConfirming(isHost ? "end" : "leave")}
+              fullWidth
+            >
+              {isHost ? (
+                <>
+                  <FaFlag aria-hidden /> End game
+                </>
+              ) : (
+                <>
+                  <FaRightFromBracket aria-hidden /> Leave game
+                </>
+              )}
+            </Button>
+            {/* Deleting reaches further than ending: the game goes for
+                everyone, routes and sends included. Quieter than End
+                game, and confirmed with the names of who loses it. */}
+            {canDelete && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setConfirming("delete")}
+                fullWidth
+              >
+                <FaTrashCan aria-hidden /> Delete game
+              </Button>
             )}
-          </Button>
+          </div>
         )}
 
         {confirming === "end" && (
@@ -86,6 +114,17 @@ export function MatchMenuSheet({
             confirmLabel="Yes, leave"
             pendingLabel="Leaving…"
             onConfirm={onLeave}
+            onCancel={() => setConfirming(null)}
+            pending={pending}
+          />
+        )}
+
+        {confirming === "delete" && (
+          <ConfirmInline
+            prompt={<p>{deleteWarning}</p>}
+            confirmLabel="Yes, delete game"
+            pendingLabel="Deleting…"
+            onConfirm={onDelete}
             onCancel={() => setConfirming(null)}
             pending={pending}
           />

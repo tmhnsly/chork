@@ -1,4 +1,6 @@
-// The menu is end / leave only now — the code, QR and invites moved
-// to MatchJoinPanel. Body rhythm + the confirm flow come from shared
-// primitives (`<SheetBody>` + `<ConfirmInline>`), so nothing is left
-// to style here.
+@use "mixins/layout" as layout;
+
+// End (or Leave) and Delete, stacked with room between the tap targets.
+.actions {
+  @include layout.stack(var(--space-3));
+}
