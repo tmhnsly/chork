@@ -321,6 +321,42 @@ export async function leaveMatchAction(
   return { success: true };
 }
 
+/**
+ * The host deletes a game for everyone: its seats, routes and logs go
+ * with it (migration 141). Live or finished; a league week only while it
+ * is live with no routes. `delete_match` enforces all of it, and answers
+ * a non-player exactly as it would a missing game.
+ */
+export async function deleteMatchAction(
+  matchId: string,
+): Promise<ActionResult<{ id: string }>> {
+  const auth = await gateSignedInMutation(matchId, "match id");
+  if ("error" in auth) return { error: auth.error };
+  const { error } = await auth.supabase.rpc("delete_match", { p_set_id: matchId });
+  if (error) return { error: formatError(error) };
+  refreshGamesPage();
+  return { success: true, id: matchId };
+}
+
+/**
+ * A player takes a finished game off their own lists, or puts it back
+ * (migration 141). Private: nobody else's view of the game changes.
+ */
+export async function setMatchHiddenAction(
+  matchId: string,
+  hidden: boolean,
+): Promise<ActionResult<{ hidden: boolean }>> {
+  const auth = await gateSignedInMutation(matchId, "match id");
+  if ("error" in auth) return { error: auth.error };
+  const { error } = await auth.supabase.rpc("set_match_hidden", {
+    p_set_id: matchId,
+    p_hidden: hidden,
+  });
+  if (error) return { error: formatError(error) };
+  refreshGamesPage();
+  return { success: true, hidden };
+}
+
 // ── Routes ────────────────────────────────────────
 
 interface RoutePayload {

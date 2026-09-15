@@ -619,6 +619,96 @@ describe("game lifecycle refreshes the Games page", () => {
   });
 });
 
+describe("deleteMatchAction", () => {
+  it("rejects a malformed match id", async () => {
+    const { deleteMatchAction } = await import("./actions");
+    expect(await deleteMatchAction("not-a-uuid")).toEqual({ error: "Invalid match id" });
+  });
+
+  it("surfaces auth failure", async () => {
+    await mockAuthFailure();
+    const { deleteMatchAction } = await import("./actions");
+    expect(await deleteMatchAction(MATCH_1)).toEqual({ error: AUTH_REQUIRED });
+  });
+
+  it("deletes and refreshes the Games page", async () => {
+    await mockSignedIn({ "rpc:delete_match": { data: MATCH_1, error: null } });
+    const { revalidatePath } = await import("next/cache");
+    vi.mocked(revalidatePath).mockClear();
+    const { deleteMatchAction } = await import("./actions");
+
+    expect(await deleteMatchAction(MATCH_1)).toEqual({ success: true, id: MATCH_1 });
+    expect(revalidatePath).toHaveBeenCalledWith("/match");
+  });
+
+  it("maps a refusal to a friendly error and refreshes nothing", async () => {
+    await mockSignedIn({
+      "rpc:delete_match": {
+        data: null,
+        error: { code: "42501", message: "Only the host can delete this game" },
+      },
+    });
+    const { revalidatePath } = await import("next/cache");
+    vi.mocked(revalidatePath).mockClear();
+    const { deleteMatchAction } = await import("./actions");
+
+    expect(await deleteMatchAction(MATCH_1)).toEqual({ error: "You don't have permission to do that." });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("passes the league-week refusal through in the database's words", async () => {
+    await mockSignedIn({
+      "rpc:delete_match": {
+        data: null,
+        error: { code: "22023", message: "Remove this week from its league before deleting it" },
+      },
+    });
+    const { deleteMatchAction } = await import("./actions");
+
+    expect(await deleteMatchAction(MATCH_1)).toEqual({
+      error: "Remove this week from its league before deleting it",
+    });
+  });
+});
+
+describe("setMatchHiddenAction", () => {
+  it("rejects a malformed match id", async () => {
+    const { setMatchHiddenAction } = await import("./actions");
+    expect(await setMatchHiddenAction("not-a-uuid", true)).toEqual({ error: "Invalid match id" });
+  });
+
+  it("surfaces auth failure", async () => {
+    await mockAuthFailure();
+    const { setMatchHiddenAction } = await import("./actions");
+    expect(await setMatchHiddenAction(MATCH_1, true)).toEqual({ error: AUTH_REQUIRED });
+  });
+
+  it("hides, puts back, and refreshes the Games page", async () => {
+    await mockSignedIn({ "rpc:set_match_hidden": { data: true, error: null } });
+    const { revalidatePath } = await import("next/cache");
+    vi.mocked(revalidatePath).mockClear();
+    const { setMatchHiddenAction } = await import("./actions");
+
+    expect(await setMatchHiddenAction(MATCH_1, true)).toEqual({ success: true, hidden: true });
+    expect(await setMatchHiddenAction(MATCH_1, false)).toEqual({ success: true, hidden: false });
+    expect(revalidatePath).toHaveBeenCalledWith("/match");
+  });
+
+  it("passes a live-game refusal through in the database's words", async () => {
+    await mockSignedIn({
+      "rpc:set_match_hidden": {
+        data: null,
+        error: { code: "22023", message: "Only a finished game can be removed from your games" },
+      },
+    });
+    const { setMatchHiddenAction } = await import("./actions");
+
+    expect(await setMatchHiddenAction(MATCH_1, true)).toEqual({
+      error: "Only a finished game can be removed from your games",
+    });
+  });
+});
+
 // ── Invites ─────────────────────────────────────────
 
 const USER_B = "22222222-2222-2222-2222-222222222222";
