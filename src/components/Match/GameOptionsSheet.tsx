@@ -13,10 +13,13 @@ import {
   showToast,
 } from "@/components/ui";
 import { deleteMatchAction, setMatchHiddenAction } from "@/app/match/actions";
+import { gameOptions } from "@/lib/data/match-deletion";
 import styles from "./gameOptionsSheet.module.scss";
 
 interface Props {
   matchId: string;
+  /** The game has ended. Only a finished game can be taken off your games. */
+  finished: boolean;
   /** The viewer has taken this game off their own games. */
   hidden: boolean;
   /** Offer Delete game (`canDeleteGame`). */
@@ -28,15 +31,27 @@ interface Props {
 }
 
 /**
- * A finished game's ⋮ menu (migration 141). Everyone can take the game
- * off their own games and put it back; the host can delete it for
- * everyone, unless it's a league week, which leaves its league first.
+ * A game's ⋮ menu on its summary page (migration 141). Everyone can take
+ * a finished game off their own games and put it back; the host can
+ * delete it for everyone, unless it's a league week, which leaves its
+ * league first. It offers only what the server allows (`gameOptions`),
+ * and isn't there at all when that's nothing: a player on a live game.
  */
-export function GameOptionsSheet({ matchId, hidden, canDelete, leagueWeek, deleteWarning }: Props) {
+export function GameOptionsSheet({
+  matchId,
+  finished,
+  hidden,
+  canDelete,
+  leagueWeek,
+  deleteWarning,
+}: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [confirming, setConfirming] = useState<"remove" | "delete" | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const options = gameOptions({ finished, hidden, canDelete, leagueWeek: leagueWeek !== null });
+  if (options === null) return null;
 
   function close() {
     setOpen(false);
@@ -78,7 +93,7 @@ export function GameOptionsSheet({ matchId, hidden, canDelete, leagueWeek, delet
           <SheetBody>
             {confirming === null && (
               <div className={styles.actions}>
-                {hidden ? (
+                {options.hide === "put-back" && (
                   <Button
                     type="button"
                     variant="secondary"
@@ -88,7 +103,8 @@ export function GameOptionsSheet({ matchId, hidden, canDelete, leagueWeek, delet
                   >
                     <FaEye aria-hidden /> Put back in my games
                   </Button>
-                ) : (
+                )}
+                {options.hide === "remove" && (
                   <Button
                     type="button"
                     variant="secondary"
@@ -98,7 +114,7 @@ export function GameOptionsSheet({ matchId, hidden, canDelete, leagueWeek, delet
                     <FaEyeSlash aria-hidden /> Remove from my games
                   </Button>
                 )}
-                {canDelete && (
+                {options.delete && (
                   <Button
                     type="button"
                     variant="danger"
@@ -108,7 +124,7 @@ export function GameOptionsSheet({ matchId, hidden, canDelete, leagueWeek, delet
                     <FaTrashCan aria-hidden /> Delete game
                   </Button>
                 )}
-                {leagueWeek && (
+                {options.leagueNote && leagueWeek && (
                   <p className={styles.note}>
                     This is a week of{" "}
                     <Link href={`/match/league/${leagueWeek.id}`}>{leagueWeek.name}</Link>.
@@ -128,6 +144,8 @@ export function GameOptionsSheet({ matchId, hidden, canDelete, leagueWeek, delet
                 }
                 confirmLabel="Yes, remove it"
                 pendingLabel="Removing…"
+                // Reversible from this page, so not styled as destructive.
+                confirmVariant="primary"
                 onConfirm={() => setHidden(true)}
                 onCancel={() => setConfirming(null)}
                 pending={pending}

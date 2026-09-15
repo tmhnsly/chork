@@ -54,3 +54,34 @@ export function canDeleteGame(game: DeletableGame, viewerId: string): boolean {
   if (game.leagueId === null) return true;
   return game.status === "live" && game.routeCount === 0;
 }
+
+/** What a game's options sheet offers the viewer. */
+export interface GameOptions {
+  /** Take a finished game off your games, or put a hidden one back. */
+  hide: "remove" | "put-back" | null;
+  /** Delete game, for everyone (`canDeleteGame`). */
+  delete: boolean;
+  /** Why a host's league week has no Delete. */
+  leagueNote: boolean;
+}
+
+/**
+ * The options sheet's items, or null when it has none to offer. Only a
+ * finished game can be taken off your games (`set_match_hidden` refuses
+ * a live one), and the league note stands in for Delete, so it never
+ * sits beside it.
+ */
+export function gameOptions(game: {
+  finished: boolean;
+  hidden: boolean;
+  canDelete: boolean;
+  /** The viewer hosts this game, and it's a league week. */
+  leagueWeek: boolean;
+}): GameOptions | null {
+  const options: GameOptions = {
+    hide: game.hidden ? "put-back" : game.finished ? "remove" : null,
+    delete: game.canDelete,
+    leagueNote: game.leagueWeek && !game.canDelete,
+  };
+  return options.hide !== null || options.delete || options.leagueNote ? options : null;
+}

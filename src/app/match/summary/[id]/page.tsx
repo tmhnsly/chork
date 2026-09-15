@@ -134,6 +134,7 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
           )}
           <GameOptionsSheet
             matchId={id}
+            finished={summary.status === "archived"}
             hidden={state.viewer_hidden === true}
             canDelete={canDeleteGame(
               {
