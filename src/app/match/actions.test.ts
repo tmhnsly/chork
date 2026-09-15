@@ -669,6 +669,18 @@ describe("deleteMatchAction", () => {
       error: "Remove this week from its league before deleting it",
     });
   });
+
+  it("passes a missing game through in the database's words and refreshes nothing", async () => {
+    await mockSignedIn({
+      "rpc:delete_match": { data: null, error: { code: "P0002", message: "Game not found" } },
+    });
+    const { revalidatePath } = await import("next/cache");
+    vi.mocked(revalidatePath).mockClear();
+    const { deleteMatchAction } = await import("./actions");
+
+    expect(await deleteMatchAction(MATCH_1)).toEqual({ error: "Game not found" });
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
 });
 
 describe("setMatchHiddenAction", () => {
@@ -706,6 +718,18 @@ describe("setMatchHiddenAction", () => {
     expect(await setMatchHiddenAction(MATCH_1, true)).toEqual({
       error: "Only a finished game can be removed from your games",
     });
+  });
+
+  it("passes a missing game through in the database's words and refreshes nothing", async () => {
+    await mockSignedIn({
+      "rpc:set_match_hidden": { data: null, error: { code: "P0002", message: "Game not found" } },
+    });
+    const { revalidatePath } = await import("next/cache");
+    vi.mocked(revalidatePath).mockClear();
+    const { setMatchHiddenAction } = await import("./actions");
+
+    expect(await setMatchHiddenAction(MATCH_1, true)).toEqual({ error: "Game not found" });
+    expect(revalidatePath).not.toHaveBeenCalled();
   });
 });
 
