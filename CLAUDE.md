@@ -610,8 +610,11 @@ navbar + home indicator), max-width, and centering.
   leagues get their own setup flow. Starting a game while you host an
   empty one reopens it with the setup you typed (137, 139), and the
   hourly sweep ends a game with no routes after 3 idle hours
-- **Archived / draft sets are read-only** for climbers. Migration 003
-  blocks inserts against non-live sets at the RLS layer
+- **Archived / draft sets are read-only** for climbers. Inserting or
+  updating a log needs a live set (003, 102), and nobody deletes a log
+  through the Data API at all (140): a log goes only with its route,
+  set or account. Until 140 a climber could delete their own log from a
+  finished game and rewrite its result
 - **Legacy `sets.active` is derived from `sets.status`** via a
   trigger. New code writes `status`; old readers of `active` still
   work. Prefer `status` in new code

@@ -173,6 +173,12 @@ membership, a Match log needs `is_set_player(set_id)`. The gym branch
 is first because it's the hot path. `set-id-integrity.test.ts` pins
 both the trigger and the rule that no app code writes `set_id`.
 
+Writes: an insert or update needs a live set (003, 102). **Nobody
+deletes a log through the Data API** (migration 140 dropped the
+own-row DELETE policy and revoked the grant): a log goes only with its
+route, its set or its climber's account, through cascades started by
+SECURITY DEFINER RPCs or the service role.
+
 ### set_players
 
 Who is in a Match. Gym Sets don't use it — membership there is

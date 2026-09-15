@@ -435,6 +435,15 @@ there as a defence-in-depth pair, and the value is never rendered.
 Reopen only with a filtered publication or realtime RLS — not by
 moving the client collapse around.
 
+**Delete events carry only the row's id.** Checked with throwaway
+accounts on 2026-09-15: a `DELETE` on `route_logs`, `routes` or
+`set_players` reaches a game's subscribers as `{ id }` and nothing
+else, to a player and a stranger alike. Supabase applies no RLS to
+delete events, so a stranger subscribed with a game's id learns only
+that rows went, and their ids. A handler therefore works from
+`evt.old.id`; the match screen's `remove-log` still reads the owner and
+route, and is fixed with game deletion.
+
 Both grains are pinned by `src/lib/data/attempt-privacy.test.ts`.
 The SQL mask has been dropped and re-fixed twice already (migrations
 052 and 056, both caught by review rather than by a test), which is
