@@ -4,6 +4,7 @@ import { GymStatsStripSkeleton } from "./GymStatsStripSkeleton";
 import { PodiumSkeleton } from "./PodiumSkeleton";
 import { ScoringBreakdown } from "./ScoringBreakdown";
 import { InviteCardSkeleton } from "./InviteCardSkeleton";
+import { Named } from "@/components/motion";
 import boardStyles from "./leaderboardView.module.scss";
 import listStyles from "./leaderboardList.module.scss";
 
@@ -21,13 +22,15 @@ export function LeaderboardSkeleton() {
       <div className={boardStyles.segmentRow}>
         <SegmentedControlSkeleton options={["This set", "All time"]} />
       </div>
-      <div className={boardStyles.board} data-vt="board">
-        <PodiumSkeleton />
-        <ul className={listStyles.list}>
-          <li><LeaderboardRowSkeleton rank={4} /></li>
-          <li><LeaderboardRowSkeleton rank={5} /></li>
-        </ul>
-      </div>
+      <Named name="board">
+        <div className={boardStyles.board}>
+          <PodiumSkeleton />
+          <ul className={listStyles.list}>
+            <li><LeaderboardRowSkeleton rank={4} /></li>
+            <li><LeaderboardRowSkeleton rank={5} /></li>
+          </ul>
+        </div>
+      </Named>
       <ScoringBreakdown />
       <InviteCardSkeleton />
     </div>

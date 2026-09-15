@@ -221,7 +221,11 @@ export function LeaderboardView({
           {/* The board is one object — podium head, rows, browse —
               in glass over the ground. The explainer and the invite
               are their own cards on the page rhythm, not tenants. */}
-          <div className={styles.board} data-vt="board">
+          {/* Not named: the skeleton wears `board` so the rank strip can
+              morph into it, and content that arrives mid-transition
+              with the same name made two `board`s at once — the
+              browser aborts the whole transition ("invalid state"). */}
+          <div className={styles.board}>
           {podiumEntries.length > 0 && (
             <Podium
               top={podiumEntries}

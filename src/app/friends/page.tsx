@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { requireSignedIn } from "@/lib/auth";
-import { PageHeader, Reveal } from "@/components/motion";
+import { PageHeader, Reveal, Named } from "@/components/motion";
 import { CardSkeleton } from "@/components/ui";
 import { FriendSearch } from "@/components/Friends/FriendSearch";
 import { FriendsContent } from "./FriendsContent";
@@ -31,9 +31,11 @@ export default async function FriendsPage() {
       <FriendSearch />
       <Reveal
         fallback={
-          <div className={styles.content} data-vt="friends-content" aria-hidden>
-            <CardSkeleton height="14rem" ariaLabel="Loading friends" />
-          </div>
+          <Named name="friends-content" share="reveal">
+            <div className={styles.content} aria-hidden>
+              <CardSkeleton height="14rem" ariaLabel="Loading friends" />
+            </div>
+          </Named>
         }
       >
         <FriendsContent />

@@ -21,66 +21,29 @@
   mix-blend-mode: normal;
 }
 
-// Shared elements: the same name on two pages makes the browser
-// morph one into the other across the route fade. The Card page's
-// rank strip becomes the Chorkboard's board (the strip links there);
-// the Games landing's live-game banner becomes the game's hero. The
-// group keeps the UA's default tween — position and size — which is
-// the morph; old and new cross-fade inside it on the page's rungs.
-[data-vt="board"] {
-  view-transition-name: board;
-}
-
-[data-vt="game"] {
-  view-transition-name: game;
-}
-
-::view-transition-group(board),
-::view-transition-group(game) {
+// Named participants (components/motion/Named): React assigns the
+// name, and switches it OFF while the element's page is arriving or
+// leaving — an element that exists on only one page must never
+// become an old-only group, which Safari shrinks over the new page.
+// What remains: `.morph` for a cross-page share (the rank strip
+// becoming the board, the live banner becoming the game hero), where
+// the group keeps the UA's position-and-size tween; `.reveal` for a
+// skeleton becoming its content in place; `.tween` for a sibling
+// sliding when a streamed section lands.
+::view-transition-group(.morph),
+::view-transition-group(.reveal),
+::view-transition-group(.tween) {
   animation-duration: var(--duration-normal);
   animation-timing-function: var(--ease-out-expo);
 }
 
-::view-transition-old(board),
-::view-transition-old(game) {
+::view-transition-old(.morph),
+::view-transition-old(.reveal) {
   animation: vt-page-out var(--duration-fast) var(--ease-out) both;
 }
 
-::view-transition-new(board),
-::view-transition-new(game) {
-  animation: vt-page-in var(--duration-normal) var(--ease-out-expo) both;
-}
-
-// Sections that shift when a streamed sibling lands: named, so the
-// browser tweens them into place instead of the page snapping to a
-// new shape. The streamed block itself carries the same name in its
-// skeleton and its content, so the reveal morphs between the two.
-[data-vt="next-game"] {
-  view-transition-name: next-game;
-}
-
-[data-vt="recent-games"] {
-  view-transition-name: recent-games;
-}
-
-[data-vt="friends-content"] {
-  view-transition-name: friends-content;
-}
-
-::view-transition-group(next-game),
-::view-transition-group(recent-games),
-::view-transition-group(friends-content) {
-  animation-duration: var(--duration-normal);
-  animation-timing-function: var(--ease-out-expo);
-}
-
-::view-transition-old(recent-games),
-::view-transition-old(friends-content) {
-  animation: vt-page-out var(--duration-fast) var(--ease-out) both;
-}
-
-::view-transition-new(recent-games),
-::view-transition-new(friends-content) {
+::view-transition-new(.morph),
+::view-transition-new(.reveal) {
   animation: vt-page-in var(--duration-normal) var(--ease-out-expo) both;
 }
 

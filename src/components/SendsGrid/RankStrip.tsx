@@ -4,6 +4,7 @@ import Link from "next/link";
 import { FaChevronRight, FaArrowUp, FaTrophy, FaMedal, FaRankingStar } from "react-icons/fa6";
 import { countOf } from "@/lib/plural";
 import type { MyRank } from "@/app/(app)/rank-actions";
+import { Named } from "@/components/motion";
 import styles from "./rankStrip.module.scss";
 
 interface Props {
@@ -59,11 +60,11 @@ export function RankStrip({ rank, gained }: Props) {
         : null;
 
   return (
+    <Named name="board">
     <Link
       href="/leaderboard"
       className={styles.strip}
       data-tier={tier}
-      data-vt="board"
       aria-label={
         unranked
           ? "You're not on the board yet. Open the full standings."
@@ -109,5 +110,6 @@ export function RankStrip({ rank, gained }: Props) {
 
       <FaChevronRight className={styles.chevron} aria-hidden />
     </Link>
+    </Named>
   );
 }

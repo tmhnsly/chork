@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireSignedIn } from "@/lib/auth";
-import { PageHeader, Reveal } from "@/components/motion";
+import { PageHeader, Reveal, Named } from "@/components/motion";
 import { NextGameCard } from "./NextGameCard";
 import { LiveGame } from "./LiveGame";
 import { RecentGames, RecentGamesSkeleton } from "./RecentGames";
@@ -32,9 +32,9 @@ export default async function MatchPage() {
       <Reveal fallback={null}>
         <LiveGame />
       </Reveal>
-      <div data-vt="next-game">
+      <Named name="next-game" update="tween">
         <NextGameCard />
-      </div>
+      </Named>
       <Reveal fallback={<RecentGamesSkeleton />}>
         <RecentGames />
       </Reveal>

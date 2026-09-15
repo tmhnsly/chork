@@ -8,6 +8,7 @@ import { ChorkMark, LinkButton } from "@/components/ui";
 import { MatchHistoryList } from "@/components/Match/MatchHistoryList";
 import { MatchHistoryRowSkeleton } from "@/components/Match/MatchHistoryRowSkeleton";
 import { LeagueList } from "@/components/League/LeagueList";
+import { Named } from "@/components/motion";
 import styles from "./match.module.scss";
 
 const RECENT_MATCHES_LIMIT = 5;
@@ -22,7 +23,8 @@ export async function RecentGames() {
   ]);
 
   return (
-    <div className={styles.history} data-vt="recent-games">
+    <Named name="recent-games" share="reveal" update="tween">
+    <div className={styles.history}>
       {leagues.length > 0 && (
         <section className={styles.historySection} aria-labelledby="leagues-heading">
           <div className={styles.historyHeader}>
@@ -61,21 +63,24 @@ export async function RecentGames() {
         )}
       </section>
     </div>
+    </Named>
   );
 }
 
 /** `RecentGames`, waiting: the heading and three rows on the list's stylesheet. */
 export function RecentGamesSkeleton() {
   return (
-    <div className={styles.history} data-vt="recent-games" aria-hidden>
-      <section className={styles.historySection}>
-        <div className={styles.historyHeader}>
-          <h2 className={styles.historyHeading}>Recent games</h2>
-        </div>
-        <MatchHistoryRowSkeleton />
-        <MatchHistoryRowSkeleton />
-        <MatchHistoryRowSkeleton />
-      </section>
-    </div>
+    <Named name="recent-games" share="reveal" update="tween">
+      <div className={styles.history} aria-hidden>
+        <section className={styles.historySection}>
+          <div className={styles.historyHeader}>
+            <h2 className={styles.historyHeading}>Recent games</h2>
+          </div>
+          <MatchHistoryRowSkeleton />
+          <MatchHistoryRowSkeleton />
+          <MatchHistoryRowSkeleton />
+        </section>
+      </div>
+    </Named>
   );
 }

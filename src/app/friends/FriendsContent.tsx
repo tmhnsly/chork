@@ -12,6 +12,7 @@ import { formatSetLabel } from "@/lib/data/set-label";
 import { FriendsBoard } from "@/components/Friends/FriendsBoard";
 import { MomentsFeed } from "@/components/Friends/MomentsFeed";
 import { FriendsList } from "@/components/Friends/FriendsList";
+import { Named } from "@/components/motion";
 import styles from "./friends.module.scss";
 
 /** Everything on /friends that needs data, streamed as one block. */
@@ -39,7 +40,8 @@ export async function FriendsContent() {
       : [];
 
   return (
-    <div className={styles.content} data-vt="friends-content">
+    <Named name="friends-content" share="reveal">
+    <div className={styles.content}>
       {currentSet && board.length > 1 && (
         <FriendsBoard rows={board} setLabel={formatSetLabel(currentSet)} />
       )}
@@ -54,5 +56,6 @@ export async function FriendsContent() {
         suggestions={suggestions}
       />
     </div>
+    </Named>
   );
 }

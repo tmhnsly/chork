@@ -23,6 +23,7 @@ import { MatchLobby } from "./MatchLobby";
 import { MatchSetupPills } from "./MatchSetupPills";
 import { MatchSetupSheet } from "./MatchSetupSheet";
 import { MatchInviteSheet } from "./MatchInviteSheet";
+import { Named } from "@/components/motion";
 import { useMatchScreenState } from "./useMatchScreenState";
 import styles from "./matchScreen.module.scss";
 import { matchTitle } from "@/lib/data/match-title";
@@ -162,7 +163,8 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
 
   return (
     <main className={styles.screen}>
-      <header className={styles.hero} data-vt="game">
+      <Named name="game">
+      <header className={styles.hero}>
         <h1 className={styles.title}>{matchTitle(initialState.match)}</h1>
         {/* The setup, worn: game · climbing · grading · details, with
             the menu at the row's end. The host taps a pill to change
@@ -226,6 +228,7 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
             )}
         </div>
       </header>
+      </Named>
 
       {lobby ? (
         <MatchLobby

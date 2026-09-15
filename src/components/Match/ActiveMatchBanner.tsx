@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FaFire, FaArrowRight } from "react-icons/fa6";
 import type { ActiveMatchSummary } from "@/lib/data/match-types";
+import { Named } from "@/components/motion";
 import styles from "./activeMatchBanner.module.scss";
 import { countOf } from "@/lib/plural";
 import { matchTitle } from "@/lib/data/match-title";
@@ -20,8 +21,8 @@ export function ActiveMatchBanner({ match }: Props) {
   const playerLabel = countOf(match.player_count, "player");
 
   return (
+    <Named name="game">
     <Link
-      data-vt="game"
       href={`/match/${match.set_id}`}
       className={styles.banner}
       aria-label={`Resume ${name}`}
@@ -41,5 +42,6 @@ export function ActiveMatchBanner({ match }: Props) {
         <FaArrowRight aria-hidden />
       </span>
     </Link>
+    </Named>
   );
 }
