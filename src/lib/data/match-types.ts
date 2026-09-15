@@ -247,6 +247,12 @@ export interface MatchState {
    */
   other_logs?: MatchLog[];
   leaderboard: MatchLeaderboardRow[];
+  /**
+   * Whether the viewer took this game off their own games (migration
+   * 141). Only ever the viewer's own flag: the bundle is built per
+   * viewer. Absent from a bundle served before 141.
+   */
+  viewer_hidden?: boolean;
 }
 
 /** Resume-banner payload (minimal). */

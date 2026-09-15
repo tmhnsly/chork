@@ -539,6 +539,39 @@ export type Database = {
         }
         Relationships: []
       }
+      hidden_matches: {
+        Row: {
+          hidden_at: string
+          set_id: string
+          user_id: string
+        }
+        Insert: {
+          hidden_at?: string
+          set_id: string
+          user_id: string
+        }
+        Update: {
+          hidden_at?: string
+          set_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hidden_matches_set_id_fkey"
+            columns: ["set_id"]
+            isOneToOne: false
+            referencedRelation: "sets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hidden_matches_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leagues: {
         Row: {
           created_at: string
@@ -1425,6 +1458,7 @@ export type Database = {
           id: string
         }[]
       }
+      delete_match: { Args: { p_set_id: string }; Returns: string }
       discipline_family: { Args: { p_discipline: string }; Returns: string }
       end_league: { Args: { p_league_id: string }; Returns: string }
       end_match: {
@@ -2226,6 +2260,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      set_match_hidden: {
+        Args: { p_hidden: boolean; p_set_id: string }
+        Returns: boolean
       }
       set_match_setup: {
         Args: {

@@ -194,6 +194,25 @@ Who is in a Match. Gym Sets don't use it — membership there is
 
 Insert is self-only — you join a Match, you are never added to one.
 
+### hidden_matches
+
+Finished games a player took off their own lists (migration 141). One
+row per player per hidden game; deleting the game or the account takes
+it.
+
+| Field       | Type        | Notes |
+|---|---|---|
+| `user_id`   | uuid FK     | PK part 1, cascades from `profiles` |
+| `set_id`    | uuid FK     | PK part 2, cascades from `sets` |
+| `hidden_at` | timestamptz | |
+
+**No Data API grant and no policies**, like `leagues`. Every player of
+a game can read all of its `set_players` rows, so the flag can't live
+there. Only `set_match_hidden` writes it; `get_match_history` and
+`get_match_achievement_context` skip hidden games for their subject,
+and `get_match_state_for_user` returns the viewer's own flag as
+`viewer_hidden`.
+
 ### set_grades
 
 Custom (named, non-numeric) ladder labels — "slab", "the roof",
@@ -449,6 +468,17 @@ tables.
   `set_grades`, and optionally saves that ladder to
   `user_custom_scales` for reuse. Validation lives in
   `match_setup_check(...)` (migration 136), shared with the next one. A host who already has an **empty live game** (no routes, same league or none) gets that game back with the new setup instead of a second one (migration 137): its players stay, the name and location typed on the setup page replace the old ones (139), `game_mode` resets, `last_activity_at` restarts
+- `delete_match(set_id)` → uuid — the host deletes a game for everyone
+  (migration 141). Seats, routes, logs, the grade ladder and pending
+  `match_invite_received` notifications go with it; badges stay.
+  'Game not found' (P0002) for a missing game and a non-player alike;
+  'Only the host can delete this game' (42501); a finished league week,
+  or a live one with routes, gets 'Remove this week from its league
+  before deleting it' (22023)
+- `set_match_hidden(set_id, hidden)` → boolean — the caller takes a
+  finished game off their own lists, or puts it back (migration 141).
+  Hiding a live game is refused (22023); a non-player gets 'Game not
+  found'
 - `set_match_setup(set_id, name, location, discipline, grading_scale,
   min_grade, max_grade, custom_grades[], save_scale_name,
   alt_grading_scale, alt_min_grade, alt_max_grade)` → `sets` — the
