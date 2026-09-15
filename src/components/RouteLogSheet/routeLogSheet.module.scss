@@ -437,9 +437,23 @@
   flex-wrap: wrap;
 }
 
+// The zone row and the complete button share the row at a FIXED
+// split — two fifths to three — rather than each taking its content
+// width. Sized by content, the row grew when "Log an attempt first"
+// swapped for the toggle after the first attempt, and the button
+// jumped with it. While the row is collapsed (route completed) it
+// gives its share up so the completed row can take the whole line.
 .zoneSlot {
-  flex: 0 1 auto;
+  flex: 2 1 0;
   min-width: 0;
+
+  &[inert] {
+    flex: 0 0 0;
+  }
+}
+
+.actionRow > :last-child {
+  flex: 3 1 0;
 }
 
 // Reserves the post form's height while comments load, so a
