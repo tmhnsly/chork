@@ -3,6 +3,7 @@ import {
   initMatchState,
   matchReducer,
   logKey,
+  logEntryById,
   isLobby,
   seatEventOutcome,
   type MatchAction,
@@ -478,5 +479,17 @@ describe("seatEventOutcome", () => {
 
   it("never reads a deletion when the viewer has no seat", () => {
     expect(seatEventOutcome({ eventType: "DELETE", old: { id: "seat-x" } }, null)).toBe("refresh");
+  });
+});
+
+describe("logEntryById", () => {
+  it("finds a log by its id, whatever its key", () => {
+    const log = mkLog("u1", "r1");
+    const logs = new Map([[logKey("u1", "r1"), log]]);
+    expect(logEntryById(logs, "u1-r1")).toEqual([logKey("u1", "r1"), log]);
+  });
+
+  it("returns undefined for an id it doesn't hold", () => {
+    expect(logEntryById(new Map(), "ghost")).toBeUndefined();
   });
 });

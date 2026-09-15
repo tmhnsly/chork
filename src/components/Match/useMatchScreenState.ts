@@ -39,6 +39,7 @@ import {
   initMatchState,
   matchReducer,
   seatEventOutcome,
+  logEntryById,
   type MatchPanel,
   logKey,
 } from "./matchScreenReducer";
@@ -203,6 +204,13 @@ export function useMatchScreenState({
       else scheduleBoard(undefined);
     },
     onLogChange: (evt) => {
+      // The scoring check below needs the log's owner even on a
+      // DELETE, whose payload carries only the id — so on a DELETE
+      // it's read from state, before the dispatch removes it there.
+      const row =
+        evt.eventType === "DELETE"
+          ? logEntryById(state.logs, evt.old.id)?.[1]
+          : evt.new;
       if (evt.eventType === "DELETE") {
         // A DELETE event carries only the log's id (checked 2026-09-15).
         dispatch({ type: "remove-log-by-id", id: evt.old.id });
@@ -216,9 +224,12 @@ export function useMatchScreenState({
       if (isChork) scheduleChork(undefined);
       else {
         // Seats scored here already moved with the dispatch above; only
-        // someone else's log needs the server's scoring.
-        const row = evt.eventType === "DELETE" ? evt.old : evt.new;
-        const scoredLocally = row.user_id === userId || (row.user_id === null && isHost);
+        // someone else's log needs the server's scoring. A log this
+        // screen never held (row undefined) still triggers the
+        // refetch — the safe default.
+        const scoredLocally =
+          row !== undefined &&
+          (row.user_id === userId || (row.user_id === null && isHost));
         if (!scoredLocally) scheduleBoard(undefined);
       }
     },

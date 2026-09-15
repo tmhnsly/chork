@@ -99,6 +99,21 @@ export function logKey(userId: string, routeId: string): string {
 }
 
 /**
+ * The logs entry holding the log with this id, if any. A realtime DELETE
+ * carries only the id (checked 2026-09-15), and logs are keyed by owner
+ * and route, so a deleted log is found by value.
+ */
+export function logEntryById(
+  logs: Map<string, MatchLog>,
+  id: string,
+): [key: string, log: MatchLog] | undefined {
+  for (const entry of logs) {
+    if (entry[1].id === id) return entry;
+  }
+  return undefined;
+}
+
+/**
  * A live match with no routes yet: setup is still open, and grading
  * locks with the first route. Not a status — derived. There is no
  * lobby screen any more; the name stayed because the rule did.
@@ -228,13 +243,11 @@ export function matchReducer(
       return { ...state, logs };
     }
     case "remove-log-by-id": {
-      for (const [key, log] of state.logs) {
-        if (log.id !== action.id) continue;
-        const logs = new Map(state.logs);
-        logs.delete(key);
-        return { ...state, logs };
-      }
-      return state;
+      const entry = logEntryById(state.logs, action.id);
+      if (!entry) return state;
+      const logs = new Map(state.logs);
+      logs.delete(entry[0]);
+      return { ...state, logs };
     }
     case "open-panel":
       return { ...state, panel: action.panel };
