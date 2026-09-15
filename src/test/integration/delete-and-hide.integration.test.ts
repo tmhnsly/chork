@@ -246,6 +246,53 @@ describe.skipIf(!canRunIntegration)("deleting and hiding games (integration)", (
       createdSetIds.delete(accidental);
       expect(await setRows(accidental)).toBe(0);
     });
+
+    it("answers a log for one of its routes with 'Route not found' (P0002), the refusal the offline queue discards", async () => {
+      const setId = await game("int: log to a deleted game's route");
+      const { data: route, error: routeError } = await service
+        .from("routes")
+        .select("id")
+        .eq("set_id", setId)
+        .single();
+      expect(routeError).toBeNull();
+
+      const { error: deleteError } = await hostClient.rpc("delete_match", { p_set_id: setId });
+      expect(deleteError).toBeNull();
+      createdSetIds.delete(setId);
+
+      // upsertMatchLogAction maps exactly this pair to ROUTE_GONE_ERROR.
+      const { error } = await playerClient.rpc("upsert_match_log", {
+        p_route_id: route!.id,
+        p_attempts: 3,
+        p_completed: true,
+        p_zone: false,
+      });
+      expect(error?.code).toBe("P0002");
+      expect(error?.message).toBe("Route not found");
+    });
+
+    it("takes a finished game's hides with it", async () => {
+      const setId = await game("int: delete a hidden game", { end: true });
+      const hideRows = () =>
+        count(
+          service
+            .from("hidden_matches")
+            .select("set_id", { count: "exact", head: true })
+            .eq("set_id", setId),
+        );
+      const { error: hideError } = await playerClient.rpc("set_match_hidden", {
+        p_set_id: setId,
+        p_hidden: true,
+      });
+      expect(hideError).toBeNull();
+      expect(await hideRows()).toBe(1);
+
+      const { error } = await hostClient.rpc("delete_match", { p_set_id: setId });
+
+      expect(error).toBeNull();
+      createdSetIds.delete(setId);
+      expect(await hideRows()).toBe(0);
+    });
   });
 
   describe("set_match_hidden", () => {
