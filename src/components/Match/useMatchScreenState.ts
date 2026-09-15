@@ -147,11 +147,11 @@ export function useMatchScreenState({
   // viewer's own seat's DELETE arrived) or this device is deleting it
   // ("deleting"). From then on nothing here may add to Next's router
   // queue while the navigation to Games is in flight. In Next 16.2 a
-  // navigation discards the pending action but leaves the queue's tail
-  // on it (`dispatchAction` in app-router-instance.js), so anything
-  // dispatched next either hangs off the discarded action and never
-  // runs, or starts from the old page's state, and React renders that
-  // instead of Games: the player stays here under the toast. So realtime
+  // navigation discards the pending action without moving the queue's
+  // tail (`dispatchAction` in app-router-instance.js), so what's
+  // dispatched next can hang off the discarded action and never run, or
+  // start from the old page's state, and React renders that instead of
+  // Games: the player stays here under the toast. So realtime
   // events are ignored, both debounced refetches are cancelled, and a
   // refetch already on the wire keeps its answer to itself.
   const leavingRef = useRef<"deleting" | "deleted" | null>(null);
@@ -207,9 +207,9 @@ export function useMatchScreenState({
   // landed, which is when this screen unmounts. Next applies a
   // navigation to its queue before React commits it, so this refresh
   // can't hang off an action the navigation discarded. Dispatched
-  // straight after the replace it could, whenever something was already
-  // in flight as the seat's DELETE arrived. The device that pressed
-  // Delete needs none: its own action revalidated its cache.
+  // straight after the replace it could, if an action was in flight as
+  // the seat's DELETE arrived with nothing queued behind it. The device
+  // that pressed Delete needs none: its own action revalidated its cache.
   useEffect(
     () => () => {
       if (leavingRef.current === "deleted") router.refresh();
