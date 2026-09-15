@@ -3,8 +3,8 @@
 @use "mixins/input" as input;
 @use "mixins/state" as state;
 
-// The grading section, wherever it is hosted (today: the lobby's
-// "climbing" sheet). Sections sit --space-6 apart; a label sits
+// The grading section, wherever it is hosted (today: a new game's
+// setup page and the game screen's "climbing" sheet). Sections sit --space-6 apart; a label sits
 // --space-3 from its control.
 .root {
   @include layout.stack(var(--space-6));

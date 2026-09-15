@@ -97,7 +97,7 @@ function clampString(value: unknown, max: number): string | null {
 
 // ── Create ────────────────────────────────────────
 
-/** The setup a match is created with, and later changed from the lobby. */
+/** The setup a match is created with, and changed until its first route. */
 export interface MatchSetupPayload {
   name?: string | null;
   location?: string | null;
@@ -147,8 +147,8 @@ interface ValidatedSetup {
  * The action-boundary half of match setup validation — the same
  * rules `match_setup_check` applies in SQL, run first so a malformed
  * payload never reaches the DB (CLAUDE.md "Validate ids at the
- * action boundary"). One copy, because create and the lobby's setup
- * sheet send the same shape.
+ * action boundary"). One copy, because the setup page and the game's
+ * setup sheet send the same shape.
  */
 function validateMatchSetup(
   payload: MatchSetupPayload,
@@ -830,8 +830,8 @@ export async function setMatchHandicapAction(
 }
 
 /**
- * Change a live match's setup from the lobby. Host only, and only
- * while no route exists — the RPC refuses otherwise, and its words
+ * Change a live match's setup from its setup sheet. Host only, and
+ * only while no route exists — the RPC refuses otherwise, and its words
  * come straight back to the sheet.
  */
 export async function setMatchSetupAction(

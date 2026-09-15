@@ -45,8 +45,9 @@ export function isFormulaScale(
 }
 
 /**
- * What "Start this week's Match" carries over from the League's
- * last week, so a fixture doesn't have to be set up twice.
+ * What the setup reducer starts from: a new game's defaults
+ * (`newGamePrefill`), a League's last week so a fixture isn't set up
+ * twice, or an existing game opened in its setup sheet.
  */
 export interface CreateMatchPrefill {
   name: string;
@@ -208,6 +209,29 @@ export function initialCreateMatchState(prefill?: CreateMatchPrefill): CreateMat
     altScale: prefill.altScale,
     leagueId: prefill.leagueId,
     customGrades: prefill.scale === "custom" ? (prefill.customGrades ?? []) : [],
+  };
+}
+
+/**
+ * Where a new game's setup page starts: boulders, V-scale, the whole
+ * ladder, no handicap (what a poster tap used to create), named for
+ * the climber and in the game their poster chose. A climber who changes
+ * nothing still starts a valid game.
+ */
+export function newGamePrefill(gameMode: "points" | "chork", name: string): CreateMatchPrefill {
+  return {
+    name,
+    location: null,
+    discipline: "boulder",
+    scale: "v",
+    handicap: false,
+    gameMode,
+    minGrade: 0,
+    maxGrade: SCALE_HARD_MAX.v,
+    altScale: null,
+    altMinGrade: null,
+    altMaxGrade: null,
+    leagueId: null,
   };
 }
 

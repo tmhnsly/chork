@@ -1,0 +1,7 @@
+@use "mixins/layout" as layout;
+
+// The name and where share one card. The card's own gap sits between
+// its header and body, so the two fields need a rhythm of their own.
+.fields {
+  @include layout.stack(var(--space-4));
+}

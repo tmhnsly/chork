@@ -19,9 +19,8 @@ interface Props {
 
 /**
  * How people get in: the code, the QR, a share link, friends, a
- * guest seat. The lobby shows it as a card — in the lobby it is the
- * whole job — and once the match is under way the Invite pill opens
- * the same thing as a sheet.
+ * guest seat. The hero's Invite pill opens it as a sheet, from the
+ * moment the game exists.
  */
 export function MatchJoinPanel({ match, isHost, onInviteFriends, onAddGuest }: Props) {
   // Lazy initialiser so `window.location.origin` stays out of the

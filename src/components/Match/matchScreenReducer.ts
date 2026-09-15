@@ -53,7 +53,7 @@ export type MatchPanel =
   | { kind: "invite-friends" }
   /** Declaring a player's limit for the handicap. */
   | { kind: "ceiling"; playerId: string }
-  /** The host changing the match's setup from the lobby. */
+  /** The host changing the match's setup before the first route. */
   | { kind: "setup"; section: SetupSection }
   /** The join card as a sheet, once the match is under way. */
   | { kind: "invite" };
@@ -93,8 +93,9 @@ export function logKey(userId: string, routeId: string): string {
 }
 
 /**
- * A live match with no routes yet. Not a status — derived — and the
- * whole reason the empty screen is a lobby rather than an empty grid.
+ * A live match with no routes yet: setup is still open, and grading
+ * locks with the first route. Not a status — derived. There is no
+ * lobby screen any more; the name stayed because the rule did.
  */
 export function isLobby(state: { routes: unknown[] }): boolean {
   return state.routes.length === 0;

@@ -19,7 +19,7 @@
   color: var(--mono-text-low-contrast);
 }
 
-// The code is the lobby's biggest fact — the thing you read out
+// The code is the invite panel's biggest fact — the thing you read out
 // across the mat.
 .code {
   @include type.typography(code, $step: 3xl);

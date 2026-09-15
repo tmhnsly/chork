@@ -593,19 +593,23 @@ navbar + home indicator), max-width, and centering.
   (`FaTrophy`), "Start a game", "End game". Code, routes, RPCs and
   docs keep `match` — see CONTEXT.md "Match". Never write "match" in
   new copy
-- **A match is created in one tap and set up in its lobby.** `/match/new`
-  is two posters (Points / Chork); tapping creates with defaults
-  (boulders, V-scale, whole ladder, "Tom's match"). A live match with
-  no routes is the **lobby** (`isLobby(state)` in
-  `matchScreenReducer.ts`): join card, players, one CTA. The host
-  changes setup from the hero's pills via `set_match_setup`, which
-  refuses once a route exists — grading is locked by the first route.
-  `create_match` and `set_match_setup` validate through one SQL
-  helper, `match_setup_check`; the action side shares
-  `validateMatchSetup`. There is no create form. Tapping a poster while you host an **empty lobby** reopens it with the
-  poster's setup instead of creating another, and the hourly sweep ends a
-  lobby with no routes after 3 idle hours (migration 137): several
-  identical empty lobbies made ending a game look broken
+- **A game is set up before it exists.** `/match/new` is two posters
+  (Points / Chork); a poster opens `/match/new/[game]`, where the
+  climber names it (prefilled "Tom's game"), says where, and chooses
+  discipline and grading. Nothing is created until **Start game**, so
+  a stray tap can't make a game (one tap used to create, and did, by
+  accident). The game screen has no lobby: setup pills, the menu and
+  Invite sit in the hero from the first second, and the grid starts
+  with the Add route tile. Until the first route the host can still
+  change setup from the pills via `set_match_setup`, which refuses
+  once a route exists — grading is locked by the first route
+  (`isLobby(state)` means exactly "no routes yet"). `create_match` and
+  `set_match_setup` validate through one SQL helper,
+  `match_setup_check`; the action side shares `validateMatchSetup`.
+  League weeks still start in one tap from their posters until
+  leagues get their own setup flow. Starting a game while you host an
+  empty one reopens it with the setup you typed (137, 139), and the
+  hourly sweep ends a game with no routes after 3 idle hours
 - **Archived / draft sets are read-only** for climbers. Migration 003
   blocks inserts against non-live sets at the RLS layer
 - **Legacy `sets.active` is derived from `sets.status`** via a

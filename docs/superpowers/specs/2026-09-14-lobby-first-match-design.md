@@ -1,5 +1,12 @@
 # Lobby-first match — design
 
+> **Superseded in part, 2026-09-15.** One tap made games by accident, so
+> a game is set up on a page before it exists (`/match/new/[game]`,
+> Start game creates it) and the game screen has no lobby: Invite and
+> the setup pills sit in its hero from the start. League weeks keep the
+> one-tap posters until leagues get their own setup flow. Setup still
+> locks with the first route. CLAUDE.md has the current rule.
+
 *2026-09-14. Decided with Tom after prototyping the profile and
 reviewing the create-match wizard. Option A of two.*
 

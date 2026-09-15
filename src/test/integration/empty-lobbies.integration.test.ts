@@ -24,8 +24,8 @@ describe.skipIf(!canRunIntegration)("empty lobbies (integration)", () => {
   let hostUserId: string;
   const createdSetIds = new Set<string>();
 
-  /** What a poster tap sends: the create defaults, plus any override. */
-  async function tapPoster(overrides: Record<string, unknown> = {}): Promise<string> {
+  /** What starting a game sends: the create defaults, plus any override. */
+  async function startGame(overrides: Record<string, unknown> = {}): Promise<string> {
     const { data, error } = await host.rpc("create_match", {
       p_name: "int: empty lobby",
       p_grading_scale: "v",
@@ -64,32 +64,37 @@ describe.skipIf(!canRunIntegration)("empty lobbies (integration)", () => {
     if (hostUserId) await deleteTestUser(service, hostUserId);
   }, 60_000);
 
-  it("a second poster tap reopens the empty lobby with the new setup", async () => {
-    const first = await tapPoster();
+  it("starting a game while you host an empty one reopens it, as you set it up", async () => {
+    const first = await startGame();
     const { data: before } = await service
       .from("sets")
       .select("last_activity_at")
       .eq("id", first)
       .single();
 
-    const second = await tapPoster({ p_name: "int: renamed by the tap", p_grading_scale: "font", p_max_grade: 10 });
+    const second = await startGame({
+      p_name: "int: renamed on setup",
+      p_location: "int: the garage",
+      p_grading_scale: "font",
+      p_max_grade: 10,
+    });
     expect(second).toBe(first);
     expect(await liveSetsHosted()).toBe(1);
 
     const { data: row } = await service
       .from("sets")
-      .select("name, grading_scale, max_grade, status, last_activity_at")
+      .select("name, location, grading_scale, max_grade, status, last_activity_at")
       .eq("id", first)
       .single();
     expect(row).toMatchObject({
-      // The lobby keeps its own name: a poster's default never
-      // overwrites one the host already has.
-      name: "int: empty lobby",
+      // The setup page is deliberate, so what was typed there wins (139).
+      name: "int: renamed on setup",
+      location: "int: the garage",
       grading_scale: "font",
       max_grade: 10,
       status: "live",
     });
-    // The idle clock restarts, so the sweep can't end a lobby that was
+    // The idle clock restarts, so the sweep can't end a game that was
     // just opened again.
     expect(new Date(row!.last_activity_at!).getTime()).toBeGreaterThan(
       new Date(before!.last_activity_at!).getTime(),
@@ -97,7 +102,7 @@ describe.skipIf(!canRunIntegration)("empty lobbies (integration)", () => {
   }, 30_000);
 
   it("a lobby with a route is a game, and is not reused", async () => {
-    const lobby = await tapPoster();
+    const lobby = await startGame();
     const { error } = await host.rpc("add_match_route", {
       p_set_id: lobby,
       p_description: "int: first route",
@@ -106,17 +111,17 @@ describe.skipIf(!canRunIntegration)("empty lobbies (integration)", () => {
     });
     expect(error, "add_match_route").toBeNull();
 
-    const next = await tapPoster();
+    const next = await startGame();
     expect(next).not.toBe(lobby);
   }, 30_000);
 
   it("history leaves out a game that ended with no routes", async () => {
-    const empty = await tapPoster();
+    const empty = await startGame();
     const { data: routes } = await service.from("routes").select("id").eq("set_id", empty);
     expect(routes, "the reused lobby is still empty").toHaveLength(0);
     expect((await host.rpc("end_match", { p_set_id: empty })).error).toBeNull();
 
-    const played = await tapPoster();
+    const played = await startGame();
     expect(played).not.toBe(empty);
     const { error: routeError } = await host.rpc("add_match_route", {
       p_set_id: played,

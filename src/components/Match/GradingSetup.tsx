@@ -72,9 +72,9 @@ interface Props {
  * handicap, and the custom ladder editor with saved scales.
  *
  * Owns no state — the create-match reducer models a match's setup,
- * and this is its UI. It was the middle step of a create wizard;
- * now it is the body of the lobby's "climbing" sheet, because setup
- * belongs where the people it's for can see it happen.
+ * and this is its UI: the "What you're climbing" card on a new game's
+ * setup page, and the game screen's "climbing" sheet until the first
+ * route.
  */
 export function GradingSetup({ state, dispatch, savedScales, onMaxGrades }: Props) {
   const {

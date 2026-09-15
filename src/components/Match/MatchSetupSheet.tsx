@@ -61,11 +61,11 @@ function prefillFrom(match: Match, grades: Props["grades"]): CreateMatchPrefill 
 }
 
 /**
- * One sheet, three sections, one reducer. The create wizard's own
- * state machine drives it — a match's setup is exactly what that
- * reducer models, so the lobby edits it with the same transitions the
- * form used to, and `buildCreateMatchPayload` produces what
- * `set_match_setup` takes.
+ * One sheet, three sections, one reducer. The setup page's state
+ * machine drives it — a match's setup is exactly what that reducer
+ * models, so the game screen edits it with the same transitions
+ * `GameSetupForm` creates it with, and `buildCreateMatchPayload`
+ * produces what `set_match_setup` takes.
  *
  * Game mode is the one section that saves on tap: it has its own RPC
  * and no dependent fields, so a Save button would be a second tap

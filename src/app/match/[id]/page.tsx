@@ -53,7 +53,7 @@ export default async function MatchRoomPage({ params }: Props) {
     }
   }
 
-  // The lobby's grading sheet offers the host their saved custom
+  // The setup sheet's grading picker offers the host their saved custom
   // ladders. Nobody else can open it, so nobody else pays for the read.
   const savedScales =
     initialState.match.host_id === auth.userId ? await getUserSavedScales(auth.supabase) : [];

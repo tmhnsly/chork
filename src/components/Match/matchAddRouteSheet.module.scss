@@ -35,7 +35,7 @@
 }
 
 // The scale this route grades on, named, with the one chance to
-// change it while the match is still a lobby.
+// change it while the match has no routes yet.
 .scaleLine {
   @include type.typography(meta, $step: sm);
   color: var(--mono-text-low-contrast);

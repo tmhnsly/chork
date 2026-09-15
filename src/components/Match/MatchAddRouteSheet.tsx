@@ -44,7 +44,7 @@ interface Props {
   isChork?: boolean;
   /** "V-scale" / "V-scale + French" — named so the first route meets the choice. */
   scaleLabel?: string;
-  /** Offered to the host in the lobby only: opens the grading sheet. */
+  /** Offered to the host before the first route only: opens the grading sheet. */
   onChangeScale?: () => void;
   onClose: () => void;
   onSubmit: (payload: {

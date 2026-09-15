@@ -19,7 +19,6 @@ import { InviteFriendsSheet } from "./InviteFriendsSheet";
 import { CeilingSheet } from "./CeilingSheet";
 import { MatchPlayerGridSheet } from "./MatchPlayerGridSheet";
 import { logKey, isLobby } from "./matchScreenReducer";
-import { MatchLobby } from "./MatchLobby";
 import { MatchSetupPills } from "./MatchSetupPills";
 import { MatchSetupSheet } from "./MatchSetupSheet";
 import { MatchInviteSheet } from "./MatchInviteSheet";
@@ -31,7 +30,7 @@ import { matchTitle } from "@/lib/data/match-title";
 interface Props {
   initialState: MatchState;
   userId: string;
-  /** The host's saved custom ladders, for the lobby's grading sheet. */
+  /** The host's saved custom ladders, for the setup sheet's grading picker. */
   savedScales: SavedScale[];
 }
 
@@ -95,7 +94,7 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
     penPlayer.user_id === userId ||
     (isHost && penPlayer.is_guest);
 
-  // No routes yet: the screen is a lobby. Derived, never stored.
+  // No routes yet: setup is still open. Derived, never stored.
   const lobby = isLobby(state);
 
   // The ladder(s) the add-route sheet names, so the first route meets
@@ -213,34 +212,24 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
                 {initialState.match.handicap && " · Handicap"}
               </span>
             </div>
-            {/* In the lobby the join card carries this; once under
-                way, the code and QR are one tap from the hero. A pill
-                in the setup row's shape, tinted so it reads as the
-                one thing here that does something. */}
-            {!lobby && (
-              <button
-                type="button"
-                className={styles.invitePill}
-                onClick={() => openPanel({ kind: "invite" })}
-              >
-                <FaPaperPlane aria-hidden /> Invite
-              </button>
-            )}
+            {/* The code, QR, share link, friends and guests, one tap
+                from the hero from the moment the game exists. A pill in
+                the setup row's shape, tinted so it reads as the one
+                thing here that does something. */}
+            <button
+              type="button"
+              className={styles.invitePill}
+              onClick={() => openPanel({ kind: "invite" })}
+            >
+              <FaPaperPlane aria-hidden /> Invite
+            </button>
         </div>
       </header>
       </Named>
 
-      {lobby ? (
-        <MatchLobby
-          match={initialState.match}
-          players={state.players}
-          isHost={isHost}
-          isChork={isChork}
-          onAddRoute={() => openPanel({ kind: "add" })}
-          onInviteFriends={() => openPanel({ kind: "invite-friends" })}
-          onAddGuest={() => openPanel({ kind: "add-guest" })}
-        />
-      ) : (
+      {/* No lobby screen: a game opens straight onto its board and
+          grid, which start empty with the Add route tile. It was set up
+          before it existed (/match/new/[game]). */}
       <>
       {/* Chork has no points, so it has no points board. Same
           players, same routes — a different question being asked. */}
@@ -339,7 +328,6 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
         waitingFor={penPlayer?.username ?? null}
       />
       </>
-      )}
 
       {activeRoute && (
         <MatchLogSheet

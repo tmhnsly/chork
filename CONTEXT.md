@@ -66,17 +66,19 @@ in the roadmap.
 A Match can be **promoted to a gym Set** — that upgrade path is why
 the two are one primitive rather than two systems.
 
-**A Match is created in one tap and set up in its lobby.** Two
-posters (Points / Chork) on `/match/new`; tapping one creates the
-Match with defaults. Then:
+**A Match is set up before it exists.** Two posters (Points / Chork)
+on `/match/new`; a poster opens that game's setup page, and **Start
+game** creates the Match. League weeks still start in one tap from
+their posters. Then:
 
-- **Lobby** — a live Match with no routes yet. Derived
-  (`isLobby(state)`), never stored. The join code, QR, players
-  arriving, and one thing to do next.
-- **Setup** — what the host can change from the lobby's hero pills:
-  name, where, discipline, grading (scale, custom ladder, a mixed
-  day's second scale). Locked by the first route (`set_match_setup`
-  refuses). Game mode and handicap change any time.
+- **Setup** — name, where, discipline, grading (scale, custom ladder,
+  a mixed day's second scale). Chosen on the setup page, and
+  changeable from the hero's pills until the first route
+  (`set_match_setup` refuses after). Game mode and handicap change any
+  time.
+- **No routes yet** — derived (`isLobby(state)`), never stored. It
+  gates setup. There is no lobby screen: a new Match opens straight
+  onto its board and grid.
 - **Poster** — the accent-solid card a game is chosen from: the sent
   tile at card scale.
 

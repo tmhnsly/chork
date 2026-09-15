@@ -29,6 +29,8 @@
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-md);
   color: var(--mono-text);
+  // Posters are links now (the setup page); no underline.
+  text-decoration: none;
   cursor: pointer;
   // Each game owns a colour; the arrow wears it.
   --game-solid: var(--accent-solid);

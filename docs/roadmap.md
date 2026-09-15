@@ -2,6 +2,13 @@
 
 ## Shipped
 
+- [x] 2026-09-15 — Games are set up before they exist: a poster opens
+      `/match/new/[game]` (name, where, discipline, grading, then Start
+      game), so a stray tap no longer makes a game. No lobby screen:
+      Invite and the setup pills sit in the hero from the start, and
+      reopening your own empty game keeps what you typed (migration
+      139). League weeks keep their one-tap posters until leagues get
+      their own setup flow
 - [x] 2026-09-14 — Lobby-first match: one-tap posters on `/match/new`,
       the empty match as a lobby (join card, players, one CTA), setup
       pills + sheet, grading locked by the first route

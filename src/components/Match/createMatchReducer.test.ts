@@ -5,6 +5,7 @@ import {
   createMatchReducer,
   initialCreateMatchState,
   MAX_CUSTOM_GRADES,
+  newGamePrefill,
   type CreateMatchAction,
   type CreateMatchState,
 } from "./createMatchReducer";
@@ -647,5 +648,40 @@ describe("initialCreateMatchState with a League prefill", () => {
     });
     const next = createMatchReducer(state, { type: "set-scale", scale: "font" });
     expect(next.leagueId).toBe("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+  });
+});
+
+describe("newGamePrefill", () => {
+  // The setup page starts from these, so a climber who changes nothing
+  // still starts a valid game: boulders, V-scale, the whole ladder.
+  it("starts a new game from the documented defaults, named, in the chosen game", () => {
+    const state = initialCreateMatchState(newGamePrefill("chork", "Tom's game"));
+    expect(state).toMatchObject({
+      name: "Tom's game",
+      location: "",
+      discipline: "boulder",
+      scale: "v",
+      handicap: false,
+      gameMode: "chork",
+      altScale: null,
+      leagueId: null,
+      customGrades: [],
+    });
+    expect(state.ranges.v).toEqual([0, SCALE_HARD_MAX.v]);
+  });
+
+  it("can be started with nothing changed", () => {
+    const state = initialCreateMatchState(newGamePrefill("points", "Tom's game"));
+    expect(canSubmit(state, false)).toBe(true);
+    expect(buildCreateMatchPayload(state)).toMatchObject({
+      name: "Tom's game",
+      location: null,
+      discipline: "boulder",
+      gradingScale: "v",
+      minGrade: 0,
+      maxGrade: SCALE_HARD_MAX.v,
+      gameMode: "points",
+      leagueId: null,
+    });
   });
 });

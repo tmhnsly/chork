@@ -12,7 +12,7 @@ interface Props {
   onClose: () => void;
 }
 
-/** The lobby's join card, as a sheet, once the match is under way. */
+/** The join panel as a sheet, opened from the hero's Invite pill. */
 export function MatchInviteSheet({ match, isHost, onInviteFriends, onAddGuest, onClose }: Props) {
   return (
     <BottomSheet open onClose={onClose} title="Invite">

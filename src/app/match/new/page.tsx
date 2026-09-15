@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { requireSignedIn } from "@/lib/auth";
-import { createServiceClient, getServerProfile } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/server";
 import { getMatchStateForUser } from "@/lib/data/match-queries";
 import { getLeague } from "@/lib/data/league-queries";
 import { isUuid } from "@/lib/validation";
@@ -22,7 +22,7 @@ export default async function NewMatchPage({ searchParams }: Props) {
 
   // Starting a week: pre-fill from the League's most recent FINISHED
   // week. Only the host may (the RPC refuses anyone else), so a
-  // non-host with the link just gets a plain new-match form.
+  // non-host with the link just gets the ordinary posters.
   let league: { name: string; weekNumber: number; prefill: CreateMatchPrefill } | undefined;
   if (leagueParam && isUuid(leagueParam)) {
     const view = await getLeague(auth.supabase, leagueParam);
@@ -66,19 +66,13 @@ export default async function NewMatchPage({ searchParams }: Props) {
     }
   }
 
-  // The default name is the host's: "Tom's match". Stored, so every
-  // list shows a name rather than a fallback; renamed from the lobby.
-  const profile = await getServerProfile();
-  const firstName = profile?.name?.trim().split(/\s+/)[0] || profile?.username || "";
-  const defaultName = firstName ? `${firstName}'s game` : "My game";
-
   return (
     <main className={styles.page}>
       <PageHeader
         title={league ? `Week ${league.weekNumber}` : "Start a game"}
-        subtitle={league ? league.name : "Pick a game. Everything else is set from the lobby."}
+        subtitle={league ? league.name : "Pick a game, then name it and choose what you're climbing."}
       />
-      <GamePosters defaultName={defaultName} prefill={league?.prefill} />
+      <GamePosters prefill={league?.prefill} />
     </main>
   );
 }
