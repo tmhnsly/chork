@@ -1,7 +1,7 @@
 "use client";
 
 import { ViewTransition, type ReactNode } from "react";
-import { useViewTransitionsEnabled } from "@/lib/view-transitions";
+import { useNestedViewTransitionsEnabled } from "@/lib/view-transitions";
 
 interface Props {
   /** The view-transition name; the same name on two surfaces makes a share. */
@@ -30,7 +30,7 @@ interface Props {
  * for in-page updates, which are the two things a name is for.
  */
 export function Named({ name, share = "morph", update = "none", children }: Props) {
-  const enabled = useViewTransitionsEnabled();
+  const enabled = useNestedViewTransitionsEnabled();
   if (!enabled) return <>{children}</>;
   return (
     <ViewTransition name={name} default="none" enter="none" exit="none" share={share} update={update}>

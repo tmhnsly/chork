@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, ViewTransition, type ReactNode } from "react";
-import { useViewTransitionsEnabled } from "@/lib/view-transitions";
+import { useNestedViewTransitionsEnabled } from "@/lib/view-transitions";
 
 interface Props {
   fallback: ReactNode;
@@ -22,7 +22,7 @@ interface Props {
  * Enter and exit fire once, at mount and unmount, and cannot do that.
  */
 export function Reveal({ fallback, children }: Props) {
-  const enabled = useViewTransitionsEnabled();
+  const enabled = useNestedViewTransitionsEnabled();
   if (!enabled) return <Suspense fallback={fallback}>{children}</Suspense>;
   return (
     <Suspense

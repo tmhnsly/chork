@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition, useCallback, useRef, useEffect, ViewTransition, Fragment } from "react";
-import { useViewTransitionsEnabled } from "@/lib/view-transitions";
+import { useNestedViewTransitionsEnabled } from "@/lib/view-transitions";
 import { useSheetPresence } from "@/hooks/use-sheet-presence";
 import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { tabId } from "@/components/ui/tab-ids";
@@ -166,7 +166,7 @@ export function LeaderboardView({
   // incoming one fades up while the podium's own entrance stagger
   // plays inside it — the switch runs in `startTransition`, which is
   // what lets React animate it.
-  const vtEnabled = useViewTransitionsEnabled();
+  const vtEnabled = useNestedViewTransitionsEnabled();
   const Board = vtEnabled ? ViewTransition : Fragment;
   const boardProps = vtEnabled
     ? { enter: "board-in", exit: "board-out", default: "none" as const }
