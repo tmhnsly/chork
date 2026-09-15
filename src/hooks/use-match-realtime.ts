@@ -10,20 +10,18 @@ import type { MatchLog, MatchRoute } from "@/lib/data/match-types";
  * caller receives typed events instead of re-deriving the shape at
  * every handler (MatchScreen used to hand-write this cast twice).
  *
- * Caveat carried over from the raw payloads: on DELETE, `new` is an
- * empty object and `old` carries ONLY the row's `id`. `routes`,
- * `route_logs` and `set_players` run REPLICA IDENTITY FULL (migration
- * 085), which is what lets the `set_id` filter apply to deletes at
- * all, but the payload is still just the key: checked against
- * production with throwaway accounts on 2026-09-15. On INSERT/UPDATE,
- * `old` may be partial. Branch on `eventType` before trusting either
- * side, and read nothing but `old.id` from a DELETE.
+ * A union on `eventType`, so a handler narrows before it reads either
+ * side. On DELETE, `new` is an empty object and `old` carries ONLY the
+ * row's `id`. `routes`, `route_logs` and `set_players` run REPLICA
+ * IDENTITY FULL (migration 085), which is what lets the `set_id` filter
+ * apply to deletes at all, but the payload is still just the key:
+ * checked against production with throwaway accounts on 2026-09-15.
+ * Typed that way, reading any other field from a DELETE is a compile
+ * error. On INSERT/UPDATE, `old` may be partial.
  */
-export interface MatchRealtimeEvent<T> {
-  eventType: "INSERT" | "UPDATE" | "DELETE";
-  new: T;
-  old: T;
-}
+export type MatchRealtimeEvent<T> =
+  | { eventType: "INSERT" | "UPDATE"; new: T; old: Partial<T> }
+  | { eventType: "DELETE"; new: Record<never, never>; old: { id: string } };
 
 /**
  * Subscribes to realtime changes for a specific match's live tables
@@ -42,8 +40,9 @@ export function useMatchRealtime(
     onRouteChange: (evt: MatchRealtimeEvent<MatchRoute>) => void;
     onLogChange: (evt: MatchRealtimeEvent<MatchLog>) => void;
     /**
-     * Seat events. A join or leave is a full refresh, not a patch; a
-     * DELETE of the viewer's own seat means the game was deleted.
+     * Seat events. A join or leave is a full refresh, not a patch. A
+     * DELETE takes a seat off the screen by its id, and the viewer's
+     * own seat going means the game was deleted (`seatEventOutcome`).
      */
     onPlayerChange: (evt: MatchRealtimeEvent<{ id: string }>) => void;
     /**

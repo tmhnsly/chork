@@ -141,11 +141,26 @@ export function useMatchScreenState({
     };
   }, [loadChork]);
 
-  const { schedule: scheduleChork } = useDebouncedFlush<void>({
+  // ── Leaving a deleted game ─────────────────────────────────────
+  //
+  // Set once the game is deleted under this screen ("deleted": the
+  // viewer's own seat's DELETE arrived) or this device is deleting it
+  // ("deleting"). From then on nothing here may add to Next's router
+  // queue while the navigation to Games is in flight. In Next 16.2 a
+  // navigation discards the pending action but leaves the queue's tail
+  // on it (`dispatchAction` in app-router-instance.js), so anything
+  // dispatched next either hangs off the discarded action and never
+  // runs, or starts from the old page's state, and React renders that
+  // instead of Games: the player stays here under the toast. So realtime
+  // events are ignored, both debounced refetches are cancelled, and a
+  // refetch already on the wire keeps its answer to itself.
+  const leavingRef = useRef<"deleting" | "deleted" | null>(null);
+
+  const { schedule: scheduleChork, cancel: cancelChork } = useDebouncedFlush<void>({
     delayMs: 1000,
     flush: async () => {
       const next = await loadChork();
-      if (next) setChork(next);
+      if (next && !leavingRef.current) setChork(next);
     },
   });
 
@@ -173,23 +188,38 @@ export function useMatchScreenState({
     (p: MatchPlayerView) => p.user_id === userId || (isHost && p.is_guest),
     [userId, isHost],
   );
-  const { schedule: scheduleBoard } = useDebouncedFlush<void>({
+  const { schedule: scheduleBoard, cancel: cancelBoard } = useDebouncedFlush<void>({
     delayMs: 800,
     flush: async () => {
       if (isChork) return;
       const result = await fetchMatchBoard(initialState.match.id);
-      if ("error" in result) return;
+      if ("error" in result || leavingRef.current) return;
       setServerBoard((prev) => ({ source: prev.source, rows: result.rows }));
     },
   });
 
-  // Set by the device that presses Delete, so its own seat's DELETE
-  // event doesn't toast and navigate a second time.
-  const deletingRef = useRef(false);
   const viewerSeatId = state.players.find((p) => p.user_id === userId)?.player_id ?? null;
+
+  // Games opens from the nav's full prefetch, which can predate the
+  // deletion: the host's action revalidated the server and the host's
+  // own router cache, not this device's. So a screen whose game was
+  // deleted under it refreshes Games once the navigation there has
+  // landed, which is when this screen unmounts. Next applies a
+  // navigation to its queue before React commits it, so this refresh
+  // can't hang off an action the navigation discarded. Dispatched
+  // straight after the replace it could, whenever something was already
+  // in flight as the seat's DELETE arrived. The device that pressed
+  // Delete needs none: its own action revalidated its cache.
+  useEffect(
+    () => () => {
+      if (leavingRef.current === "deleted") router.refresh();
+    },
+    [router],
+  );
 
   useMatchRealtime(initialState.match.id, {
     onRouteChange: (evt) => {
+      if (leavingRef.current) return;
       if (evt.eventType === "DELETE") {
         dispatch({ type: "remove-route", id: evt.old.id });
       } else {
@@ -204,6 +234,7 @@ export function useMatchScreenState({
       else scheduleBoard(undefined);
     },
     onLogChange: (evt) => {
+      if (leavingRef.current) return;
       // The scoring check below needs the log's owner even on a
       // DELETE, whose payload carries only the id — so on a DELETE
       // it's read from state, before the dispatch removes it there.
@@ -234,29 +265,34 @@ export function useMatchScreenState({
       }
     },
     onPlayerChange: (evt) => {
-      // Nothing but deleting the game deletes a seat, so the viewer's
-      // own seat going means the game went (migration 141).
-      if (seatEventOutcome(evt, viewerSeatId) === "deleted") {
-        // The device that pressed Delete is already on its way out.
-        if (deletingRef.current) return;
+      if (leavingRef.current) return;
+      const outcome = seatEventOutcome(evt, viewerSeatId);
+      if (outcome.kind === "deleted") {
+        leavingRef.current = "deleted";
+        cancelBoard();
+        cancelChork();
         showToast("This game was deleted", "warning");
         router.replace("/match");
-        return;
+      } else if (outcome.kind === "gone") {
+        // Never a refresh on a DELETE: see seatEventOutcome.
+        dispatch({ type: "remove-player", playerId: outcome.seatId });
+      } else {
+        // A join or a leave. Player changes come as scattered events —
+        // a full state refresh is cheaper to reason about than
+        // hand-patched set maths. The refreshed roster reaches the
+        // reducer via the render-time sync above.
+        router.refresh();
       }
-      // Player changes come as scattered events — a full state
-      // refresh is cheaper to reason about than hand-patched set
-      // maths when someone joins or leaves. The refreshed roster
-      // reaches the reducer via the render-time sync above.
-      router.refresh();
     },
     onMatchChange: (evt) => {
+      if (leavingRef.current) return;
       // The host ended it. Everyone else is looking at a board that
       // has silently stopped accepting writes, so move them to the
       // result rather than let them tap into a dead screen.
       //
       // `replace`, not `push`: back from the summary should reach
       // wherever they came from, not a live screen that no longer is.
-      if (evt.new?.status === "archived") {
+      if (evt.eventType === "UPDATE" && evt.new.status === "archived") {
         router.replace(`/match/summary/${initialState.match.id}`);
       }
     },
@@ -662,18 +698,24 @@ export function useMatchScreenState({
   }, [initialState.match.id, router]);
 
   const handleDelete = useCallback(() => {
-    deletingRef.current = true;
+    // Leaving from the press, not the answer: the deletion's own events
+    // reach this device before the action returns, and none of them may
+    // toast a second time or leave work in the router queue for the
+    // navigation below to lose (see leavingRef).
+    leavingRef.current = "deleting";
+    cancelBoard();
+    cancelChork();
     startTransition(async () => {
       const result = await deleteMatchAction(initialState.match.id);
       if ("error" in result) {
-        deletingRef.current = false;
+        leavingRef.current = null;
         showToast(result.error, "error");
         return;
       }
       showToast("Game deleted");
       router.replace("/match");
     });
-  }, [initialState.match.id, router]);
+  }, [initialState.match.id, router, cancelBoard, cancelChork]);
 
   // The setup lives on `initialState.match`, a server prop: a refresh
   // re-reads it, and the sheet closes on the fresh props rather than

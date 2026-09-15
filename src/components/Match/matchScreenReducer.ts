@@ -123,19 +123,37 @@ export function isLobby(state: { routes: unknown[] }): boolean {
 }
 
 /**
- * What a seat's realtime event means for the viewer. A DELETE carries
- * only the row's id (checked 2026-09-15), and nothing but deleting the
- * game deletes a seat: leaving parks it with `left_at`. So the viewer's
- * own seat going means the game went.
+ * A seat's realtime event, as much of it as `seatEventOutcome` reads. A
+ * DELETE carries only the row's id (checked 2026-09-15).
  */
-export function seatEventOutcome(
-  evt: { eventType: "INSERT" | "UPDATE" | "DELETE"; old: { id?: string } },
-  viewerSeatId: string | null,
-): "deleted" | "refresh" {
-  if (evt.eventType === "DELETE" && viewerSeatId !== null && evt.old.id === viewerSeatId) {
-    return "deleted";
-  }
-  return "refresh";
+export type SeatEvent =
+  | { eventType: "INSERT" | "UPDATE" }
+  | { eventType: "DELETE"; old: { id: string } };
+
+/** What a seat's realtime event means for the live screen. */
+export type SeatEventOutcome =
+  /** The viewer's own seat was deleted, so the game was. */
+  | { kind: "deleted" }
+  /**
+   * Someone else's seat was deleted: the game is being deleted (the
+   * viewer's own seat follows), or that climber's account was.
+   */
+  | { kind: "gone"; seatId: string }
+  /** A join or a leave. A seat row has no name or face; the server has them. */
+  | { kind: "refresh" };
+
+/**
+ * Leaving parks a seat with `left_at`, and a seat row is deleted only
+ * with its game or its account, so the viewer's own seat going means the
+ * game went. Anyone else's is taken off the screen by its id. A DELETE
+ * never refreshes: a refresh re-rendered a game that was being deleted,
+ * bounced the viewer to the join screen, and put a router action in the
+ * queue for the screen's own navigation to Games to lose.
+ */
+export function seatEventOutcome(evt: SeatEvent, viewerSeatId: string | null): SeatEventOutcome {
+  if (evt.eventType !== "DELETE") return { kind: "refresh" };
+  if (viewerSeatId !== null && evt.old.id === viewerSeatId) return { kind: "deleted" };
+  return { kind: "gone", seatId: evt.old.id };
 }
 
 /** Initial reducer state from the server-rendered match payload.

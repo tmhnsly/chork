@@ -468,17 +468,32 @@ describe("isLobby", () => {
 
 describe("seatEventOutcome", () => {
   it("reads the viewer's own seat being deleted as the game going", () => {
-    expect(seatEventOutcome({ eventType: "DELETE", old: { id: "seat-me" } }, "seat-me")).toBe("deleted");
+    expect(seatEventOutcome({ eventType: "DELETE", old: { id: "seat-me" } }, "seat-me")).toEqual({
+      kind: "deleted",
+    });
   });
 
-  it("refreshes for anyone else's seat, and for joins and leaves", () => {
-    expect(seatEventOutcome({ eventType: "DELETE", old: { id: "seat-other" } }, "seat-me")).toBe("refresh");
-    expect(seatEventOutcome({ eventType: "UPDATE", old: { id: "seat-me" } }, "seat-me")).toBe("refresh");
-    expect(seatEventOutcome({ eventType: "INSERT", old: {} }, "seat-me")).toBe("refresh");
+  it("takes anyone else's deleted seat off the screen by its id, without a refresh", () => {
+    // A refresh here re-rendered a game that was being deleted, which
+    // bounced the viewer to the join screen, and it put a router action
+    // in the queue that the screen's own navigation to Games then lost.
+    expect(seatEventOutcome({ eventType: "DELETE", old: { id: "seat-other" } }, "seat-me")).toEqual({
+      kind: "gone",
+      seatId: "seat-other",
+    });
   });
 
-  it("never reads a deletion when the viewer has no seat", () => {
-    expect(seatEventOutcome({ eventType: "DELETE", old: { id: "seat-x" } }, null)).toBe("refresh");
+  it("refreshes for a join, and for a leave even of the viewer's own seat", () => {
+    expect(seatEventOutcome({ eventType: "INSERT" }, "seat-me")).toEqual({ kind: "refresh" });
+    expect(seatEventOutcome({ eventType: "UPDATE" }, "seat-me")).toEqual({ kind: "refresh" });
+  });
+
+  it("never reads the game as deleted while the viewer holds no seat", () => {
+    expect(seatEventOutcome({ eventType: "DELETE", old: { id: "seat-x" } }, null)).toEqual({
+      kind: "gone",
+      seatId: "seat-x",
+    });
+    expect(seatEventOutcome({ eventType: "UPDATE" }, null)).toEqual({ kind: "refresh" });
   });
 });
 
