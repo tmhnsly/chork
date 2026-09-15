@@ -818,3 +818,64 @@ describe("light/dark mechanism", () => {
     ).toBe(true);
   });
 });
+
+describe("page chrome", () => {
+  /** Each `<name …>…</name>` element: its line, and the source between its tags. */
+  function elements(text: string, name: string): { line: number; inner: string }[] {
+    const found: { line: number; inner: string }[] = [];
+    const open = new RegExp(`<${name}\\b`, "g");
+    for (let m = open.exec(text); m; m = open.exec(text)) {
+      let depth = 0;
+      let i = m.index + m[0].length;
+      for (; i < text.length; i++) {
+        const c = text[i];
+        if (c === "{") depth++;
+        else if (c === "}") depth--;
+        else if (c === ">" && depth === 0) break;
+      }
+      if (text[i - 1] === "/") continue;
+      const close = text.indexOf(`</${name}>`, i);
+      if (close === -1) continue;
+      found.push({ line: text.slice(0, m.index).split("\n").length, inner: text.slice(i + 1, close) });
+    }
+    return found;
+  }
+
+  /** The primitives define the chrome; marketing and stories aren't app screens. */
+  const exempt = (p: string) =>
+    p.startsWith("components/ui/") || notMarketing(p) || p.endsWith(".stories.tsx");
+
+  it("a page's way back is a round IconLink, not a text link with an arrow", () => {
+    // Found at Yonder: the league and game summary pages had "← Games"
+    // text links while every other piece of page chrome is a circle.
+    const bad: string[] = [];
+    for (const { path, text } of tsx) {
+      if (exempt(path)) continue;
+      for (const { line, inner } of elements(text, "Link")) {
+        if (/<Fa(ArrowLeft|ChevronLeft|AngleLeft)\b/.test(inner)) bad.push(`${path}:${line}`);
+      }
+    }
+    expect(
+      bad,
+      "Use <IconLink href label><FaArrowLeft /></IconLink> from components/ui. " +
+        "A full-width call to action (LinkButton) is a different thing and stays.",
+    ).toEqual([]);
+  });
+
+  it("a menu trigger is a round IconButton", () => {
+    // The league page's "…" was a borderless square next to the Game
+    // menu's ⋮ in a circle.
+    const bad: string[] = [];
+    for (const { path, text } of tsx) {
+      if (exempt(path)) continue;
+      for (const { line, inner } of elements(text, "button")) {
+        if (/<FaEllipsis(Vertical)?\b/.test(inner)) bad.push(`${path}:${line}`);
+      }
+    }
+    expect(
+      bad,
+      "Use <IconButton label><FaEllipsisVertical /></IconButton> from components/ui, " +
+        "so ⋮ in a circle means the same thing on every screen.",
+    ).toEqual([]);
+  });
+});

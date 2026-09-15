@@ -507,6 +507,12 @@ navbar + home indicator), max-width, and centering.
   to `--size-avatar-*` for skeletons and "+N" pills. `avatar-sizes.test.ts`
   pins the two together — a skeleton that drifts from its real avatar
   is a layout shift on hand-off
+- **Page chrome is round.** A page's way back is `<IconLink>` and a
+  menu or settings trigger is `<IconButton>` (⋮ is
+  `FaEllipsisVertical`), both from `components/ui`. The league and
+  game summary pages had "← Games" text links and a borderless "…";
+  `design-system.test.ts` fails both shapes. A full-width
+  call-to-action (`LinkButton`) is a different thing and stays
 - **Disabled state via `state.disabled` / `state.disabled-bare`** —
   never `opacity`. Dimming scales contrast toward the background, so
   an AA-compliant control silently stops being one

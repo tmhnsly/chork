@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { FaArrowLeft, FaPlus } from "react-icons/fa6";
 import { requireSignedIn } from "@/lib/auth";
 import { getLeague, getLeagueStandings } from "@/lib/data/league-queries";
 import { isUuid } from "@/lib/validation";
 import { PageHeader } from "@/components/motion";
-import { LinkButton } from "@/components/ui";
+import { IconLink, LinkButton } from "@/components/ui";
 import { LeagueTable } from "@/components/League/LeagueTable";
 import { LeagueWeekList } from "@/components/League/LeagueWeekList";
 import { LeagueHostMenu } from "@/components/League/LeagueHostMenu";
@@ -49,9 +48,9 @@ export default async function LeaguePage({ params }: Props) {
   return (
     <main className={styles.page}>
       <div className={styles.topRow}>
-        <Link href="/match" className={styles.backLink}>
-          <FaArrowLeft aria-hidden /> Games
-        </Link>
+        <IconLink href="/match" label="Back to Games">
+          <FaArrowLeft />
+        </IconLink>
         {isHost && <LeagueHostMenu league={league} />}
       </div>
 

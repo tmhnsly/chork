@@ -49,20 +49,7 @@
   color: var(--mono-text-low-contrast);
 }
 
+// The shared primary LinkButton draws it; only the gap above is this page's.
 .cta {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
   margin-top: var(--space-2);
-  min-height: var(--size-touch-target);
-  padding: 0 var(--space-6);
-  border-radius: var(--radius-2);
-  background: var(--accent-solid);
-  color: var(--accent-on-solid);
-  text-decoration: none;
-  @include type.typography(button);
-
-  &:hover {
-    background: var(--accent-solid-hover);
-  }
 }

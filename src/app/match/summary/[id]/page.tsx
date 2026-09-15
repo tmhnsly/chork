@@ -9,7 +9,7 @@ import { getMatchStateForUser, getChorkStandings } from "@/lib/data/match-querie
 import { getLeague, getMyLeagues } from "@/lib/data/league-queries";
 import { ChorkWord } from "@/components/Match/ChorkWord";
 import { PageHeader } from "@/components/motion";
-import { UserAvatar, Username } from "@/components/ui";
+import { IconLink, UserAvatar, Username } from "@/components/ui";
 import { ShareResultButton } from "@/components/Match/ShareResultButton";
 import { FixtureControls } from "@/components/League/FixtureControls";
 import { weekLabel } from "@/lib/data/league";
@@ -123,9 +123,9 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
   return (
     <main className={styles.page}>
       <div className={styles.topRow}>
-        <Link href="/match" className={styles.backLink}>
-          <FaArrowLeft aria-hidden /> Games
-        </Link>
+        <IconLink href="/match" label="Back to Games">
+          <FaArrowLeft />
+        </IconLink>
         {fresh && (
           <span className={styles.freshBadge}>Game complete</span>
         )}

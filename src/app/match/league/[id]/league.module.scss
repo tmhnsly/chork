@@ -12,19 +12,6 @@
   gap: var(--space-3);
 }
 
-.backLink {
-  @include type.typography(label);
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--mono-text-low-contrast);
-  text-decoration: none;
-
-  &:hover {
-    color: var(--mono-text);
-  }
-}
-
 .section {
   display: grid;
   gap: var(--space-3);

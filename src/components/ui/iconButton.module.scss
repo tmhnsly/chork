@@ -16,6 +16,8 @@
   background: var(--mono-bg);
   color: var(--mono-text);
   cursor: pointer;
+  // The same circle renders as a link (IconLink); no underline there.
+  text-decoration: none;
   transition: border-color var(--duration-fast) var(--ease-out);
 
   &:hover {

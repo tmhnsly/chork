@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FaEllipsis, FaFlagCheckered, FaPen } from "react-icons/fa6";
-import { BottomSheet, Button, ConfirmInline, SheetBody, showToast } from "@/components/ui";
+import { FaEllipsisVertical, FaFlagCheckered, FaPen } from "react-icons/fa6";
+import { BottomSheet, Button, ConfirmInline, IconButton, SheetBody, showToast } from "@/components/ui";
 import type { LeagueRow } from "@/lib/data/league-types";
 import { endLeagueAction, renameLeagueAction } from "@/app/match/league-actions";
 import styles from "./leagueHostMenu.module.scss";
@@ -50,14 +50,11 @@ export function LeagueHostMenu({ league }: Props) {
 
   return (
     <>
-      <button
-        type="button"
-        className={styles.trigger}
-        aria-label="League options"
-        onClick={() => setOpen(true)}
-      >
-        <FaEllipsis aria-hidden />
-      </button>
+      {/* The Game menu's shape, so ⋮ in a circle means the same thing
+          on every screen. */}
+      <IconButton label="League options" onClick={() => setOpen(true)}>
+        <FaEllipsisVertical />
+      </IconButton>
       {open && (
         <BottomSheet open onClose={() => setOpen(false)} title="League">
           <SheetBody>

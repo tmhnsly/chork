@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { FaArrowLeft, FaBolt } from "react-icons/fa6";
+import { LinkButton } from "@/components/ui";
 import { RevealText } from "@/components/motion";
 import styles from "./not-found.module.scss";
 
@@ -36,9 +36,9 @@ export default function NotFound() {
           that&apos;s been archived, or somebody&apos;s mistyped the URL.
         </p>
 
-        <Link href="/" className={styles.cta}>
+        <LinkButton href="/" className={styles.cta}>
           <FaArrowLeft aria-hidden /> Back to the wall
-        </Link>
+        </LinkButton>
       </div>
     </main>
   );
