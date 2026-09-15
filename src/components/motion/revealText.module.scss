@@ -130,24 +130,3 @@
     will-change: auto;
   }
 }
-
-// Firefox holds the title still. With the reveal running inside a page
-// that is arriving through a view transition, Gecko drew the page's
-// snapshot torn: displaced bands, a second copy of the title, and
-// garbage lines for the length of the fade (it matches Mozilla bug
-// 2066829, a snapshot sampled before it is rendered). Recorded in
-// Firefox Developer Edition 157 on Card and Friends: dropping the
-// layer hints alone still tore; holding the words still was clean on
-// all twelve navigations. `-moz-appearance` is the Gecko-only feature
-// query — true in Firefox, false in Chromium and WebKit.
-@supports (-moz-appearance: none) {
-  .wordClip {
-    clip-path: none;
-  }
-  .word {
-    animation: none;
-    transform: none;
-    will-change: auto;
-    backface-visibility: visible;
-  }
-}

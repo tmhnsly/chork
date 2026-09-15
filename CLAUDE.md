@@ -437,9 +437,9 @@ no group tween, so heights never stretch. CSS in
 motion turns it off. On in every
 browser with the API (`src/lib/view-transitions.ts`); Chromium is verified clean. Firefox's corruption was pinned
 by recording Developer Edition: an animation running inside the
-arriving page tears its snapshot, so `RevealText` holds still in
-Gecko (`@supports (-moz-appearance: none)`), and anything new that
-animates on arrival needs the same check. Safari's remaining glitches
+arriving page tears its snapshot, so in Gecko every in-page animation pauses while a
+transition runs, then plays (`@supports (-moz-appearance: none)` in
+`styles/app/view-transitions.scss`). Safari's remaining glitches
 are unpinned; don't gate an engine off without a recording of the
 failure. Where the API is missing React commits
 synchronously, so nothing depends on it. **Loading strategy that
