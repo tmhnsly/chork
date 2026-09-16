@@ -162,6 +162,18 @@ applied navigation, writing stale router state back. Two reviews traced it
 independently through `app-router-instance.js`. Worth a minimal repro and
 an issue, since our own mitigations are gates around it rather than a fix.
 
+## Three branches that never landed (2026-09-16)
+
+`feat/league`, `feat/profile` and `refactor/deepening` each hold work that is
+not in main: 38, 32 and 79 files of difference, last commits two weeks old, and
+each conflicts with main as it stands. GitHub records #35, #36 and #37 as
+merged and leaves #39 open, titled as re-landing the deepening pass, which fits
+a stacked chain merged branch-into-branch that never reached main.
+
+Decision: leave them. Main is current and shipped, and the demo runs on it.
+Anything still wanted out of those branches gets picked deliberately, rebased
+onto main, and reviewed as its own piece of work — never merged as a tidy-up.
+
 ## Social — Friends becomes a way to find a partner
 
 Idea, 2026-09-14: the Friends tab becomes **Social**, and gains a
