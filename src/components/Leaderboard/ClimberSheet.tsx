@@ -9,19 +9,13 @@ import {
   shimmerStyles,
 } from "@/components/ui";
 import { SendGridTile } from "@/components/ui/SendGridTile/SendGridTile";
-import type { LeaderboardEntry, Route, TileState } from "@/lib/data";
+import type { LeaderboardEntry, Route } from "@/lib/data";
 import { formatGrade } from "@/lib/data/grade-label";
-import { fetchClimberSheetLogs, type SanitisedLog } from "@/app/leaderboard/actions";
+import { fetchClimberSheetLogs } from "@/app/leaderboard/actions";
+import { deriveTileStateSanitised, type SanitisedLog } from "@/lib/data/logs";
 import { seatAvatarUser } from "@/lib/data/seat";
 import styles from "./climberSheet.module.scss";
 
-/** Derive tile state from the sanitised log (no raw attempts leaked). */
-function tileStateFromSanitised(log: SanitisedLog | undefined): TileState {
-  if (!log || !log.has_attempts) return "empty";
-  if (!log.completed) return "attempted";
-  if (log.is_flash) return "flash";
-  return "completed";
-}
 
 // ── Client-side cache ─────────────────────────────
 // Opening the same climber's sheet twice in a row shouldn't fire
@@ -111,7 +105,7 @@ export function ClimberSheet({ open, entry, setId, routes, onClose }: Props) {
                 <SendGridTile
                   key={route.id}
                   number={route.number}
-                  state={tileStateFromSanitised(log)}
+                  state={deriveTileStateSanitised(log)}
                   zone={log?.zone}
                   gradeLabel={
                     log?.grade_vote != null

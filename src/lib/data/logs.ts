@@ -75,3 +75,52 @@ export function visibleAttempts(
   if (!log.completed) return 0;
   return log.attempts === 1 ? 1 : 2;
 }
+
+/**
+ * The wire shape for handing ONE climber's logs to ANOTHER climber's
+ * browser — the strongest form of the attempt-privacy contract:
+ * `attempts` never crosses the wire at all. Derived flags carry
+ * exactly what tile state and scoring display need and nothing more.
+ * Prefer this shape for any NEW surface of that kind (CONTEXT.md
+ * "Attempt privacy").
+ *
+ * Lives HERE, beside `visibleAttempts`, because this file is the
+ * per-log privacy grain's one home — the shape used to be declared at
+ * its first surface (`leaderboard/actions.ts`) with `isFlash` and
+ * `deriveTileState` re-implemented inline against it, and nothing
+ * could pin the forks to their originals.
+ */
+export interface SanitisedLog {
+  route_id: string;
+  completed: boolean;
+  is_flash: boolean;
+  has_attempts: boolean;
+  zone: boolean;
+  grade_vote: number | null;
+}
+
+/** Raw log row → the sanitised wire shape. The one place the derived
+ *  flags are computed — `is_flash` IS `isFlash`, by construction. */
+export function sanitiseLog(
+  log: Pick<RouteLog, "route_id" | "attempts" | "completed" | "zone" | "grade_vote">,
+): SanitisedLog {
+  return {
+    route_id: log.route_id,
+    completed: log.completed,
+    is_flash: isFlash(log),
+    has_attempts: log.attempts > 0,
+    zone: log.zone,
+    grade_vote: log.grade_vote,
+  };
+}
+
+/** `deriveTileState`, for the sanitised shape — same ladder, driven
+ *  by the derived flags instead of raw attempts. */
+export function deriveTileStateSanitised(
+  log: SanitisedLog | null | undefined,
+): TileState {
+  if (!log || !log.has_attempts) return "empty";
+  if (!log.completed) return "attempted";
+  if (log.is_flash) return "flash";
+  return "completed";
+}

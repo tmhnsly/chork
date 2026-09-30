@@ -1,0 +1,28 @@
+@use "mixins/typography" as type;
+
+// The inline tokens of "Send now → 4 pts ⚡ +1 zone", rendered into
+// AttemptCounter's preview slot. One copy: the wall's sheet and the
+// game's each carried these five rules.
+.arrow {
+  font-size: 0.7em;
+  color: var(--accent-text-low-contrast);
+}
+
+.value {
+  @include type.typography(label);
+  color: var(--accent-text);
+}
+
+.valueFlash {
+  color: var(--flash-text-low-contrast);
+}
+
+.flash {
+  color: var(--flash-text-low-contrast);
+  font-size: 0.85em;
+}
+
+.zone {
+  @include type.typography(label);
+  color: var(--accent-text-low-contrast);
+}

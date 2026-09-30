@@ -434,8 +434,10 @@ to 0 so there is no "currently working this route" signal (the same
 activity-leak concern behind `relativeDay`'s coarse timestamps).
 
 The strongest form of the contract is to ship neither: `SanitisedLog`
-in `src/app/leaderboard/actions.ts` sends `is_flash` / `has_attempts`
-and drops `attempts` entirely, so the number never crosses the wire.
+(in `src/lib/data/logs.ts`, beside `visibleAttempts`; built by
+`sanitiseLog`, read by `deriveTileStateSanitised`) sends `is_flash` /
+`has_attempts` and drops `attempts` entirely, so the number never
+crosses the wire.
 Prefer that shape for any NEW surface handing one climber's logs to
 another's browser.
 

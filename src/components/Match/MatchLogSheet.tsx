@@ -1,8 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useReducer, useRef } from "react";
-import type { ReactNode } from "react";
-import { FaArrowRight, FaBolt } from "react-icons/fa6";
 import {
   AttemptCounter,
   BottomSheet,
@@ -10,6 +8,7 @@ import {
   Collapse,
   CompletedRow,
   LogSheetHeader,
+  PointsPreview,
   SheetActions,
   SheetBody,
   ZoneHoldRow,
@@ -22,7 +21,7 @@ import {
   partialCreditLabel,
   type MatchScales,
 } from "@/lib/data/grade-label";
-import { computePoints } from "@/lib/data/logs";
+import { computePoints, isFlash } from "@/lib/data/logs";
 import { handicapPointsTenths, tenthsToPoints } from "@/lib/data/handicap";
 import type { MatchRoute, MatchLog, } from "@/lib/data/match-types";
 import {
@@ -216,7 +215,7 @@ export function MatchLogSheet({
   const earnedPoints = useMemo(() => scoreOf(zone), [scoreOf, zone]);
   const previewPoints = useMemo(() => scoreOf(false), [scoreOf]);
 
-  const isCurrentFlash = completed && attempts === 1;
+  const isCurrentFlash = isFlash({ attempts, completed });
 
   const handleAttemptsChange = useCallback(
     (next: number) => {
@@ -248,27 +247,6 @@ export function MatchLogSheet({
     attemptsFlush.cancel();
     onSubmit(apply({ type: "set-zone", zone: checked }));
   }
-
-  const pointsPreview: ReactNode = completed ? (
-    <>
-      <span className={styles.ptsValue}>{earnedPoints}</span> pts
-    </>
-  ) : attempts === 0 ? (
-    "\u00A0"
-  ) : (
-    <>
-      Send now <FaArrowRight className={styles.ptsArrow} />{" "}
-      <span
-        className={`${styles.ptsValue} ${attempts === 1 ? styles.ptsValueFlash : ""}`}
-      >
-        {previewPoints} pts
-      </span>
-      {attempts === 1 && <FaBolt className={styles.ptsFlash} />}
-      {zone && (
-        <span className={styles.ptsZone}>+1 {creditLabel.toLowerCase()}</span>
-      )}
-    </>
-  );
 
   return (
     <BottomSheet
@@ -311,7 +289,16 @@ export function MatchLogSheet({
           disabled={completed}
           onChange={handleAttemptsChange}
           pointsEarned={completed}
-          pointsPreview={pointsPreview}
+          pointsPreview={
+            <PointsPreview
+              attempts={attempts}
+              completed={completed}
+              earned={earnedPoints}
+              preview={previewPoints}
+              zone={zone}
+              zoneLabel={creditLabel.toLowerCase()}
+            />
+          }
         />
 
         <div className={styles.controls}>

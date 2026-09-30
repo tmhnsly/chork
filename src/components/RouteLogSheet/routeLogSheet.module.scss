@@ -57,33 +57,9 @@
   border-radius: var(--radius-1);
 }
 
-// Attempt counter (+/- controls, rolling number, points preview) is
-// rendered via `<AttemptCounter>` from `ui/LogSheet`. Only the
-// points-preview inline tokens below remain here — they're injected
-// into the primitive's `pointsPreview` slot.
-.ptsArrow {
-  font-size: 0.7em;
-  color: var(--accent-text-low-contrast);
-}
-
-.ptsValue {
-  @include type.typography(label);
-  color: var(--accent-text);
-}
-
-.ptsValueFlash {
-  color: var(--flash-text-low-contrast);
-}
-
-.ptsFlash {
-  color: var(--flash-text-low-contrast);
-  font-size: 0.85em;
-}
-
-.ptsZone {
-  @include type.typography(label);
-  color: var(--accent-text-low-contrast);
-}
+// Attempt counter (+/- controls, rolling number) and its points
+// preview render via `<AttemptCounter>` and `<PointsPreview>` from
+// `ui/LogSheet`.
 
 // ── Secondary controls ─────────────────────────────
 // Completed state (sent/flashed badge + undo) renders via

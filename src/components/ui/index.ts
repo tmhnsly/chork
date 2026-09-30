@@ -25,7 +25,7 @@ export { GradePicker } from "./GradePicker/GradePicker";
 export type { GradeChoice } from "./GradePicker/GradePicker";
 export { SearchField } from "./SearchField";
 export { SendGridTile } from "./SendGridTile/SendGridTile";
-export { AttemptCounter, CompletedRow, LogSheetHeader } from "./LogSheet";
+export { AttemptCounter, CompletedRow, LogSheetHeader, PointsPreview } from "./LogSheet";
 export { LeaderboardRow } from "./LeaderboardRow/LeaderboardRow";
 export type { LeaderboardRowData } from "./LeaderboardRow/LeaderboardRow";
 export { ZoneHoldRow } from "./ZoneHoldRow/ZoneHoldRow";

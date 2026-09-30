@@ -1,6 +1,7 @@
 "use server";
 
 import { requireAuth, requireSameGymScope } from "@/lib/auth";
+import { sanitiseLog, type SanitisedLog } from "@/lib/data/logs";
 import { getLogsBySetForUser } from "@/lib/data/route-log-queries";
 import {
   getLeaderboardCached,
@@ -54,19 +55,10 @@ export async function fetchLeaderboardPage(
   return { success: true, rows, limit: safeLimit };
 }
 
-/**
- * Sanitised log for another climber's view — preserves enough info to derive
- * tile state (empty/attempted/flash/completed) without leaking raw attempt counts
- * (which the domain rules say are private).
- */
-export interface SanitisedLog {
-  route_id: string;
-  completed: boolean;
-  is_flash: boolean;
-  has_attempts: boolean;
-  zone: boolean;
-  grade_vote: number | null;
-}
+// The sanitised wire shape and its derivations live beside the rest
+// of the per-log privacy grain in `@/lib/data/logs` — re-exported so
+// this action module stays the import path its consumers know.
+export type { SanitisedLog } from "@/lib/data/logs";
 
 /**
  * Fetch a climber's sanitised logs for the given set. Routes are
@@ -93,14 +85,7 @@ export async function fetchClimberSheetLogs(
 
   const rawLogs = await getLogsBySetForUser(supabase, setId, climberUserId);
 
-  const logs: SanitisedLog[] = rawLogs.map((l) => ({
-    route_id: l.route_id,
-    completed: l.completed,
-    is_flash: l.completed && l.attempts === 1,
-    has_attempts: l.attempts > 0,
-    zone: l.zone,
-    grade_vote: l.grade_vote,
-  }));
+  const logs: SanitisedLog[] = rawLogs.map(sanitiseLog);
 
   return { success: true, logs };
 }

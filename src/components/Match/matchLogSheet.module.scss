@@ -39,33 +39,6 @@
   color: var(--mono-text-low-contrast);
 }
 
-// ── Points preview inline tokens ──
-// Mirrors the wall sheet's `.pts*` classes so the "Send now → 4 pts"
-// + flash glyph + "+1 zone" inline reads identically across sheets.
-.ptsArrow {
-  font-size: 0.7em;
-  color: var(--accent-text-low-contrast);
-}
-
-.ptsValue {
-  @include type.typography(label);
-  color: var(--accent-text);
-}
-
-.ptsValueFlash {
-  color: var(--flash-text-low-contrast);
-}
-
-.ptsFlash {
-  color: var(--flash-text-low-contrast);
-  font-size: 0.85em;
-}
-
-.ptsZone {
-  @include type.typography(label);
-  color: var(--accent-text-low-contrast);
-}
-
 // Chork: how many goes you've used of how many you get, and the way
 // out. The count is the tension of the round; "Give up" exists
 // because letters are derived from attempts reaching the allowance,

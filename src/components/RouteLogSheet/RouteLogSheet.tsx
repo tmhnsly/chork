@@ -1,17 +1,18 @@
 "use client";
 
-import { PointsPreview } from "./PointsPreview";
 import { CommentThread } from "./CommentThread";
 import {
   AttemptCounter,
   Collapse,
   CompletedRow,
   LogSheetHeader,
+  PointsPreview,
   ZoneHoldRow,
 } from "@/components/ui";
 import { GradeSlider } from "./GradeSlider";
 import type { GradingScale } from "@/lib/data/grade-label";
 import type { RouteSet, Route, RouteLog } from "@/lib/data";
+import { computePoints } from "@/lib/data/logs";
 import type { CachedRouteData } from "./types";
 import { useAuth } from "@/lib/auth-context";
 import { Button, shimmerStyles } from "@/components/ui";
@@ -121,9 +122,10 @@ export function RouteLogSheet({
         pointsPreview={
           <PointsPreview
             attempts={state.attempts}
-            zone={zoneValue}
             completed={isCompleted}
-            log={state.currentLog}
+            earned={state.currentLog ? computePoints(state.currentLog) : 0}
+            preview={computePoints({ attempts: state.attempts, completed: true, zone: false })}
+            zone={zoneValue}
           />
         }
       />
