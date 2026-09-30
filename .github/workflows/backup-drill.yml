@@ -64,9 +64,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Pinned, not `latest`. Resolving "latest" is an unauthenticated
+      # GitHub API call from a shared runner, and it is rate limited:
+      # nine of forty runs failed at this step with "Failed to resolve
+      # latest Supabase CLI release: rate limit exceeded", before any
+      # migration was replayed. A pinned version is a plain download.
+      # Bump it when the local CLI is bumped.
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          version: 2.118.0
 
       # The repo keeps no config.toml — it links to the hosted project
       # and never ran a local stack. The stack needs one; generate it
@@ -161,7 +167,7 @@ jobs:
       - uses: supabase/setup-cli@v1
         if: steps.gate.outputs.configured == 'true'
         with:
-          version: latest
+          version: 2.118.0
 
       # An EMPTY stack — its own workdir, no migrations of ours — is
       # exactly what a brand-new Supabase project is, which is what the
