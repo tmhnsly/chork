@@ -409,6 +409,136 @@ describe("matchReducer", () => {
     });
   });
 
+  describe("initMatchState withdrawn routes", () => {
+    it("leaves a withdrawn route off the wall, as upsert-route does live", () => {
+      const initial = {
+        match: { id: "match-1" },
+        routes: [mkRoute("a", 1), mkRoute("b", 2, { withdrawn_at: "2026-04-01T11:00:00Z" })],
+        players: [],
+        my_logs: [],
+        guest_logs: [],
+        grades: [],
+        leaderboard: [],
+      } as unknown as MatchState;
+      expect(initMatchState(initial).routes.map((r) => r.id)).toEqual(["a"]);
+    });
+  });
+
+  describe("sync", () => {
+    // Realtime never replays what it sent while a socket was down. Found
+    // in a live game: a route put up while a phone was locked never
+    // reached it, while the scores caught up on the next log.
+    function bundle(overrides: Partial<MatchState> = {}): MatchState {
+      return {
+        match: { id: "match-1", host_id: "host" },
+        routes: [],
+        players: [],
+        my_logs: [],
+        guest_logs: [],
+        other_logs: [],
+        grades: [],
+        leaderboard: [],
+        ...overrides,
+      } as unknown as MatchState;
+    }
+    const sync = (state: MatchLocalState, b: MatchState, viewerId = "u1") =>
+      matchReducer(state, { type: "sync", bundle: b, viewerId });
+
+    it("brings in a route the realtime feed missed", () => {
+      const state = { ...emptyState, routes: [mkRoute("a", 1)] };
+      const next = sync(state, bundle({ routes: [mkRoute("a", 1), mkRoute("b", 2)] }));
+      expect(next.routes.map((r) => r.id)).toEqual(["a", "b"]);
+    });
+
+    it("drops a route withdrawn while the feed was down", () => {
+      const state = { ...emptyState, routes: [mkRoute("a", 1), mkRoute("b", 2)] };
+      const next = sync(
+        state,
+        bundle({
+          routes: [mkRoute("a", 1), mkRoute("b", 2, { withdrawn_at: "2026-04-01T11:00:00Z" })],
+        }),
+      );
+      expect(next.routes.map((r) => r.id)).toEqual(["a"]);
+    });
+
+    it("keeps a route put up after the snapshot was read", () => {
+      // This device's own add paints on server success, which can land
+      // before a refresh that started earlier.
+      const state = { ...emptyState, routes: [mkRoute("a", 1), mkRoute("b", 2)] };
+      const next = sync(state, bundle({ routes: [mkRoute("a", 1)] }));
+      expect(next.routes.map((r) => r.id)).toEqual(["a", "b"]);
+    });
+
+    it("reads the high-water mark through withdrawn routes", () => {
+      // Route 2 was withdrawn while away. The bundle still carries it,
+      // so the local copy isn't mistaken for one added after the snapshot.
+      const state = { ...emptyState, routes: [mkRoute("a", 1), mkRoute("b", 2)] };
+      const next = sync(
+        state,
+        bundle({
+          routes: [mkRoute("a", 1), mkRoute("b", 2, { withdrawn_at: "2026-04-01T11:00:00Z" })],
+        }),
+      );
+      expect(next.routes.map((r) => r.id)).not.toContain("b");
+    });
+
+    it("fills in another player's log the feed missed, collapsed", () => {
+      const next = sync(
+        emptyState,
+        bundle({ other_logs: [mkLog("u2", "a", { attempts: 5, completed: true })] }),
+      );
+      expect(next.logs.get(logKey("u2", "a"))?.attempts).toBe(2);
+    });
+
+    it("keeps the viewer's own log over the snapshot, which may predate a tap", () => {
+      const local = mkLog("u1", "a", { attempts: 3, updated_at: "2026-04-01T09:00:00Z" });
+      const state = { ...emptyState, logs: new Map([[logKey("u1", "a"), local]]) };
+      const next = sync(
+        state,
+        bundle({ my_logs: [mkLog("u1", "a", { attempts: 1, updated_at: "2026-04-01T10:00:00Z" })] }),
+      );
+      expect(next.logs.get(logKey("u1", "a"))?.attempts).toBe(3);
+    });
+
+    it("keeps the host's local guest log over the snapshot", () => {
+      const guest = { ...mkLog("u1", "a", { attempts: 4 }), user_id: null, player_id: "seat-9" };
+      const state = { ...emptyState, logs: new Map([[logKey("seat-9", "a"), guest]]) };
+      const next = sync(
+        state,
+        bundle({ guest_logs: [{ ...guest, attempts: 1, updated_at: "2026-04-01T12:00:00Z" }] }),
+        "host",
+      );
+      expect(next.logs.get(logKey("seat-9", "a"))?.attempts).toBe(4);
+    });
+
+    it("keeps a newer realtime copy of someone else's log over a slower snapshot", () => {
+      const fresh = mkLog("u2", "a", { attempts: 1, updated_at: "2026-04-01T12:00:00Z" });
+      const state = { ...emptyState, logs: new Map([[logKey("u2", "a"), fresh]]) };
+      const next = sync(
+        state,
+        bundle({
+          other_logs: [mkLog("u2", "a", { attempts: 0, completed: false, updated_at: "2026-04-01T10:00:00Z" })],
+        }),
+      );
+      expect(next.logs.get(logKey("u2", "a"))?.completed).toBe(true);
+    });
+
+    it("takes the server's copy of someone else's log when it is newer", () => {
+      const stale = mkLog("u2", "a", { attempts: 0, completed: false, updated_at: "2026-04-01T10:00:00Z" });
+      const state = { ...emptyState, logs: new Map([[logKey("u2", "a"), stale]]) };
+      const next = sync(
+        state,
+        bundle({ other_logs: [mkLog("u2", "a", { attempts: 1, updated_at: "2026-04-01T12:00:00Z" })] }),
+      );
+      expect(next.logs.get(logKey("u2", "a"))?.completed).toBe(true);
+    });
+
+    it("leaves the open panel alone", () => {
+      const state = { ...emptyState, panel: { kind: "add" } as const };
+      expect(sync(state, bundle()).panel).toEqual({ kind: "add" });
+    });
+  });
+
   describe("remove-log", () => {
     it("deletes the log for the specified (user, route)", () => {
       const logs = new Map([

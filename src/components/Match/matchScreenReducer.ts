@@ -91,6 +91,13 @@ export type MatchAction =
    * for the local rollback, which knows the owner and route.
    */
   | { type: "remove-log-by-id"; id: string }
+  /**
+   * A fresh bundle from the server, after a refresh. Realtime never
+   * replays what it sent while this device's socket was down, so a
+   * route put up while the phone was locked arrived nowhere: see
+   * `syncFromServer` for how the two copies merge.
+   */
+  | { type: "sync"; bundle: MatchState; viewerId: string }
   | { type: "open-panel"; panel: MatchPanel }
   | { type: "close-panel" };
 
@@ -160,7 +167,11 @@ export function seatEventOutcome(evt: SeatEvent, viewerSeatId: string | null): S
  *  `my_logs` are the viewer's own rows — raw attempts stay. */
 export function initMatchState(initialState: MatchState): MatchLocalState {
   return {
-    routes: initialState.routes,
+    // The bundle carries withdrawn routes, because the Chork pen reads
+    // them server-side. To the room a withdrawn route is gone, the same
+    // rule `upsert-route` applies live; without this one it came back
+    // on every reload.
+    routes: initialState.routes.filter((r) => r.withdrawn_at === null),
     players: initialState.players,
     // Own logs, plus every guest's when the viewer is the host — the
     // RPC returns an empty `guest_logs` to everyone else, so this is
@@ -181,6 +192,52 @@ export function initMatchState(initialState: MatchState): MatchLocalState {
     ),
     panel: { kind: "none" },
   };
+}
+
+/**
+ * Merge a fresh server bundle into live state.
+ *
+ * Routes: the server's list is the truth, so a route missed while the
+ * socket was down arrives and a withdrawal missed with it leaves. The
+ * one exception is a route numbered past everything in the bundle,
+ * which was put up after the snapshot was read (this device's own
+ * add, painted on server success, can land before a refresh started
+ * earlier). Numbers only climb, and the bundle's own count includes
+ * withdrawn routes, so its highest number is a true high-water mark.
+ *
+ * Logs: the server fills and corrects everyone else's, and a newer
+ * copy already here (a realtime event that beat a slower refresh)
+ * stands. The seats scored here, the viewer's own and a host's guests,
+ * always keep the local copy: it may be an optimistic tap whose write
+ * hasn't landed, or one waiting in the offline queue, and a snapshot
+ * taken before it would undo the tap on screen.
+ */
+function syncFromServer(
+  state: MatchLocalState,
+  bundle: MatchState,
+  viewerId: string,
+): MatchLocalState {
+  const server = initMatchState(bundle);
+  const highWater = bundle.routes.reduce((max, r) => Math.max(max, r.number), 0);
+  const routes = [
+    ...server.routes,
+    ...state.routes.filter((r) => r.number > highWater),
+  ].sort((a, b) => a.number - b.number);
+
+  const isHost = bundle.match.host_id === viewerId;
+  const logs = new Map(server.logs);
+  for (const [key, local] of state.logs) {
+    const fromServer = logs.get(key);
+    const scoredHere = local.user_id === viewerId || (isHost && local.user_id === null);
+    if (
+      !fromServer ||
+      scoredHere ||
+      Date.parse(local.updated_at) > Date.parse(fromServer.updated_at)
+    ) {
+      logs.set(key, local);
+    }
+  }
+  return { ...state, routes, logs };
 }
 
 export function matchReducer(
@@ -267,6 +324,8 @@ export function matchReducer(
       logs.delete(entry[0]);
       return { ...state, logs };
     }
+    case "sync":
+      return syncFromServer(state, action.bundle, action.viewerId);
     case "open-panel":
       return { ...state, panel: action.panel };
     case "close-panel":

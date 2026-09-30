@@ -52,6 +52,18 @@ export function useMatchRealtime(
      * stopped accepting writes.
      */
     onMatchChange: (evt: MatchRealtimeEvent<{ id: string; status: string }>) => void;
+    /**
+     * The feed may have missed events. Realtime never replays what it
+     * sent while a socket was down, and a phone at the wall locks
+     * between every climb. A missed log healed itself, because the
+     * next one refetched the board, but a missed route stayed missing
+     * until a reload: scores moved while the grid didn't. Fires when
+     * the channel joins again after a drop, and when the page comes
+     * back into view, since a suspended socket can take a while to
+     * notice it died. Events between the page returning and the rejoin
+     * are lost too, so both are needed.
+     */
+    onResume: () => void;
   },
 ) {
   // Cache the latest handlers in a ref so the channel callbacks can
@@ -71,6 +83,7 @@ export function useMatchRealtime(
     if (!matchId) return;
     const supabase = createBrowserSupabase();
     const channel = supabase.channel(`match:${matchId}`);
+    let joined = false;
 
     // Filtered on `set_id` — the column migration 080 denormalised
     // onto `route_logs` for exactly this. The filter matters more here
@@ -108,9 +121,21 @@ export function useMatchRealtime(
             payload as MatchRealtimeEvent<{ id: string; status: string }>,
           ),
       )
-      .subscribe();
+      // The first join is the mount, whose bundle is already fresh;
+      // any later one follows a drop.
+      .subscribe((status) => {
+        if (status !== "SUBSCRIBED") return;
+        if (joined) handlersRef.current.onResume();
+        joined = true;
+      });
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") handlersRef.current.onResume();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
       supabase.removeChannel(channel);
     };
   }, [matchId]);

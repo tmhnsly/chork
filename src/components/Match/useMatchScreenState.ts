@@ -97,6 +97,17 @@ export function useMatchScreenState({
     dispatch({ type: "set-players", players: initialState.players });
   }
 
+  // Routes and logs had the same trap. Every refresh's bundle was
+  // thrown away, so the one repair for a missed realtime event (a
+  // refresh when the feed resumes) repaired nothing. Keyed on the
+  // bundle itself: a refresh is the only thing that hands down a new
+  // one. The reducer's `sync` decides what of it to trust.
+  const [syncedBundle, setSyncedBundle] = useState(initialState);
+  if (syncedBundle !== initialState) {
+    setSyncedBundle(initialState);
+    dispatch({ type: "sync", bundle: initialState, viewerId: userId });
+  }
+
   // ── Chork ──────────────────────────────────────────────────────
   //
   // Nothing about Chork can be worked out here: letters AND whose turn
@@ -295,6 +306,14 @@ export function useMatchScreenState({
       if (evt.eventType === "UPDATE" && evt.new.status === "archived") {
         router.replace(`/match/summary/${initialState.match.id}`);
       }
+    },
+    onResume: () => {
+      if (leavingRef.current) return;
+      // Anything missed while away (routes, logs, seats, the board)
+      // comes back with a fresh bundle, and the render-time syncs
+      // above take it in. Chork's standings aren't in the bundle.
+      router.refresh();
+      if (isChork) scheduleChork(undefined);
     },
   });
 
