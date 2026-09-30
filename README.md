@@ -5,7 +5,7 @@ on numbered routes within a gym's active competition set, earn points
 on a public gym leaderboard ("Chorkboard"), and compete inside
 private groups called **crews**.
 
-Live at https://chork.vercel.app (once a domain lands, this'll update).
+Live at https://chork.app.
 
 ---
 
