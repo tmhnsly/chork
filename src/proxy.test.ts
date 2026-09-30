@@ -160,7 +160,10 @@ describe("proxy: signed-out visitors", () => {
   it("lets public routes and their sub-paths through", async () => {
     await primeMiddleware(null);
     const { proxy } = await import("./proxy");
-    expect(redirectedTo(await proxy(request("/gyms/yonder")))).toBeNull();
+    // `/privacy` stands in for the sub-path case now that `/gyms` is
+    // gone — the assertion is about `startsWith(`${r}/`)`, not about
+    // which route happens to be public.
+    expect(redirectedTo(await proxy(request("/privacy/cookies")))).toBeNull();
     expect(redirectedTo(await proxy(request("/")))).toBeNull();
     expect(redirectedTo(await proxy(request("/login")))).toBeNull();
   });

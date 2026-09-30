@@ -71,6 +71,6 @@ export const tags = {
   competition: (cid: string): `competition:${string}` => `competition:${cid}`,
 
   // ── Global (no params) ──
-  /** Listed gyms on the /gyms surface. */
+  /** Listed gyms, for the gym picker. */
   gymsListed: (): "gyms:listed" => "gyms:listed",
 } as const;

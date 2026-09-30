@@ -9,7 +9,7 @@ const AUTH_ROUTES = ["/login"];
 // like any other route — previously `/` short-circuited, which let
 // freshly-signed-up users see the homepage before completing the
 // onboarding form and trapped anyone who refreshed mid-flow.
-const PUBLIC_ROUTES = ["/", "/privacy", "/terms", "/gyms"];
+const PUBLIC_ROUTES = ["/", "/privacy", "/terms"];
 // Routes whose render does NOT depend on auth state — middleware can
 // skip the getUser() round-trip entirely. /privacy + /terms look
 // identical for signed-in and signed-out users, so there's no value
@@ -310,7 +310,6 @@ export const config = {
     "/admin/:path*",
     "/privacy/:path*",
     "/terms/:path*",
-    "/gyms/:path*",
     "/match/:path*",
   ],
 };

@@ -15,7 +15,6 @@ import {
   FaUser,
   FaRightToBracket,
   FaUserGroup,
-  FaMountainSun,
   FaScrewdriverWrench,
   FaTrophy,
 } from "react-icons/fa6";
@@ -402,14 +401,16 @@ function AuthenticatedNav({
   );
 }
 
-// Unauthenticated shell — brand + Gyms (for-gym marketing) + Sign in.
-// Shares the sliding-pill hook with AuthenticatedNav so the active-tab
-// highlight reads the same in both states. Active-route detection
-// matches the signed-in branch's semantics: `/gyms*` → Gyms tab;
-// `/login*` → Sign in tab.
+// Unauthenticated shell — brand + Sign in. Shares the sliding-pill
+// hook with AuthenticatedNav so the active-tab highlight reads the
+// same in both states. Active-route detection matches the signed-in
+// branch's semantics: `/login*` → Sign in tab.
+//
+// The Gyms tab went with the `/gyms` route. The gym-facing pitch is
+// parked until the business model and the design settle, and a tab
+// pointing at a route that no longer exists is worse than no tab.
 function UnauthenticatedNav({ pathname }: { pathname: string }) {
   const homeActive = pathname === "/";
-  const gymsActive = pathname.startsWith("/gyms");
   const loginActive = pathname.startsWith("/login");
   const { tabsRef, pillRef } = useSlidingPill(pathname);
 
@@ -431,15 +432,6 @@ function UnauthenticatedNav({ pathname }: { pathname: string }) {
 
         <div className={styles.tabs} ref={tabsRef}>
           <span className={styles.pill} ref={pillRef} aria-hidden />
-          <Link
-            prefetch
-            href="/gyms"
-            className={`${styles.tab} ${gymsActive ? styles.tabActive : ""}`}
-            aria-current={gymsActive ? "page" : undefined}
-          >
-            <FaMountainSun className={styles.tabIcon} aria-hidden />
-            <span className={styles.tabLabel}>Gyms</span>
-          </Link>
           <Link
             prefetch
             href="/login"

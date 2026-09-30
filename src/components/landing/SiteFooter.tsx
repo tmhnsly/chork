@@ -6,7 +6,7 @@ import styles from "./siteFooter.module.scss";
 
 /**
  * Site-wide marketing footer. Mounted on every externally reachable
- * brand surface (landing, /gyms) so social + legal chrome is always
+ * brand surface (landing, privacy, terms) so social + legal chrome is always
  * one tap away regardless of entry point. Compact signoff — a small
  * ChorkMark, social icons, legal links, and a combined copyright +
  * "Est 2026" line. Handles its own safe-area + navbar-clearance

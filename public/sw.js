@@ -2,8 +2,11 @@
 
 // Bumping this name evicts the old cache on activate. Bump whenever
 // the SW logic or pre-cache shape changes so users get the new
-// behaviour on next visit. v5 drops `/` from SHELL_URLS — see below.
-const CACHE_NAME = "chork-v5";
+// behaviour on next visit. v5 dropped `/` from SHELL_URLS — see below;
+// v6 drops `/gyms`, which no longer exists. `addAll` rejects the whole
+// install if any one URL 404s, so a removed route must leave this list
+// in the same change.
+const CACHE_NAME = "chork-v6";
 
 // App shell — public pages that are safe to cache + serve to any
 // user. Explicitly DOES NOT include authed surfaces (profile, wall,
@@ -25,7 +28,7 @@ const CACHE_NAME = "chork-v5";
 // fetch — confusing UX and a subtle signal that the session cookie
 // hadn't actually cleared yet. Logging-in is rare enough that a
 // plain network fetch is fine.
-const SHELL_URLS = ["/privacy", "/terms", "/gyms"];
+const SHELL_URLS = ["/privacy", "/terms"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

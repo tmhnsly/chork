@@ -778,7 +778,7 @@ Vitest-based. See `docs/testing.md` for patterns. Key rules:
   `<UserAvatar size>`. Each failure names the rung to use instead.
   **A rule you can't satisfy means a missing token — add the token
   rather than widening an exemption.** Marketing surfaces
-  (`components/landing/`, `app/gyms/`) are exempt from the size and
+  (`components/landing/`) are exempt from the size and
   rhythm rules only, pending the homepage refresh.
   `avatar-sizes.test.ts` separately pins the TS avatar map to its CSS
   tokens

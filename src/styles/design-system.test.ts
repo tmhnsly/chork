@@ -15,7 +15,7 @@ import { describe, expect, it } from "vitest";
  * you cannot satisfy is a rule with a missing token behind it —
  * add the token rather than widening an exemption here.
  *
- * Marketing surfaces (`components/landing/`, `app/gyms/`) are exempt
+ * Marketing surfaces (`components/landing/`) are exempt
  * from the SIZE AND RHYTHM rules only (type sizes, spacing scale) —
  * by decision, not oversight: they are container-relative
  * illustrations tuned against `cqi` inside fixed-aspect boxes, which
@@ -37,7 +37,7 @@ const SRC = join(process.cwd(), "src");
  *  app chrome. Sizes there are tuned against `cqi` in a fixed-aspect
  *  box, which the app scales don't model. Excluded knowingly, and due
  *  a refresh of their own. */
-const MARKETING = ["components/landing/", "app/gyms/"];
+const MARKETING = ["components/landing/"];
 
 /** The token layer defines the primitives, so it is allowed to use
  *  literals the rest of the app may not. */
