@@ -18,6 +18,7 @@ import { formatHandicapPoints } from "@/lib/data/handicap";
 import { countOf, countOfFormatted } from "@/lib/plural";
 import { isUuid } from "@/lib/validation";
 import { matchTitle } from "@/lib/data/match-title";
+import { seatAvatarUser, seatName } from "@/lib/data/seat";
 import { GameOptionsSheet } from "@/components/Match/GameOptionsSheet";
 import { canDeleteGame, deleteGameWarning } from "@/lib/data/match-deletion";
 
@@ -199,7 +200,7 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
             </span>
             <span className={styles.winnerName}>
               {chorkWinners
-                .map((w) => w.display_name || w.username || "Climber")
+                .map((w) => seatName(w))
                 .join(", ")}
             </span>
           </div>
@@ -244,18 +245,10 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
               return (
                 <li key={p.player_id} className={styles.playerRow}>
                   <span className={styles.playerRank}>#{i + 1}</span>
-                  <UserAvatar
-                    user={{
-                      id: p.user_id ?? p.player_id,
-                      username,
-                      name: p.display_name ?? username,
-                      avatar_url: p.avatar_url ?? "",
-                    }}
-                    size="row"
-                  />
+                  <UserAvatar user={seatAvatarUser(p)} size="row" />
                   <div className={styles.playerIdentity}>
                     <span className={styles.playerName}>
-                      {p.display_name || (p.is_guest ? "Guest" : username)}
+                      {seatName(p, { fallback: username })}
                     </span>
                     <span className={styles.playerHandle}>
                       {p.is_guest ? "Guest" : <Username username={username} />}
@@ -272,7 +265,7 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
           </ol>
         ) : (
         <ol className={styles.playerList}>
-          {players.map((p, i) => {
+          {players.map((p) => {
             // The old summary denormalised names at end time, so a
             // deleted account kept its label. Reading live rows means
             // the join can miss — show the placeholder rather than an
@@ -283,25 +276,14 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
             // rudeness to them.
             const isGuest = p.is_guest;
             return (
-            <li
-              key={p.user_id || `unknown-${p.rank}-${i}`}
-              className={styles.playerRow}
-            >
+            <li key={p.player_id} className={styles.playerRow}>
               <span className={styles.playerRank}>#{p.rank}</span>
-              <UserAvatar
-                user={{
-                  id: p.user_id ?? "",
-                  username,
-                  // Falls back to the handle so the avatar still gets
-                  // an initial to draw, matching the name shown below.
-                  name: p.display_name ?? username,
-                  avatar_url: p.avatar_url ?? "",
-                }}
-                size="row"
-              />
+              {/* Keyed by seat. This list keyed a guest's avatar `""`,
+                  so every guest in a game drew the same fallback. */}
+              <UserAvatar user={seatAvatarUser(p)} size="row" />
               <div className={styles.playerIdentity}>
                 <span className={styles.playerName}>
-                  {p.display_name || (isGuest ? "Guest" : username)}
+                  {seatName(p, { fallback: username })}
                 </span>
                 <span className={styles.playerHandle}>
                   {isGuest ? (

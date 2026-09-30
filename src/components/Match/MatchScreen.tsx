@@ -4,9 +4,9 @@ import { useState } from "react";
 import { FaEllipsisVertical, FaFlag, FaPaperPlane } from "react-icons/fa6";
 import { IconButton, LeaderboardRow, UserAvatar, showToast } from "@/components/ui";
 import type { MatchState, SavedScale } from "@/lib/data/match-types";
-import { ownerIdOf } from "@/lib/data/match-types";
+import { entersLogsFor, ownerIdOf, seatAvatarUser } from "@/lib/data/seat";
 import { formatHandicapPoints } from "@/lib/data/handicap";
-import { makeGradeLabeller, SCALE_LABEL } from "@/lib/data/grade-label";
+import { ceilingForDiscipline, makeGradeLabeller, SCALE_LABEL } from "@/lib/data/grade-label";
 import { canDeleteGame, deleteGameWarning } from "@/lib/data/match-deletion";
 import { visibleBoardRows, BOARD_PREVIEW_SIZE } from "@/lib/data/match-board";
 import { countOf } from "@/lib/plural";
@@ -42,10 +42,9 @@ interface Props {
  * split.
  */
 export function MatchScreen({ initialState, userId, savedScales }: Props) {
-  const isHost = initialState.match.host_id === userId;
-
   const {
     state,
+    viewer,
     leaderboard,
     myLogByRouteId,
     isPending,
@@ -68,6 +67,7 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
     handleConcede,
     handleWithdraw,
   } = useMatchScreenState({ initialState, userId });
+  const isHost = viewer.isHost;
 
   // The board shows the top of the table and you, always — see
   // match-board.ts for why the bare top-5 was a bug.
@@ -90,11 +90,7 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
     isChork && chorkPenSeatId
       ? state.players.find((p) => p.player_id === chorkPenSeatId) ?? null
       : null;
-  const canSet =
-    !isChork ||
-    penPlayer === null ||
-    penPlayer.user_id === userId ||
-    (isHost && penPlayer.is_guest);
+  const canSet = !isChork || penPlayer === null || entersLogsFor(viewer, penPlayer);
 
   // No routes yet: setup is still open. Derived, never stored.
   const lobby = isLobby(state);
@@ -195,12 +191,7 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
                 {state.players.slice(0, 4).map((p) => (
                   <UserAvatar
                     key={p.player_id}
-                    user={{
-                      id: ownerIdOf(p),
-                      username: p.username ?? "guest",
-                      name: p.display_name ?? "",
-                      avatar_url: p.avatar_url ?? "",
-                    }}
+                    user={seatAvatarUser(p)}
                     size="stack"
                   />
                 ))}
@@ -340,7 +331,14 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
           handicap={initialState.match.handicap}
           // The seat being logged for — the guest when the host is
           // entering, otherwise the viewer's own.
-          ceiling={loggingPlayer?.ceiling ?? null}
+          // Whichever of their two limits this route is measured
+          // against. This passed the first limit for every route, so on
+          // a mixed day the preview and the board disagreed.
+          ceiling={
+            loggingPlayer
+              ? ceilingForDiscipline(initialState.match, loggingPlayer, activeRoute.discipline)
+              : null
+          }
           loggingFor={
             loggingPlayer && loggingPlayer.is_guest
               ? loggingPlayer.display_name
@@ -513,9 +511,7 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
           // they host. A row that can't do anything is worse than no
           // row.
           onSetCeiling={
-            initialState.match.handicap
-            && (peekedPlayer.user_id === userId
-              || (isHost && peekedPlayer.is_guest))
+            initialState.match.handicap && entersLogsFor(viewer, peekedPlayer)
               ? () =>
                   openPanel({
                     kind: "ceiling",

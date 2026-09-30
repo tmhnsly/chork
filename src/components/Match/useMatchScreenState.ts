@@ -16,6 +16,7 @@ import { useMatchRealtime } from "@/hooks/use-match-realtime";
 import { computeMatchLeaderboard } from "@/lib/data/match-leaderboard";
 import type { MatchLog, MatchPlayerView, MatchRoute, MatchState } from "@/lib/data/match-types";
 import { ceilingForDiscipline, type Discipline } from "@/lib/data/grade-label";
+import { entersLogsFor, type SeatViewer } from "@/lib/data/seat";
 import {
   addMatchRouteAction,
   updateMatchRouteAction,
@@ -55,7 +56,7 @@ import {
  * log + rollback, offline queue, panel exclusivity) lives here or in
  * the reducer.
  *
- * The realtime → reducer wiring passes `viewerId` with every log
+ * The realtime → reducer wiring passes the viewer with every log
  * upsert so the reducer's privacy gate (raw attempts are owner-only)
  * applies — see matchScreenReducer.ts for the invariant.
  */
@@ -69,6 +70,11 @@ export function useMatchScreenState({
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [state, dispatch] = useReducer(matchReducer, initialState, initMatchState);
+  // Who is looking, for every seat rule (`entersLogsFor` in seat.ts).
+  const viewer = useMemo<SeatViewer>(
+    () => ({ userId, isHost: initialState.match.host_id === userId }),
+    [userId, initialState.match.host_id],
+  );
 
   /**
    * Take the roster back off the server after a refresh.
@@ -106,7 +112,7 @@ export function useMatchScreenState({
   const [syncedBundle, setSyncedBundle] = useState(initialState);
   if (syncedBundle !== initialState) {
     setSyncedBundle(initialState);
-    dispatch({ type: "sync", bundle: initialState, viewerId: userId });
+    dispatch({ type: "sync", bundle: initialState, viewer });
   }
 
   // ── Chork ──────────────────────────────────────────────────────
@@ -186,7 +192,6 @@ export function useMatchScreenState({
   // shortly after one of their logs or a route changes. The viewer's
   // own seat, and a host's guests, stay scored here from raw logs so a
   // tap shows at once. Chork has no points board to keep.
-  const isHost = initialState.match.host_id === userId;
   const [serverBoard, setServerBoard] = useState(() => ({
     source: initialState.leaderboard,
     rows: initialState.leaderboard,
@@ -197,8 +202,8 @@ export function useMatchScreenState({
     setServerBoard({ source: initialState.leaderboard, rows: initialState.leaderboard });
   }
   const scoredHere = useCallback(
-    (p: MatchPlayerView) => p.user_id === userId || (isHost && p.is_guest),
-    [userId, isHost],
+    (p: MatchPlayerView) => entersLogsFor(viewer, p),
+    [viewer],
   );
   const { schedule: scheduleBoard, cancel: cancelBoard } = useDebouncedFlush<void>({
     delayMs: 800,
@@ -260,7 +265,7 @@ export function useMatchScreenState({
       } else {
         // The reducer sanitises other players' raw attempt counts —
         // this call site just declares who is looking.
-        dispatch({ type: "upsert-log", log: evt.new, viewerId: userId });
+        dispatch({ type: "upsert-log", log: evt.new, viewer });
       }
       // Anyone's log can change who owes a letter, so this listens to
       // every log event rather than only the viewer's own.
@@ -270,9 +275,7 @@ export function useMatchScreenState({
         // someone else's log needs the server's scoring. A log this
         // screen never held (row undefined) still triggers the
         // refetch — the safe default.
-        const scoredLocally =
-          row !== undefined &&
-          (row.user_id === userId || (row.user_id === null && isHost));
+        const scoredLocally = row !== undefined && entersLogsFor(viewer, row);
         if (!scoredLocally) scheduleBoard(undefined);
       }
     },
@@ -605,7 +608,7 @@ export function useMatchScreenState({
       // echo overwrites with the server's row on success.
       dispatch({
         type: "upsert-log",
-        viewerId: userId,
+        viewer,
         log: {
           id: previous?.id ?? `optimistic-${route.id}`,
           set_id: initialState.match.id,
@@ -641,14 +644,14 @@ export function useMatchScreenState({
           showToast((result as { error: string }).error, "error");
           // Roll back to the previous log if the action rejected.
           if (previous) {
-            dispatch({ type: "upsert-log", log: previous, viewerId: userId });
+            dispatch({ type: "upsert-log", log: previous, viewer });
           } else {
             dispatch({ type: "remove-log", userId: ownerId, routeId: route.id });
           }
         }
       });
     },
-    [initialState.match.id, state.logs, userId],
+    [initialState.match.id, state.logs, userId, viewer],
   );
 
   /**
@@ -785,6 +788,7 @@ export function useMatchScreenState({
 
   return {
     state,
+    viewer,
     leaderboard,
     myLogByRouteId,
     isPending,

@@ -6,6 +6,7 @@ import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
 import { readSingle } from "./read";
 import { asJsonShape } from "./json-shape";
+import { seatName } from "./seat";
 
 /**
  * The one seam between a shareable result and where its data lives.
@@ -122,7 +123,7 @@ export async function getSharedResult(
       // end time, so a deleted account resolves to null. Keep the row
       // — the standings are the point, and a gap in the ranks would
       // read as a bug.
-      displayName: p.display_name ?? p.username ?? "Unknown climber",
+      displayName: seatName(p, { fallback: "Unknown climber" }),
       username: p.username ?? "unknown",
       points: p.points,
       sends: p.sends,

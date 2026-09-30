@@ -188,7 +188,7 @@ describe("matchReducer", () => {
       const next = matchReducer(emptyState, {
         type: "upsert-log",
         log: mkLog("u1", "r1"),
-        viewerId: "u1",
+        viewer: { userId: "u1", isHost: false },
       });
       expect(next.logs.size).toBe(1);
       expect(next.logs.get(logKey("u1", "r1"))).toBeTruthy();
@@ -202,7 +202,7 @@ describe("matchReducer", () => {
       const next = matchReducer(state, {
         type: "upsert-log",
         log: mkLog("u1", "r1", { attempts: 3 }),
-        viewerId: "u1",
+        viewer: { userId: "u1", isHost: false },
       });
       expect(next.logs.size).toBe(1);
       expect(next.logs.get(logKey("u1", "r1"))?.attempts).toBe(3);
@@ -214,7 +214,7 @@ describe("matchReducer", () => {
       const next = matchReducer(state, {
         type: "upsert-log",
         log: mkLog("u1", "r1"),
-        viewerId: "u1",
+        viewer: { userId: "u1", isHost: false },
       });
       expect(next.logs).not.toBe(logs);
       expect(logs.size).toBe(0);
@@ -233,16 +233,51 @@ describe("matchReducer", () => {
       const next = matchReducer(emptyState, {
         type: "upsert-log",
         log: mkLog("me", "r1", { attempts: 7, completed: true }),
-        viewerId: "me",
+        viewer: { userId: "me", isHost: false },
       });
       expect(next.logs.get(logKey("me", "r1"))?.attempts).toBe(7);
+    });
+
+    // A guest's log has no `user_id`. The gate compared it with the
+    // viewer's id, so the host's own entries for a guest were collapsed
+    // like a stranger's, then scored on the host's phone from the
+    // collapsed count, and an unsent route reopened at 0 goes.
+    const guestLog = (overrides: Partial<MatchLog>): MatchLog => ({
+      ...mkLog("unused", "r1", overrides),
+      user_id: null,
+      player_id: "seat-9",
+    });
+
+    it("keeps a guest's raw count for the host, who typed it in", () => {
+      const host = { userId: "me", isHost: true };
+      const sent = matchReducer(emptyState, {
+        type: "upsert-log",
+        log: guestLog({ attempts: 3, completed: true }),
+        viewer: host,
+      });
+      const unsent = matchReducer(emptyState, {
+        type: "upsert-log",
+        log: guestLog({ attempts: 4, completed: false, completed_at: null }),
+        viewer: host,
+      });
+      expect(sent.logs.get(logKey("seat-9", "r1"))?.attempts).toBe(3);
+      expect(unsent.logs.get(logKey("seat-9", "r1"))?.attempts).toBe(4);
+    });
+
+    it("collapses a guest's count for everyone who isn't the host", () => {
+      const next = matchReducer(emptyState, {
+        type: "upsert-log",
+        log: guestLog({ attempts: 3, completed: true }),
+        viewer: { userId: "me", isHost: false },
+      });
+      expect(next.logs.get(logKey("seat-9", "r1"))?.attempts).toBe(2);
     });
 
     it("collapses another player's non-flash completion to the bucket value", () => {
       const next = matchReducer(emptyState, {
         type: "upsert-log",
         log: mkLog("them", "r1", { attempts: 7, completed: true }),
-        viewerId: "me",
+        viewer: { userId: "me", isHost: false },
       });
       // visibleAttempts: non-flash completion → 2 (uniform bucket).
       expect(next.logs.get(logKey("them", "r1"))?.attempts).toBe(2);
@@ -252,7 +287,7 @@ describe("matchReducer", () => {
       const next = matchReducer(emptyState, {
         type: "upsert-log",
         log: mkLog("them", "r1", { attempts: 5, completed: false }),
-        viewerId: "me",
+        viewer: { userId: "me", isHost: false },
       });
       expect(next.logs.get(logKey("them", "r1"))?.attempts).toBe(0);
     });
@@ -261,7 +296,7 @@ describe("matchReducer", () => {
       const next = matchReducer(emptyState, {
         type: "upsert-log",
         log: mkLog("them", "r1", { attempts: 1, completed: true }),
-        viewerId: "me",
+        viewer: { userId: "me", isHost: false },
       });
       expect(next.logs.get(logKey("them", "r1"))?.attempts).toBe(1);
     });
@@ -274,7 +309,7 @@ describe("matchReducer", () => {
           const next = matchReducer(emptyState, {
             type: "upsert-log",
             log: mkLog("them", "r1", { attempts, completed }),
-            viewerId: "me",
+            viewer: { userId: "me", isHost: false },
           });
           const stored = next.logs.get(logKey("them", "r1"))!.attempts;
           expect([0, 1, 2]).toContain(stored);
@@ -286,7 +321,7 @@ describe("matchReducer", () => {
       const next = matchReducer(emptyState, {
         type: "upsert-log",
         log: mkLog("them", "r1", { attempts: 4, completed: false, zone: true }),
-        viewerId: "me",
+        viewer: { userId: "me", isHost: false },
       });
       expect(next.logs.get(logKey("them", "r1"))?.zone).toBe(true);
     });
@@ -444,7 +479,11 @@ describe("matchReducer", () => {
       } as unknown as MatchState;
     }
     const sync = (state: MatchLocalState, b: MatchState, viewerId = "u1") =>
-      matchReducer(state, { type: "sync", bundle: b, viewerId });
+      matchReducer(state, {
+        type: "sync",
+        bundle: b,
+        viewer: { userId: viewerId, isHost: b.match.host_id === viewerId },
+      });
 
     it("brings in a route the realtime feed missed", () => {
       const state = { ...emptyState, routes: [mkRoute("a", 1)] };

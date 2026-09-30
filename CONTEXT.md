@@ -164,8 +164,15 @@ not by a filter someone has to remember.
 
 Identity is the SEAT (`set_players.id`), which is the only thing both
 kinds of player have. An account-backed seat owns its logs by
-`user_id`, a guest's by `route_logs.player_id`; `ownerIdOf()` in
-`match-types.ts` resolves both to one string for client code.
+`user_id`, a guest's by `route_logs.player_id`. `src/lib/data/seat.ts`
+is the one home for what follows from that: `ownerIdOf()` resolves both
+to one string, `seatName()` is the one naming ladder (display name,
+username, "Guest", then the surface's fallback), `seatAvatarUser()`
+keys an avatar by seat, and `entersLogsFor(viewer, seat)` says whose
+logs a viewer enters — their own seat, and a guest's if they host.
+That last rule decides three things at once: who may log and set a
+limit for a seat, whose raw attempt counts a device holds, and so which
+seats the live board scores on the phone instead of from the server.
 
 A guest's attempts never leave the database on the board — there is no
 account to own them. The host reads them from `guest_logs` in the room

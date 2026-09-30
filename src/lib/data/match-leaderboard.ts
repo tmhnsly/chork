@@ -1,4 +1,4 @@
-import { ownerIdOf } from "./match-types";
+import { ownerIdOf } from "./seat";
 import { handicapPointsTenths } from "./handicap";
 import type {
   MatchLeaderboardRow,

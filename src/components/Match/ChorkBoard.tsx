@@ -4,7 +4,7 @@ import { UserAvatar, Username } from "@/components/ui";
 import { playerState } from "@/lib/data/chork";
 import { ChorkWord } from "./ChorkWord";
 import type { MatchPlayerView } from "@/lib/data/match-types";
-import { ownerIdOf } from "@/lib/data/match-types";
+import { ownerIdOf, seatAvatarUser, seatName } from "@/lib/data/seat";
 import styles from "./chorkBoard.module.scss";
 
 interface Props {
@@ -46,7 +46,7 @@ export function ChorkBoard({
         );
         const isSelf = player.user_id === viewerId;
         const hasPen = penSeatId === player.player_id;
-        const name = player.display_name || player.username || "Climber";
+        const name = seatName(player);
 
         return (
           <li key={player.player_id}>
@@ -60,12 +60,7 @@ export function ChorkBoard({
               ].filter(Boolean).join(" ")}
             >
             <UserAvatar
-              user={{
-                id: ownerIdOf(player),
-                username: player.username ?? "unknown",
-                name: player.display_name ?? "",
-                avatar_url: player.avatar_url ?? "",
-              }}
+              user={seatAvatarUser(player)}
               size="row"
             />
 

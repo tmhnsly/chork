@@ -10,6 +10,7 @@ import {
   type MatchScales,
 } from "@/lib/data/grade-label";
 import type { MatchPlayerView } from "@/lib/data/match-types";
+import { seatName } from "@/lib/data/seat";
 import styles from "./ceilingSheet.module.scss";
 
 interface Props {
@@ -84,7 +85,7 @@ export function CeilingSheet({
   const altLabel =
     primaryFamily === "boulder" ? "Rope limit" : "Bouldering limit";
 
-  const name = player.display_name || player.username || "this climber";
+  const name = seatName(player, { fallback: "this climber" });
 
   return (
     <BottomSheet open onClose={onClose} title="Set the limit">

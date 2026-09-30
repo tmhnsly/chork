@@ -7,6 +7,7 @@ import { format, parseISO } from "date-fns";
 import { Button, UserAvatar, Username, showToast } from "@/components/ui";
 import { sendAdminInvite, cancelAdminInvite } from "@/app/admin/invites-actions";
 import type { GymTeamMember, GymPendingInvite } from "@/lib/data/admin-queries";
+import { seatAvatarUser, seatName } from "@/lib/data/seat";
 import styles from "./adminTeam.module.scss";
 
 interface Props {
@@ -87,17 +88,12 @@ export function AdminTeam({ gymId, isOwner, team, invites }: Props) {
           {team.map((member) => (
             <li key={member.user_id} className={styles.row}>
               <UserAvatar
-                user={{
-                  id: member.user_id,
-                  username: member.username ?? "unknown",
-                  name: member.display_name ?? member.username ?? "",
-                  avatar_url: member.avatar_url ?? "",
-                }}
+                user={seatAvatarUser(member)}
                 size="row"
               />
               <div className={styles.identity}>
                 <span className={styles.name}>
-                  {member.display_name || member.username || "Admin"}
+                  {seatName(member, { fallback: "Admin" })}
                 </span>
                 {member.username && (
                   <Username username={member.username} className={styles.handle} />

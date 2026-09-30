@@ -5,7 +5,7 @@ import type {
   MatchRoute,
   MatchState,
 } from "@/lib/data/match-types";
-import { ownerIdOf } from "@/lib/data/match-types";
+import { entersLogsFor, ownerIdOf, type SeatViewer } from "@/lib/data/seat";
 import { visibleAttempts } from "@/lib/data/logs";
 
 /**
@@ -18,8 +18,8 @@ import { visibleAttempts } from "@/lib/data/logs";
  * Two invariants live HERE, behind the tested seam, not in the
  * component:
  *
- *   1. **Attempt privacy.** `upsert-log` carries the viewer's id and
- *      the reducer collapses any other player's raw attempt count via
+ *   1. **Attempt privacy.** `upsert-log` carries the viewer and the
+ *      reducer collapses any other player's raw attempt count via
  *      `visibleAttempts` before the log enters state (CLAUDE.md:
  *      "Attempt counts are private"). Realtime ships `match_logs` with
  *      REPLICA IDENTITY FULL, so other-player events arrive with raw
@@ -89,7 +89,7 @@ export type MatchAction =
       ceiling: number | null;
       altCeiling: number | null;
     }
-  | { type: "upsert-log"; log: MatchLog; viewerId: string }
+  | { type: "upsert-log"; log: MatchLog; viewer: SeatViewer }
   | { type: "remove-log"; userId: string; routeId: string }
   /**
    * A log deleted elsewhere, from its realtime DELETE, which carries
@@ -103,7 +103,7 @@ export type MatchAction =
    * route put up while the phone was locked arrived nowhere: see
    * `syncFromServer` for how the two copies merge.
    */
-  | { type: "sync"; bundle: MatchState; viewerId: string }
+  | { type: "sync"; bundle: MatchState; viewer: SeatViewer }
   | { type: "open-panel"; panel: MatchPanel }
   | { type: "close-panel" };
 
@@ -266,7 +266,7 @@ export function initMatchState(initialState: MatchState): MatchLocalState {
 function syncFromServer(
   state: MatchLocalState,
   bundle: MatchState,
-  viewerId: string,
+  viewer: SeatViewer,
 ): MatchLocalState {
   const server = initMatchState(bundle);
   const highWater = bundle.routes.reduce((max, r) => Math.max(max, r.number), 0);
@@ -275,14 +275,12 @@ function syncFromServer(
     ...state.routes.filter((r) => r.number > highWater),
   ].sort((a, b) => a.number - b.number);
 
-  const isHost = bundle.match.host_id === viewerId;
   const logs = new Map(server.logs);
   for (const [key, local] of state.logs) {
     const fromServer = logs.get(key);
-    const scoredHere = local.user_id === viewerId || (isHost && local.user_id === null);
     if (
       !fromServer ||
-      scoredHere ||
+      entersLogsFor(viewer, local) ||
       Date.parse(local.updated_at) > Date.parse(fromServer.updated_at)
     ) {
       logs.set(key, local);
@@ -352,13 +350,16 @@ export function matchReducer(
     case "set-players":
       return { ...state, players: action.players };
     case "upsert-log": {
-      // Privacy gate — see the module doc. Own logs keep raw attempts
-      // (points preview + log sheet need them); everyone else's
-      // collapse to the flash/completion buckets.
-      const log =
-        action.log.user_id === action.viewerId
-          ? action.log
-          : { ...action.log, attempts: visibleAttempts(action.log, false) };
+      // Privacy gate — see the module doc. The logs this viewer enters
+      // keep raw attempts (the points preview, the log sheet and local
+      // scoring need them): their own, and a guest's if they host.
+      // Everyone else's collapse to the flash/completion buckets. This
+      // compared `user_id` with the viewer's id, which is never true of
+      // a guest log, so a host's guests were collapsed like strangers
+      // and then scored on the host's phone from the collapsed count.
+      const log = entersLogsFor(action.viewer, action.log)
+        ? action.log
+        : { ...action.log, attempts: visibleAttempts(action.log, false) };
       const logs = new Map(state.logs);
       logs.set(logKey(ownerIdOf(log), log.route_id), log);
       return { ...state, logs };
@@ -376,7 +377,7 @@ export function matchReducer(
       return { ...state, logs };
     }
     case "sync":
-      return syncFromServer(state, action.bundle, action.viewerId);
+      return syncFromServer(state, action.bundle, action.viewer);
     case "open-panel":
       return { ...state, panel: action.panel };
     case "close-panel":

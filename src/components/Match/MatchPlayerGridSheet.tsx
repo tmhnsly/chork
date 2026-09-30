@@ -12,7 +12,7 @@ import type {
   MatchPlayerView,
   MatchRoute,
   MatchLeaderboardRow, } from "@/lib/data/match-types";
-import { ownerIdOf } from "@/lib/data/match-types";
+import { isGuestSeat, ownerIdOf, seatAvatarUser, seatName } from "@/lib/data/seat";
 import { formatHandicapPoints } from "@/lib/data/handicap";
 import { logKey } from "./matchScreenReducer";
 import styles from "./matchPlayerGridSheet.module.scss";
@@ -74,18 +74,12 @@ export function MatchPlayerGridSheet({
   );
 
   // A guest has no account, so no username and no profile to link to.
-  const isGuest = !player.user_id;
-  const username = player.username ?? "unknown";
-  const displayName = player.display_name?.trim() || username || "Climber";
+  const isGuest = isGuestSeat(player);
+  const displayName = seatName(player);
 
   const header = ClimberPeekHeader({
     isGuest,
-    user: {
-      id: player.user_id ?? player.player_id,
-      username,
-      name: player.display_name ?? "",
-      avatar_url: player.avatar_url ?? "",
-    },
+    user: seatAvatarUser(player),
     trailing: row ? (
       <span className={styles.rankChip} aria-label={`Rank ${row.rank}`}>
         #{row.rank}
@@ -105,7 +99,10 @@ export function MatchPlayerGridSheet({
     <BottomSheet
       open
       onClose={onClose}
-      title={`@${username}'s game grid`}
+      title={
+        // A guest has no handle; "@unknown's game grid" named nobody.
+        player.username ? `@${player.username}'s game grid` : `${displayName}'s game grid`
+      }
       titleSlot={header.identity}
       subheader={row ? header.stats : undefined}
       description={`${displayName}'s send grid for this match`}
