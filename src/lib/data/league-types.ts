@@ -2,6 +2,8 @@
 // Client-safe — no `server-only`, no supabase import. What the League
 // RPCs return (migration 133).
 
+import type { AllPinned, FunctionRow, Pinned, PinnedKeys, TableRow } from "./row-pin";
+
 export interface LeagueRow {
   id: string;
   host_id: string;
@@ -59,3 +61,14 @@ export interface MyLeagueRow {
   /** Null until the caller has placed in a week. */
   my_rank: number | null;
 }
+
+// Pinned to the generated types — see `row-pin.ts`. `LeagueView` and
+// `LeagueWeek` are built field by field in `get_league`, so they are
+// pinned by `json-shapes.test.ts` instead.
+export type LeagueTypePins = AllPinned<
+  [
+    Pinned<LeagueRow, TableRow<"leagues">>,
+    PinnedKeys<LeagueStanding, FunctionRow<"league_standings">>,
+    PinnedKeys<MyLeagueRow, FunctionRow<"get_my_leagues">>,
+  ]
+>;

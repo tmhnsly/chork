@@ -47,6 +47,13 @@ jobs:
       - name: Type check
         run: pnpm tsc --noEmit
 
+      # The suite is excluded from the base tsconfig, and vitest does
+      # not typecheck. Some pins live only in test types (`keysOf` in
+      # json-shapes.test.ts fails to compile when an interface gains a
+      # field its SQL check doesn't list), so CI has to run this too.
+      - name: Type check (tests)
+        run: pnpm typecheck:test
+
       - name: Lint
         run: pnpm lint
 

@@ -34,8 +34,18 @@ climb alongside the friends they add.
   `pnpm check` runs both plus lint + tests
 - `pnpm storybook` — port 6006
 - `npx supabase db push` — apply pending migrations to the linked project
-- `npx supabase gen types typescript --project-id <id> > src/lib/database.types.ts`
-  — regenerate types after every migration
+- `pnpm typegen` — regenerate `src/lib/database.types.ts` after every
+  migration
+- `pnpm db:definitions` — regenerate `supabase/definitions/` (the
+  current body of every SQL function, one file each) after a migration
+  that touches a function. **Redefine a function by copying it from its
+  definition file, never from an older migration, and read the
+  definition's diff before committing**: a new migration is all
+  additions, so that diff is the only place a dropped line shows. 138
+  lost `alt_ceiling` from the game bundle by copying a stale body
+- `pnpm db:check` — after a push: `db:verify` (every live function body
+  matches the definitions) + `pnpm test:integration` (hits the real
+  database; neither is in `pnpm check` or CI)
 
 ## Stack
 
@@ -153,7 +163,11 @@ Two supabase clients:
   glob is invisible to both rules, which is how `user-actions.ts`
   dodged three audits
 - Types: `src/lib/data/types.ts` derives from `database.types.ts`
-  (regenerated after every migration)
+  (regenerated after every migration). Hand-written shapes are pinned
+  to it: whole rows at compile time (`row-pin.ts`, beside the
+  interface), `jsonb` payloads read through `asJsonShape<T>` by
+  `json-shapes.test.ts`, which checks the SQL builds every field `T`
+  declares. A new payload type gets one or the other
 - Pure logic (easily testable, no Supabase dependency):
   `src/lib/data/logs.ts` (`computePoints`, `isFlash`,
   `deriveTileState`), `grade-label.ts`, `activity-time.ts`,

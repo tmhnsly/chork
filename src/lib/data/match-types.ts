@@ -16,6 +16,7 @@
 // type drift surfaces as compile errors in one file.
 
 import type { Discipline, GradingScaleWithCustom } from "./grade-label";
+import type { AllPinned, FunctionRow, Pinned, PinnedKeys, TableRow } from "./row-pin";
 
 // The scale union lives in grade-label.ts (the single source of truth
 // for grade → label resolution); this alias keeps Match call sites on
@@ -115,10 +116,11 @@ export interface MatchRoute {
   added_by_player: string | null;
   /**
    * Chork: the setter put this up and could not send it, so it never
-   * became a round. `get_match_state_for_user` filters these out, so
-   * a route reaching the room is always null here — the field exists
-   * because a withdrawal reaches the client as a realtime UPDATE on
-   * the row, and that is how the reducer knows to drop it.
+   * became a round. The bundle carries withdrawn routes (the live
+   * screen's resync reads the highest route number as a high-water
+   * mark), and `initMatchState` takes them off the wall. Live, a
+   * withdrawal arrives as a realtime UPDATE on the row, which is how
+   * the reducer knows to drop it.
    */
   withdrawn_at: string | null;
   /**
@@ -378,3 +380,19 @@ export function ownerIdOf(
   // `set_players_identity_ck` both enforce exactly-one.
   return owner.user_id ?? owner.player_id ?? "";
 }
+
+// ── Pinned to the generated types ─────────────────────────────────
+//
+// The bundle hands these over as `to_jsonb(row)`, so each is exactly a
+// table row. A column a migration renames or drops fails here on the
+// next `pnpm typegen`, instead of reading `undefined` on a live screen.
+// The parts of the bundle built field by field in SQL are pinned by
+// `json-shapes.test.ts`, which reads the function's definition.
+export type MatchTypePins = AllPinned<
+  [
+    Pinned<Match, TableRow<"sets">>,
+    Pinned<MatchRoute, TableRow<"routes">>,
+    Pinned<MatchLog, TableRow<"route_logs">>,
+    PinnedKeys<MatchLeaderboardRow, FunctionRow<"get_match_leaderboard">>,
+  ]
+>;

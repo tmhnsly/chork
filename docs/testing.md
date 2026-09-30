@@ -100,6 +100,30 @@ expose the shapes the rest of the app expects. Catches "I forgot
 to regen types after a migration" before CI catches it with a
 cryptic failure two layers deep.
 
+### 4b. The SQL ↔ TypeScript seam
+
+Three checks, each closing a gap the generated types leave open:
+
+- **`src/test/sql-definitions.test.ts`** pins `supabase/definitions/`
+  (the current body of every function, one file each) to the last
+  migration that defines it. A redefinition then shows up as a diff of
+  an existing file, removed lines included. Regenerate with
+  `pnpm db:definitions`.
+- **`src/lib/data/json-shapes.test.ts`** reads those definitions and
+  asserts that every field a hand-written `jsonb` payload type declares
+  (`MatchState`, `LeagueView`, `ProfileSummary`, the shared result) is
+  a key the function builds. The field lists go through `keysOf<T>()`,
+  so adding a field to the interface without adding it to the test is a
+  compile error (`pnpm typecheck:test`).
+- **`row-pin.ts`** pins the hand-written row types (`Match`,
+  `MatchRoute`, `MatchLog`, `LeagueRow`, …) to `database.types.ts` at
+  compile time. A failing pin names the field: `{ unpinned: "x" }`.
+
+None of these can see the database. `pnpm db:verify` (run by hand after
+a push; it needs the linked CLI) compares every live function body with
+the definitions, and `pnpm test:integration` exercises the RPCs for
+real. `pnpm db:check` runs both.
+
 ### 5. Mutation-layer idempotency
 
 `src/lib/data/mutations.test.ts` — `upsertRouteLog` uses

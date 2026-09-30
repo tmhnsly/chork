@@ -136,6 +136,7 @@ Regenerate types after any apply: `npx supabase gen types typescript --project-i
 | 140 | `climbers_cannot_delete_logs.sql` | **Climbers can't delete route logs.** Found mapping game deletion and confirmed with throwaway accounts: after a game ended, editing your own log was refused (102's update check needs a live set) but deleting it went through, because 012's DELETE policy only checked `user_id`. Drops that policy and revokes `delete` on `route_logs` from `authenticated`, so a Data API delete fails with 42501. Nothing in the app deleted logs; cascades from routes, sets and accounts are started by SECURITY DEFINER RPCs or the service role and are unaffected. Pinned by `route-log-deletes.integration.test.ts` |
 | 141 | `delete_and_hide_games.sql` | **Deleting and hiding games.** `delete_match(p_set_id)`: host only, a hard delete for everyone (seats, routes, logs and grade ladder cascade; pending invite notifications deleted; badges stay). A league week must leave its league first unless it is live with no routes (22023); a non-player gets 'Game not found', like a missing game. `set_match_hidden(p_set_id, p_hidden)`: a player takes a finished game off their own lists or puts it back, stored in the new `hidden_matches` (no Data API grant, like `leagues`, because every player can read a game's seat rows). `get_match_history` and `get_match_achievement_context` skip the subject's hidden games; `get_match_state_for_user` gains `viewer_hidden`. Integration-tested in `delete-and-hide.integration.test.ts` |
 | 142 | `bundle_carries_both_limits.sql` | **The game bundle carries `alt_ceiling` again.** 121 added a seat's second (mixed-day) limit to `get_match_state_for_user`; 138 rebuilt the function from an older copy and 141 copied 138, so every seat came back with no second limit, and on a handicapped mixed day a reload scored the viewer's own second-discipline routes against no limit. Found by diffing 121's body against the live one. 138 also dropped 121's `withdrawn_at is null` on routes; that stays dropped on purpose, because the live screen's resync reads the bundle's highest route number as a high-water mark and filters withdrawn routes itself (`initMatchState`). Otherwise the live body verbatim |
+| 143 | `mark_read_learns_kinds.sql` | **Records a function production already ran.** `mark_all_notifications_read(p_user_id, p_kinds default null)` was applied from `refactor/deepening` (its own migration 136), a branch that never reached main, so the database ran a body no migration here described and a rebuild would have produced 053's one-argument function. Found by the first run of `pnpm db:verify` (111 of 112 live functions matched their last migration; this was the one). No change in production: the body is the live one verbatim. `p_kinds null` marks everything read; a list marks only those kinds |
 
 ---
 
@@ -166,6 +167,31 @@ Regenerate types after any apply: `npx supabase gen types typescript --project-i
   at minimum `grant select … to authenticated`. This mirrors the
   function rule below: functions are already future-proof because every
   one ships an explicit `grant execute`; tables now need the same care
+- **Redefine a function from `supabase/definitions/`, never from an
+  older migration.** That folder holds the current body of every
+  function, one file each, generated from the migrations
+  (`pnpm db:definitions`) and pinned to them by
+  `src/test/sql-definitions.test.ts`. A function's live definition used
+  to be "the last of N migrations", each written by copying an earlier
+  one: `get_match_state_for_user` has nine, 138 copied a body older than
+  121 and silently dropped `alt_ceiling`, and the attempt-privacy mask
+  went the same way twice. The steps:
+  1. Copy the function from its definition file into the new migration
+     and edit it there.
+  2. `pnpm db:definitions`, then **read the diff of the definition
+     file**. A new migration is all additions; the definition's diff is
+     the only place a lost line shows. Every removed line must be one
+     you meant to remove.
+  3. After `npx supabase db push`: `pnpm typegen`, then `pnpm db:check`
+     (`db:verify` compares every live function body and its SECURITY
+     DEFINER flag with the definitions; then the integration suite).
+  A dropped function's definition file is deleted by hand in the same
+  commit
+- **A `jsonb` payload read through `asJsonShape<T>` gets a case in
+  `src/lib/data/json-shapes.test.ts`.** The generated types say `Json`,
+  so nothing else checks that the function builds every field `T`
+  declares. Whole-row payloads (`to_jsonb(row)`) are pinned at compile
+  time beside their interface instead (`row-pin.ts`)
 - **Every FK column gets an index.** Supabase lint 0001
 - **Every SECURITY DEFINER function sets `search_path = ''`.** Prevents
   schema injection. Every new one must also have explicit
@@ -192,7 +218,13 @@ npx supabase db push
 
 # Then always regenerate types
 npx supabase gen types typescript --project-id cfyagiwtzrgfjtwaevlh \
-  > src/lib/database.types.ts
+  > src/lib/database.types.ts      # or: pnpm typegen
+
+# If the migration touched a function
+pnpm db:definitions                # regenerate supabase/definitions, read the diff
+
+# And confirm the database agrees with the repo
+pnpm db:check                      # db:verify + the integration suite
 ```
 
 ### Apply with `db push`, never the dashboard

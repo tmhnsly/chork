@@ -62,7 +62,7 @@ export interface SharedResult {
  * number never leaves the database, and there is no viewer to mask it
  * against on a public page. Do not add it for a "nice stat".
  */
-interface PlayerRow {
+export interface PlayerRow {
   rank: number;
   is_guest: boolean;
   points_tenths: number;
@@ -75,7 +75,7 @@ interface PlayerRow {
   is_winner: boolean;
 }
 
-interface ResultPayload {
+export interface ResultPayload {
   handicap: boolean;
   name: string | null;
   location: string | null;

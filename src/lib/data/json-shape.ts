@@ -14,7 +14,9 @@
  *
  * This is an **output-side** assertion only. The contract that the
  * shape is correct lives in the migration / RPC definition that
- * produced the value. NEVER use these to cast input on the way IN —
+ * produced the value, and `json-shapes.test.ts` holds it to that: a
+ * new `asJsonShape<T>` over an RPC gets a case there, so every field
+ * `T` declares is one the function's current definition builds. NEVER use these to cast input on the way IN —
  * input lies are the bug class we're trying to keep out of the
  * codebase. For inputs, validate explicitly with a guard.
  *
