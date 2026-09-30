@@ -162,48 +162,39 @@ applied navigation, writing stale router state back. Two reviews traced it
 independently through `app-router-instance.js`. Worth a minimal repro and
 an issue, since our own mitigations are gates around it rather than a fix.
 
-## Gym admins can't run their wall — a migration is waiting on a decision (2026-09-30)
+## Gym admins can run their wall (2026-09-30, migration 145)
 
 Found during the second deepening pass, while making "a Set goes live"
-one step. **No gym admin can create, publish, edit or archive a Set, or
-add or edit its routes, through the app.** `sets` has only ever had a
-SELECT policy; `routes` has INSERT / UPDATE policies for the players of
-a Match only. Every gym-admin write goes through the admin's own client,
-so RLS refuses it. Checked in production with a throwaway gym and admin.
-The two gym Sets that exist were seeded in April, before the console was
-built.
+one step. **No gym admin could create, publish, edit or archive a Set,
+or add or edit its routes, through the app.** `sets` had only ever had
+a SELECT policy; `routes` had INSERT / UPDATE policies for the players
+of a Match only. Every gym-admin write goes through the admin's own
+client, so RLS refused it, twice without an error: Publish reported
+success, announced "now live" to the gym, and changed nothing. Checked
+in production with a throwaway gym and admin. The two gym Sets that
+existed were seeded in April, before the console was built.
 
-What is done (`67ba6bd`): the app is honest about it. `updateSet` and
-`updateRoute` report a change the database refused, and Publish no
-longer announces "now live" over a Set that didn't move.
+- [x] The app says when a write is refused, and announces only a Set
+      that moved (`67ba6bd`).
+- [x] Migration 145: SELECT / INSERT / UPDATE policies for gym admins
+      on `sets` and `routes` (an admin is not necessarily a member, so
+      SELECT too); `sets_one_live_per_gym`; `publish_set`; the
+      scheduled publish archives what it replaces.
+- [x] `createSet` writes a draft, seeds routes, then publishes;
+      `updateSet`'s go-live branch calls the same step.
+- [x] `gym-admin-sets.integration.test.ts`, with a real admin and a
+      real member, since the mocked action tests passed for five months
+      over writes that never worked.
 
-What is NOT done, because it is a production security change that needs
-Tom's go-ahead — one migration:
-
-- [ ] INSERT + UPDATE policies on `sets` and `routes` for gym admins
-      (`is_gym_admin`, gym Sets only, `with check` so a Set can't be
-      turned into a Match or moved to a gym the admin doesn't run). No
-      DELETE: nothing deletes either.
-- [ ] A partial unique index: one live gym Set per gym, as a fact
-      rather than a convention the actions keep.
-- [ ] `publish_set(set_id)`: refuse with no routes, archive the
-      incumbent, go live — one transaction. `createSet` currently
-      archives the incumbent BEFORE inserting, so a failed insert would
-      leave a gym with no live Set.
-- [ ] `auto_publish_due_sets` archives the Set it replaces. Today a
-      draft scheduled to start before the incumbent ends makes two live
-      Sets (and would fail the cron run once the index exists).
-- [ ] Then: `createSet` inserts a draft, seeds routes, and publishes;
-      `updateSet`'s go-live branch calls the RPC. An integration test
-      with a real gym admin, since the mocked action tests passed for
-      five months over writes that never worked.
-
-Alternative considered: keep `sets` / `routes` SELECT-only and write
+Considered and not taken: keep `sets` / `routes` SELECT-only and write
 with the service role after the action's own gate (`docs/db-audit.md`
-says SELECT-only was "by design"). Policies were preferred because
+called SELECT-only "by design"). Policies were preferred because
 CLAUDE.md's tenancy model is RLS through `is_gym_admin`, 014 already
 does exactly this for every other admin table, and a bug in an action
 then can't write across gyms.
+
+Still open here: the admin console has never been used for real. It
+wants a walk-through with a second gym before Yonder relies on it.
 
 ## The second deepening pass (2026-09-30)
 
@@ -226,8 +217,9 @@ Several start from `refactor/deepening`, which never reached main.
 - [x] **Gates.** A `gate*Mutation` always rate limits;
       `gateSignedInRead` for reads; the test double runs the real gates.
       `createSet` was unlimited.
-- [~] **A Set going live.** Named sub-functions and honest failure are
-      in. The atomic swap is the migration above.
+- [x] **A Set going live.** One `goLive` step over `publish_set`
+      (migration 145), which also gave gym admins the write access they
+      never had. See the section above.
 - [x] **Logging a climb.** One `PointsPreview`; the sanitised log
       derives through its helpers.
 - [x] **Smaller ones.** The tag table is executable in both directions

@@ -606,12 +606,24 @@ navbar + home indicator), max-width, and centering.
   (`v` / `font` / `points`) and `max_grade`. The climber-side grade
   slider reads both. Points-only sets hide the slider entirely.
   Label mapping lives in `src/lib/data/grade-label.ts`
-- **One live set per gym at a time.** App-enforced since 2026-08:
-  `createSet` (status live) and `updateSet`'s go-live branch both
-  archive the incumbent first, in `src/app/admin/sets-actions.ts` —
-  the single set-creation/publish path. Still not a DB constraint;
-  the pg_cron auto-publish path relies on migration 071's
-  auto-archive of ended sets
+- **One live set per gym at a time, and the database says so.**
+  `sets_one_live_per_gym` is a partial unique index (migration 145), so
+  a second live gym Set is a unique violation whatever wrote it. A Set
+  goes live through `publish_set(set_id)` and nothing else: no routes
+  is a refusal, the incumbent is archived and the Set goes live in one
+  transaction. `createSet` (straight to live) writes a draft, seeds its
+  routes, then publishes; `updateSet`'s go-live branch calls the same
+  `goLive` in `src/app/admin/sets-actions.ts`. The pg_cron path
+  (`auto_publish_due_sets`) archives the Set it replaces the same way
+- **Gym admins write `sets` and `routes` through their own client**, so
+  those tables carry admin policies (`is_gym_admin`, gym Sets only, no
+  DELETE; migration 145). Until then they had none and every admin
+  write was refused, two of them silently. **An UPDATE that RLS
+  filters out is not an error**: it changes nothing and reports
+  nothing. An action that updates through a user's client asks for the
+  row back (`.select("id").maybeSingle()`) and treats "no row" as a
+  failure. `gym-admin-sets.integration.test.ts` runs the admin paths
+  against real policies, because a doubled Supabase never meets one
 - **League placement points live in two homes** — `league_placement_points`
   / `league_drops` in migration 134 and `LEAGUE_LADDER` / `dropsFor`
   in `src/lib/data/league.ts` — pinned equal by `league.test.ts`. The

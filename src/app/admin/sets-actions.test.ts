@@ -170,10 +170,11 @@ describe("createSet", () => {
     expect(updates).toEqual([]);
   });
 
-  it("creating a LIVE set archives the incumbent first (one live set per gym)", async () => {
+  it("creating a LIVE set writes a draft, seeds its routes, then publishes in one step", async () => {
     const { requireGymAdmin } = await import("@/lib/auth");
     const sb = createMockSupabase({
       "table:sets": { data: { id: SET_1 }, error: null },
+      "table:routes": { data: null, error: null },
     });
     vi.mocked(requireGymAdmin).mockResolvedValue({
       supabase: sb as never,
@@ -193,21 +194,48 @@ describe("createSet", () => {
       }),
     ).toEqual({ success: true, setId: SET_1 });
 
-    // The demotion runs against the caller's gym, filtered to live
-    // rows, BEFORE the insert.
-    const update = sb.calls.find(
-      (c) => c.source === "sets" && c.method === "update",
-    );
-    const insertIdx = sb.calls.findIndex(
-      (c) => c.source === "sets" && c.method === "insert",
-    );
-    expect(update?.args[0]).toEqual({ status: "archived" });
-    expect(sb.calls.indexOf(update!)).toBeLessThan(insertIdx);
-    const eqArgs = sb.calls
-      .filter((c) => c.source === "sets" && c.method === "eq")
-      .map((c) => c.args);
-    expect(eqArgs).toContainEqual(["gym_id", GYM_1]);
-    expect(eqArgs).toContainEqual(["status", "live"]);
+    // Born a draft. The action used to archive the incumbent and THEN
+    // insert, so a failed insert left the gym with no live set. The
+    // swap is `publish_set`'s, in one transaction, and it runs last.
+    const insert = sb.calls.find((c) => c.source === "sets" && c.method === "insert");
+    expect(insert?.args[0]).toMatchObject({ status: "draft" });
+    expect(sb.calls.some((c) => c.source === "sets" && c.method === "update")).toBe(false);
+
+    const order = sb.calls
+      .filter((c) => c.method === "insert" || c.source === "publish_set")
+      .map((c) => c.source);
+    expect(order).toEqual(["sets", "routes", "publish_set"]);
+    expect(sb.calls.find((c) => c.source === "publish_set")?.args[0]).toEqual({
+      p_set_id: SET_1,
+    });
+  });
+
+  it("a publish that fails leaves a draft behind, and says so", async () => {
+    const { requireGymAdmin } = await import("@/lib/auth");
+    const { getGymClimberUserIds } = await import("@/lib/push/server");
+    const sb = createMockSupabase({
+      "table:sets": { data: { id: SET_1 }, error: null },
+      "table:routes": { data: null, error: null },
+      "rpc:publish_set": { data: null, error: { code: "42501", message: "Set not found" } },
+    });
+    vi.mocked(requireGymAdmin).mockResolvedValue({
+      supabase: sb as never,
+      userId: USER_A,
+      gymId: GYM_1,
+      isOwner: true,
+    });
+
+    const { createSet } = await import("./sets-actions");
+    const result = await createSet({
+      ...form,
+      status: "live",
+      routes: { count: 2, zoneRouteNumbers: [] },
+    });
+    expect(result).toEqual({
+      error: "You don't have permission to do that. The set was saved as a draft.",
+    });
+    // Nothing went live, so nobody is told it did.
+    expect(getGymClimberUserIds).not.toHaveBeenCalled();
   });
 
   it("quick-create seeds numbered routes with zone flags in the same action", async () => {
@@ -347,6 +375,11 @@ describe("updateSet", () => {
     // that for every case and the action read it as success, so the
     // suite passed while no gym admin could change a Set.
     written: { id: string } | null = { id: SET_1 },
+    // What `publish_set` answers. Default: it published.
+    publish: { data?: unknown; error?: { code: string; message: string } | null } = {
+      data: { id: SET_1 },
+      error: null,
+    },
   ) {
     const { createServiceClient } = await import("@/lib/supabase/server");
     const service = createMockSupabase({
@@ -355,7 +388,10 @@ describe("updateSet", () => {
     });
     vi.mocked(createServiceClient).mockReturnValue(service as never);
 
-    const sb = createMockSupabase({ "table:sets": { data: written, error: null } });
+    const sb = createMockSupabase({
+      "table:sets": { data: written, error: null },
+      "rpc:publish_set": publish,
+    });
     const { requireGymAdmin } = await import("@/lib/auth");
     vi.mocked(requireGymAdmin).mockResolvedValue({
       supabase: sb as never,
@@ -420,28 +456,44 @@ describe("updateSet", () => {
     expect(update?.args[0]).not.toHaveProperty("status");
   });
 
-  it("refuses to publish a set with no routes", async () => {
-    await primeUpdate({ ...liveRow, status: "draft" }, 0);
+  it("refuses to publish a set with no routes, in the database's own words", async () => {
+    // The rule lives in `publish_set` now, beside the swap it guards.
+    const { getGymClimberUserIds } = await import("@/lib/push/server");
+    await primeUpdate({ ...liveRow, status: "draft" }, 0, { id: SET_1 }, {
+      data: null,
+      error: { code: "22023", message: "Add at least one route before publishing this set." },
+    });
     const { updateSet } = await import("./sets-actions");
     expect(await updateSet(SET_1, { status: "live" })).toEqual({
       error: "Add at least one route before publishing this set.",
     });
+    expect(getGymClimberUserIds).not.toHaveBeenCalled();
   });
 
-  it("publishing demotes any OTHER live set in the gym, excluding itself", async () => {
+  it("publishes through publish_set, never by writing the status column", async () => {
+    // Two statements (archive the incumbent, then flip this one) could
+    // stop between them. The RPC does both or neither.
     const sb = await primeUpdate({ ...liveRow, status: "draft" }, 3);
     const { updateSet } = await import("./sets-actions");
     expect(await updateSet(SET_1, { status: "live" })).toEqual({ success: true });
 
-    const eqArgs = sb.calls
-      .filter((c) => c.source === "sets" && c.method === "eq")
-      .map((c) => c.args);
-    expect(eqArgs).toContainEqual(["gym_id", GYM_1]);
-    expect(eqArgs).toContainEqual(["status", "live"]);
-    // `.neq("id", setId)` is what stops it archiving the set it is
-    // in the middle of publishing.
-    const neq = sb.calls.find((c) => c.source === "sets" && c.method === "neq");
-    expect(neq?.args).toEqual(["id", SET_1]);
+    expect(sb.calls.find((c) => c.source === "publish_set")?.args[0]).toEqual({
+      p_set_id: SET_1,
+    });
+    expect(sb.calls.some((c) => c.source === "sets" && c.method === "update")).toBe(false);
+  });
+
+  it("publishing with other edits saves them first, without the status", async () => {
+    const sb = await primeUpdate({ ...liveRow, status: "draft" }, 3);
+    const { updateSet } = await import("./sets-actions");
+    expect(await updateSet(SET_1, { name: "Autumn", status: "live" })).toEqual({ success: true });
+
+    const update = sb.calls.find((c) => c.source === "sets" && c.method === "update");
+    expect(update?.args[0]).toEqual({ name: "Autumn" });
+    const order = sb.calls
+      .filter((c) => (c.source === "sets" && c.method === "update") || c.source === "publish_set")
+      .map((c) => c.source);
+    expect(order).toEqual(["sets", "publish_set"]);
   });
 
   it("announces the draft → live transition to the gym's climbers", async () => {
@@ -454,16 +506,27 @@ describe("updateSet", () => {
     expect(getGymClimberUserIds).toHaveBeenCalledWith(GYM_1);
   });
 
-  it("reports a write the database refused, and announces nothing", async () => {
-    // Found in production: `sets` had no UPDATE policy, so Publish
-    // changed nothing, returned success, and told every climber at the
-    // gym a new set was live.
-    const { getGymClimberUserIds } = await import("@/lib/push/server");
-    await primeUpdate({ ...liveRow, status: "draft" }, 2, null);
+  it("reports an edit the database refused instead of calling it saved", async () => {
+    // Found in production: `sets` had no UPDATE policy, so an edit
+    // changed nothing and the action returned success.
+    await primeUpdate(liveRow, 2, null);
+    const { updateSet } = await import("./sets-actions");
+    expect(await updateSet(SET_1, { name: "Renamed" })).toEqual({
+      error: "That set couldn't be changed.",
+    });
+  });
 
+  it("announces nothing when the publish is refused", async () => {
+    // Publish used to report success and tell every climber at the gym
+    // a new set was live, over a set that had not moved.
+    const { getGymClimberUserIds } = await import("@/lib/push/server");
+    await primeUpdate({ ...liveRow, status: "draft" }, 2, { id: SET_1 }, {
+      data: null,
+      error: { code: "42501", message: "Set not found" },
+    });
     const { updateSet } = await import("./sets-actions");
     expect(await updateSet(SET_1, { status: "live" })).toEqual({
-      error: "That set couldn't be changed.",
+      error: "You don't have permission to do that.",
     });
     expect(getGymClimberUserIds).not.toHaveBeenCalled();
   });

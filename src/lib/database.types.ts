@@ -2088,6 +2088,45 @@ export type Database = {
       }
       prune_old_activity_events: { Args: never; Returns: number }
       prune_old_notifications: { Args: never; Returns: number }
+      publish_set: {
+        Args: { p_set_id: string }
+        Returns: {
+          active: boolean
+          alt_grading_scale: string | null
+          alt_max_grade: number | null
+          alt_min_grade: number | null
+          closing_event: boolean
+          code: string | null
+          competition_id: string | null
+          created_at: string
+          discipline: string
+          ends_at: string | null
+          game_mode: string
+          grading_scale: string
+          gym_id: string | null
+          handicap: boolean
+          host_id: string | null
+          id: string
+          last_activity_at: string | null
+          league_id: string | null
+          location: string | null
+          max_grade: number | null
+          min_grade: number | null
+          name: string | null
+          owner_kind: string
+          share_token: string | null
+          starts_at: string
+          status: string
+          updated_at: string
+          venue_gym_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "sets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       recompute_route_grade: {
         Args: { p_route_id: string }
         Returns: undefined
