@@ -89,11 +89,16 @@ export async function updateRoute(
   if (form.hasZone !== undefined) patch.has_zone = form.hasZone;
   if (form.setterName !== undefined) patch.setter_name = form.setterName;
 
-  const { error } = await gate.auth.supabase
+  // Ask for the row back: an UPDATE that row-level security filters
+  // out changes nothing and reports no error (see updateSet).
+  const { data: updated, error } = await gate.auth.supabase
     .from("routes")
     .update(patch)
-    .eq("id", routeId);
+    .eq("id", routeId)
+    .select("id")
+    .maybeSingle();
   if (error) return { error: formatError(error) };
+  if (!updated) return { error: "That route couldn't be changed." };
 
   revalidateTag(tags.setRoutes(gate.routeRow.set_id), "max");
   revalidateTag(tags.routeGrade(routeId), "max");

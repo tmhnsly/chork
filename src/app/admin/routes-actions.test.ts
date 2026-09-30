@@ -51,6 +51,35 @@ describe("updateRoute", () => {
       error: "Route number must be between 1 and 999.",
     });
   });
+
+  const gateWith = async (written: { id: string } | null) => {
+    const { requireAdminOfRoute } = await import("@/lib/auth");
+    vi.mocked(requireAdminOfRoute).mockResolvedValueOnce({
+      auth: {
+        supabase: createMockSupabase({ "table:routes": { data: written, error: null } }) as never,
+        userId: USER_A,
+        gymId: GYM_1,
+        isOwner: true,
+      },
+      routeRow: { id: ROUTE_1, set_id: SET_1, gym_id: GYM_1 },
+    });
+  };
+
+  it("saves a change the database accepted", async () => {
+    await gateWith({ id: ROUTE_1 });
+    const { updateRoute } = await import("./routes-actions");
+    expect(await updateRoute(ROUTE_1, { hasZone: true })).toEqual({ success: true });
+  });
+
+  it("reports a write the database refused instead of calling it saved", async () => {
+    // Row-level security filtering an UPDATE out is not an error: no
+    // rows, nothing raised. The action used to read that as success.
+    await gateWith(null);
+    const { updateRoute } = await import("./routes-actions");
+    expect(await updateRoute(ROUTE_1, { hasZone: true })).toEqual({
+      error: "That route couldn't be changed.",
+    });
+  });
 });
 
 // ────────────────────────────────────────────────────────────────

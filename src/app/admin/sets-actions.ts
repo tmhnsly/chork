@@ -4,6 +4,7 @@ import { revalidateTag } from "next/cache";
 import { gateGymAdminMutation } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
 import { formatError, formatErrorForLog } from "@/lib/errors";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 import { UUID_RE } from "@/lib/validation";
 import { getGym } from "@/lib/data/gym-queries";
@@ -96,6 +97,59 @@ function validateSetInput(form: SetFormInput): string | null {
   return validateSetPatch(form);
 }
 
+// ── A Set going live ───────────────────────────────────────────────
+//
+// Three rules, shared by creating a Set straight to live and
+// publishing a draft. They were written out in both actions and had
+// already drifted (ADR-0002: past ~80 lines, extract named
+// sub-functions rather than reach for a generic runner).
+
+/** A live Set with no routes is an empty Wall, and a push for nothing. */
+const NO_ROUTES = "Add at least one route before publishing this set.";
+
+/**
+ * One live Set per gym: whatever is live now is archived to make way.
+ * Abort the publish if this fails — two live Sets make `getCurrentSet`
+ * pick one of them. The migration-003 trigger derives the legacy
+ * `active` boolean from `status`, so old readers stay correct.
+ */
+async function archiveIncumbent(
+  supabase: SupabaseClient<Database>,
+  gymId: string,
+  exceptSetId?: string,
+): Promise<{ error: string } | null> {
+  let query = supabase
+    .from("sets")
+    .update({ status: "archived" })
+    .eq("gym_id", gymId)
+    .eq("status", "live");
+  if (exceptSetId) query = query.neq("id", exceptSetId);
+  const { error } = await query;
+  return error ? { error: formatError(error) } : null;
+}
+
+/**
+ * Tell every climber with activity at the gym (CONTEXT.md
+ * "Announcement"). Best-effort: a failure here is logged and never
+ * fails the publish it follows. Only ever called once the Set is
+ * known to be live.
+ */
+async function announceSetLive(
+  gymId: string,
+  set: { name: string | null; starts_at: string; ends_at: string },
+): Promise<void> {
+  try {
+    const [userIds, gym] = await Promise.all([getGymClimberUserIds(gymId), getGym(gymId)]);
+    announce({
+      userIds,
+      title: `New set at ${gym?.name ?? "your gym"}`,
+      body: `${formatSetLabel(set)} is now live. Get climbing.`,
+    });
+  } catch (err) {
+    logger.warn("set_live_announce_preparation_failed", { err: formatErrorForLog(err) });
+  }
+}
+
 /**
  * The one set-creation path. Both the admin console form and the
  * home-page quick-create (CreateSetForm) go through here — they used
@@ -118,29 +172,15 @@ export async function createSet(
   const auth = await gateGymAdminMutation(form.gymId, "gym");
   if ("error" in auth) return { error: auth.error };
 
-  // Same rule updateSet's go-live branch enforces: a live set with no
-  // routes is an empty Wall. On create the only way to have routes is
-  // to seed them in the same call, so publishing straight to live
-  // requires `routes`. Without this guard, /admin/sets/new → Publish
-  // archived the incumbent AND left the gym with a blank Wall.
-  if (createStatus === "live" && !form.routes) {
-    return { error: "Add at least one route before publishing this set." };
-  }
+  // On create the only way to have routes is to seed them in the same
+  // call, so publishing straight to live requires `routes`. Without
+  // this guard, /admin/sets/new → Publish archived the incumbent AND
+  // left the gym with a blank Wall.
+  if (createStatus === "live" && !form.routes) return { error: NO_ROUTES };
 
-  // One live set per gym (CLAUDE.md convention, enforced here and in
-  // updateSet's go-live branch): creating a live set archives any
-  // incumbent first. Abort if the archive fails — inserting the new
-  // live set anyway would leave two live sets and getCurrentSet would
-  // pick one non-deterministically. The migration-003 trigger derives
-  // the legacy `active` boolean from `status`, so old readers stay
-  // correct.
   if (createStatus === "live") {
-    const { error: archiveError } = await auth.supabase
-      .from("sets")
-      .update({ status: "archived" })
-      .eq("gym_id", form.gymId)
-      .eq("status", "live");
-    if (archiveError) return { error: formatError(archiveError) };
+    const failed = await archiveIncumbent(auth.supabase, form.gymId);
+    if (failed) return failed;
   }
 
   const { data, error } = await auth.supabase
@@ -186,25 +226,11 @@ export async function createSet(
   // Previously which path the admin happened to use silently decided
   // whether climbers heard about the new set at all.
   if (createStatus === "live") {
-    try {
-      const [userIds, gym] = await Promise.all([
-        getGymClimberUserIds(form.gymId),
-        getGym(form.gymId),
-      ]);
-      announce({
-        userIds,
-        title: `New set at ${gym?.name ?? "your gym"}`,
-        body: `${formatSetLabel({
-          name: form.name,
-          starts_at: form.startsAt,
-          ends_at: form.endsAt,
-        })} is now live. Get climbing.`,
-      });
-    } catch (err) {
-      logger.warn("set_live_announce_preparation_failed", {
-        err: formatErrorForLog(err),
-      });
-    }
+    await announceSetLive(form.gymId, {
+      name: form.name,
+      starts_at: form.startsAt,
+      ends_at: form.endsAt,
+    });
   }
 
   revalidateTag(tags.gymActiveSet(form.gymId), "max");
@@ -268,20 +294,10 @@ export async function updateSet(
       .from("routes")
       .select("id", { count: "exact", head: true })
       .eq("set_id", setId);
-    if (!count || count < 1) {
-      return { error: "Add at least one route before publishing this set." };
-    }
+    if (!count || count < 1) return { error: NO_ROUTES };
 
-    // One live set per gym (CLAUDE.md convention, enforced here and in
-    // createSet): publishing demotes any other live set first. Abort
-    // on failure — two live sets makes getCurrentSet non-deterministic.
-    const { error: demoteError } = await auth.supabase
-      .from("sets")
-      .update({ status: "archived" })
-      .eq("gym_id", gymId)
-      .eq("status", "live")
-      .neq("id", setId);
-    if (demoteError) return { error: formatError(demoteError) };
+    const failed = await archiveIncumbent(auth.supabase, gymId, setId);
+    if (failed) return failed;
   }
 
   // Patch typed against the generated Database type so Supabase can
@@ -303,39 +319,29 @@ export async function updateSet(
   if (form.venueGymId !== undefined) patch.venue_gym_id = form.venueGymId;
   if (form.competitionId !== undefined) patch.competition_id = form.competitionId;
 
-  const { error } = await auth.supabase
+  // Ask for the row back. An UPDATE that row-level security filters
+  // out is not an error: it changes nothing and says nothing. This
+  // action believed that silence, so Publish reported success and
+  // announced "now live" to a whole gym over a Set that had not moved.
+  const { data: updated, error } = await auth.supabase
     .from("sets")
     .update(patch)
-    .eq("id", setId);
+    .eq("id", setId)
+    .select("id")
+    .maybeSingle();
   if (error) return { error: formatError(error) };
+  if (!updated) return { error: "That set couldn't be changed." };
 
-  // Draft → live transition: broadcast Announcement to every climber
-  // with activity at this gym. See CONTEXT.md "Announcement" for the
-  // distinction from per-recipient Notifications. announce() dispatch
-  // is background + best-effort; the user-id fetch is awaited here so
-  // we can size the fan-out + skip the call when no climbers exist.
+  // Draft → live: only now, with the Set known to have moved.
   if (goingLive) {
-    try {
-      const [userIds, gym] = await Promise.all([
-        getGymClimberUserIds(gymId),
-        getGym(gymId),
-      ]);
-      announce({
-        userIds,
-        title: `New set at ${gym?.name ?? "your gym"}`,
-        body: `${formatSetLabel({
-          name: form.name ?? setRow.name,
-          starts_at: form.startsAt ?? setRow.starts_at,
-          // Gym Sets always carry an end date; the column is only
-          // nullable because Matches share the table now. Falling
-          // back to the start keeps the label a valid range rather
-          // than rendering "Invalid Date".
-          ends_at: form.endsAt ?? setRow.ends_at ?? setRow.starts_at,
-        })} is now live. Get climbing.`,
-      });
-    } catch (err) {
-      logger.warn("set_live_announce_preparation_failed", { err: formatErrorForLog(err) });
-    }
+    await announceSetLive(gymId, {
+      name: form.name ?? setRow.name,
+      starts_at: form.startsAt ?? setRow.starts_at,
+      // Gym Sets always carry an end date; the column is only nullable
+      // because Matches share the table now. Falling back to the start
+      // keeps the label a valid range rather than "Invalid Date".
+      ends_at: form.endsAt ?? setRow.ends_at ?? setRow.starts_at,
+    });
   }
 
   revalidateTag(tags.gymActiveSet(gymId), "max");

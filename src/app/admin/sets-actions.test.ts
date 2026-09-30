@@ -341,6 +341,12 @@ describe("updateSet", () => {
   async function primeUpdate(
     setRow: Record<string, unknown> | null,
     routeCount = 1,
+    // What the admin's own UPDATE hands back. `null` with no error is
+    // what row-level security does when it filters the row out: it
+    // changes nothing and reports nothing. This double primed exactly
+    // that for every case and the action read it as success, so the
+    // suite passed while no gym admin could change a Set.
+    written: { id: string } | null = { id: SET_1 },
   ) {
     const { createServiceClient } = await import("@/lib/supabase/server");
     const service = createMockSupabase({
@@ -349,7 +355,7 @@ describe("updateSet", () => {
     });
     vi.mocked(createServiceClient).mockReturnValue(service as never);
 
-    const sb = createMockSupabase({ "table:sets": { data: null, error: null } });
+    const sb = createMockSupabase({ "table:sets": { data: written, error: null } });
     const { requireGymAdmin } = await import("@/lib/auth");
     vi.mocked(requireGymAdmin).mockResolvedValue({
       supabase: sb as never,
@@ -446,6 +452,20 @@ describe("updateSet", () => {
     const { updateSet } = await import("./sets-actions");
     await updateSet(SET_1, { status: "live" });
     expect(getGymClimberUserIds).toHaveBeenCalledWith(GYM_1);
+  });
+
+  it("reports a write the database refused, and announces nothing", async () => {
+    // Found in production: `sets` had no UPDATE policy, so Publish
+    // changed nothing, returned success, and told every climber at the
+    // gym a new set was live.
+    const { getGymClimberUserIds } = await import("@/lib/push/server");
+    await primeUpdate({ ...liveRow, status: "draft" }, 2, null);
+
+    const { updateSet } = await import("./sets-actions");
+    expect(await updateSet(SET_1, { status: "live" })).toEqual({
+      error: "That set couldn't be changed.",
+    });
+    expect(getGymClimberUserIds).not.toHaveBeenCalled();
   });
 
   it("does NOT announce when the set was already live", async () => {
