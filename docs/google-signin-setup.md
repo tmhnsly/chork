@@ -79,7 +79,7 @@ against what you pasted in step 5 rather than trusting this file.
 ### Verified — 2026-08-19
 
 The first-time path has been run for real, in production, by a Google
-account that had never used the app (`tomhinsley@me.com`, 2026-08-18
+account that had never used the app (the owner's personal account, 2026-08-18
 22:01 UTC), and the evidence is in the database rather than in
 anyone's memory:
 
@@ -142,7 +142,7 @@ pasted wrong fails the build, not launch day.
   identity to THAT user rather than creating a second one. So someone
   who signed up with a password and later taps Google with the same
   address gets their sends, not a blank profile. A *different* email
-  is a different account — `hello@` and `tomhinsley@me.com` are two
+  is a different account — `hello@chork.app` and a personal address are two
   people as far as Chork knows. (Manual linking — letting a signed-in
   user attach a second identity from settings — is a separate,
   off-by-default feature; nothing in the app calls it.)

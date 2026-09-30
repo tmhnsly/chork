@@ -51,3 +51,5 @@ supabase/.temp
 /playwright-report/
 /playwright/.cache/
 
+# editor swap files
+*.swp

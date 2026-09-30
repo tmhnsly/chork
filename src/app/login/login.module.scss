@@ -138,7 +138,7 @@
 // Inline emphasis for the actual email address inside the body copy.
 // `inline-block` keeps the address unbreakable — if it doesn't fit
 // on the current line it drops as a single unit to the next line,
-// instead of splitting mid-domain (`hello@` / `tomhinsley.com` on
+// instead of splitting mid-domain (`hello@` / `chork.app` on
 // narrow viewports was unreadable). `max-width: 100%` guards the
 // pathological case of an email longer than the column width;
 // `overflow-wrap: anywhere` then lets it soft-break as a last
