@@ -2,7 +2,7 @@
 
 import { after } from "next/server";
 import { revalidatePath } from "next/cache";
-import { gateSignedInMutation } from "@/lib/auth";
+import { gateSignedInMutation, gateSignedInRead } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
 import { formatError, formatErrorForLog } from "@/lib/errors";
 import { ROUTE_GONE_ERROR } from "@/lib/offline/refusals";
@@ -566,9 +566,7 @@ export async function fetchChorkAllowance(
   routeId: string,
   playerId?: string,
 ): Promise<ActionResult<{ allowance: number | null }>> {
-  const auth = await gateSignedInMutation(matchId, "match id", {
-    rateLimit: null,
-  });
+  const auth = await gateSignedInRead(matchId, "match id");
   if ("error" in auth) return { error: auth.error };
   if (!isUuid(routeId)) return { error: "Invalid route id" };
   if (playerId != null && !isUuid(playerId)) {
@@ -658,9 +656,7 @@ export async function withdrawChorkRoute(
 export async function fetchChorkStandings(
   matchId: string,
 ): Promise<ActionResult<{ standings: ChorkStanding[] }>> {
-  const auth = await gateSignedInMutation(matchId, "match id", {
-    rateLimit: null,
-  });
+  const auth = await gateSignedInRead(matchId, "match id");
   if ("error" in auth) return { error: auth.error };
 
   const { data, error } = await auth.supabase.rpc("chork_standings", {
@@ -683,9 +679,7 @@ export async function fetchChorkStandings(
 export async function fetchMatchBoard(
   matchId: string,
 ): Promise<ActionResult<{ rows: MatchLeaderboardRow[] }>> {
-  const auth = await gateSignedInMutation(matchId, "match id", {
-    rateLimit: null,
-  });
+  const auth = await gateSignedInRead(matchId, "match id");
   if ("error" in auth) return { error: auth.error };
 
   const { data, error } = await auth.supabase.rpc("get_match_leaderboard", {
@@ -721,7 +715,7 @@ export interface InvitableFriend {
 export async function getInvitableFriends(): Promise<
   ActionResult<{ friends: InvitableFriend[]; matchName: string | null }>
 > {
-  const auth = await gateSignedInMutation(null, "match", { rateLimit: null });
+  const auth = await gateSignedInRead(null, "match");
   if ("error" in auth) return { error: auth.error };
 
   const service = createServiceClient();

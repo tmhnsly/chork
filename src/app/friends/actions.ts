@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
-import { gateSignedInMutation } from "@/lib/auth";
+import { gateSignedInMutation, gateSignedInRead } from "@/lib/auth";
 import { revalidateUserProfile } from "@/lib/cache/revalidate";
 import { formatError, formatErrorForLog } from "@/lib/errors";
 import { logger } from "@/lib/logger";
@@ -97,9 +97,7 @@ export async function searchClimbers(
 export async function getFriendStatusAction(
   targetUserId: string,
 ): Promise<ActionResult<{ status: FriendStatus; friendId: string | null }>> {
-  const auth = await gateSignedInMutation(targetUserId, "climber id", {
-    rateLimit: null,
-  });
+  const auth = await gateSignedInRead(targetUserId, "climber id");
   if ("error" in auth) return { error: auth.error };
   const standing = await getFriendStatus(auth.supabase, targetUserId);
   return { success: true, ...standing };

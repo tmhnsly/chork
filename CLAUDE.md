@@ -113,15 +113,18 @@ Two supabase clients:
   also enforces `profile.active_gym_id` is set
 - `requireGymAdmin(gymId?)` → `{ supabase, userId, gymId, isOwner } |
   { error }` — reads the `gym_admins` table, NOT `gym_memberships.role`
-- Mutation gates (uuid validate + auth + rate limit in one call —
-  never re-type the prelude): `gateClimberMutation` (gym-scoped),
-  `gateGymAdminMutation` (admin), `gateSignedInMutation` (gymless-safe,
-  rate limit ON by default — matches, profile, notifications use
-  this). The resource gates (`requireAdminOfSet` / `requireAdminOfRoute`
-  / `requireCompetitionOrganiser` / `…OrGymAdmin`) take the same
-  `{ rateLimit }` option; pages omit it (a page view must never spend
-  write budget), actions pass `"mutationsWrite"`. Enforced by
-  `src/lib/action-hygiene.test.ts` — a write with no bucket fails CI
+- Action gates (uuid validate + auth + rate limit in one call — never
+  re-type the prelude): `gateClimberMutation` (gym-scoped),
+  `gateGymAdminMutation` (admin), `gateSignedInMutation` (gymless-safe —
+  games, friends, profile, notifications). **A gate named `Mutation`
+  always rate limits**: it takes another bucket, never `null`, and the
+  type says so (`auth-gates.ts`). A read that needs the same id check
+  and sign-in opens with `gateSignedInRead`. The resource gates
+  (`requireAdminOfSet` / `requireAdminOfRoute` /
+  `requireCompetitionOrganiser` / `…OrGymAdmin`) take a `{ rateLimit }`
+  option because pages use them too: pages omit it (a page view must
+  never spend write budget), actions pass `"mutationsWrite"`. Enforced
+  by `src/lib/action-hygiene.test.ts` — a write with no bucket fails CI
 - `requireSameGymScope(supabase, gymId, setId, targetUserId)` — the
   cross-gym exposure gate (set in caller's gym AND target is a
   member). Use it for any read that surfaces another climber's data
@@ -852,10 +855,10 @@ Vitest-based. See `docs/testing.md` for patterns. Key rules:
   distinct user-visible error path, friendly-error mapping. **One
   auth double:** `vi.mock("@/lib/auth", async () => (await
   import("@/test/mock-auth")).mockAuthModule())` — the `require*`
-  helpers are bare spies to prime, the `gate*Mutation` helpers keep
-  the real prelude shape (uuid check → primed `require*` → rate
-  limiter), so a "rejects a malformed id" assertion still tests the
-  check. Don't fork it inline. Tests that want the gate itself
+  helpers are bare spies to prime, and the gates are the REAL ones
+  (`makeGates` in `auth-gates.ts`) wired to those spies, so a "rejects
+  a malformed id" assertion tests the actual check and the double
+  can't drift from it. Don't fork it inline. Tests that want the gate itself
   exercised (`match/actions.test.ts`, `auth.test.ts`) mock the
   supabase primitives instead
 - **Action-module hygiene is a test, not a review item.**

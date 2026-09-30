@@ -286,8 +286,8 @@ migrations 109–110, one best moment per day).
   `request_friend` and hides you from suggestions. A privacy switch
   the server doesn't honour is decoration.
 - Rate limiting comes from the `gate*` helpers, not a bespoke
-  `bump_invite_rate_limit` (that went with crews). Read-only status
-  lookups opt out explicitly with `{ rateLimit: null }` so a search
+  `bump_invite_rate_limit` (that went with crews). A read-only status
+  lookup opens with `gateSignedInRead`, which never limits, so a search
   result doesn't pay for the check.
 - `relativeDay()` — no clock time ever on the moments feed.
 

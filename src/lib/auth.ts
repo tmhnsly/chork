@@ -11,6 +11,7 @@ import { AUTH_REQUIRED_ERROR, NO_GYM_ERROR } from "./auth-errors";
 import { UUID_RE } from "./validation";
 import { one } from "./data/read";
 import { enforce as enforceRateLimit, type LimiterKey as RateLimitKey } from "./rate-limit";
+import { makeGates } from "./auth-gates";
 
 type AuthSuccess = {
   supabase: SupabaseClient<Database>;
@@ -22,15 +23,18 @@ type AuthFailure = { error: string };
 /**
  * The rate-limit knob every gate below shares.
  *
- * `null` means "this call is a read". Pages hit the same resource
- * gates as mutations do — `requireAdminOfSet` decides `notFound()` vs
- * `redirect()` for the set screens — and a page view must never spend
- * write budget. Actions pass a bucket. The default is `null` on the
- * resource gates only because pages outnumber actions there; a write
- * action that leaves it null is refused by `action-hygiene.test.ts`,
- * which is what stops this from becoming the 2026-08 failure again
- * (sixteen writes with no limit because each one re-typed the prelude
- * by hand).
+ * For the RESOURCE gates only (`requireAdminOfSet`, `requireAdminOfRoute`,
+ * `requireCompetitionOrganiser…`). `null` means "this call is a read":
+ * pages hit the same resource gates as mutations do —
+ * `requireAdminOfSet` decides `notFound()` vs `redirect()` for the set
+ * screens — and a page view must never spend write budget. Actions
+ * pass a bucket; a write action that leaves it null is refused by
+ * `action-hygiene.test.ts`, which is what stops this from becoming the
+ * 2026-08 failure again (sixteen writes with no limit because each one
+ * re-typed the prelude by hand).
+ *
+ * The action gates at the bottom of this file have no such option: a
+ * `gate*Mutation` always limits, and a read uses `gateSignedInRead`.
  */
 type GateOptions = { rateLimit: RateLimitKey | null };
 const READ_ONLY: GateOptions = { rateLimit: null };
@@ -387,97 +391,20 @@ export async function requireCompetitionOrganiserOrGymAdmin(
   return matched;
 }
 
-/**
- * Single-line gate for climber-side mutations. Validates the resource
- * UUID, runs requireAuth (gym-scoped), and applies the standard
- * write-rate-limit. Most route_log + comment mutations in
- * `(app)/actions.ts` open with this prelude — the helper keeps it
- * consistent and prevents an action from quietly skipping the
- * rate-limit step.
- *
- * `resourceLabel` shapes the error message ("Invalid route" / "Invalid
- * comment") so callers can keep their existing user-facing wording.
- *
- * Inline checks unique to one action (e.g. logId UUID, attempts range,
- * grade bounds) stay at the call site after the gate returns success.
- */
-export async function gateClimberMutation(
-  resourceId: string,
-  resourceLabel: string,
-): Promise<AuthSuccess | AuthFailure> {
-  if (!UUID_RE.test(resourceId)) return { error: `Invalid ${resourceLabel}` };
-  const auth = await requireAuth();
-  if ("error" in auth) return { error: auth.error };
-  const rl = await enforceRateLimit("mutationsWrite", auth.userId);
-  if (!rl.ok) return { error: rl.error };
-  return auth;
-}
-
-/**
- * Sibling of `gateClimberMutation` for gym-admin server actions.
- * Concentrates the prelude that every gym-admin mutation repeats:
- *   1. UUID validate the supplied `gymId` (label feeds the user-facing
- *      error string so the action keeps its existing wording).
- *   2. Re-verify the caller admins THIS gym via `requireGymAdmin` —
- *      never trust a client-supplied gymId.
- *   3. Optionally enforce a rate-limit bucket (admin actions that get
- *      one — invites, competition creation — share the same shape;
- *      pass `null` to skip).
- *
- * Returns the `AdminAuthSuccess` shape (with `isOwner` and the
- * verified gymId) so callers can branch on owner-only ops without a
- * second round-trip.
- *
- * Inline action-specific checks (slug format, plan-tier allow-list,
- * email shape, role allow-list) stay at the call site after the gate
- * returns — the gate is for the prelude, not for every validation.
- *
- * Note: resource-scoped helpers (`requireAdminOfSet`, `requireAdminOfRoute`)
- * are NOT subsumed here — they need to fetch the resource before they
- * can decide which gym to authorise against, so they own their own
- * shape. Use them directly when an action takes a set/route id rather
- * than a gym id.
- */
-export async function gateGymAdminMutation(
-  gymId: string,
-  resourceLabel: string,
-  options: GateOptions = READ_ONLY,
-): Promise<AdminAuthSuccess | AuthFailure> {
-  if (!UUID_RE.test(gymId)) return { error: `Invalid ${resourceLabel}` };
-  const auth = await requireGymAdmin(gymId);
-  if ("error" in auth) return { error: auth.error };
-  const limited = await applyRateLimit(options, auth.userId);
-  if (limited) return limited;
-  return auth;
-}
-
-/**
- * Third sibling: the gate for signed-in (gymless-safe) mutations —
- * matches, and any future write that must work without an active gym
- * (see CLAUDE.md "A gym is optional").
- *
- *   1. UUID-validate `resourceId` when one is supplied (`null` for
- *      actions like createMatch that validate a payload instead; the
- *      label feeds the user-facing error string).
- *   2. `requireSignedIn` — NOT `requireAuth`; gymless climbers are
- *      first-class here.
- *   3. Rate-limit, ON by default (`mutationsWrite`). This default is
- *      the point: before this gate existed, every match write action
- *      re-typed the requireSignedIn prelude by hand and all seven
- *      skipped the rate limit entirely. Pass `null` only with a
- *      written reason.
- */
-export async function gateSignedInMutation(
-  resourceId: string | null,
-  resourceLabel: string,
-  options: GateOptions = { rateLimit: "mutationsWrite" },
-): Promise<SignedInSuccess | AuthFailure> {
-  if (resourceId !== null && !UUID_RE.test(resourceId)) {
-    return { error: `Invalid ${resourceLabel}` };
-  }
-  const auth = await requireSignedIn();
-  if ("error" in auth) return { error: auth.error };
-  const limited = await applyRateLimit(options, auth.userId);
-  if (limited) return limited;
-  return auth;
-}
+// ── Action gates ───────────────────────────────────────────────────
+//
+// Validate the id, authenticate, rate limit: one call at the top of a
+// server action. Built in `auth-gates.ts` from the checks above, where
+// the rule they carry is written down: a gate named `Mutation` always
+// rate limits, and a read opens with `gateSignedInRead`.
+export const {
+  gateClimberMutation,
+  gateGymAdminMutation,
+  gateSignedInMutation,
+  gateSignedInRead,
+} = makeGates({
+  requireAuth,
+  requireSignedIn,
+  requireGymAdmin: (gymId: string) => requireGymAdmin(gymId),
+  enforce: enforceRateLimit,
+});

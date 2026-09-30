@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import { UUID_RE } from "@/lib/validation";
+import { makeGates } from "@/lib/auth-gates";
 import { enforce } from "@/lib/rate-limit";
 
 /**
@@ -11,12 +11,15 @@ import { enforce } from "@/lib/rate-limit";
  *   );
  *
  * Every `require*` helper is a bare `vi.fn()` the test primes. The
- * three `gate*Mutation` helpers are spies WITH the real prelude shape
- * as their implementation — uuid check with the caller's label, then
- * the primed `require*`, then the rate limiter — so a test that
- * primes `requireSignedIn` keeps working when its subject moves from
- * the hand-rolled prelude to the gate, a "rejects a malformed id"
- * assertion still tests the id check, and `expect(gate).not
+ * gates are the REAL ones (`makeGates` in `auth-gates.ts`), wired to
+ * those spies instead of to Supabase: uuid check with the caller's
+ * label, then the primed `require*`, then the rate limiter. So a test
+ * that primes `requireSignedIn` exercises the actual prelude, a
+ * "rejects a malformed id" assertion tests the real id check, and the
+ * double cannot drift from the thing it stands in for. It used to
+ * re-type all three preludes, defaults included.
+ *
+ * Each gate is wrapped in `vi.fn(impl)` so `expect(gate).not
  * .toHaveBeenCalled()` still proves validation ran first. Vitest's
  * `mockReset` restores the implementation given to `vi.fn(impl)`, so
  * the per-file `vi.resetAllMocks()` leaves the delegation intact.
@@ -25,7 +28,7 @@ import { enforce } from "@/lib/rate-limit";
  * that module can assert the bucket, and one that doesn't gets the
  * real fail-open (no Upstash in CI → `{ ok: true }`).
  *
- * Tests that want the rate limit or uuid gate exercised for real —
+ * Tests that want the auth checks themselves exercised —
  * `match/actions.test.ts`, `auth.test.ts` — mock the supabase
  * primitives instead and leave this module alone.
  */
@@ -34,43 +37,12 @@ export function mockAuthModule() {
   const requireSignedIn = vi.fn();
   const requireGymAdmin = vi.fn();
 
-  type Options = { rateLimit: Parameters<typeof enforce>[0] | null };
-
-  async function limited(options: Options, userId: string) {
-    if (options.rateLimit === null) return null;
-    const rl = await enforce(options.rateLimit, userId);
-    return rl.ok ? null : { error: rl.error };
-  }
-
-  const gateClimberMutation = vi.fn(async (resourceId: string, label: string) => {
-    if (!UUID_RE.test(resourceId)) return { error: `Invalid ${label}` };
-    const auth = await requireAuth();
-    if ("error" in auth) return auth;
-    return (await limited({ rateLimit: "mutationsWrite" }, auth.userId)) ?? auth;
-  });
-
-  const gateSignedInMutation = vi.fn(async (
-    resourceId: string | null,
-    label: string,
-    options: Options = { rateLimit: "mutationsWrite" },
-  ) => {
-    if (resourceId !== null && !UUID_RE.test(resourceId)) {
-      return { error: `Invalid ${label}` };
-    }
-    const auth = await requireSignedIn();
-    if ("error" in auth) return auth;
-    return (await limited(options, auth.userId)) ?? auth;
-  });
-
-  const gateGymAdminMutation = vi.fn(async (
-    gymId: string,
-    label: string,
-    options: Options = { rateLimit: null },
-  ) => {
-    if (!UUID_RE.test(gymId)) return { error: `Invalid ${label}` };
-    const auth = await requireGymAdmin(gymId);
-    if ("error" in auth) return auth;
-    return (await limited(options, auth.userId)) ?? auth;
+  const gates = makeGates({
+    requireAuth,
+    requireSignedIn,
+    requireGymAdmin,
+    // Resolved per call, so a test's `vi.mock("@/lib/rate-limit")` is seen.
+    enforce: (key, userId) => enforce(key, userId),
   });
 
   return {
@@ -82,8 +54,9 @@ export function mockAuthModule() {
     requireCompetitionOrganiser: vi.fn(),
     requireCompetitionOrganiserOrGymAdmin: vi.fn(),
     requireSameGymScope: vi.fn(),
-    gateClimberMutation,
-    gateSignedInMutation,
-    gateGymAdminMutation,
+    gateClimberMutation: vi.fn(gates.gateClimberMutation),
+    gateSignedInMutation: vi.fn(gates.gateSignedInMutation),
+    gateGymAdminMutation: vi.fn(gates.gateGymAdminMutation),
+    gateSignedInRead: vi.fn(gates.gateSignedInRead),
   };
 }

@@ -126,6 +126,30 @@ describe("createSet", () => {
     expect(await createSet(form)).toEqual({ success: true, setId: SET_1 });
   });
 
+  it("spends write budget, and stops when the bucket trips", async () => {
+    // createSet was the one caller that gave gateGymAdminMutation no
+    // options, and that gate defaulted to no limit: the most
+    // consequential admin write was the unlimited one.
+    const { requireGymAdmin } = await import("@/lib/auth");
+    const sb = createMockSupabase({ "table:sets": { data: { id: SET_1 }, error: null } });
+    vi.mocked(requireGymAdmin).mockResolvedValue({
+      supabase: sb as never,
+      userId: USER_A,
+      gymId: GYM_1,
+      isOwner: true,
+    });
+    const { enforce } = await import("@/lib/rate-limit");
+    const { createSet } = await import("./sets-actions");
+
+    await createSet(form);
+    expect(enforce).toHaveBeenCalledWith("mutationsWrite", USER_A);
+
+    vi.mocked(enforce).mockResolvedValueOnce({ ok: false, error: "Too many requests.", retryAfter: 9 });
+    const calls = sb.calls.length;
+    expect(await createSet(form)).toEqual({ error: "Too many requests." });
+    expect(sb.calls.length).toBe(calls);
+  });
+
   it("does NOT touch the incumbent when creating a draft", async () => {
     const { requireGymAdmin } = await import("@/lib/auth");
     const sb = createMockSupabase({

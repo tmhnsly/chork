@@ -13,9 +13,11 @@ import { describe, expect, it } from "vitest";
  *    hand instead of calling a `gate*Mutation` helper — the exact
  *    failure `auth.ts` already documented from the time before the
  *    match gate existed. So: a function that writes must open with a
- *    gate, or pass a bucket to a resource gate, and must not switch
- *    the bucket off with `rateLimit: null`. Reads that go through a
- *    gate with the limit off are listed below, with the reason.
+ *    `gate*Mutation` (which always limits: `auth-gates.ts` gives it no
+ *    way not to), or pass a bucket to a resource gate. A read opens
+ *    with `gateSignedInRead`; one that reaches the database through an
+ *    RPC looks like a write to this test, so it is listed below with
+ *    the reason.
  *
  * 2. **One result contract.** 78 actions had four success shapes
  *    (`ActionResult<T>`, `{ ok: true }`, a hand-rolled
@@ -113,8 +115,15 @@ function writesThroughMutations(action: Action): boolean {
   const names = imported[1].split(",").map((n) => n.trim().split(/\s+as\s+/).pop()!).filter(Boolean);
   return names.some((n) => new RegExp(`\\b${n}\\(`).test(action.body));
 }
-/** The prelude went through a gate, or a resource gate was given a bucket. */
+/**
+ * The prelude went through a mutation gate, or a resource gate was
+ * given a bucket. The mutation gates cannot be told to skip the limit
+ * (the option's type has no null), so the call itself is the proof.
+ * It wasn't always: `gateGymAdminMutation` once defaulted to no limit
+ * and this regex passed `createSet` unlimited.
+ */
 const LIMITED = /\bgate(Climber|GymAdmin|SignedIn)Mutation\(|\benforce(RateLimit)?\(|rateLimit: "/;
+/** Only a resource gate can still be handed this, and only a page should. */
 const UNLIMITED = /rateLimit: null/;
 
 /**
@@ -130,13 +139,13 @@ const RATE_LIMIT_EXEMPT: Record<string, string> = {
   "src/app/login/actions.ts signOutAction":
     "ends the session; nothing to protect and nothing to key on",
   "src/app/match/actions.ts fetchChorkAllowance":
-    "a read through an RPC, gated with the limit explicitly off — it runs on every attempt tap",
+    "a read through an RPC, opened with gateSignedInRead — it runs on every attempt tap",
   "src/app/match/actions.ts fetchChorkStandings":
-    "a read through an RPC, gated with the limit explicitly off — polled by the live board",
+    "a read through an RPC, opened with gateSignedInRead — polled by the live board",
   "src/app/match/actions.ts fetchMatchBoard":
-    "a read through an RPC, gated with the limit explicitly off — refetched by the live board after another player logs",
+    "a read through an RPC, opened with gateSignedInRead — refetched by the live board after another player logs",
   "src/app/friends/actions.ts getFriendStatusAction":
-    "a read through an RPC, gated with the limit explicitly off — one call per profile view",
+    "a read through an RPC, opened with gateSignedInRead — one call per profile view",
 };
 
 describe("server-action hygiene: every write is rate limited", () => {
@@ -158,10 +167,25 @@ describe("server-action hygiene: every write is rate limited", () => {
       if (id in RATE_LIMIT_EXEMPT) return;
       expect(
         LIMITED.test(action.body) && !UNLIMITED.test(action.body),
-        `${action.name} writes but never rate-limits. Open it with gateSignedInMutation / gateClimberMutation / gateGymAdminMutation, or pass { rateLimit: "mutationsWrite" } to its resource gate — never re-type the auth prelude by hand (auth.ts). A read that goes through a gate with the limit off belongs in RATE_LIMIT_EXEMPT here, with its reason.`,
+        `${action.name} writes but never rate-limits. Open it with gateSignedInMutation / gateClimberMutation / gateGymAdminMutation, or pass { rateLimit: "mutationsWrite" } to its resource gate — never re-type the auth prelude by hand (auth.ts). A read that reaches the database through an RPC opens with gateSignedInRead and belongs in RATE_LIMIT_EXEMPT here, with its reason.`,
       ).toBe(true);
     },
   );
+
+  it("lists a read as exempt only while it opens with the read gate", () => {
+    // An exemption is a claim that the action is a read. The gate it
+    // opens with has to agree, or the list is excusing a write.
+    const reads = Object.entries(RATE_LIMIT_EXEMPT)
+      .filter(([, reason]) => reason.startsWith("a read"))
+      .map(([id]) => actions.find((a) => key(a) === id)!);
+    expect(reads.filter((a) => !/\bgateSignedInRead\(/.test(a.body)).map(key)).toEqual([]);
+  });
+
+  it("never hands an action's gate `rateLimit: null`", () => {
+    // Only the resource gates still accept it, for pages. No module
+    // swept here is a page.
+    expect(actions.filter((a) => UNLIMITED.test(a.body)).map(key)).toEqual([]);
+  });
 });
 
 // ────────────────────────────────────────────────────────────────

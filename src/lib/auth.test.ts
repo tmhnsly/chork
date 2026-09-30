@@ -26,6 +26,8 @@ import {
   requireCompetitionOrganiserOrGymAdmin,
   requireSameGymScope,
   gateSignedInMutation,
+  gateGymAdminMutation,
+  gateSignedInRead,
 } from "./auth";
 
 const USER_A = "11111111-1111-1111-1111-111111111111";
@@ -428,12 +430,60 @@ describe("gateSignedInMutation", () => {
     });
   });
 
-  it("skips the rate limit only on an explicit null", async () => {
+  it("takes another bucket, and cannot be told to skip the limit", async () => {
     getServerUserMock.mockResolvedValue({ id: USER_A });
     createServerSupabaseMock.mockResolvedValue(createMockSupabase());
     const { enforce } = await import("./rate-limit");
-    await gateSignedInMutation(SET_1, "set", { rateLimit: null });
+    await gateSignedInMutation(SET_1, "set", { rateLimit: "invitesSend" });
+    expect(enforce).toHaveBeenCalledWith("invitesSend", USER_A);
+    // A mutation gate with the mutation part switched off was how reads
+    // were gated, and how a write could be left unlimited by one word.
+    // @ts-expect-error — `rateLimit: null` is not a mutation gate option
+    const options: Parameters<typeof gateSignedInMutation>[2] = { rateLimit: null };
+    expect(options).toBeDefined();
+  });
+});
+
+// ────────────────────────────────────────────────────────────────
+// gateGymAdminMutation / gateClimberMutation / gateSignedInRead
+// ────────────────────────────────────────────────────────────────
+
+describe("gateGymAdminMutation", () => {
+  it("rate limits BY DEFAULT, like every gate named Mutation", async () => {
+    // It defaulted to no limit, and `createSet` — the one caller that
+    // passed no options — shipped unlimited while the hygiene test,
+    // which reads source text, took the call itself as proof.
+    getServerUserMock.mockResolvedValue({ id: USER_A });
+    createServerSupabaseMock.mockResolvedValue(
+      createMockSupabase({ "table:gym_admins": { data: { role: "admin" } } }),
+    );
+    const { enforce } = await import("./rate-limit");
+    const result = await gateGymAdminMutation(GYM_1, "gym");
+    expect("error" in result).toBe(false);
+    expect(enforce).toHaveBeenCalledWith("mutationsWrite", USER_A);
+  });
+
+  it("rejects a malformed gym id before any auth check", async () => {
+    expect(await gateGymAdminMutation("nope", "gym")).toEqual({ error: "Invalid gym" });
+    expect(getServerUserMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("gateSignedInRead", () => {
+  it("checks the id and the session, and never spends write budget", async () => {
+    getServerUserMock.mockResolvedValue({ id: USER_A });
+    createServerSupabaseMock.mockResolvedValue(createMockSupabase());
+    const { enforce } = await import("./rate-limit");
+    expect(await gateSignedInRead("nope", "match id")).toEqual({ error: "Invalid match id" });
+    const result = await gateSignedInRead(SET_1, "match id");
+    expect("error" in result).toBe(false);
     expect(enforce).not.toHaveBeenCalled();
+  });
+
+  it("surfaces auth failure", async () => {
+    getServerUserMock.mockResolvedValue(null);
+    createServerSupabaseMock.mockResolvedValue(createMockSupabase());
+    expect(await gateSignedInRead(SET_1, "match id")).toHaveProperty("error");
   });
 });
 
