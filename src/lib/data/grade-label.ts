@@ -233,6 +233,19 @@ export function ceilingForDiscipline(
     : player.alt_ceiling;
 }
 
+/**
+ * The grade a Match route is scored at: what the adder declared, else
+ * what climbers voted. `match_standings` resolves it the same way, and
+ * the handicap measures a send against it, so the board and the log
+ * sheet's preview both come through here.
+ */
+export function effectiveGrade(route: {
+  declared_grade: number | null;
+  community_grade: number | null;
+}): number | null {
+  return route.declared_grade ?? route.community_grade ?? null;
+}
+
 export function makeRouteLabeller(
   match: MatchScales,
   grades: CustomGradeEntry[],

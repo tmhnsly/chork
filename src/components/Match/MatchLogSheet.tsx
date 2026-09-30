@@ -17,6 +17,7 @@ import {
 import { BrandDivider } from "@/components/ui/BrandDivider";
 import { useDebouncedFlush } from "@/hooks/use-debounced-flush";
 import {
+  effectiveGrade,
   makeRouteLabeller,
   partialCreditLabel,
   type MatchScales,
@@ -196,21 +197,20 @@ export function MatchLogSheet({
   // preview EXCLUDES it and surfaces a separate "+1 zone" chip, so a
   // zone route never double-counts (the number PLUS the chip).
   // Scored the way the BOARD scores it, handicap included, so the
-  // two never disagree. `effectiveGrade` mirrors the server: what the
-  // adder declared, else what climbers voted.
-  const effectiveGrade = route.declared_grade ?? route.community_grade ?? null;
+  // two never disagree.
+  const grade = effectiveGrade(route);
   const scoreOf = useCallback(
     (z: boolean) =>
       handicap
         ? tenthsToPoints(
             handicapPointsTenths(
               { attempts, completed: true, zone: z },
-              effectiveGrade,
+              grade,
               ceiling,
             ),
           )
         : computePoints({ attempts, completed: true, zone: z }),
-    [attempts, handicap, effectiveGrade, ceiling],
+    [attempts, handicap, grade, ceiling],
   );
 
   const earnedPoints = useMemo(() => scoreOf(zone), [scoreOf, zone]);

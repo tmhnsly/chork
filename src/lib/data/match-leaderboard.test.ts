@@ -133,6 +133,32 @@ describe("computeMatchLeaderboard", () => {
     expect(ranks.get("u3")).toBeGreaterThan(ranks.get("u1")!);
   });
 
+  it("ranks on the handicapped total, as match_standings does", () => {
+    // Both send the same route second go: level on base points. Bob
+    // climbed above his limit, so his handicapped total is higher and
+    // he is first outright. The rank key used base points and tied them.
+    const players = [
+      { ...mkPlayer("alice", "alice"), ceiling: 5 },
+      { ...mkPlayer("bob", "bob"), ceiling: 2 },
+    ];
+    const at = "2026-04-01T10:00:00Z";
+    const rows = computeMatchLeaderboard(
+      players,
+      logsMap([mkLog("alice", "r1", 2, true, false, at), mkLog("bob", "r1", 2, true, false, at)]),
+      {
+        handicap: true,
+        gradeByRouteId: new Map([["r1", 4]]),
+        ceilingForRoute: (p) => p.ceiling,
+      },
+    );
+    expect(rows[0].points).toBe(rows[1].points);
+    expect(rows[0].points_tenths).toBeGreaterThan(rows[1].points_tenths);
+    expect(rows.map((r) => [r.username, r.rank])).toEqual([
+      ["bob", 1],
+      ["alice", 2],
+    ]);
+  });
+
   it("returns zero-point rows for players with no logs", () => {
     const rows = computeMatchLeaderboard(
       [mkPlayer("u1", "a"), mkPlayer("u2", "b")],

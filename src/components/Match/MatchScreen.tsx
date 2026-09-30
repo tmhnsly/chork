@@ -4,9 +4,9 @@ import { useState } from "react";
 import { FaEllipsisVertical, FaFlag, FaPaperPlane } from "react-icons/fa6";
 import { IconButton, LeaderboardRow, UserAvatar, showToast } from "@/components/ui";
 import type { MatchState, SavedScale } from "@/lib/data/match-types";
-import { entersLogsFor, ownerIdOf, seatAvatarUser } from "@/lib/data/seat";
+import { entersLogsFor, isGuestSeat, ownerIdOf, seatAvatarUser } from "@/lib/data/seat";
 import { formatHandicapPoints } from "@/lib/data/handicap";
-import { ceilingForDiscipline, makeGradeLabeller, SCALE_LABEL } from "@/lib/data/grade-label";
+import { makeGradeLabeller, SCALE_LABEL } from "@/lib/data/grade-label";
 import { canDeleteGame, deleteGameWarning } from "@/lib/data/match-deletion";
 import { visibleBoardRows, BOARD_PREVIEW_SIZE } from "@/lib/data/match-board";
 import { countOf } from "@/lib/plural";
@@ -19,7 +19,15 @@ import { AddGuestSheet } from "./AddGuestSheet";
 import { InviteFriendsSheet } from "./InviteFriendsSheet";
 import { CeilingSheet } from "./CeilingSheet";
 import { MatchPlayerGridSheet } from "./MatchPlayerGridSheet";
-import { logKey, isLobby } from "./matchScreenReducer";
+import { isLobby } from "./matchScreenReducer";
+import {
+  canSetRoute,
+  isChorkMatch,
+  openLog,
+  penHolder,
+  routeBeingEdited,
+  seatInPanel,
+} from "./matchScreenSelectors";
 import { MatchSetupPills } from "./MatchSetupPills";
 import { MatchSetupSheet } from "./MatchSetupSheet";
 import { MatchInviteSheet } from "./MatchInviteSheet";
@@ -29,24 +37,29 @@ import styles from "./matchScreen.module.scss";
 import { matchTitle } from "@/lib/data/match-title";
 
 interface Props {
-  initialState: MatchState;
+  /**
+   * The server's payload for this render: the first state, and on
+   * every refresh the next one to merge. Nothing here reads it after
+   * that; the screen paints from the model (`state`).
+   */
+  bundle: MatchState;
   userId: string;
   /** The host's saved custom ladders, for the setup sheet's grading picker. */
   savedScales: SavedScale[];
 }
 
 /**
- * Live match room — purely the JSX tree. All state, realtime wiring,
- * optimistic writes, and panel exclusivity live in `useMatchScreenState`
- * (+ matchScreenReducer), matching the RouteLogSheet / SettingsSheet
- * split.
+ * Live match room — purely the JSX tree. The model is
+ * `matchScreenReducer`, what it derives is `matchScreenSelectors`, and
+ * the wiring (realtime, router, server actions) is
+ * `useMatchScreenState`.
  */
-export function MatchScreen({ initialState, userId, savedScales }: Props) {
+export function MatchScreen({ bundle, userId, savedScales }: Props) {
   const {
     state,
     viewer,
-    leaderboard,
-    myLogByRouteId,
+    board: leaderboard,
+    myLogs,
     isPending,
     openPanel,
     closePanel,
@@ -60,14 +73,12 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
     handleDelete,
     handleSetup,
     handleGameMode,
-    isChork,
-    chorkLetters,
-    chorkPenSeatId,
-    chorkAllowance,
     handleConcede,
     handleWithdraw,
-  } = useMatchScreenState({ initialState, userId });
+  } = useMatchScreenState({ bundle, userId });
+  const { match, grades, panel } = state;
   const isHost = viewer.isHost;
+  const isChork = isChorkMatch(state);
 
   // The board shows the top of the table and you, always — see
   // match-board.ts for why the bare top-5 was a bug.
@@ -78,97 +89,44 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
     boardExpanded,
   );
 
-  // Who may put up the next route. Points: anyone. Chork: whoever
-  // holds the pen — or the host, when the pen sits with a guest, since
-  // a guest has no session to tap with.
-  //
-  // A null pen means the standings haven't landed (or the fetch
-  // failed), and that degrades to open rather than shut: locking the
-  // button on "don't know yet" would leave a whole match unable to
-  // start over one bad response.
-  const penPlayer =
-    isChork && chorkPenSeatId
-      ? state.players.find((p) => p.player_id === chorkPenSeatId) ?? null
-      : null;
-  const canSet = !isChork || penPlayer === null || entersLogsFor(viewer, penPlayer);
+  const penPlayer = penHolder(state);
+  const canSet = canSetRoute(state, viewer);
 
   // No routes yet: setup is still open. Derived, never stored.
   const lobby = isLobby(state);
 
   // The ladder(s) the add-route sheet names, so the first route meets
   // the grading choice in place.
-  const scaleLabel = initialState.match.alt_grading_scale
-    ? `${SCALE_LABEL[initialState.match.grading_scale]} + ${SCALE_LABEL[initialState.match.alt_grading_scale]}`
-    : SCALE_LABEL[initialState.match.grading_scale];
+  const scaleLabel = match.alt_grading_scale
+    ? `${SCALE_LABEL[match.grading_scale]} + ${SCALE_LABEL[match.alt_grading_scale]}`
+    : SCALE_LABEL[match.grading_scale];
 
-  const { panel } = state;
-  // Panels store route ids and derive the row at render time so a
-  // route edited (or deleted) via realtime never renders from a stale
-  // snapshot; a deleted route simply closes its sheet.
-  const activeRoute =
-    panel.kind === "log"
-      ? state.routes.find((r) => r.id === panel.routeId) ?? null
-      : null;
-  const editRoute =
-    panel.kind === "edit"
-      ? state.routes.find((r) => r.id === panel.routeId) ?? null
-      : null;
-  // Matched on the SEAT, not the account. The board passes
-  // `ownerIdOf(row)`, which is a guest's `player_id` — looking them up
-  // by `user_id` would never find one, since a guest hasn't got one.
-  const peekedPlayer =
-    panel.kind === "peek"
-      ? state.players.find((p) => ownerIdOf(p) === panel.playerId) ?? null
-      : null;
+  // Panels store ids; the selectors resolve them against the model at
+  // render time, so a route edited or deleted by realtime never renders
+  // from a captured snapshot. A deleted route simply closes its sheet.
+  const logging = openLog(state, viewer);
+  const editRoute = routeBeingEdited(state);
+  const peekedPlayer = seatInPanel(state, "peek");
+  const ceilingPlayer = seatInPanel(state, "ceiling");
 
   // Same labeller the grade pickers use, so a limit reads in the
   // Match's own scale rather than as a bare index.
   const labelForCeiling = (ceiling: number | null) =>
     ceiling === null
       ? null
-      : makeGradeLabeller(
-          initialState.match.grading_scale,
-          initialState.grades,
-        )(ceiling);
-
-  // Which seat the open log sheet is writing to: a guest when the
-  // host tapped through their grid, otherwise the viewer's own.
-  const loggingPlayer =
-    panel.kind === "log"
-      ? state.players.find((p) =>
-          panel.playerId
-            ? p.player_id === panel.playerId
-            : p.user_id === userId,
-        ) ?? null
-      : null;
-
-  // The log belongs to the SEAT being logged for, not to the viewer.
-  // Passing the viewer's own meant a host opening a guest's round saw
-  // their own attempts and send on it — "Route 1 — Dave" showing Tom's
-  // 2 goes and a tick.
-  const sheetLog =
-    activeRoute && loggingPlayer?.is_guest
-      ? state.logs.get(logKey(loggingPlayer.player_id, activeRoute.id)) ?? null
-      : activeRoute
-        ? myLogByRouteId.get(activeRoute.id) ?? null
-        : null;
-
-  const ceilingPlayer =
-    panel.kind === "ceiling"
-      ? state.players.find((p) => p.player_id === panel.playerId) ?? null
-      : null;
+      : makeGradeLabeller(match.grading_scale, grades)(ceiling);
 
   return (
     <main className={styles.screen}>
       <Named name="game">
       <header className={styles.hero}>
-        <h1 className={styles.title}>{matchTitle(initialState.match)}</h1>
+        <h1 className={styles.title}>{matchTitle(match)}</h1>
         {/* The setup, worn: game · climbing · grading · details, with
             the menu at the row's end. The host taps a pill to change
             it; grading locks with the first route. */}
         <div className={styles.heroRow}>
           <MatchSetupPills
-            match={initialState.match}
+            match={match}
             isHost={isHost}
             locked={!lobby}
             onOpen={(section) => {
@@ -198,11 +156,11 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
               </span>
               <span className={styles.playersCount}>
                 {countOf(state.players.length, "player")}
-                {initialState.match.location && ` · ${initialState.match.location}`}
+                {match.location && ` · ${match.location}`}
                 {/* Say so. A player whose score is being adjusted
                     against their own limit should not have to work
                     that out from the numbers not adding up. */}
-                {initialState.match.handicap && " · Handicap"}
+                {match.handicap && " · Handicap"}
               </span>
             </div>
             {/* The code, QR, share link, friends and guests, one tap
@@ -229,8 +187,8 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
       {isChork ? (
         <ChorkBoard
           players={state.players}
-          lettersBySeat={chorkLetters}
-          penSeatId={chorkPenSeatId}
+          lettersBySeat={state.chork.letters}
+          penSeatId={state.chork.penSeatId}
           viewerId={userId}
           onPress={(seatId) => openPanel({ kind: "peek", playerId: seatId })}
         />
@@ -310,9 +268,9 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
 
       <MatchGrid
         routes={state.routes}
-        myLogs={myLogByRouteId}
-        grades={initialState.grades}
-        match={initialState.match}
+        myLogs={myLogs}
+        grades={grades}
+        match={match}
         onTileTap={(route) => openPanel({ kind: "log", routeId: route.id })}
         onAddTap={() => openPanel({ kind: "add" })}
         onTileLongPress={(route) => openPanel({ kind: "edit", routeId: route.id })}
@@ -322,45 +280,25 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
       />
       </>
 
-      {activeRoute && (
+      {logging && (
         <MatchLogSheet
-          route={activeRoute}
-          log={sheetLog}
-          grades={initialState.grades}
-          match={initialState.match}
-          handicap={initialState.match.handicap}
-          // The seat being logged for — the guest when the host is
-          // entering, otherwise the viewer's own.
-          // Whichever of their two limits this route is measured
-          // against. This passed the first limit for every route, so on
-          // a mixed day the preview and the board disagreed.
-          ceiling={
-            loggingPlayer
-              ? ceilingForDiscipline(initialState.match, loggingPlayer, activeRoute.discipline)
-              : null
-          }
+          route={logging.route}
+          // The log, and the limit, of the SEAT being logged for: the
+          // guest when the host is entering, otherwise the viewer's own.
+          log={logging.log}
+          grades={grades}
+          match={match}
+          handicap={match.handicap}
+          ceiling={logging.ceiling}
           loggingFor={
-            loggingPlayer && loggingPlayer.is_guest
-              ? loggingPlayer.display_name
-              : null
+            logging.seat && isGuestSeat(logging.seat) ? logging.seat.display_name : null
           }
           chork={
             isChork
               ? {
-                  // Only trust the fetched value when it belongs to
-                  // THIS round and seat — otherwise a fast switch
-                  // between routes would show the previous one's
-                  // allowance for a frame.
-                  allowance:
-                    chorkAllowance?.key
-                      === `${activeRoute.id}:${loggingPlayer?.is_guest ? loggingPlayer.player_id : "me"}`
-                      ? chorkAllowance.value
-                      : null,
+                  allowance: logging.allowance,
                   onConcede: () =>
-                    handleConcede(
-                      activeRoute.id,
-                      loggingPlayer?.is_guest ? loggingPlayer.player_id : undefined,
-                    ),
+                    handleConcede(logging.route.id, logging.guestSeatId ?? undefined),
                   // The seat's own challenge, not yet sent: the only
                   // way to end that turn. Matched on the SEAT, so it
                   // works for a guest the host is acting for — the
@@ -372,22 +310,18 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
                   // letters they've earned, so the server refuses and
                   // the sheet stops offering it.
                   onWithdraw:
-                    loggingPlayer &&
-                    activeRoute.added_by_player === loggingPlayer.player_id &&
-                    !sheetLog?.completed
-                      ? () =>
-                          handleWithdraw(
-                            activeRoute.id,
-                            loggingPlayer.is_guest ? loggingPlayer.player_id : null,
-                          )
+                    logging.seat &&
+                    logging.route.added_by_player === logging.seat.player_id &&
+                    !logging.log?.completed
+                      ? () => handleWithdraw(logging.route.id, logging.guestSeatId)
                       : undefined,
                 }
               : undefined
           }
           onClose={closePanel}
-          onEdit={() => openPanel({ kind: "edit", routeId: activeRoute.id })}
+          onEdit={() => openPanel({ kind: "edit", routeId: logging.route.id })}
           onSubmit={(payload) =>
-            handleLog(activeRoute, payload, panel.kind === "log" ? panel.playerId : undefined)
+            handleLog(logging.route, payload, logging.guestSeatId ?? undefined)
           }
         />
       )}
@@ -396,8 +330,8 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
         <MatchAddRouteSheet
           mode="add"
           isChork={isChork}
-          grades={initialState.grades}
-          match={initialState.match}
+          grades={grades}
+          match={match}
           scaleLabel={scaleLabel}
           onChangeScale={
             isHost && lobby ? () => openPanel({ kind: "setup", section: "climbing" }) : undefined
@@ -423,8 +357,8 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
         <MatchAddRouteSheet
           mode="edit"
           route={editRoute}
-          grades={initialState.grades}
-          match={initialState.match}
+          grades={grades}
+          match={match}
           onClose={closePanel}
           onSubmit={(payload) => handleUpdateRoute(editRoute.id, payload)}
           pending={isPending}
@@ -436,9 +370,9 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
           isHost={isHost}
           canDelete={canDeleteGame(
             {
-              hostId: initialState.match.host_id,
-              leagueId: initialState.match.league_id,
-              status: initialState.match.status,
+              hostId: match.host_id,
+              leagueId: match.league_id,
+              status: match.status,
               routeCount: state.routes.length,
             },
             userId,
@@ -455,8 +389,8 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
       {panel.kind === "setup" && (
         <MatchSetupSheet
           section={panel.section}
-          match={initialState.match}
-          grades={initialState.grades}
+          match={match}
+          grades={grades}
           savedScales={savedScales}
           onSubmit={handleSetup}
           onGameMode={handleGameMode}
@@ -467,7 +401,7 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
 
       {panel.kind === "invite" && (
         <MatchInviteSheet
-          match={initialState.match}
+          match={match}
           isHost={isHost}
           onInviteFriends={() => openPanel({ kind: "invite-friends" })}
           onAddGuest={() => openPanel({ kind: "add-guest" })}
@@ -478,8 +412,8 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
       {ceilingPlayer && (
         <CeilingSheet
           player={ceilingPlayer}
-          grades={initialState.grades}
-          match={initialState.match}
+          grades={grades}
+          match={match}
           onClose={closePanel}
           onSubmit={(ceiling, altCeiling) =>
             handleSetCeiling(ceilingPlayer.player_id, ceiling, altCeiling)
@@ -511,7 +445,7 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
           // they host. A row that can't do anything is worse than no
           // row.
           onSetCeiling={
-            initialState.match.handicap && entersLogsFor(viewer, peekedPlayer)
+            match.handicap && entersLogsFor(viewer, peekedPlayer)
               ? () =>
                   openPanel({
                     kind: "ceiling",
@@ -532,8 +466,8 @@ export function MatchScreen({ initialState, userId, savedScales }: Props) {
           }
           routes={state.routes}
           logs={state.logs}
-          grades={initialState.grades}
-          match={initialState.match}
+          grades={grades}
+          match={match}
           onClose={closePanel}
         />
       )}

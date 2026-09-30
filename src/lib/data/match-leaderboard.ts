@@ -174,7 +174,10 @@ export function computeMatchLeaderboard(
   let prevKey = "";
   let rank = 0;
   for (const row of rows) {
-    const key = `${row.points}|${row.flashes}|${row.sends}|${row.last_send_at ?? ""}`;
+    // The same tuple the sort and `match_standings` rank on. This keyed
+    // on base `points`, so under a handicap two players level on base
+    // points shared a rank the summary then split.
+    const key = `${row.points_tenths}|${row.flashes}|${row.sends}|${row.last_send_at ?? ""}`;
     if (key !== prevKey) {
       rank += 1;
       prevKey = key;

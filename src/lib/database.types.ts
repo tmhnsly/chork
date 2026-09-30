@@ -2273,6 +2273,7 @@ export type Database = {
           p_custom_grades?: string[]
           p_discipline?: string
           p_grading_scale?: string
+          p_handicap?: boolean
           p_location?: string
           p_max_grade?: number
           p_min_grade?: number

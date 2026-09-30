@@ -408,44 +408,59 @@ satisfy this. See `docs/db-audit.md` § F.
 
 ## The live game screen: realtime is a hint, a refresh is the repair
 
-`useMatchRealtime` subscribes one channel per game to `routes`,
-`route_logs`, `set_players` and the game's own `sets` row. Supabase
-Realtime **never replays** what it sent while a socket was down, and a
-phone at the wall locks between climbs, so the screen cannot trust the
-event stream to be complete. It stays correct in two layers:
+Supabase Realtime **never replays** what it sent while a socket was
+down, and a phone at the wall locks between climbs, so the screen cannot
+trust the event stream to be complete. Events patch the model for speed;
+a refresh repairs it.
 
-- **Events patch state** for speed (`matchScreenReducer`).
-- **A refresh repairs it.** `onResume` fires when the channel rejoins
-  after a drop and when the page becomes visible again. The screen
-  calls `router.refresh()`, and render-time syncs in
-  `useMatchScreenState` take the new bundle in: routes and logs via the
-  reducer's `sync` action, the roster via `rosterSignature`, the board
-  by identity. `MatchScreen` reads the game row (setup) straight off the
-  bundle.
+Four modules, three of them pure:
 
-Two rules follow from that:
+| Module | What it owns | Tested by |
+|---|---|---|
+| `matchScreenReducer.ts` | **The model**: everything this device believes about the Match (the row, grades, routes, seats, logs, the server's board, Chork's standings, the open panel), and `sync`, the one merge of a fresh bundle | `matchScreenReducer.test.ts` |
+| `matchScreenPlan.ts` | **What an event means**: `planEvent(state, viewer, event)` returns the actions to apply and the effects to run (refetch the board, refetch Chork, refresh, leave) | `matchScreenPlan.test.ts` |
+| `matchScreenSelectors.ts` | **What the screen derives**: the board, who holds the pen, who may set, the open log sheet's seat, log, limit and allowance | `matchScreenSelectors.test.ts` |
+| `useMatchScreenState.ts` | **The wiring**: the realtime channel (`useMatchRealtime`, one `MatchEvent` union), the router, server actions and their debounces. It decides nothing | the browser loop below |
 
-- **Anything painted from the bundle needs a sync path.** When a field
-  is added to `get_match_state_for_user` and shown on the live screen,
-  either read it from props on every render or add it to a render-time
-  sync. Until 2026-09-30, routes, logs and limits were seeded once at
-  mount, so every refresh threw them away.
-- **Anything that changes needs a trigger that refreshes.** The `sets`
-  UPDATE fires on every route and log (`bump_set_last_activity`), so
-  `onMatchChange` refreshes only when `matchSetupChanged` says a setup
+The screen's bugs all lived in wiring that no test could reach: a
+refreshed bundle thrown away, a setup change nobody applied, a limit
+that never re-seeded, a host's guest logs collapsed like a stranger's.
+So the rule is: **a decision belongs in one of the three pure modules,
+with a test.** If the hook needs an `if` about the game, it is in the
+wrong file.
+
+How the two layers meet:
+
+- `MatchScreen` takes the server's `bundle` as a prop and reads nothing
+  from it; it paints from the model. Every refresh hands down a new
+  bundle, and one render-time sync dispatches `sync`.
+- `sync` replaces what is the server's to say (the Match row, grades,
+  roster, board) and merges the rest: routes win from the server except
+  one numbered past the snapshot (a local add that beat a slower
+  refresh); other players' logs take the newer copy; the seats the
+  viewer enters for (`entersLogsFor` in `seat.ts`) keep the local copy,
+  which may be an unsaved or queued tap.
+- The `sets` UPDATE fires on every route and log
+  (`bump_set_last_activity`), so the plan acts on it only when a setup
   field moved, or on any change while there are no routes yet (a custom
-  ladder lives in `set_grades`, which isn't published). An ended game
-  refreshing into `/match/[id]` is redirected to its summary by the page.
+  ladder lives in `set_grades`, which isn't published).
+- Other players' points come from the server (`set-board`), because
+  their logs reach this device collapsed; the viewer's own seat and a
+  host's guests are scored here. See CONTEXT.md "Attempt privacy".
 
 The bundle deliberately carries **withdrawn** routes: the resync reads
-its highest route number as a high-water mark, so that a route this
-device added after the snapshot was read survives the merge. The screen
-filters them in `initMatchState`.
+its highest route number as a high-water mark. The model filters them
+(`initMatchState`).
 
-Verified with a Playwright loop against the dev server, using throwaway
-production accounts: kill only the Supabase socket (never Next's HMR
-socket, which stalls the dev router and looks like a failed refresh),
-make the change from the other account, bring the socket back.
+**Adding a field to the bundle:** add it to `MatchState`
+(`json-shapes.test.ts` will insist the SQL builds it), to the model, and
+to `sync`. Nothing else reads the bundle.
+
+Verified with Playwright loops against the dev server, using throwaway
+production accounts: drive one player's screen in a browser, act as the
+other through RPCs, and kill only the Supabase socket to simulate a
+locked phone (never Next's HMR socket, which stalls the dev router and
+looks like a failed refresh).
 
 ---
 

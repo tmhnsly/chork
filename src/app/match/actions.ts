@@ -118,6 +118,11 @@ export interface MatchSetupPayload {
   altGradingScale?: "v" | "font" | "yds" | "french" | null;
   altMinGrade?: number | null;
   altMaxGrade?: number | null;
+  /**
+   * The handicap toggle. Absent leaves it as it was. The server
+   * switches it off on a scale without grades either way.
+   */
+  handicap?: boolean;
 }
 
 interface CreateMatchPayload extends MatchSetupPayload {
@@ -849,23 +854,6 @@ export async function setMatchGameMode(
   return { success: true };
 }
 
-/** Turn the handicap on or off. Host only, while the Match is live. */
-export async function setMatchHandicapAction(
-  matchId: string,
-  enabled: boolean,
-): Promise<ActionResult> {
-  const auth = await gateSignedInMutation(matchId, "match id");
-  if ("error" in auth) return { error: auth.error };
-  if (typeof enabled !== "boolean") return { error: "Invalid value" };
-
-  const { error } = await auth.supabase.rpc("set_match_handicap", {
-    p_set_id: matchId,
-    p_enabled: enabled,
-  });
-  if (error) return { error: formatError(error) };
-  return { success: true };
-}
-
 /**
  * Change a live match's setup from its setup sheet. Host only, and
  * only while no route exists — the RPC refuses otherwise, and its words
@@ -895,6 +883,7 @@ export async function setMatchSetupAction(
     p_alt_grading_scale: undef(s.altScale),
     p_alt_min_grade: undef(s.altMin),
     p_alt_max_grade: undef(s.altMax),
+    p_handicap: typeof payload.handicap === "boolean" ? payload.handicap : undefined,
   });
   if (error) return { error: formatError(error) };
   return { success: true };

@@ -28,7 +28,7 @@ interface Props {
   match: Match;
   grades: Array<{ ordinal: number; label: string }>;
   savedScales: SavedScale[];
-  onSubmit: (payload: MatchSetupPayload) => Promise<boolean>;
+  onSubmit: (payload: MatchSetupPayload) => void;
   onGameMode: (mode: "points" | "chork") => void;
   pending: boolean;
   onClose: () => void;
@@ -87,9 +87,9 @@ export function MatchSetupSheet({
     initialCreateMatchState,
   );
 
-  async function save() {
+  function save() {
     const p = buildCreateMatchPayload(state);
-    await onSubmit({
+    onSubmit({
       name: p.name,
       location: p.location,
       discipline: p.discipline,
@@ -101,6 +101,9 @@ export function MatchSetupSheet({
       altGradingScale: p.altGradingScale,
       altMinGrade: p.altMinGrade,
       altMaxGrade: p.altMaxGrade,
+      // The toggle in this sheet. It was shown and never sent, so
+      // flipping it and saving changed nothing.
+      handicap: p.handicap,
     });
   }
 

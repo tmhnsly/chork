@@ -563,6 +563,16 @@ navbar + home indicator), max-width, and centering.
   one-shot hydration). References:
   `src/components/Match/matchScreenReducer.test.ts` (25+ cases) and
   `src/components/RouteLogSheet/routeLogReducer.test.ts` (23 cases).
+- **The hook decides nothing.** A rule about the domain ("does this
+  event need a refetch", "who may set the next route", "which log does
+  this sheet show") is a pure function with a test, not an `if` in a
+  callback. The live game screen is the reference: the model
+  (`matchScreenReducer`), what an event means (`planEvent` in
+  `matchScreenPlan`, returning actions to apply and effects to run),
+  what the screen derives (`matchScreenSelectors`), and a hook that
+  only wires those to the channel, the router and the server actions.
+  Every bug that screen had lived in untested wiring. See
+  `docs/architecture.md` "The live game screen"
 - **Use `useDebouncedFlush` for the debounce-with-flush-on-unmount
   pattern.** Lives at `src/hooks/use-debounced-flush.ts` (pure logic
   in `src/lib/debouncer.ts` with its own unit tests). Never re-roll

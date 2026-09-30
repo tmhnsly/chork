@@ -67,6 +67,6 @@ export default async function MatchRoomPage({ params }: Props) {
     initialState.match.host_id === auth.userId ? await getUserSavedScales(auth.supabase) : [];
 
   return (
-    <MatchScreen initialState={initialState} userId={auth.userId} savedScales={savedScales} />
+    <MatchScreen bundle={initialState} userId={auth.userId} savedScales={savedScales} />
   );
 }

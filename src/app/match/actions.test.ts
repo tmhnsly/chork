@@ -1159,7 +1159,7 @@ describe("fetchChorkStandings", () => {
   });
 });
 
-describe("setMatchGameMode / setMatchHandicapAction", () => {
+describe("setMatchGameMode", () => {
   it("rejects a game mode the union didn't promise", async () => {
     await mockSignedIn();
     const { setMatchGameMode } = await import("./actions");
@@ -1173,22 +1173,6 @@ describe("setMatchGameMode / setMatchHandicapAction", () => {
     expect(sb.calls.find((c) => c.source === "set_match_game_mode")?.args[0]).toEqual({
       p_set_id: MATCH_1,
       p_mode: "chork",
-    });
-  });
-
-  it("rejects a non-boolean handicap flag", async () => {
-    await mockSignedIn();
-    const { setMatchHandicapAction } = await import("./actions");
-    expect(await setMatchHandicapAction(MATCH_1, "yes" as never)).toEqual({ error: "Invalid value" });
-  });
-
-  it("toggles the handicap through the RPC", async () => {
-    const sb = await mockSignedIn();
-    const { setMatchHandicapAction } = await import("./actions");
-    expect(await setMatchHandicapAction(MATCH_1, true)).toEqual({ success: true });
-    expect(sb.calls.find((c) => c.source === "set_match_handicap")?.args[0]).toEqual({
-      p_set_id: MATCH_1,
-      p_enabled: true,
     });
   });
 
@@ -1268,6 +1252,23 @@ describe("setMatchSetupAction", () => {
       p_alt_grading_scale: undefined,
       p_alt_min_grade: undefined,
       p_alt_max_grade: undefined,
+      // Absent means "leave it as it was", which the RPC reads as null.
+      p_handicap: undefined,
+    });
+  });
+
+  it("sends the handicap toggle, which the setup sheet shows and nothing used to send", async () => {
+    const sb = await mockSignedIn();
+    const { setMatchSetupAction } = await import("./actions");
+    expect(await setMatchSetupAction(MATCH_1, { ...SETUP, handicap: true })).toEqual({
+      success: true,
+    });
+    expect(sb.calls.find((c) => c.source === "set_match_setup")?.args[0]).toMatchObject({
+      p_handicap: true,
+    });
+    await setMatchSetupAction(MATCH_1, { ...SETUP, handicap: false });
+    expect(sb.calls.filter((c) => c.source === "set_match_setup")[1]?.args[0]).toMatchObject({
+      p_handicap: false,
     });
   });
 

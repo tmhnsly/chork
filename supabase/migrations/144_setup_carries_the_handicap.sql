@@ -1,6 +1,28 @@
--- public.set_match_setup, as it stands.
--- Generated from supabase/migrations/144_setup_carries_the_handicap.sql by `pnpm db:definitions`.
--- Do not edit: change a function with a migration, then regenerate.
+-- ────────────────────────────────────────────────────────────────
+-- The setup sheet's handicap toggle does something
+-- ────────────────────────────────────────────────────────────────
+--
+-- The live setup sheet shows the same handicap toggle the create form
+-- does, and nothing sent it: `set_match_setup` took no handicap and
+-- kept `current.handicap`, so a host could flip the switch, save, and
+-- get the game they already had. The only other route was
+-- `set_match_handicap`, which no screen calls, and which skips
+-- `match_setup_check` (it would turn a handicap on for a points-only
+-- game, where there is no grade to measure against).
+--
+-- So the setup function takes it. `p_handicap null` leaves the flag as
+-- it was, which is what every caller deployed before this sends; a
+-- value is the host's choice, still switched off on a scale without
+-- grades, and still validated by the one helper create uses.
+--
+-- A new parameter is a new signature, and a defaulted one beside the
+-- old would make named-argument calls ambiguous, so the old function
+-- is dropped, not shadowed. The body starts from
+-- supabase/definitions/set_match_setup.sql.
+
+drop function if exists public.set_match_setup(
+  uuid, text, text, text, text, smallint, smallint, text[], text, text, smallint, smallint
+);
 
 create or replace function public.set_match_setup(
   p_set_id uuid,
@@ -110,3 +132,10 @@ begin
   return result;
 end;
 $$;
+
+revoke execute on function public.set_match_setup(
+  uuid, text, text, text, text, smallint, smallint, text[], text, text, smallint, smallint, boolean
+) from anon, public;
+grant execute on function public.set_match_setup(
+  uuid, text, text, text, text, smallint, smallint, text[], text, text, smallint, smallint, boolean
+) to authenticated;

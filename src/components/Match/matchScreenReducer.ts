@@ -1,5 +1,7 @@
 import type {
+  ChorkStanding,
   Match,
+  MatchLeaderboardRow,
   MatchLog,
   MatchPlayerView,
   MatchRoute,
@@ -9,13 +11,23 @@ import { entersLogsFor, ownerIdOf, type SeatViewer } from "@/lib/data/seat";
 import { visibleAttempts } from "@/lib/data/logs";
 
 /**
- * Local state model for the live match screen. Realtime events patch
- * this map in place so the UI paints optimistic-fast without
- * re-fetching `get_match_state_for_user` on every tick. Truth-of-record
- * is still the server — any mismatch resolves on the next realtime
- * event or a page refresh.
+ * What this device believes about the Match: the one model the live
+ * screen paints from.
  *
- * Two invariants live HERE, behind the tested seam, not in the
+ * Realtime events patch it so the UI paints fast without re-fetching
+ * `get_match_state_for_user` on every tick; a fresh bundle (`sync`)
+ * repairs whatever the events missed. Truth-of-record is the server.
+ *
+ * Everything lives here. It used to be spread over the reducer, three
+ * render-time syncs, two `useState`s for the server's boards, and the
+ * page's props read directly by the component, and the bugs sat in the
+ * gaps: a refreshed bundle thrown away, a setup change nobody applied,
+ * a limit that never re-seeded. One state, one merge, and the rules
+ * about it are pure functions with tests (`matchScreenPlan.ts` for
+ * what an event means, `matchScreenSelectors.ts` for what the screen
+ * derives).
+ *
+ * Invariants that live HERE, behind the tested seam, not in the
  * component:
  *
  *   1. **Attempt privacy.** `upsert-log` carries the viewer and the
@@ -30,11 +42,40 @@ import { visibleAttempts } from "@/lib/data/logs";
  *      once by construction (same shape as SettingsPanel's reducer).
  */
 export interface MatchLocalState {
+  /** The Match row: name, place, scales, game mode, handicap. */
+  match: Match;
+  /** A custom ladder's labels; empty on a formula scale. */
+  grades: MatchState["grades"];
+  /** Routes on the wall. A withdrawn route is not one of them. */
   routes: MatchRoute[];
   players: MatchPlayerView[];
-  /** Logs keyed by `${user_id}:${route_id}` for O(1) upsert / remove. */
+  /** Logs keyed by `${ownerId}:${route_id}` for O(1) upsert / remove. */
   logs: Map<string, MatchLog>;
+  /**
+   * The server's points board, as `get_match_leaderboard` scored it.
+   * Other players' rows come from here, because their logs reach this
+   * device collapsed and cannot be scored on it (see `selectBoard`).
+   */
+  board: MatchLeaderboardRow[];
+  /**
+   * Chork's standings. Derived on the server and fetched: letters and
+   * the pen both need every player's raw attempt count.
+   */
+  chork: ChorkView;
+  /**
+   * How many goes the open Chork round carries, for one route and
+   * seat. Fetched when its sheet opens; read through `allowanceFor`,
+   * so a value for another round is never shown.
+   */
+  allowance: { key: string; value: number | null } | null;
   panel: MatchPanel;
+}
+
+export interface ChorkView {
+  /** Letters held, by seat. */
+  letters: Map<string, number>;
+  /** The seat that sets next. Null until the standings land. */
+  penSeatId: string | null;
 }
 
 /**
@@ -67,15 +108,8 @@ export type MatchPanel =
 export type SetupSection = "game" | "climbing" | "details";
 
 export type MatchAction =
-  // set-routes / set-players are the full-refresh transitions. A
-  // set_players realtime row carries a user_id but no username or
-  // avatar, so joins and leaves round-trip the server and come back
-  // as a whole roster — see the render-time sync in
-  // useMatchScreenState, which is what dispatches set-players.
-  | { type: "set-routes"; routes: MatchRoute[] }
   | { type: "upsert-route"; route: MatchRoute }
   | { type: "remove-route"; id: string }
-  | { type: "set-players"; players: MatchPlayerView[] }
   /**
    * Seat a guest locally on server success. Idempotent on
    * `player_id`, so the realtime echo (when it arrives) is a no-op —
@@ -104,6 +138,12 @@ export type MatchAction =
    * `syncFromServer` for how the two copies merge.
    */
   | { type: "sync"; bundle: MatchState; viewer: SeatViewer }
+  /** The Match row, from its own realtime UPDATE: a setup change. */
+  | { type: "set-match"; match: Match }
+  /** The server's board, refetched after someone else's log or a route. */
+  | { type: "set-board"; rows: MatchLeaderboardRow[] }
+  | { type: "set-chork"; standings: ChorkStanding[] }
+  | { type: "set-allowance"; routeId: string; seatId?: string | null; value: number | null }
   | { type: "open-panel"; panel: MatchPanel }
   | { type: "close-panel" };
 
@@ -136,88 +176,22 @@ export function isLobby(state: { routes: unknown[] }): boolean {
 }
 
 /**
- * A seat's realtime event, as much of it as `seatEventOutcome` reads. A
- * DELETE carries only the row's id (checked 2026-09-15).
+ * The key an allowance is stored and read under. A guest's round is
+ * keyed by their seat; the viewer's own by "me".
  */
-export type SeatEvent =
-  | { eventType: "INSERT" | "UPDATE" }
-  | { eventType: "DELETE"; old: { id: string } };
-
-/** What a seat's realtime event means for the live screen. */
-export type SeatEventOutcome =
-  /** The viewer's own seat was deleted, so the game was. */
-  | { kind: "deleted" }
-  /**
-   * Someone else's seat was deleted: the game is being deleted (the
-   * viewer's own seat follows), or that climber's account was.
-   */
-  | { kind: "gone"; seatId: string }
-  /** A join or a leave. A seat row has no name or face; the server has them. */
-  | { kind: "refresh" };
-
-/**
- * Leaving parks a seat with `left_at`, and a seat row is deleted only
- * with its game or its account, so the viewer's own seat going means the
- * game went. Anyone else's is taken off the screen by its id. A DELETE
- * never refreshes: a refresh re-rendered a game that was being deleted,
- * bounced the viewer to the join screen, and put a router action in the
- * queue for the screen's own navigation to Games to lose.
- */
-export function seatEventOutcome(evt: SeatEvent, viewerSeatId: string | null): SeatEventOutcome {
-  if (evt.eventType !== "DELETE") return { kind: "refresh" };
-  if (viewerSeatId !== null && evt.old.id === viewerSeatId) return { kind: "deleted" };
-  return { kind: "gone", seatId: evt.old.id };
-}
-
-/**
- * The Match row's fields that the host can change during a game, and
- * that every screen paints from its bundle. `last_activity_at` is not
- * one: a trigger bumps it on every route and log, so the row's realtime
- * UPDATE fires far more often than its setup changes.
- */
-const SETUP_FIELDS = [
-  "name",
-  "location",
-  "discipline",
-  "grading_scale",
-  "min_grade",
-  "max_grade",
-  "alt_grading_scale",
-  "alt_min_grade",
-  "alt_max_grade",
-  "game_mode",
-  "handicap",
-] as const satisfies ReadonlyArray<keyof Match>;
-
-/**
- * Whether a Match row from realtime changes what the screen shows. The
- * host's own device already refreshes after its own action; its echo
- * finds the bundle matching, or, if it beats that refresh, costs one
- * more.
- */
-export function matchSetupChanged(shown: Match, row: Match): boolean {
-  return SETUP_FIELDS.some((field) => shown[field] !== row[field]);
-}
-
-/**
- * A signature for the roster, so a refresh re-seeds players when
- * anything painted from them changed and churns nothing otherwise.
- * Limits are in it: declaring one arrives as a seat UPDATE, and a
- * signature of seats and departures alone threw the new limit away.
- */
-export function rosterSignature(players: MatchPlayerView[]): string {
-  return players
-    .map(
-      (p) =>
-        `${p.player_id}:${p.has_left ? 1 : 0}:${p.ceiling ?? ""}:${p.alt_ceiling ?? ""}`,
-    )
-    .join(",");
+export function allowanceKey(routeId: string, seatId?: string | null): string {
+  return `${routeId}:${seatId ?? "me"}`;
 }
 
 /** Initial reducer state from the server-rendered match payload.
  *  `my_logs` are the viewer's own rows — raw attempts stay. */
 export function initMatchState(initialState: MatchState): MatchLocalState {
   return {
+    match: initialState.match,
+    grades: initialState.grades,
+    board: initialState.leaderboard,
+    chork: { letters: new Map(), penSeatId: null },
+    allowance: null,
     // The bundle carries withdrawn routes, because the Chork pen reads
     // them server-side. To the room a withdrawn route is gone, the same
     // rule `upsert-route` applies live; without this one it came back
@@ -247,6 +221,11 @@ export function initMatchState(initialState: MatchState): MatchLocalState {
 
 /**
  * Merge a fresh server bundle into live state.
+ *
+ * The Match row, its grades, the roster and the server's board are the
+ * server's to say, so the bundle's replace what is here. A seat row
+ * carries no name or face, which is why a join or a leave comes back
+ * this way instead of being patched from its event.
  *
  * Routes: the server's list is the truth, so a route missed while the
  * socket was down arrives and a withdrawal missed with it leaves. The
@@ -286,7 +265,15 @@ function syncFromServer(
       logs.set(key, local);
     }
   }
-  return { ...state, routes, logs };
+  return {
+    ...state,
+    match: bundle.match,
+    grades: bundle.grades,
+    players: bundle.players,
+    board: bundle.leaderboard,
+    routes,
+    logs,
+  };
 }
 
 export function matchReducer(
@@ -294,8 +281,6 @@ export function matchReducer(
   action: MatchAction,
 ): MatchLocalState {
   switch (action.type) {
-    case "set-routes":
-      return { ...state, routes: action.routes };
     case "upsert-route": {
       // A withdrawal arrives as an UPDATE, not a DELETE — the row
       // survives so the Chork pen can still read whose go it was. To
@@ -347,8 +332,6 @@ export function matchReducer(
         players: state.players.filter((p) => p.player_id !== action.playerId),
       };
 
-    case "set-players":
-      return { ...state, players: action.players };
     case "upsert-log": {
       // Privacy gate — see the module doc. The logs this viewer enters
       // keep raw attempts (the points preview, the log sheet and local
@@ -378,6 +361,26 @@ export function matchReducer(
     }
     case "sync":
       return syncFromServer(state, action.bundle, action.viewer);
+    case "set-match":
+      return { ...state, match: action.match };
+    case "set-board":
+      return { ...state, board: action.rows };
+    case "set-chork":
+      return {
+        ...state,
+        chork: {
+          letters: new Map(action.standings.map((s) => [s.player_id, s.letters])),
+          penSeatId: action.standings.find((s) => s.has_pen)?.player_id ?? null,
+        },
+      };
+    case "set-allowance":
+      return {
+        ...state,
+        allowance: {
+          key: allowanceKey(action.routeId, action.seatId),
+          value: action.value,
+        },
+      };
     case "open-panel":
       return { ...state, panel: action.panel };
     case "close-panel":

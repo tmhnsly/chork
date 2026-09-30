@@ -1,102 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
+  allowanceKey,
   initMatchState,
   matchReducer,
   logKey,
   logEntryById,
   isLobby,
-  matchSetupChanged,
-  rosterSignature,
-  seatEventOutcome,
-  type MatchAction,
   type MatchLocalState,
 } from "./matchScreenReducer";
-import type { Match, MatchLog, MatchPlayerView, MatchRoute, MatchState } from "@/lib/data/match-types";
+import type { ChorkStanding, MatchLeaderboardRow, MatchLog, MatchState } from "@/lib/data/match-types";
+import { mkBundle, mkLog, mkMatch, mkPlayer, mkRoute } from "@/test/match-fixtures";
 
-function mkRoute(id: string, number: number, overrides: Partial<MatchRoute> = {}): MatchRoute {
-  return {
-    id,
-    set_id: "match-1",
-    number,
-    description: null,
-    declared_grade: null,
-    community_grade: null,
-    discipline: null,
-    has_zone: false,
-    added_by: null,
-    added_by_player: null,
-    withdrawn_at: null,
-    created_at: "2026-04-01T00:00:00Z",
-    ...overrides,
-  };
-}
-
-function mkPlayer(user_id: string, username: string): MatchPlayerView {
-  return {
-    // Seat id mirrors the account id in fixtures, so assertions keyed
-    // on one keep meaning the same thing as the other.
-    player_id: user_id,
-    user_id,
-    is_guest: false,
-    ceiling: null,
-    alt_ceiling: null,
-    username,
-    display_name: username,
-    avatar_url: null,
-    joined_at: "2026-04-01T00:00:00Z",
-    is_host: false,
-    has_left: false,
-  };
-}
-
-function mkLog(user_id: string, route_id: string, overrides: Partial<MatchLog> = {}): MatchLog {
-  return {
-    id: `${user_id}-${route_id}`,
-    set_id: "match-1",
-    route_id,
-    user_id,
-    player_id: null,
-    attempts: 1,
-    completed: true,
-    completed_at: "2026-04-01T10:00:00Z",
-    zone: false,
-    created_at: "2026-04-01T10:00:00Z",
-    updated_at: "2026-04-01T10:00:00Z",
-    ...overrides,
-  };
-}
-
-const emptyState: MatchLocalState = {
-  routes: [],
-  players: [],
-  logs: new Map(),
-  panel: { kind: "none" },
-};
+const emptyState: MatchLocalState = initMatchState(mkBundle());
 
 describe("matchReducer", () => {
-  describe("set-routes", () => {
-    it("replaces the routes array wholesale", () => {
-      const state: MatchLocalState = { ...emptyState, routes: [mkRoute("a", 1)] };
-      const action: MatchAction = { type: "set-routes", routes: [mkRoute("b", 2)] };
-      const next = matchReducer(state, action);
-      expect(next.routes).toHaveLength(1);
-      expect(next.routes[0].id).toBe("b");
-    });
-
-    it("leaves players + logs untouched", () => {
-      const logs = new Map([[logKey("u1", "r1"), mkLog("u1", "r1")]]);
-      const state: MatchLocalState = {
-        routes: [],
-        players: [mkPlayer("u1", "alice")],
-        logs,
-        panel: { kind: "none" },
-      };
-      const next = matchReducer(state, { type: "set-routes", routes: [mkRoute("b", 1)] });
-      expect(next.players).toBe(state.players);
-      expect(next.logs).toBe(state.logs);
-    });
-  });
-
   describe("upsert-route", () => {
     it("appends a new route and keeps the list sorted by number", () => {
       const state: MatchLocalState = { ...emptyState, routes: [mkRoute("a", 1), mkRoute("c", 3)] };
@@ -166,20 +83,6 @@ describe("matchReducer", () => {
       // Now delete 'b' from the post-upsert state — 'c' must survive.
       const afterDelete = matchReducer(afterUpsert, { type: "remove-route", id: "b" });
       expect(afterDelete.routes.map((r) => r.id)).toEqual(["a", "c"]);
-    });
-  });
-
-  describe("set-players", () => {
-    it("replaces the players array", () => {
-      const state: MatchLocalState = {
-        ...emptyState,
-        players: [mkPlayer("u1", "alice")],
-      };
-      const next = matchReducer(state, {
-        type: "set-players",
-        players: [mkPlayer("u2", "bob")],
-      });
-      expect(next.players.map((p) => p.username)).toEqual(["bob"]);
     });
   });
 
@@ -354,10 +257,10 @@ describe("matchReducer", () => {
     it("panel changes leave routes / players / logs untouched", () => {
       const logs = new Map([[logKey("u1", "r1"), mkLog("u1", "r1")]]);
       const state: MatchLocalState = {
+        ...emptyState,
         routes: [mkRoute("a", 1)],
         players: [mkPlayer("u1", "alice")],
         logs,
-        panel: { kind: "none" },
       };
       const next = matchReducer(state, {
         type: "open-panel",
@@ -574,9 +477,106 @@ describe("matchReducer", () => {
       expect(next.logs.get(logKey("u2", "a"))?.completed).toBe(true);
     });
 
+    it("takes the Match row, its grades, the roster and the server's board from the bundle", () => {
+      // These are the server's to say. Each used to have its own
+      // render-time sync, or none: the setup was read off props, and a
+      // roster re-seeded only when someone joined or left, which threw
+      // a newly declared limit away.
+      const state = {
+        ...emptyState,
+        players: [mkPlayer("u1", "alice")],
+      };
+      const row = { player_id: "u1", points: 7 } as MatchLeaderboardRow;
+      const next = sync(
+        state,
+        bundle({
+          match: mkMatch({ name: "Friday session", handicap: true }),
+          grades: [{ ordinal: 0, label: "Easy" }],
+          players: [mkPlayer("u1", "alice", { ceiling: 5, alt_ceiling: 3 }), mkPlayer("u2", "bob")],
+          leaderboard: [row],
+        }),
+      );
+      expect(next.match.name).toBe("Friday session");
+      expect(next.match.handicap).toBe(true);
+      expect(next.grades).toEqual([{ ordinal: 0, label: "Easy" }]);
+      expect(next.players.map((p) => [p.username, p.ceiling, p.alt_ceiling])).toEqual([
+        ["alice", 5, 3],
+        ["bob", null, null],
+      ]);
+      expect(next.board).toEqual([row]);
+    });
+
+    it("keeps Chork's standings and the open round's allowance, which no bundle carries", () => {
+      const state = matchReducer(
+        matchReducer(emptyState, {
+          type: "set-chork",
+          standings: [{ player_id: "u1", letters: 2, has_pen: true } as ChorkStanding],
+        }),
+        { type: "set-allowance", routeId: "r1", value: 3 },
+      );
+      const next = sync(state, bundle());
+      expect(next.chork.letters.get("u1")).toBe(2);
+      expect(next.chork.penSeatId).toBe("u1");
+      expect(next.allowance).toEqual({ key: allowanceKey("r1"), value: 3 });
+    });
+
     it("leaves the open panel alone", () => {
       const state = { ...emptyState, panel: { kind: "add" } as const };
       expect(sync(state, bundle()).panel).toEqual({ kind: "add" });
+    });
+  });
+
+  describe("what only the server can say", () => {
+    it("set-match replaces the Match row and nothing else", () => {
+      const state = { ...emptyState, routes: [mkRoute("a", 1)] };
+      const next = matchReducer(state, {
+        type: "set-match",
+        match: mkMatch({ game_mode: "chork", location: "The Arch" }),
+      });
+      expect(next.match.game_mode).toBe("chork");
+      expect(next.match.location).toBe("The Arch");
+      expect(next.routes).toBe(state.routes);
+    });
+
+    it("set-board replaces the server's board", () => {
+      const rows = [{ player_id: "u2", points: 4 } as MatchLeaderboardRow];
+      expect(matchReducer(emptyState, { type: "set-board", rows }).board).toBe(rows);
+    });
+
+    it("set-chork keeps letters by seat and finds the pen", () => {
+      const next = matchReducer(emptyState, {
+        type: "set-chork",
+        standings: [
+          { player_id: "u1", letters: 1, has_pen: false },
+          { player_id: "seat-9", letters: 3, has_pen: true },
+        ] as ChorkStanding[],
+      });
+      expect([...next.chork.letters]).toEqual([
+        ["u1", 1],
+        ["seat-9", 3],
+      ]);
+      expect(next.chork.penSeatId).toBe("seat-9");
+    });
+
+    it("set-chork leaves the pen unknown when nobody holds it", () => {
+      const next = matchReducer(emptyState, {
+        type: "set-chork",
+        standings: [{ player_id: "u1", letters: 0, has_pen: false }] as ChorkStanding[],
+      });
+      expect(next.chork.penSeatId).toBeNull();
+    });
+
+    it("set-allowance keys a guest's round by their seat and the viewer's own by 'me'", () => {
+      const own = matchReducer(emptyState, { type: "set-allowance", routeId: "r1", value: 2 });
+      const guest = matchReducer(emptyState, {
+        type: "set-allowance",
+        routeId: "r1",
+        seatId: "seat-9",
+        value: 4,
+      });
+      expect(own.allowance).toEqual({ key: "r1:me", value: 2 });
+      expect(guest.allowance).toEqual({ key: "r1:seat-9", value: 4 });
+      expect(allowanceKey("r1", null)).toBe("r1:me");
     });
   });
 
@@ -637,37 +637,6 @@ describe("isLobby", () => {
   });
 });
 
-describe("seatEventOutcome", () => {
-  it("reads the viewer's own seat being deleted as the game going", () => {
-    expect(seatEventOutcome({ eventType: "DELETE", old: { id: "seat-me" } }, "seat-me")).toEqual({
-      kind: "deleted",
-    });
-  });
-
-  it("takes anyone else's deleted seat off the screen by its id, without a refresh", () => {
-    // A refresh here re-rendered a game that was being deleted, which
-    // bounced the viewer to the join screen, and it put a router action
-    // in the queue that the screen's own navigation to Games then lost.
-    expect(seatEventOutcome({ eventType: "DELETE", old: { id: "seat-other" } }, "seat-me")).toEqual({
-      kind: "gone",
-      seatId: "seat-other",
-    });
-  });
-
-  it("refreshes for a join, and for a leave even of the viewer's own seat", () => {
-    expect(seatEventOutcome({ eventType: "INSERT" }, "seat-me")).toEqual({ kind: "refresh" });
-    expect(seatEventOutcome({ eventType: "UPDATE" }, "seat-me")).toEqual({ kind: "refresh" });
-  });
-
-  it("never reads the game as deleted while the viewer holds no seat", () => {
-    expect(seatEventOutcome({ eventType: "DELETE", old: { id: "seat-x" } }, null)).toEqual({
-      kind: "gone",
-      seatId: "seat-x",
-    });
-    expect(seatEventOutcome({ eventType: "UPDATE" }, null)).toEqual({ kind: "refresh" });
-  });
-});
-
 describe("logEntryById", () => {
   it("finds a log by its id, whatever its key", () => {
     const log = mkLog("u1", "r1");
@@ -677,70 +646,5 @@ describe("logEntryById", () => {
 
   it("returns undefined for an id it doesn't hold", () => {
     expect(logEntryById(new Map(), "ghost")).toBeUndefined();
-  });
-});
-
-describe("matchSetupChanged", () => {
-  const shown = {
-    id: "match-1",
-    name: "Tom's game",
-    location: "Yonder",
-    discipline: "boulder",
-    grading_scale: "v",
-    min_grade: 0,
-    max_grade: 8,
-    alt_grading_scale: null,
-    alt_min_grade: null,
-    alt_max_grade: null,
-    game_mode: "points",
-    handicap: false,
-    status: "live",
-    last_activity_at: "2026-09-30T10:00:00Z",
-  } as unknown as Match;
-
-  it("ignores the activity bump every route and log makes", () => {
-    // The row's UPDATE fires on each of them; refreshing on it would
-    // refetch the whole game for every tap in the room.
-    const row = { ...shown, last_activity_at: "2026-09-30T10:05:00Z" };
-    expect(matchSetupChanged(shown, row)).toBe(false);
-  });
-
-  it.each([
-    ["name", "Friday session"],
-    ["location", "The Arch"],
-    ["grading_scale", "font"],
-    ["max_grade", 10],
-    ["alt_grading_scale", "yds"],
-    ["game_mode", "chork"],
-    ["handicap", true],
-  ] as const)("sees the host changing %s", (field, value) => {
-    expect(matchSetupChanged(shown, { ...shown, [field]: value })).toBe(true);
-  });
-});
-
-describe("rosterSignature", () => {
-  it("moves when a player declares a limit", () => {
-    // Declaring one is a seat UPDATE, which refreshes; a signature of
-    // seats and departures alone threw the new limit away.
-    const before = [mkPlayer("u1", "alice")];
-    const after = [{ ...mkPlayer("u1", "alice"), ceiling: 5 }];
-    expect(rosterSignature(after)).not.toBe(rosterSignature(before));
-  });
-
-  it("moves when a second limit is declared for a mixed day", () => {
-    const before = [{ ...mkPlayer("u1", "alice"), ceiling: 5 }];
-    const after = [{ ...mkPlayer("u1", "alice"), ceiling: 5, alt_ceiling: 3 }];
-    expect(rosterSignature(after)).not.toBe(rosterSignature(before));
-  });
-
-  it("stays put for a bundle with the same roster, so a refresh doesn't churn", () => {
-    const players = [mkPlayer("u1", "alice"), mkPlayer("u2", "bob")];
-    expect(rosterSignature(players.map((p) => ({ ...p })))).toBe(rosterSignature(players));
-  });
-
-  it("moves when someone joins or leaves", () => {
-    const one = [mkPlayer("u1", "alice")];
-    expect(rosterSignature([...one, mkPlayer("u2", "bob")])).not.toBe(rosterSignature(one));
-    expect(rosterSignature([{ ...one[0], has_left: true }])).not.toBe(rosterSignature(one));
   });
 });

@@ -1,22 +1,14 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useReducer,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
-import { useDebouncedFlush } from "@/hooks/use-debounced-flush";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { showToast } from "@/components/ui";
-import { useMatchRealtime } from "@/hooks/use-match-realtime";
-import { computeMatchLeaderboard } from "@/lib/data/match-leaderboard";
-import type { MatchLog, MatchPlayerView, MatchRoute, MatchState } from "@/lib/data/match-types";
-import { ceilingForDiscipline, type Discipline } from "@/lib/data/grade-label";
-import { entersLogsFor, type SeatViewer } from "@/lib/data/seat";
+import { useDebouncedFlush } from "@/hooks/use-debounced-flush";
+import { useMatchRealtime, type MatchEvent } from "@/hooks/use-match-realtime";
+import type { ActionResult } from "@/lib/action-result";
+import type { Discipline } from "@/lib/data/grade-label";
+import type { MatchRoute, MatchState } from "@/lib/data/match-types";
+import type { SeatViewer } from "@/lib/data/seat";
 import {
   addMatchRouteAction,
   updateMatchRouteAction,
@@ -36,128 +28,48 @@ import {
   type MatchSetupPayload,
 } from "@/app/match/actions";
 import { upsertMatchLogOffline } from "@/app/match/offline-actions";
-import {
-  initMatchState,
-  matchReducer,
-  seatEventOutcome,
-  logEntryById,
-  isLobby,
-  matchSetupChanged,
-  rosterSignature,
-  type MatchPanel,
-  logKey,
-} from "./matchScreenReducer";
+import { initMatchState, logKey, matchReducer, type MatchPanel } from "./matchScreenReducer";
+import { planEvent, scoringEffects, type MatchEffect } from "./matchScreenPlan";
+import { isChorkMatch, selectBoard, viewerLogs } from "./matchScreenSelectors";
 
 /**
- * State + handlers for the live match screen — the `useXState` half of
- * the reducer + hook pattern (CLAUDE.md "Complex client state";
- * reference shape: `useRouteLogState`). `MatchScreen` stays JSX + prop
- * bridging; everything that can go wrong (realtime merge, optimistic
- * log + rollback, offline queue, panel exclusivity) lives here or in
- * the reducer.
+ * The live match screen's wiring — the `useXState` half of the reducer
+ * + hook pattern (CLAUDE.md "Complex client state").
  *
- * The realtime → reducer wiring passes the viewer with every log
- * upsert so the reducer's privacy gate (raw attempts are owner-only)
- * applies — see matchScreenReducer.ts for the invariant.
+ * It decides nothing. The model is `matchScreenReducer`; what a
+ * realtime event means is `planEvent`; what the screen derives is
+ * `matchScreenSelectors`. Each of those is pure and tested. What is
+ * left here is the part that has to touch the world: the realtime
+ * channel, the router, the server actions and their debounces.
+ *
+ * `bundle` is the server's payload for this render. It is the first
+ * state, and every refresh hands down a new one, which `sync` merges.
  */
-export function useMatchScreenState({
-  initialState,
-  userId,
-}: {
-  initialState: MatchState;
-  userId: string;
-}) {
+export function useMatchScreenState({ bundle, userId }: { bundle: MatchState; userId: string }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [state, dispatch] = useReducer(matchReducer, initialState, initMatchState);
+  const [state, dispatch] = useReducer(matchReducer, bundle, initMatchState);
+  const matchId = state.match.id;
+  const isChork = isChorkMatch(state);
+
   // Who is looking, for every seat rule (`entersLogsFor` in seat.ts).
+  const hostId = state.match.host_id;
   const viewer = useMemo<SeatViewer>(
-    () => ({ userId, isHost: initialState.match.host_id === userId }),
-    [userId, initialState.match.host_id],
+    () => ({ userId, isHost: hostId === userId }),
+    [userId, hostId],
   );
 
-  /**
-   * Take the roster back off the server after a refresh.
-   *
-   * `useReducer`'s third argument runs ONCE. Join and leave events
-   * called `router.refresh()`, which re-ran the server component and
-   * handed down a fresh `initialState` — that the reducer then threw
-   * away, because it had already initialised. Net effect: a mate who
-   * joined mid-Match stayed invisible until someone reloaded the
-   * page, on the one screen where "who else is here" is the point.
-   *
-   * Routes and logs never had this problem: their realtime payloads
-   * carry the whole row, so they dispatch straight from the event. A
-   * `set_players` row can't — it holds a `user_id`, not a username or
-   * an avatar — which is why joins take the server round-trip at all.
-   *
-   * Adjusting state during render rather than in an effect is the
-   * documented React pattern for "prop changed, derive state again",
-   * and the only one `react-hooks/set-state-in-effect` allows.
-   * Keyed on a roster signature, not object identity, so an unrelated
-   * refresh doesn't churn the board.
-   */
-  const rosterKey = rosterSignature(initialState.players);
-  const [syncedRoster, setSyncedRoster] = useState(rosterKey);
-  if (rosterKey !== syncedRoster) {
-    setSyncedRoster(rosterKey);
-    dispatch({ type: "set-players", players: initialState.players });
+  // A refresh re-runs the page and hands down a new bundle. The reducer
+  // initialises once, so without this every refreshed bundle was thrown
+  // away — the repair for a missed realtime event repaired nothing.
+  // Adjusting state during render is the documented React pattern for
+  // "prop changed, derive state again", and the only one
+  // `react-hooks/set-state-in-effect` allows.
+  const [synced, setSynced] = useState(bundle);
+  if (synced !== bundle) {
+    setSynced(bundle);
+    dispatch({ type: "sync", bundle, viewer });
   }
-
-  // Routes and logs had the same trap. Every refresh's bundle was
-  // thrown away, so the one repair for a missed realtime event (a
-  // refresh when the feed resumes) repaired nothing. Keyed on the
-  // bundle itself: a refresh is the only thing that hands down a new
-  // one. The reducer's `sync` decides what of it to trust.
-  const [syncedBundle, setSyncedBundle] = useState(initialState);
-  if (syncedBundle !== initialState) {
-    setSyncedBundle(initialState);
-    dispatch({ type: "sync", bundle: initialState, viewer });
-  }
-
-  // ── Chork ──────────────────────────────────────────────────────
-  //
-  // Nothing about Chork can be worked out here: letters AND whose turn
-  // it is to set both need every player's raw attempt count, and those
-  // are private to their owner (CONTEXT.md "Attempt privacy"). A
-  // viewer who isn't the setter can't see whether the setter sent
-  // their own challenge, which is the whole pen rule. The server
-  // derives both and sends back only the public result. Same shape as
-  // the rank strip — debounced, because working a route is a burst.
-  const isChork = initialState.match.game_mode === "chork";
-  const [chork, setChork] = useState<{
-    letters: Map<string, number>;
-    penSeatId: string | null;
-  }>(() => ({ letters: new Map(), penSeatId: null }));
-
-  // Fetch only — the caller decides whether to keep the answer, which
-  // is what lets the mount-time load below drop a result that landed
-  // after a fresher one.
-  const loadChork = useCallback(async () => {
-    if (!isChork) return null;
-    const result = await fetchChorkStandings(initialState.match.id);
-    if ("error" in result) return null;
-    return {
-      letters: new Map(result.standings.map((s) => [s.player_id, s.letters])),
-      penSeatId: result.standings.find((s) => s.has_pen)?.player_id ?? null,
-    };
-  }, [isChork, initialState.match.id]);
-
-  // The board starts empty and a log event is not guaranteed to
-  // arrive, so without this someone opening a match already in
-  // progress reads every seat as nought letters and nobody setting.
-  // `live` is per effect run, not a mounted ref — StrictMode's second
-  // run gets its own, which is exactly the trap that left the browse
-  // buttons dead after one press.
-  useEffect(() => {
-    let live = true;
-    void loadChork().then((next) => {
-      if (live && next) setChork(next);
-    });
-    return () => {
-      live = false;
-    };
-  }, [loadChork]);
 
   // ── Leaving a deleted game ─────────────────────────────────────
   //
@@ -174,48 +86,45 @@ export function useMatchScreenState({
   // refetch already on the wire keeps its answer to itself.
   const leavingRef = useRef<"deleting" | "deleted" | null>(null);
 
+  // ── What only the server can score ─────────────────────────────
+  //
+  // Chork's letters and pen need every player's raw attempt count, and
+  // other players' points need theirs; both are private to their owner
+  // (CONTEXT.md "Attempt privacy"). So the server derives them and this
+  // screen asks again shortly after anything that could move them.
+  // Debounced, because working a route is a burst of events.
   const { schedule: scheduleChork, cancel: cancelChork } = useDebouncedFlush<void>({
     delayMs: 1000,
     flush: async () => {
-      const next = await loadChork();
-      if (next && !leavingRef.current) setChork(next);
+      const result = await fetchChorkStandings(matchId);
+      if ("error" in result || leavingRef.current) return;
+      dispatch({ type: "set-chork", standings: result.standings });
     },
   });
-
-  // ── The points board ───────────────────────────────────────────
-  //
-  // Found at Yonder: other players' scores read 0 after a reload and
-  // were wrong live for every send that wasn't a flash. Their logs reach
-  // this browser collapsed to the public buckets, so the phone cannot
-  // score them. The server can, so their rows come from
-  // `get_match_leaderboard`: the bundle's board on load, refetched
-  // shortly after one of their logs or a route changes. The viewer's
-  // own seat, and a host's guests, stay scored here from raw logs so a
-  // tap shows at once. Chork has no points board to keep.
-  const [serverBoard, setServerBoard] = useState(() => ({
-    source: initialState.leaderboard,
-    rows: initialState.leaderboard,
-  }));
-  // A refresh hands down a fresh bundle; take its board, the same
-  // render-time sync the roster uses above.
-  if (serverBoard.source !== initialState.leaderboard) {
-    setServerBoard({ source: initialState.leaderboard, rows: initialState.leaderboard });
-  }
-  const scoredHere = useCallback(
-    (p: MatchPlayerView) => entersLogsFor(viewer, p),
-    [viewer],
-  );
   const { schedule: scheduleBoard, cancel: cancelBoard } = useDebouncedFlush<void>({
     delayMs: 800,
     flush: async () => {
-      if (isChork) return;
-      const result = await fetchMatchBoard(initialState.match.id);
+      const result = await fetchMatchBoard(matchId);
       if ("error" in result || leavingRef.current) return;
-      setServerBoard((prev) => ({ source: prev.source, rows: result.rows }));
+      dispatch({ type: "set-board", rows: result.rows });
     },
   });
 
-  const viewerSeatId = state.players.find((p) => p.user_id === userId)?.player_id ?? null;
+  // Chork's standings aren't in the bundle and a log event is not
+  // guaranteed to arrive, so without this someone opening a game in
+  // progress reads every seat as nought letters and nobody setting.
+  // `live` is per effect run, not a mounted ref — StrictMode's second
+  // run gets its own.
+  useEffect(() => {
+    if (!isChork) return;
+    let live = true;
+    void fetchChorkStandings(matchId).then((result) => {
+      if (live && !("error" in result)) dispatch({ type: "set-chork", standings: result.standings });
+    });
+    return () => {
+      live = false;
+    };
+  }, [isChork, matchId]);
 
   // Games opens from the nav's full prefetch, which can predate the
   // deletion: the host's action revalidated the server and the host's
@@ -234,202 +143,75 @@ export function useMatchScreenState({
     [router],
   );
 
-  useMatchRealtime(initialState.match.id, {
-    onRouteChange: (evt) => {
-      if (leavingRef.current) return;
-      if (evt.eventType === "DELETE") {
-        dispatch({ type: "remove-route", id: evt.old.id });
-      } else {
-        dispatch({ type: "upsert-route", route: evt.new });
-      }
-      // A route IS a round, so putting one up moves the pen and can
-      // change who owes a letter. This listened only to log events, so
-      // the board sat on the previous setter until somebody happened
-      // to log something.
-      if (isChork) scheduleChork(undefined);
-      // A route withdrawn or regraded can move anyone's points.
-      else scheduleBoard(undefined);
-    },
-    onLogChange: (evt) => {
-      if (leavingRef.current) return;
-      // The scoring check below needs the log's owner even on a
-      // DELETE, whose payload carries only the id — so on a DELETE
-      // it's read from state, before the dispatch removes it there.
-      const row =
-        evt.eventType === "DELETE"
-          ? logEntryById(state.logs, evt.old.id)?.[1]
-          : evt.new;
-      if (evt.eventType === "DELETE") {
-        // A DELETE event carries only the log's id (checked 2026-09-15).
-        dispatch({ type: "remove-log-by-id", id: evt.old.id });
-      } else {
-        // The reducer sanitises other players' raw attempt counts —
-        // this call site just declares who is looking.
-        dispatch({ type: "upsert-log", log: evt.new, viewer });
-      }
-      // Anyone's log can change who owes a letter, so this listens to
-      // every log event rather than only the viewer's own.
-      if (isChork) scheduleChork(undefined);
-      else {
-        // Seats scored here already moved with the dispatch above; only
-        // someone else's log needs the server's scoring. A log this
-        // screen never held (row undefined) still triggers the
-        // refetch — the safe default.
-        const scoredLocally = row !== undefined && entersLogsFor(viewer, row);
-        if (!scoredLocally) scheduleBoard(undefined);
+  const run = useCallback(
+    (effects: MatchEffect[]) => {
+      for (const effect of effects) {
+        switch (effect.kind) {
+          case "refetch-board":
+            scheduleBoard(undefined);
+            break;
+          case "refetch-chork":
+            scheduleChork(undefined);
+            break;
+          case "refresh":
+            router.refresh();
+            break;
+          case "ended":
+            // `replace`, not `push`: back from the summary should reach
+            // wherever they came from, not a live screen that no longer is.
+            router.replace(`/match/summary/${matchId}`);
+            break;
+          case "deleted":
+            leavingRef.current = "deleted";
+            cancelBoard();
+            cancelChork();
+            showToast("This game was deleted", "warning");
+            router.replace("/match");
+            break;
+        }
       }
     },
-    onPlayerChange: (evt) => {
-      if (leavingRef.current) return;
-      const outcome = seatEventOutcome(evt, viewerSeatId);
-      if (outcome.kind === "deleted") {
-        leavingRef.current = "deleted";
-        cancelBoard();
-        cancelChork();
-        showToast("This game was deleted", "warning");
-        router.replace("/match");
-      } else if (outcome.kind === "gone") {
-        // Never a refresh on a DELETE: see seatEventOutcome.
-        dispatch({ type: "remove-player", playerId: outcome.seatId });
-      } else {
-        // A join or a leave. Player changes come as scattered events —
-        // a full state refresh is cheaper to reason about than
-        // hand-patched set maths. The refreshed roster reaches the
-        // reducer via the render-time sync above.
-        router.refresh();
-      }
-    },
-    onMatchChange: (evt) => {
-      if (leavingRef.current) return;
-      // The host ended it. Everyone else is looking at a board that
-      // has silently stopped accepting writes, so move them to the
-      // result rather than let them tap into a dead screen.
-      //
-      // `replace`, not `push`: back from the summary should reach
-      // wherever they came from, not a live screen that no longer is.
-      if (evt.eventType !== "UPDATE") return;
-      if (evt.new.status === "archived") {
-        router.replace(`/match/summary/${initialState.match.id}`);
-        return;
-      }
-      // The host changed the setup: name, place, grading, the game, the
-      // handicap. Everyone else painted the old one until they
-      // reloaded, because only "ended" was ever read off this event.
-      // Until the first route nothing else touches the row, and a
-      // custom ladder lives in its own table where no field here
-      // shows it, so any change then refreshes.
-      if (isLobby(state) || matchSetupChanged(initialState.match, evt.new)) {
-        router.refresh();
-      }
-    },
-    onResume: () => {
-      if (leavingRef.current) return;
-      // Anything missed while away (routes, logs, seats, the board)
-      // comes back with a fresh bundle, and the render-time syncs
-      // above take it in. Chork's standings aren't in the bundle.
-      router.refresh();
-      if (isChork) scheduleChork(undefined);
-    },
+    [router, matchId, scheduleBoard, scheduleChork, cancelBoard, cancelChork],
+  );
+
+  useMatchRealtime(matchId, (event: MatchEvent) => {
+    if (leavingRef.current) return;
+    const plan = planEvent(state, viewer, event);
+    plan.actions.forEach(dispatch);
+    run(plan.effects);
   });
 
-  // Derive the live leaderboard from current logs. Matches the
-  // server-side formula in get_match_leaderboard exactly (pinned by
-  // scoring-parity.test.ts) so the display doesn't desync with the
-  // summary calculation on end.
-  // A log knows its route id but not its grade, and the handicap
-  // needs the grade. Same resolution the server uses: what the adder
-  // declared, else what climbers voted.
-  const gradeByRouteId = useMemo(
-    () =>
-      new Map(
-        state.routes.map((r) => [
-          r.id,
-          r.declared_grade ?? r.community_grade ?? null,
-        ]),
-      ),
-    [state.routes],
-  );
+  const board = useMemo(() => selectBoard(state, viewer), [state, viewer]);
+  const myLogs = useMemo(() => viewerLogs(state, viewer), [state, viewer]);
 
-  // A ceiling is a number on a ladder, so it only means anything
-  // against the ladder it was given on — a 6b rope and a V6 boulder
-  // are both ordinal 6 and share no arithmetic. Every route resolves
-  // to the limit for ITS family (migration 121); on a
-  // single-discipline Match that is always the same one.
-  //
-  // This briefly nulled the off-family GRADE instead, which scored
-  // those routes flat. That was the honest answer while a climber had
-  // only one ceiling; they have two now, and the rope half of a mixed
-  // session was going unhandicapped.
-  const disciplineByRouteId = useMemo(
-    () => new Map(state.routes.map((r) => [r.id, r.discipline])),
-    [state.routes],
-  );
-  const ceilingForRoute = useCallback(
-    (player: MatchPlayerView, routeId: string) =>
-      ceilingForDiscipline(
-        initialState.match,
-        player,
-        disciplineByRouteId.get(routeId) ?? null,
-      ),
-    [initialState.match, disciplineByRouteId],
-  );
-
-  const leaderboard = useMemo(
-    () =>
-      computeMatchLeaderboard(state.players, state.logs, {
-        handicap: initialState.match.handicap,
-        gradeByRouteId,
-        ceilingForRoute,
-        serverRows: isChork ? undefined : serverBoard.rows,
-        scoredHere,
-      }),
-    [
-      state.players,
-      state.logs,
-      initialState.match.handicap,
-      gradeByRouteId,
-      ceilingForRoute,
-      isChork,
-      serverBoard.rows,
-      scoredHere,
-    ],
-  );
-
-  // Logs keyed by route id, just the current user. Drives tile
-  // state derivation + log-sheet pre-fill.
-  const myLogByRouteId = useMemo(() => {
-    const map = new Map<string, MatchLog>();
-    for (const log of state.logs.values()) {
-      if (log.user_id === userId) map.set(log.route_id, log);
-    }
-    return map;
-  }, [state.logs, userId]);
+  // ── Writes ─────────────────────────────────────────────────────
 
   /**
-   * The allowance for the open round, fetched because it depends on
-   * the setter's attempt count and those are private to them.
-   * Keyed on route + seat so switching either refetches.
+   * The shape every write here has: run the server action in a
+   * transition (so `isPending` covers it), toast a refusal in the
+   * server's own words, otherwise apply the result. Local to this hook
+   * on purpose (ADR-0001).
    */
-  const [chorkAllowance, setChorkAllowance] = useState<{
-    key: string;
-    value: number | null;
-  } | null>(null);
-
-  const loadChorkAllowance = useCallback(
-    (routeId: string, playerId?: string) => {
-      const key = `${routeId}:${playerId ?? "me"}`;
+  const act = useCallback(
+    <T,>(
+      action: () => Promise<ActionResult<T>>,
+      onSuccess: (result: { success: true } & T) => void,
+      onRefused?: () => void,
+    ) => {
       startTransition(async () => {
-        const result = await fetchChorkAllowance(
-          initialState.match.id,
-          routeId,
-          playerId,
-        );
-        if ("error" in result) return;
-        setChorkAllowance({ key, value: result.allowance });
+        const result = await action();
+        if ("error" in result) {
+          showToast(result.error, "error");
+          onRefused?.();
+          return;
+        }
+        onSuccess(result);
       });
     },
-    [initialState.match.id],
+    [],
   );
+
+  const closePanel = useCallback(() => dispatch({ type: "close-panel" }), []);
 
   const openPanel = useCallback(
     (panel: MatchPanel) => {
@@ -438,15 +220,21 @@ export function useMatchScreenState({
       // carries. Fetched rather than derived because the allowance
       // depends on the setter's attempt count, which is theirs alone.
       if (isChork && panel.kind === "log") {
-        loadChorkAllowance(panel.routeId, panel.playerId);
+        const { routeId, playerId } = panel;
+        startTransition(async () => {
+          const result = await fetchChorkAllowance(matchId, routeId, playerId);
+          if ("error" in result) return;
+          dispatch({ type: "set-allowance", routeId, seatId: playerId, value: result.allowance });
+        });
       }
     },
-    [isChork, loadChorkAllowance],
+    [isChork, matchId],
   );
-  const closePanel = useCallback(() => dispatch({ type: "close-panel" }), []);
+
+  const gameMode = state.match.game_mode;
 
   const handleAddRoute = useCallback(
-    async (payload: {
+    (payload: {
       description: string | null;
       grade: number | null;
       hasZone: boolean;
@@ -457,110 +245,25 @@ export function useMatchScreenState({
        * stays where it belongs instead of bouncing back to the host.
        */
       playerId?: string | null;
-    }) => {
-      startTransition(async () => {
-        const result = await addMatchRouteAction({
-          matchId: initialState.match.id,
-          description: payload.description,
-          grade: payload.grade,
-          hasZone: payload.hasZone,
-          discipline: payload.discipline,
-          playerId: payload.playerId ?? null,
-        });
-        if ("error" in result) {
-          showToast(result.error, "error");
-          return;
-        }
-        // Paint the new row locally on server success — the realtime
-        // self-echo is unreliable for the creator right after an HTTP
-        // round-trip, so the grid would otherwise stay stale until a
-        // refresh. The reducer's upsert-route is idempotent on id, so
-        // the echo (when it arrives) is a harmless no-op.
-        dispatch({ type: "upsert-route", route: result.route });
-        dispatch({ type: "close-panel" });
-      });
-    },
-    [initialState.match.id],
-  );
-
-  const handleAddGuest = useCallback(
-    async (name: string) => {
-      startTransition(async () => {
-        const result = await addMatchGuestAction(initialState.match.id, name);
-        if ("error" in result) {
-          showToast(result.error, "error");
-          return;
-        }
-        // Same reasoning as routes: paint locally on server success
-        // rather than wait on a realtime self-echo that drops often
-        // enough for the host to think nothing happened.
-        dispatch({
-          type: "upsert-player",
-          player: {
-            player_id: result.player.id,
-            user_id: null,
-            is_guest: true,
-            username: null,
-            display_name: result.player.display_name,
-            avatar_url: null,
-            joined_at: result.player.joined_at,
-            is_host: false,
-            has_left: false,
-            // The host declares these separately, after seating them.
-            ceiling: null,
-            alt_ceiling: null,
-          },
-        });
-        dispatch({ type: "close-panel" });
-      });
-    },
-    [initialState.match.id],
-  );
-
-  const handleSetCeiling = useCallback(
-    async (
-      playerId: string,
-      ceiling: number | null,
-      altCeiling: number | null,
-    ) => {
-      startTransition(async () => {
-        const result = await setMatchCeilingAction(
-          initialState.match.id,
-          playerId,
-          ceiling,
-          altCeiling,
-        );
-        if ("error" in result) {
-          showToast(result.error, "error");
-          return;
-        }
-        // Patch locally so the board re-scores immediately — the
-        // handicap is recomputed from `players`, so without this the
-        // change wouldn't show until a refresh.
-        dispatch({ type: "set-ceiling", playerId, ceiling, altCeiling });
-        dispatch({ type: "close-panel" });
-      });
-    },
-    [initialState.match.id],
-  );
-
-  const handleRemoveGuest = useCallback(
-    async (playerId: string) => {
-      startTransition(async () => {
-        const result = await removeMatchGuestAction(playerId);
-        if ("error" in result) {
-          showToast(result.error, "error");
-          return;
-        }
-        dispatch({ type: "remove-player", playerId });
-        dispatch({ type: "close-panel" });
-      });
-    },
-    [],
+    }) =>
+      act(
+        () => addMatchRouteAction({ matchId, ...payload, playerId: payload.playerId ?? null }),
+        ({ route }) => {
+          // Painted on server success, not on the realtime echo, which
+          // drops often enough for the creator to see a stale grid.
+          // `upsert-route` is idempotent on id, so the echo is a no-op.
+          dispatch({ type: "upsert-route", route });
+          closePanel();
+          // And asks what the echo would: in Chork a new route moves
+          // the pen, which used to wait for somebody to log something.
+          run(scoringEffects({ game_mode: gameMode }));
+        },
+      ),
+    [act, matchId, closePanel, run, gameMode],
   );
 
   const handleUpdateRoute = useCallback(
-    async (
+    (
       routeId: string,
       payload: {
         description: string | null;
@@ -568,29 +271,77 @@ export function useMatchScreenState({
         hasZone: boolean;
         discipline: Discipline;
       },
-    ) => {
-      startTransition(async () => {
-        const result = await updateMatchRouteAction({
-          routeId,
-          description: payload.description,
-          grade: payload.grade,
-          hasZone: payload.hasZone,
-          discipline: payload.discipline,
-        });
-        if ("error" in result) {
-          showToast(result.error, "error");
-          return;
-        }
-        dispatch({ type: "upsert-route", route: result.route });
-        dispatch({ type: "close-panel" });
-      });
-    },
-    [],
+    ) =>
+      act(
+        () => updateMatchRouteAction({ routeId, ...payload }),
+        ({ route }) => {
+          dispatch({ type: "upsert-route", route });
+          closePanel();
+          // A regrade can move anyone's handicapped points.
+          run(scoringEffects({ game_mode: gameMode }));
+        },
+      ),
+    [act, closePanel, run, gameMode],
+  );
+
+  const handleAddGuest = useCallback(
+    (name: string) =>
+      act(
+        () => addMatchGuestAction(matchId, name),
+        ({ player }) => {
+          // Same reasoning as routes: paint on server success.
+          dispatch({
+            type: "upsert-player",
+            player: {
+              player_id: player.id,
+              user_id: null,
+              is_guest: true,
+              username: null,
+              display_name: player.display_name,
+              avatar_url: null,
+              joined_at: player.joined_at,
+              is_host: false,
+              has_left: false,
+              // The host declares these separately, after seating them.
+              ceiling: null,
+              alt_ceiling: null,
+            },
+          });
+          closePanel();
+        },
+      ),
+    [act, matchId, closePanel],
+  );
+
+  const handleRemoveGuest = useCallback(
+    (playerId: string) =>
+      act(
+        () => removeMatchGuestAction(playerId),
+        () => {
+          dispatch({ type: "remove-player", playerId });
+          closePanel();
+        },
+      ),
+    [act, closePanel],
+  );
+
+  const handleSetCeiling = useCallback(
+    (playerId: string, ceiling: number | null, altCeiling: number | null) =>
+      act(
+        () => setMatchCeilingAction(matchId, playerId, ceiling, altCeiling),
+        () => {
+          // Patched here so the board re-scores at once: the handicap is
+          // computed from `players`.
+          dispatch({ type: "set-ceiling", playerId, ceiling, altCeiling });
+          closePanel();
+        },
+      ),
+    [act, matchId, closePanel],
   );
 
   /** Optimistic log write for the given route + rollback on rejection. */
   const handleLog = useCallback(
-    async (
+    (
       route: MatchRoute,
       payload: { attempts: number; completed: boolean; zone: boolean },
       // A GUEST seat the host is entering for. Absent = own card.
@@ -598,60 +349,87 @@ export function useMatchScreenState({
     ) => {
       const ownerId = playerId ?? userId;
       const previous = state.logs.get(logKey(ownerId, route.id));
-      // Capture `now` once at callback entry rather than inline in
-      // the dispatched object. The `react-hooks/purity` lint rule
-      // flags `new Date()` anywhere in a render-adjacent path; doing
-      // it here keeps the pattern out of the reducer payload.
+      // Captured once here rather than inline in the dispatched object:
+      // `react-hooks/purity` flags `new Date()` in a render-adjacent path.
       const now = new Date().toISOString();
-      // Optimistic write — dispatch a local patch so the tile +
-      // leaderboard react instantly, then fire the action. Realtime
-      // echo overwrites with the server's row on success.
+      // The tile and the board react at once; the server's row replaces
+      // this one when its echo arrives.
       dispatch({
         type: "upsert-log",
         viewer,
         log: {
           id: previous?.id ?? `optimistic-${route.id}`,
-          set_id: initialState.match.id,
+          set_id: matchId,
           route_id: route.id,
           // Exactly one of these, matching `route_logs_owner_ck`.
           user_id: playerId ? null : userId,
           player_id: playerId ?? null,
           attempts: payload.attempts,
           completed: payload.completed,
-          completed_at: payload.completed
-            ? previous?.completed_at ?? now
-            : null,
+          completed_at: payload.completed ? previous?.completed_at ?? now : null,
           zone: payload.zone,
           created_at: previous?.created_at ?? now,
           updated_at: now,
         },
       });
 
-      startTransition(async () => {
-        // Offline-aware wrapper — queues the upsert in IndexedDB if
-        // we're offline (or the network dies mid-request) so the
-        // climber's local tile flip sticks and the server write
-        // replays on reconnect. The server-side RPC is idempotent
-        // on (user_id, route_id) so replays never duplicate.
-        const result = await upsertMatchLogOffline({
-          matchRouteId: route.id,
-          attempts: payload.attempts,
-          completed: payload.completed,
-          zone: payload.zone,
-          playerId: playerId ?? null,
-        });
-        if (result && typeof result === "object" && "error" in result) {
-          showToast((result as { error: string }).error, "error");
-          // Roll back to the previous log if the action rejected.
-          if (previous) {
-            dispatch({ type: "upsert-log", log: previous, viewer });
-          } else {
-            dispatch({ type: "remove-log", userId: ownerId, routeId: route.id });
-          }
-        }
-      });
+      act(
+        // Offline-aware: queued in IndexedDB if the network is down or
+        // dies mid-request, and replayed on reconnect. The RPC is
+        // idempotent on (owner, route), so a replay never duplicates.
+        // (`await`ed here: the wrapper is typed as a promise of the
+        // action's own promise.)
+        async () =>
+          await upsertMatchLogOffline({
+            matchRouteId: route.id,
+            attempts: payload.attempts,
+            completed: payload.completed,
+            zone: payload.zone,
+            playerId: playerId ?? null,
+          }),
+        () => {
+          // Letters and the pen move on a log, and only the server can
+          // say how. This waited for the log's own realtime echo.
+          if (gameMode === "chork") run([{ kind: "refetch-chork" }]);
+        },
+        () => {
+          if (previous) dispatch({ type: "upsert-log", log: previous, viewer });
+          else dispatch({ type: "remove-log", userId: ownerId, routeId: route.id });
+        },
+      );
     },
-    [initialState.match.id, state.logs, userId, viewer],
+    [act, matchId, state.logs, userId, viewer, run, gameMode],
+  );
+
+  const handleConcede = useCallback(
+    (routeId: string, playerId?: string) =>
+      act(
+        () => concedeChorkRound(matchId, routeId, playerId),
+        () => {
+          closePanel();
+          run([{ kind: "refetch-chork" }, { kind: "refresh" }]);
+        },
+      ),
+    [act, matchId, closePanel, run],
+  );
+
+  /**
+   * The setter's way out, and the only thing that moves the pen. The
+   * route leaves the room at once — the realtime UPDATE that follows
+   * carries `withdrawn_at`, which the reducer treats as a removal, so
+   * the echo is a no-op rather than a resurrection.
+   */
+  const handleWithdraw = useCallback(
+    (routeId: string, playerId?: string | null) =>
+      act(
+        () => withdrawChorkRoute(matchId, routeId, playerId),
+        () => {
+          dispatch({ type: "remove-route", id: routeId });
+          closePanel();
+          run([{ kind: "refetch-chork" }, { kind: "refresh" }]);
+        },
+      ),
+    [act, matchId, closePanel, run],
   );
 
   /**
@@ -661,75 +439,19 @@ export function useMatchScreenState({
    * still running for everyone else, and dropping the leaver on a
    * result page for a live contest reads as though it ended.
    */
-
-  const handleConcede = useCallback(
-    (routeId: string, playerId?: string) => {
-      startTransition(async () => {
-        const result = await concedeChorkRound(
-          initialState.match.id,
-          routeId,
-          playerId,
-        );
-        if ("error" in result) {
-          showToast(result.error, "error");
-          return;
-        }
-        dispatch({ type: "close-panel" });
-        scheduleChork(undefined);
-        router.refresh();
-      });
-    },
-    [initialState.match.id, router, scheduleChork],
+  const handleLeave = useCallback(
+    () => act(() => leaveMatchAction(matchId), () => router.push("/match")),
+    [act, matchId, router],
   );
 
-  /**
-   * The setter's way out, and the only thing that moves the pen. The
-   * route leaves the room optimistically — the realtime UPDATE that
-   * follows carries `withdrawn_at`, which the reducer treats as a
-   * removal, so the echo is a no-op rather than a resurrection.
-   */
-  const handleWithdraw = useCallback(
-    (routeId: string, playerId?: string | null) => {
-      startTransition(async () => {
-        const result = await withdrawChorkRoute(
-          initialState.match.id,
-          routeId,
-          playerId,
-        );
-        if ("error" in result) {
-          showToast(result.error, "error");
-          return;
-        }
-        dispatch({ type: "remove-route", id: routeId });
-        dispatch({ type: "close-panel" });
-        scheduleChork(undefined);
-        router.refresh();
-      });
-    },
-    [initialState.match.id, router, scheduleChork],
+  const handleEnd = useCallback(
+    () =>
+      act(
+        () => endMatchAction(matchId),
+        ({ summaryId }) => router.push(`/match/summary/${summaryId}?fresh=1`),
+      ),
+    [act, matchId, router],
   );
-
-  const handleLeave = useCallback(() => {
-    startTransition(async () => {
-      const result = await leaveMatchAction(initialState.match.id);
-      if ("error" in result) {
-        showToast(result.error, "error");
-        return;
-      }
-      router.push("/match");
-    });
-  }, [initialState.match.id, router]);
-
-  const handleEnd = useCallback(() => {
-    startTransition(async () => {
-      const result = await endMatchAction(initialState.match.id);
-      if ("error" in result) {
-        showToast(result.error, "error");
-        return;
-      }
-      router.push(`/match/summary/${result.summaryId}?fresh=1`);
-    });
-  }, [initialState.match.id, router]);
 
   const handleDelete = useCallback(() => {
     // Leaving from the press, not the answer: the deletion's own events
@@ -739,63 +461,58 @@ export function useMatchScreenState({
     leavingRef.current = "deleting";
     cancelBoard();
     cancelChork();
-    startTransition(async () => {
-      const result = await deleteMatchAction(initialState.match.id);
-      if ("error" in result) {
+    act(
+      () => deleteMatchAction(matchId),
+      () => {
+        showToast("Game deleted");
+        router.replace("/match");
+      },
+      () => {
         leavingRef.current = null;
-        showToast(result.error, "error");
-        return;
-      }
-      showToast("Game deleted");
-      router.replace("/match");
-    });
-  }, [initialState.match.id, router, cancelBoard, cancelChork]);
+      },
+    );
+  }, [act, matchId, router, cancelBoard, cancelChork]);
 
-  // The setup lives on `initialState.match`, a server prop: a refresh
-  // re-reads it, and the sheet closes on the fresh props rather than
-  // on a guess. Returns whether it saved, so a sheet can stay open on
-  // a refusal (the RPC's own words are already toasted).
+  // The setup is the Match row and its grades. The row's own realtime
+  // UPDATE patches the model on every device, this one included; the
+  // refresh brings a custom ladder, which lives in another table. The
+  // sheet closes with the refresh, on the fresh model rather than a
+  // guess, and stays open on a refusal.
   const handleSetup = useCallback(
-    async (payload: MatchSetupPayload): Promise<boolean> => {
-      const result = await setMatchSetupAction(initialState.match.id, payload);
-      if ("error" in result) {
-        showToast(result.error, "error");
-        return false;
-      }
-      startTransition(() => {
-        router.refresh();
-        dispatch({ type: "close-panel" });
-      });
-      return true;
-    },
-    [initialState.match.id, router],
+    (payload: MatchSetupPayload) =>
+      act(
+        () => setMatchSetupAction(matchId, payload),
+        () =>
+          startTransition(() => {
+            router.refresh();
+            closePanel();
+          }),
+      ),
+    [act, matchId, router, closePanel],
   );
 
   const handleGameMode = useCallback(
-    (mode: "points" | "chork") => {
-      startTransition(async () => {
-        const result = await setMatchGameMode(initialState.match.id, mode);
-        if ("error" in result) {
-          showToast(result.error, "error");
-          return;
-        }
-        router.refresh();
-        dispatch({ type: "close-panel" });
-      });
-    },
-    [initialState.match.id, router],
+    (mode: "points" | "chork") =>
+      act(
+        () => setMatchGameMode(matchId, mode),
+        () => {
+          router.refresh();
+          closePanel();
+        },
+      ),
+    [act, matchId, router, closePanel],
   );
 
   return {
     state,
     viewer,
-    leaderboard,
-    myLogByRouteId,
+    board,
+    myLogs,
     isPending,
     openPanel,
+    closePanel,
     handleSetup,
     handleGameMode,
-    closePanel,
     handleAddRoute,
     handleAddGuest,
     handleRemoveGuest,
@@ -805,10 +522,6 @@ export function useMatchScreenState({
     handleEnd,
     handleLeave,
     handleDelete,
-    isChork,
-    chorkLetters: chork.letters,
-    chorkPenSeatId: chork.penSeatId,
-    chorkAllowance,
     handleConcede,
     handleWithdraw,
   };
