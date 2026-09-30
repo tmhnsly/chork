@@ -4,7 +4,8 @@ import { useEffect, useReducer } from "react";
 import type { Profile } from "@/lib/data/types";
 import { savePushSubscription, removePushSubscription } from "@/app/(app)/push-actions";
 import { setAllowFriendRequests } from "@/app/friends/actions";
-import { updatePushCategory, type PushCategoryKey } from "@/app/profile/actions";
+import { updatePushCategory } from "@/app/profile/actions";
+import type { PushCategory } from "@/lib/data/push-categories";
 import {
   isStandalonePwa,
   pushSupported,
@@ -30,7 +31,7 @@ export interface UseSettingsState {
   closePanel: () => void;
   handleToggleAllowInvites: () => Promise<void>;
   handleTogglePush: () => Promise<void>;
-  handleToggleNotif: (category: PushCategoryKey) => Promise<void>;
+  handleToggleNotif: (category: PushCategory) => Promise<void>;
 }
 
 /**
@@ -131,7 +132,7 @@ export function useSettingsState(profile: Profile | null): UseSettingsState {
     showToast("Notifications on", "success");
   }
 
-  async function handleToggleNotif(category: PushCategoryKey) {
+  async function handleToggleNotif(category: PushCategory) {
     const next = !state.notifFlags[category];
     dispatch({ type: "set-notif-flag", category, value: next });
     const res = await updatePushCategory(category, next);

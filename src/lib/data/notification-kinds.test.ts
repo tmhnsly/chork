@@ -1,39 +1,75 @@
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it, expect } from "vitest";
+import { latestDefinition } from "@/test/sql-definitions";
 import {
   notificationKinds,
   isNotificationKind,
   renderNotification,
   renderNotificationInApp,
-  type NotificationKind,
 } from "./notification-kinds";
 
 const FRIEND_1 = "cccccccc-cccc-cccc-cccc-cccccccccccc";
 
 /**
- * The closed kind set — mirrors the DB check constraint (migration 033,
- * narrowed to friends-only by 108, widened by 129 for match invites).
- *
- * Spelled out by hand on purpose: deriving it from `notificationKinds`
- * would make the test pass for any pair of matching mistakes. This is
- * the list you have to change deliberately, and changing it without
- * the migration means a `notify()` that typechecks and then fails at
- * insert with a 23514.
+ * The kind set has SQL homes, and the pins read them — not a third
+ * hand-typed list. A hand list once claimed to mirror the constraint
+ * while `notify_user`'s own allow-list drifted: every friend
+ * notification since 108 raised "unknown notification kind", notify()
+ * swallowed it, and the failure ran silent for three days (migration
+ * 130's postmortem). `create or replace` / drop-and-add mean the LAST
+ * definition in filename order wins, so both parsers resolve that
+ * way, like every other SQL-pinned test.
  */
-const EXPECTED_KINDS: NotificationKind[] = [
-  "friend_request_received",
-  "friend_request_accepted",
-  "match_invite_received",
-];
+const MIGRATIONS = join(process.cwd(), "supabase", "migrations");
+
+function quoted(fragment: string): string[] {
+  return [...fragment.matchAll(/'([^']+)'/g)].map((m) => m[1]);
+}
+
+/** The live `notifications_kind_check` constraint — 033's inline
+ *  `kind in (…)` shape, superseded by 108/129's `add constraint …
+ *  kind = any (array[…])` shape; last migration wins. */
+function liveConstraintKinds(): string[] {
+  const files = readdirSync(MIGRATIONS).filter((f) => f.endsWith(".sql")).sort();
+  let found: string[] | null = null;
+  for (const file of files) {
+    const text = readFileSync(join(MIGRATIONS, file), "utf8");
+    const added = [...text.matchAll(
+      /add constraint notifications_kind_check\s+check \(kind = any \(array\[([\s\S]*?)\]/g,
+    )];
+    if (added.length > 0) found = quoted(added[added.length - 1][1]);
+    else {
+      const inline = text.match(/kind\s+text not null check \(kind in \(([\s\S]*?)\)\)/);
+      if (inline) found = quoted(inline[1]);
+    }
+  }
+  if (!found) throw new Error("no notifications_kind_check in migrations");
+  return found;
+}
+
+const EXPECTED_KINDS = liveConstraintKinds();
 
 describe("notificationKinds table", () => {
-  it("has exactly one entry per kind in the DB constraint", () => {
+  it("has exactly one entry per kind in the LIVE DB constraint", () => {
     expect(Object.keys(notificationKinds).sort()).toEqual(
       [...EXPECTED_KINDS].sort(),
     );
   });
 
+  it("notify_user keeps NO allow-list of its own — the constraint is the single gate", () => {
+    // 130's fix was to DELETE the function's second list, not update
+    // it: two allow-lists was the bug (every friend notification
+    // since 108 raised "unknown notification kind" for three silent
+    // days). This pins the deletion — if a p_kind guard ever grows
+    // back, the two-homes failure class comes back with it.
+    const body = latestDefinition("notify_user").body;
+    expect(body).not.toMatch(/p_kind\s+not in/);
+    expect(body).toMatch(/insert into public\.notifications/);
+  });
+
   it("every entry defines toPayload, push and inApp", () => {
-    for (const kind of EXPECTED_KINDS) {
+    for (const kind of Object.keys(notificationKinds) as (keyof typeof notificationKinds)[]) {
       const def = notificationKinds[kind];
       expect(typeof def.toPayload).toBe("function");
       expect(typeof def.push).toBe("function");

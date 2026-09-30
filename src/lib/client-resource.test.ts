@@ -96,7 +96,7 @@ describe("shouldFetch", () => {
       }),
     ).toBe(false);
     // Sheet closed and re-opened → retry (the hand-rolled `loaded`
-    // flag behaviour in the old NotificationsSheet).
+    // flag behaviour in the old the old notifications sheet).
     expect(
       shouldFetch({
         entry: failure("a"),

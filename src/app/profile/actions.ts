@@ -4,6 +4,11 @@ import { createHash } from "node:crypto";
 import { revalidateTag } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/server";
 import { revalidateUserProfile } from "@/lib/cache/revalidate";
+import {
+  PUSH_CATEGORIES,
+  columnOf,
+  type PushCategory,
+} from "@/lib/data/push-categories";
 import { gateSignedInMutation, requireSignedIn } from "@/lib/auth";
 import { validateUsername } from "@/lib/validation";
 import { formatError } from "@/lib/errors";
@@ -141,23 +146,12 @@ export async function updateThemePreference(
   }
 }
 
-/**
- * Per-category push opt-in flags. Maps to the discrete bools added
- * in migration 032; the push dispatcher filters recipients on the
- * matching column before firing. Unknown categories are rejected.
- */
-const PUSH_CATEGORY_COLUMN = {
-  invite_received: "push_invite_received",
-  invite_accepted: "push_invite_accepted",
-  ownership_changed: "push_ownership_changed",
-} as const;
-export type PushCategoryKey = keyof typeof PUSH_CATEGORY_COLUMN;
 
 export async function updatePushCategory(
   category: string,
   enabled: boolean,
 ): Promise<ActionResult> {
-  if (!(category in PUSH_CATEGORY_COLUMN)) {
+  if (!(category in PUSH_CATEGORIES)) {
     return { error: "Unknown notification category" };
   }
   if (typeof enabled !== "boolean") {
@@ -168,7 +162,7 @@ export async function updatePushCategory(
   if ("error" in auth) return { error: auth.error };
   const { supabase, userId } = auth;
 
-  const column = PUSH_CATEGORY_COLUMN[category as PushCategoryKey];
+  const column = columnOf(category as PushCategory);
 
   try {
     // `column` is keyed off a non-user-controlled constant map —

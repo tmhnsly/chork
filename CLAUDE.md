@@ -738,21 +738,34 @@ the reason the moments feed exists (docs/roadmap.md).
 ### Notifications
 
 Two layers: push (best-effort, transient) + persistent log
-(`notifications` table, migration 033). Every push-worthy event is
-tagged with a category (`invite_received` / `invite_accepted`;
-`ownership_changed` still has a column but nothing sends it — it went
-with crews) — `sendPushToUsers(..., { category })` filters
-recipients by the opt-in bool on `profiles` (migration 032). The
-`notifyUser(userId, args)` helper writes a log row alongside so
-missed pushes are caught up in the NotificationsSheet.
+(`notifications` table, migration 033). `notify(event)` writes the log
+row and sends the push; a missed or switched-off push is caught up in
+the app.
+
+**There is no global inbox.** Every kind names the `section` that owns
+it in `src/lib/data/notification-kinds.ts`, and
+`<SectionNotifications section="…">` mounts that slice where it is acted
+on: friend kinds on `/friends`, game invites on the Games landing.
+Visiting a section read-flags only its own kinds
+(`mark_all_notifications_read(p_user_id, p_kinds)`, migration 143). A
+new kind needs a section, or its rows are written and never shown — the
+state the whole log was in once the profile redesign removed the bell.
 
 The live kinds are `friend_request_received`,
-`friend_request_accepted` and `match_invite_received`, defined in
-`src/lib/data/notification-kinds.ts`. **The category union is
-duplicated in five places** (`push/server.ts` ×3,
-`notification-kinds.ts`, `profile/actions.ts`) because the push module
-is server-only and the kinds table must stay client-safe — adding a
-category is five coordinated edits and the compiler catches two.
+`friend_request_accepted` and `match_invite_received`.
+`notification-kinds.test.ts` pins the table's keys to the live
+`notifications_kind_check` constraint, read from the migrations, and
+pins that `notify_user` keeps no second allow-list (that drift broke
+friend notifications silently from 108 to 130).
+
+**A push category has one home**, `src/lib/data/push-categories.ts`:
+its key, its `profiles` opt-out column (migration 032) and the label
+the settings sheet shows. The server's recipient filter, the settings
+reducer and the sheet's rows all derive from it; the two literal
+`select` strings supabase-js needs are pinned by
+`push-categories.test.ts`. Adding a category is one entry plus a
+migration for its column. `ownership_changed` keeps its column but has
+no label, so no toggle: nothing has sent it since crews went.
 
 `notify_user` RPC is service-role-only (migration 040) — prior to
 that, any signed-in user could call it with an arbitrary target

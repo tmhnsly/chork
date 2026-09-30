@@ -12,6 +12,7 @@ import { formatSetLabel } from "@/lib/data/set-label";
 import { FriendsBoard } from "@/components/Friends/FriendsBoard";
 import { MomentsFeed } from "@/components/Friends/MomentsFeed";
 import { FriendsList } from "@/components/Friends/FriendsList";
+import { SectionNotifications } from "@/components/Notifications/SectionNotifications";
 import { Named } from "@/components/motion";
 import styles from "./friends.module.scss";
 
@@ -49,6 +50,10 @@ export async function FriendsContent() {
           the board is the better answer; moments are what you get for
           the friends you don't. */}
       <MomentsFeed moments={moments} />
+      {/* This section's slice of the Notification log — requests
+          received and accepted surface where they're acted on, and
+          only these kinds get read-flagged by the visit. */}
+      <SectionNotifications section="friends" />
       <FriendsList
         active={active}
         incoming={incoming}
