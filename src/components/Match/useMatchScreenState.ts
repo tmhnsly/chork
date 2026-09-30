@@ -40,6 +40,9 @@ import {
   matchReducer,
   seatEventOutcome,
   logEntryById,
+  isLobby,
+  matchSetupChanged,
+  rosterSignature,
   type MatchPanel,
   logKey,
 } from "./matchScreenReducer";
@@ -88,9 +91,7 @@ export function useMatchScreenState({
    * Keyed on a roster signature, not object identity, so an unrelated
    * refresh doesn't churn the board.
    */
-  const rosterKey = initialState.players
-    .map((p) => `${p.player_id}:${p.has_left ? 1 : 0}`)
-    .join(",");
+  const rosterKey = rosterSignature(initialState.players);
   const [syncedRoster, setSyncedRoster] = useState(rosterKey);
   if (rosterKey !== syncedRoster) {
     setSyncedRoster(rosterKey);
@@ -303,8 +304,19 @@ export function useMatchScreenState({
       //
       // `replace`, not `push`: back from the summary should reach
       // wherever they came from, not a live screen that no longer is.
-      if (evt.eventType === "UPDATE" && evt.new.status === "archived") {
+      if (evt.eventType !== "UPDATE") return;
+      if (evt.new.status === "archived") {
         router.replace(`/match/summary/${initialState.match.id}`);
+        return;
+      }
+      // The host changed the setup: name, place, grading, the game, the
+      // handicap. Everyone else painted the old one until they
+      // reloaded, because only "ended" was ever read off this event.
+      // Until the first route nothing else touches the row, and a
+      // custom ladder lives in its own table where no field here
+      // shows it, so any change then refreshes.
+      if (isLobby(state) || matchSetupChanged(initialState.match, evt.new)) {
+        router.refresh();
       }
     },
     onResume: () => {

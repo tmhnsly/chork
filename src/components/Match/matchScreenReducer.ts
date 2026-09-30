@@ -1,4 +1,10 @@
-import type { MatchLog, MatchPlayerView, MatchRoute, MatchState } from "@/lib/data/match-types";
+import type {
+  Match,
+  MatchLog,
+  MatchPlayerView,
+  MatchRoute,
+  MatchState,
+} from "@/lib/data/match-types";
 import { ownerIdOf } from "@/lib/data/match-types";
 import { visibleAttempts } from "@/lib/data/logs";
 
@@ -161,6 +167,51 @@ export function seatEventOutcome(evt: SeatEvent, viewerSeatId: string | null): S
   if (evt.eventType !== "DELETE") return { kind: "refresh" };
   if (viewerSeatId !== null && evt.old.id === viewerSeatId) return { kind: "deleted" };
   return { kind: "gone", seatId: evt.old.id };
+}
+
+/**
+ * The Match row's fields that the host can change during a game, and
+ * that every screen paints from its bundle. `last_activity_at` is not
+ * one: a trigger bumps it on every route and log, so the row's realtime
+ * UPDATE fires far more often than its setup changes.
+ */
+const SETUP_FIELDS = [
+  "name",
+  "location",
+  "discipline",
+  "grading_scale",
+  "min_grade",
+  "max_grade",
+  "alt_grading_scale",
+  "alt_min_grade",
+  "alt_max_grade",
+  "game_mode",
+  "handicap",
+] as const satisfies ReadonlyArray<keyof Match>;
+
+/**
+ * Whether a Match row from realtime changes what the screen shows. The
+ * host's own device already refreshes after its own action; its echo
+ * finds the bundle matching, or, if it beats that refresh, costs one
+ * more.
+ */
+export function matchSetupChanged(shown: Match, row: Match): boolean {
+  return SETUP_FIELDS.some((field) => shown[field] !== row[field]);
+}
+
+/**
+ * A signature for the roster, so a refresh re-seeds players when
+ * anything painted from them changed and churns nothing otherwise.
+ * Limits are in it: declaring one arrives as a seat UPDATE, and a
+ * signature of seats and departures alone threw the new limit away.
+ */
+export function rosterSignature(players: MatchPlayerView[]): string {
+  return players
+    .map(
+      (p) =>
+        `${p.player_id}:${p.has_left ? 1 : 0}:${p.ceiling ?? ""}:${p.alt_ceiling ?? ""}`,
+    )
+    .join(",");
 }
 
 /** Initial reducer state from the server-rendered match payload.

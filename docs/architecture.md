@@ -406,6 +406,49 @@ satisfy this. See `docs/db-audit.md` § F.
 
 ---
 
+## The live game screen: realtime is a hint, a refresh is the repair
+
+`useMatchRealtime` subscribes one channel per game to `routes`,
+`route_logs`, `set_players` and the game's own `sets` row. Supabase
+Realtime **never replays** what it sent while a socket was down, and a
+phone at the wall locks between climbs, so the screen cannot trust the
+event stream to be complete. It stays correct in two layers:
+
+- **Events patch state** for speed (`matchScreenReducer`).
+- **A refresh repairs it.** `onResume` fires when the channel rejoins
+  after a drop and when the page becomes visible again. The screen
+  calls `router.refresh()`, and render-time syncs in
+  `useMatchScreenState` take the new bundle in: routes and logs via the
+  reducer's `sync` action, the roster via `rosterSignature`, the board
+  by identity. `MatchScreen` reads the game row (setup) straight off the
+  bundle.
+
+Two rules follow from that:
+
+- **Anything painted from the bundle needs a sync path.** When a field
+  is added to `get_match_state_for_user` and shown on the live screen,
+  either read it from props on every render or add it to a render-time
+  sync. Until 2026-09-30, routes, logs and limits were seeded once at
+  mount, so every refresh threw them away.
+- **Anything that changes needs a trigger that refreshes.** The `sets`
+  UPDATE fires on every route and log (`bump_set_last_activity`), so
+  `onMatchChange` refreshes only when `matchSetupChanged` says a setup
+  field moved, or on any change while there are no routes yet (a custom
+  ladder lives in `set_grades`, which isn't published). An ended game
+  refreshing into `/match/[id]` is redirected to its summary by the page.
+
+The bundle deliberately carries **withdrawn** routes: the resync reads
+its highest route number as a high-water mark, so that a route this
+device added after the snapshot was read survives the merge. The screen
+filters them in `initMatchState`.
+
+Verified with a Playwright loop against the dev server, using throwaway
+production accounts: kill only the Supabase socket (never Next's HMR
+socket, which stalls the dev router and looks like a failed refresh),
+make the change from the other account, bring the socket back.
+
+---
+
 ## Page / route inventory
 
 Root group:

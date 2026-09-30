@@ -53,6 +53,14 @@ export default async function MatchRoomPage({ params }: Props) {
     }
   }
 
+  // An ended game has a result, not a board. Its players reach this
+  // page again when a screen that missed the host ending it refreshes
+  // (the live screen resyncs whenever the phone comes back), and the
+  // live screen never looks at the status: every tap would fail.
+  if (initialState.match.status === "archived") {
+    redirect(`/match/summary/${id}`);
+  }
+
   // The setup sheet's grading picker offers the host their saved custom
   // ladders. Nobody else can open it, so nobody else pays for the read.
   const savedScales =

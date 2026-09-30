@@ -5,11 +5,13 @@ import {
   logKey,
   logEntryById,
   isLobby,
+  matchSetupChanged,
+  rosterSignature,
   seatEventOutcome,
   type MatchAction,
   type MatchLocalState,
 } from "./matchScreenReducer";
-import type { MatchLog, MatchPlayerView, MatchRoute, MatchState } from "@/lib/data/match-types";
+import type { Match, MatchLog, MatchPlayerView, MatchRoute, MatchState } from "@/lib/data/match-types";
 
 function mkRoute(id: string, number: number, overrides: Partial<MatchRoute> = {}): MatchRoute {
   return {
@@ -636,5 +638,70 @@ describe("logEntryById", () => {
 
   it("returns undefined for an id it doesn't hold", () => {
     expect(logEntryById(new Map(), "ghost")).toBeUndefined();
+  });
+});
+
+describe("matchSetupChanged", () => {
+  const shown = {
+    id: "match-1",
+    name: "Tom's game",
+    location: "Yonder",
+    discipline: "boulder",
+    grading_scale: "v",
+    min_grade: 0,
+    max_grade: 8,
+    alt_grading_scale: null,
+    alt_min_grade: null,
+    alt_max_grade: null,
+    game_mode: "points",
+    handicap: false,
+    status: "live",
+    last_activity_at: "2026-09-30T10:00:00Z",
+  } as unknown as Match;
+
+  it("ignores the activity bump every route and log makes", () => {
+    // The row's UPDATE fires on each of them; refreshing on it would
+    // refetch the whole game for every tap in the room.
+    const row = { ...shown, last_activity_at: "2026-09-30T10:05:00Z" };
+    expect(matchSetupChanged(shown, row)).toBe(false);
+  });
+
+  it.each([
+    ["name", "Friday session"],
+    ["location", "The Arch"],
+    ["grading_scale", "font"],
+    ["max_grade", 10],
+    ["alt_grading_scale", "yds"],
+    ["game_mode", "chork"],
+    ["handicap", true],
+  ] as const)("sees the host changing %s", (field, value) => {
+    expect(matchSetupChanged(shown, { ...shown, [field]: value })).toBe(true);
+  });
+});
+
+describe("rosterSignature", () => {
+  it("moves when a player declares a limit", () => {
+    // Declaring one is a seat UPDATE, which refreshes; a signature of
+    // seats and departures alone threw the new limit away.
+    const before = [mkPlayer("u1", "alice")];
+    const after = [{ ...mkPlayer("u1", "alice"), ceiling: 5 }];
+    expect(rosterSignature(after)).not.toBe(rosterSignature(before));
+  });
+
+  it("moves when a second limit is declared for a mixed day", () => {
+    const before = [{ ...mkPlayer("u1", "alice"), ceiling: 5 }];
+    const after = [{ ...mkPlayer("u1", "alice"), ceiling: 5, alt_ceiling: 3 }];
+    expect(rosterSignature(after)).not.toBe(rosterSignature(before));
+  });
+
+  it("stays put for a bundle with the same roster, so a refresh doesn't churn", () => {
+    const players = [mkPlayer("u1", "alice"), mkPlayer("u2", "bob")];
+    expect(rosterSignature(players.map((p) => ({ ...p })))).toBe(rosterSignature(players));
+  });
+
+  it("moves when someone joins or leaves", () => {
+    const one = [mkPlayer("u1", "alice")];
+    expect(rosterSignature([...one, mkPlayer("u2", "bob")])).not.toBe(rosterSignature(one));
+    expect(rosterSignature([{ ...one[0], has_left: true }])).not.toBe(rosterSignature(one));
   });
 });

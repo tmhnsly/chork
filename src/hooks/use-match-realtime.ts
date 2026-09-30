@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { createBrowserSupabase } from "@/lib/supabase/client";
-import type { MatchLog, MatchRoute } from "@/lib/data/match-types";
+import type { Match, MatchLog, MatchRoute } from "@/lib/data/match-types";
 
 /**
  * Shape of a Supabase postgres_changes payload for a Match table. The
@@ -46,12 +46,15 @@ export function useMatchRealtime(
      */
     onPlayerChange: (evt: MatchRealtimeEvent<{ id: string }>) => void;
     /**
-     * The Match row itself changed. Fires for the host ending it,
-     * which is the only status transition a live screen can see —
-     * without this, everyone else sat on a board that had quietly
-     * stopped accepting writes.
+     * The Match row itself changed: the host ending it (the only
+     * status transition a live screen can see), or changing its setup.
+     * Without it, everyone else sat on a board that had quietly stopped
+     * accepting writes, or on the old setup. An UPDATE carries the
+     * whole row (`sets` keeps the default replica identity, which
+     * limits only what `old` holds). It also fires on every route and
+     * log, because a trigger bumps `last_activity_at`.
      */
-    onMatchChange: (evt: MatchRealtimeEvent<{ id: string; status: string }>) => void;
+    onMatchChange: (evt: MatchRealtimeEvent<Match>) => void;
     /**
      * The feed may have missed events. Realtime never replays what it
      * sent while a socket was down, and a phone at the wall locks
@@ -117,9 +120,7 @@ export function useMatchRealtime(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "sets", filter: `id=eq.${matchId}` },
         (payload: unknown) =>
-          handlersRef.current.onMatchChange(
-            payload as MatchRealtimeEvent<{ id: string; status: string }>,
-          ),
+          handlersRef.current.onMatchChange(payload as MatchRealtimeEvent<Match>),
       )
       // The first join is the mount, whose bundle is already fresh;
       // any later one follows a drop.
