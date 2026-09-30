@@ -31,6 +31,33 @@ export interface LeaderboardRowData {
   flashes: number;
 }
 
+/**
+ * A gym-side ranked row (`LeaderboardEntry` and everything that extends
+ * or mirrors it: the Chorkboard, a competition's board, the friends
+ * board) as the primitive's data. The three boards each spelled this
+ * mapping out. A game's board doesn't come through here: its rows are
+ * seats, keyed and named differently, and its points are formatted.
+ */
+export function toLeaderboardRowData(row: {
+  user_id: string;
+  username: string | null;
+  name: string | null;
+  avatar_url: string | null;
+  rank: number | null;
+  points: number;
+  flashes: number;
+}): LeaderboardRowData {
+  return {
+    userId: row.user_id,
+    username: row.username,
+    name: row.name,
+    avatarUrl: row.avatar_url,
+    rank: row.rank,
+    points: row.points,
+    flashes: row.flashes,
+  };
+}
+
 interface Props {
   entry: LeaderboardRowData;
   highlighted?: boolean;

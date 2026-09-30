@@ -1,9 +1,10 @@
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
 
-// Intentionally NOT `server-only` — crew-queries.ts uses these helpers
-// for both server-render and client (paging) flows, per the
-// dual-context note in docs/architecture.md.
+// Intentionally NOT `server-only` — client-reachable query modules
+// (`*.client.ts`, friend-queries) use these helpers for both
+// server-render and client flows, per the dual-context note in
+// docs/architecture.md.
 
 /**
  * Read-side adapter for Supabase reads — covers both Postgres RPCs
@@ -25,7 +26,7 @@ import { formatErrorForLog } from "@/lib/errors";
  *
  * Mutation calls DON'T go through this — they need to throw or return
  * a discriminated `{ error }` per the mutation contract. See
- * `src/lib/data/*-mutations.ts`.
+ * `src/lib/data/mutations.ts`.
  *
  * The cast in the `return data as T` branch is the same kind of
  * output-side assertion documented in `json-shape.ts`: the contract
@@ -41,17 +42,29 @@ interface ReadResult {
   error: unknown;
 }
 
+/**
+ * Log a failed read. `logger.error` (stderr) lands in Vercel's Errors
+ * bucket, so a real read failure is visible to the team even though
+ * the render path degrades to a neutral fallback: an outage and
+ * "genuinely empty" look the same to the user, and must NOT look the
+ * same in the logs.
+ *
+ * For the reads that shape their result by hand and can't go through
+ * `readSingle` / `readMany`. Eighteen of them logged at `warn`
+ * instead, so their outages landed in a different bucket from every
+ * other read's.
+ */
+export function readFailed(failureTag: string, error: unknown): void {
+  logger.error(failureTag, { err: formatErrorForLog(error) });
+}
+
 export async function readSingle<T>(
   promise: PromiseLike<ReadResult>,
   failureTag: string,
 ): Promise<T | null> {
   const { data, error } = await promise;
   if (error) {
-    // logger.error (stderr) → Vercel's Errors bucket, so a real read
-    // failure is visible to the team even though the render path degrades
-    // to a neutral fallback (an outage and "genuinely empty" look the same
-    // to the user, but must NOT look the same in the logs).
-    logger.error(failureTag, { err: formatErrorForLog(error) });
+    readFailed(failureTag, error);
     return null;
   }
   if (data == null) return null;
@@ -83,11 +96,7 @@ export async function readMany<T>(
 ): Promise<T[]> {
   const { data, error } = await promise;
   if (error) {
-    // logger.error (stderr) → Vercel's Errors bucket, so a real read
-    // failure is visible to the team even though the render path degrades
-    // to a neutral fallback (an outage and "genuinely empty" look the same
-    // to the user, but must NOT look the same in the logs).
-    logger.error(failureTag, { err: formatErrorForLog(error) });
+    readFailed(failureTag, error);
     return [];
   }
   if (!Array.isArray(data)) return [];

@@ -1,8 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
-import { readMany } from "./read";
-import { logger } from "@/lib/logger";
-import { formatErrorForLog } from "@/lib/errors";
+import { readMany, readFailed } from "./read";
 import type { Moment } from "./moments";
 
 type Supabase = SupabaseClient<Database>;
@@ -115,7 +113,7 @@ export async function getFriendStatus(
     .maybeSingle();
   if (error || !data) {
     if (error) {
-      logger.warn("getfriendstatus_failed", { err: formatErrorForLog(error) });
+      readFailed("getfriendstatus_failed", error);
     }
     // The safe default offers Add, which is idempotent server-side.
     return { status: "none", friendId: null };

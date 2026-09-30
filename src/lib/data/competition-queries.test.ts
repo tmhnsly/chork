@@ -89,40 +89,30 @@ describe("getCompetitionsForOrganiser", () => {
 });
 
 // ────────────────────────────────────────────────────────────────
-// getCompetitionGyms — join flatten
+// shapeCompetitionGyms — join flatten
+//
+// Tested on the shaper, which `getCompetitionGymsCached` runs. These
+// cases used to drive an uncached `getCompetitionGyms` that nothing
+// called, so the suite covered dead code and left the live path bare.
 // ────────────────────────────────────────────────────────────────
-describe("getCompetitionGyms", () => {
+describe("shapeCompetitionGyms", () => {
   it("drops rows where the gym join didn't resolve", async () => {
-    const sb = createMockSupabase({
-      "table:competition_gyms": {
-        data: [
-          { competition_id: COMP_1, gym_id: "g1", gyms: { name: "Yonder", slug: "yonder" } },
-          { competition_id: COMP_1, gym_id: "g2", gyms: null },
-        ],
-      },
-    });
-    const { getCompetitionGyms } = await import("./competition-queries");
-    expect(await getCompetitionGyms(sb as never, COMP_1)).toEqual([
-      { competition_id: COMP_1, gym_id: "g1", gym_name: "Yonder", gym_slug: "yonder" },
-    ]);
+    const { shapeCompetitionGyms } = await import("./competition-queries");
+    expect(
+      shapeCompetitionGyms([
+        { competition_id: COMP_1, gym_id: "g1", gyms: { name: "Yonder", slug: "yonder" } },
+        { competition_id: COMP_1, gym_id: "g2", gyms: null },
+      ] as never),
+    ).toEqual([{ competition_id: COMP_1, gym_id: "g1", gym_name: "Yonder", gym_slug: "yonder" }]);
   });
 
   it("unwraps the `gyms` property if supabase returns it as a single-element array", async () => {
-    const sb = createMockSupabase({
-      "table:competition_gyms": {
-        data: [
-          {
-            competition_id: COMP_1,
-            gym_id: "g1",
-            gyms: [{ name: "Yonder", slug: "yonder" }],
-          },
-        ],
-      },
-    });
-    const { getCompetitionGyms } = await import("./competition-queries");
-    expect(await getCompetitionGyms(sb as never, COMP_1)).toEqual([
-      { competition_id: COMP_1, gym_id: "g1", gym_name: "Yonder", gym_slug: "yonder" },
-    ]);
+    const { shapeCompetitionGyms } = await import("./competition-queries");
+    expect(
+      shapeCompetitionGyms([
+        { competition_id: COMP_1, gym_id: "g1", gyms: [{ name: "Yonder", slug: "yonder" }] },
+      ] as never),
+    ).toEqual([{ competition_id: COMP_1, gym_id: "g1", gym_name: "Yonder", gym_slug: "yonder" }]);
   });
 });
 

@@ -6,10 +6,8 @@ import { cachedQuery } from "@/lib/cache/cached";
 import { createCachedContextClient } from "@/lib/supabase/server";
 import type { Comment, PaginatedComments } from "./types";
 
-import { logger } from "@/lib/logger";
-import { formatErrorForLog } from "@/lib/errors";
 import { tags } from "@/lib/cache/tags";
-import { readMany } from "./read";
+import { readMany, readFailed } from "./read";
 
 type Supabase = SupabaseClient<Database>;
 
@@ -54,7 +52,7 @@ export function getCommentsByRoute(
         .range(from, to);
 
       if (error) {
-        logger.warn("getcommentsbyroute_failed", { err: formatErrorForLog(error) });
+        readFailed("getcommentsbyroute_failed", error);
       }
 
       const totalItems = count ?? 0;

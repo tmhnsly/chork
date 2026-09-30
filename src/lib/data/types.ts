@@ -55,10 +55,6 @@ export type Comment = Tables["comments"]["Row"] & {
   profiles?: Pick<Profile, "id" | "username" | "name" | "avatar_url"> | null;
 };
 
-export type ActivityEventWithRoute = ActivityEvent & {
-  routes?: Pick<Route, "number"> | null;
-};
-
 // ── Mutation types ─────────────────────────────────
 
 export type RouteLogUpdate = Tables["route_logs"]["Update"];

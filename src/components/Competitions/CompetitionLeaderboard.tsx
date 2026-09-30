@@ -9,25 +9,11 @@ import {
   LeaderboardRow,
   shimmerStyles,
   TabPills,
-  type LeaderboardRowData,
+  toLeaderboardRowData,
   type TabPillOption,
 } from "@/components/ui";
 import type { CompetitionCategory } from "@/lib/data/competition-queries";
 import styles from "./competitionLeaderboard.module.scss";
-
-/** Adapter — the shared `LeaderboardRow` primitive is decoupled from
- *  the competition query shape (same idiom as `LeaderboardList`). */
-function toRowData(r: CompetitionLeaderboardRow): LeaderboardRowData {
-  return {
-    userId: r.user_id,
-    username: r.username,
-    name: r.name,
-    avatarUrl: r.avatar_url,
-    rank: r.rank,
-    points: r.points,
-    flashes: r.flashes,
-  };
-}
 
 interface Props {
   competitionId: string;
@@ -100,7 +86,7 @@ export function CompetitionLeaderboard({
           {rows.map((r) => (
             <li key={r.user_id}>
               <LeaderboardRow
-                entry={toRowData(r)}
+                entry={toLeaderboardRowData(r)}
                 highlighted={r.user_id === currentUserId}
                 interactive={false}
               />

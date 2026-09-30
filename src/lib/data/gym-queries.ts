@@ -1,31 +1,11 @@
 import "server-only";
 
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Database } from "../database.types";
 import { cachedQuery } from "@/lib/cache/cached";
 import { createCachedContextClient } from "@/lib/supabase/server";
-import { escapeLikePattern } from "@/lib/validation";
 import type { Gym } from "./types";
 
 import { tags } from "@/lib/cache/tags";
-import { readMany, readSingle } from "./read";
-
-type Supabase = SupabaseClient<Database>;
-
-export async function searchGyms(supabase: Supabase, query: string): Promise<Gym[]> {
-  const safe = escapeLikePattern(query.trim());
-  if (!safe) return [];
-  return readMany<Gym>(
-    supabase
-      .from("gyms")
-      .select("*")
-      .eq("is_listed", true)
-      .ilike("name", `%${safe}%`)
-      .order("name")
-      .limit(20),
-    "searchgyms_failed",
-  );
-}
+import { readSingle, readMany } from "./read";
 
 export function getGym(gymId: string): Promise<Gym | null> {
   const fn = cachedQuery(

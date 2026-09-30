@@ -7,22 +7,13 @@ import { cachedQuery } from "@/lib/cache/cached";
 import { createCachedContextClient } from "@/lib/supabase/server";
 import type { Profile } from "./types";
 
-import { logger } from "@/lib/logger";
-import { formatErrorForLog } from "@/lib/errors";
 import { tags } from "@/lib/cache/tags";
 import { asJsonShape } from "./json-shape";
-import { readSingle, readMany } from "./read";
+import { readMany, readFailed } from "./read";
 import type { GradeDistributionRow } from "./grade-distribution";
 import type { GradeProgressionRow } from "./grade-progression";
 
 type Supabase = SupabaseClient<Database>;
-
-export async function getProfile(supabase: Supabase, userId: string): Promise<Profile | null> {
-  return readSingle<Profile>(
-    supabase.from("profiles").select("*").eq("id", userId).single(),
-    "getprofile_failed",
-  );
-}
 
 export const getProfileByUsername = cache(
   async (username: string): Promise<Profile | null> => {
@@ -36,7 +27,7 @@ export const getProfileByUsername = cache(
           .eq("username", u)
           .single();
         if (error) {
-          logger.warn("getprofilebyusername_failed", { err: formatErrorForLog(error) });
+          readFailed("getprofilebyusername_failed", error);
           return null;
         }
         return data;
@@ -85,7 +76,7 @@ export const getProfileSummary = cache(
       p_gym_id: gymId,
     });
     if (error) {
-      logger.warn("getprofilesummary_failed", { err: formatErrorForLog(error) });
+      readFailed("getprofilesummary_failed", error);
       return {
         per_set: [],
         active_set_detail: [],

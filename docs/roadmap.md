@@ -162,6 +162,96 @@ applied navigation, writing stale router state back. Two reviews traced it
 independently through `app-router-instance.js`. Worth a minimal repro and
 an issue, since our own mitigations are gates around it rather than a fix.
 
+## Gym admins can't run their wall — a migration is waiting on a decision (2026-09-30)
+
+Found during the second deepening pass, while making "a Set goes live"
+one step. **No gym admin can create, publish, edit or archive a Set, or
+add or edit its routes, through the app.** `sets` has only ever had a
+SELECT policy; `routes` has INSERT / UPDATE policies for the players of
+a Match only. Every gym-admin write goes through the admin's own client,
+so RLS refuses it. Checked in production with a throwaway gym and admin.
+The two gym Sets that exist were seeded in April, before the console was
+built.
+
+What is done (`67ba6bd`): the app is honest about it. `updateSet` and
+`updateRoute` report a change the database refused, and Publish no
+longer announces "now live" over a Set that didn't move.
+
+What is NOT done, because it is a production security change that needs
+Tom's go-ahead — one migration:
+
+- [ ] INSERT + UPDATE policies on `sets` and `routes` for gym admins
+      (`is_gym_admin`, gym Sets only, `with check` so a Set can't be
+      turned into a Match or moved to a gym the admin doesn't run). No
+      DELETE: nothing deletes either.
+- [ ] A partial unique index: one live gym Set per gym, as a fact
+      rather than a convention the actions keep.
+- [ ] `publish_set(set_id)`: refuse with no routes, archive the
+      incumbent, go live — one transaction. `createSet` currently
+      archives the incumbent BEFORE inserting, so a failed insert would
+      leave a gym with no live Set.
+- [ ] `auto_publish_due_sets` archives the Set it replaces. Today a
+      draft scheduled to start before the incumbent ends makes two live
+      Sets (and would fail the cron run once the index exists).
+- [ ] Then: `createSet` inserts a draft, seeds routes, and publishes;
+      `updateSet`'s go-live branch calls the RPC. An integration test
+      with a real gym admin, since the mocked action tests passed for
+      five months over writes that never worked.
+
+Alternative considered: keep `sets` / `routes` SELECT-only and write
+with the service role after the action's own gate (`docs/db-audit.md`
+says SELECT-only was "by design"). Policies were preferred because
+CLAUDE.md's tenancy model is RLS through `is_gym_admin`, 014 already
+does exactly this for every other admin table, and a bug in an action
+then can't write across gyms.
+
+## The second deepening pass (2026-09-30)
+
+Eight candidates from `/improve-codebase-architecture`, worked through one by one.
+Several start from `refactor/deepening`, which never reached main.
+
+- [x] **SQL functions have one home.** `supabase/definitions/`, pinned
+      to the migrations; `pnpm db:verify` checks it against production;
+      `json-shapes.test.ts` and `row-pin.ts` pin the payload types.
+      Found production running a function no migration described (143).
+- [x] **Seat identity** (`seat.ts`): naming, keys, guest-ness, and
+      `entersLogsFor`. Fixed a host's guest logs being collapsed, the
+      mixed-day points preview, and guest avatar keys.
+- [x] **The live screen's model.** One reducer holds everything; what
+      an event means (`planEvent`) and what the screen derives
+      (selectors) are pure and tested; the hook is wiring. Fixed the
+      setup sheet's dead handicap toggle (144) and handicap ranking.
+- [x] **Notifications.** Push categories in one table; the log shows in
+      the section that owns the kind; kinds pinned to the SQL.
+- [x] **Gates.** A `gate*Mutation` always rate limits;
+      `gateSignedInRead` for reads; the test double runs the real gates.
+      `createSet` was unlimited.
+- [~] **A Set going live.** Named sub-functions and honest failure are
+      in. The atomic swap is the migration above.
+- [x] **Logging a climb.** One `PointsPreview`; the sanitised log
+      derives through its helpers.
+- [x] **Smaller ones.** The tag table is executable in both directions
+      (`signupGym` now busts `gyms:listed`); the summary reads its
+      bundle once; `getAdminDashboard` is one read; `BottomSheet`'s
+      mount contracts are written down; hand-shaped reads log through
+      `readFailed`; six dead exports removed; one leaderboard row
+      adapter.
+
+Left, and why:
+
+- `MatchGrid` flags every route that HAS a zone hold, and the tile reads
+  that aloud as "zone hold reached". The wall's grid and the peek sheet
+  flag only a zone the climber reached. A product call: is the flag
+  "there is a zone here" or "you got it"?
+- `SanitisedLog` sends `has_attempts` for an unsent route, so the
+  Chorkboard's climber sheet shows which routes someone is working.
+  `visibleAttempts` collapses the same case to nothing for a Match.
+  The two grains disagree about "no in-progress signal".
+- `handleRemoveGuest` and `removeMatchGuestAction` exist with no button
+  that calls them.
+- `set_match_handicap` (SQL) has no caller and skips the setup check.
+- `escapeLikePattern` has tests and no caller since `searchGyms` went.
+
 ## Three branches that never landed (2026-09-16)
 
 `feat/league`, `feat/profile` and `refactor/deepening` each hold work that is

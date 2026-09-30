@@ -4,7 +4,7 @@ import { randomBytes } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logger";
 import { formatErrorForLog } from "@/lib/errors";
-import { readSingle } from "./read";
+import { readSingle, readFailed } from "./read";
 import { asJsonShape } from "./json-shape";
 import { seatName } from "./seat";
 
@@ -98,7 +98,7 @@ export async function getSharedResult(
     p_token: token,
   });
   if (error) {
-    logger.warn("getsharedresult_failed", { err: formatErrorForLog(error) });
+    readFailed("getsharedresult_failed", error);
     return null;
   }
   if (data == null) return null;

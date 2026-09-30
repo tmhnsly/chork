@@ -2,11 +2,9 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../database.types";
-import type { RouteLog, ActivityEventWithRoute } from "./types";
+import type { RouteLog } from "./types";
 
-import { logger } from "@/lib/logger";
-import { formatErrorForLog } from "@/lib/errors";
-import { readMany } from "./read";
+import { readMany, readFailed } from "./read";
 
 type Supabase = SupabaseClient<Database>;
 
@@ -65,10 +63,10 @@ export async function getAllRouteDataForUserInGym(
   ]);
 
   if (logsResult.error) {
-    logger.warn("getallroutedataforuseringym_logs_failed", { err: formatErrorForLog(logsResult.error) });
+    readFailed("getallroutedataforuseringym_logs_failed", logsResult.error);
   }
   if (routesResult.error) {
-    logger.warn("getallroutedataforuseringym_count_failed", { err: formatErrorForLog(routesResult.error) });
+    readFailed("getallroutedataforuseringym_count_failed", routesResult.error);
   }
 
   return {
@@ -78,33 +76,4 @@ export async function getAllRouteDataForUserInGym(
     logs: logsResult.data ?? [],
     totalRoutesInGym: routesResult.count ?? 0,
   };
-}
-
-export async function getUserSetStats(
-  supabase: Supabase,
-  userId: string,
-  gymId: string
-): Promise<{ set_id: string; completions: number; flashes: number; points: number }[]> {
-  return readMany<{ set_id: string; completions: number; flashes: number; points: number }>(
-    supabase.rpc("get_user_set_stats", { p_user_id: userId, p_gym_id: gymId }),
-    "getusersetstats_failed",
-  );
-}
-
-// ── Activity events ────────────────────────────────
-
-export async function getActivityEventsForUser(
-  supabase: Supabase,
-  userId: string,
-  limit: number = 10
-): Promise<ActivityEventWithRoute[]> {
-  return readMany<ActivityEventWithRoute>(
-    supabase
-      .from("activity_events")
-      .select("*, routes(number)")
-      .eq("user_id", userId)
-      .order("created_at", { ascending: false })
-      .limit(limit),
-    "getactivityeventsforuser_failed",
-  );
 }

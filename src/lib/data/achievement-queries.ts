@@ -3,7 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../database.types";
 
-import { readMany } from "./read";
+import { readMany, readFailed } from "./read";
 
 type Supabase = SupabaseClient<Database>;
 
@@ -50,6 +50,9 @@ export interface AchievementActivity {
 
 export async function getAchievementActivity(supabase: Supabase): Promise<AchievementActivity> {
   const { data, error } = await supabase.rpc("get_achievement_activity").maybeSingle();
+  // It swallowed a failure without a word: an outage read as a climber
+  // with no activity, and nothing anywhere said otherwise.
+  if (error) readFailed("getachievementactivity_failed", error);
   if (error || !data) {
     return { last_flash_on: null, last_send_on: null, last_match_on: null };
   }

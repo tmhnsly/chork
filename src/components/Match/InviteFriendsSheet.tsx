@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { useClientResource } from "@/hooks/use-client-resource";
 import { FaPaperPlane } from "react-icons/fa6";
 import { BottomSheet, Button, SheetBody, showToast, shimmerStyles } from "@/components/ui";
 import { ClimberRow } from "@/components/ui/ClimberRow/ClimberRow";
@@ -31,22 +32,30 @@ interface Props {
  * have got wrong by the time you tapped.
  */
 export function InviteFriendsSheet({ onClose }: Props) {
-  const [friends, setFriends] = useState<InvitableFriend[] | null>(null);
-  const [loading, startLoad] = useTransition();
   const [sending, startSend] = useTransition();
   const [sent, setSent] = useState<Set<string>>(() => new Set());
 
-  useEffect(() => {
-    startLoad(async () => {
+  // The lazy-load scaffolding this sheet hand-rolled (fetch in an
+  // effect, transition flag, []-as-failure-state) is exactly what
+  // `useClientResource` owns. Mount contract A — mounting IS the
+  // open — so no `enabled` gate; every open refetches, which the
+  // header comment requires (seated/invited are live state).
+  const { data, loading, error } = useClientResource<InvitableFriend[]>(
+    "invitable-friends",
+    async () => {
       const r = await getInvitableFriends();
-      if ("error" in r) {
-        showToast(r.error, "error");
-        setFriends([]);
-        return;
-      }
-      setFriends(r.friends);
-    });
-  }, []);
+      if ("error" in r) throw new Error(r.error);
+      return r.friends;
+    },
+  );
+  useEffect(() => {
+    if (error) {
+      showToast(error instanceof Error ? error.message : String(error), "error");
+    }
+  }, [error]);
+  // The old rendering contract, preserved: null while loading, [] on
+  // a failed load.
+  const friends = data ?? (error ? [] : null);
 
   function invite(friend: InvitableFriend) {
     startSend(async () => {

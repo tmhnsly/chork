@@ -10,9 +10,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
-import { logger } from "@/lib/logger";
-import { formatErrorForLog } from "@/lib/errors";
-import { one, readMany, readSingle } from "./read";
+import { readSingle, readMany, readFailed, one } from "./read";
 type Supabase = SupabaseClient<Database>;
 
 export interface AdminGymSummary {
@@ -61,7 +59,7 @@ export async function getAdminGymsForUser(
     .order("created_at", { ascending: true });
 
   if (error) {
-    logger.warn("getadmingymsforuser_failed", { err: formatErrorForLog(error) });
+    readFailed("getadmingymsforuser_failed", error);
     return [];
   }
 
@@ -128,7 +126,7 @@ export async function getGymTeam(
     .order("created_at", { ascending: true });
 
   if (error) {
-    logger.warn("getgymteam_failed", { err: formatErrorForLog(error) });
+    readFailed("getgymteam_failed", error);
     return [];
   }
 
@@ -163,7 +161,7 @@ export async function getPendingInvites(
     .order("invited_at", { ascending: false });
 
   if (error) {
-    logger.warn("getpendinginvites_failed", { err: formatErrorForLog(error) });
+    readFailed("getpendinginvites_failed", error);
     return [];
   }
 
@@ -281,7 +279,7 @@ export async function getAdminRoutesForSet(
     .order("number");
 
   if (error) {
-    logger.warn("getadminroutesforset_failed", { err: formatErrorForLog(error) });
+    readFailed("getadminroutesforset_failed", error);
     return [];
   }
 

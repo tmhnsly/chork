@@ -1,4 +1,4 @@
-import { LeaderboardRow } from "@/components/ui";
+import { LeaderboardRow, toLeaderboardRowData } from "@/components/ui";
 import type { FriendBoardRow } from "@/lib/data/friend-queries";
 import { countOf } from "@/lib/plural";
 import styles from "./friendsBoard.module.scss";
@@ -32,15 +32,7 @@ export function FriendsBoard({ rows, setLabel }: Props) {
         {rows.map((row) => (
           <li key={row.user_id}>
             <LeaderboardRow
-              entry={{
-                userId: row.user_id,
-                username: row.username,
-                name: row.name,
-                avatarUrl: row.avatar_url,
-                rank: row.rank,
-                points: row.points,
-                flashes: row.flashes,
-              }}
+              entry={toLeaderboardRowData(row)}
               highlighted={row.is_self}
               href={row.username ? `/u/${row.username}` : undefined}
               trailing={

@@ -15,7 +15,6 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "../database.types";
-import { formatErrorForLog } from "../errors";
 import { MATCH_CODE_RE } from "../validation";
 import type {
   ActiveMatchSummary,
@@ -27,9 +26,8 @@ import type {
   SavedScale,
 } from "./match-types";
 
-import { logger } from "@/lib/logger";
 import { asJsonShape, asJsonShapeArray } from "./json-shape";
-import { readSingle, readMany } from "./read";
+import { readSingle, readMany, readFailed } from "./read";
 type Client = SupabaseClient<Database>;
 
 /**
@@ -65,7 +63,7 @@ export async function getMatchStateForUser(
     p_user_id: userId,
   });
   if (error) {
-    logger.warn("getmatchstateforuser_failed", { err: formatErrorForLog(error) });
+    readFailed("getmatchstateforuser_failed", error);
     return null;
   }
   return data == null ? null : asJsonShape<MatchState>(data);
@@ -131,7 +129,7 @@ export async function getUserSavedScales(
 ): Promise<SavedScale[]> {
   const { data, error } = await supabase.rpc("get_user_saved_scales");
   if (error) {
-    logger.warn("getusersavedscales_failed", { err: formatErrorForLog(error) });
+    readFailed("getusersavedscales_failed", error);
     return [];
   }
   return asJsonShapeArray<SavedScale>(data);

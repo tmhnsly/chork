@@ -1,9 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
-import { logger } from "@/lib/logger";
-import { formatErrorForLog } from "@/lib/errors";
-import { one, readMany, readSingle } from "./read";
+import { readSingle, readMany, one } from "./read";
 import {
   normaliseRankedRows,
   type RawRankedRow,
@@ -116,30 +114,6 @@ export function competitionCategoriesQuery(
     .eq("competition_id", competitionId)
     .order("display_order", { ascending: true })
     .order("name", { ascending: true });
-}
-
-/** Gyms linked to a competition. Joined with the gym's name + slug. */
-export async function getCompetitionGyms(
-  supabase: Supabase,
-  competitionId: string
-): Promise<CompetitionGymLink[]> {
-  const { data, error } = await competitionGymsQuery(supabase, competitionId);
-  if (error) {
-    logger.warn("getcompetitiongyms_failed", { err: formatErrorForLog(error) });
-    return [];
-  }
-  return shapeCompetitionGyms(data);
-}
-
-/** Categories for a competition, ordered as the organiser arranged them. */
-export async function getCompetitionCategories(
-  supabase: Supabase,
-  competitionId: string
-): Promise<CompetitionCategory[]> {
-  return readMany<CompetitionCategory>(
-    competitionCategoriesQuery(supabase, competitionId),
-    "getcompetitioncategories_failed",
-  );
 }
 
 /**

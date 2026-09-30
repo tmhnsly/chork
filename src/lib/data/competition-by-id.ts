@@ -12,9 +12,8 @@ import {
   type CompetitionCategory,
 } from "./competition-queries";
 
-import { logger } from "@/lib/logger";
-import { formatErrorForLog } from "@/lib/errors";
 import { tags } from "@/lib/cache/tags";
+import { readFailed } from "./read";
 /**
  * Single competition by id. Server-only — lives here (not in
  * competition-queries.ts) so the cached-context client chain doesn't
@@ -36,7 +35,7 @@ export const getCompetitionById = cache(
           .eq("id", id)
           .maybeSingle();
         if (error) {
-          logger.warn("getcompetitionbyid_failed", { err: formatErrorForLog(error) });
+          readFailed("getcompetitionbyid_failed", error);
           return null;
         }
         return (data as CompetitionSummary | null) ?? null;
@@ -60,7 +59,7 @@ export const getCompetitionGymsCached = cache(
         const supabase = createCachedContextClient();
         const { data, error } = await competitionGymsQuery(supabase, id);
         if (error) {
-          logger.warn("getcompetitiongymscached_failed", { err: formatErrorForLog(error) });
+          readFailed("getcompetitiongymscached_failed", error);
           return [];
         }
         return shapeCompetitionGyms(data);
@@ -84,7 +83,7 @@ export const getCompetitionCategoriesCached = cache(
         const supabase = createCachedContextClient();
         const { data, error } = await competitionCategoriesQuery(supabase, id);
         if (error) {
-          logger.warn("getcompetitioncategoriescached_failed", { err: formatErrorForLog(error) });
+          readFailed("getcompetitioncategoriescached_failed", error);
           return [];
         }
         return (data ?? []) as CompetitionCategory[];

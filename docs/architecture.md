@@ -89,10 +89,14 @@ cached read is safe to share.
 Codified at the top of `src/lib/data/read.ts` and
 `src/lib/data/mutations.ts`.
 
-**Reads** (`*-queries.ts`) swallow Postgres errors, log to console,
-return a neutral fallback (`null` / `[]`). Render paths handle
-"absent" the same as "failed", so callers don't need try/catch.
-Concentrated in `readSingle` / `readMany` helpers.
+**Reads** (`*-queries.ts`) swallow Postgres errors, log them at
+`error`, and return a neutral fallback (`null` / `[]`). Render paths
+handle "absent" the same as "failed", so callers don't need try/catch;
+the log is what tells an outage from an empty result. Concentrated in
+`readSingle` / `readMany`. A read that shapes its result by hand and
+can't use them logs through `readFailed(tag, error)` from the same
+module — never a bare `logger.warn`, which put eighteen reads' outages
+in a different bucket from everyone else's, and never nothing.
 
 **Mutations** follow one of two contracts depending on the kind of
 failure the function can produce. Both are valid; pick the one that
@@ -517,14 +521,14 @@ All `cachedQuery` wraps use tags from the `Tag` union in
 
 | Tag | Busted by | Cached helper(s) |
 |-----|-----------|------------------|
-| `gym:{id}` | gym row edits, is_listed toggles | `getGym`, `getLeaderboardCached`, `getGymStatsV2Cached` |
+| `gym:{id}` | *nothing — TTL-only (3600s); no in-app gym-edit surface exists. Named in `BUSTER_EXEMPT`* | `getGym`, `getLeaderboardCached`, `getGymStatsV2Cached` |
 | `gym:{id}:active-set` | set goes live / ends / is created | `getCurrentSet`, `getAllSets` |
 | `set:{id}:routes` | route add / edit / delete within the set | `getRoutesBySet` |
 | `route:{id}:grade` | per-route grade vote changes | `getRouteGrade` |
 | `route:{id}:comments` | comment post / edit / delete | `getCommentsByRoute` |
 | `set:{id}:leaderboard` | any route_log change affecting rank | `getLeaderboardCached`, `getGymStatsV2Cached` |
 | `user:username-{u}:profile` | profile row edits | `getProfileByUsername` |
-| `gyms:listed` | any gym's is_listed flag changed | `getListedGyms` |
+| `gyms:listed` | gym signup (`signupGym`) | `getListedGyms` |
 | `competition:{id}` | competition row or relations changed | `getCompetitionById` |
 
 ### The reader-first rule (no write-only tags)
@@ -532,6 +536,13 @@ All `cachedQuery` wraps use tags from the `Tag` union in
 Every tag in the table has a live `cachedQuery` reader — enforced by
 `src/lib/cache/tags.test.ts`. A tag lands in `tags.ts` in the same
 change as the reader that carries it, never ahead of one.
+
+**Both directions are executable now** (2026-09-30): every tag needs
+a live `cachedQuery` reader AND a `revalidateTag` buster — or a named
+entry in `BUSTER_EXEMPT` (tags.test.ts) saying why TTL-only refresh
+is the design. This table is a convenience view; the test is the
+authority. It had already drifted twice when made executable: two
+rows above claimed busters that did not exist.
 
 The previous convention ("bust pre-emptively so adding the cache wrap
 later doesn't require rewriting every mutation site") was retired in

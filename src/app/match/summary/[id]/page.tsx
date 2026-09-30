@@ -5,7 +5,8 @@ import { format, parseISO } from "date-fns";
 import { FaCrown, FaArrowLeft } from "react-icons/fa6";
 import { requireSignedIn } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
-import { getMatchStateForUser, getChorkStandings } from "@/lib/data/match-queries";
+import { getChorkStandings } from "@/lib/data/match-queries";
+import { getMatchStateCached } from "@/lib/data/match-state-cached";
 import { getLeague, getMyLeagues } from "@/lib/data/league-queries";
 import { ChorkWord } from "@/components/Match/ChorkWord";
 import { PageHeader } from "@/components/motion";
@@ -37,7 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!isUuid(id)) return { title: "Game result" };
   const auth = await requireSignedIn();
   if ("error" in auth) return { title: "Game result" };
-  const state = await getMatchStateForUser(createServiceClient(), id, auth.userId);
+  const state = await getMatchStateCached(id, auth.userId);
   return { title: state?.match.name?.trim() || "Match result" };
 }
 
@@ -66,7 +67,7 @@ export default async function MatchSummaryPage({ params, searchParams }: Props) 
   // reliable "ending a game 404s" root cause: the gate failed on the
   // very request it was meant to pass. Keep it in the RPC.
   const service = createServiceClient();
-  const state = await getMatchStateForUser(service, id, auth.userId);
+  const state = await getMatchStateCached(id, auth.userId);
   if (!state) notFound();
   const summary = state.match;
   const players = state.leaderboard;
