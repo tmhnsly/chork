@@ -1,0 +1,53 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+
+.contact {
+  @include layout.stack(var(--space-4));
+  align-items: center;
+  text-align: center;
+  box-sizing: border-box;
+  padding: var(--section-gap) var(--gutter-x);
+  max-width: var(--content-prose);
+  margin: 0 auto;
+}
+
+.contactHeadline {
+  @include type.typography(display, $step: 3xl);
+  color: var(--mono-text);
+}
+
+.contactBody {
+  @include type.typography(body, $step: lg);
+  color: var(--mono-text);
+  text-wrap: balance;
+
+  a {
+    color: var(--accent-text);
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }
+}
+
+// The only accent plane on the page: the sent tile at page scale.
+// Mark, headline and button all wear the plane's own ink, so it
+// holds in both modes and every theme.
+.close {
+  @include layout.stack(var(--space-6));
+  align-items: center;
+  text-align: center;
+  box-sizing: border-box;
+  padding: var(--section-gap) var(--gutter-x);
+  background: var(--accent-solid);
+  color: var(--accent-on-solid);
+}
+
+.closeMark {
+  width: var(--space-16);
+  height: auto;
+}
+
+.closeHeadline {
+  @include type.typography(display, $step: 4xl);
+  color: var(--accent-on-solid);
+  text-wrap: balance;
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { profileCacheUnchanged } from "./auth-context";
+import { planAuthEvent, profileCacheUnchanged } from "./auth-context";
 import type { Profile } from "./data/types";
 
 /**
@@ -66,5 +66,31 @@ describe("profileCacheUnchanged", () => {
     ).toBe(false);
     // Signing in from empty → must write.
     expect(profileCacheUnchanged(null, base, false)).toBe(false);
+  });
+});
+
+describe("planAuthEvent", () => {
+  it("a SIGNED_IN for the user already loaded asks for nothing — supabase-js re-emits it on every tab refocus", () => {
+    expect(planAuthEvent("SIGNED_IN", "u1", "u1")).toEqual({ refetch: null, refresh: false, clear: false });
+  });
+
+  it("a real sign-in, or a different user, loads the profile and re-renders the server components", () => {
+    expect(planAuthEvent("SIGNED_IN", "u1", null)).toEqual({ refetch: "u1", refresh: true, clear: false });
+    expect(planAuthEvent("SIGNED_IN", "u2", "u1")).toEqual({ refetch: "u2", refresh: true, clear: false });
+  });
+
+  it("a token refresh loads the profile only if none is loaded", () => {
+    expect(planAuthEvent("TOKEN_REFRESHED", "u1", null)).toEqual({ refetch: "u1", refresh: false, clear: false });
+    expect(planAuthEvent("TOKEN_REFRESHED", "u1", "u1")).toEqual({ refetch: null, refresh: false, clear: false });
+  });
+
+  it("signing out clears the profile and re-renders", () => {
+    expect(planAuthEvent("SIGNED_OUT", null, "u1")).toEqual({ refetch: null, refresh: true, clear: true });
+  });
+
+  it("anything else, or an event with no session user, asks for nothing", () => {
+    expect(planAuthEvent("INITIAL_SESSION", "u1", null)).toEqual({ refetch: null, refresh: false, clear: false });
+    expect(planAuthEvent("USER_UPDATED", "u1", "u1")).toEqual({ refetch: null, refresh: false, clear: false });
+    expect(planAuthEvent("SIGNED_IN", null, null)).toEqual({ refetch: null, refresh: false, clear: false });
   });
 });

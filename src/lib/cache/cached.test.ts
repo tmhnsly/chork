@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("next/cache", () => ({
   unstable_cache: vi.fn((fn) => fn),
-  revalidateTag: vi.fn(),
+  revalidateTag: vi.fn(),  updateTag: vi.fn(),
 }));
 
 describe("cachedQuery", () => {

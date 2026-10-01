@@ -121,7 +121,6 @@ enforces that each kind carries its own identity fields.
 | `competition_id` | uuid FK nullable     | Links to `competitions` |
 | `closing_event`  | boolean              | Final-round flag |
 | `venue_gym_id`   | uuid FK nullable     | Where the closing event is held |
-| `league_id`      | uuid FK nullable     | The League this Match is a week of (133). Matches only; never set on a gym Set |
 
 Scheduled auto-publish: `pg_cron` runs `auto_publish_due_sets()` every
 5 min, flipping `draft → live` for any set with `starts_at <= now()`.
@@ -208,7 +207,7 @@ it.
 | `set_id`    | uuid FK     | PK part 2, cascades from `sets` |
 | `hidden_at` | timestamptz | |
 
-**No Data API grant and no policies**, like `leagues`. Every player of
+**No Data API grant and no policies**, like `friends`. Every player of
 a game can read all of its `set_players` rows, so the flag can't live
 there. Only `set_match_hidden` writes it; `get_match_history` and
 `get_match_achievement_context` skip hidden games for their subject,
@@ -230,23 +229,6 @@ Match-only.
 Read-only to clients (`select` policy via `can_read_set`, no
 insert/update policy). Labels are fixed at creation; `create_match`
 writes them as definer.
-
-### leagues
-
-A series of Matches with a cumulative table (migration 133). See
-CONTEXT.md "League". **No Data API grant** — every read and write is a
-SECURITY DEFINER RPC, the `friends` pattern.
-
-| Field        | Type        | Notes |
-|---|---|---|
-| `host_id`    | uuid FK     | The host of its first Match. Only the host writes |
-| `name`       | text        | 1–80 chars |
-| `created_at` | timestamptz | |
-| `ended_at`   | timestamptz | Null while running. An ended League takes no more weeks |
-
-Membership is derived: anyone with a seat in a member Match can read.
-The table (`league_standings`) is computed on read from the weeks'
-boards — nothing is stored.
 
 ### user_set_stats
 
@@ -469,14 +451,12 @@ tables.
   seats the host in `set_players`, writes any custom ladder to
   `set_grades`, and optionally saves that ladder to
   `user_custom_scales` for reuse. Validation lives in
-  `match_setup_check(...)` (migration 136), shared with the next one. A host who already has an **empty live game** (no routes, same league or none) gets that game back with the new setup instead of a second one (migration 137): its players stay, the name and location typed on the setup page replace the old ones (139), `game_mode` resets, `last_activity_at` restarts
+  `match_setup_check(...)` (migration 136), shared with the next one. A host who already has an **empty live game** (no routes) gets that game back with the new setup instead of a second one (migration 137): its players stay, the name and location typed on the setup page replace the old ones (139), `game_mode` resets, `last_activity_at` restarts
 - `delete_match(set_id)` → uuid — the host deletes a game for everyone
   (migration 141). Seats, routes, logs, the grade ladder and pending
   `match_invite_received` notifications go with it; badges stay.
   'Game not found' (P0002) for a missing game and a non-player alike;
-  'Only the host can delete this game' (42501); a finished league week,
-  or a live one with routes, gets 'Remove this week from its league
-  before deleting it' (22023)
+  'Only the host can delete this game' (42501)
 - `set_match_hidden(set_id, hidden)` → boolean — the caller takes a
   finished game off their own lists, or puts it back (migration 141).
   Hiding a live game is refused (22023); a non-player gets 'Game not

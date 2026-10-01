@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidateTag } from "next/cache";
+import { updateTag } from "next/cache";
 import { gateSignedInMutation } from "@/lib/auth";
 import { tags } from "@/lib/cache/tags";
 import { formatError } from "@/lib/errors";
@@ -76,6 +76,6 @@ export async function signupGym(form: {
   // climbers trying to join it for up to an hour. No profile-tag
   // bust: signupGym doesn't touch
   // profiles.*, and getAdminGymsForUser is uncached.
-  revalidateTag(tags.gymsListed(), "max");
+  updateTag(tags.gymsListed());
   return { success: true, gymId: data };
 }

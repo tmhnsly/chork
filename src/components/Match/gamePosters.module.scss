@@ -2,7 +2,6 @@
 @use "mixins/layout" as layout;
 @use "mixins/surfaces" as surface;
 @use "mixins/focus";
-@use "mixins/state" as state;
 
 // Two per row, always: the column tops out at 640px, so a pair reads
 // as a pair on a phone and on a desktop alike, and a full-width card
@@ -16,7 +15,7 @@
 }
 
 // A glass card over the page's wash, the game's scene flush at the
-// top, the words beneath. The card is the button.
+// top, the words beneath. The card is the link.
 .poster {
   @include surface.glass(70%, var(--surface-card));
   @include focus.ring;
@@ -55,10 +54,6 @@
     transform: translateY(0);
   }
 
-  &:disabled {
-    @include state.disabled-bare;
-    cursor: progress;
-  }
 }
 
 @keyframes posterIn {
@@ -98,7 +93,7 @@
 }
 
 // The arrow: a solid disc in the game's colour, the one accent on
-// the card. Becomes the spinner while the match is being made.
+// the card. Becomes the spinner while its setup page loads.
 .go {
   display: inline-grid;
   place-items: center;

@@ -1,0 +1,81 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+@use "mixins/breakpoints" as bp;
+
+// The first screen: lock-up, headline, one sentence, one button, the
+// phone. Everything rises once on first paint — not on scroll — and
+// the stagger is one token so the beats are related.
+.hero {
+  --stagger-hero: 0.15s;
+  @include layout.stack(var(--space-8));
+  align-items: center;
+  box-sizing: border-box;
+  padding: calc(var(--space-12) + env(safe-area-inset-top, 0px)) var(--gutter-x) var(--space-10);
+  max-width: var(--content-max);
+  margin: 0 auto;
+  text-align: center;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  @include type.typography(label, $step: sm);
+  color: var(--mono-text);
+  animation: heroIn var(--duration-hero) var(--ease-out) both;
+}
+
+.headline {
+  @include type.typography(display, $step: 4xl);
+  color: var(--mono-text);
+  max-width: 14ch;
+  text-wrap: balance;
+
+  @include bp.tablet {
+    @include type.typography(display, $step: 6xl);
+    // A sentence a line: "Compete with your mates." is 24 characters.
+    max-width: 24ch;
+  }
+
+  @include bp.desktop {
+    @include type.typography(display, $step: 7xl);
+  }
+}
+
+.body {
+  @include type.typography(body, $step: lg);
+  color: var(--mono-text);
+  max-width: 36rem;
+  text-wrap: pretty;
+  animation: heroIn var(--duration-hero) var(--ease-out) var(--stagger-hero) both;
+
+  @include bp.tablet {
+    @include type.typography(body, $step: xl);
+  }
+}
+
+.cta {
+  animation: heroIn var(--duration-hero) var(--ease-out) calc(var(--stagger-hero) * 2) both;
+
+  > * {
+    min-width: 12.5rem;
+  }
+}
+
+.device {
+  width: 100%;
+  animation: heroIn var(--duration-hero) var(--ease-out) calc(var(--stagger-hero) * 3) both;
+}
+
+.brand, .body, .cta, .device {
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@keyframes heroIn {
+  from {
+    opacity: 0;
+    transform: translateY(var(--space-4));
+  }
+}

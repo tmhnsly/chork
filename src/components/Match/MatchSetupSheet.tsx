@@ -55,7 +55,6 @@ function prefillFrom(match: Match, grades: Props["grades"]): CreateMatchPrefill 
     altScale: alt && isFormulaScale(alt) ? alt : null,
     altMinGrade: match.alt_min_grade,
     altMaxGrade: match.alt_max_grade,
-    leagueId: match.league_id,
     customGrades: grades.map((g) => g.label),
   };
 }

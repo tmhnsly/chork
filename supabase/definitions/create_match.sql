@@ -1,5 +1,5 @@
 -- public.create_match, as it stands.
--- Generated from supabase/migrations/139_setup_page_names_the_game.sql by `pnpm db:definitions`.
+-- Generated from supabase/migrations/147_leagues_leave_the_database.sql by `pnpm db:definitions`.
 -- Do not edit: change a function with a migration, then regenerate.
 
 create or replace function public.create_match(
@@ -14,8 +14,7 @@ create or replace function public.create_match(
   p_handicap boolean default false,
   p_alt_grading_scale text default null,
   p_alt_min_grade smallint default null,
-  p_alt_max_grade smallint default null,
-  p_league_id uuid default null
+  p_alt_max_grade smallint default null
 )
 returns table(id uuid, code text)
 language plpgsql
@@ -31,7 +30,6 @@ declare
   grade_ordinal smallint;
   v_discipline text := coalesce(p_discipline, 'boulder');
   v_formula boolean := p_grading_scale in ('v', 'font', 'yds', 'french');
-  v_league public.leagues;
 begin
   if caller_id is null then
     raise exception 'Not authenticated' using errcode = '42501';
@@ -43,18 +41,6 @@ begin
     p_alt_grading_scale, p_alt_min_grade, p_alt_max_grade
   );
 
-  -- A week can only be started by the League's host, into a League
-  -- that is still running.
-  if p_league_id is not null then
-    select * into v_league from public.leagues where public.leagues.id = p_league_id;
-    if v_league.id is null or v_league.host_id <> caller_id then
-      raise exception 'Only the host can start a week of this league.';
-    end if;
-    if v_league.ended_at is not null then
-      raise exception 'This league has ended.';
-    end if;
-  end if;
-
   -- An empty lobby you already host is the game you meant. Locked, so
   -- two quick taps settle on one row rather than racing to update it.
   select s.id, s.code into new_set_id, new_code
@@ -62,7 +48,6 @@ begin
    where s.owner_kind = 'climber'
      and s.status = 'live'
      and s.host_id = caller_id
-     and s.league_id is not distinct from p_league_id
      and not exists (select 1 from public.routes r where r.set_id = s.id)
    order by s.starts_at desc
    limit 1
@@ -93,7 +78,7 @@ begin
       owner_kind, host_id, gym_id, code, name, location,
       grading_scale, min_grade, max_grade, discipline, handicap,
       alt_grading_scale, alt_min_grade, alt_max_grade,
-      status, starts_at, ends_at, last_activity_at, league_id
+      status, starts_at, ends_at, last_activity_at
     ) values (
       'climber',
       caller_id,
@@ -112,8 +97,7 @@ begin
       'live',
       now(),
       null,
-      now(),
-      p_league_id
+      now()
     )
     returning public.sets.id into new_set_id;
 

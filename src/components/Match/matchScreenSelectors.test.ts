@@ -3,6 +3,7 @@ import type { ChorkStanding, MatchLeaderboardRow } from "@/lib/data/match-types"
 import { mkBundle, mkGuest, mkGuestLog, mkLog, mkMatch, mkPlayer, mkRoute } from "@/test/match-fixtures";
 import { initMatchState, logKey, matchReducer, type MatchLocalState } from "./matchScreenReducer";
 import {
+  setupLockReason,
   canSetRoute,
   openLog,
   penHolder,
@@ -262,5 +263,25 @@ describe("a host's guest log", () => {
     });
     expect(tapped.logs.get(logKey("seat-9", "a"))?.attempts).toBe(3);
     expect(selectBoard(tapped, host).find((r) => r.player_id === "seat-9")?.points).toBe(2);
+  });
+});
+
+describe("setupLockReason", () => {
+  it("locks nothing before the first route", () => {
+    for (const section of ["game", "climbing", "details"] as const) {
+      expect(setupLockReason(section, true), section).toBeNull();
+    }
+  });
+
+  it("locks the game type with the first route — it could switch Points to Chork mid-game", () => {
+    expect(setupLockReason("game", false)).toMatch(/locked/);
+  });
+
+  it("locks the grading with the first route", () => {
+    expect(setupLockReason("climbing", false)).toMatch(/locked/);
+  });
+
+  it("leaves the name and place open", () => {
+    expect(setupLockReason("details", false)).toBeNull();
   });
 });

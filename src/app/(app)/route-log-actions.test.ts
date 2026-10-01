@@ -11,7 +11,7 @@ import { createMockSupabase } from "@/test/mock-supabase";
 // are asserted at the table level, not against a mocked helper that
 // could drift from the real write path.
 
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn(), updateTag: vi.fn() }));
 vi.mock("@/lib/cache/revalidate", () => ({
   revalidateRouteLogTags: vi.fn(),
   revalidateUserProfile: vi.fn(),
@@ -361,6 +361,20 @@ describe("updateAttempts", () => {
     expect(revalidateRouteLogTags).not.toHaveBeenCalled();
   });
 
+  it("busts the route-log tags when the route is SENT — the count is the score", async () => {
+    // A flash is 4, two goes 3: editing the goes on a sent route moves
+    // the points. Skipping the bust here left the leaderboard and the
+    // profile on the old score until a hard refresh.
+    const sb = createMockSupabase({
+      "table:route_logs": { data: logRow({ completed: true, attempts: 2 }), error: null },
+    });
+    await primeAuth(sb);
+    const { updateAttempts } = await import("./route-log-actions");
+    const { revalidateRouteLogTags } = await import("@/lib/cache/revalidate");
+    await updateAttempts(ROUTE_1, 2, LOG_1);
+    expect(revalidateRouteLogTags).toHaveBeenCalledWith(SET_1, USER_A);
+  });
+
   it("maps a DB error through formatError", async () => {
     const sb = createMockSupabase({
       "table:route_logs": {
@@ -455,6 +469,17 @@ describe("toggleZone", () => {
     const result = await toggleZone(ROUTE_1, true, LOG_1);
     expect(result).toMatchObject({ success: true, log: expect.objectContaining({ zone: true }) });
   });
+
+  it("busts the route-log tags — the zone is a point, sent or not", async () => {
+    const sb = createMockSupabase({
+      "table:route_logs": { data: logRow({ zone: true, completed: false }), error: null },
+    });
+    await primeAuth(sb);
+    const { toggleZone } = await import("./route-log-actions");
+    const { revalidateRouteLogTags } = await import("@/lib/cache/revalidate");
+    await toggleZone(ROUTE_1, true, LOG_1);
+    expect(revalidateRouteLogTags).toHaveBeenCalledWith(SET_1, USER_A);
+  });
 });
 
 // ────────────────────────────────────────────────────────────────
@@ -479,12 +504,12 @@ describe("updateGradeVote", () => {
     await primeAuth(sb);
 
     const { updateGradeVote } = await import("./route-log-actions");
-    const { revalidateTag } = await import("next/cache");
+    const { updateTag } = await import("next/cache");
     const result = await updateGradeVote(ROUTE_1, 5, LOG_1);
 
     expect(result).toMatchObject({ success: true, log: expect.objectContaining({ grade_vote: 5 }) });
     expect(sb.calls.some((c) => c.source === "route_logs" && c.method === "update")).toBe(true);
-    const bustedTags = vi.mocked(revalidateTag).mock.calls.map((c) => c[0]);
+    const bustedTags = vi.mocked(updateTag).mock.calls.map((c) => c[0]);
     expect(bustedTags).toContain(`route:${ROUTE_1}:grade`);
   });
 

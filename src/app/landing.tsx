@@ -1,90 +1,41 @@
-import { FaArrowRight } from "react-icons/fa6";
-import { LinkButton } from "@/components/ui";
 import { SiteFooter } from "@/components/landing/SiteFooter";
-import { HeroSection } from "@/components/landing/HeroSection";
-import { HeroGrid } from "@/components/landing/HeroGrid";
-import { FeatureGrid } from "@/components/landing/FeatureGrid";
-import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
-import type { Step } from "@/components/landing/HowItWorksSection";
-import { ScoringSection } from "@/components/landing/ScoringSection";
-import type { ScoreRow } from "@/components/landing/ScoringSection";
-import { FadeIn } from "@/components/landing/FadeIn";
+import { Hero } from "@/components/landing/Hero";
+import { PinnedSection, ArrivalSection } from "@/components/landing/Section";
+import { Ladder } from "@/components/landing/Ladder";
+import { QuietGrid } from "@/components/landing/QuietGrid";
+import { Contact } from "@/components/landing/Contact";
+import { Close } from "@/components/landing/Close";
+import { CARD_STEPS } from "@/components/landing/screens/cardScreen";
+import { BOARD_STEPS } from "@/components/landing/screens/boardScreen";
+import { ANYWHERE, BOARD, LOG } from "@/components/landing/copy";
 import styles from "./landing.module.scss";
 
-const steps: Step[] = [
-  {
-    number: 1,
-    title: "Sign in",
-    description: "Create an account in seconds. Pick your gym and you're in.",
-  },
-  {
-    number: 2,
-    title: "See the current set",
-    description: "Your gym's active routes appear as a send grid. Tap any tile to start logging.",
-  },
-  {
-    number: 3,
-    title: "Log your attempts",
-    description: "Track tries, mark completions, vote on grades. Everything stays between you and the wall.",
-  },
-  {
-    number: 4,
-    title: "Share beta",
-    description: "Sent a route? Leave hints for your friends. Beta spray is blurred until you send it yourself.",
-  },
-  {
-    number: 5,
-    title: "Compete",
-    description: "Points accumulate across sends. Flashes and zones earn bonus. Rise up the leaderboard.",
-  },
-];
-
-const scoreRows: ScoreRow[] = [
-  { label: "Flash (1st try)", points: "4 pts", weight: 1, accent: "flash" },
-  { label: "2 attempts", points: "3 pts", weight: 0.75 },
-  { label: "3 attempts", points: "2 pts", weight: 0.5 },
-  { label: "4+ attempts", points: "1 pt", weight: 0.25 },
-  { label: "Zone hold", points: "+1 pt", weight: 0.25, accent: "zone" },
-];
-
+/**
+ * The logged-out homepage. A sequence of screens, each one claim and
+ * the product doing the thing — the real app on a phone, with
+ * fixture data, changing state as the reader scrolls. The order is
+ * the order a stranger asks in: what is this, how do I use it, how is
+ * it scored, where do I stand, can I run my own, what else, who made
+ * it, how do I join. See docs/superpowers/specs/2026-09-30-marketing-page-design.md.
+ */
 export function LandingPage() {
-  const ctaButton = (
-    <LinkButton href="/login">
-      Get started<FaArrowRight aria-hidden />
-    </LinkButton>
-  );
-
   return (
     <div className={styles.page}>
-      <HeroSection
-        headline="Track your sends. Compete with your friends."
-        subheadline="The bouldering comp tracker that keeps score so you can keep climbing."
-        cta={ctaButton}
-        visual={<HeroGrid />}
-      />
+      <main>
+      <Hero />
 
-      <FeatureGrid />
+      <PinnedSection headline={LOG.headline} body={LOG.body} steps={CARD_STEPS} deviceLabel={LOG.deviceLabel} screen="card" />
 
-      <FadeIn>
-        <HowItWorksSection steps={steps} />
-      </FadeIn>
+      <Ladder />
 
-      <FadeIn>
-        <ScoringSection rows={scoreRows} />
-      </FadeIn>
+      <PinnedSection headline={BOARD.headline} body={BOARD.body} steps={BOARD_STEPS} deviceLabel={BOARD.deviceLabel} screen="board" />
 
-      <FadeIn>
-        <section className={styles.ctaSection}>
-          <h2 className={styles.ctaHeadline}>Ready to climb?</h2>
-          <p className={styles.ctaSub}>
-            Join your friends on the wall. It takes ten seconds.
-          </p>
-          <LinkButton href="/login" variant="secondary">
-            Sign up free<FaArrowRight aria-hidden />
-          </LinkButton>
-        </section>
-      </FadeIn>
+      <ArrivalSection headline={ANYWHERE.headline} body={ANYWHERE.body} deviceLabel={ANYWHERE.deviceLabel} screen="game" />
 
+      <QuietGrid />
+      <Contact />
+      <Close />
+      </main>
       <SiteFooter />
     </div>
   );

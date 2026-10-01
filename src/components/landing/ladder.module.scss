@@ -1,0 +1,15 @@
+@use "mixins/layout" as layout;
+
+.ladder {
+  @include layout.stack(var(--space-8));
+  box-sizing: border-box;
+  padding: var(--section-gap) var(--gutter-x);
+  max-width: var(--content-max);
+  margin: 0 auto;
+}
+
+.chart {
+  width: 100%;
+  max-width: var(--content-app);
+  margin: 0 auto;
+}

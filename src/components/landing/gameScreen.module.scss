@@ -1,0 +1,31 @@
+@use "mixins/layout" as layout;
+@use "mixins/typography" as type;
+
+.game {
+  @include layout.stack(var(--space-4));
+}
+
+.title {
+  @include type.typography(display, $step: 2xl);
+  color: var(--mono-text);
+}
+
+.players {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.stack {
+  display: inline-flex;
+
+  > * + * {
+    margin-left: calc(var(--space-2) * -1);
+  }
+}
+
+.playersCount {
+  @include type.typography(meta);
+  // Step 12: this sits on the page plane, where step 11 isn't AA.
+  color: var(--mono-text);
+}

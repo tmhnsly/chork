@@ -572,38 +572,6 @@ export type Database = {
           },
         ]
       }
-      leagues: {
-        Row: {
-          created_at: string
-          ended_at: string | null
-          host_id: string
-          id: string
-          name: string
-        }
-        Insert: {
-          created_at?: string
-          ended_at?: string | null
-          host_id: string
-          id?: string
-          name: string
-        }
-        Update: {
-          created_at?: string
-          ended_at?: string | null
-          host_id?: string
-          id?: string
-          name?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "leagues_host_id_fkey"
-            columns: ["host_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       notifications: {
         Row: {
           created_at: string
@@ -1040,7 +1008,6 @@ export type Database = {
           host_id: string | null
           id: string
           last_activity_at: string | null
-          league_id: string | null
           location: string | null
           max_grade: number | null
           min_grade: number | null
@@ -1070,7 +1037,6 @@ export type Database = {
           host_id?: string | null
           id?: string
           last_activity_at?: string | null
-          league_id?: string | null
           location?: string | null
           max_grade?: number | null
           min_grade?: number | null
@@ -1100,7 +1066,6 @@ export type Database = {
           host_id?: string | null
           id?: string
           last_activity_at?: string | null
-          league_id?: string | null
           location?: string | null
           max_grade?: number | null
           min_grade?: number | null
@@ -1132,13 +1097,6 @@ export type Database = {
             columns: ["host_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "sets_league_id_fkey"
-            columns: ["league_id"]
-            isOneToOne: false
-            referencedRelation: "leagues"
             referencedColumns: ["id"]
           },
           {
@@ -1330,10 +1288,6 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      add_match_to_league: {
-        Args: { p_league_id: string; p_set_id: string }
-        Returns: string
-      }
       auto_archive_ended_sets: { Args: never; Returns: number }
       auto_publish_due_sets: { Args: never; Returns: number }
       bump_invite_rate_limit: { Args: never; Returns: boolean }
@@ -1433,10 +1387,6 @@ export type Database = {
         }
         Returns: string
       }
-      create_league: {
-        Args: { p_name: string; p_set_id: string }
-        Returns: string
-      }
       create_match: {
         Args: {
           p_alt_grading_scale?: string
@@ -1446,7 +1396,6 @@ export type Database = {
           p_discipline?: string
           p_grading_scale?: string
           p_handicap?: boolean
-          p_league_id?: string
           p_location?: string
           p_max_grade?: number
           p_min_grade?: number
@@ -1460,7 +1409,6 @@ export type Database = {
       }
       delete_match: { Args: { p_set_id: string }; Returns: string }
       discipline_family: { Args: { p_discipline: string }; Returns: string }
-      end_league: { Args: { p_league_id: string }; Returns: string }
       end_match: {
         Args: { p_set_id: string }
         Returns: {
@@ -1481,7 +1429,6 @@ export type Database = {
           host_id: string | null
           id: string
           last_activity_at: string | null
-          league_id: string | null
           location: string | null
           max_grade: number | null
           min_grade: number | null
@@ -1788,7 +1735,6 @@ export type Database = {
           zones: number
         }[]
       }
-      get_league: { Args: { p_league_id: string }; Returns: Json }
       get_match_achievement_context: {
         Args: { p_user_id: string }
         Returns: {
@@ -1848,19 +1794,6 @@ export type Database = {
       get_match_state_for_user: {
         Args: { p_set_id: string; p_user_id: string }
         Returns: Json
-      }
-      get_my_leagues: {
-        Args: never
-        Returns: {
-          ended_at: string
-          host_id: string
-          id: string
-          is_host: boolean
-          last_week_at: string
-          my_rank: number
-          name: string
-          week_count: number
-        }[]
       }
       get_profile_summary: {
         Args: { p_gym_id: string; p_user_id: string }
@@ -1982,56 +1915,6 @@ export type Database = {
           isSetofReturn: false
         }
       }
-      league_assert_addable: {
-        Args: { p_host_id: string; p_set_id: string }
-        Returns: undefined
-      }
-      league_assert_host: {
-        Args: { p_host_id: string; p_league_id: string }
-        Returns: {
-          created_at: string
-          ended_at: string | null
-          host_id: string
-          id: string
-          name: string
-        }
-        SetofOptions: {
-          from: "*"
-          to: "leagues"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
-      league_drops: { Args: { p_weeks: number }; Returns: number }
-      league_placement_points: { Args: { p_rank: number }; Returns: number }
-      league_standings: {
-        Args: { p_league_id: string }
-        Returns: {
-          avatar_url: string
-          display_name: string
-          dropped_points: number
-          firsts: number
-          played: number
-          points: number
-          rank: number
-          seconds: number
-          thirds: number
-          user_id: string
-          username: string
-        }[]
-      }
-      league_visible_to: {
-        Args: { p_league_id: string; p_user_id: string }
-        Returns: boolean
-      }
-      league_week_placings: {
-        Args: { p_set_id: string }
-        Returns: {
-          player_id: string
-          rank: number
-          user_id: string
-        }[]
-      }
       lookup_match_by_code: {
         Args: { p_code: string }
         Returns: {
@@ -2108,7 +1991,6 @@ export type Database = {
           host_id: string | null
           id: string
           last_activity_at: string | null
-          league_id: string | null
           location: string | null
           max_grade: number | null
           min_grade: number | null
@@ -2132,14 +2014,6 @@ export type Database = {
         Returns: undefined
       }
       remove_friend: { Args: { p_user_id: string }; Returns: undefined }
-      remove_match_from_league: {
-        Args: { p_league_id: string; p_set_id: string }
-        Returns: string
-      }
-      rename_league: {
-        Args: { p_league_id: string; p_name: string }
-        Returns: string
-      }
       request_friend: {
         Args: { p_user_id: string }
         Returns: {
@@ -2242,7 +2116,6 @@ export type Database = {
           host_id: string | null
           id: string
           last_activity_at: string | null
-          league_id: string | null
           location: string | null
           max_grade: number | null
           min_grade: number | null
@@ -2281,7 +2154,6 @@ export type Database = {
           host_id: string | null
           id: string
           last_activity_at: string | null
-          league_id: string | null
           location: string | null
           max_grade: number | null
           min_grade: number | null
@@ -2338,7 +2210,6 @@ export type Database = {
           host_id: string | null
           id: string
           last_activity_at: string | null
-          league_id: string | null
           location: string | null
           max_grade: number | null
           min_grade: number | null

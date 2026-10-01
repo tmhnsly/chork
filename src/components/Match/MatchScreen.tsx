@@ -27,6 +27,7 @@ import {
   penHolder,
   routeBeingEdited,
   seatInPanel,
+  setupLockReason,
 } from "./matchScreenSelectors";
 import { MatchSetupPills } from "./MatchSetupPills";
 import { MatchSetupSheet } from "./MatchSetupSheet";
@@ -128,10 +129,11 @@ export function MatchScreen({ bundle, userId, savedScales }: Props) {
           <MatchSetupPills
             match={match}
             isHost={isHost}
-            locked={!lobby}
+            lobby={lobby}
             onOpen={(section) => {
-              if (!lobby && section === "climbing") {
-                showToast("Grading is locked once a route is up", "error");
+              const locked = setupLockReason(section, lobby);
+              if (locked) {
+                showToast(locked, "error");
                 return;
               }
               openPanel({ kind: "setup", section });
@@ -368,15 +370,7 @@ export function MatchScreen({ bundle, userId, savedScales }: Props) {
       {panel.kind === "menu" && (
         <MatchMenuSheet
           isHost={isHost}
-          canDelete={canDeleteGame(
-            {
-              hostId: match.host_id,
-              leagueId: match.league_id,
-              status: match.status,
-              routeCount: state.routes.length,
-            },
-            userId,
-          )}
+          canDelete={canDeleteGame({ hostId: match.host_id }, userId)}
           deleteWarning={deleteGameWarning(state.players, userId)}
           onClose={closePanel}
           onEnd={handleEnd}

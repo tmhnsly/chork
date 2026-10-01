@@ -1,0 +1,51 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+@use "mixins/surfaces" as surface;
+@use "mixins/container-queries" as cq;
+
+.quiet {
+  @include layout.stack(var(--space-6));
+  box-sizing: border-box;
+  padding: var(--section-gap) var(--gutter-x);
+  max-width: var(--content-wide);
+  margin: 0 auto;
+  container: tile / inline-size;
+}
+
+.headline {
+  @include type.typography(card-title, $step: xl);
+  color: var(--mono-text);
+  text-align: center;
+}
+
+// Dense on purpose: four small facts, not four feature cards. Two up
+// on a phone, four across once the container allows it.
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  @include cq.split {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.item {
+  @include surface.card;
+  @include layout.stack(var(--space-1));
+  padding: var(--space-4);
+  border-radius: var(--radius-card);
+}
+
+.title {
+  @include type.typography(card-title, $step: md);
+  color: var(--mono-text);
+}
+
+.body {
+  @include type.typography(meta);
+  color: var(--mono-text-low-contrast);
+}

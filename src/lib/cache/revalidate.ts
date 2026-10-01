@@ -1,6 +1,6 @@
 import "server-only";
 
-import { revalidateTag } from "next/cache";
+import { updateTag } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/database.types";
 
@@ -21,7 +21,12 @@ type Supabase = SupabaseClient<Database>;
  * Use after any profile-row mutation that changes a field rendered on
  * /u/[username]: active_gym_id, theme, allow_crew_invites, admin
  * additions, etc. updateProfile (which already handles renames) calls
- * revalidateTag directly with the captured old + new usernames instead.
+ * updateTag directly with the captured old + new usernames instead.
+ *
+ * `updateTag`, never `revalidateTag` with the "max" profile: these run inside server
+ * actions, where a profile makes the bust stale-while-revalidate — the
+ * next read still serves the old entry and this device's router cache
+ * is not dropped. `action-hygiene.test.ts` holds the line.
  */
 export async function revalidateUserProfile(
   supabase: Supabase,
@@ -40,7 +45,7 @@ export async function revalidateUserProfile(
     });
   }
   if (data?.username) {
-    revalidateTag(tags.userByUsername(data.username), "max");
+    updateTag(tags.userByUsername(data.username));
   }
 }
 
@@ -64,5 +69,5 @@ export function revalidateRouteLogTags(
   setId: string | null,
   _userId: string,
 ): void {
-  if (setId) revalidateTag(tags.setLeaderboard(setId), "max");
+  if (setId) updateTag(tags.setLeaderboard(setId));
 }

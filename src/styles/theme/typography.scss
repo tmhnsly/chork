@@ -105,6 +105,18 @@
   --leading-5xl: 1.1;
   --tracking-5xl: -0.02em;
 
+  /* Marketing display. The app's largest title is 48px; a product
+     page's hero is not a page title, it is a poster, and at 48px on a
+     1440 screen it reads as a card heading. Two rungs above, on the
+     same curve: tracking keeps tightening, leading keeps closing. */
+  --text-6xl: 3.75rem; /* 60px */
+  --leading-6xl: 1.05;
+  --tracking-6xl: -0.025em;
+
+  --text-7xl: 4.5rem; /* 72px */
+  --leading-7xl: 1;
+  --tracking-7xl: -0.03em;
+
   /* ── Tracking modifiers ─────────────────────────────────────
    * Added on top of the step's tracking, never instead of it.
    */
@@ -132,6 +144,8 @@
   --tracking-caps-3xl: 0em;
   --tracking-caps-4xl: 0em;
   --tracking-caps-5xl: 0em;
+  --tracking-caps-6xl: 0em;
+  --tracking-caps-7xl: 0em;
 
   /* Join codes (`JX3K8M`). Wide enough that G/C and K/X stay
      distinct when someone is reading a code off a friend's phone.

@@ -4,7 +4,7 @@ import type { Database } from "../database.types";
  * Compile-time pins between the hand-written domain types and the
  * generated ones.
  *
- * `match-types.ts` and `league-types.ts` describe rows by hand so the
+ * `match-types.ts` describes rows by hand so the
  * domain can narrow them (`status: "live" | "archived"`, not `string`).
  * Nothing tied those shapes to `database.types.ts`, so a column renamed
  * or dropped by a migration left a field that compiled and read

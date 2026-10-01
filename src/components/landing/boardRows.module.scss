@@ -1,0 +1,23 @@
+// A list where every row sits in a slot one row tall and slides to a
+// new slot when its rank changes. Absolute rows on a fixed-height
+// list: the only way a reorder is a transition rather than a jump
+// without a layout-animation library.
+.rows {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  height: calc(var(--row-count) * var(--size-board-row));
+}
+
+.row {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: var(--size-board-row);
+  transform: translateY(calc(var(--slot) * var(--size-board-row)));
+  transition: transform var(--duration-normal) var(--ease-out);
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}

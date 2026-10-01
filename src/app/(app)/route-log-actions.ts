@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidateTag } from "next/cache";
+import { updateTag } from "next/cache";
 import { revalidateRouteLogTags } from "@/lib/cache/revalidate";
 import { gateClimberMutation } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
@@ -49,8 +49,13 @@ export async function updateAttempts(
 
   try {
     const log = await upsertRouteLog(supabase, userId, routeId, { attempts }, logId, gymId);
-    // No revalidatePath — attempts are frequent, optimistic UI handles it.
-    // Completion/uncompletion revalidate instead.
+    // Attempts on a route you haven't sent score nothing, and those are
+    // the frequent taps: no revalidation, the optimistic UI owns them.
+    // On a SENT route the count is the score (a flash is 4, two goes 3…),
+    // so it busts like a completion does — which also drops this
+    // device's router cache. Skipping it here left the leaderboard and
+    // your profile on the old points until a hard refresh.
+    if (log.completed) revalidateRouteLogTags(log.set_id, userId);
     return { success: true, log };
   } catch (err) {
     return { error: formatError(err) };
@@ -190,7 +195,10 @@ export async function toggleZone(
 
   try {
     const log = await upsertRouteLog(supabase, userId, routeId, { zone }, logId, gymId);
-    // No revalidatePath — zone toggle is frequent, optimistic UI handles it.
+    // The zone is +1 point, sent or not, so it moves the score like a
+    // completion does (see `updateAttempts`). A toggle is one tap, not a
+    // stream, so busting on it costs nothing a completion doesn't.
+    revalidateRouteLogTags(log.set_id, userId);
     return { success: true, log };
   } catch (err) {
     return { error: formatError(err) };
@@ -213,7 +221,7 @@ export async function updateGradeVote(
     // routes.community_grade is updated via trigger (migration 026).
     // Bust the per-route grade cache entry so the route sheet shows
     // fresh average within the next request.
-    revalidateTag(tags.routeGrade(routeId), "max");
+    updateTag(tags.routeGrade(routeId));
     return { success: true, log };
   } catch (err) {
     return { error: formatError(err) };

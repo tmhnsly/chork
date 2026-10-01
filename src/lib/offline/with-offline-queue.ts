@@ -6,9 +6,12 @@ import type { OfflineAction } from "./types";
  * network request fails. Returns a synthetic success so the optimistic UI
  * (already applied before the call) stays in place.
  *
- * The synthetic shape is `{ success: true, log: null }` — matching what
- * the queued actions return on the online path, minus the row we don't
- * have yet. Callers must therefore treat `log` as optional.
+ * The synthetic shape is `{ success: true, log: null, queued: true }` —
+ * what the queued actions return on the online path, minus the row we
+ * don't have yet, plus `queued` so a caller can tell "the server has it"
+ * from "it's waiting in IndexedDB" (the game screen keeps a queued tap's
+ * local copy through a resync until the replay's echo lands). Callers
+ * must therefore treat `log` as optional.
  */
 
 /**
@@ -44,7 +47,7 @@ export function withOfflineQueue<
       routeId: extractRouteId(...args),
     });
     if (!queued) return { error: QUEUE_FAILED_ERROR } as ReturnType<T>;
-    return { success: true, log: null } as ReturnType<T>;
+    return { success: true, log: null, queued: true } as ReturnType<T>;
   }
 
   return async (...args: Parameters<T>): Promise<ReturnType<T>> => {

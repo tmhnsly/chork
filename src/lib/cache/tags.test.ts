@@ -18,12 +18,13 @@ import { tags } from "./tags";
  * Rules, one test each:
  *   1. Every tag constructor is registered on at least one
  *      `cachedQuery({ tags: [...] })` reader (a use on a line that
- *      is not a `revalidateTag` call).
+ *      is not a `revalidateTag` / `updateTag` call).
  *   2. Every constructor is actually used somewhere — no aspirational
  *      entries "reserved for later".
  *
  * And the other direction, since 2026-09-30:
- *   3. Every constructor has at least one `revalidateTag` buster, or
+ *   3. Every constructor has at least one buster (`updateTag` from a
+ *      server action, or `revalidateTag` elsewhere), or
  *      a named entry in BUSTER_EXEMPT explaining why TTL-only refresh
  *      is the design. Before this, "which tag does my mutation bust"
  *      lived only in a doc table — which had already drifted: two
@@ -66,7 +67,7 @@ function usesOf(name: string): { registrations: Use[]; busts: Use[] } {
     for (const line of file.lines) {
       if (!re.test(line)) continue;
       const use = { path: file.path, line: line.trim() };
-      if (line.includes("revalidateTag")) busts.push(use);
+      if (/\b(revalidateTag|updateTag)\(/.test(line)) busts.push(use);
       else registrations.push(use);
     }
   }
@@ -126,7 +127,7 @@ describe("cache tag hygiene (buster direction)", () => {
       }
       expect(
         busts.length,
-        `tags.${name} has a cachedQuery reader but NO revalidateTag ` +
+        `tags.${name} has a cachedQuery reader but NO updateTag/revalidateTag ` +
           `buster — its entries only refresh by TTL. Either bust it ` +
           `from the mutation that changes what it caches, or add a ` +
           `BUSTER_EXEMPT entry saying why TTL-only is the design.`,

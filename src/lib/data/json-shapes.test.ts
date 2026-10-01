@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { latestDefinition } from "@/test/sql-definitions";
 import { keysOf } from "@/test/keys-of";
 import type { MatchLeaderboardRow, MatchLog, MatchPlayerView, MatchState } from "./match-types";
-import type { LeagueView, LeagueWeek } from "./league-types";
 import type { ProfileSummary } from "./profile-queries";
 import type { PlayerRow, ResultPayload } from "./shared-result";
 
@@ -129,30 +128,6 @@ describe("get_match_state_for_user builds what MatchState declares", () => {
         "attempts",
         "last_send_at",
         "rank",
-      ]),
-    );
-  });
-});
-
-describe("get_league builds what LeagueView declares", () => {
-  const sql = latestDefinition("get_league").body;
-
-  it("the view's own fields", () => {
-    expectBuilds(sql, keysOf<LeagueView>()(["league", "is_host", "weeks"]));
-  });
-
-  it("a week", () => {
-    expectBuilds(
-      section(sql, "weeks", null),
-      keysOf<LeagueWeek>()([
-        "set_id",
-        "name",
-        "status",
-        "game_mode",
-        "starts_at",
-        "ends_at",
-        "player_count",
-        "winner_user_id",
       ]),
     );
   });

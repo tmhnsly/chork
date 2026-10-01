@@ -45,13 +45,30 @@ export type MatchEvent =
    * sent while a socket was down, and a phone at the wall locks
    * between every climb. A missed log healed itself, because the next
    * one refetched the board, but a missed route stayed missing until a
-   * reload: scores moved while the grid didn't. Emitted when the
-   * channel joins again after a drop, and when the page comes back
-   * into view, since a suspended socket can take a while to notice it
-   * died. Events between the page returning and the rejoin are lost
-   * too, so both are needed.
+   * reload: scores moved while the grid didn't. Emitted on EVERY join
+   * of the channel — see `channelStatusEvent` — and when the page comes
+   * back into view, since a suspended socket can take a while to
+   * notice it died. Events between the page returning and the rejoin
+   * are lost too, so both are needed.
    */
   | { kind: "resume" };
+
+/**
+ * What a channel status means for the screen: every join is a resync,
+ * the FIRST one included.
+ *
+ * The first join used to be skipped on the grounds that the mount's
+ * bundle was fresh. It often isn't: navigate away from a game and back
+ * inside a minute and Next's client router cache (`staleTimes.dynamic`
+ * in next.config.ts) hands the page the payload it had before, so a
+ * route you'd just added was missing until a hard refresh. And even a
+ * truly fresh bundle has a gap — anything that happened between the
+ * server rendering it and this channel joining is never replayed.
+ * Subscribe, then resync: the standard shape for a live view.
+ */
+export function channelStatusEvent(status: string): MatchEvent | null {
+  return status === "SUBSCRIBED" ? { kind: "resume" } : null;
+}
 
 /**
  * Subscribes to one Match's live tables (`routes`, `route_logs`,
@@ -82,7 +99,6 @@ export function useMatchRealtime(matchId: string, onEvent: (event: MatchEvent) =
     if (!matchId) return;
     const supabase = createBrowserSupabase();
     const channel = supabase.channel(`match:${matchId}`);
-    let joined = false;
 
     // Filtered on `set_id` — the column migration 080 denormalised
     // onto `route_logs` for exactly this. The filter matters more here
@@ -118,12 +134,9 @@ export function useMatchRealtime(matchId: string, onEvent: (event: MatchEvent) =
         (payload: unknown) =>
           onEventRef.current({ kind: "match", evt: payload as MatchRealtimeEvent<Match> }),
       )
-      // The first join is the mount, whose bundle is already fresh;
-      // any later one follows a drop.
       .subscribe((status) => {
-        if (status !== "SUBSCRIBED") return;
-        if (joined) onEventRef.current({ kind: "resume" });
-        joined = true;
+        const event = channelStatusEvent(status);
+        if (event) onEventRef.current(event);
       });
 
     const onVisibility = () => {

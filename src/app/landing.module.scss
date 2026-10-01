@@ -1,32 +1,7 @@
-@use "mixins/typography" as type;
-@use "mixins/layout" as layout;
-
+// The page is its sections; each owns its own rhythm (the hero open,
+// the pinned sections a viewport each, the quiet grid dense, the
+// close full-bleed). Bottom clearance for the nav pill lives on
+// SiteFooter.
 .page {
-  padding-top: env(safe-area-inset-top, 0px);
-  // Bottom safe-area clearance lives on `SiteFooter` so the footer
-  // owns the full gap above the nav pill. Page itself just runs its
-  // sections to the footer and stops.
-}
-
-// ── CTA section ───────────────────────────────────
-.ctaSection {
-  @include layout.stack(var(--space-4));
-  // Full-bleed band — edge-to-edge on every viewport, no rounded
-  // corners. Gutter padding stays on the inside so copy doesn't
-  // touch the screen edge.
-  padding: var(--section-gap) var(--gutter-x);
-  margin: 0;
-  text-align: center;
-  align-items: center;
-  background: var(--brand);
-}
-
-.ctaHeadline {
-  @include type.typography(display);
-  color: var(--accent-on-solid);
-}
-
-.ctaSub {
-  @include type.typography(body);
-  color: var(--accent-on-solid);
+  overflow-x: clip;
 }

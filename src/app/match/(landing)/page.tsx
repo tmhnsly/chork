@@ -19,7 +19,7 @@ export const metadata = {
  *   1. The live-game banner and any game invites, which exist or
  *      don't. No route skeleton could reserve them, so there is no
  *      route skeleton: they reveal and the card beneath tweens down.
- *   2. Leagues and recent games, revealed over their own skeleton.
+ *   2. Recent games, revealed over their own skeleton.
  *
  * Auth is the one thing the shell waits for, and it is a cookie read.
  */

@@ -87,7 +87,8 @@
   // circles at this size; matching the wall removes both the
   // roundness and the number behind it.
   aspect-ratio: 1;
-  background: var(--mono-bg);
+  // The real tile's token, so the preview can't drift from the grid.
+  background: var(--surface-tile);
 }
 
 .sent {

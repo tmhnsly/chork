@@ -46,8 +46,7 @@ export function isFormulaScale(
 
 /**
  * What the setup reducer starts from: a new game's defaults
- * (`newGamePrefill`), a League's last week so a fixture isn't set up
- * twice, or an existing game opened in its setup sheet.
+ * (`newGamePrefill`), or an existing game opened in its setup sheet.
  */
 export interface CreateMatchPrefill {
   name: string;
@@ -62,8 +61,6 @@ export interface CreateMatchPrefill {
   altScale: FormulaScale | null;
   altMinGrade: number | null;
   altMaxGrade: number | null;
-  /** Null when hydrating from a match that is not a League week. */
-  leagueId: string | null;
   /** The custom ladder, when hydrating an existing custom-scale match. */
   customGrades?: string[];
 }
@@ -110,9 +107,6 @@ export interface CreateMatchState {
   newGradeInput: string;
   saveScale: boolean;
   scaleName: string;
-
-  /** Set when this Match is being started as a week of a League. */
-  leagueId: string | null;
 }
 
 export type CreateMatchAction =
@@ -184,7 +178,6 @@ export function initialCreateMatchState(prefill?: CreateMatchPrefill): CreateMat
     newGradeInput: "",
     saveScale: false,
     scaleName: "",
-    leagueId: null,
   };
   if (!prefill) return base;
   const ranges = { ...base.ranges };
@@ -193,7 +186,7 @@ export function initialCreateMatchState(prefill?: CreateMatchPrefill): CreateMat
   }
   // Mirror the primary-scale rule for the mixed-day ladder: only
   // seed its range when both the alt scale and both its bounds
-  // survived from the last week.
+  // survived from the game being prefilled.
   if (prefill.altScale !== null && prefill.altMinGrade !== null && prefill.altMaxGrade !== null) {
     ranges[prefill.altScale] = [prefill.altMinGrade, prefill.altMaxGrade];
   }
@@ -207,7 +200,6 @@ export function initialCreateMatchState(prefill?: CreateMatchPrefill): CreateMat
     gameMode: prefill.gameMode,
     ranges,
     altScale: prefill.altScale,
-    leagueId: prefill.leagueId,
     customGrades: prefill.scale === "custom" ? (prefill.customGrades ?? []) : [],
   };
 }
@@ -231,7 +223,6 @@ export function newGamePrefill(gameMode: "points" | "chork", name: string): Crea
     altScale: null,
     altMinGrade: null,
     altMaxGrade: null,
-    leagueId: null,
   };
 }
 
@@ -419,7 +410,6 @@ export interface CreateMatchFormPayload {
   altGradingScale: FormulaScale | null;
   altMinGrade: number | null;
   altMaxGrade: number | null;
-  leagueId: string | null;
 }
 
 /**
@@ -448,6 +438,5 @@ export function buildCreateMatchPayload(
     altGradingScale: state.altScale,
     altMinGrade: altRange ? altRange[0] : null,
     altMaxGrade: altRange ? altRange[1] : null,
-    leagueId: state.leagueId,
   };
 }

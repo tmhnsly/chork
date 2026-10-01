@@ -8,7 +8,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn(), updateTag: vi.fn() }));
 vi.mock("@/lib/auth", async () => (await import("@/test/mock-auth")).mockAuthModule());
 
 // `markAllNotificationsRead` routes through the

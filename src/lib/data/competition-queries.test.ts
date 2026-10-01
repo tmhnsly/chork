@@ -10,7 +10,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 // doesn't serialise or short-circuit in test.
 vi.mock("next/cache", () => ({
   unstable_cache: (fn: (...args: unknown[]) => unknown) => fn,
-  revalidateTag: vi.fn(),
+  revalidateTag: vi.fn(),  updateTag: vi.fn(),
 }));
 
 import { createMockSupabase } from "@/test/mock-supabase";

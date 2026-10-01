@@ -1,0 +1,118 @@
+@use "mixins/typography" as type;
+@use "mixins/layout" as layout;
+@use "mixins/breakpoints" as bp;
+
+// ── Copy ───────────────────────────────────────────
+// One claim: a headline and a sentence or two, centred, on a measure
+// that never runs past 60 characters. Weight and colour do the
+// hierarchy; the body is step 12 on the page plane (step 11 is only
+// AA on a card).
+.copy {
+  @include layout.stack(var(--space-4));
+  flex: none;
+  align-items: center;
+  text-align: center;
+  max-width: var(--content-prose);
+  margin: 0 auto;
+}
+
+.headline {
+  @include type.typography(display, $step: 3xl);
+  color: var(--mono-text);
+  text-wrap: balance;
+
+  @include bp.tablet {
+    @include type.typography(display, $step: 5xl);
+  }
+
+  // A short viewport spends its height on the device, not the title.
+  @include bp.short {
+    @include type.typography(display, $step: 2xl);
+  }
+}
+
+.body {
+  @include type.typography(body, $step: lg);
+  color: var(--mono-text);
+  max-width: 36rem;
+  text-wrap: balance;
+
+  @include bp.tablet {
+    @include type.typography(body, $step: xl);
+  }
+
+  @include bp.short {
+    @include type.typography(body);
+  }
+}
+
+// ── Pinned ─────────────────────────────────────────
+// The block is --pin-vh viewport-heights tall; its stage sticks for
+// the whole travel, so the reader scrolls the device through its
+// states with the copy held above it. The copy is visible from the
+// first pixel of the pin: nothing on the page waits on scroll except
+// what the device shows.
+.pinned {
+  --pin-vh: 2.5;
+  height: calc(var(--pin-vh) * 100svh);
+
+  &[data-static] {
+    height: auto;
+  }
+}
+
+.stage {
+  position: sticky;
+  top: 0;
+  box-sizing: border-box;
+  height: 100svh;
+  // Copy and device are one group, centred in the viewport. A tall
+  // viewport gets even air above and below; a short one shrinks the
+  // device (never the copy) to what's left.
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-8);
+  padding: calc(var(--space-10) + env(safe-area-inset-top, 0px)) var(--gutter-x)
+    calc(var(--navbar-height) + env(safe-area-inset-bottom, 0px) + var(--space-6));
+  max-width: var(--content-max);
+  margin: 0 auto;
+
+  [data-static] & {
+    position: static;
+    height: auto;
+  }
+
+  // Short: tighter above and between, so the device keeps enough
+  // height to show the podium's floor and the whole log sheet.
+  @include bp.short {
+    gap: var(--space-4);
+    padding-top: calc(var(--space-4) + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(var(--navbar-height) + env(safe-area-inset-bottom, 0px) + var(--space-3));
+  }
+}
+
+// The device row: shrinks before the copy does, and its frame clips
+// to it, so on a phone the top of the app is what shows.
+.device {
+  flex: 0 1 auto;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+
+  > * {
+    max-height: 100%;
+  }
+}
+
+// ── Arrival ────────────────────────────────────────
+// Not pinned. The device does one state change when the section is
+// on screen; the copy is plain flow.
+.arrival {
+  @include layout.stack(var(--space-8));
+  box-sizing: border-box;
+  padding: var(--section-gap) var(--gutter-x);
+  max-width: var(--content-max);
+  margin: 0 auto;
+}

@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidateTag } from "next/cache";
+import { updateTag } from "next/cache";
 import {
   gateSignedInMutation,
   requireCompetitionOrganiser,
@@ -58,7 +58,7 @@ export async function createNewCompetition(form: {
     .single();
   if (error || !data) return { error: formatError(error) };
 
-  revalidateTag(tags.competition(data.id), "max");
+  updateTag(tags.competition(data.id));
   return { success: true, competitionId: data.id };
 }
 
@@ -103,7 +103,7 @@ export async function updateCompetitionAction(
     .eq("id", competitionId);
   if (error) return { error: formatError(error) };
 
-  revalidateTag(tags.competition(competitionId), "max");
+  updateTag(tags.competition(competitionId));
   return { success: true };
 }
 
@@ -131,7 +131,7 @@ export async function linkCompetitionGym(form: {
     );
   if (error) return { error: formatError(error) };
 
-  revalidateTag(tags.competition(form.competitionId), "max");
+  updateTag(tags.competition(form.competitionId));
   return { success: true };
 }
 
@@ -153,7 +153,7 @@ export async function unlinkCompetitionGym(form: {
     .eq("gym_id", form.gymId);
   if (error) return { error: formatError(error) };
 
-  revalidateTag(tags.competition(form.competitionId), "max");
+  updateTag(tags.competition(form.competitionId));
   return { success: true };
 }
 
@@ -181,7 +181,7 @@ export async function addCompetitionCategory(form: {
     .single();
   if (error || !data) return { error: formatError(error) };
 
-  revalidateTag(tags.competition(form.competitionId), "max");
+  updateTag(tags.competition(form.competitionId));
   return { success: true, categoryId: data.id };
 }
 
@@ -209,6 +209,6 @@ export async function removeCompetitionCategory(categoryId: string): Promise<Act
     .eq("id", categoryId);
   if (error) return { error: formatError(error) };
 
-  revalidateTag(tags.competition(cat.competition_id), "max");
+  updateTag(tags.competition(cat.competition_id));
   return { success: true };
 }

@@ -14,6 +14,14 @@ export interface ScoreRow {
 
 interface Props {
   rows: ScoreRow[];
+  /**
+   * What the chart is drawn on. `card` (default, the Chorkboard's
+   * card) keeps the row labels and the flash and zone points at step
+   * 11; `page` lifts them to step 12, because step-11 text is only AA
+   * on steps 1–2 and the light page plane is step 3 (the marketing
+   * page's "4 pts" measured 4.06:1).
+   */
+  plane?: "card" | "page";
 }
 
 function Row({ row }: { row: ScoreRow }) {
@@ -64,9 +72,9 @@ function Row({ row }: { row: ScoreRow }) {
  * Caller supplies the rows (kept serialisable + parameterised so the
  * same primitive can render Flash/Zone accents as needed).
  */
-export function ScoringChart({ rows }: Props) {
+export function ScoringChart({ rows, plane = "card" }: Props) {
   return (
-    <div className={styles.chart}>
+    <div className={plane === "page" ? `${styles.chart} ${styles.onPage}` : styles.chart}>
       {rows.map((row) => (
         <Row key={row.label} row={row} />
       ))}

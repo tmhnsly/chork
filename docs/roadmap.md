@@ -12,8 +12,8 @@
       game), so a stray tap no longer makes a game. No lobby screen:
       Invite and the setup pills sit in the hero from the start, and
       reopening your own empty game keeps what you typed (migration
-      139). League weeks keep their one-tap posters until leagues get
-      their own setup flow
+      139). (League weeks kept one-tap posters until leagues were removed
+      on 2026-10-01.)
 - [x] 2026-09-14 — Lobby-first match: one-tap posters on `/match/new`,
       the empty match as a lobby (join card, players, one CTA), setup
       pills + sheet, grading locked by the first route
@@ -86,7 +86,7 @@ Platform hardening:
 ## Games — the home for every comp
 
 The Games tab is where a climber finds anything they can play, not
-only what they start themselves: friend games today, leagues today,
+only what they start themselves: friend games today,
 and later the gym's own pre-made comps and tournaments, listed to
 join. Copy on that surface must stay generic ("start one anywhere",
 never "run it with your friends"), and the landing's Start / Join
@@ -152,7 +152,7 @@ it, which is schema-level and was verified by review rather than by a test.
 no list leads back to a game they hid, so the only undo is the game's own
 link. The cheapest fix is an Undo action on the "Removed from your games"
 toast, which needs `showToast` to grow an action slot. This is a product
-decision, so it belongs with the Games session on leagues, competitions and
+decision, so it belongs with the Games session on competitions and
 one-off events.
 
 **8. Report the upstream Next bug.** In Next 16.2.4's action queue, the
@@ -545,17 +545,12 @@ defect in shipped code, not a refactor. What clearing them turned up:
       is `src/app/profile/actions.ts`. Six inline forks of the auth
       mock collapsed into `src/test/mock-auth.ts`.
 
-### 1. League — shipped 2026-08-30 (friend-group slice)
+### 1. League — shipped 2026-08-30, removed 2026-10-01
 
-A host strings finished Matches into a fixture; the table is computed
-on read from the weeks' own boards. `docs/superpowers/specs/2026-08-30-league-design.md`.
-
-Still to come, in order:
-- [ ] The live board names a Chork seat (`ChorkStanding` now carries it).
-- [ ] Gym-owned Leagues: `owner_kind` on `leagues`, an admin surface,
-      and the weekly social's pg_cron publish path.
-- [ ] A moments-feed event when a League week lands.
-- [ ] Organiser-pays hangs off `leagues` — see "Monetisation plumbing".
+A host strung finished Matches into a fixture with a computed table
+(`docs/superpowers/specs/2026-08-30-league-design.md`). Removed on
+2026-10-01 at Tom's call, app and database both (migration 147); the
+gym-league, moments-feed and organiser-pays follow-ups went with it.
 
 ### Product direction (revised 2026-08-20 — research-backed)
 
@@ -576,7 +571,7 @@ order. CONTEXT.md holds the vocabulary these decisions produced.
   event-pass idea)*. It prices the rarest thing a gym does and says
   "for special Saturdays" — the opposite of a product meant to be open
   on a Tuesday. One subscription covers the main Set, the weekly
-  social, the league and the comp.
+  social and the comp.
 - **The consumer line is organiser-pays, never pay-to-join.** One
   payer per friend group; joining is free forever. Strava paywalls
   both halves of a private Group Challenge — it can afford to tax the
@@ -584,7 +579,7 @@ order. CONTEXT.md holds the vocabulary these decisions produced.
   the whole growth loop.
 - **What gyms actually buy is repeat footfall.** A long-running Set
   gives members a reason to come back midweek. That's the monthly
-  value; leagues, comps and dashboards are how it's delivered.
+  value; games, comps and dashboards are how it's delivered.
 - **Multi-discipline from the start.** Boulder, sport, top-rope.
   Discipline defaults per Set, overridable per route. *(Shipped
   2026-08-15, migrations 091–093.)*
@@ -1066,8 +1061,6 @@ aren't ours.
 
 - [ ] Gym subscription billing (Stripe → `plan_tier`), £59–79/mo with
       a free tier below a member threshold
-- [ ] Organiser-pays on Leagues — one payer per group, joining always
-      free
 
 ### Everything else
 

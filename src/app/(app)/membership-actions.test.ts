@@ -4,7 +4,7 @@ import { createMockSupabase } from "@/test/mock-supabase";
 // ────────────────────────────────────────────────────────────────
 // Module mocks
 // ────────────────────────────────────────────────────────────────
-vi.mock("next/cache", () => ({ revalidateTag: vi.fn(), revalidatePath: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidateTag: vi.fn(), updateTag: vi.fn(), revalidatePath: vi.fn() }));
 const cookieDelete = vi.fn();
 vi.mock("next/headers", () => ({
   cookies: vi.fn(async () => ({ delete: cookieDelete, get: vi.fn(), set: vi.fn() })),

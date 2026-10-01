@@ -14,7 +14,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("next/cache", () => ({ revalidateTag: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidateTag: vi.fn(), updateTag: vi.fn() }));
 vi.mock("@/lib/logger", () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
 }));
@@ -35,28 +35,28 @@ beforeEach(() => {
 describe("revalidateUserProfile", () => {
   it("busts the by-username tag when the lookup succeeds", async () => {
     const sb = scriptedSupabase({ data: { username: "alice" }, error: null });
-    const { revalidateTag } = await import("next/cache");
+    const { updateTag } = await import("next/cache");
     const { revalidateUserProfile } = await import("./revalidate");
 
     await revalidateUserProfile(sb as never, USER_A);
 
-    expect(revalidateTag).toHaveBeenCalledWith("user:username-alice:profile", "max");
-    expect(revalidateTag).toHaveBeenCalledTimes(1);
+    expect(updateTag).toHaveBeenCalledWith("user:username-alice:profile");
+    expect(updateTag).toHaveBeenCalledTimes(1);
   });
 
   it("busts nothing when no profile row exists", async () => {
     const sb = scriptedSupabase({ data: null, error: null });
-    const { revalidateTag } = await import("next/cache");
+    const { updateTag } = await import("next/cache");
     const { revalidateUserProfile } = await import("./revalidate");
 
     await revalidateUserProfile(sb as never, USER_A);
 
-    expect(revalidateTag).not.toHaveBeenCalled();
+    expect(updateTag).not.toHaveBeenCalled();
   });
 
   it("logs (not swallows) a failed lookup and busts nothing", async () => {
     const sb = scriptedSupabase({ data: null, error: { code: "x", message: "y" } });
-    const { revalidateTag } = await import("next/cache");
+    const { updateTag } = await import("next/cache");
     const { logger } = await import("@/lib/logger");
     const { revalidateUserProfile } = await import("./revalidate");
 
@@ -68,27 +68,27 @@ describe("revalidateUserProfile", () => {
       "revalidate_user_profile_username_lookup_failed",
       expect.anything(),
     );
-    expect(revalidateTag).not.toHaveBeenCalled();
+    expect(updateTag).not.toHaveBeenCalled();
   });
 });
 
 describe("revalidateRouteLogTags", () => {
   it("busts the set leaderboard when the log has a set", async () => {
-    const { revalidateTag } = await import("next/cache");
+    const { updateTag } = await import("next/cache");
     const { revalidateRouteLogTags } = await import("./revalidate");
 
     revalidateRouteLogTags(SET_1, USER_A);
 
-    expect(revalidateTag).toHaveBeenCalledWith(`set:${SET_1}:leaderboard`, "max");
-    expect(revalidateTag).toHaveBeenCalledTimes(1);
+    expect(updateTag).toHaveBeenCalledWith(`set:${SET_1}:leaderboard`);
+    expect(updateTag).toHaveBeenCalledTimes(1);
   });
 
   it("busts nothing when the log has no set (helper owns the conditional)", async () => {
-    const { revalidateTag } = await import("next/cache");
+    const { updateTag } = await import("next/cache");
     const { revalidateRouteLogTags } = await import("./revalidate");
 
     revalidateRouteLogTags(null, USER_A);
 
-    expect(revalidateTag).not.toHaveBeenCalled();
+    expect(updateTag).not.toHaveBeenCalled();
   });
 });

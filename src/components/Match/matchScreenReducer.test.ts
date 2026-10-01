@@ -364,6 +364,36 @@ describe("matchReducer", () => {
     });
   });
 
+  describe("pending writes", () => {
+    const viewer = { userId: "u1", isHost: false };
+    const key = logKey("u1", "a");
+    const tap = (state: MatchLocalState) =>
+      matchReducer(state, { type: "upsert-log", viewer, pending: true, log: mkLog("u1", "a", { attempts: 2 }) });
+
+    it("an optimistic tap is pending", () => {
+      expect(tap(emptyState).pending.has(key)).toBe(true);
+    });
+
+    it("the server accepting it settles it", () => {
+      const next = matchReducer(tap(emptyState), { type: "settle-log", ownerId: "u1", routeId: "a" });
+      expect(next.pending.has(key)).toBe(false);
+      expect(next.logs.get(key)?.attempts).toBe(2);
+    });
+
+    it("its realtime echo settles it (a queued write's only confirmation)", () => {
+      const next = matchReducer(tap(emptyState), { type: "upsert-log", viewer, log: mkLog("u1", "a", { attempts: 2 }) });
+      expect(next.pending.has(key)).toBe(false);
+    });
+
+    it("a rollback settles it", () => {
+      expect(matchReducer(tap(emptyState), { type: "remove-log", userId: "u1", routeId: "a" }).pending.has(key)).toBe(false);
+    });
+
+    it("settling something not pending is a no-op", () => {
+      expect(matchReducer(emptyState, { type: "settle-log", ownerId: "u1", routeId: "a" })).toBe(emptyState);
+    });
+  });
+
   describe("sync", () => {
     // Realtime never replays what it sent while a socket was down. Found
     // in a live game: a route put up while a phone was locked never
@@ -381,12 +411,12 @@ describe("matchReducer", () => {
         ...overrides,
       } as unknown as MatchState;
     }
-    const sync = (state: MatchLocalState, b: MatchState, viewerId = "u1") =>
-      matchReducer(state, {
-        type: "sync",
-        bundle: b,
-        viewer: { userId: viewerId, isHost: b.match.host_id === viewerId },
-      });
+    const sync = (state: MatchLocalState, b: MatchState) => matchReducer(state, { type: "sync", bundle: b });
+    const withLogs = (entries: Array<[string, MatchLog]>, pending: string[] = []): MatchLocalState => ({
+      ...emptyState,
+      logs: new Map(entries),
+      pending: new Set(pending),
+    });
 
     it("brings in a route the realtime feed missed", () => {
       const state = { ...emptyState, routes: [mkRoute("a", 1)] };
@@ -434,25 +464,55 @@ describe("matchReducer", () => {
       expect(next.logs.get(logKey("u2", "a"))?.attempts).toBe(2);
     });
 
-    it("keeps the viewer's own log over the snapshot, which may predate a tap", () => {
-      const local = mkLog("u1", "a", { attempts: 3, updated_at: "2026-04-01T09:00:00Z" });
-      const state = { ...emptyState, logs: new Map([[logKey("u1", "a"), local]]) };
+    it("keeps the viewer's own PENDING log over a snapshot that predates the tap", () => {
+      // The phone's clock stamped the tap earlier than the server's copy
+      // of the previous write: only `pending` can tell them apart.
+      const tap = mkLog("u1", "a", { attempts: 3, updated_at: "2026-04-01T09:00:00Z" });
       const next = sync(
-        state,
+        withLogs([[logKey("u1", "a"), tap]], [logKey("u1", "a")]),
         bundle({ my_logs: [mkLog("u1", "a", { attempts: 1, updated_at: "2026-04-01T10:00:00Z" })] }),
       );
       expect(next.logs.get(logKey("u1", "a"))?.attempts).toBe(3);
     });
 
-    it("keeps the host's local guest log over the snapshot", () => {
-      const guest = { ...mkLog("u1", "a", { attempts: 4 }), user_id: null, player_id: "seat-9" };
-      const state = { ...emptyState, logs: new Map([[logKey("seat-9", "a"), guest]]) };
+    it("heals the viewer's own log when the screen mounted stale (not pending)", () => {
+      // The regression: back to a game inside the router cache's minute,
+      // the mount's bundle predates your send, and the resync used to keep
+      // the stale local copy because it was yours — the tile stayed
+      // "attempted" while the board said "sent".
+      const stale = mkLog("u1", "a", { attempts: 1, completed: false, updated_at: "2026-04-01T09:00:00Z" });
       const next = sync(
-        state,
-        bundle({ guest_logs: [{ ...guest, attempts: 1, updated_at: "2026-04-01T12:00:00Z" }] }),
-        "host",
+        withLogs([[logKey("u1", "a"), stale]]),
+        bundle({ my_logs: [mkLog("u1", "a", { attempts: 2, completed: true, updated_at: "2026-04-01T10:00:00Z" })] }),
+      );
+      expect(next.logs.get(logKey("u1", "a"))?.completed).toBe(true);
+    });
+
+    it("keeps the host's pending guest log over the snapshot", () => {
+      const guest = { ...mkLog("u1", "a", { attempts: 4 }), user_id: null, player_id: "seat-9" };
+      const next = sync(
+        withLogs([[logKey("seat-9", "a"), guest]], [logKey("seat-9", "a")]),
+        bundle({ match: { id: "match-1", host_id: "u1" } as MatchState["match"], guest_logs: [{ ...guest, attempts: 1, updated_at: "2026-04-01T12:00:00Z" }] }),
       );
       expect(next.logs.get(logKey("seat-9", "a"))?.attempts).toBe(4);
+    });
+
+    it("heals a host's settled guest log from a newer snapshot", () => {
+      const guest = { ...mkLog("u1", "a", { attempts: 4, updated_at: "2026-04-01T09:00:00Z" }), user_id: null, player_id: "seat-9" };
+      const next = sync(
+        withLogs([[logKey("seat-9", "a"), guest]]),
+        bundle({ match: { id: "match-1", host_id: "u1" } as MatchState["match"], guest_logs: [{ ...guest, attempts: 1, updated_at: "2026-04-01T12:00:00Z" }] }),
+      );
+      expect(next.logs.get(logKey("seat-9", "a"))?.attempts).toBe(1);
+    });
+
+    it("keeps a newer realtime copy of the viewer's own log over a slower snapshot", () => {
+      const echo = mkLog("u1", "a", { attempts: 2, completed: true, updated_at: "2026-04-01T12:00:00Z" });
+      const next = sync(
+        withLogs([[logKey("u1", "a"), echo]]),
+        bundle({ my_logs: [mkLog("u1", "a", { attempts: 1, completed: false, updated_at: "2026-04-01T10:00:00Z" })] }),
+      );
+      expect(next.logs.get(logKey("u1", "a"))?.completed).toBe(true);
     });
 
     it("keeps a newer realtime copy of someone else's log over a slower snapshot", () => {

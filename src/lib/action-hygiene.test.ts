@@ -234,3 +234,31 @@ describe("server-action hygiene: one result contract", () => {
     },
   );
 });
+
+/**
+ * A server action busts with `updateTag`, never `revalidateTag`.
+ *
+ * In Next 16 a server action's `revalidateTag(tag, "max")` is
+ * stale-while-revalidate: the tag is marked stale, the next read still
+ * serves the old entry (refreshing it in the background), and no
+ * `x-action-revalidated` header goes back, so this device keeps its
+ * router cache — prefetched tabs included. Every mutation in the app
+ * used it, so a send didn't move your own leaderboard or profile until
+ * a hard refresh. `updateTag` expires the tag now and makes the client
+ * drop its caches: read-your-own-writes, which is what a mutation means.
+ * (Outside a server action `updateTag` throws; nothing there busts.)
+ */
+describe("server-action hygiene: busts are read-your-own-writes", () => {
+  const helpers = join(process.cwd(), "src", "lib", "cache", "revalidate.ts");
+  const files = [
+    ...modules,
+    { path: relative(process.cwd(), helpers), text: readFileSync(helpers, "utf8") },
+  ];
+
+  it("no action module (or the helpers they call) uses revalidateTag", () => {
+    const bad = files
+      .filter((m) => /\brevalidateTag\(/.test(m.text))
+      .map((m) => m.path);
+    expect(bad, "Use updateTag(tag) in a server action — see the note above.").toEqual([]);
+  });
+});

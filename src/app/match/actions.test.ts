@@ -3,7 +3,7 @@ import { createMockSupabase } from "@/test/mock-supabase";
 
 vi.mock("next/cache", () => ({
   revalidatePath: vi.fn(),
-  revalidateTag: vi.fn(),
+  revalidateTag: vi.fn(),  updateTag: vi.fn(),
 }));
 vi.mock("next/server", () => ({
   after: (fn: () => unknown) => fn(),
@@ -188,40 +188,6 @@ describe("createMatchAction", () => {
     });
   });
 
-  it("rejects a malformed league id", async () => {
-    const { createMatchAction } = await import("./actions");
-    expect(
-      await createMatchAction({ name: null, location: null, gradingScale: "points", leagueId: "nope" }),
-    ).toEqual({ error: "Invalid league" });
-  });
-
-  it("stamps the league on the RPC when given one", async () => {
-    const sb = await mockSignedIn({
-      "rpc:create_match": { data: [{ id: MATCH_1, code: "ABCDEF" }] },
-    });
-    const { createMatchAction } = await import("./actions");
-    const result = await createMatchAction({
-      name: "Tuesday · week 3",
-      location: null,
-      gradingScale: "points",
-      leagueId: SET_1,
-    });
-    expect(result).toEqual({ success: true, id: MATCH_1, code: "ABCDEF" });
-    expect(sb.calls.find((c) => c.source === "create_match")?.args[0]).toMatchObject({
-      p_league_id: SET_1,
-    });
-  });
-
-  it("sends no league when none is given", async () => {
-    const sb = await mockSignedIn({
-      "rpc:create_match": { data: [{ id: MATCH_1, code: "ABCDEF" }] },
-    });
-    const { createMatchAction } = await import("./actions");
-    await createMatchAction({ name: null, location: null, gradingScale: "points" });
-    expect(sb.calls.find((c) => c.source === "create_match")?.args[0]).toMatchObject({
-      p_league_id: undefined,
-    });
-  });
 });
 
 describe("match write rate limiting", () => {
@@ -654,20 +620,6 @@ describe("deleteMatchAction", () => {
 
     expect(await deleteMatchAction(MATCH_1)).toEqual({ error: "You don't have permission to do that." });
     expect(revalidatePath).not.toHaveBeenCalled();
-  });
-
-  it("passes the league-week refusal through in the database's words", async () => {
-    await mockSignedIn({
-      "rpc:delete_match": {
-        data: null,
-        error: { code: "22023", message: "Remove this week from its league before deleting it" },
-      },
-    });
-    const { deleteMatchAction } = await import("./actions");
-
-    expect(await deleteMatchAction(MATCH_1)).toEqual({
-      error: "Remove this week from its league before deleting it",
-    });
   });
 
   it("passes a missing game through in the database's words and refreshes nothing", async () => {

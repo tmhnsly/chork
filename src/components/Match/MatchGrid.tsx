@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import { FaPlus } from "react-icons/fa6";
 import { SendGridTile } from "@/components/ui/SendGridTile/SendGridTile";
+import { TileGrid } from "@/components/ui";
 import { deriveTileState } from "@/lib/data/logs";
 import { makeRouteLabeller, type MatchScales } from "@/lib/data/grade-label";
 import { useLongPressTap } from "@/lib/hooks/useLongPressTap";
@@ -55,7 +56,7 @@ export function MatchGrid({
   );
 
   return (
-    <div className={styles.grid}>
+    <TileGrid className={styles.grid}>
       {routes.map((route) => {
         const log = myLogs.get(route.id) ?? null;
         const state = deriveTileState(log);
@@ -92,7 +93,7 @@ export function MatchGrid({
           </span>
         </div>
       )}
-    </div>
+    </TileGrid>
   );
 }
 

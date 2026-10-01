@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidateTag } from "next/cache";
+import { updateTag } from "next/cache";
 import { requireAdminOfRoute, requireAdminOfSet } from "@/lib/auth";
 import { formatError } from "@/lib/errors";
 import { UUID_RE } from "@/lib/validation";
@@ -59,7 +59,7 @@ export async function quickSetupSetRoutes(form: {
     .upsert(rows, { onConflict: "set_id,number", count: "exact" });
   if (error) return { error: formatError(error) };
 
-  revalidateTag(tags.setRoutes(form.setId), "max");
+  updateTag(tags.setRoutes(form.setId));
   return { success: true, created: count ?? rows.length };
 }
 
@@ -100,8 +100,8 @@ export async function updateRoute(
   if (error) return { error: formatError(error) };
   if (!updated) return { error: "That route couldn't be changed." };
 
-  revalidateTag(tags.setRoutes(gate.routeRow.set_id), "max");
-  revalidateTag(tags.routeGrade(routeId), "max");
+  updateTag(tags.setRoutes(gate.routeRow.set_id));
+  updateTag(tags.routeGrade(routeId));
   return { success: true };
 }
 
@@ -132,6 +132,6 @@ export async function updateRouteTags(
   });
   if (error) return { error: formatError(error) };
 
-  revalidateTag(tags.setRoutes(gate.routeRow.set_id), "max");
+  updateTag(tags.setRoutes(gate.routeRow.set_id));
   return { success: true };
 }

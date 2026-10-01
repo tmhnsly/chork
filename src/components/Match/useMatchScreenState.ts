@@ -68,7 +68,7 @@ export function useMatchScreenState({ bundle, userId }: { bundle: MatchState; us
   const [synced, setSynced] = useState(bundle);
   if (synced !== bundle) {
     setSynced(bundle);
-    dispatch({ type: "sync", bundle, viewer });
+    dispatch({ type: "sync", bundle });
   }
 
   // ── Leaving a deleted game ─────────────────────────────────────
@@ -353,10 +353,12 @@ export function useMatchScreenState({ bundle, userId }: { bundle: MatchState; us
       // `react-hooks/purity` flags `new Date()` in a render-adjacent path.
       const now = new Date().toISOString();
       // The tile and the board react at once; the server's row replaces
-      // this one when its echo arrives.
+      // this one when its echo arrives. Pending until the server has it,
+      // so a resync in between keeps the tap (see `syncFromServer`).
       dispatch({
         type: "upsert-log",
         viewer,
+        pending: true,
         log: {
           id: previous?.id ?? `optimistic-${route.id}`,
           set_id: matchId,
@@ -387,7 +389,12 @@ export function useMatchScreenState({ bundle, userId }: { bundle: MatchState; us
             zone: payload.zone,
             playerId: playerId ?? null,
           }),
-        () => {
+        (result) => {
+          // Written, unless it only reached the offline queue: then it
+          // stays pending until the replay's realtime echo lands.
+          if (!("queued" in result && result.queued)) {
+            dispatch({ type: "settle-log", ownerId, routeId: route.id });
+          }
           // Letters and the pen move on a log, and only the server can
           // say how. This waited for the log's own realtime echo.
           if (gameMode === "chork") run([{ kind: "refetch-chork" }]);

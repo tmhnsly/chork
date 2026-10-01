@@ -25,11 +25,10 @@ describe.skipIf(!canRunIntegration)("deleting and hiding games (integration)", (
   let playerId: string;
   let strangerId: string;
   const createdSetIds = new Set<string>();
-  const createdLeagueIds = new Set<string>();
 
-  /** A game with the player seated: a route and their send unless `withRoute: false`, finished if `end`. */
-  async function game(name: string, opts: { withRoute?: boolean; end?: boolean } = {}): Promise<string> {
-    const { withRoute = true, end = false } = opts;
+  /** A game with the player seated, a route and their send, finished if `end`. */
+  async function game(name: string, opts: { end?: boolean } = {}): Promise<string> {
+    const { end = false } = opts;
     // create_match hands the host their empty live game back (137), so
     // end the last one first, the way a host would.
     const { data: live } = await service
@@ -57,22 +56,20 @@ describe.skipIf(!canRunIntegration)("deleting and hiding games (integration)", (
     const { error: joinError } = await playerClient.rpc("join_match", { p_set_id: setId });
     expect(joinError, "join_match").toBeNull();
 
-    if (withRoute) {
-      const { data: route, error: routeError } = await hostClient.rpc("add_match_route", {
-        p_set_id: setId,
-        p_description: `${name} route`,
-        p_grade: 4,
-        p_has_zone: false,
-      });
-      expect(routeError, "add_match_route").toBeNull();
-      const { error: logError } = await playerClient.rpc("upsert_match_log", {
-        p_route_id: (route as { id: string }).id,
-        p_attempts: 2,
-        p_completed: true,
-        p_zone: false,
-      });
-      expect(logError, "upsert_match_log").toBeNull();
-    }
+    const { data: route, error: routeError } = await hostClient.rpc("add_match_route", {
+      p_set_id: setId,
+      p_description: `${name} route`,
+      p_grade: 4,
+      p_has_zone: false,
+    });
+    expect(routeError, "add_match_route").toBeNull();
+    const { error: logError } = await playerClient.rpc("upsert_match_log", {
+      p_route_id: (route as { id: string }).id,
+      p_attempts: 2,
+      p_completed: true,
+      p_zone: false,
+    });
+    expect(logError, "upsert_match_log").toBeNull();
 
     if (end) {
       const { error: endError } = await hostClient.rpc("end_match", { p_set_id: setId });
@@ -134,9 +131,6 @@ describe.skipIf(!canRunIntegration)("deleting and hiding games (integration)", (
   afterAll(async () => {
     for (const setId of createdSetIds) {
       await service.from("sets").delete().eq("id", setId);
-    }
-    for (const leagueId of createdLeagueIds) {
-      await service.from("leagues").delete().eq("id", leagueId);
     }
     if (playerId) {
       await service.from("user_achievements").delete().eq("user_id", playerId).eq("badge_id", BADGE);
@@ -221,30 +215,6 @@ describe.skipIf(!canRunIntegration)("deleting and hiding games (integration)", (
       expect(missing.error?.code).toBe(refused.error?.code);
       expect(missing.error?.message).toBe(refused.error?.message);
       expect(await setRows(setId)).toBe(1);
-    });
-
-    it("refuses a league week with routes, and lets a live week with none go", async () => {
-      const { data: league, error: leagueError } = await service
-        .from("leagues")
-        .insert({ host_id: hostId, name: "int: delete a week" })
-        .select("id")
-        .single();
-      expect(leagueError).toBeNull();
-      createdLeagueIds.add(league!.id);
-
-      const played = await game("int: a played week");
-      await service.from("sets").update({ league_id: league!.id }).eq("id", played);
-      const refused = await hostClient.rpc("delete_match", { p_set_id: played });
-      expect(refused.error?.code).toBe("22023");
-      expect(refused.error?.message).toBe("Remove this week from its league before deleting it");
-      expect(await setRows(played)).toBe(1);
-
-      const accidental = await game("int: an accidental week", { withRoute: false });
-      await service.from("sets").update({ league_id: league!.id }).eq("id", accidental);
-      const { error } = await hostClient.rpc("delete_match", { p_set_id: accidental });
-      expect(error).toBeNull();
-      createdSetIds.delete(accidental);
-      expect(await setRows(accidental)).toBe(0);
     });
 
     it("answers a log for one of its routes with 'Route not found' (P0002), the refusal the offline queue discards", async () => {

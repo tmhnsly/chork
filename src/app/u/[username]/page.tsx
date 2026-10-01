@@ -20,7 +20,6 @@ import { ProfileAchievementsSection } from "./_components/ProfileAchievementsSec
 import { PreviousSetsSection } from "./_components/PreviousSetsSection";
 import { ProfileMatchesSection } from "./_components/ProfileMatchesSection";
 import { ProfileGradesSection } from "./_components/ProfileGradesSection";
-import { ProfileLeaguesSection } from "./_components/ProfileLeaguesSection";
 import { PROFILE_SECTION_HEIGHTS } from "./_components/sectionHeights";
 import { CardSkeleton } from "@/components/ui";
 import { PageBackdrop } from "@/components/ui/PageBackdrop";
@@ -31,6 +30,17 @@ import styles from "./user.module.scss";
 interface Props {
   params: Promise<{ username: string }>;
 }
+
+/**
+ * Never serve a profile from the client router cache on a regular
+ * navigation. Its stats move with every send — yours, which your own
+ * actions now evict (a zone or a changed count on a sent route used
+ * not to), and everyone else's, which nothing on this device can. With
+ * `staleTimes.dynamic` (60s, next.config.ts) a return visit showed the
+ * old numbers until a hard refresh. Back/forward still uses the
+ * browser's history cache, so the back button stays instant.
+ */
+export const unstable_dynamicStaleTime = 0;
 
 export async function generateMetadata({ params }: Props) {
   const { username } = await params;
@@ -225,15 +235,6 @@ export default async function UserProfilePage({ params }: Props) {
         </Reveal>
       )}
 
-      {/* Your leagues — own profile only for now. `get_my_leagues` is
-          caller-scoped, which is also the privacy line: a visitor
-          learns nothing about whose Tuesdays you spend where. A
-          shared-leagues view for visited profiles is the follow-up. */}
-      {isOwnProfile && (
-        <Reveal fallback={null}>
-          <ProfileLeaguesSection />
-        </Reveal>
-      )}
     </main>
   );
 }

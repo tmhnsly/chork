@@ -3,6 +3,7 @@
 @use "mixins/surfaces" as surface;
 @use "mixins/state" as state;
 @use "mixins/focus" as focus;
+@use "mixins/breakpoints" as bp;
 
 .board {
   @include surface.card;
@@ -20,6 +21,20 @@
   width: calc(100% - 2 * var(--gutter-x));
   box-sizing: border-box;
   border-radius: var(--radius-3);
+  // The rows are flush and square, and the viewer's row is tinted: the
+  // card clips them so its rounded corners and border stay drawn. The
+  // points board (`.leaderboardStrip`) always did; this one didn't, so
+  // the tinted row painted over the corners.
+  overflow: hidden;
+}
+
+// The game screen's column, centred — as the hero, the points board and
+// the grid are. Without it the Chork board kept its phone gutter on a
+// wide screen and sat hard left of everything else.
+@include bp.tablet {
+  .board {
+    margin-inline: auto;
+  }
 }
 
 .row {

@@ -1,4 +1,4 @@
-import { shimmerStyles, Legend } from "@/components/ui";
+import { shimmerStyles, Legend, TileGrid } from "@/components/ui";
 import { StatsWidgetSkeleton } from "@/components/ui/StatsWidget/StatsWidgetSkeleton";
 import { SendGridTile } from "@/components/ui/SendGridTile/SendGridTile";
 import styles from "./sendsGrid.module.scss";
@@ -27,11 +27,11 @@ export function SendsGridSkeleton() {
 
       <Legend />
 
-      <div className={styles.tileGrid}>
+      <TileGrid>
         {Array.from({ length: PLACEHOLDER_COUNT }, (_, i) => (
           <SendGridTile key={i} number={i + 1} state="empty" className={shimmerStyles.skeleton} />
         ))}
-      </div>
+      </TileGrid>
     </div>
   );
 }

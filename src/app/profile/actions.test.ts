@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn(), updateTag: vi.fn() }));
 vi.mock("@/lib/auth", async () => (await import("@/test/mock-auth")).mockAuthModule());
 vi.mock("@/lib/cache/revalidate", () => ({ revalidateUserProfile: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({
@@ -179,15 +179,15 @@ describe("deleteAccount", () => {
     const deleteUser = vi.fn().mockResolvedValue({ error: null });
     vi.mocked(createServiceClient).mockReturnValue({ auth: { admin: { deleteUser } } } as never);
 
-    const { revalidateTag } = await import("next/cache");
+    const { updateTag } = await import("next/cache");
     const { deleteAccount } = await import("./actions");
     expect(await deleteAccount()).toEqual({ success: true });
 
     expect(deleteUser).toHaveBeenCalledWith(USER_A);
-    const busts = vi.mocked(revalidateTag).mock.calls.map((c) => c[0]);
+    const busts = vi.mocked(updateTag).mock.calls.map((c) => c[0]);
     expect(busts.filter((t) => t === "user:username-gone:profile")).toHaveLength(2);
     // Order: one bust before the delete, one after.
-    const order = vi.mocked(revalidateTag).mock.invocationCallOrder;
+    const order = vi.mocked(updateTag).mock.invocationCallOrder;
     const del = deleteUser.mock.invocationCallOrder[0];
     expect(order[0]).toBeLessThan(del);
     expect(order[1]).toBeGreaterThan(del);
@@ -200,9 +200,9 @@ describe("deleteAccount", () => {
     const { createServiceClient } = await import("@/lib/supabase/server");
     const deleteUser = vi.fn().mockResolvedValue({ error: null });
     vi.mocked(createServiceClient).mockReturnValue({ auth: { admin: { deleteUser } } } as never);
-    const { revalidateTag } = await import("next/cache");
+    const { updateTag } = await import("next/cache");
     const { deleteAccount } = await import("./actions");
     expect(await deleteAccount()).toEqual({ success: true });
-    expect(vi.mocked(revalidateTag)).not.toHaveBeenCalled();
+    expect(vi.mocked(updateTag)).not.toHaveBeenCalled();
   });
 });

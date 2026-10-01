@@ -3,37 +3,25 @@ import { FaPlus } from "react-icons/fa6";
 import { requireSignedIn } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getUserMatches } from "@/lib/data/match-queries";
-import { getMyLeagues } from "@/lib/data/league-queries";
 import { ChorkMark, LinkButton } from "@/components/ui";
 import { MatchHistoryList } from "@/components/Match/MatchHistoryList";
 import { MatchHistoryRowSkeleton } from "@/components/Match/MatchHistoryRowSkeleton";
-import { LeagueList } from "@/components/League/LeagueList";
 import { Named } from "@/components/motion";
 import styles from "./match.module.scss";
 
 const RECENT_MATCHES_LIMIT = 5;
 
-/** Leagues (when any) and recent games, streamed together. */
+/** Recent games, streamed. */
 export async function RecentGames() {
   const auth = await requireSignedIn();
   if ("error" in auth) return null;
-  const [recentMatches, leagues] = await Promise.all([
-    getUserMatches(createServiceClient(), auth.userId, { limit: RECENT_MATCHES_LIMIT }),
-    getMyLeagues(auth.supabase),
-  ]);
+  const recentMatches = await getUserMatches(createServiceClient(), auth.userId, {
+    limit: RECENT_MATCHES_LIMIT,
+  });
 
   return (
     <Named name="recent-games" share="reveal" update="tween">
     <div className={styles.history}>
-      {leagues.length > 0 && (
-        <section className={styles.historySection} aria-labelledby="leagues-heading">
-          <div className={styles.historyHeader}>
-            <h2 id="leagues-heading" className={styles.historyHeading}>Your leagues</h2>
-          </div>
-          <LeagueList leagues={leagues} />
-        </section>
-      )}
-
       <section className={styles.historySection} aria-labelledby="recent-games-heading">
         <div className={styles.historyHeader}>
           <h2 id="recent-games-heading" className={styles.historyHeading}>

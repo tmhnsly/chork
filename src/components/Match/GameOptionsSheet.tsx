@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FaEllipsisVertical, FaEye, FaEyeSlash, FaTrashCan } from "react-icons/fa6";
 import {
@@ -24,8 +23,6 @@ interface Props {
   hidden: boolean;
   /** Offer Delete game (`canDeleteGame`). */
   canDelete: boolean;
-  /** The host's league week, which has to leave its league before it can go. */
-  leagueWeek: { id: string; name: string } | null;
   /** The delete confirmation, naming who else loses the game. */
   deleteWarning: string;
 }
@@ -33,8 +30,7 @@ interface Props {
 /**
  * A game's ⋮ menu on its summary page (migration 141). Everyone can take
  * a finished game off their own games and put it back; the host can
- * delete it for everyone, unless it's a league week, which leaves its
- * league first. It offers only what the server allows (`gameOptions`),
+ * delete it for everyone. It offers only what the server allows (`gameOptions`),
  * and isn't there at all when that's nothing: a player on a live game.
  */
 export function GameOptionsSheet({
@@ -42,7 +38,6 @@ export function GameOptionsSheet({
   finished,
   hidden,
   canDelete,
-  leagueWeek,
   deleteWarning,
 }: Props) {
   const router = useRouter();
@@ -50,7 +45,7 @@ export function GameOptionsSheet({
   const [confirming, setConfirming] = useState<"remove" | "delete" | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const options = gameOptions({ finished, hidden, canDelete, leagueWeek: leagueWeek !== null });
+  const options = gameOptions({ finished, hidden, canDelete });
   if (options === null) return null;
 
   function close() {
@@ -123,13 +118,6 @@ export function GameOptionsSheet({
                   >
                     <FaTrashCan aria-hidden /> Delete game
                   </Button>
-                )}
-                {options.leagueNote && leagueWeek && (
-                  <p className={styles.note}>
-                    This is a week of{" "}
-                    <Link href={`/match/league/${leagueWeek.id}`}>{leagueWeek.name}</Link>.
-                    Remove it from the league first.
-                  </p>
                 )}
               </div>
             )}

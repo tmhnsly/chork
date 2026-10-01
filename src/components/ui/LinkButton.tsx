@@ -2,7 +2,7 @@ import type { AnchorHTMLAttributes } from "react";
 import Link from "next/link";
 import styles from "./ui.module.scss";
 
-type Variant = "primary" | "secondary" | "ghost" | "danger";
+type Variant = "primary" | "secondary" | "ghost" | "danger" | "onAccent";
 
 interface Props extends Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> {
   href: string;
@@ -16,6 +16,7 @@ const variantClass: Record<Variant, string> = {
   secondary: styles.btnSecondary,
   ghost: styles.btnGhost,
   danger: styles.btnDanger,
+  onAccent: styles.btnOnAccent,
 };
 
 /**

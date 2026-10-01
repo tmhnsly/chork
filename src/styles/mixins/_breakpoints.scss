@@ -22,3 +22,16 @@ $_desktop: 1280px;
     @content;
   }
 }
+
+// A short viewport: a small phone (568 / 667px tall) or a landscape
+// laptop with the toolbars out (a 1366×768 screen gives ~657px).
+// Height, not width — for layouts that fill the viewport vertically
+// (the marketing page's pinned sections), where a narrow-but-tall
+// phone is fine and a short one is not. 720px, not 600: at 601–720 the
+// pinned device clipped its own contents on common laptops.
+$_short: 720px;
+@mixin short {
+  @media (max-height: $_short) {
+    @content;
+  }
+}

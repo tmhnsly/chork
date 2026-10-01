@@ -11,7 +11,7 @@ interface Props extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "children"
 
 /**
  * A round, bordered, icon-only control at touch-target size — the
- * Match screen's ⋮ menu, the profile's settings gear, a league's ⋮.
+ * Match screen's ⋮ menu, the profile's settings gear.
  * `IconLink` below is the same circle for a page's way back.
  *
  * One shape for "a small piece of chrome that opens something", so

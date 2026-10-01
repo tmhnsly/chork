@@ -148,11 +148,37 @@
 @mixin planes($s) {
   --surface-page: var(--#{$s}-3);
   --surface-card: var(--#{$s}-1);
+  // An untouched route tile: ONE grey, wherever the grid sits — the
+  // Card, a game, a peek sheet, the theme picker, the marketing phone.
+  // Step 5 in light (the page is step 3, so step 3 drew no square at
+  // all and step 1 drew a white one that read as a different state);
+  // step 3 in dark, on a step-1 page. Either way a visible square,
+  // well clear of attempted's step 9.
+  --surface-tile: var(--#{$s}-5);
+  --surface-tile-hover: var(--#{$s}-6);
 
   &:is(.dark),
   .dark & {
     --surface-page: var(--#{$s}-1);
     --surface-card: var(--#{$s}-2);
+    --surface-tile: var(--#{$s}-3);
+    --surface-tile-hover: var(--#{$s}-4);
+  }
+}
+
+// The keyboard focus ring, per mode. Step 8 was the ring in both, and
+// on the light page it measured 2.04–2.17:1 in every theme (3:1 is the
+// minimum for a focus indicator). Light takes step 11: 4.19:1 or better
+// on the page, 4.65:1 on a card, and 3.56:1 inset on a sent tile's fill
+// (Chork). Dark keeps step 8, which already passes (3.00:1 or better)
+// and stays visible inset on a lime tile (3.89:1), where step 11 would
+// all but vanish (1.07:1). Computed from the Radix values, 2026-10-01.
+@mixin focus-ring-scale($s) {
+  --focus-ring: var(--#{$s}-11);
+
+  &:is(.dark),
+  .dark & {
+    --focus-ring: var(--#{$s}-8);
   }
 }
 
@@ -353,7 +379,7 @@
   /* Lime step 9 is a light scale — dark foreground on solid. */
   --accent-on-solid: #1a1a1a;
 
-  --focus-ring: var(--lime-8);
+  @include focus-ring-scale(lime);
   --brand: var(--accent-solid);
   --brand-text: var(--accent-text-low-contrast);
 
@@ -382,7 +408,7 @@
 
   --accent-on-solid: #fff;
 
-  --focus-ring: var(--blue-8);
+  @include focus-ring-scale(blue);
   --brand: var(--accent-solid);
   --brand-text: var(--accent-text-low-contrast);
 }
@@ -404,7 +430,7 @@
 
   --accent-on-solid: #fff;
 
-  --focus-ring: var(--violet-8);
+  @include focus-ring-scale(violet);
   --brand: var(--accent-solid);
   --brand-text: var(--accent-text-low-contrast);
 }
@@ -430,7 +456,7 @@
 
   --accent-on-solid: #fff;
 
-  --focus-ring: var(--pink-8);
+  @include focus-ring-scale(pink);
   --brand: var(--accent-solid);
   --brand-text: var(--accent-text-low-contrast);
 }

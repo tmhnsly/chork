@@ -128,11 +128,6 @@ export interface MatchSetupPayload {
 interface CreateMatchPayload extends MatchSetupPayload {
   /** Score relative to each player's ceiling. Needs a graded scale. */
   handicap?: boolean;
-  /**
-   * Start this Match as the next week of a League the caller hosts.
-   * The RPC refuses anyone else and any League that has ended.
-   */
-  leagueId?: string | null;
 }
 
 interface ValidatedSetup {
@@ -256,9 +251,6 @@ export async function createMatchAction(
   if ("error" in checked) return { error: checked.error };
   const s = checked.ok;
 
-  const leagueId = payload.leagueId ?? null;
-  if (leagueId !== null && !isUuid(leagueId)) return { error: "Invalid league" };
-
   // No resource id to validate (the payload was validated above) —
   // the gate still supplies signed-in auth + the write rate limit.
   const auth = await gateSignedInMutation(null, "match");
@@ -277,7 +269,6 @@ export async function createMatchAction(
     p_alt_grading_scale: undef(s.altScale),
     p_alt_min_grade: undef(s.altMin),
     p_alt_max_grade: undef(s.altMax),
-    p_league_id: undef(leagueId),
   });
   if (error) return { error: formatError(error) };
   const rows = (data ?? []) as Array<{ id: string; code: string }>;
@@ -328,9 +319,8 @@ export async function leaveMatchAction(
 
 /**
  * The host deletes a game for everyone: its seats, routes and logs go
- * with it (migration 141). Live or finished; a league week only while it
- * is live with no routes. `delete_match` enforces all of it, and answers
- * a non-player exactly as it would a missing game.
+ * with it (migration 141). Live or finished. `delete_match` enforces it,
+ * and answers a non-player exactly as it would a missing game.
  */
 export async function deleteMatchAction(
   matchId: string,

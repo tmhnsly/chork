@@ -4,12 +4,13 @@ import { SCALE_LABEL, DISCIPLINE_LABEL } from "@/lib/data/grade-label";
 import type { Match } from "@/lib/data/match-types";
 import type { SetupSection } from "./matchScreenReducer";
 import styles from "./matchSetupPills.module.scss";
+import { setupLockReason } from "./matchScreenSelectors";
 
 interface Props {
   match: Match;
   isHost: boolean;
-  /** Grading is locked once a route exists; the pills say so. */
-  locked: boolean;
+  /** No route yet: nothing is locked (see `setupLockReason`). */
+  lobby: boolean;
   onOpen: (section: SetupSection) => void;
 }
 
@@ -19,22 +20,22 @@ interface Props {
  * everyone else reads it. The location itself shows on the hero's
  * foot beside the player count, so the pill can just say what it
  * opens.
- * Grading and climbing lock with the first route — a tap then toasts
- * why (the screen decides) rather than opening a sheet that would
- * only refuse.
+ * The game type, climbing and grading lock with the first route
+ * (`setupLockReason`) — a tap then toasts why rather than opening a
+ * sheet that would only refuse.
  */
-export function MatchSetupPills({ match, isHost, locked, onOpen }: Props) {
+export function MatchSetupPills({ match, isHost, lobby, onOpen }: Props) {
   const climbing = match.alt_grading_scale
     ? "Boulders and ropes"
     : DISCIPLINE_LABEL[match.discipline];
   const grading = match.alt_grading_scale
     ? `${SCALE_LABEL[match.grading_scale]} + ${SCALE_LABEL[match.alt_grading_scale]}`
     : SCALE_LABEL[match.grading_scale];
-  const pills: { key: string; section: SetupSection; text: string; lockable: boolean }[] = [
-    { key: "game", section: "game", text: match.game_mode === "chork" ? "Chork" : "Points", lockable: false },
-    { key: "climbing", section: "climbing", text: climbing, lockable: true },
-    { key: "grading", section: "climbing", text: grading, lockable: true },
-    { key: "details", section: "details", text: "Details", lockable: false },
+  const pills: { key: string; section: SetupSection; text: string }[] = [
+    { key: "game", section: "game", text: match.game_mode === "chork" ? "Chork" : "Points" },
+    { key: "climbing", section: "climbing", text: climbing },
+    { key: "grading", section: "climbing", text: grading },
+    { key: "details", section: "details", text: "Details" },
   ];
   return (
     <ul className={styles.row} aria-label="Game setup">
@@ -43,7 +44,7 @@ export function MatchSetupPills({ match, isHost, locked, onOpen }: Props) {
           {isHost ? (
             <button
               type="button"
-              className={`${styles.pill} ${p.lockable && locked ? styles.pillLocked : ""}`}
+              className={`${styles.pill} ${setupLockReason(p.section, lobby) ? styles.pillLocked : ""}`}
               onClick={() => onOpen(p.section)}
             >
               {p.text}

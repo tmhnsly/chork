@@ -15,16 +15,14 @@ import { describe, expect, it } from "vitest";
  * you cannot satisfy is a rule with a missing token behind it —
  * add the token rather than widening an exemption here.
  *
- * Marketing surfaces (`components/landing/`) are exempt
- * from the SIZE AND RHYTHM rules only (type sizes, spacing scale) —
- * by decision, not oversight: they are container-relative
- * illustrations tuned against `cqi` inside fixed-aspect boxes, which
- * the app scales don't model, and they are due a homepage refresh of
- * their own. Colour, motion, radius and breakpoints all apply to them
- * (narrowed 2026-08-20 — the skips used to be wider than the written
- * rule). Loop periods a scene needs beyond the `--duration-loop-*`
- * rungs are declared as named `--period-*` / `--stagger-*` custom
- * properties at the top of that module, never as bare literals.
+ * Marketing surfaces (`components/landing/`) are under every rule.
+ * They used to be exempt from the size and rhythm rules for the sake
+ * of `cqi`-tuned illustrations; the homepage rebuilt on the app's own
+ * components (2026-09-30) needs no such thing, and the exemption went
+ * with the page. Loop periods a scene needs beyond the
+ * `--duration-loop-*` rungs are declared as named `--period-*` /
+ * `--stagger-*` custom properties at the top of that module, never
+ * as bare literals.
  *
  * The two `opengraph-image.tsx` routes are exempt from the inline-
  * style rule: Satori supports neither CSS modules nor custom
@@ -32,12 +30,6 @@ import { describe, expect, it } from "vitest";
  */
 
 const SRC = join(process.cwd(), "src");
-
-/** Decorative marketing illustrations — container-relative art, not
- *  app chrome. Sizes there are tuned against `cqi` in a fixed-aspect
- *  box, which the app scales don't model. Excluded knowingly, and due
- *  a refresh of their own. */
-const MARKETING = ["components/landing/"];
 
 /** The token layer defines the primitives, so it is allowed to use
  *  literals the rest of the app may not. */
@@ -87,7 +79,6 @@ function hits(
   return found;
 }
 
-const notMarketing = (p: string) => MARKETING.some((d) => p.startsWith(d));
 const notTokenLayer = (p: string) => TOKEN_LAYER.some((d) => p.startsWith(d));
 
 describe("colour literals stay in the token layer", () => {
@@ -187,7 +178,6 @@ describe("type scale", () => {
       hits(
         scssModules,
         /font-size:\s*[0-9.]+(px|rem)\s*;/,
-        notMarketing,
       ),
       "Use `typography(role, $step)` for text, or a `--size-icon-*` rung " +
         "for a standalone glyph. Relative units (`em`, `cqi`) are fine and " +
@@ -197,7 +187,7 @@ describe("type scale", () => {
 
   it("never sets a raw line-height", () => {
     expect(
-      hits(scssModules, /line-height:(?!\s*var\(--leading)/, notMarketing),
+      hits(scssModules, /line-height:(?!\s*var\(--leading)/),
       "Leading comes with the step. A single-line role that needs to opt " +
         "out says so in the preset table (`leading: none|tight|ui`) — " +
         "twelve components had hand-set it under a preset, agreeing with " +
@@ -442,9 +432,8 @@ describe("page rhythm", () => {
       const blocks = text.split("}");
       blocks.forEach((block) => {
         // App pages only: prose pages read on their own rhythm, wide
-        // admin pages likewise, and marketing is exempt by decision.
+        // admin pages likewise.
         if (!/@include layout\.page;/.test(block)) return;
-        if (notMarketing(path)) return;
         const own = block.match(/(?:^|\n)\s*gap:\s*var\(--space-\d+\)|@include layout\.stack\(var\(--space-\d+\)\)/);
         if (own) bad.push(`${path}  ${own[0].trim()}`);
       });
@@ -843,11 +832,11 @@ describe("page chrome", () => {
 
   /** The primitives define the chrome; marketing and stories aren't app screens. */
   const exempt = (p: string) =>
-    p.startsWith("components/ui/") || notMarketing(p) || p.endsWith(".stories.tsx");
+    p.startsWith("components/ui/") || p.endsWith(".stories.tsx");
 
   it("a page's way back is a round IconLink, not a text link with an arrow", () => {
-    // Found at Yonder: the league and game summary pages had "← Games"
-    // text links while every other piece of page chrome is a circle.
+    // Found at Yonder: the game summary page had a "← Games" text link
+    // while every other piece of page chrome is a circle.
     const bad: string[] = [];
     for (const { path, text } of tsx) {
       if (exempt(path)) continue;
@@ -863,7 +852,7 @@ describe("page chrome", () => {
   });
 
   it("a menu trigger is a round IconButton", () => {
-    // The league page's "…" was a borderless square next to the Game
+    // A page menu's "…" was a borderless square next to the Game
     // menu's ⋮ in a circle.
     const bad: string[] = [];
     for (const { path, text } of tsx) {

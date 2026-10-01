@@ -59,3 +59,16 @@
 .accent .dot {
   fill: var(--accent-solid);
 }
+
+// ── On-accent preset ──────────────────────────────
+// The mark standing ON an accent plane (the marketing close): arc
+// and dot in the plane's own ink, which is dark on lime and white on
+// the blue / violet / pink chords. The brand dot would vanish into a
+// plane of its own colour otherwise.
+.on-accent .arc {
+  stroke: var(--accent-on-solid);
+}
+
+.on-accent .dot {
+  fill: var(--accent-on-solid);
+}

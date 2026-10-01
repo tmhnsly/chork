@@ -1,0 +1,33 @@
+@use "mixins/layout" as layout;
+@use "mixins/surfaces" as surface;
+
+.card {
+  @include layout.stack(var(--space-4));
+}
+
+// The log sheet, as the app draws it, but inside the device: a glass
+// panel rising from the screen's foot rather than the viewport's. It
+// transitions on the same tokens as the real sheet, and reduced
+// motion shows it in place.
+.sheet {
+  @include surface.glass(90%);
+  @include layout.stack(var(--space-4));
+  position: absolute;
+  inset: auto 0 0 0;
+  // Never taller than the screen it rises in: on a short device the
+  // top of the sheet (the route number) was cut off.
+  max-height: 100%;
+  overflow: hidden;
+  padding: var(--space-4);
+  border-radius: var(--radius-3) var(--radius-3) 0 0;
+  transform: translateY(100%);
+  transition: transform var(--duration-normal) var(--ease-out);
+
+  &[data-open="true"] {
+    transform: translateY(0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}

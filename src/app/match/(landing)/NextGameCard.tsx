@@ -15,8 +15,7 @@ export function NextGameCard() {
         <p className={styles.actionLede}>
           A game is a quick comp you run yourself. Set the routes, log
           your goes, watch the board move. Start one for your mates,
-          play a week of your league, or join with a code someone sent
-          you.
+          or join with a code someone sent you.
         </p>
       </div>
       <div className={styles.actionButtons}>

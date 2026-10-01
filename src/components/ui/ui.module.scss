@@ -137,6 +137,23 @@
   }
 }
 
+.btnOnAccent {
+  @extend %btn-base;
+  // A call to action standing ON an accent plane: the primary
+  // button inverted — the plane's ink as the fill, the accent as the
+  // label. `secondary` there was the page plane with a grey border,
+  // which read as a form field dropped on the lime in light mode.
+  background: var(--accent-on-solid);
+  color: var(--accent-solid);
+  // The default ring is the accent's own step 8, invisible on the
+  // plane it would sit on.
+  @include focus.ring(var(--accent-on-solid));
+
+  &:hover:not(:disabled) {
+    color: var(--accent-solid-hover);
+  }
+}
+
 .btnGhost {
   @extend %btn-base;
   padding: 0 var(--space-3);

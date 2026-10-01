@@ -1,0 +1,16 @@
+// The podium's columns travel between places (see `useFlip`): the
+// hook holds a moved column at its old offset for one frame, then
+// releases it, and this transition carries it home. `translate`, not
+// `transform`, so nothing animating `transform` can take it over.
+.podium [data-flip-key] {
+  translate: var(--flip-x, 0px) var(--flip-y, 0px);
+  transition: translate var(--duration-normal) var(--ease-out);
+
+  &[data-flip="hold"] {
+    transition: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    transition: none;
+  }
+}

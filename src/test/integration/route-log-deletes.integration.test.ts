@@ -4,7 +4,7 @@
  *
  * Found mapping game deletion (2026-09-15): once a game had ended, a
  * player's edit to their own log was refused, but deleting it went
- * through, so a finished result, a league week's placings or an archived
+ * through, so a finished result or an archived
  * gym board could be rewritten through the Data API. Nothing in the app
  * deletes a log directly; a log goes with its route, set or account.
  *

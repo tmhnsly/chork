@@ -1,0 +1,88 @@
+@use "mixins/breakpoints" as bp;
+@use "mixins/container-queries" as cq;
+
+// The column the phone stands in, as a named container so the frame
+// can size itself to it (below). Also the box a pinned stage caps:
+// it passes the height it's given to the frame.
+.holder {
+  container: tile / inline-size;
+  width: 100%;
+  min-height: 0;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+// A phone-shaped frame around real app UI. The bezel is the mono
+// solid so it reads as hardware in both modes; the screen is the
+// app's own page plane. No notch, no buttons — the point is the app,
+// and the frame only has to say "this is on a phone".
+//
+// The app inside always lays out at its natural width (the screen is
+// --content-narrow, 360px); `zoom` scales the whole phone to the
+// column. `width: 100%` resolves against the column before the zoom,
+// so the layout width is column ÷ zoom, capped by max-width. Below
+// ~334px of screen the real components wrap ("#3 of / 23" in the rank
+// strip, handles in the board), so a narrow column gets a smaller
+// zoom rather than a squeezed app. CSS can't divide one length by
+// another to get the exact factor, hence tiers by column width:
+//   column < 320  → 0.75   (a 320 phone: 288 column, full 360 screen)
+//   column < 340  → 0.85   (360 Android)
+//   column < 380  → 0.9    (375 / 390 iPhone)
+//   wider         → 1, and 1.2 on a desktop tall enough for it
+// The phone is a picture (role="img", inert), so its small-scale text
+// isn't text anyone reads — the 12px floor is for the page's own copy.
+.frame {
+  --device-zoom: 0.75;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: calc(var(--content-narrow) + 2 * var(--space-3));
+  min-height: 0;
+  padding: var(--space-3);
+  border-radius: var(--radius-5);
+  background: var(--mono-solid);
+  box-shadow: var(--shadow-xl);
+  zoom: var(--device-zoom);
+  // The frame is what a stage caps, so the frame clips and the screen
+  // shrinks with it — the sheet then rises from the bottom that shows.
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  @include cq.at(20rem) {
+    --device-zoom: 0.85;
+  }
+
+  @include cq.at(21.25rem) {
+    --device-zoom: 0.9;
+  }
+
+  @include cq.at(23.75rem) {
+    --device-zoom: 1;
+  }
+
+  @include bp.desktop {
+    --device-zoom: 1.2;
+
+    // A short laptop (1366×657 with the toolbars out) hasn't the
+    // height for the bigger phone: the sheet's button and the podium's
+    // floor fell below the screen.
+    @include bp.short {
+      --device-zoom: 1;
+    }
+  }
+}
+
+.screen {
+  box-sizing: border-box;
+  height: var(--size-device-h);
+  min-height: 0;
+  flex: 0 1 auto;
+  overflow: hidden;
+  position: relative;
+  padding: var(--space-4) var(--space-3);
+  border-radius: var(--radius-inner-5-3);
+  background: var(--surface-page);
+  color: var(--mono-text);
+}

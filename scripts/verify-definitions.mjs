@@ -35,14 +35,28 @@ const QUERY = `
 `;
 
 function liveFunctions() {
-  const out = execFileSync("npx", ["supabase", "db", "query", "--linked", QUERY], {
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-    maxBuffer: 64 * 1024 * 1024,
-  });
-  // The CLI prints progress lines before the JSON document.
-  const json = out.slice(out.indexOf("{"));
-  return JSON.parse(json).rows;
+  // The output format is pinned, not left to the CLI. Its default is a
+  // text table, and it switches to JSON by itself only when it detects
+  // an agent (`--agent auto`): so this passed when an agent ran it and
+  // failed in a terminal, parsing the table from the first `{` — which
+  // was inside a function body's regex.
+  const out = execFileSync(
+    "npx",
+    ["supabase", "db", "query", "--linked", "--output-format", "json", "--agent", "no", QUERY],
+    {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      maxBuffer: 64 * 1024 * 1024,
+    },
+  );
+  // A bare array of rows today; agent mode wrapped them as `{ rows }`.
+  // Anything else is a CLI change to look at, not something to guess at.
+  const data = JSON.parse(out.trim());
+  const rows = Array.isArray(data) ? data : data?.rows;
+  if (!Array.isArray(rows)) {
+    throw new Error(`db:verify: unexpected output from \`supabase db query\`: ${out.slice(0, 200)}`);
+  }
+  return rows;
 }
 
 function repoFunctions() {

@@ -13,6 +13,18 @@ export const metadata = {
   title: "Game",
 };
 
+/**
+ * Never serve this page from the client router cache. A live game
+ * moves between visits — your own adds and sends, everyone else's —
+ * and `staleTimes.dynamic` (60s, next.config.ts) handed a return
+ * visit the payload from before them, so a route you'd just put up
+ * was missing. The screen also resyncs when its realtime channel
+ * joins (`channelStatusEvent`), which is what covers back/forward:
+ * the browser history cache ignores this. Together: no stale paint on
+ * a tab or banner, and a quick heal on the back button.
+ */
+export const unstable_dynamicStaleTime = 0;
+
 export default async function MatchRoomPage({ params }: Props) {
   const { id } = await params;
   if (!UUID_RE.test(id)) redirect("/match/join");

@@ -136,12 +136,12 @@ Two supabase clients:
   `gym-queries` / `profile-queries` / `leaderboard-queries` /
   `friend-queries` / `competition-queries` / `admin-queries` /
   `dashboard-queries` / `match-queries` / `comment-queries` /
-  `achievement-queries` / `league-queries`. Every read takes
+  `achievement-queries`. Every read takes
   `supabase` as first arg. (There is no catch-all `queries.ts`; it was
   split per-surface.) Alongside them sit pure/derived modules that
   aren't query surfaces: `moments` / `match-board` /
-  `match-leaderboard` / `match-stats` / `match-types` / `league` /
-  `league-types` / `chork` / `handicap` / `grade-distribution` /
+  `match-leaderboard` / `match-stats` / `match-types` /
+  `chork` / `handicap` / `grade-distribution` /
   `shared-result` / `notifications` / `username-display`
 - Client-reachable data modules use a `*.client.ts` suffix (no
   `server-only` import) — e.g. `gym-queries.client.ts` mirrors the
@@ -195,7 +195,12 @@ Quick reference:
   stay uncached
 - **Layer 3 — per-render dedupe** via React `cache()` on
   `getServerUser` / `getServerProfile` / `getProfileSummary` etc.
-- **Mutations** revalidate **tags**, not paths.
+- **Mutations** revalidate **tags**, not paths — with **`updateTag(tag)`**,
+  never `revalidateTag(tag, "max")`. From a server action the latter is
+  stale-while-revalidate in Next 16: the next read still serves the old
+  entry and this device keeps its router cache, so your own send didn't
+  show until a hard refresh. `updateTag` is read-your-own-writes and
+  drops the client's caches (`action-hygiene.test.ts` pins it).
   `revalidatePath("/", "layout")` is forbidden everywhere except
   inside `revalidateUserProfile` indirection (which still uses tags).
   Tag union lives in `src/lib/cache/cached.ts`; mutation→tag table
@@ -526,8 +531,8 @@ navbar + home indicator), max-width, and centering.
   is a layout shift on hand-off
 - **Page chrome is round.** A page's way back is `<IconLink>` and a
   menu or settings trigger is `<IconButton>` (⋮ is
-  `FaEllipsisVertical`), both from `components/ui`. The league and
-  game summary pages had "← Games" text links and a borderless "…";
+  `FaEllipsisVertical`), both from `components/ui`. The game summary
+  page had a "← Games" text link and a page menu a borderless "…";
   `design-system.test.ts` fails both shapes. A full-width
   call-to-action (`LinkButton`) is a different thing and stays
 - **Disabled state via `state.disabled` / `state.disabled-bare`** —
@@ -624,10 +629,10 @@ navbar + home indicator), max-width, and centering.
   row back (`.select("id").maybeSingle()`) and treats "no row" as a
   failure. `gym-admin-sets.integration.test.ts` runs the admin paths
   against real policies, because a doubled Supabase never meets one
-- **League placement points live in two homes** — `league_placement_points`
-  / `league_drops` in migration 134 and `LEAGUE_LADDER` / `dropsFor`
-  in `src/lib/data/league.ts` — pinned equal by `league.test.ts`. The
-  table is computed on read by `league_standings`; never store it
+- **Leagues are gone** (2026-10-01): the app and the database
+  (migration 147 dropped the table, `sets.league_id` and every league
+  function). The `feat/league`, `feat/profile` and `refactor/deepening`
+  branches still carry league code — never merge or rebase them
 - **The user-facing word for a match is "game".** Nav tab Games
   (`FaTrophy`), "Start a game", "End game". Code, routes, RPCs and
   docs keep `match` — see CONTEXT.md "Match". Never write "match" in
@@ -641,19 +646,19 @@ navbar + home indicator), max-width, and centering.
   Invite sit in the hero from the first second, and the grid starts
   with the Add route tile. Until the first route the host can still
   change setup from the pills via `set_match_setup`, which refuses
-  once a route exists — grading is locked by the first route
+  once a route exists — grading and the game type (`set_match_game_mode`,
+  146) are locked by the first route, and `setupLockReason` is the
+  screen's one copy of that rule
   (`isLobby(state)` means exactly "no routes yet"). `create_match` and
   `set_match_setup` validate through one SQL helper,
   `match_setup_check`; the action side shares `validateMatchSetup`.
-  League weeks still start in one tap from their posters until
-  leagues get their own setup flow. Starting a game while you host an
+  Starting a game while you host an
   empty one reopens it with the setup you typed (137, 139), and the
   hourly sweep ends a game with no routes after 3 idle hours
 - **The host deletes a game; any player hides one.** `delete_match`
   (migration 141) is a hard delete for everyone: seats, routes, logs,
   the grade ladder and pending invites go, badges already earned
-  stay. A league week
-  leaves its league first unless it is live with no routes.
+  stay.
   `set_match_hidden` takes a finished game off one player's own lists.
   Hides live in `hidden_matches`, which has no Data API access, because
   every player can read a game's seat rows; history and badge context
@@ -830,8 +835,8 @@ Vitest-based. See `docs/testing.md` for patterns. Key rules:
   `<UserAvatar size>`. Each failure names the rung to use instead.
   **A rule you can't satisfy means a missing token — add the token
   rather than widening an exemption.** Marketing surfaces
-  (`components/landing/`) are exempt from the size and
-  rhythm rules only, pending the homepage refresh.
+  (`components/landing/`) are under every rule since the homepage
+  rebuild (2026-09-30); the exemption went with the old page.
   `avatar-sizes.test.ts` separately pins the TS avatar map to its CSS
   tokens
 - **A page is an instant shell; its data sections stream and reveal.**

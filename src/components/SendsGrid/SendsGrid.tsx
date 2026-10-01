@@ -7,7 +7,7 @@ import { isFlash, computePoints, deriveTileState } from "@/lib/data";
 import { formatGrade, type GradingScale } from "@/lib/data/grade-label";
 import { StatsWidget } from "@/components/ui/StatsWidget/StatsWidget";
 import { SendGridTile } from "@/components/ui/SendGridTile/SendGridTile";
-import { Legend } from "@/components/ui";
+import { Legend, TileGrid } from "@/components/ui";
 import dynamic from "next/dynamic";
 // SendsGrid owns the per-route data cache; the type lives in the
 // RouteLogSheet folder because that's the consumer that fills + reads it.
@@ -144,7 +144,7 @@ export function SendsGrid({
 
         <Legend />
 
-        <div className={styles.tileGrid}>
+        <TileGrid>
           {routes.map((route) => {
             const log = logByRoute.get(route.id);
             return (
@@ -158,7 +158,7 @@ export function SendsGrid({
               />
             );
           })}
-        </div>
+        </TileGrid>
       </div>
 
       {/* The sheet outlives the selection by one animation: the held

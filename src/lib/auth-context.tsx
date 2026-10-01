@@ -144,6 +144,36 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+/**
+ * What an auth event asks of the provider. Pure, so every case is a test
+ * and the listener decides nothing.
+ *
+ *   refetch — load the profile and admin flag for `userId`
+ *   refresh — re-run the server components (the session changed hands)
+ *   clear   — forget the profile (signed out)
+ *
+ * A `SIGNED_IN` for the user already loaded asks for nothing. supabase-js
+ * re-emits `SIGNED_IN` every time a tab regains focus (it recovers the
+ * session from storage), and each one used to refetch the profile and
+ * `router.refresh()` the page — a full server render on every alt-tab.
+ */
+export function planAuthEvent(
+  event: string,
+  sessionUserId: string | null,
+  loadedUserId: string | null,
+): { refetch: string | null; refresh: boolean; clear: boolean } {
+  const none = { refetch: null, refresh: false, clear: false };
+  if (event === "SIGNED_OUT") return { refetch: null, refresh: true, clear: true };
+  if (!sessionUserId) return none;
+  if (event === "SIGNED_IN") {
+    return sessionUserId === loadedUserId ? none : { refetch: sessionUserId, refresh: true, clear: false };
+  }
+  if (event === "TOKEN_REFRESHED" && !loadedUserId) {
+    return { refetch: sessionUserId, refresh: false, clear: false };
+  }
+  return none;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   // Cache snapshot via `useSyncExternalStore` — SSR + client-initial
   // render see `null` (server snapshot), post-mount sees whatever's
@@ -304,36 +334,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     bootstrap();
 
     // Listen for auth changes after bootstrap completes.
+    //
+    // The callback is SYNCHRONOUS and never calls Supabase itself.
+    // supabase-js runs it while holding its auth lock, so a query awaited
+    // in here (it fetched the profile and admin flag) waits on a lock its
+    // own caller holds: the documented deadlock. Every auth call in the
+    // tab then hung until a reload, and a second instance logged "Lock …
+    // was not released within 5000ms". The work is planned here and run
+    // on the next task, after the lock is released.
+    let live = true;
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         if (!initialCheckDone) return;
+        const plan = planAuthEvent(event, session?.user?.id ?? null, profileRef.current?.id ?? null);
 
-        if (event === "SIGNED_IN" && session?.user) {
-          const [p, admin] = await Promise.all([
-            fetchProfile(session.user.id),
-            fetchIsAdmin(session.user.id),
-          ]);
-          setProfile(p);
-          setIsAdmin(admin);
-          routerRef.current.refresh();
-        } else if (event === "TOKEN_REFRESHED" && session?.user) {
-          if (!profileRef.current) {
-            const [p, admin] = await Promise.all([
-              fetchProfile(session.user.id),
-              fetchIsAdmin(session.user.id),
-            ]);
-            setProfile(p);
-            setIsAdmin(admin);
-          }
-        } else if (event === "SIGNED_OUT") {
+        if (plan.clear) {
           setProfile(null);
           setIsAdmin(false);
+        }
+        const userId = plan.refetch;
+        if (userId) {
+          setTimeout(() => {
+            void (async () => {
+              const [p, admin] = await Promise.all([fetchProfile(userId), fetchIsAdmin(userId)]);
+              if (!live) return;
+              setProfile(p);
+              setIsAdmin(admin);
+              if (plan.refresh) routerRef.current.refresh();
+            })();
+          }, 0);
+        } else if (plan.refresh) {
           routerRef.current.refresh();
         }
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      live = false;
+      subscription.unsubscribe();
+    };
   }, [supabase, fetchProfile, fetchIsAdmin, setProfile, setIsAdmin]);
 
   // Onboarding redirect is handled by middleware server-side.

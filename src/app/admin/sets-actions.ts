@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidateTag } from "next/cache";
+import { updateTag } from "next/cache";
 import { gateGymAdminMutation } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/server";
 import { formatError, formatErrorForLog } from "@/lib/errors";
@@ -203,7 +203,7 @@ export async function createSet(
       .from("routes")
       .insert(rows);
     if (routesError) return { error: formatError(routesError) };
-    revalidateTag(tags.setRoutes(data.id), "max");
+    updateTag(tags.setRoutes(data.id));
   }
 
   // A set created straight to live is the same domain event as
@@ -223,7 +223,7 @@ export async function createSet(
     if (failed) return { error: `${failed.error} The set was saved as a draft.` };
   }
 
-  revalidateTag(tags.gymActiveSet(form.gymId), "max");
+  updateTag(tags.gymActiveSet(form.gymId));
   return { success: true, setId: data.id };
 }
 
@@ -324,14 +324,14 @@ export async function updateSet(
     });
     if (failed) {
       // Any other fields in the patch were saved above.
-      revalidateTag(tags.gymActiveSet(gymId), "max");
+      updateTag(tags.gymActiveSet(gymId));
       return failed;
     }
   }
 
-  revalidateTag(tags.gymActiveSet(gymId), "max");
+  updateTag(tags.gymActiveSet(gymId));
   // Status transitions affect leaderboard semantics for the set.
-  revalidateTag(tags.setLeaderboard(setId), "max");
+  updateTag(tags.setLeaderboard(setId));
   return { success: true };
 }
 

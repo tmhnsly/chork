@@ -164,6 +164,11 @@ league can.
 
 ## The missing primitive: League
 
+> **Product status, 2026-10-01:** the friend-group League shipped on
+> 2026-08-30 and was then **removed from Chork entirely** (app and
+> database, migration 147) at Tom's call. What follows is the strategic
+> case as written on 2026-08-20; it no longer describes the product.
+
 **A League is a repeating series with cumulative standings.** A Set
 already ends with a winner; a League is what happens when you stack
 them.

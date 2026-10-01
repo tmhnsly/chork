@@ -21,7 +21,7 @@ import { createMockSupabase } from "@/test/mock-supabase";
 // resolves from the module cache and stays fast.
 vi.setConfig({ testTimeout: 15_000, hookTimeout: 15_000 });
 
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), revalidateTag: vi.fn(), updateTag: vi.fn() }));
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("@/lib/auth", async () => (await import("@/test/mock-auth")).mockAuthModule());
 vi.mock("@/lib/supabase/server", () => ({

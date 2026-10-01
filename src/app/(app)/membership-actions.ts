@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidateTag } from "next/cache";
+import { updateTag } from "next/cache";
 import { cookies } from "next/headers";
 import { revalidateUserProfile } from "@/lib/cache/revalidate";
 import { gateClimberMutation, gateSignedInMutation } from "@/lib/auth";
@@ -75,7 +75,7 @@ export async function joinCompetition(
     // listing page picks up the participation flip via its 60s RSC
     // stale-time — adding a dedicated `competitionsList` tag is the
     // follow-up if the listing freshness ever becomes user-visible.
-    revalidateTag(tags.competition(competitionId), "max");
+    updateTag(tags.competition(competitionId));
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };
@@ -98,7 +98,7 @@ export async function leaveCompetition(
     if (error) return { error: formatError(error) };
 
     // Same tag-bust pattern as joinCompetition above.
-    revalidateTag(tags.competition(competitionId), "max");
+    updateTag(tags.competition(competitionId));
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };

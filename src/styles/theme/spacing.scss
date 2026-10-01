@@ -30,6 +30,15 @@
   // The Card page's rank strip: a 3xl number plus a meta line plus
   // the strip's padding. Named so its skeleton measures the same.
   --size-rank-strip: 4.25rem;
+  // A LeaderboardRow's natural height: the 44px touch target plus
+  // --space-3 above and below. The marketing board positions rows in
+  // slots (so a row can slide past another) and a slot has to be
+  // exactly one row tall.
+  --size-board-row: 4.25rem;
+  // The screen of the marketing DeviceFrame. Tall enough for a rank
+  // strip, the legend and three rows of tiles; short enough to fit
+  // under a headline on a phone-height viewport.
+  --size-device-h: 32rem;
   --size-fab: 3.5rem;             // 56px — floating action button (Material spec)
   // ── Avatar rungs ──────────────────────────────────────────────
   // Mirrors AVATAR_SIZES in `components/ui/avatar-sizes.ts`, which is

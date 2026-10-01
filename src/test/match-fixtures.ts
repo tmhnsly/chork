@@ -32,7 +32,6 @@ export function mkMatch(overrides: Partial<Match> = {}): Match {
     starts_at: "2026-04-01T09:00:00Z",
     ends_at: null,
     last_activity_at: "2026-04-01T09:00:00Z",
-    league_id: null,
     ...overrides,
   };
 }

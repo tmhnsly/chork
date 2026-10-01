@@ -1,7 +1,7 @@
 "use server";
 
 import { createHash } from "node:crypto";
-import { revalidateTag } from "next/cache";
+import { updateTag } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/server";
 import { revalidateUserProfile } from "@/lib/cache/revalidate";
 import {
@@ -102,12 +102,12 @@ export async function updateProfile(
     // old one needs an explicit bust on rename. revalidateUserProfile
     // would re-look-up but we already have both names in scope.
     if (payload.username) {
-      revalidateTag(tags.userByUsername(payload.username), "max");
+      updateTag(tags.userByUsername(payload.username));
       if (oldUsername && oldUsername !== payload.username) {
-        revalidateTag(tags.userByUsername(oldUsername), "max");
+        updateTag(tags.userByUsername(oldUsername));
       }
     } else if (oldUsername) {
-      revalidateTag(tags.userByUsername(oldUsername), "max");
+      updateTag(tags.userByUsername(oldUsername));
     }
     return { success: true };
   } catch (err) {
@@ -291,7 +291,7 @@ export async function deleteAccount(): Promise<ActionResult> {
       .eq("id", userId)
       .maybeSingle();
     const username = row?.username ?? null;
-    if (username) revalidateTag(tags.userByUsername(username), "max");
+    if (username) updateTag(tags.userByUsername(username));
 
     const service = createServiceClient();
 
@@ -302,7 +302,7 @@ export async function deleteAccount(): Promise<ActionResult> {
     // sides and takes nothing with it.
     const { error } = await service.auth.admin.deleteUser(userId);
     if (error) return { error: formatError(error) };
-    if (username) revalidateTag(tags.userByUsername(username), "max");
+    if (username) updateTag(tags.userByUsername(username));
     return { success: true };
   } catch (err) {
     return { error: formatError(err) };

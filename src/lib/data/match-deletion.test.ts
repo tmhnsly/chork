@@ -53,65 +53,30 @@ describe("deleteGameWarning", () => {
 });
 
 describe("canDeleteGame", () => {
-  const game = { hostId: HOST, leagueId: null, status: "live" as const, routeCount: 3 };
+  const game = { hostId: HOST };
 
-  it("lets the host delete a game outside a league, live or finished", () => {
+  it("lets the host delete their game, live or finished", () => {
     expect(canDeleteGame(game, HOST)).toBe(true);
-    expect(canDeleteGame({ ...game, status: "archived" }, HOST)).toBe(true);
   });
 
   it("never offers it to anyone else", () => {
     expect(canDeleteGame(game, "someone-else")).toBe(false);
   });
-
-  it("offers it on a league week only while the week is live with no routes", () => {
-    const week = { ...game, leagueId: "league-1" };
-    expect(canDeleteGame({ ...week, routeCount: 0 }, HOST)).toBe(true);
-    expect(canDeleteGame(week, HOST)).toBe(false);
-    expect(canDeleteGame({ ...week, status: "archived", routeCount: 0 }, HOST)).toBe(false);
-  });
 });
 
 describe("gameOptions", () => {
-  const player = { finished: true, hidden: false, canDelete: false, leagueWeek: false };
+  const player = { finished: true, hidden: false, canDelete: false };
 
   it("lets a player take a finished game off their games, or put a hidden one back", () => {
-    expect(gameOptions(player)).toEqual({ hide: "remove", delete: false, leagueNote: false });
-    expect(gameOptions({ ...player, hidden: true })).toEqual({
-      hide: "put-back",
-      delete: false,
-      leagueNote: false,
-    });
+    expect(gameOptions(player)).toEqual({ hide: "remove", delete: false });
+    expect(gameOptions({ ...player, hidden: true })).toEqual({ hide: "put-back", delete: false });
   });
 
   it("never offers to remove a live game, which set_match_hidden always refuses", () => {
-    expect(gameOptions({ ...player, finished: false, canDelete: true })).toEqual({
-      hide: null,
-      delete: true,
-      leagueNote: false,
-    });
+    expect(gameOptions({ ...player, finished: false, canDelete: true })).toEqual({ hide: null, delete: true });
   });
 
   it("offers a player on a live game nothing at all", () => {
     expect(gameOptions({ ...player, finished: false })).toBeNull();
-  });
-
-  it("explains a league week only to a host who can't delete it", () => {
-    // A live week with no routes can go directly, so no note beside Delete.
-    expect(gameOptions({ ...player, finished: false, canDelete: true, leagueWeek: true })).toEqual({
-      hide: null,
-      delete: true,
-      leagueNote: false,
-    });
-    expect(gameOptions({ ...player, leagueWeek: true })).toEqual({
-      hide: "remove",
-      delete: false,
-      leagueNote: true,
-    });
-    expect(gameOptions({ ...player, finished: false, leagueWeek: true })).toEqual({
-      hide: null,
-      delete: false,
-      leagueNote: true,
-    });
   });
 });

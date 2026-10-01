@@ -111,12 +111,12 @@ Three checks, each closing a gap the generated types leave open:
   `pnpm db:definitions`.
 - **`src/lib/data/json-shapes.test.ts`** reads those definitions and
   asserts that every field a hand-written `jsonb` payload type declares
-  (`MatchState`, `LeagueView`, `ProfileSummary`, the shared result) is
+  (`MatchState`, `ProfileSummary`, the shared result) is
   a key the function builds. The field lists go through `keysOf<T>()`,
   so adding a field to the interface without adding it to the test is a
   compile error (`pnpm typecheck:test`).
 - **`row-pin.ts`** pins the hand-written row types (`Match`,
-  `MatchRoute`, `MatchLog`, `LeagueRow`, …) to `database.types.ts` at
+  `MatchRoute`, `MatchLog`, …) to `database.types.ts` at
   compile time. A failing pin names the field: `{ unpinned: "x" }`.
 
 None of these can see the database. `pnpm db:verify` (run by hand after

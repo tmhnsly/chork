@@ -4,7 +4,7 @@ import { useCallback, useState } from "react";
 import { useDebouncedFlush } from "@/hooks/use-debounced-flush";
 import { fetchMyRank, type MyRank } from "@/app/(app)/rank-actions";
 import type { RouteSet, Route, RouteLog } from "@/lib/data/types";
-import { RankStrip } from "./RankStrip";
+import { RankStrip } from "@/components/ui/RankStrip/RankStrip";
 import { SendsGrid } from "./SendsGrid";
 
 interface Props {

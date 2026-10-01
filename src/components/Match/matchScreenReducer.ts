@@ -52,6 +52,13 @@ export interface MatchLocalState {
   /** Logs keyed by `${ownerId}:${route_id}` for O(1) upsert / remove. */
   logs: Map<string, MatchLog>;
   /**
+   * Log keys with a write this device made that the server hasn't
+   * confirmed: a tap on the wire, or one waiting in the offline queue.
+   * A sync keeps these local copies and no others of the viewer's own
+   * — see `syncFromServer`.
+   */
+  pending: Set<string>;
+  /**
    * The server's points board, as `get_match_leaderboard` scored it.
    * Other players' rows come from here, because their logs reach this
    * device collapsed and cannot be scored on it (see `selectBoard`).
@@ -123,7 +130,14 @@ export type MatchAction =
       ceiling: number | null;
       altCeiling: number | null;
     }
-  | { type: "upsert-log"; log: MatchLog; viewer: SeatViewer }
+  /**
+   * `pending` marks this device's own optimistic write; an upsert
+   * without it (a realtime row, a rollback) is the server's word and
+   * clears the key.
+   */
+  | { type: "upsert-log"; log: MatchLog; viewer: SeatViewer; pending?: boolean }
+  /** The server accepted this device's write for (owner, route). */
+  | { type: "settle-log"; ownerId: string; routeId: string }
   | { type: "remove-log"; userId: string; routeId: string }
   /**
    * A log deleted elsewhere, from its realtime DELETE, which carries
@@ -137,7 +151,7 @@ export type MatchAction =
    * route put up while the phone was locked arrived nowhere: see
    * `syncFromServer` for how the two copies merge.
    */
-  | { type: "sync"; bundle: MatchState; viewer: SeatViewer }
+  | { type: "sync"; bundle: MatchState }
   /** The Match row, from its own realtime UPDATE: a setup change. */
   | { type: "set-match"; match: Match }
   /** The server's board, refetched after someone else's log or a route. */
@@ -192,6 +206,7 @@ export function initMatchState(initialState: MatchState): MatchLocalState {
     board: initialState.leaderboard,
     chork: { letters: new Map(), penSeatId: null },
     allowance: null,
+    pending: new Set(),
     // The bundle carries withdrawn routes, because the Chork pen reads
     // them server-side. To the room a withdrawn route is gone, the same
     // rule `upsert-route` applies live; without this one it came back
@@ -235,18 +250,20 @@ export function initMatchState(initialState: MatchState): MatchLocalState {
  * earlier). Numbers only climb, and the bundle's own count includes
  * withdrawn routes, so its highest number is a true high-water mark.
  *
- * Logs: the server fills and corrects everyone else's, and a newer
- * copy already here (a realtime event that beat a slower refresh)
- * stands. The seats scored here, the viewer's own and a host's guests,
- * always keep the local copy: it may be an optimistic tap whose write
- * hasn't landed, or one waiting in the offline queue, and a snapshot
- * taken before it would undo the tap on screen.
+ * Logs: the server's copy wins, with two exceptions. A newer copy
+ * already here (a realtime event that beat a slower refresh) stands.
+ * And a log with a write still PENDING from this device — a tap on the
+ * wire, or one in the offline queue — keeps its local copy, since a
+ * snapshot taken before it would undo the tap on screen.
+ *
+ * The viewer's own logs used to keep their local copy unconditionally.
+ * That undid the point of a sync when the screen itself started stale:
+ * navigate back to a game inside the router cache's minute and the
+ * mount's bundle predates your last send, so your tile stayed
+ * "attempted" after the resync while the board said "sent". Pending,
+ * not ownership, is what earns the local copy its place.
  */
-function syncFromServer(
-  state: MatchLocalState,
-  bundle: MatchState,
-  viewer: SeatViewer,
-): MatchLocalState {
+function syncFromServer(state: MatchLocalState, bundle: MatchState): MatchLocalState {
   const server = initMatchState(bundle);
   const highWater = bundle.routes.reduce((max, r) => Math.max(max, r.number), 0);
   const routes = [
@@ -259,7 +276,7 @@ function syncFromServer(
     const fromServer = logs.get(key);
     if (
       !fromServer ||
-      entersLogsFor(viewer, local) ||
+      state.pending.has(key) ||
       Date.parse(local.updated_at) > Date.parse(fromServer.updated_at)
     ) {
       logs.set(key, local);
@@ -343,14 +360,28 @@ export function matchReducer(
       const log = entersLogsFor(action.viewer, action.log)
         ? action.log
         : { ...action.log, attempts: visibleAttempts(action.log, false) };
+      const key = logKey(ownerIdOf(log), log.route_id);
       const logs = new Map(state.logs);
-      logs.set(logKey(ownerIdOf(log), log.route_id), log);
-      return { ...state, logs };
+      logs.set(key, log);
+      const pending = new Set(state.pending);
+      if (action.pending) pending.add(key);
+      else pending.delete(key);
+      return { ...state, logs, pending };
+    }
+    case "settle-log": {
+      const key = logKey(action.ownerId, action.routeId);
+      if (!state.pending.has(key)) return state;
+      const pending = new Set(state.pending);
+      pending.delete(key);
+      return { ...state, pending };
     }
     case "remove-log": {
+      const key = logKey(action.userId, action.routeId);
       const logs = new Map(state.logs);
-      logs.delete(logKey(action.userId, action.routeId));
-      return { ...state, logs };
+      logs.delete(key);
+      const pending = new Set(state.pending);
+      pending.delete(key);
+      return { ...state, logs, pending };
     }
     case "remove-log-by-id": {
       const entry = logEntryById(state.logs, action.id);
@@ -360,7 +391,7 @@ export function matchReducer(
       return { ...state, logs };
     }
     case "sync":
-      return syncFromServer(state, action.bundle, action.viewer);
+      return syncFromServer(state, action.bundle);
     case "set-match":
       return { ...state, match: action.match };
     case "set-board":

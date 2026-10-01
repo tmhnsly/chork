@@ -7,7 +7,7 @@
   display: grid;
   place-items: center;
   border: none;
-  background: var(--mono-bg);
+  background: var(--surface-tile);
   cursor: pointer;
   @include focus.ring-inset;
   overflow: hidden;
@@ -23,7 +23,7 @@
   }
 
   &:hover {
-    background: var(--mono-bg-hover);
+    background: var(--surface-tile-hover);
   }
 }
 
@@ -60,6 +60,11 @@
 .attempted {
   background: var(--mono-solid);
   color: var(--mono-app-bg);
+  // The inset focus ring wears the fill's own ink, not the theme ring:
+  // on a step-9 fill the theme ring fell to 1.0–1.9:1 in light mode
+  // (sent violet-9 under violet-11 was 1.15:1). The on-solid inks are
+  // chosen to read as text on their fill, so they clear 3:1 by design.
+  --focus-ring: var(--mono-app-bg);
 
   &:hover { background: var(--mono-solid-hover); }
 }
@@ -67,6 +72,7 @@
 .completed {
   background: var(--accent-solid);
   color: var(--accent-on-solid);
+  --focus-ring: var(--accent-on-solid);
 
   &:hover { background: var(--accent-solid-hover); }
 }
@@ -74,6 +80,7 @@
 .flash {
   background: var(--flash-solid);
   color: var(--flash-on-solid);
+  --focus-ring: var(--flash-on-solid);
 
   &:hover { background: var(--flash-solid-hover); }
 }

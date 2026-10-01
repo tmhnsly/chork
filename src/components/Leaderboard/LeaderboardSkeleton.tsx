@@ -1,7 +1,7 @@
 import { SegmentedControlSkeleton } from "@/components/ui";
 import { LeaderboardRowSkeleton } from "@/components/ui/LeaderboardRow/LeaderboardRowSkeleton";
 import { GymStatsStripSkeleton } from "./GymStatsStripSkeleton";
-import { PodiumSkeleton } from "./PodiumSkeleton";
+import { PodiumSkeleton } from "@/components/ui/Podium/PodiumSkeleton";
 import { ScoringBreakdown } from "./ScoringBreakdown";
 import { InviteCardSkeleton } from "./InviteCardSkeleton";
 import { Named } from "@/components/motion";

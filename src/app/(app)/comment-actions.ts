@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidateTag } from "next/cache";
+import { updateTag } from "next/cache";
 import { gateClimberMutation, requireAuth } from "@/lib/auth";
 import {
   createComment,
@@ -57,7 +57,7 @@ export async function postComment(
     // window). When tighter freshness is needed, introduce a
     // dedicated `userCrewActivity` tag rather than re-adding a path
     // call.
-    revalidateTag(tags.routeComments(routeId), "max");
+    updateTag(tags.routeComments(routeId));
     return { success: true, comment };
   } catch (err) {
     return { error: formatError(err) };
@@ -168,7 +168,7 @@ export async function editComment(
     const comment = await updateComment(supabase, commentId, trimmed);
     // Mirror postComment — bust the per-route comment cache tag so
     // a future cache wrap doesn't serve stale edited text.
-    revalidateTag(tags.routeComments(existing.route_id), "max");
+    updateTag(tags.routeComments(existing.route_id));
     return { success: true, comment };
   } catch (err) {
     return { error: formatError(err) };

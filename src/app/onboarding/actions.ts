@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidateTag } from "next/cache";
+import { updateTag } from "next/cache";
 import { gateSignedInMutation, requireSignedIn } from "@/lib/auth";
 import { validateUsername, UUID_RE } from "@/lib/validation";
 import { createGymMembership } from "@/lib/data/mutations";
@@ -101,7 +101,7 @@ export async function completeOnboarding(
     // climber's new gym's set without waiting for TTL.
     await revalidateUserProfile(supabase, userId);
     if (normalisedGymId) {
-      revalidateTag(tags.gymActiveSet(normalisedGymId), "max");
+      updateTag(tags.gymActiveSet(normalisedGymId));
     }
     return { success: true };
   } catch (err) {

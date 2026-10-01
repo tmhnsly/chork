@@ -28,7 +28,7 @@
  *
  * Pure and structural: every field optional/nullable so all the row
  * shapes (MatchPlayerView, MatchLeaderboardRow, ChorkStanding,
- * LeagueStanding, LeaderboardEntry, shared-result players) fit
+ * LeaderboardEntry, shared-result players) fit
  * without adapters.
  */
 

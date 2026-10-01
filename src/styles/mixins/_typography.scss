@@ -52,7 +52,7 @@
 // time so a typo (`$step: xxl`) is an error rather than a silently
 // invalid `var(--text-xxl)` at runtime. `icon-label` is deliberately
 // absent — see the restricted-rung note in `theme/typography.scss`.
-$_steps: xs, sm, md, lg, xl, 2xl, 3xl, 4xl, 5xl;
+$_steps: xs, sm, md, lg, xl, 2xl, 3xl, 4xl, 5xl, 6xl, 7xl;
 
 $_typography: (
   // Large display heading — page heroes. Every page title in the app

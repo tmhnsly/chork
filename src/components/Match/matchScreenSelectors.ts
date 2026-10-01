@@ -7,7 +7,7 @@ import type {
   MatchRoute,
 } from "@/lib/data/match-types";
 import { entersLogsFor, isGuestSeat, ownerIdOf, type SeatViewer } from "@/lib/data/seat";
-import { allowanceKey, logKey, type MatchLocalState } from "./matchScreenReducer";
+import { allowanceKey, logKey, type MatchLocalState, type SetupSection } from "./matchScreenReducer";
 
 /**
  * What the live screen derives from its model. Pure, so each rule has
@@ -151,4 +151,24 @@ export function seatInPanel(
       kind === "peek" ? ownerIdOf(p) === panel.playerId : p.player_id === panel.playerId,
     ) ?? null
   );
+}
+
+/**
+ * Why a setup section can't be changed right now, or null if it can.
+ * The game type and the grading both lock with the first route — the
+ * server refuses the same (`set_match_game_mode` from migration 146,
+ * `set_match_setup` from 137) — while the name and place can change
+ * any time. One home for the rule: the pills draw their locked state
+ * from it and the screen says the reason when a locked pill is tapped.
+ */
+export function setupLockReason(section: SetupSection, lobby: boolean): string | null {
+  if (lobby) return null;
+  switch (section) {
+    case "game":
+      return "The game type is locked once a route is up";
+    case "climbing":
+      return "Grading is locked once a route is up";
+    case "details":
+      return null;
+  }
 }
